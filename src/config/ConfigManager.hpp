@@ -26,6 +26,7 @@ public:
     CConfigManager();
 
     void                tick();
+    void                init();
 
     int                 getInt(std::string);
     float               getFloat(std::string);

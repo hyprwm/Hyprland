@@ -14,6 +14,9 @@ CManagerThread::~CManagerThread() {
 }
 
 void CManagerThread::handle() {
+
+    g_pConfigManager->init();
+
     while (3.1415f) {
         g_pConfigManager->tick();
 

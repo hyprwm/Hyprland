@@ -15,7 +15,9 @@ CConfigManager::CConfigManager() {
     configValues["general:border_size"].intValue = 1;
     configValues["general:gaps_in"].intValue = 5;
     configValues["general:gaps_out"].intValue = 20;
+}
 
+void CConfigManager::init() {
     loadConfigLoadVars();
 
     isFirstLaunch = false;

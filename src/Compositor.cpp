@@ -40,7 +40,7 @@ CCompositor::CCompositor() {
     m_sWLRXDGActivation - wlr_xdg_activation_v1_create(m_sWLDisplay);
     m_sWLROutputLayout = wlr_output_layout_create();
 
-    wl_signal_add(&m_sWLRXDGActivation->events.request_activate, &Events::listen_activate);
+   // wl_signal_add(&m_sWLRXDGActivation->events.request_activate, &Events::listen_activate);
     wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listen_change);
     wl_signal_add(&m_sWLRBackend->events.new_output, &Events::listen_newOutput);
 
@@ -88,6 +88,21 @@ CCompositor::~CCompositor() {
 }
 
 void CCompositor::startCompositor() {
+
+    // Init all the managers BEFORE we start with the wayland server so that ALL of the stuff is initialized
+    // properly and we dont get any bad mem reads.
+    //
+    Debug::log(LOG, "Creating the config manager!");
+    g_pConfigManager = std::make_unique<CConfigManager>();
+
+    Debug::log(LOG, "Creating the ManagerThread!");
+    g_pManagerThread = std::make_unique<CManagerThread>();
+
+    Debug::log(LOG, "Creating the InputManager!");
+    g_pInputManager = std::make_unique<CInputManager>();
+    //
+    //
+
     m_szWLDisplaySocket = wl_display_add_socket_auto(m_sWLDisplay);
 
     if (!m_szWLDisplaySocket) {
@@ -107,15 +122,6 @@ void CCompositor::startCompositor() {
     }
 
     wlr_xcursor_manager_set_cursor_image(m_sWLRXCursorMgr, "left_ptr", m_sWLRCursor);
-
-    Debug::log(LOG, "Creating the config manager!");
-    g_pConfigManager = std::make_unique<CConfigManager>();
-
-    Debug::log(LOG, "Creating the ManagerThread!");
-    g_pManagerThread = std::make_unique<CManagerThread>();
-
-    Debug::log(LOG, "Creating the InputManager!");
-    g_pInputManager = std::make_unique<CInputManager>();
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");

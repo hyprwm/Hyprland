@@ -6,6 +6,10 @@ namespace Events {
     LISTENER(change);
     LISTENER(newOutput);
     LISTENER(newLayerSurface);
+    LISTENER(destroyLayerSurface);
+    LISTENER(mapLayerSurface);
+    LISTENER(unmapLayerSurface);
+    LISTENER(commitLayerSurface);
     LISTENER(newXDGSurface);
 
     LISTENER(mouseMove);

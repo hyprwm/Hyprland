@@ -1,16 +1,36 @@
 #include "Events.hpp"
-#include "../input/InputManager.hpp"
+
 #include "../Compositor.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../input/InputManager.hpp"
 
 void Events::listener_activate(wl_listener* listener, void* data) {
-    
+    // TODO
 }
 
 void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
 
-    const auto GEOMETRY = wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, NULL);
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m.output);
+
+        // TODO: clients off of disabled
+
+        const auto BOX = wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m.output);
+
+        m.vecSize.x = BOX->width;
+        m.vecSize.y = BOX->height;
+        m.vecPosition.x = BOX->x;
+        m.vecPosition.y = BOX->y;
+
+        CONFIGHEAD->state.enabled = m.output->enabled;
+        CONFIGHEAD->state.mode = m.output->current_mode;
+        CONFIGHEAD->state.x = m.vecPosition.x;
+        CONFIGHEAD->state.y = m.vecPosition.y;
+    }
+
+    wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
 }
 
 void Events::listener_newOutput(wl_listener* listener, void* data) {
@@ -18,6 +38,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     const auto OUTPUT = (wlr_output*)data;
 
     SMonitor newMonitor;
+    newMonitor.output = OUTPUT;
+    newMonitor.ID = g_pCompositor->m_vMonitors.size();
+    newMonitor.szName = OUTPUT->name;
 
     wlr_output_init_render(OUTPUT, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
 
@@ -31,8 +54,14 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     wlr_output_set_mode(OUTPUT, wlr_output_preferred_mode(OUTPUT));
     wlr_output_enable_adaptive_sync(OUTPUT, 1);
 
-    wl_signal_add(&OUTPUT->events.frame, &Events::listen_monitorFrame);
-    wl_signal_add(&OUTPUT->events.destroy, &Events::listen_monitorDestroy);
+    // create it in the arr
+    newMonitor.vecPosition = monitorRule.offset;
+    newMonitor.vecSize = monitorRule.resolution;
+    g_pCompositor->m_vMonitors.push_back(newMonitor);
+    //
+
+    wl_signal_add(&OUTPUT->events.frame, &g_pCompositor->m_vMonitors[g_pCompositor->m_vMonitors.size() - 1].listen_monitorFrame);
+    wl_signal_add(&OUTPUT->events.destroy, &g_pCompositor->m_vMonitors[g_pCompositor->m_vMonitors.size() - 1].listen_monitorDestroy);
 
     wlr_output_enable(OUTPUT, 1);
     if (!wlr_output_commit(OUTPUT)) {
@@ -42,25 +71,87 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, OUTPUT, monitorRule.offset.x, monitorRule.offset.y);
 
-    // add new monitor to our internal arr
-    newMonitor.ID = g_pCompositor->m_vMonitors.size();
-    newMonitor.szName = OUTPUT->name;
-    newMonitor.vecPosition = monitorRule.offset;
-    newMonitor.vecSize = monitorRule.resolution;
-    
-    g_pCompositor->m_vMonitors.push_back(newMonitor);
+    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", OUTPUT->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, OUTPUT);
 }
 
 void Events::listener_monitorFrame(wl_listener* listener, void* data) {
+    SMonitor* const PMONITOR = wl_container_of(listener, PMONITOR, listen_monitorFrame);
 
+    const auto TIMENOWNS = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    const float bgcol[4] = {0.1f,0.1f,0.1f,1.f};
+
+    while (!wlr_output_commit(PMONITOR->output)) {
+        if (!wlr_output_attach_render(PMONITOR->output, nullptr))
+            return;
+
+        wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+        wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, bgcol);
+
+        // TODO: render clients
+
+        wlr_output_render_software_cursors(PMONITOR->output, NULL);
+
+        wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+    }
 }
 
 void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
+    const auto OUTPUT = (wlr_output*)data;
+
+    const auto clone = g_pCompositor->m_vMonitors;
+
+    g_pCompositor->m_vMonitors.clear();
+
+    for (auto& m : clone) {
+        if (m.szName != OUTPUT->name) 
+            g_pCompositor->m_vMonitors.push_back(m);
+    }
+
+    // TODO: cleanup windows
+}
+
+void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
+    const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
+
+    const auto PMONITOR = (SMonitor*)WLRLAYERSURFACE->output->data;
+    PMONITOR->m_dLayerSurfaces.push_back(SLayerSurface());
+    SLayerSurface* layerSurface = &PMONITOR->m_dLayerSurfaces[PMONITOR->m_dLayerSurfaces.size() - 1];
+    wlr_layer_surface_v1_state oldState;
+
+    if (!WLRLAYERSURFACE->output) {
+        WLRLAYERSURFACE->output = g_pCompositor->m_vMonitors[0].output; // TODO: current mon
+    }
+
+    wl_signal_add(&WLRLAYERSURFACE->surface->events.commit, &layerSurface->listen_commitLayerSurface);
+    wl_signal_add(&WLRLAYERSURFACE->surface->events.destroy, &layerSurface->listen_destroyLayerSurface);
+    wl_signal_add(&WLRLAYERSURFACE->events.map, &layerSurface->listen_mapLayerSurface);
+    wl_signal_add(&WLRLAYERSURFACE->events.unmap, &layerSurface->listen_unmapLayerSurface);
+
+    layerSurface->layerSurface = WLRLAYERSURFACE;
+    WLRLAYERSURFACE->data = layerSurface;
+
+    // todo: arrange
+}
+
+void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
+    
+}
+
+void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
 
 }
 
-void Events::listener_mouseAxis(wl_listener* listener, void* data) {
+void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
 
+}
+
+void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
+    
+}
+
+
+void Events::listener_mouseAxis(wl_listener* listener, void* data) {
+    // TODO:
 }
 
 void Events::listener_mouseButton(wl_listener* listener, void* data) {
@@ -85,10 +176,6 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
 
 void Events::listener_newKeyboard(wl_listener* listener, void* data) {
 
-}
-
-void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
-    
 }
 
 void Events::listener_newXDGSurface(wl_listener* listener, void* data) {

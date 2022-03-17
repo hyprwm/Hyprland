@@ -16,3 +16,10 @@ struct SLayerSurface {
     wlr_box                 geometry;
     zwlr_layer_shell_v1_layer layer;
 };
+
+struct SRenderData {
+    wlr_output* output;
+    timespec* when;
+    int x;
+    int y;
+};

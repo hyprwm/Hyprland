@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../helpers/WLClasses.hpp"
 #include "../input/InputManager.hpp"
+#include "../render/Renderer.hpp"
 
 void Events::listener_activate(wl_listener* listener, void* data) {
     // TODO
@@ -60,8 +61,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     g_pCompositor->m_vMonitors.push_back(newMonitor);
     //
 
-    wl_signal_add(&OUTPUT->events.frame, &g_pCompositor->m_vMonitors[g_pCompositor->m_vMonitors.size() - 1].listen_monitorFrame);
-    wl_signal_add(&OUTPUT->events.destroy, &g_pCompositor->m_vMonitors[g_pCompositor->m_vMonitors.size() - 1].listen_monitorDestroy);
+    wl_signal_add(&OUTPUT->events.frame, &g_pCompositor->m_vMonitors.back().listen_monitorFrame);
+    wl_signal_add(&OUTPUT->events.destroy, &g_pCompositor->m_vMonitors.back().listen_monitorDestroy);
 
     wlr_output_enable(OUTPUT, 1);
     if (!wlr_output_commit(OUTPUT)) {
@@ -80,7 +81,6 @@ void Events::listener_monitorFrame(wl_listener* listener, void* data) {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     const float bgcol[4] = {0.1f,0.1f,0.1f,1.f};
-    const float rectcol[4] = {0.69f,0.1f,0.69f,1.f};
 
     if (!wlr_output_attach_render(PMONITOR->output, nullptr))
         return;
@@ -88,7 +88,7 @@ void Events::listener_monitorFrame(wl_listener* listener, void* data) {
     wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
     wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, bgcol);
 
-    // TODO: render clients
+    g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
 
     wlr_output_render_software_cursors(PMONITOR->output, NULL);
 
@@ -118,7 +118,6 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     const auto PMONITOR = (SMonitor*)WLRLAYERSURFACE->output->data;
     PMONITOR->m_dLayerSurfaces.push_back(SLayerSurface());
     SLayerSurface* layerSurface = &PMONITOR->m_dLayerSurfaces[PMONITOR->m_dLayerSurfaces.size() - 1];
-    wlr_layer_surface_v1_state oldState;
 
     if (!WLRLAYERSURFACE->output) {
         WLRLAYERSURFACE->output = g_pCompositor->m_vMonitors[0].output; // TODO: current mon
@@ -151,6 +150,35 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
     
 }
 
+void Events::listener_mapWindow(wl_listener* listener, void* data) {
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    PWINDOW->m_iMonitorID = PMONITOR->ID;
+
+    // test
+    wlr_xdg_toplevel_set_size(PWINDOW->m_uSurface.xdg->toplevel, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+}
+
+void Events::listener_unmapWindow(wl_listener* listener, void* data) {
+
+}
+
+void Events::listener_commitWindow(wl_listener* listener, void* data) {
+
+}
+
+void Events::listener_destroyWindow(wl_listener* listener, void* data) {
+    
+}
+
+void Events::listener_setTitleWindow(wl_listener* listener, void* data) {
+    
+}
+
+void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
+
+}
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
     // TODO:
@@ -200,7 +228,22 @@ void Events::listener_newKeyboard(wl_listener* listener, void* data) {
 }
 
 void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
-    
+    // A window got opened
+    const auto XDGSURFACE = (wlr_xdg_surface*)data;
+
+    if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
+        return; // TODO: handle?
+
+    g_pCompositor->m_vWindows.push_back(CWindow());
+    const auto PNEWWINDOW = &g_pCompositor->m_vWindows.back();
+    PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
+
+    wl_signal_add(&XDGSURFACE->surface->events.commit, &PNEWWINDOW->listen_commitWindow);
+    wl_signal_add(&XDGSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
+    wl_signal_add(&XDGSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
+    wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
+    wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
+    wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
 }
 
 void Events::listener_outputMgrApply(wl_listener* listener, void* data) {

@@ -1,7 +1,7 @@
 #include "ManagerThread.hpp"
 
 CManagerThread::CManagerThread() {
-    m_tMainThread = new std::thread([=]() {
+    m_tMainThread = new std::thread([&]() {
         // Call the handle method.
         this->handle();
     });

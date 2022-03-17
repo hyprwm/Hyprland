@@ -62,6 +62,8 @@ CCompositor::CCompositor() {
     wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listen_requestMouse);
     wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
 
+    m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
+
     // TODO: XWayland
 }
 
@@ -82,6 +84,9 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the InputManager!");
     g_pInputManager = std::make_unique<CInputManager>();
+
+    Debug::log(LOG, "Creating the HyprRenderer!");
+    g_pHyprRenderer = std::make_unique<CHyprRenderer>();
     //
     //
 
@@ -111,4 +116,31 @@ void CCompositor::startCompositor() {
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");
     wl_display_run(m_sWLDisplay);
+}
+
+SMonitor* CCompositor::getMonitorFromID(const int& id) {
+    for (auto& m : m_vMonitors) {
+        if (m.ID == id) {
+            return &m;
+        }
+    }
+
+    return nullptr;
+}
+
+SMonitor* CCompositor::getMonitorFromCursor() {
+    const auto COORDS = g_pInputManager->getMouseCoordsInternal();
+    const auto OUTPUT = wlr_output_layout_output_at(m_sWLROutputLayout, COORDS.x, COORDS.y);
+
+    if (!OUTPUT) {
+        Debug::log(WARN, "getMonitorFromCursor: cursour outside monitors??");
+        return &m_vMonitors[0];
+    }
+
+    for (auto& m : m_vMonitors) {
+        if (m.output == OUTPUT)
+            return &m;
+    }
+
+    return &m_vMonitors[0];
 }

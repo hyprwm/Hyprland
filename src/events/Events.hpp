@@ -5,12 +5,21 @@ namespace Events {
     LISTENER(activate);
     LISTENER(change);
     LISTENER(newOutput);
+
     LISTENER(newLayerSurface);
     LISTENER(destroyLayerSurface);
     LISTENER(mapLayerSurface);
     LISTENER(unmapLayerSurface);
     LISTENER(commitLayerSurface);
+
     LISTENER(newXDGSurface);
+
+    LISTENER(commitWindow);
+    LISTENER(mapWindow);
+    LISTENER(unmapWindow);
+    LISTENER(destroyWindow);
+    LISTENER(setTitleWindow);
+    LISTENER(fullscreenWindow);
 
     LISTENER(mouseMove);
     LISTENER(mouseMoveAbsolute);

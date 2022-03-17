@@ -10,6 +10,8 @@
 #include "ManagerThread.hpp"
 #include "input/InputManager.hpp"
 #include "helpers/Monitor.hpp"
+#include "Window.hpp"
+#include "render/Renderer.hpp"
 
 class CCompositor {
 public:
@@ -42,8 +44,15 @@ public:
     const char*             m_szWLDisplaySocket;
 
     std::deque<SMonitor>    m_vMonitors;
+    std::deque<CWindow>     m_vWindows;
 
     void                    startCompositor(); 
+
+
+    // ------------------------------------------------- //
+
+    SMonitor*               getMonitorFromID(const int&);
+    SMonitor*               getMonitorFromCursor();
 };
 
 

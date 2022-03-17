@@ -158,26 +158,32 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 
     // test
     wlr_xdg_toplevel_set_size(PWINDOW->m_uSurface.xdg->toplevel, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+
+    Debug::log(LOG, "Map request dispatched.");
 }
 
 void Events::listener_unmapWindow(wl_listener* listener, void* data) {
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+
 
 }
 
 void Events::listener_commitWindow(wl_listener* listener, void* data) {
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
 
+    
 }
 
 void Events::listener_destroyWindow(wl_listener* listener, void* data) {
-    
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
 }
 
 void Events::listener_setTitleWindow(wl_listener* listener, void* data) {
-    
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
 }
 
 void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
-
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
 }
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
@@ -186,6 +192,18 @@ void Events::listener_mouseAxis(wl_listener* listener, void* data) {
 
 void Events::listener_mouseButton(wl_listener* listener, void* data) {
     
+}
+
+void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {
+
+}
+
+void Events::listener_keyboardKey(wl_listener* listener, void* data) {
+    g_pInputManager->onKeyboardKey((wlr_event_keyboard_key*)data);
+}
+
+void Events::listener_keyboardMod(wl_listener* listener, void* data) {
+    g_pInputManager->onKeyboardMod(data);
 }
 
 void Events::listener_mouseFrame(wl_listener* listener, void* data) {
@@ -206,7 +224,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
     switch(DEVICE->type) {
         case WLR_INPUT_DEVICE_KEYBOARD:
             Debug::log(LOG, "Attached a keyboard with name %s", DEVICE->name);
-            // TODO:
+            g_pInputManager->newKeyboard(DEVICE);
             break;
         case WLR_INPUT_DEVICE_POINTER:
             Debug::log(LOG, "Attached a mouse with name %s", DEVICE->name);
@@ -221,10 +239,6 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
     // todo: keyboard caps
 
     wlr_seat_set_capabilities(g_pCompositor->m_sWLRSeat, capabilities);
-}
-
-void Events::listener_newKeyboard(wl_listener* listener, void* data) {
-
 }
 
 void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
@@ -244,13 +258,17 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
     wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
     wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
+
+    Debug::log(LOG, "New XDG Surface created.");
 }
 
 void Events::listener_outputMgrApply(wl_listener* listener, void* data) {
+    const auto CONFIG = (wlr_output_configuration_v1*)data;
 
 }
 
 void Events::listener_outputMgrTest(wl_listener* listener, void* data) {
+    const auto CONFIG = (wlr_output_configuration_v1*)data;
 
 }
 
@@ -259,9 +277,11 @@ void Events::listener_requestMouse(wl_listener* listener, void* data) {
 }
 
 void Events::listener_requestSetPrimarySel(wl_listener* listener, void* data) {
-
+    const auto EVENT = (wlr_seat_request_set_primary_selection_event*)data;
+    wlr_seat_set_primary_selection(g_pCompositor->m_sWLRSeat, EVENT->source, EVENT->serial);
 }
 
 void Events::listener_requestSetSel(wl_listener* listener, void* data) {
-
+    const auto EVENT = (wlr_seat_request_set_selection_event*)data;
+    wlr_seat_set_selection(g_pCompositor->m_sWLRSeat, EVENT->source, EVENT->serial);
 }

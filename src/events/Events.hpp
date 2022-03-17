@@ -26,8 +26,12 @@ namespace Events {
     LISTENER(mouseButton);
     LISTENER(mouseAxis);
     LISTENER(mouseFrame);
+    
     LISTENER(newInput);
-    LISTENER(newKeyboard);
+
+    LISTENER(keyboardKey);
+    LISTENER(keyboardMod);
+    LISTENER(keyboardDestroy);
 
     LISTENER(requestMouse);
     LISTENER(requestSetSel);

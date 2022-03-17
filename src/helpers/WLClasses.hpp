@@ -23,3 +23,11 @@ struct SRenderData {
     int x;
     int y;
 };
+
+struct SKeyboard {
+    wlr_input_device* keyboard;
+
+    DYNLISTENER(keyboardMod);
+    DYNLISTENER(keyboardKey);
+    DYNLISTENER(keyboardDestroy);
+};

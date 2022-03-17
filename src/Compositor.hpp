@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <deque>
 
 #include "defines.hpp"
 #include "debug/Log.hpp"
@@ -8,6 +9,7 @@
 #include "config/ConfigManager.hpp"
 #include "ManagerThread.hpp"
 #include "input/InputManager.hpp"
+#include "helpers/Monitor.hpp"
 
 class CCompositor {
 public:
@@ -36,7 +38,9 @@ public:
 
     const char*             m_szWLDisplaySocket;
 
-    void            startCompositor();    
+    std::deque<SMonitor>    m_vMonitors;
+
+    void                    startCompositor(); 
 };
 
 

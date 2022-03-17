@@ -66,6 +66,52 @@ void CConfigManager::handleRawExec(const std::string& command, const std::string
     }
 }
 
+void CConfigManager::handleMonitor(const std::string& command, const std::string& args) {
+
+    // get the monitor config
+    SMonitorRule newrule;
+
+    std::string curitem = "";
+
+    std::string argZ = args;
+
+    auto nextItem = [&]() {
+        auto idx = argZ.find_first_of(',');
+
+        if (idx != std::string::npos) {
+            curitem = argZ.substr(0, idx);
+            argZ = argZ.substr(idx + 1);
+        } else {
+            argZ = "";
+            curitem = argZ;
+        }
+    };
+
+    nextItem();
+
+    newrule.name = curitem;
+
+    nextItem();
+
+    newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
+    newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1));
+
+    nextItem();
+
+    newrule.offset.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
+    newrule.offset.y = stoi(curitem.substr(curitem.find_first_of('x') + 1));
+
+    nextItem();
+
+    newrule.mfact = stof(curitem);
+
+    nextItem();
+
+    newrule.scale = stof(curitem);
+
+    m_dMonitorRules.push_back(newrule);
+}
+
 void CConfigManager::parseLine(std::string& line) {
     // first check if its not a comment
     const auto COMMENTSTART = line.find_first_of('#');
@@ -111,6 +157,9 @@ void CConfigManager::parseLine(std::string& line) {
             handleRawExec(COMMAND, VALUE);
             return;
         }
+    } else if (COMMAND == "monitor") {
+        handleMonitor(COMMAND, VALUE);
+        return;
     }
 
     configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
@@ -120,6 +169,8 @@ void CConfigManager::loadConfigLoadVars() {
     Debug::log(LOG, "Reloading the config!");
     parseError = "";       // reset the error
     currentCategory = "";  // reset the category
+
+    m_dMonitorRules.clear();
 
     const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
@@ -198,4 +249,30 @@ float CConfigManager::getFloat(std::string v) {
 
 std::string CConfigManager::getString(std::string v) {
     return getConfigValueSafe(v).strValue;
+}
+
+SMonitorRule CConfigManager::getMonitorRuleFor(std::string name) {
+    SMonitorRule* found = nullptr;
+
+    for (auto& r : m_dMonitorRules) {
+        if (r.name == name) {
+            found = &r;
+            break;
+        }
+    }
+
+    if (found)
+        return *found;
+
+    for (auto& r : m_dMonitorRules) {
+        if (r.name == "") {
+            found = &r;
+            break;
+        }
+    }
+
+    if (found)
+        return *found;
+
+    return SMonitorRule{.name = "", .resolution = Vector2D(1280, 720), .offset = Vector2D(0, 0), .mfact = 0.5f, .scale = 1};
 }

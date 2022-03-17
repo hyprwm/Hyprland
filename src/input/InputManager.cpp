@@ -15,3 +15,8 @@ void CInputManager::onMouseMoved(wlr_event_pointer_motion* e) {
         wlr_cursor_move(g_pCompositor->m_sWLRCursor, e->device, delta.floor().x, delta.floor().y);
     }
 }
+
+void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
+    wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, e->device, e->x, e->y);
+}
+

@@ -6,7 +6,7 @@ class CInputManager {
 public:
 
     void            onMouseMoved(wlr_event_pointer_motion*);
-    void            onMouseButton(int);
+    void            onMouseWarp(wlr_event_pointer_motion_absolute*);
 
 private:
     Vector2D        m_vMouseCoords      = Vector2D(0,0);

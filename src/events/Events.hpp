@@ -22,4 +22,7 @@ namespace Events {
 
     LISTENER(outputMgrApply);
     LISTENER(outputMgrTest);
+
+    LISTENER(monitorFrame);
+    LISTENER(monitorDestroy);
 };

@@ -16,13 +16,13 @@ void Events::listener_change(wl_listener* listener, void* data) {
         const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m.output);
 
         // TODO: clients off of disabled
+        wlr_box BOX;
+        wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m.output, &BOX);
 
-        const auto BOX = wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m.output);
-
-        m.vecSize.x = BOX->width;
-        m.vecSize.y = BOX->height;
-        m.vecPosition.x = BOX->x;
-        m.vecPosition.y = BOX->y;
+        m.vecSize.x = BOX.width;
+        m.vecSize.y = BOX.height;
+        m.vecPosition.x = BOX.x;
+        m.vecPosition.y = BOX.y;
 
         CONFIGHEAD->state.enabled = m.output->enabled;
         CONFIGHEAD->state.mode = m.output->current_mode;
@@ -77,22 +77,24 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 void Events::listener_monitorFrame(wl_listener* listener, void* data) {
     SMonitor* const PMONITOR = wl_container_of(listener, PMONITOR, listen_monitorFrame);
 
-    const auto TIMENOWNS = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
     const float bgcol[4] = {0.1f,0.1f,0.1f,1.f};
+    const float rectcol[4] = {0.69f,0.1f,0.69f,1.f};
 
-    while (!wlr_output_commit(PMONITOR->output)) {
-        if (!wlr_output_attach_render(PMONITOR->output, nullptr))
-            return;
+    if (!wlr_output_attach_render(PMONITOR->output, nullptr))
+        return;
 
-        wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
-        wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, bgcol);
+    wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+    wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, bgcol);
 
-        // TODO: render clients
+    // TODO: render clients
 
-        wlr_output_render_software_cursors(PMONITOR->output, NULL);
+    wlr_output_render_software_cursors(PMONITOR->output, NULL);
 
-        wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
-    }
+    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+
+    wlr_output_commit(PMONITOR->output);
 }
 
 void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
@@ -159,7 +161,7 @@ void Events::listener_mouseButton(wl_listener* listener, void* data) {
 }
 
 void Events::listener_mouseFrame(wl_listener* listener, void* data) {
-
+    wlr_seat_pointer_notify_frame(g_pCompositor->m_sWLRSeat);
 }
 
 void Events::listener_mouseMove(wl_listener* listener, void* data) {
@@ -167,11 +169,30 @@ void Events::listener_mouseMove(wl_listener* listener, void* data) {
 }
 
 void Events::listener_mouseMoveAbsolute(wl_listener* listener, void* data) {
-    
+    g_pInputManager->onMouseWarp((wlr_event_pointer_motion_absolute*)data);
 }
 
 void Events::listener_newInput(wl_listener* listener, void* data) {
+    const auto DEVICE = (wlr_input_device*)data;
 
+    switch(DEVICE->type) {
+        case WLR_INPUT_DEVICE_KEYBOARD:
+            Debug::log(LOG, "Attached a keyboard with name %s", DEVICE->name);
+            // TODO:
+            break;
+        case WLR_INPUT_DEVICE_POINTER:
+            Debug::log(LOG, "Attached a mouse with name %s", DEVICE->name);
+            wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, DEVICE);
+            break;
+        default:
+            break;
+    }
+
+    uint32_t capabilities = WL_SEAT_CAPABILITY_POINTER;
+    
+    // todo: keyboard caps
+
+    wlr_seat_set_capabilities(g_pCompositor->m_sWLRSeat, capabilities);
 }
 
 void Events::listener_newKeyboard(wl_listener* listener, void* data) {

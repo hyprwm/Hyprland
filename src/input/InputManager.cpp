@@ -20,3 +20,6 @@ void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, e->device, e->x, e->y);
 }
 
+Vector2D CInputManager::getMouseCoordsInternal() {
+    return m_vMouseCoords;
+}

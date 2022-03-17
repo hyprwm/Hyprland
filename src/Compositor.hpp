@@ -22,6 +22,8 @@ public:
     wlr_renderer*                    m_sWLRRenderer;
     wlr_allocator*                   m_sWLRAllocator;
     wlr_compositor*                  m_sWLRCompositor;
+    wlr_subcompositor*               m_sWLRSubCompositor;
+    wlr_data_device_manager*         m_sWLRDataDevMgr;
     wlr_xdg_activation_v1*           m_sWLRXDGActivation;
     wlr_output_layout*               m_sWLROutputLayout;
     wlr_idle*                        m_sWLRIdle;
@@ -33,6 +35,7 @@ public:
     wlr_seat*                        m_sWLRSeat;
     wlr_output_manager_v1*           m_sWLROutputMgr;
     wlr_presentation*                m_sWLRPresentation;
+    wlr_scene*                       m_sWLRScene;
     // ------------------------------------------------- //
 
 

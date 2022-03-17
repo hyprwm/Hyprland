@@ -19,6 +19,8 @@ CCompositor::CCompositor() {
         return;
     }
 
+    wlr_renderer_init_wl_display(m_sWLRRenderer, m_sWLDisplay);
+
     m_sWLRAllocator = wlr_allocator_autocreate(m_sWLRBackend, m_sWLRRenderer);
 
     if (!m_sWLRAllocator) {
@@ -29,56 +31,36 @@ CCompositor::CCompositor() {
 
 
     m_sWLRCompositor = wlr_compositor_create(m_sWLDisplay, m_sWLRRenderer);
-    wlr_export_dmabuf_manager_v1_create(m_sWLDisplay);
-    wlr_screencopy_manager_v1_create(m_sWLDisplay);
-    wlr_data_control_manager_v1_create(m_sWLDisplay);
-    wlr_data_device_manager_create(m_sWLDisplay);
-    wlr_gamma_control_manager_v1_create(m_sWLDisplay);
-    wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
-    wlr_viewporter_create(m_sWLDisplay);
+    m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);
+    m_sWLRDataDevMgr = wlr_data_device_manager_create(m_sWLDisplay);
 
-    m_sWLRXDGActivation - wlr_xdg_activation_v1_create(m_sWLDisplay);
     m_sWLROutputLayout = wlr_output_layout_create();
 
-   // wl_signal_add(&m_sWLRXDGActivation->events.request_activate, &Events::listen_activate);
-    wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listen_change);
     wl_signal_add(&m_sWLRBackend->events.new_output, &Events::listen_newOutput);
 
-    m_sWLRIdle = wlr_idle_create(m_sWLDisplay);
-    m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay);
+    m_sWLRScene = wlr_scene_create();
+    wlr_scene_attach_output_layout(m_sWLRScene, m_sWLROutputLayout);
+
     m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay);
-
-    wl_signal_add(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface);
     wl_signal_add(&m_sWLRXDGShell->events.new_surface, &Events::listen_newXDGSurface);
-
-    wlr_server_decoration_manager_set_default_mode(wlr_server_decoration_manager_create(m_sWLDisplay), WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
-    wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
 
     m_sWLRCursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(m_sWLRCursor, m_sWLROutputLayout);
 
-    m_sWLRXCursorMgr = wlr_xcursor_manager_create(NULL, 24);
-
-    m_sWLRVKeyboardMgr = wlr_virtual_keyboard_manager_v1_create(m_sWLDisplay);
-
-    m_sWLRSeat = wlr_seat_create(m_sWLDisplay, "seat0");
-
-    m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
-
-    m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
+    m_sWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, 24);
+    wlr_xcursor_manager_load(m_sWLRXCursorMgr, 1);
 
     wl_signal_add(&m_sWLRCursor->events.motion, &Events::listen_mouseMove);
     wl_signal_add(&m_sWLRCursor->events.motion_absolute, &Events::listen_mouseMoveAbsolute);
     wl_signal_add(&m_sWLRCursor->events.button, &Events::listen_mouseButton);
     wl_signal_add(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis);
     wl_signal_add(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame);
+
+    m_sWLRSeat = wlr_seat_create(m_sWLDisplay, "seat0");
+
     wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listen_newInput);
-    wl_signal_add(&m_sWLRVKeyboardMgr->events.new_virtual_keyboard, &Events::listen_newKeyboard);
     wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listen_requestMouse);
     wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
-    wl_signal_add(&m_sWLRSeat->events.request_set_primary_selection, &Events::listen_requestSetPrimarySel);
-    wl_signal_add(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply);
-    wl_signal_add(&m_sWLROutputMgr->events.test, &Events::listen_outputMgrTest);
 
     // TODO: XWayland
 }
@@ -107,6 +89,7 @@ void CCompositor::startCompositor() {
 
     if (!m_szWLDisplaySocket) {
         Debug::log(CRIT, "m_szWLDisplaySocket NULL!");
+        wlr_backend_destroy(m_sWLRBackend);
         RIP("m_szWLDisplaySocket NULL!");
     }
 
@@ -118,6 +101,8 @@ void CCompositor::startCompositor() {
 
     if (!wlr_backend_start(m_sWLRBackend)) {
         Debug::log(CRIT, "Backend did not start!");
+        wlr_backend_destroy(m_sWLRBackend);
+        wl_display_destroy(m_sWLDisplay);
         RIP("Backend did not start!");
     }
 

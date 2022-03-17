@@ -8,6 +8,9 @@ public:
     void            onMouseMoved(wlr_event_pointer_motion*);
     void            onMouseWarp(wlr_event_pointer_motion_absolute*);
 
+
+    Vector2D        getMouseCoordsInternal();
+
 private:
     Vector2D        m_vMouseCoords      = Vector2D(0,0);
     Vector2D        m_vWLRMouseCoords   = Vector2D(0,0);

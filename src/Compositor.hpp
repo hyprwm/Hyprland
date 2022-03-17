@@ -5,6 +5,9 @@
 #include "defines.hpp"
 #include "debug/Log.hpp"
 #include "events/Events.hpp"
+#include "config/ConfigManager.hpp"
+#include "ManagerThread.hpp"
+#include "input/InputManager.hpp"
 
 class CCompositor {
 public:

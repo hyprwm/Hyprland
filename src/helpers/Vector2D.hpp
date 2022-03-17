@@ -26,4 +26,15 @@ class Vector2D {
     Vector2D operator/(float a) {
         return Vector2D(this->x / a, this->y / a);
     }
+
+    bool operator==(Vector2D& a) {
+        return a.x == x && a.y == y;
+    }
+
+    bool operator!=(Vector2D& a) {
+        return a.x != x || a.y != y;
+    }
+
+
+    Vector2D floor();
 };

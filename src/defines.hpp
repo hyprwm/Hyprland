@@ -8,4 +8,4 @@
 
 #define RIP(format, ... ) { fprintf(stderr, format "\n", ##__VA_ARGS__); exit(EXIT_FAILURE); }
 
-#define LISTENER(name) inline wl_listener listener_##name = {.notify = ##name};
+#define LISTENER(name) void listener_##name(wl_listener*, void*); inline wl_listener listen_##name = { .notify = listener_##name };

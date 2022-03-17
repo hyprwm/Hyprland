@@ -9,7 +9,7 @@ message(STATUS "Configuring Hyprland!")
 
 include_directories(.)
 add_compile_options(-std=c++20 -DWLR_USE_UNSTABLE )
-add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value)
 find_package(Threads REQUIRED)
 
 find_package(PkgConfig REQUIRED)

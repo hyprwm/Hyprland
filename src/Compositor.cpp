@@ -40,16 +40,16 @@ CCompositor::CCompositor() {
     m_sWLRXDGActivation - wlr_xdg_activation_v1_create(m_sWLDisplay);
     m_sWLROutputLayout = wlr_output_layout_create();
 
-    wl_signal_add(&m_sWLRXDGActivation->events.request_activate, &Events::listener_activate);
-    wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listener_change);
-    wl_signal_add(&m_sWLRBackend->events.new_output, &Events::listener_newOutput);
+    wl_signal_add(&m_sWLRXDGActivation->events.request_activate, &Events::listen_activate);
+    wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listen_change);
+    wl_signal_add(&m_sWLRBackend->events.new_output, &Events::listen_newOutput);
 
     m_sWLRIdle = wlr_idle_create(m_sWLDisplay);
     m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay);
     m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay);
 
-    wl_signal_add(&m_sWLRLayerShell->events.new_surface, &Events::listener_newLayerSurface);
-    wl_signal_add(&m_sWLRXDGShell->events.new_surface, &Events::listener_newXDGSurface);
+    wl_signal_add(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface);
+    wl_signal_add(&m_sWLRXDGShell->events.new_surface, &Events::listen_newXDGSurface);
 
     wlr_server_decoration_manager_set_default_mode(wlr_server_decoration_manager_create(m_sWLDisplay), WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
     wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
@@ -67,20 +67,24 @@ CCompositor::CCompositor() {
 
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
 
-    wl_signal_add(&m_sWLRCursor->events.motion, &Events::listener_mouseMove);
-    wl_signal_add(&m_sWLRCursor->events.motion_absolute, &Events::listener_mouseMoveAbsolute);
-    wl_signal_add(&m_sWLRCursor->events.button, &Events::listener_mouseButton);
-    wl_signal_add(&m_sWLRCursor->events.axis, &Events::listener_mouseAxis);
-    wl_signal_add(&m_sWLRCursor->events.frame, &Events::listener_mouseFrame);
-    wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listener_newInput);
-    wl_signal_add(&m_sWLRVKeyboardMgr->events.new_virtual_keyboard, &Events::listener_newKeyboard);
-    wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listener_requestMouse);
-    wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listener_requestSetSel);
-    wl_signal_add(&m_sWLRSeat->events.request_set_primary_selection, &Events::listener_requestSetPrimarySel);
-    wl_signal_add(&m_sWLROutputMgr->events.apply, &Events::listener_outputMgrApply);
-    wl_signal_add(&m_sWLROutputMgr->events.test, &Events::listener_outputMgrTest);
+    wl_signal_add(&m_sWLRCursor->events.motion, &Events::listen_mouseMove);
+    wl_signal_add(&m_sWLRCursor->events.motion_absolute, &Events::listen_mouseMoveAbsolute);
+    wl_signal_add(&m_sWLRCursor->events.button, &Events::listen_mouseButton);
+    wl_signal_add(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis);
+    wl_signal_add(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame);
+    wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listen_newInput);
+    wl_signal_add(&m_sWLRVKeyboardMgr->events.new_virtual_keyboard, &Events::listen_newKeyboard);
+    wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listen_requestMouse);
+    wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
+    wl_signal_add(&m_sWLRSeat->events.request_set_primary_selection, &Events::listen_requestSetPrimarySel);
+    wl_signal_add(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply);
+    wl_signal_add(&m_sWLROutputMgr->events.test, &Events::listen_outputMgrTest);
 
     // TODO: XWayland
+}
+
+CCompositor::~CCompositor() {
+
 }
 
 void CCompositor::startCompositor() {
@@ -95,6 +99,7 @@ void CCompositor::startCompositor() {
 
     signal(SIGPIPE, SIG_IGN);
 
+    Debug::log(LOG, "Running on WAYLAND_DISPLAY: %s", m_szWLDisplaySocket);
 
     if (!wlr_backend_start(m_sWLRBackend)) {
         Debug::log(CRIT, "Backend did not start!");
@@ -102,6 +107,15 @@ void CCompositor::startCompositor() {
     }
 
     wlr_xcursor_manager_set_cursor_image(m_sWLRXCursorMgr, "left_ptr", m_sWLRCursor);
+
+    Debug::log(LOG, "Creating the config manager!");
+    g_pConfigManager = std::make_unique<CConfigManager>();
+
+    Debug::log(LOG, "Creating the ManagerThread!");
+    g_pManagerThread = std::make_unique<CManagerThread>();
+
+    Debug::log(LOG, "Creating the InputManager!");
+    g_pInputManager = std::make_unique<CInputManager>();
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");

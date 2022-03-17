@@ -1,6 +1,7 @@
 #include "defines.hpp"
 #include "debug/Log.hpp"
 #include "Compositor.hpp"
+#include "config/ConfigManager.hpp"
 
 int main(int argc, char** argv) {
 

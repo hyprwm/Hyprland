@@ -17,3 +17,7 @@ double Vector2D::normalize() {
 
     return max;
 }
+
+Vector2D Vector2D::floor() {
+    return Vector2D((int)x, (int)y);
+}

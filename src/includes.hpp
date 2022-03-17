@@ -1,5 +1,11 @@
 #pragma once
 
+// because C/C++ VS Code intellisense is stupid with includes, we will suppress them here.
+// This suppresses all "include file not found" errors.
+#ifdef __INTELLISENSE__
+#pragma diag_suppress 1696
+#endif
+
 #include <X11/Xlib.h>
 #include <getopt.h>
 #include <libinput.h>
@@ -11,6 +17,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
+#include <mutex>
+#include <thread>
 
 
 #if true

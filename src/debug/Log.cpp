@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 
 #include <fstream>
+#include <iostream>
 
 void Debug::log(LogLevel level, const char* fmt, ...) {
     va_list args;
@@ -36,6 +37,9 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
     ofs << buf << "\n";
 
     ofs.close();
+
+    // log it to the stdout too.
+    std::cout << buf << "\n";
 
     va_end(args);
 }

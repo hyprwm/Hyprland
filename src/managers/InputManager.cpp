@@ -19,7 +19,8 @@ void CInputManager::onMouseMoved(wlr_event_pointer_motion* e) {
     if (e->time_msec)
         wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
 
-    // todo: focus
+
+    g_pCompositor->focusWindow(g_pCompositor->vectorToWindow(getMouseCoordsInternal()));
     // todo: pointer
 }
 
@@ -72,6 +73,20 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     wl_signal_add(&keyboard->events.destroy, &PNEWKEYBOARD->listen_keyboardDestroy);
 
     wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, keyboard);
+}
+
+void CInputManager::newMouse(wlr_input_device* mouse) {
+    if (wlr_input_device_is_libinput(mouse)) {
+        const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(mouse);
+
+        if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV))  // this is for tapping (like on a laptop)
+            libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
+
+        if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV))
+            libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, 0 /* Natural */);
+    }
+
+    wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
 }
 
 void CInputManager::onKeyboardKey(wlr_event_keyboard_key* event) {

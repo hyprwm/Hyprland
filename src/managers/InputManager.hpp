@@ -14,6 +14,7 @@ public:
     void            onKeyboardMod(void*);
 
     void            newKeyboard(wlr_input_device*);
+    void            newMouse(wlr_input_device*);
 
     Vector2D        getMouseCoordsInternal();
 

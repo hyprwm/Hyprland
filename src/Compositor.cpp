@@ -153,3 +153,44 @@ SMonitor* CCompositor::getMonitorFromCursor() {
 void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
     m_lWindows.remove(*pWindow);
 }
+
+bool CCompositor::windowExists(CWindow* pWindow) {
+    for (auto& w : m_lWindows) {
+        if (&w == pWindow)
+            return true;
+    }
+
+    return false;
+}
+
+CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
+    for (auto& w : m_lWindows) {
+        wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
+        if (wlr_box_contains_point(&box, pos.x, pos.y))
+            return &w;
+    }
+
+    return nullptr;
+}
+
+void CCompositor::focusWindow(CWindow* pWindow) {
+
+    if (!pWindow) {
+        wlr_seat_keyboard_notify_clear_focus(m_sWLRSeat);
+        return;
+    }
+
+    const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+
+    if (m_sWLRSeat->keyboard_state.focused_surface == PWINDOWSURFACE)
+        return; // Don't focus when already focused on this.
+
+    const auto KEYBOARD = wlr_seat_get_keyboard(m_sWLRSeat);
+    wlr_seat_keyboard_notify_enter(m_sWLRSeat, PWINDOWSURFACE, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+
+    g_pXWaylandManager->activateSurface(PWINDOWSURFACE, true);
+    if (m_pLastFocus && windowExists(m_pLastFocus))
+        g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(m_pLastFocus), false);
+    
+    m_pLastFocus = pWindow;
+}

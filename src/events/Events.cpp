@@ -347,7 +347,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             break;
         case WLR_INPUT_DEVICE_POINTER:
             Debug::log(LOG, "Attached a mouse with name %s", DEVICE->name);
-            wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, DEVICE);
+            g_pInputManager->newMouse(DEVICE);
             break;
         default:
             break;

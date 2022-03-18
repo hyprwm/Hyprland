@@ -50,12 +50,17 @@ public:
 
     void                    startCompositor(); 
 
+    CWindow*                m_pLastFocus = nullptr;
+
 
     // ------------------------------------------------- //
 
     SMonitor*               getMonitorFromID(const int&);
     SMonitor*               getMonitorFromCursor();
     void                    removeWindowFromVectorSafe(CWindow*);
+    void                    focusWindow(CWindow*);
+    bool                    windowExists(CWindow*);
+    CWindow*                vectorToWindow(const Vector2D&);
 };
 
 

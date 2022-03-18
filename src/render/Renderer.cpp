@@ -43,18 +43,17 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (w.m_bIsX11)
             continue;
 
-        const wlr_box geom = { w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y };
+        wlr_box geometry = { w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y };
 
-        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geom))
+        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geometry))
             continue;
 
         // render the bad boy
-
         wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vPosition.x, &w.m_vPosition.y);
 
         SRenderData renderdata = {PMONITOR->output, time, w.m_vSize.x, w.m_vSize.y};
 
-        wlr_surface_for_each_surface(w.m_uSurface.xdg->surface, renderSurface, &renderdata);
+        wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(&w), renderSurface, &renderdata);
         wlr_xdg_surface_for_each_popup_surface(w.m_uSurface.xdg, renderSurface, &renderdata);
     }
 
@@ -68,9 +67,12 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geometry)) 
             continue;
 
+        // render the bad boy
+        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vPosition.x, &w.m_vPosition.y);
+
         SRenderData renderdata = {PMONITOR->output, time, w.m_vSize.x, w.m_vSize.y};
 
         if (w.m_uSurface.xwayland->surface)
-            wlr_surface_for_each_surface(w.m_uSurface.xwayland->surface, renderSurface, &renderdata);
+            wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(&w), renderSurface, &renderdata);
     }
 }

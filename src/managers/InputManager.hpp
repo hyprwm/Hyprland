@@ -9,6 +9,7 @@ public:
 
     void            onMouseMoved(wlr_event_pointer_motion*);
     void            onMouseWarp(wlr_event_pointer_motion_absolute*);
+    void            onMouseButton(wlr_event_pointer_button*);
     void            onKeyboardKey(wlr_event_keyboard_key*);
     void            onKeyboardMod(void*);
 

@@ -64,6 +64,8 @@ CCompositor::CCompositor() {
 
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
 
+    m_sWLRIdle = wlr_idle_create(m_sWLDisplay);
+
     // TODO: XWayland
 }
 

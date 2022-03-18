@@ -191,7 +191,7 @@ void Events::listener_mouseAxis(wl_listener* listener, void* data) {
 }
 
 void Events::listener_mouseButton(wl_listener* listener, void* data) {
-    
+    g_pInputManager->onMouseButton((wlr_event_pointer_button*)data);
 }
 
 void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {

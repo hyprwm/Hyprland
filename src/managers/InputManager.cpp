@@ -14,10 +14,36 @@ void CInputManager::onMouseMoved(wlr_event_pointer_motion* e) {
 
         wlr_cursor_move(g_pCompositor->m_sWLRCursor, e->device, delta.floor().x, delta.floor().y);
     }
+
+
+    if (e->time_msec)
+        wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
+
+    // todo: focus
+    // todo: pointer
 }
 
 void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, e->device, e->x, e->y);
+
+    if (e->time_msec)
+        wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
+}
+
+void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
+    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
+
+    switch (e->state) {
+        case WLR_BUTTON_PRESSED:
+            // todo: keybinds
+            break;
+        case WLR_BUTTON_RELEASED:
+            // todo: keybinds
+            break;
+    }
+
+    // notify app if we didnt handle it
+    wlr_seat_pointer_notify_button(g_pCompositor->m_sWLRSeat, e->time_msec, e->button, e->state);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

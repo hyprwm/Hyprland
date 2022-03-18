@@ -163,27 +163,27 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 }
 
 void Events::listener_unmapWindow(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_unmapWindow);
 
 
 }
 
 void Events::listener_commitWindow(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_commitWindow);
 
     
 }
 
 void Events::listener_destroyWindow(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_destroyWindow);
 }
 
 void Events::listener_setTitleWindow(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_setTitleWindow);
 }
 
 void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_fullscreenWindow);
 }
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
@@ -199,7 +199,7 @@ void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {
 }
 
 void Events::listener_activateX11(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_activateX11);
 
     if (PWINDOW->m_iX11Type == 1 /* Managed */) {
         wlr_xwayland_surface_activate(PWINDOW->m_uSurface.xwayland, 1);
@@ -207,7 +207,7 @@ void Events::listener_activateX11(wl_listener* listener, void* data) {
 }
 
 void Events::listener_configureX11(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_configureX11);
 
     const auto E = (wlr_xwayland_surface_configure_event*)data;
 

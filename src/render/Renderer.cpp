@@ -70,6 +70,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
         SRenderData renderdata = {PMONITOR->output, time, w.m_vSize.x, w.m_vSize.y};
 
-        wlr_surface_for_each_surface(w.m_uSurface.xwayland->surface, renderSurface, &renderdata);
+        if (w.m_uSurface.xwayland->surface)
+            wlr_surface_for_each_surface(w.m_uSurface.xwayland->surface, renderSurface, &renderdata);
     }
 }

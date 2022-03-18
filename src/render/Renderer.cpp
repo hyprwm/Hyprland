@@ -38,7 +38,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     if (!PMONITOR)
         return;
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto& w : g_pCompositor->m_lWindows) {
 
         if (w.m_bIsX11)
             continue;
@@ -57,7 +57,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         wlr_xdg_surface_for_each_popup_surface(w.m_uSurface.xdg, renderSurface, &renderdata);
     }
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto& w : g_pCompositor->m_lWindows) {
 
         if (!w.m_bIsX11)
             continue;

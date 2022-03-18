@@ -124,7 +124,7 @@ void CCompositor::startCompositor() {
 }
 
 SMonitor* CCompositor::getMonitorFromID(const int& id) {
-    for (auto& m : m_vMonitors) {
+    for (auto& m : m_lMonitors) {
         if (m.ID == id) {
             return &m;
         }
@@ -139,13 +139,17 @@ SMonitor* CCompositor::getMonitorFromCursor() {
 
     if (!OUTPUT) {
         Debug::log(WARN, "getMonitorFromCursor: cursour outside monitors??");
-        return &m_vMonitors[0];
+        return &m_lMonitors.front();
     }
 
-    for (auto& m : m_vMonitors) {
+    for (auto& m : m_lMonitors) {
         if (m.output == OUTPUT)
             return &m;
     }
 
-    return &m_vMonitors[0];
+    return &m_lMonitors.front();
+}
+
+void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
+    m_lWindows.remove(*pWindow);
 }

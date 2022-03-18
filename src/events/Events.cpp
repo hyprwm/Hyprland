@@ -13,7 +13,7 @@ void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto& m : g_pCompositor->m_lMonitors) {
         const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m.output);
 
         // TODO: clients off of disabled
@@ -40,7 +40,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     SMonitor newMonitor;
     newMonitor.output = OUTPUT;
-    newMonitor.ID = g_pCompositor->m_vMonitors.size();
+    newMonitor.ID = g_pCompositor->m_lMonitors.size();
     newMonitor.szName = OUTPUT->name;
 
     wlr_output_init_render(OUTPUT, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
@@ -58,11 +58,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // create it in the arr
     newMonitor.vecPosition = monitorRule.offset;
     newMonitor.vecSize = monitorRule.resolution;
-    g_pCompositor->m_vMonitors.push_back(newMonitor);
+    g_pCompositor->m_lMonitors.push_back(newMonitor);
     //
 
-    wl_signal_add(&OUTPUT->events.frame, &g_pCompositor->m_vMonitors.back().listen_monitorFrame);
-    wl_signal_add(&OUTPUT->events.destroy, &g_pCompositor->m_vMonitors.back().listen_monitorDestroy);
+    wl_signal_add(&OUTPUT->events.frame, &g_pCompositor->m_lMonitors.back().listen_monitorFrame);
+    wl_signal_add(&OUTPUT->events.destroy, &g_pCompositor->m_lMonitors.back().listen_monitorDestroy);
 
     wlr_output_enable(OUTPUT, 1);
     if (!wlr_output_commit(OUTPUT)) {
@@ -100,14 +100,19 @@ void Events::listener_monitorFrame(wl_listener* listener, void* data) {
 void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
     const auto OUTPUT = (wlr_output*)data;
 
-    const auto clone = g_pCompositor->m_vMonitors;
+    SMonitor* pMonitor = nullptr;
 
-    g_pCompositor->m_vMonitors.clear();
-
-    for (auto& m : clone) {
-        if (m.szName != OUTPUT->name) 
-            g_pCompositor->m_vMonitors.push_back(m);
+    for (auto& m : g_pCompositor->m_lMonitors) {
+        if (m.szName == OUTPUT->name) {
+            pMonitor = &m;
+            break;
+        }
     }
+
+    if (!pMonitor)
+        return;
+
+    g_pCompositor->m_lMonitors.remove(*pMonitor);
 
     // TODO: cleanup windows
 }
@@ -116,11 +121,11 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
 
     const auto PMONITOR = (SMonitor*)WLRLAYERSURFACE->output->data;
-    PMONITOR->m_dLayerSurfaces.push_back(SLayerSurface());
-    SLayerSurface* layerSurface = &PMONITOR->m_dLayerSurfaces[PMONITOR->m_dLayerSurfaces.size() - 1];
+    PMONITOR->m_lLayerSurfaces.push_back(SLayerSurface());
+    SLayerSurface* layerSurface = &PMONITOR->m_lLayerSurfaces.back();
 
     if (!WLRLAYERSURFACE->output) {
-        WLRLAYERSURFACE->output = g_pCompositor->m_vMonitors[0].output; // TODO: current mon
+        WLRLAYERSURFACE->output = g_pCompositor->m_lMonitors.front().output; // TODO: current mon
     }
 
     wl_signal_add(&WLRLAYERSURFACE->surface->events.commit, &layerSurface->listen_commitLayerSurface);
@@ -130,24 +135,64 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
     WLRLAYERSURFACE->data = layerSurface;
+    layerSurface->monitorID = PMONITOR->ID;
 
     // todo: arrange
+    Debug::log(LOG, "LayerSurface %x created", layerSurface);
 }
 
 void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
-    
+    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_destroyLayerSurface);
+
+    if (layersurface->layerSurface->mapped)
+        layersurface->layerSurface->mapped = 0;
+
+    wl_list_remove(&layersurface->link);
+    wl_list_remove(&layersurface->listen_destroyLayerSurface.link);
+    wl_list_remove(&layersurface->listen_mapLayerSurface.link);
+    wl_list_remove(&layersurface->listen_unmapLayerSurface.link);
+    wl_list_remove(&layersurface->listen_commitLayerSurface.link);
+
+    free(layersurface);
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
+
+    if (!PMONITOR)
+        return;
+
+    // remove the layersurface as it's not used anymore
+    PMONITOR->m_lLayerSurfaces.remove(*layersurface);
+
+    Debug::log(LOG, "LayerSurface %x destroyed", layersurface);
 }
 
 void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
+    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_mapLayerSurface);
 
+    wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
+
+    Debug::log(LOG, "LayerSurface %x mapped", layersurface);
 }
 
 void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
+    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_unmapLayerSurface);
 
+    if (layersurface->layerSurface->mapped)
+        layersurface->layerSurface->mapped = 0;
+
+    Debug::log(LOG, "LayerSurface %x unmapped", layersurface);
 }
 
 void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
-    
+    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_commitLayerSurface);
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
+
+    if (!layersurface->layerSurface->output)
+        return;
+
+    // todo: handle this properly
+    Debug::log(LOG, "LayerSurface %x committed", layersurface);
 }
 
 void Events::listener_mapWindow(wl_listener* listener, void* data) {
@@ -165,25 +210,41 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_unmapWindow);
 
+    g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 
+    Debug::log(LOG, "Window %x unmapped", PWINDOW);
 }
 
 void Events::listener_commitWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_commitWindow);
 
-    
+    Debug::log(LOG, "Window %x committed", PWINDOW);
 }
 
 void Events::listener_destroyWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_destroyWindow);
+
+    g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
+
+    Debug::log(LOG, "Window %x destroyed", PWINDOW);
 }
 
 void Events::listener_setTitleWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_setTitleWindow);
+
+    PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
+
+    Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle);
 }
 
 void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_fullscreenWindow);
+
+    PWINDOW->m_bIsFullscreen = !PWINDOW->m_bIsFullscreen;
+
+    // todo: do it
+
+    Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
 }
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
@@ -238,8 +299,8 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     const auto XWSURFACE = (wlr_xwayland_surface*)data;
 
-    g_pCompositor->m_vWindows.push_back(CWindow());
-    const auto PNEWWINDOW = &g_pCompositor->m_vWindows.back();
+    g_pCompositor->m_lWindows.push_back(CWindow());
+    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
 
     PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
     PNEWWINDOW->m_iX11Type = XWSURFACE->override_redirect ? 2 : 1;
@@ -306,8 +367,8 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return; // TODO: handle?
 
-    g_pCompositor->m_vWindows.push_back(CWindow());
-    const auto PNEWWINDOW = &g_pCompositor->m_vWindows.back();
+    g_pCompositor->m_lWindows.push_back(CWindow());
+    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 
     wl_signal_add(&XDGSURFACE->surface->events.commit, &PNEWWINDOW->listen_commitWindow);

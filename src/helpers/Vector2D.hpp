@@ -14,24 +14,24 @@ class Vector2D {
     // returns the scale
     double normalize();
 
-    Vector2D operator+(Vector2D a) {
+    Vector2D operator+(const Vector2D a) {
         return Vector2D(this->x + a.x, this->y + a.y);
     }
-    Vector2D operator-(Vector2D a) {
+    Vector2D operator-(const Vector2D a) {
         return Vector2D(this->x - a.x, this->y - a.y);
     }
-    Vector2D operator*(float a) {
+    Vector2D operator*(const float a) {
         return Vector2D(this->x * a, this->y * a);
     }
-    Vector2D operator/(float a) {
+    Vector2D operator/(const float a) {
         return Vector2D(this->x / a, this->y / a);
     }
 
-    bool operator==(Vector2D& a) {
+    bool operator==(const Vector2D& a) {
         return a.x == x && a.y == y;
     }
 
-    bool operator!=(Vector2D& a) {
+    bool operator!=(const Vector2D& a) {
         return a.x != x || a.y != y;
     }
 

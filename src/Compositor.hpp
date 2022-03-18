@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <deque>
+#include <list>
 
 #include "defines.hpp"
 #include "debug/Log.hpp"
@@ -44,8 +45,8 @@ public:
 
     const char*             m_szWLDisplaySocket;
 
-    std::deque<SMonitor>    m_vMonitors;
-    std::deque<CWindow>     m_vWindows;
+    std::list<SMonitor>     m_lMonitors;
+    std::list<CWindow>      m_lWindows;
 
     void                    startCompositor(); 
 
@@ -54,6 +55,7 @@ public:
 
     SMonitor*               getMonitorFromID(const int&);
     SMonitor*               getMonitorFromCursor();
+    void                    removeWindowFromVectorSafe(CWindow*);
 };
 
 

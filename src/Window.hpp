@@ -37,6 +37,7 @@ public:
     bool            m_bIsFloating = false;
     bool            m_bIsFullscreen = false;
     uint64_t        m_iMonitorID = -1;
+    std::string     m_szTitle = "";
 
     // XWayland stuff
     bool            m_bIsX11 = false;
@@ -44,5 +45,11 @@ public:
     DYNLISTENER(activateX11);
     DYNLISTENER(configureX11);
     //
-    
+
+
+    // For the list lookup
+    bool operator==(const CWindow& rhs) {
+        return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize;
+    }
+
 };

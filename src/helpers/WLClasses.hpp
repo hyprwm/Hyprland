@@ -15,6 +15,14 @@ struct SLayerSurface {
 
     wlr_box                 geometry;
     zwlr_layer_shell_v1_layer layer;
+
+    int                     monitorID = -1;
+
+
+    // For the list lookup
+    bool operator==(const SLayerSurface& rhs) {
+        return layerSurface == rhs.layerSurface && monitorID == rhs.monitorID;
+    }
 };
 
 struct SRenderData {

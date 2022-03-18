@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <deque>
 #include "WLClasses.hpp"
+#include <list>
 
 struct SMonitor {
     Vector2D    vecPosition     = Vector2D(0,0);
@@ -20,8 +21,16 @@ struct SMonitor {
     // WLR stuff
     wlr_output* output          = nullptr;
     
-    std::deque<SLayerSurface>   m_dLayerSurfaces;
+    // Double-linked list because we need to have constant mem addresses for signals
+    std::list<SLayerSurface>   m_lLayerSurfaces;
 
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);
+
+
+    // For the list lookup
+
+    bool operator==(const SMonitor& rhs) {
+        return vecPosition == rhs.vecPosition && vecSize == rhs.vecSize && szName == rhs.szName;
+    }
 };

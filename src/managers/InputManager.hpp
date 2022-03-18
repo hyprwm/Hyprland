@@ -10,8 +10,8 @@ public:
     void            onMouseMoved(wlr_event_pointer_motion*);
     void            onMouseWarp(wlr_event_pointer_motion_absolute*);
     void            onMouseButton(wlr_event_pointer_button*);
-    void            onKeyboardKey(wlr_event_keyboard_key*);
-    void            onKeyboardMod(void*);
+    void            onKeyboardKey(wlr_event_keyboard_key*, SKeyboard*);
+    void            onKeyboardMod(void*, SKeyboard*);
 
     void            newKeyboard(wlr_input_device*);
     void            newMouse(wlr_input_device*);

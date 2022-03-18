@@ -89,10 +89,26 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
 }
 
-void CInputManager::onKeyboardKey(wlr_event_keyboard_key* event) {
+void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboard) {
+    const auto KEYCODE = e->keycode + 8; // Because to xkbcommon it's +8 from libinput
 
+    const xkb_keysym_t* keysyms;
+    int syms = xkb_state_key_get_syms(pKeyboard->keyboard->keyboard->xkb_state, KEYCODE, &keysyms);
+
+    const auto MODS = wlr_keyboard_get_modifiers(pKeyboard->keyboard->keyboard);
+
+    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
+
+    if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        // TODO: keybinds
+        
+    }
+
+    wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);
+    wlr_seat_keyboard_notify_key(g_pCompositor->m_sWLRSeat, e->time_msec, e->keycode, e->state);
 }
 
-void CInputManager::onKeyboardMod(void* data) {
-
+void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
+    wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);
+    wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sWLRSeat, &pKeyboard->keyboard->keyboard->modifiers);
 }

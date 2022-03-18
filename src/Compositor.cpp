@@ -193,4 +193,6 @@ void CCompositor::focusWindow(CWindow* pWindow) {
         g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(m_pLastFocus), false);
     
     m_pLastFocus = pWindow;
+
+    Debug::log(LOG, "Set focus to %x", pWindow);
 }

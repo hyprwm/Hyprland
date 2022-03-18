@@ -203,6 +203,7 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 
     // test
     g_pXWaylandManager->setWindowSize(PWINDOW, PMONITOR->vecSize);
+    g_pCompositor->focusWindow(PWINDOW);
 
     Debug::log(LOG, "Map request dispatched.");
 }
@@ -318,11 +319,13 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
 }
 
 void Events::listener_keyboardKey(wl_listener* listener, void* data) {
-    g_pInputManager->onKeyboardKey((wlr_event_keyboard_key*)data);
+    SKeyboard* PKEYBOARD = wl_container_of(listener, PKEYBOARD, listen_keyboardKey);
+    g_pInputManager->onKeyboardKey((wlr_event_keyboard_key*)data, PKEYBOARD);
 }
 
 void Events::listener_keyboardMod(wl_listener* listener, void* data) {
-    g_pInputManager->onKeyboardMod(data);
+    SKeyboard* PKEYBOARD = wl_container_of(listener, PKEYBOARD, listen_keyboardMod);
+    g_pInputManager->onKeyboardMod(data, PKEYBOARD);
 }
 
 void Events::listener_mouseFrame(wl_listener* listener, void* data) {

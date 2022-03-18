@@ -236,10 +236,6 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 }
 
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
-
-}
-
-void Events::listener_createX11(wl_listener* listener, void* data) {
     const auto XWSURFACE = (wlr_xwayland_surface*)data;
 
     g_pCompositor->m_vWindows.push_back(CWindow());
@@ -248,7 +244,7 @@ void Events::listener_createX11(wl_listener* listener, void* data) {
     PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
     PNEWWINDOW->m_iX11Type = XWSURFACE->override_redirect ? 2 : 1;
     PNEWWINDOW->m_bIsX11 = true;
-    
+
     wl_signal_add(&XWSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
     wl_signal_add(&XWSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
     wl_signal_add(&XWSURFACE->events.request_activate, &PNEWWINDOW->listen_activateX11);

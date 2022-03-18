@@ -25,7 +25,6 @@ namespace Events {
     LISTENER(fullscreenWindow);
     LISTENER(activateX11);
     LISTENER(configureX11);
-    LISTENER(createX11);
 
     // Input events
     LISTENER(mouseMove);

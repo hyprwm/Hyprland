@@ -200,6 +200,7 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
     PWINDOW->m_iMonitorID = PMONITOR->ID;
+    PWINDOW->m_bMappedX11 = true;
 
     // test
     g_pXWaylandManager->setWindowSize(PWINDOW, PMONITOR->vecSize);
@@ -395,7 +396,10 @@ void Events::listener_outputMgrTest(wl_listener* listener, void* data) {
 }
 
 void Events::listener_requestMouse(wl_listener* listener, void* data) {
-    
+    const auto EVENT = (wlr_seat_pointer_request_set_cursor_event*)data;
+
+    if (EVENT->seat_client == g_pCompositor->m_sWLRSeat->pointer_state.focused_client)
+        wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, EVENT->surface, EVENT->hotspot_x, EVENT->hotspot_y);
 }
 
 void Events::listener_requestSetPrimarySel(wl_listener* listener, void* data) {

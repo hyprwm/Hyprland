@@ -60,6 +60,7 @@ public:
     void                    removeWindowFromVectorSafe(CWindow*);
     void                    focusWindow(CWindow*);
     bool                    windowExists(CWindow*);
+    bool                    windowValidMapped(CWindow*);
     CWindow*                vectorToWindow(const Vector2D&);
 };
 

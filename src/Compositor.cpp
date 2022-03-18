@@ -151,7 +151,8 @@ SMonitor* CCompositor::getMonitorFromCursor() {
 }
 
 void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
-    m_lWindows.remove(*pWindow);
+    if (windowExists(pWindow))
+        m_lWindows.remove(*pWindow);
 }
 
 bool CCompositor::windowExists(CWindow* pWindow) {
@@ -189,10 +190,23 @@ void CCompositor::focusWindow(CWindow* pWindow) {
     wlr_seat_keyboard_notify_enter(m_sWLRSeat, PWINDOWSURFACE, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 
     g_pXWaylandManager->activateSurface(PWINDOWSURFACE, true);
-    if (m_pLastFocus && windowExists(m_pLastFocus))
+    if (m_pLastFocus && windowValidMapped(m_pLastFocus))
         g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(m_pLastFocus), false);
     
     m_pLastFocus = pWindow;
 
     Debug::log(LOG, "Set focus to %x", pWindow);
+}
+
+bool CCompositor::windowValidMapped(CWindow* pWindow) {
+    if (!windowExists(pWindow))
+        return false;
+
+    if (pWindow->m_bIsX11 && !pWindow->m_bMappedX11)
+        return false;
+
+    if (!g_pXWaylandManager->getWindowSurface(pWindow))
+        return false;
+
+    return true;
 }

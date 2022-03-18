@@ -26,6 +26,8 @@ private:
 
     std::list<SKeyboard> m_lKeyboards;
 
+    void            mouseMoveUnified(uint32_t);
+
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

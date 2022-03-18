@@ -1,6 +1,7 @@
 #include "Compositor.hpp"
 
 CCompositor::CCompositor() {
+
     m_sWLDisplay = wl_display_create();
 
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay);
@@ -36,13 +37,10 @@ CCompositor::CCompositor() {
 
     m_sWLROutputLayout = wlr_output_layout_create();
 
-    wl_signal_add(&m_sWLRBackend->events.new_output, &Events::listen_newOutput);
-
     m_sWLRScene = wlr_scene_create();
     wlr_scene_attach_output_layout(m_sWLRScene, m_sWLROutputLayout);
 
     m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay);
-    wl_signal_add(&m_sWLRXDGShell->events.new_surface, &Events::listen_newXDGSurface);
 
     m_sWLRCursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(m_sWLRCursor, m_sWLROutputLayout);
@@ -50,31 +48,31 @@ CCompositor::CCompositor() {
     m_sWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, 24);
     wlr_xcursor_manager_load(m_sWLRXCursorMgr, 1);
 
-    wl_signal_add(&m_sWLRCursor->events.motion, &Events::listen_mouseMove);
-    wl_signal_add(&m_sWLRCursor->events.motion_absolute, &Events::listen_mouseMoveAbsolute);
-    wl_signal_add(&m_sWLRCursor->events.button, &Events::listen_mouseButton);
-    wl_signal_add(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis);
-    wl_signal_add(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame);
-
     m_sWLRSeat = wlr_seat_create(m_sWLDisplay, "seat0");
-
-    wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listen_newInput);
-    wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listen_requestMouse);
-    wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
 
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
 
     m_sWLRIdle = wlr_idle_create(m_sWLDisplay);
-
-    // TODO: XWayland
 }
 
 CCompositor::~CCompositor() {
 
 }
 
-void CCompositor::startCompositor() {
+void CCompositor::initAllSignals() {
+    wl_signal_add(&m_sWLRBackend->events.new_output, &Events::listen_newOutput);
+    wl_signal_add(&m_sWLRXDGShell->events.new_surface, &Events::listen_newXDGSurface);
+    wl_signal_add(&m_sWLRCursor->events.motion, &Events::listen_mouseMove);
+    wl_signal_add(&m_sWLRCursor->events.motion_absolute, &Events::listen_mouseMoveAbsolute);
+    wl_signal_add(&m_sWLRCursor->events.button, &Events::listen_mouseButton);
+    wl_signal_add(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis);
+    wl_signal_add(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame);
+    wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listen_newInput);
+    wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listen_requestMouse);
+    wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
+}
 
+void CCompositor::startCompositor() {
     // Init all the managers BEFORE we start with the wayland server so that ALL of the stuff is initialized
     // properly and we dont get any bad mem reads.
     //
@@ -94,6 +92,8 @@ void CCompositor::startCompositor() {
     g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
     //
     //
+
+    initAllSignals();
 
     m_szWLDisplaySocket = wl_display_add_socket_auto(m_sWLDisplay);
 

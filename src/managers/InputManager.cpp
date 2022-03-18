@@ -15,20 +15,40 @@ void CInputManager::onMouseMoved(wlr_event_pointer_motion* e) {
         wlr_cursor_move(g_pCompositor->m_sWLRCursor, e->device, delta.floor().x, delta.floor().y);
     }
 
-
-    if (e->time_msec)
-        wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
-
-
-    g_pCompositor->focusWindow(g_pCompositor->vectorToWindow(getMouseCoordsInternal()));
+    mouseMoveUnified(e->time_msec);
     // todo: pointer
 }
 
 void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, e->device, e->x, e->y);
 
-    if (e->time_msec)
+    m_vMouseCoords = Vector2D(e->x, e->y);
+    m_vWLRMouseCoords = m_vMouseCoords;
+
+    mouseMoveUnified(e->time_msec);
+}
+
+void CInputManager::mouseMoveUnified(uint32_t time) {
+
+    const auto PWINDOW = g_pCompositor->vectorToWindow(m_vMouseCoords);
+
+    if (!PWINDOW) {
+        wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+
+        wlr_seat_pointer_clear_focus(g_pCompositor->m_sWLRSeat);
+
+        return;
+    }
+
+    if (time)
         wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
+
+    g_pCompositor->focusWindow(PWINDOW);
+
+    Vector2D surfaceLocal = m_vMouseCoords - PWINDOW->m_vPosition;
+
+    wlr_seat_pointer_notify_enter(g_pCompositor->m_sWLRSeat, g_pXWaylandManager->getWindowSurface(PWINDOW), surfaceLocal.x, surfaceLocal.y);
+    wlr_seat_pointer_notify_motion(g_pCompositor->m_sWLRSeat, time, surfaceLocal.x, surfaceLocal.y);
 }
 
 void CInputManager::onMouseButton(wlr_event_pointer_button* e) {

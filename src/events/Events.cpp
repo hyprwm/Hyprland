@@ -203,6 +203,8 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_bMappedX11 = true;
 
     // test
+    PWINDOW->m_vSize = PMONITOR->vecSize;
+    PWINDOW->m_vPosition = PMONITOR->vecPosition;
     g_pXWaylandManager->setWindowSize(PWINDOW, PMONITOR->vecSize);
     g_pCompositor->focusWindow(PWINDOW);
 
@@ -236,7 +238,7 @@ void Events::listener_setTitleWindow(wl_listener* listener, void* data) {
 
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
 
-    Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle);
+    Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());
 }
 
 void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
@@ -251,10 +253,6 @@ void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
     // TODO:
-}
-
-void Events::listener_mouseButton(wl_listener* listener, void* data) {
-    g_pInputManager->onMouseButton((wlr_event_pointer_button*)data);
 }
 
 void Events::listener_activateX11(wl_listener* listener, void* data) {
@@ -342,6 +340,10 @@ void Events::listener_mouseMove(wl_listener* listener, void* data) {
 
 void Events::listener_mouseMoveAbsolute(wl_listener* listener, void* data) {
     g_pInputManager->onMouseWarp((wlr_event_pointer_motion_absolute*)data);
+}
+
+void Events::listener_mouseButton(wl_listener* listener, void* data) {
+    g_pInputManager->onMouseButton((wlr_event_pointer_button*)data);
 }
 
 void Events::listener_newInput(wl_listener* listener, void* data) {

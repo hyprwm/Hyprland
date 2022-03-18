@@ -52,9 +52,9 @@ Vector2D CInputManager::getMouseCoordsInternal() {
 }
 
 void CInputManager::newKeyboard(wlr_input_device* keyboard) {
-    m_dKeyboards.push_back(SKeyboard());
+    m_lKeyboards.push_back(SKeyboard());
 
-    const auto PNEWKEYBOARD = &m_dKeyboards.back();
+    const auto PNEWKEYBOARD = &m_lKeyboards.back();
 
     PNEWKEYBOARD->keyboard = keyboard;
 
@@ -87,6 +87,18 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
     }
 
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
+}
+
+void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
+    wl_list_remove(&pKeyboard->listen_keyboardMod.link);
+    wl_list_remove(&pKeyboard->listen_keyboardKey.link);
+    wl_list_remove(&pKeyboard->listen_keyboardDestroy.link);
+
+    m_lKeyboards.remove(*pKeyboard);
+}
+
+void CInputManager::destroyMouse(wlr_input_device* mouse) {
+    //
 }
 
 void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboard) {

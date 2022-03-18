@@ -257,10 +257,6 @@ void Events::listener_mouseButton(wl_listener* listener, void* data) {
     g_pInputManager->onMouseButton((wlr_event_pointer_button*)data);
 }
 
-void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {
-
-}
-
 void Events::listener_activateX11(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_activateX11);
 
@@ -317,6 +313,13 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     wl_signal_add(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
 
     Debug::log(LOG, "New XWayland Surface created.");
+}
+
+void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {
+    SKeyboard* PKEYBOARD = wl_container_of(listener, PKEYBOARD, listen_keyboardDestroy);
+    g_pInputManager->destroyKeyboard(PKEYBOARD);
+
+    Debug::log(LOG, "Destroyed keyboard %x", PKEYBOARD);
 }
 
 void Events::listener_keyboardKey(wl_listener* listener, void* data) {

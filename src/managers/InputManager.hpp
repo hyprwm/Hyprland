@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include <deque>
+#include <list>
 #include "../helpers/WLClasses.hpp"
 
 class CInputManager {
@@ -15,6 +15,8 @@ public:
 
     void            newKeyboard(wlr_input_device*);
     void            newMouse(wlr_input_device*);
+    void            destroyKeyboard(SKeyboard*);
+    void            destroyMouse(wlr_input_device*);
 
     Vector2D        getMouseCoordsInternal();
 
@@ -22,7 +24,7 @@ private:
     Vector2D        m_vMouseCoords      = Vector2D(0,0);
     Vector2D        m_vWLRMouseCoords   = Vector2D(0,0);
 
-    std::deque<SKeyboard> m_dKeyboards;
+    std::list<SKeyboard> m_lKeyboards;
 
 };
 

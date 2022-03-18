@@ -38,4 +38,9 @@ struct SKeyboard {
     DYNLISTENER(keyboardMod);
     DYNLISTENER(keyboardKey);
     DYNLISTENER(keyboardDestroy);
+
+    // For the list lookup
+    bool operator==(const SKeyboard& rhs) {
+        return keyboard == rhs.keyboard;
+    }
 };

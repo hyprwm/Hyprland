@@ -40,6 +40,9 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     for (auto& w : g_pCompositor->m_vWindows) {
 
+        if (w.m_bIsX11)
+            continue;
+
         const wlr_box geom = { w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y };
 
         if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geom))
@@ -53,5 +56,20 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
         wlr_surface_for_each_surface(w.m_uSurface.xdg->surface, renderSurface, &renderdata);
         wlr_xdg_surface_for_each_popup_surface(w.m_uSurface.xdg, renderSurface, &renderdata);
+    }
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+
+        if (!w.m_bIsX11)
+            continue;
+
+        wlr_box geometry = { w.m_uSurface.xwayland->x, w.m_uSurface.xwayland->y, w.m_uSurface.xwayland->width, w.m_uSurface.xwayland->height };
+
+        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geometry)) 
+            continue;
+
+        SRenderData renderdata = {PMONITOR->output, time, w.m_vSize.x, w.m_vSize.y};
+
+        wlr_surface_for_each_surface(w.m_uSurface.xwayland->surface, renderSurface, &renderdata);
     }
 }

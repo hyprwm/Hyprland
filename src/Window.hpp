@@ -37,4 +37,12 @@ public:
     bool            m_bIsFloating = false;
     bool            m_bIsFullscreen = false;
     uint64_t        m_iMonitorID = -1;
+
+    // XWayland stuff
+    bool            m_bIsX11 = false;
+    uint64_t        m_iX11Type = 0;
+    DYNLISTENER(activateX11);
+    DYNLISTENER(configureX11);
+    //
+    
 };

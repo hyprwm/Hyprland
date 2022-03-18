@@ -1,6 +1,6 @@
-#include "ManagerThread.hpp"
+#include "ThreadManager.hpp"
 
-CManagerThread::CManagerThread() {
+CThreadManager::CThreadManager() {
     m_tMainThread = new std::thread([&]() {
         // Call the handle method.
         this->handle();
@@ -9,11 +9,11 @@ CManagerThread::CManagerThread() {
     m_tMainThread->detach(); // detach and continue.
 }
 
-CManagerThread::~CManagerThread() {
+CThreadManager::~CThreadManager() {
     //
 }
 
-void CManagerThread::handle() {
+void CThreadManager::handle() {
 
     g_pConfigManager->init();
 

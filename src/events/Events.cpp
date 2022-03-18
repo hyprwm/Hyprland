@@ -2,7 +2,7 @@
 
 #include "../Compositor.hpp"
 #include "../helpers/WLClasses.hpp"
-#include "../input/InputManager.hpp"
+#include "../managers/InputManager.hpp"
 #include "../render/Renderer.hpp"
 
 void Events::listener_activate(wl_listener* listener, void* data) {
@@ -157,7 +157,7 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_iMonitorID = PMONITOR->ID;
 
     // test
-    wlr_xdg_toplevel_set_size(PWINDOW->m_uSurface.xdg->toplevel, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+    g_pXWaylandManager->setWindowSize(PWINDOW, PMONITOR->vecSize);
 
     Debug::log(LOG, "Map request dispatched.");
 }
@@ -196,6 +196,68 @@ void Events::listener_mouseButton(wl_listener* listener, void* data) {
 
 void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {
 
+}
+
+void Events::listener_activateX11(wl_listener* listener, void* data) {
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+
+    if (PWINDOW->m_iX11Type == 1 /* Managed */) {
+        wlr_xwayland_surface_activate(PWINDOW->m_uSurface.xwayland, 1);
+    }
+}
+
+void Events::listener_configureX11(wl_listener* listener, void* data) {
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
+
+    const auto E = (wlr_xwayland_surface_configure_event*)data;
+
+    // TODO: ignore if tiled?
+    wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
+}
+
+void Events::listener_readyXWayland(wl_listener* listener, void* data) {
+    const auto XCBCONNECTION = xcb_connect(g_pXWaylandManager->m_sWLRXWayland->display_name, NULL);
+    const auto ERR = xcb_connection_has_error(XCBCONNECTION);
+    if (ERR) {
+        Debug::log(LogLevel::ERR, "xcb_connection_has_error failed with %i", ERR);
+        return;
+    }
+
+    // TODO: atoms
+
+    wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sWLRSeat);
+
+    const auto XCURSOR = wlr_xcursor_manager_get_xcursor(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", 1);
+    if (XCURSOR) {
+        wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, XCURSOR->images[0]->width, XCURSOR->images[0]->height, XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y);
+    }
+
+    xcb_disconnect(XCBCONNECTION);
+}
+
+void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
+
+}
+
+void Events::listener_createX11(wl_listener* listener, void* data) {
+    const auto XWSURFACE = (wlr_xwayland_surface*)data;
+
+    g_pCompositor->m_vWindows.push_back(CWindow());
+    const auto PNEWWINDOW = &g_pCompositor->m_vWindows.back();
+
+    PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
+    PNEWWINDOW->m_iX11Type = XWSURFACE->override_redirect ? 2 : 1;
+    PNEWWINDOW->m_bIsX11 = true;
+    
+    wl_signal_add(&XWSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
+    wl_signal_add(&XWSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
+    wl_signal_add(&XWSURFACE->events.request_activate, &PNEWWINDOW->listen_activateX11);
+    wl_signal_add(&XWSURFACE->events.request_configure, &PNEWWINDOW->listen_configureX11);
+    wl_signal_add(&XWSURFACE->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
+    wl_signal_add(&XWSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
+    wl_signal_add(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
+
+    Debug::log(LOG, "New XWayland Surface created.");
 }
 
 void Events::listener_keyboardKey(wl_listener* listener, void* data) {

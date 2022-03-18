@@ -76,17 +76,20 @@ void CCompositor::startCompositor() {
     // Init all the managers BEFORE we start with the wayland server so that ALL of the stuff is initialized
     // properly and we dont get any bad mem reads.
     //
-    Debug::log(LOG, "Creating the config manager!");
+    Debug::log(LOG, "Creating the ConfigManager!");
     g_pConfigManager = std::make_unique<CConfigManager>();
 
-    Debug::log(LOG, "Creating the ManagerThread!");
-    g_pManagerThread = std::make_unique<CManagerThread>();
+    Debug::log(LOG, "Creating the ThreadManager!");
+    g_pThreadManager = std::make_unique<CThreadManager>();
 
     Debug::log(LOG, "Creating the InputManager!");
     g_pInputManager = std::make_unique<CInputManager>();
 
     Debug::log(LOG, "Creating the HyprRenderer!");
     g_pHyprRenderer = std::make_unique<CHyprRenderer>();
+
+    Debug::log(LOG, "Creating the XWaylandManager!");
+    g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
     //
     //
 

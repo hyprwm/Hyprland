@@ -125,11 +125,11 @@ void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
 void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
 
-    if (!WLRLAYERSURFACE->output->data) {
+    if (!WLRLAYERSURFACE->output || !WLRLAYERSURFACE->output->data) {
         Debug::log(LOG, "New LayerSurface has no preferred monitor.");
     }
 
-    const auto PMONITOR = (SMonitor*)(WLRLAYERSURFACE->output->data ? WLRLAYERSURFACE->output->data : g_pCompositor->getMonitorFromCursor());
+    const auto PMONITOR = (SMonitor*)((WLRLAYERSURFACE->output && WLRLAYERSURFACE->output->data) ? WLRLAYERSURFACE->output->data : g_pCompositor->getMonitorFromCursor());
     PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].push_back(new SLayerSurface());
     SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
 

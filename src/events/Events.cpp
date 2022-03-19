@@ -252,7 +252,9 @@ void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
 }
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
-    // TODO:
+    const auto E = (wlr_event_pointer_axis*)data;
+
+    wlr_seat_pointer_notify_axis(g_pCompositor->m_sWLRSeat, E->time_msec, E->orientation, E->delta, E->delta_discrete, E->source);
 }
 
 void Events::listener_activateX11(wl_listener* listener, void* data) {

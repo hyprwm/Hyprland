@@ -31,6 +31,7 @@ class CHyprDwindleLayout : public IHyprLayout {
 public:
     virtual void        onWindowCreated(CWindow*);
     virtual void        onWindowRemoved(CWindow*);
+    virtual void        recalculateMonitor(const int&);
 
 private:
 

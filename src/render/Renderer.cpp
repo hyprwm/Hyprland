@@ -87,8 +87,6 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         // border
         drawBorderForWindow(&w, PMONITOR);
 
-        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vRealPosition.x, &w.m_vRealPosition.y);
-
         SRenderData renderdata = {PMONITOR->output, time, w.m_vRealPosition.x, w.m_vRealPosition.y};
 
         if (w.m_uSurface.xwayland->surface)

@@ -120,6 +120,10 @@ void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
 void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
 
+    if (!WLRLAYERSURFACE->output->data) {
+        Debug::log(LOG, "New LayerSurface has no preferred monitor.");
+    }
+
     const auto PMONITOR = (SMonitor*)(WLRLAYERSURFACE->output->data ? WLRLAYERSURFACE->output->data : g_pCompositor->getMonitorFromCursor());
     PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].push_back(new SLayerSurface());
     SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
@@ -138,7 +142,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     layerSurface->monitorID = PMONITOR->ID;
 
     // todo: arrange
-    Debug::log(LOG, "LayerSurface %x created", layerSurface);
+    Debug::log(LOG, "LayerSurface %x created on monitor %s", layerSurface, PMONITOR->szName.c_str());
 }
 
 void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
@@ -185,10 +189,19 @@ void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
 void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_commitLayerSurface);
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
-
     if (!layersurface->layerSurface->output)
         return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
+
+    // fix if it changed its mon
+    if (layersurface->monitorID != PMONITOR->ID) {
+        const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
+        POLDMON->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
+        PMONITOR->m_aLayerSurfaceLists[layersurface->layer].push_back(layersurface);
+        layersurface->monitorID = PMONITOR->ID;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+    }
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
@@ -197,6 +210,8 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
         PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].push_back(layersurface);
         layersurface->layer = layersurface->layerSurface->current.layer;
     }
+
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 }
 
 void Events::listener_mapWindow(wl_listener* listener, void* data) {

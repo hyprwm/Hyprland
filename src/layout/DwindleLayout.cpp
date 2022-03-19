@@ -247,3 +247,10 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
     m_lDwindleNodesData.remove(*PPARENT);
     m_lDwindleNodesData.remove(*PNODE);
 }
+
+void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
+    const auto TOPNODE = getMasterNodeOnMonitor(monid);
+
+    if (TOPNODE)
+        TOPNODE->recalcSizePosRecursive();
+}

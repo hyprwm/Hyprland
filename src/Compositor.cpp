@@ -224,6 +224,16 @@ CWindow* CCompositor::windowFromCursor() {
     return nullptr;
 }
 
+SMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
+    for (auto& m : m_lMonitors) {
+        if (m.output == out) {
+            return &m;
+        }
+    }
+
+    return nullptr;
+}
+
 void CCompositor::focusWindow(CWindow* pWindow) {
 
     if (!pWindow) {

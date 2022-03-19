@@ -12,6 +12,7 @@
 #include "managers/XWaylandManager.hpp"
 #include "managers/InputManager.hpp"
 #include "managers/LayoutManager.hpp"
+#include "managers/KeybindManager.hpp"
 #include "helpers/Monitor.hpp"
 #include "Window.hpp"
 #include "render/Renderer.hpp"
@@ -62,6 +63,7 @@ public:
     bool                    windowExists(CWindow*);
     bool                    windowValidMapped(CWindow*);
     CWindow*                vectorToWindow(const Vector2D&);
+    CWindow*                vectorToWindowIdeal(const Vector2D&);
 
 private:
     void                    initAllSignals();

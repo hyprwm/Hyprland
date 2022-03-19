@@ -1,4 +1,5 @@
 #include "ConfigManager.hpp"
+#include "../managers/KeybindManager.hpp"
 
 #include <string.h>
 #include <sys/stat.h>
@@ -128,6 +129,27 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     m_dMonitorRules.push_back(newrule);
 }
 
+void CConfigManager::handleBind(const std::string& command, const std::string& value) {
+    // example:
+    // bind=SUPER,G,exec,dmenu_run <args>
+
+    auto valueCopy = value;
+
+    const auto MOD = g_pKeybindManager->stringToModMask(valueCopy.substr(0, valueCopy.find_first_of(",")));
+    valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
+
+    const auto KEY = valueCopy.substr(0, valueCopy.find_first_of(","));
+    valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
+
+    const auto HANDLER = valueCopy.substr(0, valueCopy.find_first_of(","));
+    valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
+
+    const auto COMMAND = valueCopy;
+
+    if (KEY != "")
+        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND});
+}
+
 void CConfigManager::parseLine(std::string& line) {
     // first check if its not a comment
     const auto COMMENTSTART = line.find_first_of('#');
@@ -176,7 +198,11 @@ void CConfigManager::parseLine(std::string& line) {
     } else if (COMMAND == "monitor") {
         handleMonitor(COMMAND, VALUE);
         return;
+    } else if (COMMAND == "bind") {
+        handleBind(COMMAND, VALUE);
+        return;
     }
+
 
     configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 }

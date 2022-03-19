@@ -53,6 +53,7 @@ private:
     void                configSetValueSafe(const std::string&, const std::string&);
     void                handleRawExec(const std::string&, const std::string&);
     void                handleMonitor(const std::string&, const std::string&);
+    void                handleBind(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <list>
 #include "../helpers/Monitor.hpp"
+#include "../Window.hpp"
 
 class CHyprRenderer {
 public:
@@ -13,6 +14,7 @@ public:
 
 private:
     void                arrangeLayerArray(SMonitor*, const std::list<SLayerSurface*>&);
+    void                drawBorderForWindow(CWindow*, SMonitor*);
 };
 
 inline std::unique_ptr<CHyprRenderer> g_pHyprRenderer;

@@ -15,6 +15,8 @@ CConfigManager::CConfigManager() {
     configValues["general:border_size"].intValue = 1;
     configValues["general:gaps_in"].intValue = 5;
     configValues["general:gaps_out"].intValue = 20;
+    configValues["general:col.active_border"].intValue = 0xffffffff;
+    configValues["general:col.inactive_border"].intValue = 0xff444444;
 }
 
 void CConfigManager::init() {
@@ -216,7 +218,7 @@ void CConfigManager::loadConfigLoadVars() {
 void CConfigManager::tick() {
     const char* const ENVHOME = getenv("HOME");
 
-    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprd.conf" : (std::string) "/.config/hypr/hypr.conf");
+    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
 
     struct stat fileStat;
     int err = stat(CONFIGPATH.c_str(), &fileStat);

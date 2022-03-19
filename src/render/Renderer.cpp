@@ -59,6 +59,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
             continue;
 
         // render the bad boy
+
+        // border
+        drawBorderForWindow(&w, PMONITOR);
+
         wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vRealPosition.x, &w.m_vRealPosition.y);
 
         SRenderData renderdata = {PMONITOR->output, time, w.m_vRealPosition.x, w.m_vRealPosition.y};
@@ -81,6 +85,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
             continue;
 
         // render the bad boy
+
+        // border
+        drawBorderForWindow(&w, PMONITOR);
+
         wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vRealPosition.x, &w.m_vRealPosition.y);
 
         SRenderData renderdata = {PMONITOR->output, time, w.m_vRealPosition.x, w.m_vRealPosition.y};
@@ -205,4 +213,29 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
 
     for (auto& la : PMONITOR->m_aLayerSurfaceLists)
         arrangeLayerArray(PMONITOR, la);
+}
+
+void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {
+    const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
+    const auto BORDERCOL = pWindow == g_pCompositor->m_pLastFocus ? g_pConfigManager->getInt("general:col.active_border") : g_pConfigManager->getInt("general:col.inactive_border");
+
+    const float BORDERWLRCOL[4] = {RED(BORDERCOL), GREEN(BORDERCOL), BLUE(BORDERCOL), ALPHA(BORDERCOL)};
+
+    // top
+    wlr_box border = {pWindow->m_vRealPosition.x - BORDERSIZE, pWindow->m_vRealPosition.y - BORDERSIZE, pWindow->m_vRealSize.x + 2 * BORDERSIZE, BORDERSIZE };
+    wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
+
+    // bottom
+    border.y = pWindow->m_vRealPosition.y + pWindow->m_vRealSize.y;
+    wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
+
+    // left
+    border.y = pWindow->m_vRealPosition.y;
+    border.width = BORDERSIZE;
+    border.height = pWindow->m_vRealSize.y;
+    wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
+
+    // right
+    border.x = pWindow->m_vRealPosition.x + pWindow->m_vRealSize.x;
+    wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
 }

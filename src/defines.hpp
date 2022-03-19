@@ -16,3 +16,8 @@
 #define interface class
 
 #define STICKS(a, b) abs((a) - (b)) < 2
+
+#define ALPHA(c) ((double)(((c) >> 24) & 0xff) / 255.0)
+#define RED(c) ((double)(((c) >> 16) & 0xff) / 255.0)
+#define GREEN(c) ((double)(((c) >> 8) & 0xff) / 255.0)
+#define BLUE(c) ((double)(((c)) & 0xff) / 255.0)

@@ -29,6 +29,8 @@ void Events::listener_change(wl_listener* listener, void* data) {
         CONFIGHEAD->state.mode = m.output->current_mode;
         CONFIGHEAD->state.x = m.vecPosition.x;
         CONFIGHEAD->state.y = m.vecPosition.y;
+
+        wlr_output_set_custom_mode(m.output, m.vecSize.x, m.vecSize.y, (int)(round(m.refreshRate * 1000)));
     }
 
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
@@ -58,6 +60,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // create it in the arr
     newMonitor.vecPosition = monitorRule.offset;
     newMonitor.vecSize = monitorRule.resolution;
+    newMonitor.refreshRate = monitorRule.refreshRate;
     g_pCompositor->m_lMonitors.push_back(newMonitor);
     //
 
@@ -72,7 +75,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, OUTPUT, monitorRule.offset.x, monitorRule.offset.y);
 
-    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", OUTPUT->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, OUTPUT);
+    wlr_output_set_custom_mode(OUTPUT, OUTPUT->width, OUTPUT->height, (int)(round(monitorRule.refreshRate * 1000)));
+
+    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i@%i, pointer %x", OUTPUT->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (int)monitorRule.refreshRate, OUTPUT);
 }
 
 void Events::listener_monitorFrame(wl_listener* listener, void* data) {
@@ -159,11 +164,8 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
-    if (!PMONITOR)
-        return;
-
     // remove the layersurface as it's not used anymore
-    PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->pending.layer].remove(layersurface);
+    PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
     delete layersurface;
 
     Debug::log(LOG, "LayerSurface %x destroyed", layersurface);
@@ -193,6 +195,9 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
         return;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
+
+    if (!PMONITOR)
+        return;
 
     // fix if it changed its mon
     if (layersurface->monitorID != PMONITOR->ID) {

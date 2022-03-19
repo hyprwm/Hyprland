@@ -21,6 +21,7 @@ struct SMonitor {
 
     // WLR stuff
     wlr_output* output          = nullptr;
+    float       refreshRate     = 60;
     
     // Double-linked list because we need to have constant mem addresses for signals
     // We have to store pointers and use raw new/delete because they might be moved between them

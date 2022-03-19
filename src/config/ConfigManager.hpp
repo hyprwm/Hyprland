@@ -19,6 +19,7 @@ struct SMonitorRule {
     Vector2D    offset = Vector2D(0,0);
     float       mfact = 0.5;
     float       scale = 1;
+    float       refreshRate = 60;
 };
 
 class CConfigManager {

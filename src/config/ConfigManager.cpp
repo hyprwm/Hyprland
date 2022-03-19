@@ -112,7 +112,10 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     nextItem();
 
     newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
-    newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1));
+    newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));
+
+    if (curitem.find_first_of('@') != std::string::npos)
+        newrule.refreshRate = stof(curitem.substr(curitem.find_first_of('@') + 1));
 
     nextItem();
 

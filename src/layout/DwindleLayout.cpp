@@ -250,7 +250,11 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
 
 void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
     const auto TOPNODE = getMasterNodeOnMonitor(monid);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
 
-    if (TOPNODE)
+    if (TOPNODE && PMONITOR) {
+        TOPNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+        TOPNODE->size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
         TOPNODE->recalcSizePosRecursive();
+    }
 }

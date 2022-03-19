@@ -38,6 +38,16 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     if (!PMONITOR)
         return;
 
+    // Render layer surfaces below windows for monitor
+    for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+        SRenderData renderdata = {PMONITOR->output, time, ls.geometry.x, ls.geometry.y};
+        wlr_surface_for_each_surface(ls.layerSurface->surface, renderSurface, &renderdata);
+    }
+    for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+        SRenderData renderdata = {PMONITOR->output, time, ls.geometry.x, ls.geometry.y};
+        wlr_surface_for_each_surface(ls.layerSurface->surface, renderSurface, &renderdata);
+    }
+
     for (auto& w : g_pCompositor->m_lWindows) {
 
         if (w.m_bIsX11)
@@ -77,5 +87,15 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
         if (w.m_uSurface.xwayland->surface)
             wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(&w), renderSurface, &renderdata);
+    }
+
+    // Render surfaces above windows for monitor
+    for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        SRenderData renderdata = {PMONITOR->output, time, ls.geometry.x, ls.geometry.y};
+        wlr_surface_for_each_surface(ls.layerSurface->surface, renderSurface, &renderdata);
+    }
+    for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+        SRenderData renderdata = {PMONITOR->output, time, ls.geometry.x, ls.geometry.y};
+        wlr_surface_for_each_surface(ls.layerSurface->surface, renderSurface, &renderdata);
     }
 }

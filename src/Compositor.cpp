@@ -189,15 +189,6 @@ void CCompositor::focusWindow(CWindow* pWindow) {
     // Unfocus last window
     if (m_pLastFocus && windowValidMapped(m_pLastFocus))
         g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(m_pLastFocus), false);
-    if (m_sWLRSeat->keyboard_state.focused_surface){
-        const auto XDGSURFACE = wlr_xdg_surface_from_wlr_surface(m_sWLRSeat->keyboard_state.focused_surface);
-        if (XDGSURFACE)
-            wlr_xdg_toplevel_set_activated(XDGSURFACE->toplevel, false);
-
-        const auto XWLSURFACE = wlr_xwayland_surface_from_wlr_surface(m_sWLRSeat->keyboard_state.focused_surface);
-        if (XWLSURFACE)
-            wlr_xwayland_surface_activate(XWLSURFACE, false);
-    }
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sWLRSeat);
     wlr_seat_keyboard_notify_enter(m_sWLRSeat, PWINDOWSURFACE, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
@@ -206,7 +197,7 @@ void CCompositor::focusWindow(CWindow* pWindow) {
     
     m_pLastFocus = pWindow;
 
-    Debug::log(LOG, "Set focus to %x", pWindow);
+    Debug::log(LOG, "Set keyboard %x focus to %x, with name: %s", KEYBOARD, pWindow, pWindow->m_szTitle.c_str());
 }
 
 bool CCompositor::windowValidMapped(CWindow* pWindow) {

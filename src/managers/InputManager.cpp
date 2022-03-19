@@ -93,6 +93,8 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     wl_signal_add(&keyboard->events.destroy, &PNEWKEYBOARD->listen_keyboardDestroy);
 
     wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, keyboard);
+
+    Debug::log(LOG, "New keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
 }
 
 void CInputManager::newMouse(wlr_input_device* mouse) {
@@ -107,6 +109,8 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
     }
 
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
+
+    Debug::log(LOG, "New mouse created, pointer WLR: %x", mouse);
 }
 
 void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
@@ -133,7 +137,9 @@ void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboar
 
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         // TODO: keybinds
-        
+        Debug::log(LOG, "Keyboard %x key %i pressed on focused window %x", pKeyboard, KEYCODE, g_pCompositor->m_pLastFocus);
+    } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+        Debug::log(LOG, "Keyboard %x key %i released on focused window %x", pKeyboard, KEYCODE, g_pCompositor->m_pLastFocus);
     }
 
     wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);

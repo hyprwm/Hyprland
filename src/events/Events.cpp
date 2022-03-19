@@ -222,7 +222,7 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
 void Events::listener_commitWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_commitWindow);
 
-    Debug::log(LOG, "Window %x committed", PWINDOW);
+    PWINDOW;
 }
 
 void Events::listener_destroyWindow(wl_listener* listener, void* data) {

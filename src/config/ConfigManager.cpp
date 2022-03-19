@@ -22,6 +22,18 @@ CConfigManager::CConfigManager() {
 void CConfigManager::init() {
     loadConfigLoadVars();
 
+    const char* const ENVHOME = getenv("HOME");
+
+    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+
+    struct stat fileStat;
+    int err = stat(CONFIGPATH.c_str(), &fileStat);
+    if (err != 0) {
+        Debug::log(WARN, "Error at statting config, error %i", errno);
+    }
+
+    lastModifyTime = fileStat.st_mtime;
+
     isFirstLaunch = false;
 }
 
@@ -86,8 +98,8 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             curitem = argZ.substr(0, idx);
             argZ = argZ.substr(idx + 1);
         } else {
-            argZ = "";
             curitem = argZ;
+            argZ = "";
         }
     };
 
@@ -268,6 +280,8 @@ SMonitorRule CConfigManager::getMonitorRuleFor(std::string name) {
     if (found)
         return *found;
 
+    Debug::log(WARN, "No rule found for %s, trying to use the first.", name.c_str());
+
     for (auto& r : m_dMonitorRules) {
         if (r.name == "") {
             found = &r;
@@ -277,6 +291,8 @@ SMonitorRule CConfigManager::getMonitorRuleFor(std::string name) {
 
     if (found)
         return *found;
+
+    Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
     return SMonitorRule{.name = "", .resolution = Vector2D(1280, 720), .offset = Vector2D(0, 0), .mfact = 0.5f, .scale = 1};
 }

@@ -232,6 +232,8 @@ void Events::listener_commitWindow(wl_listener* listener, void* data) {
 void Events::listener_destroyWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_destroyWindow);
 
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 
     Debug::log(LOG, "Window %x destroyed", PWINDOW);

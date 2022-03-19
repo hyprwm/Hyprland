@@ -35,6 +35,5 @@ class Vector2D {
         return a.x != x || a.y != y;
     }
 
-
     Vector2D floor();
 };

@@ -140,3 +140,69 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
 
     Debug::log(LOG, "OutputMgr Applied/Tested.");
 }
+
+void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayerSurface*>& layerSurfaces) {
+    for (auto& ls : layerSurfaces) {
+
+        const auto STATE = &ls->layerSurface->current;
+        wlr_box layerBox = { .width = STATE->desired_width, .height = STATE->desired_height };
+
+        if (STATE->anchor & (ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT))
+            layerBox.width = pMonitor->vecSize.x;
+        if (STATE->anchor & (ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM))
+            layerBox.height = pMonitor->vecSize.y;
+
+        if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) {
+            pMonitor->vecReservedTopLeft.y += STATE->desired_height;
+            layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
+            layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
+
+            layerBox.width -= STATE->margin.left + STATE->margin.right;
+            layerBox.height -= STATE->margin.top + STATE->margin.bottom;
+        }
+        if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
+            pMonitor->vecReservedBottomRight.y += STATE->desired_height;
+            layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
+            layerBox.y = pMonitor->vecPosition.y + pMonitor->vecSize.y - layerBox.height - STATE->margin.bottom;
+
+            layerBox.width -= STATE->margin.left + STATE->margin.right;
+            layerBox.height -= STATE->margin.top + STATE->margin.bottom;
+        }
+        if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) {
+            pMonitor->vecReservedTopLeft.x += STATE->desired_width;
+            layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
+            layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
+
+            layerBox.width -= STATE->margin.left + STATE->margin.right;
+            layerBox.height -= STATE->margin.top + STATE->margin.bottom;
+        }
+        if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
+            pMonitor->vecReservedBottomRight.x += STATE->desired_width;
+            layerBox.x = pMonitor->vecPosition.x + pMonitor->vecSize.x - layerBox.width - STATE->margin.right;
+            layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
+
+            layerBox.width -= STATE->margin.left + STATE->margin.right;
+            layerBox.height -= STATE->margin.top + STATE->margin.bottom;
+        }
+
+        ls->geometry = layerBox;
+
+        wlr_layer_surface_v1_configure(ls->layerSurface, layerBox.width, layerBox.height);
+
+        Debug::log(LOG, "LayerSurface %x arranged: x: %i y: %i w: %i h: %i", &ls, layerBox.x, layerBox.y, layerBox.width, layerBox.height);
+    }
+}
+
+void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
+
+    if (!PMONITOR)
+        return;
+
+    // Reset the reserved
+    PMONITOR->vecReservedBottomRight    = Vector2D();
+    PMONITOR->vecReservedTopLeft        = Vector2D();
+
+    for (auto& la : PMONITOR->m_aLayerSurfaceLists)
+        arrangeLayerArray(PMONITOR, la);
+}

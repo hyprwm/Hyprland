@@ -190,6 +190,8 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
     if (!layersurface->layerSurface->output)
         return;
 
+    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+
     if (layersurface->layer != layersurface->layerSurface->current.layer) {
         PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
         PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].push_back(layersurface);

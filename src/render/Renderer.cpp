@@ -161,7 +161,7 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
             layerBox.height = pMonitor->vecSize.y;
 
         if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) {
-            pMonitor->vecReservedTopLeft.y += STATE->desired_height;
+            pMonitor->vecReservedTopLeft.y = STATE->desired_height;
             layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
             layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
 
@@ -169,7 +169,7 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
             layerBox.height -= STATE->margin.top + STATE->margin.bottom;
         }
         if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
-            pMonitor->vecReservedBottomRight.y += STATE->desired_height;
+            pMonitor->vecReservedBottomRight.y = STATE->desired_height;
             layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
             layerBox.y = pMonitor->vecPosition.y + pMonitor->vecSize.y - layerBox.height - STATE->margin.bottom;
 
@@ -177,7 +177,7 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
             layerBox.height -= STATE->margin.top + STATE->margin.bottom;
         }
         if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) {
-            pMonitor->vecReservedTopLeft.x += STATE->desired_width;
+            pMonitor->vecReservedTopLeft.x = STATE->desired_width;
             layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
             layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
 
@@ -185,7 +185,7 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
             layerBox.height -= STATE->margin.top + STATE->margin.bottom;
         }
         if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
-            pMonitor->vecReservedBottomRight.x += STATE->desired_width;
+            pMonitor->vecReservedBottomRight.x = STATE->desired_width;
             layerBox.x = pMonitor->vecPosition.x + pMonitor->vecSize.x - layerBox.width - STATE->margin.right;
             layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
 

@@ -137,9 +137,9 @@ void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboar
 
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         // TODO: keybinds
-        Debug::log(LOG, "Keyboard %x key %i pressed on focused window %x", pKeyboard, KEYCODE, g_pCompositor->m_pLastFocus);
+
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
-        Debug::log(LOG, "Keyboard %x key %i released on focused window %x", pKeyboard, KEYCODE, g_pCompositor->m_pLastFocus);
+
     }
 
     wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);

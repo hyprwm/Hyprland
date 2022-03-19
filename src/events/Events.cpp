@@ -364,9 +364,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             break;
     }
 
-    uint32_t capabilities = WL_SEAT_CAPABILITY_POINTER;
-    
-    // todo: keyboard caps
+    uint32_t capabilities = WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_KEYBOARD;
 
     wlr_seat_set_capabilities(g_pCompositor->m_sWLRSeat, capabilities);
 }

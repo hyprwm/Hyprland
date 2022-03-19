@@ -35,6 +35,13 @@ CCompositor::CCompositor() {
     m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);
     m_sWLRDataDevMgr = wlr_data_device_manager_create(m_sWLDisplay);
 
+    wlr_export_dmabuf_manager_v1_create(m_sWLDisplay);
+    wlr_screencopy_manager_v1_create(m_sWLDisplay);
+    wlr_data_control_manager_v1_create(m_sWLDisplay);
+    wlr_gamma_control_manager_v1_create(m_sWLDisplay);
+    wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
+    wlr_viewporter_create(m_sWLDisplay);
+
     m_sWLROutputLayout = wlr_output_layout_create();
 
     m_sWLRScene = wlr_scene_create();
@@ -80,6 +87,8 @@ void CCompositor::initAllSignals() {
     wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
     wl_signal_add(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface);
     wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listen_change);
+    wl_signal_add(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply);
+    wl_signal_add(&m_sWLROutputMgr->events.test, &Events::listen_outputMgrTest);
 }
 
 void CCompositor::startCompositor() {

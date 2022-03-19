@@ -99,3 +99,44 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         wlr_surface_for_each_surface(ls->layerSurface->surface, renderSurface, &renderdata);
     }
 }
+
+void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {
+    wlr_output_configuration_head_v1* head;
+    bool noError = true;
+
+    wl_list_for_each(head, &config->heads, link) {
+        const auto OUTPUT = head->state.output;
+
+        wlr_output_enable(OUTPUT, head->state.enabled);
+        if (head->state.enabled) {
+            if (head->state.mode)
+                wlr_output_set_mode(OUTPUT, head->state.mode);
+            else
+                wlr_output_set_custom_mode(OUTPUT, head->state.custom_mode.width, head->state.custom_mode.height, head->state.custom_mode.refresh);
+
+            wlr_output_layout_move(g_pCompositor->m_sWLROutputLayout, OUTPUT, head->state.x, head->state.y);
+            wlr_output_set_transform(OUTPUT, head->state.transform);
+            wlr_output_set_scale(OUTPUT, head->state.scale);
+        }
+
+        noError = wlr_output_test(OUTPUT);
+
+        if (!noError)
+            break;
+    }
+
+    wl_list_for_each(head, &config->heads, link) {
+        if (noError && !test)
+            wlr_output_commit(head->state.output);
+        else
+            wlr_output_rollback(head->state.output);
+    }
+
+    if (noError)
+        wlr_output_configuration_v1_send_succeeded(config);
+    else
+        wlr_output_configuration_v1_send_failed(config);
+    wlr_output_configuration_v1_destroy(config);
+
+    Debug::log(LOG, "OutputMgr Applied/Tested.");
+}

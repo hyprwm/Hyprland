@@ -394,12 +394,12 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
 
 void Events::listener_outputMgrApply(wl_listener* listener, void* data) {
     const auto CONFIG = (wlr_output_configuration_v1*)data;
-
+    g_pHyprRenderer->outputMgrApplyTest(CONFIG, false);
 }
 
 void Events::listener_outputMgrTest(wl_listener* listener, void* data) {
     const auto CONFIG = (wlr_output_configuration_v1*)data;
-
+    g_pHyprRenderer->outputMgrApplyTest(CONFIG, true);
 }
 
 void Events::listener_requestMouse(wl_listener* listener, void* data) {

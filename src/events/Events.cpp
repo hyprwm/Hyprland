@@ -121,8 +121,8 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
 
     const auto PMONITOR = (SMonitor*)(WLRLAYERSURFACE->output->data ? WLRLAYERSURFACE->output->data : g_pCompositor->getMonitorFromCursor());
-    PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].push_back(SLayerSurface());
-    SLayerSurface* layerSurface = &PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
+    PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].push_back(new SLayerSurface());
+    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
 
     if (!WLRLAYERSURFACE->output) {
         WLRLAYERSURFACE->output = g_pCompositor->m_lMonitors.front().output; // TODO: current mon
@@ -159,7 +159,8 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
         return;
 
     // remove the layersurface as it's not used anymore
-    PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->pending.layer].remove(*layersurface);
+    PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->pending.layer].remove(layersurface);
+    delete layersurface;
 
     Debug::log(LOG, "LayerSurface %x destroyed", layersurface);
 }
@@ -189,8 +190,11 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
     if (!layersurface->layerSurface->output)
         return;
 
-    // todo: handle this properly
-    Debug::log(LOG, "LayerSurface %x committed", layersurface);
+    if (layersurface->layer != layersurface->layerSurface->current.layer) {
+        PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
+        PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].push_back(layersurface);
+        layersurface->layer = layersurface->layerSurface->current.layer;
+    }
 }
 
 void Events::listener_mapWindow(wl_listener* listener, void* data) {

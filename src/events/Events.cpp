@@ -120,7 +120,7 @@ void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
 void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
 
-    const auto PMONITOR = (SMonitor*)WLRLAYERSURFACE->output->data;
+    const auto PMONITOR = (SMonitor*)(WLRLAYERSURFACE->output->data ? WLRLAYERSURFACE->output->data : g_pCompositor->getMonitorFromCursor());
     PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].push_back(SLayerSurface());
     SLayerSurface* layerSurface = &PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
 
@@ -147,7 +147,7 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = 0;
 
-    wl_list_remove(&layersurface->link);
+
     wl_list_remove(&layersurface->listen_destroyLayerSurface.link);
     wl_list_remove(&layersurface->listen_mapLayerSurface.link);
     wl_list_remove(&layersurface->listen_unmapLayerSurface.link);
@@ -160,8 +160,7 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
 
     // remove the layersurface as it's not used anymore
     PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->pending.layer].remove(*layersurface);
-    free(layersurface);
-    
+
     Debug::log(LOG, "LayerSurface %x destroyed", layersurface);
 }
 

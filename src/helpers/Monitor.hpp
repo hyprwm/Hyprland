@@ -4,6 +4,7 @@
 #include <deque>
 #include "WLClasses.hpp"
 #include <list>
+#include <array>
 
 struct SMonitor {
     Vector2D    vecPosition     = Vector2D(0,0);
@@ -22,7 +23,7 @@ struct SMonitor {
     wlr_output* output          = nullptr;
     
     // Double-linked list because we need to have constant mem addresses for signals
-    std::array<std::list<SLayerSurface>,4>   m_aLayerSurfaceLists;
+    std::array<std::list<SLayerSurface>, 4>   m_aLayerSurfaceLists;
 
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);

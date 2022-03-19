@@ -53,6 +53,14 @@ CCompositor::CCompositor() {
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
 
     m_sWLRIdle = wlr_idle_create(m_sWLDisplay);
+
+    m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay);
+
+    wlr_server_decoration_manager_set_default_mode(wlr_server_decoration_manager_create(m_sWLDisplay), WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
+    wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
+
+    wlr_xdg_output_manager_v1_create(m_sWLDisplay, m_sWLROutputLayout);
+    m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {
@@ -70,6 +78,8 @@ void CCompositor::initAllSignals() {
     wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listen_newInput);
     wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listen_requestMouse);
     wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
+    wl_signal_add(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface);
+    wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listen_change);
 }
 
 void CCompositor::startCompositor() {

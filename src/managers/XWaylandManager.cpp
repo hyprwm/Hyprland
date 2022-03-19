@@ -61,6 +61,9 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
     } else {
         wlr_xdg_toplevel_send_close(pWindow->m_uSurface.xdg->toplevel);
     }
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    g_pCompositor->removeWindowFromVectorSafe(pWindow);
 }
 
 void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size) {

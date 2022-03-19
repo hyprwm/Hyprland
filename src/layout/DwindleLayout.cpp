@@ -1,6 +1,36 @@
 #include "DwindleLayout.hpp"
 #include "../Compositor.hpp"
 
+void SDwindleNodeData::recalcSizePosRecursive() {
+    if (children[0]) {
+
+        if (size.x > size.y) {
+            // split sidey
+            children[0]->position = position;
+            children[0]->size = Vector2D(size.x / 2.f, size.y);
+            children[1]->position = Vector2D(position.x + size.x / 2.f, position.y);
+            children[1]->size = Vector2D(size.x / 2.f, size.y);
+        } else {
+            // split toppy bottomy
+            children[0]->position = position;
+            children[0]->size = Vector2D(size.x, size.y / 2.f);
+            children[1]->position = Vector2D(position.x, position.y + size.y / 2.f);
+            children[1]->size = Vector2D(size.x, size.y / 2.f);
+        }
+
+        if (children[0]->isNode)
+            children[0]->recalcSizePosRecursive();
+        else
+            layout->applyNodeDataToWindow(children[0]);
+        if (children[1]->isNode)
+            children[1]->recalcSizePosRecursive();
+        else
+            layout->applyNodeDataToWindow(children[1]);
+    } else {
+        layout->applyNodeDataToWindow(this);
+    }
+}
+
 int CHyprDwindleLayout::getNodesOnMonitor(const int& id) {
     int no = 0;
     for (auto& n : m_lDwindleNodesData) {
@@ -20,10 +50,18 @@ SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnMonitor(const int& id) {
 
 SDwindleNodeData* CHyprDwindleLayout::getNodeFromWindow(CWindow* pWindow) {
     for (auto& n : m_lDwindleNodesData) {
-        if (n.pWindow == pWindow)
+        if (n.pWindow == pWindow && !n.isNode)
             return &n;
     }
 
+    return nullptr;
+}
+
+SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnMonitor(const int& id) {
+    for (auto& n : m_lDwindleNodesData) {
+        if (!n.pParent && n.monitorID == id)
+            return &n;
+    }
     return nullptr;
 }
 
@@ -90,6 +128,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     PNODE->monitorID = pWindow->m_iMonitorID;
     PNODE->pWindow = pWindow;
     PNODE->isNode = false;
+    PNODE->layout = this;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PNODE->monitorID);
 
@@ -132,14 +171,15 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     NEWPARENT->position = OPENINGON->position;
     NEWPARENT->size = OPENINGON->size;
     NEWPARENT->monitorID = OPENINGON->monitorID;
+    NEWPARENT->pParent = OPENINGON->pParent;
     NEWPARENT->isNode = true; // it is a node
 
     // and update the previous parent if it exists
     if (OPENINGON->pParent) {
         if (OPENINGON->pParent->children[0] == OPENINGON) {
-            OPENINGON->pParent->children[0] == NEWPARENT;
+            OPENINGON->pParent->children[0] = NEWPARENT;
         } else {
-            OPENINGON->pParent->children[1] == NEWPARENT;
+            OPENINGON->pParent->children[1] = NEWPARENT;
         }
     }
 
@@ -161,8 +201,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     OPENINGON->pParent = NEWPARENT;
     PNODE->pParent = NEWPARENT;
 
-    applyNodeDataToWindow(PNODE);
-    applyNodeDataToWindow(OPENINGON);
+    NEWPARENT->recalcSizePosRecursive();
 }
 
 void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
@@ -174,9 +213,14 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
     if (!PNODE)
         return;
 
+    if (PNODE->isNode) {
+        Debug::log(LOG, "WHAT THE FUCKKKKKKKK");
+        return;
+    }
+
     const auto PPARENT = PNODE->pParent;
 
-    if (!PPARENT){
+    if (!PPARENT) {
         m_lDwindleNodesData.remove(*PNODE);
         return;
     }
@@ -195,8 +239,11 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
         }
     }
 
+    if (PSIBLING->pParent)
+        PSIBLING->pParent->recalcSizePosRecursive();
+    else 
+        PSIBLING->recalcSizePosRecursive();
+
     m_lDwindleNodesData.remove(*PPARENT);
     m_lDwindleNodesData.remove(*PNODE);
-
-    applyNodeDataToWindow(PSIBLING);
 }

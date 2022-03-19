@@ -12,6 +12,7 @@
 
 CConfigManager::CConfigManager() {
     configValues["general:max_fps"].intValue = 240;
+    configValues["general:sensitivity"].floatValue = 0.25f;
 
     configValues["general:border_size"].intValue = 1;
     configValues["general:gaps_in"].intValue = 5;

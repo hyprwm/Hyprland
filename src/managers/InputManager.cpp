@@ -4,16 +4,9 @@
 void CInputManager::onMouseMoved(wlr_event_pointer_motion* e) {
     // TODO: sensitivity
 
-    float sensitivity = 0.25f;
+    float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
-    m_vMouseCoords = m_vMouseCoords + Vector2D(e->delta_x * sensitivity, e->delta_y * sensitivity);
-
-    if (m_vMouseCoords.floor() != m_vWLRMouseCoords) {
-        Vector2D delta = m_vMouseCoords - m_vWLRMouseCoords;
-        m_vWLRMouseCoords = m_vMouseCoords.floor();
-
-        wlr_cursor_move(g_pCompositor->m_sWLRCursor, e->device, delta.floor().x, delta.floor().y);
-    }
+    wlr_cursor_move(g_pCompositor->m_sWLRCursor, e->device, e->delta_x * sensitivity, e->delta_y * sensitivity);
 
     mouseMoveUnified(e->time_msec);
     // todo: pointer
@@ -22,15 +15,12 @@ void CInputManager::onMouseMoved(wlr_event_pointer_motion* e) {
 void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, e->device, e->x, e->y);
 
-    m_vMouseCoords = Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y);
-    m_vWLRMouseCoords = m_vMouseCoords;
-
     mouseMoveUnified(e->time_msec);
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time) {
 
-    const auto PWINDOW = g_pCompositor->vectorToWindow(m_vMouseCoords);
+    const auto PWINDOW = g_pCompositor->windowFromCursor();
 
     if (!PWINDOW) {
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
@@ -45,10 +35,12 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
 
     g_pCompositor->focusWindow(PWINDOW);
 
-    Vector2D surfaceLocal = m_vWLRMouseCoords - PWINDOW->m_vEffectivePosition;
+    Vector2D surfaceLocal = Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - PWINDOW->m_vEffectivePosition;
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sWLRSeat, g_pXWaylandManager->getWindowSurface(PWINDOW), surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sWLRSeat, time, surfaceLocal.x, surfaceLocal.y);
+
+    g_pCompositor->m_pLastMonitor = g_pCompositor->getMonitorFromCursor();
 }
 
 void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
@@ -63,12 +55,16 @@ void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
             break;
     }
 
+    g_pCompositor->focusWindow(g_pCompositor->vectorToWindowIdeal(Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y)));
+    if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastFocus))
+        Debug::log(LOG, "Clicked, window with focus now: %x (window xy: %f, %f, cursor xy: %f %f)", g_pCompositor->m_pLastFocus, g_pCompositor->m_pLastFocus->m_vRealPosition.x, g_pCompositor->m_pLastFocus->m_vRealPosition.y, g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y);
+
     // notify app if we didnt handle it
     wlr_seat_pointer_notify_button(g_pCompositor->m_sWLRSeat, e->time_msec, e->button, e->state);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
-    return m_vMouseCoords;
+    return Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y);
 }
 
 void CInputManager::newKeyboard(wlr_input_device* keyboard) {

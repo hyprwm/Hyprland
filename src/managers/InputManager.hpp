@@ -21,8 +21,6 @@ public:
     Vector2D        getMouseCoordsInternal();
 
 private:
-    Vector2D        m_vMouseCoords      = Vector2D(0,0);
-    Vector2D        m_vWLRMouseCoords   = Vector2D(0,0);
 
     std::list<SKeyboard> m_lKeyboards;
 

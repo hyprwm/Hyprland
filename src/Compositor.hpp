@@ -52,6 +52,7 @@ public:
     void                    startCompositor(); 
 
     CWindow*                m_pLastFocus = nullptr;
+    SMonitor*               m_pLastMonitor = nullptr;
 
 
     // ------------------------------------------------- //
@@ -64,6 +65,7 @@ public:
     bool                    windowValidMapped(CWindow*);
     CWindow*                vectorToWindow(const Vector2D&);
     CWindow*                vectorToWindowIdeal(const Vector2D&);
+    CWindow*                windowFromCursor();
 
 private:
     void                    initAllSignals();

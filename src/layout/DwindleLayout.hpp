@@ -3,6 +3,8 @@
 #include "IHyprLayout.hpp"
 #include <list>
 
+class CHyprDwindleLayout;
+
 struct SDwindleNodeData {
     SDwindleNodeData* pParent = nullptr;
     bool            isNode = false;
@@ -18,10 +20,11 @@ struct SDwindleNodeData {
 
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) {
-        return pWindow == rhs.pWindow && monitorID == rhs.monitorID && position == rhs.position && size == rhs.size && pParent == rhs.pParent;
+        return pWindow == rhs.pWindow && monitorID == rhs.monitorID && position == rhs.position && size == rhs.size && pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }
 
-    // TODO: recalcsizepos for dynamic
+    void            recalcSizePosRecursive();
+    CHyprDwindleLayout* layout = nullptr;
 };
 
 class CHyprDwindleLayout : public IHyprLayout {
@@ -37,4 +40,7 @@ private:
     void                applyNodeDataToWindow(SDwindleNodeData*);
     SDwindleNodeData*   getNodeFromWindow(CWindow*);
     SDwindleNodeData*   getFirstNodeOnMonitor(const int&);
+    SDwindleNodeData*   getMasterNodeOnMonitor(const int&);
+
+    friend struct SDwindleNodeData;
 };

@@ -159,11 +159,11 @@ SMonitor* CCompositor::getMonitorFromID(const int& id) {
 }
 
 SMonitor* CCompositor::getMonitorFromCursor() {
-    const auto COORDS = g_pInputManager->getMouseCoordsInternal();
+    const auto COORDS = Vector2D(m_sWLRCursor->x, m_sWLRCursor->y);
     const auto OUTPUT = wlr_output_layout_output_at(m_sWLROutputLayout, COORDS.x, COORDS.y);
 
     if (!OUTPUT) {
-        Debug::log(WARN, "getMonitorFromCursor: cursour outside monitors??");
+        Debug::log(WARN, "getMonitorFromCursor: cursor outside monitors??");
         return &m_lMonitors.front();
     }
 
@@ -171,6 +171,8 @@ SMonitor* CCompositor::getMonitorFromCursor() {
         if (m.output == OUTPUT)
             return &m;
     }
+
+    Debug::log(LOG, "Monitor not in list??");
 
     return &m_lMonitors.front();
 }
@@ -190,9 +192,10 @@ bool CCompositor::windowExists(CWindow* pWindow) {
 }
 
 CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
+    const auto PMONITOR = getMonitorFromCursor();
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y))
+        if (w.m_iMonitorID == PMONITOR->ID && wlr_box_contains_point(&box, pos.x, pos.y))
             return &w;
     }
 
@@ -200,9 +203,21 @@ CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
 }
 
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
+    const auto PMONITOR = getMonitorFromCursor();
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y))
+        if (w.m_iMonitorID == PMONITOR->ID && wlr_box_contains_point(&box, pos.x, pos.y))
+            return &w;
+    }
+
+    return nullptr;
+}
+
+CWindow* CCompositor::windowFromCursor() {
+    const auto PMONITOR = getMonitorFromCursor();
+    for (auto& w : m_lWindows) {
+        wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
+        if (w.m_iMonitorID == PMONITOR->ID && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))
             return &w;
     }
 

@@ -210,7 +210,7 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     
     g_pCompositor->focusWindow(PWINDOW);
 
-    Debug::log(LOG, "Map request dispatched.");
+    Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.x, PWINDOW->m_vRealPosition.y, PWINDOW->m_vRealSize.x, PWINDOW->m_vRealSize.y);
 }
 
 void Events::listener_unmapWindow(wl_listener* listener, void* data) {

@@ -22,7 +22,7 @@ void CInputManager::onMouseMoved(wlr_event_pointer_motion* e) {
 void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, e->device, e->x, e->y);
 
-    m_vMouseCoords = Vector2D(e->x, e->y);
+    m_vMouseCoords = Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y);
     m_vWLRMouseCoords = m_vMouseCoords;
 
     mouseMoveUnified(e->time_msec);
@@ -45,7 +45,7 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
 
     g_pCompositor->focusWindow(PWINDOW);
 
-    Vector2D surfaceLocal = m_vMouseCoords - PWINDOW->m_vPosition;
+    Vector2D surfaceLocal = m_vWLRMouseCoords - PWINDOW->m_vPosition;
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sWLRSeat, g_pXWaylandManager->getWindowSurface(PWINDOW), surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sWLRSeat, time, surfaceLocal.x, surfaceLocal.y);

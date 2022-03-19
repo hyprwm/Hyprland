@@ -76,9 +76,9 @@ void CHyprXWaylandManager::setWindowStyleTiled(CWindow* pWindow, uint32_t edgez)
         wlr_xdg_toplevel_set_tiled(pWindow->m_uSurface.xdg->toplevel, edgez);
 }
 
-wlr_surface* CHyprXWaylandManager::surfaceAt(CWindow* pWindow, const Vector2D& client, Vector2D& server) {
-    if (pWindow->m_bIsX11) 
-        return wlr_surface_surface_at(pWindow->m_uSurface.xwayland->surface, client.x, client.y, &server.x, &server.y);
+wlr_surface* CHyprXWaylandManager::surfaceAt(CWindow* pWindow, const Vector2D& client, Vector2D& surface) {
+    if (pWindow->m_bIsX11)
+        return wlr_surface_surface_at(pWindow->m_uSurface.xwayland->surface, client.x, client.y, &surface.x, &surface.y);
 
-    return wlr_xdg_surface_surface_at(pWindow->m_uSurface.xdg, client.x, client.y, &server.x, &server.y);
+    return wlr_xdg_surface_surface_at(pWindow->m_uSurface.xdg, client.x, client.y, &surface.x, &surface.y);
 }

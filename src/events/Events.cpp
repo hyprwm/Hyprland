@@ -191,7 +191,7 @@ void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
 void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_commitLayerSurface);
 
-    if (!layersurface->layerSurface->output)
+    if (!layersurface->layerSurface || !layersurface->layerSurface->output)
         return;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);

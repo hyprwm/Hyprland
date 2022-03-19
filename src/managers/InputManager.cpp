@@ -131,17 +131,18 @@ void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboar
 
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
 
+    bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         for (int i = 0; i < syms; ++i)
-            g_pKeybindManager->handleKeybinds(MODS, keysyms[i]);
+            found = g_pKeybindManager->handleKeybinds(MODS, keysyms[i]) || found;
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
         // hee hee
     }
 
-    wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);
-    wlr_seat_keyboard_notify_key(g_pCompositor->m_sWLRSeat, e->time_msec, e->keycode, e->state);
-
-    g_pCompositor->focusWindow(g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal()));
+    if (!found) {
+        wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);
+        wlr_seat_keyboard_notify_key(g_pCompositor->m_sWLRSeat, e->time_msec, e->keycode, e->state);
+    }
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {

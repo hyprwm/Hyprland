@@ -13,7 +13,7 @@ struct SKeybind {
 
 class CKeybindManager {
 public:
-    void                handleKeybinds(const uint32_t&, const xkb_keysym_t&);
+    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&);
     void                addKeybind(SKeybind);
     uint32_t            stringToModMask(std::string);
     void                clearKeybinds();

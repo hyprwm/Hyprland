@@ -26,7 +26,8 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     return modMask;
 }
 
-void CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key) {
+bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key) {
+    bool found = false;
     for (auto& k : m_dKeybinds) {
         if (modmask != k.modmask) 
             continue;
@@ -41,7 +42,11 @@ void CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         // yes.
         if (k.handler == "exec") { spawn(k.arg); }
         else if (k.handler == "killactive") { killActive(k.arg); }
+
+        found = true;
     }
+
+    return found;
 }
 
 // Dispatchers

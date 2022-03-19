@@ -53,15 +53,15 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (w.m_bIsX11)
             continue;
 
-        wlr_box geometry = { w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y };
+        wlr_box geometry = { w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y };
 
         if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geometry))
             continue;
 
         // render the bad boy
-        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vPosition.x, &w.m_vPosition.y);
+        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vRealPosition.x, &w.m_vRealPosition.y);
 
-        SRenderData renderdata = {PMONITOR->output, time, w.m_vPosition.x, w.m_vPosition.y};
+        SRenderData renderdata = {PMONITOR->output, time, w.m_vRealPosition.x, w.m_vRealPosition.y};
 
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(&w), renderSurface, &renderdata);
         wlr_xdg_surface_for_each_popup_surface(w.m_uSurface.xdg, renderSurface, &renderdata);
@@ -75,15 +75,15 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (!g_pCompositor->windowValidMapped(&w))
             continue;
 
-        wlr_box geometry = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
+        wlr_box geometry = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
 
         if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geometry)) 
             continue;
 
         // render the bad boy
-        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vPosition.x, &w.m_vPosition.y);
+        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &w.m_vRealPosition.x, &w.m_vRealPosition.y);
 
-        SRenderData renderdata = {PMONITOR->output, time, w.m_vPosition.x, w.m_vPosition.y};
+        SRenderData renderdata = {PMONITOR->output, time, w.m_vRealPosition.x, w.m_vRealPosition.y};
 
         if (w.m_uSurface.xwayland->surface)
             wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(&w), renderSurface, &renderdata);

@@ -11,10 +11,10 @@
 #include "managers/ThreadManager.hpp"
 #include "managers/XWaylandManager.hpp"
 #include "managers/InputManager.hpp"
+#include "managers/LayoutManager.hpp"
 #include "helpers/Monitor.hpp"
 #include "Window.hpp"
 #include "render/Renderer.hpp"
-
 class CCompositor {
 public:
     CCompositor();

@@ -109,6 +109,9 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the XWaylandManager!");
     g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
+
+    Debug::log(LOG, "Creating the LayoutManager!");
+    g_pLayoutManager = std::make_unique<CLayoutManager>();
     //
     //
 
@@ -185,7 +188,7 @@ bool CCompositor::windowExists(CWindow* pWindow) {
 
 CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     for (auto& w : m_lWindows) {
-        wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
+        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
         if (wlr_box_contains_point(&box, pos.x, pos.y))
             return &w;
     }

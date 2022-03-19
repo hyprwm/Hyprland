@@ -12,3 +12,7 @@
 #define DYNLISTENER(name) wl_listener listen_##name = { .notify = Events::listener_##name };
 
 #define VECINRECT(vec, x1, y1, x2, y2) (vec.x >= (x1) && vec.x <= (x2) && vec.y >= (y1) && vec.y <= (y2))
+
+#define interface class
+
+#define STICKS(a, b) abs((a) - (b)) < 2

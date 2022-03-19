@@ -45,7 +45,7 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
 
     g_pCompositor->focusWindow(PWINDOW);
 
-    Vector2D surfaceLocal = m_vWLRMouseCoords - PWINDOW->m_vPosition;
+    Vector2D surfaceLocal = m_vWLRMouseCoords - PWINDOW->m_vEffectivePosition;
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sWLRSeat, g_pXWaylandManager->getWindowSurface(PWINDOW), surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sWLRSeat, time, surfaceLocal.x, surfaceLocal.y);

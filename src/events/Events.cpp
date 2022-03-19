@@ -206,10 +206,8 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
 
-    // test
-    PWINDOW->m_vSize = PMONITOR->vecSize;
-    PWINDOW->m_vPosition = PMONITOR->vecPosition;
-    g_pXWaylandManager->setWindowSize(PWINDOW, PMONITOR->vecSize);
+    g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
+    
     g_pCompositor->focusWindow(PWINDOW);
 
     Debug::log(LOG, "Map request dispatched.");
@@ -217,6 +215,8 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 
 void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_unmapWindow);
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 

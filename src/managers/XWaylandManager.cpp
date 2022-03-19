@@ -64,8 +64,8 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
 }
 
 void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size) {
-    if (pWindow->m_bIsX11) 
-        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vPosition.x, pWindow->m_vPosition.y, size.x, size.y);
+    if (pWindow->m_bIsX11)
+        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vEffectivePosition.x, pWindow->m_vEffectivePosition.y, size.x, size.y);
 
     else 
         wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y);

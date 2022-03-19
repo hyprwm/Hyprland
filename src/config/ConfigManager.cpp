@@ -217,6 +217,7 @@ void CConfigManager::loadConfigLoadVars() {
     currentCategory = "";  // reset the category
 
     m_dMonitorRules.clear();
+    g_pKeybindManager->clearKeybinds();
 
     const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
@@ -255,6 +256,9 @@ void CConfigManager::loadConfigLoadVars() {
 
         ifs.close();
     }
+
+    for (auto& m : g_pCompositor->m_lMonitors)
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
 }
 
 void CConfigManager::tick() {

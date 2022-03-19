@@ -60,3 +60,7 @@ void CKeybindManager::killActive(std::string args) {
     if (g_pCompositor->m_pLastFocus && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastFocus))
         g_pXWaylandManager->sendCloseWindow(g_pCompositor->m_pLastFocus);
 }
+
+void CKeybindManager::clearKeybinds() {
+    m_dKeybinds.clear();
+}

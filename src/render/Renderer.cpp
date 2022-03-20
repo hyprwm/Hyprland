@@ -50,7 +50,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     for (auto& w : g_pCompositor->m_lWindows) {
 
-        if (w.m_bIsX11 || w.m_iMonitorID != (uint64_t)ID)
+        if (w.m_bIsX11)
             continue;
 
         wlr_box geometry = { w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y };
@@ -71,7 +71,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     for (auto& w : g_pCompositor->m_lWindows) {
 
-        if (!w.m_bIsX11 || w.m_iMonitorID != (uint64_t)ID)
+        if (!w.m_bIsX11)
             continue;
 
         if (!g_pCompositor->windowValidMapped(&w))

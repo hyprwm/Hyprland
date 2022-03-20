@@ -119,11 +119,6 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     m_lDwindleNodesData.push_back(SDwindleNodeData());
     const auto PNODE = &m_lDwindleNodesData.back();
 
-    if (pWindow->m_bIsFloating) {
-        // handle floating, TODO:
-        return;
-    }
-
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
     // Populate the node with our window's data

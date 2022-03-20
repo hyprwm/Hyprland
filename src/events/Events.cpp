@@ -204,6 +204,20 @@ void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
 
+    // fix if it changed its mon
+    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
+
+    if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
+        const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
+        POLDMON->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
+        PMONITOR->m_aLayerSurfaceLists[layersurface->layer].push_back(layersurface);
+        layersurface->monitorID = PMONITOR->ID;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+        g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
+    }
+
+    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+
     if (layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP || layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
@@ -240,6 +254,7 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
         PMONITOR->m_aLayerSurfaceLists[layersurface->layer].push_back(layersurface);
         layersurface->monitorID = PMONITOR->ID;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+        g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
     }
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);

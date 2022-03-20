@@ -189,6 +189,14 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
             layerBox.height -= STATE->margin.top + STATE->margin.bottom;
         }
 
+        if (!(STATE->anchor & (ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM))) {
+            // no anchors. center
+            layerBox.x = pMonitor->vecPosition.x + (pMonitor->vecSize.x - layerBox.width) / 2.f;
+            layerBox.y = pMonitor->vecPosition.y + (pMonitor->vecSize.y - layerBox.height) / 2.f;
+
+            // TODO: maybe allow the app to choose for itself its x and y?
+        }
+
         ls->geometry = layerBox;
 
         wlr_layer_surface_v1_configure(ls->layerSurface, layerBox.width, layerBox.height);

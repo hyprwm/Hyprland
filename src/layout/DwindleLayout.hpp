@@ -16,11 +16,11 @@ struct SDwindleNodeData {
     Vector2D        position;
     Vector2D        size;
 
-    int             monitorID = -1;
+    int             workspaceID = -1;
 
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) {
-        return pWindow == rhs.pWindow && monitorID == rhs.monitorID && position == rhs.position && size == rhs.size && pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
+        return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && position == rhs.position && size == rhs.size && pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }
 
     void            recalcSizePosRecursive();
@@ -45,11 +45,11 @@ public:
     Vector2D                        m_vBeginDragPositionXY;
     Vector2D                        m_vBeginDragSizeXY;
 
-    int                 getNodesOnMonitor(const int&);
+    int                 getNodesOnWorkspace(const int&);
     void                applyNodeDataToWindow(SDwindleNodeData*);
     SDwindleNodeData*   getNodeFromWindow(CWindow*);
-    SDwindleNodeData*   getFirstNodeOnMonitor(const int&);
-    SDwindleNodeData*   getMasterNodeOnMonitor(const int&);
+    SDwindleNodeData*   getFirstNodeOnWorkspace(const int&);
+    SDwindleNodeData*   getMasterNodeOnWorkspace(const int&);
 
     friend struct SDwindleNodeData;
 };

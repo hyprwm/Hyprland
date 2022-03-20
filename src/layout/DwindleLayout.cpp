@@ -31,18 +31,18 @@ void SDwindleNodeData::recalcSizePosRecursive() {
     }
 }
 
-int CHyprDwindleLayout::getNodesOnMonitor(const int& id) {
+int CHyprDwindleLayout::getNodesOnWorkspace(const int& id) {
     int no = 0;
     for (auto& n : m_lDwindleNodesData) {
-        if (n.monitorID == id)
+        if (n.workspaceID == id)
             ++no;
     }
     return no;
 }
 
-SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnMonitor(const int& id) {
+SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnWorkspace(const int& id) {
     for (auto& n : m_lDwindleNodesData) {
-        if (n.monitorID == id)
+        if (n.workspaceID == id)
             return &n;
     }
     return nullptr;
@@ -57,19 +57,19 @@ SDwindleNodeData* CHyprDwindleLayout::getNodeFromWindow(CWindow* pWindow) {
     return nullptr;
 }
 
-SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnMonitor(const int& id) {
+SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const int& id) {
     for (auto& n : m_lDwindleNodesData) {
-        if (!n.pParent && n.monitorID == id)
+        if (!n.pParent && n.workspaceID == id)
             return &n;
     }
     return nullptr;
 }
 
 void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pNode->monitorID);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(pNode->workspaceID)->monitorID);
 
     if (!PMONITOR){
-        Debug::log(ERR, "Orphaned Node %x (monitor ID: %i)!!", pNode, pNode->monitorID);
+        Debug::log(ERR, "Orphaned Node %x (workspace ID: %i)!!", pNode, pNode->workspaceID);
         return;
     }
 
@@ -124,16 +124,16 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
         return;
     }
 
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
     // Populate the node with our window's data
-    PNODE->monitorID = pWindow->m_iMonitorID;
+    PNODE->workspaceID = PMONITOR->activeWorkspace;
     PNODE->pWindow = pWindow;
     PNODE->isNode = false;
     PNODE->layout = this;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PNODE->monitorID);
-
     // if it's the first, it's easy. Make it fullscreen.
-    if (getNodesOnMonitor(pWindow->m_iMonitorID) == 1) {
+    if (getNodesOnWorkspace(PNODE->workspaceID) == 1) {
         PNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
         PNODE->size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
 
@@ -146,7 +146,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     const auto PLASTFOCUS = getNodeFromWindow(g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus));
     SDwindleNodeData* OPENINGON = PLASTFOCUS;
     if (PLASTFOCUS) {
-        if (PLASTFOCUS->monitorID != PNODE->monitorID) {
+        if (PLASTFOCUS->workspaceID != PNODE->workspaceID) {
             OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindow(g_pInputManager->getMouseCoordsInternal()));
         }
     } else {
@@ -154,7 +154,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     }
 
     if (!OPENINGON) {
-        OPENINGON = getFirstNodeOnMonitor(PNODE->monitorID);
+        OPENINGON = getFirstNodeOnWorkspace(PNODE->workspaceID);
     }
 
     if (!OPENINGON) {
@@ -170,7 +170,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     NEWPARENT->children[1] = PNODE;
     NEWPARENT->position = OPENINGON->position;
     NEWPARENT->size = OPENINGON->size;
-    NEWPARENT->monitorID = OPENINGON->monitorID;
+    NEWPARENT->workspaceID = OPENINGON->workspaceID;
     NEWPARENT->pParent = OPENINGON->pParent;
     NEWPARENT->isNode = true; // it is a node
 
@@ -244,8 +244,8 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
-    const auto TOPNODE = getMasterNodeOnMonitor(monid);
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
+    const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->activeWorkspace);
 
     if (TOPNODE && PMONITOR) {
         TOPNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;

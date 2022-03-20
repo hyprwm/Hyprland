@@ -150,7 +150,7 @@ void CCompositor::startCompositor() {
 
 SMonitor* CCompositor::getMonitorFromID(const int& id) {
     for (auto& m : m_lMonitors) {
-        if (m.ID == id) {
+        if (m.ID == (uint64_t)id) {
             return &m;
         }
     }

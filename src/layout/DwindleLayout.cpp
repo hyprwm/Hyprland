@@ -301,8 +301,10 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
     // and check its monitor
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
 
-    if (PMONITOR)
+    if (PMONITOR) {
         DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
+        DRAGGINGWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
+    }
 }
 
 void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {

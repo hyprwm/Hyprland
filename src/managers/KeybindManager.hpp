@@ -26,7 +26,7 @@ private:
     void                killActive(std::string);
     void                spawn(std::string);
     void                toggleActiveFloating(std::string);
-
+    void                changeworkspace(std::string);
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

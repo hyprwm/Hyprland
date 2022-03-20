@@ -67,6 +67,16 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     newMonitor.vecPosition = monitorRule.offset;
     newMonitor.vecSize = monitorRule.resolution;
     newMonitor.refreshRate = monitorRule.refreshRate;
+
+    // Workspace
+    g_pCompositor->m_lWorkspaces.push_back(SWorkspace());
+    const auto PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
+
+    PNEWWORKSPACE->ID = g_pCompositor->m_lWorkspaces.size();
+    PNEWWORKSPACE->monitorID = newMonitor.ID;
+
+    newMonitor.activeWorkspace = PNEWWORKSPACE->ID;
+
     g_pCompositor->m_lMonitors.push_back(newMonitor);
     //
 
@@ -106,6 +116,13 @@ void Events::listener_monitorFrame(wl_listener* listener, void* data) {
     wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
 
     wlr_output_commit(PMONITOR->output);
+
+
+    // Sanity check the workspaces.
+    // Hack: only check when monitor number 1 refreshes, saves a bit of resources.
+    if (PMONITOR->ID == 0) {
+        g_pCompositor->sanityCheckWorkspaces();
+    }
 }
 
 void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
@@ -485,6 +502,7 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
+    PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
 
     if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);

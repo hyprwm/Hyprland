@@ -203,10 +203,10 @@ bool CCompositor::windowExists(CWindow* pWindow) {
 }
 
 CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
-    const auto PMONITOR = getMonitorFromCursor();
+    const auto PMONITOR = getMonitorFromVector(pos);
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y))  // TODO: workspaces
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
             return &w;
     }
 
@@ -214,18 +214,18 @@ CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
 }
 
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
-    const auto PMONITOR = getMonitorFromCursor();
+    const auto PMONITOR = getMonitorFromVector(pos);
     // first loop over floating cuz they're above
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating)  // TODO: workspaces
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
             return &w;
     }
 
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y)) // TODO: workspaces
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
             return &w;
     }
 
@@ -239,13 +239,13 @@ CWindow* CCompositor::windowFromCursor() {
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating)  // TODO: workspaces
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
             return &w;
     }
 
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))  // TODO: workspaces
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
             return &w;
     }
 
@@ -256,7 +256,7 @@ CWindow* CCompositor::windowFloatingFromCursor() {
     const auto PMONITOR = getMonitorFromCursor();
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating)  // TODO: workspaces
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && w.m_iWorkspaceID == PMONITOR->activeWorkspace) 
             return &w;
     }
 
@@ -356,6 +356,50 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::list<SL
 CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
     for (auto& w : m_lWindows) {
         if (g_pXWaylandManager->getWindowSurface(&w) == pSurface)
+            return &w;
+    }
+
+    return nullptr;
+}
+
+bool CCompositor::isWorkspaceVisible(const int& w) {
+    for (auto& m : m_lMonitors) {
+        if (m.activeWorkspace == w)
+            return true;
+    }
+
+    return false;
+}
+
+SWorkspace* CCompositor::getWorkspaceByID(const int& id) {
+    for (auto& w : m_lWorkspaces) {
+        if (w.ID == id)
+            return &w;
+    }
+
+    return nullptr;
+}
+
+void CCompositor::sanityCheckWorkspaces() {
+    for (auto it = m_lWorkspaces.begin(); it != m_lWorkspaces.end(); ++it) {
+        if (getWindowsOnWorkspace(it->ID) == 0 && !isWorkspaceVisible(it->ID))
+            it = m_lWorkspaces.erase(it);
+    }
+}
+
+int CCompositor::getWindowsOnWorkspace(const int& id) {
+    int no = 0;
+    for (auto& w : m_lWindows) {
+        if (w.m_iWorkspaceID == id)
+            no++;
+    }
+
+    return no;
+}
+
+CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
+    for (auto& w : m_lWindows) {
+        if (w.m_iWorkspaceID == id)
             return &w;
     }
 

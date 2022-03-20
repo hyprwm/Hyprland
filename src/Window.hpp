@@ -39,6 +39,7 @@ public:
     bool            m_bIsFullscreen = false;
     uint64_t        m_iMonitorID = -1;
     std::string     m_szTitle = "";
+    int             m_iWorkspaceID = -1;
 
     // XWayland stuff
     bool            m_bIsX11 = false;

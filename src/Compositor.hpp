@@ -14,8 +14,10 @@
 #include "managers/LayoutManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "helpers/Monitor.hpp"
+#include "helpers/Workspace.hpp"
 #include "Window.hpp"
 #include "render/Renderer.hpp"
+
 class CCompositor {
 public:
     CCompositor();
@@ -50,6 +52,7 @@ public:
     std::list<CWindow>      m_lWindows;
     std::list<SLayerPopup>  m_lLayerPopups;
     std::list<SXDGPopup>    m_lXDGPopups;
+    std::list<SWorkspace>   m_lWorkspaces;
 
     void                    startCompositor(); 
 
@@ -75,6 +78,11 @@ public:
     SLayerSurface*          getLayerForPopup(SLayerPopup*);
     CWindow*                getWindowForPopup(wlr_xdg_popup*);
     CWindow*                getWindowFromSurface(wlr_surface*);
+    bool                    isWorkspaceVisible(const int&);
+    SWorkspace*             getWorkspaceByID(const int&);
+    void                    sanityCheckWorkspaces();
+    int                     getWindowsOnWorkspace(const int&);
+    CWindow*                getFirstWindowOnWorkspace(const int&);
 
 private:
     void                    initAllSignals();

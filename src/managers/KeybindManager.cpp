@@ -43,6 +43,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         if (k.handler == "exec") { spawn(k.arg); }
         else if (k.handler == "killactive") { killActive(k.arg); }
         else if (k.handler == "togglefloating") { toggleActiveFloating(k.arg); }
+        else if (k.handler == "workspace") { changeworkspace(k.arg); }
 
         found = true;
     }
@@ -84,4 +85,44 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
 
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(ACTIVEWINDOW);
     }
+}
+
+void CKeybindManager::changeworkspace(std::string args) {
+    int workspaceToChangeTo = 0;
+    try {
+        workspaceToChangeTo = stoi(args);
+    } catch (...) {
+        Debug::log(ERR, "Invalid arg \"%s\" in changeWorkspace!", args.c_str());
+    }
+
+    // if it exists, we warp to it
+    if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->monitorID);
+
+        // if it's not visible, make it visible.
+        if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo))
+            PMONITOR->activeWorkspace = workspaceToChangeTo;
+
+        // If the monitor is not the one our cursor's at, warp to it.
+        if (PMONITOR != g_pCompositor->getMonitorFromCursor()) {
+            Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
+        }
+
+        // focus the first window
+        g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(workspaceToChangeTo));
+        
+        return;
+    }
+
+    // Workspace doesn't exist, create and switch
+    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+
+    g_pCompositor->m_lWorkspaces.push_back(SWorkspace());
+    const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
+
+    PWORKSPACE->ID = workspaceToChangeTo;
+    PWORKSPACE->monitorID = PMONITOR->ID;
+    
+    PMONITOR->activeWorkspace = workspaceToChangeTo;
 }

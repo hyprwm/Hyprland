@@ -13,6 +13,7 @@ struct SMonitor {
     bool        primary         = false;
 
     uint64_t    ID              = -1;
+    int         activeWorkspace = -1;
 
     std::string szName          = "";
 

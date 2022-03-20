@@ -13,6 +13,8 @@
 CConfigManager::CConfigManager() {
     configValues["general:max_fps"].intValue = 240;
     configValues["general:sensitivity"].floatValue = 0.25f;
+    configValues["general:main_mod"].strValue = "SUPER"; // exposed to the user for easier configuring
+    configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER"); // actually used and automatically calculated
 
     configValues["general:border_size"].intValue = 1;
     configValues["general:gaps_in"].intValue = 5;
@@ -259,6 +261,9 @@ void CConfigManager::loadConfigLoadVars() {
 
     for (auto& m : g_pCompositor->m_lMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
+
+    // Calculate the mod mask for main_mod
+    configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);
 }
 
 void CConfigManager::tick() {

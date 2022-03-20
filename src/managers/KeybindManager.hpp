@@ -25,6 +25,7 @@ private:
     // -------------- Dispatchers -------------- //
     void                killActive(std::string);
     void                spawn(std::string);
+    void                toggleActiveFloating(std::string);
 
 };
 

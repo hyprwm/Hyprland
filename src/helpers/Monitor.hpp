@@ -12,7 +12,7 @@ struct SMonitor {
 
     bool        primary         = false;
 
-    int         ID              = -1;
+    uint64_t    ID              = -1;
 
     std::string szName          = "";
 

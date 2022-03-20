@@ -204,6 +204,14 @@ CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
 
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromCursor();
+    // first loop over floating cuz they're above
+    // TODO: make an actual Z-system
+    for (auto& w : m_lWindows) {
+        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
+        if (w.m_iMonitorID == PMONITOR->ID && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating)
+            return &w;
+    }
+
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
         if (w.m_iMonitorID == PMONITOR->ID && wlr_box_contains_point(&box, pos.x, pos.y))
@@ -215,9 +223,29 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
 CWindow* CCompositor::windowFromCursor() {
     const auto PMONITOR = getMonitorFromCursor();
+
+    // first loop over floating cuz they're above
+    // TODO: make an actual Z-system
+    for (auto& w : m_lWindows) {
+        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
+        if (w.m_iMonitorID == PMONITOR->ID && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating)
+            return &w;
+    }
+
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
         if (w.m_iMonitorID == PMONITOR->ID && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))
+            return &w;
+    }
+
+    return nullptr;
+}
+
+CWindow* CCompositor::windowFloatingFromCursor() {
+    const auto PMONITOR = getMonitorFromCursor();
+    for (auto& w : m_lWindows) {
+        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
+        if (w.m_iMonitorID == PMONITOR->ID && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating)
             return &w;
     }
 

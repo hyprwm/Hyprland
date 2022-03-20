@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <list>
 #include "../helpers/WLClasses.hpp"
+#include "../Window.hpp"
 
 class CInputManager {
 public:
@@ -19,6 +20,11 @@ public:
     void            destroyMouse(wlr_input_device*);
 
     Vector2D        getMouseCoordsInternal();
+
+
+    // for dragging floating windows
+    CWindow*        currentlyDraggedWindow = nullptr;
+    int             dragButton = -1;
 
 private:
 

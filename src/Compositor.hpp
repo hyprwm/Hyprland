@@ -66,6 +66,7 @@ public:
     CWindow*                vectorToWindow(const Vector2D&);
     CWindow*                vectorToWindowIdeal(const Vector2D&);
     CWindow*                windowFromCursor();
+    CWindow*                windowFloatingFromCursor();
     SMonitor*               getMonitorFromOutput(wlr_output*);
 
 private:

@@ -32,10 +32,17 @@ public:
     virtual void        onWindowCreated(CWindow*);
     virtual void        onWindowRemoved(CWindow*);
     virtual void        recalculateMonitor(const int&);
+    virtual void        changeWindowFloatingMode(CWindow*);
+    virtual void        onBeginDragWindow();
+    virtual void        onMouseMove(const Vector2D&);
 
-private:
+   private:
 
     std::list<SDwindleNodeData>     m_lDwindleNodesData;
+
+    Vector2D                        m_vBeginDragXY;
+    Vector2D                        m_vBeginDragPositionXY;
+    Vector2D                        m_vBeginDragSizeXY;
 
     int                 getNodesOnMonitor(const int&);
     void                applyNodeDataToWindow(SDwindleNodeData*);

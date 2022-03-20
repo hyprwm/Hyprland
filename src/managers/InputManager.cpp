@@ -41,6 +41,7 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sWLRSeat, time, surfaceLocal.x, surfaceLocal.y);
 
     g_pCompositor->m_pLastMonitor = g_pCompositor->getMonitorFromCursor();
+    g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 }
 
 void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
@@ -48,10 +49,16 @@ void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
 
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
-            // todo: keybinds
+            if (e->button == BTN_LEFT || e->button == BTN_RIGHT) {
+                currentlyDraggedWindow = g_pCompositor->windowFloatingFromCursor();
+                dragButton = e->button;
+
+                g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
+            }
             break;
         case WLR_BUTTON_RELEASED:
-            // todo: keybinds
+            currentlyDraggedWindow = nullptr;
+            dragButton = -1;
             break;
     }
 

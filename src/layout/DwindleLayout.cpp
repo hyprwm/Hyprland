@@ -213,11 +213,6 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
     if (!PNODE)
         return;
 
-    if (PNODE->isNode) {
-        Debug::log(LOG, "WHAT THE FUCKKKKKKKK");
-        return;
-    }
-
     const auto PPARENT = PNODE->pParent;
 
     if (!PPARENT) {
@@ -256,5 +251,47 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
         TOPNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
         TOPNODE->size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
         TOPNODE->recalcSizePosRecursive();
+    }
+}
+
+void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE) {
+        onWindowCreated(pWindow);
+    } else {
+        onWindowRemoved(pWindow);
+    }
+}
+
+void CHyprDwindleLayout::onBeginDragWindow() {
+    const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
+
+    // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
+    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
+        Debug::log(ERR, "Dragging attempted on an invalid window!");
+        return;
+    }
+
+    m_vBeginDragXY = g_pInputManager->getMouseCoordsInternal();
+    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition;
+    m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize;
+}
+
+void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
+    const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
+
+    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW))
+        return;
+        
+    const auto DELTA = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
+
+    if (g_pInputManager->dragButton == BTN_LEFT) {
+        DRAGGINGWINDOW->m_vRealPosition = m_vBeginDragPositionXY + DELTA;
+    } else {
+        DRAGGINGWINDOW->m_vRealSize = m_vBeginDragSizeXY + DELTA;
+        DRAGGINGWINDOW->m_vRealSize = Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.x, (double)20, (double)999999), std::clamp(DRAGGINGWINDOW->m_vRealSize.y, (double)20, (double)999999));
+
+        g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize);
     }
 }

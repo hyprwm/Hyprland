@@ -5,9 +5,15 @@
 #include "../managers/InputManager.hpp"
 #include "../render/Renderer.hpp"
 
-void Events::listener_activate(wl_listener* listener, void* data) {
-    // TODO
-}
+// --------------------------------------------------------- //
+//   __  __  ____  _   _ _____ _______ ____  _____   _____   //
+//  |  \/  |/ __ \| \ | |_   _|__   __/ __ \|  __ \ / ____|  //
+//  | \  / | |  | |  \| | | |    | | | |  | | |__) | (___    //
+//  | |\/| | |  | | . ` | | |    | | | |  | |  _  / \___ \   //
+//  | |  | | |__| | |\  |_| |_   | | | |__| | | \ \ ____) |  //
+//  |_|  |_|\____/|_| \_|_____|  |_|  \____/|_|  \_\_____/   //
+//                                                           //
+// --------------------------------------------------------- //
 
 void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
@@ -34,7 +40,7 @@ void Events::listener_change(wl_listener* listener, void* data) {
     }
 
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
-}
+  }
 
 void Events::listener_newOutput(wl_listener* listener, void* data) {
     // new monitor added, let's accomodate for that.
@@ -122,6 +128,16 @@ void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
     // TODO: cleanup windows
 }
 
+// --------------------------------------------- //
+//    _           __     ________ _____   _____  //
+//  | |        /\\ \   / /  ____|  __ \ / ____|  //
+//  | |       /  \\ \_/ /| |__  | |__) | (___    //
+//  | |      / /\ \\   / |  __| |  _  / \___ \   //
+//  | |____ / ____ \| |  | |____| | \ \ ____) |  //
+//  |______/_/    \_\_|  |______|_|  \_\_____/   //
+//                                               //
+// --------------------------------------------- //
+
 void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
 
@@ -148,7 +164,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
 
     // todo: arrange
     Debug::log(LOG, "LayerSurface %x created on monitor %s", layerSurface, PMONITOR->szName.c_str());
-}
+ }
 
 void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_destroyLayerSurface);
@@ -219,6 +235,58 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 }
 
+void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
+    const auto XWSURFACE = (wlr_xwayland_surface*)data;
+
+    g_pCompositor->m_lWindows.push_back(CWindow());
+    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
+
+    PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
+    PNEWWINDOW->m_iX11Type = XWSURFACE->override_redirect ? 2 : 1;
+    PNEWWINDOW->m_bIsX11 = true;
+
+    wl_signal_add(&XWSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
+    wl_signal_add(&XWSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
+    wl_signal_add(&XWSURFACE->events.request_activate, &PNEWWINDOW->listen_activateX11);
+    wl_signal_add(&XWSURFACE->events.request_configure, &PNEWWINDOW->listen_configureX11);
+    wl_signal_add(&XWSURFACE->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
+    wl_signal_add(&XWSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
+    wl_signal_add(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
+
+    Debug::log(LOG, "New XWayland Surface created.");
+}
+
+void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
+    // A window got opened
+    const auto XDGSURFACE = (wlr_xdg_surface*)data;
+
+    if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
+        return;  // TODO: handle?
+
+    g_pCompositor->m_lWindows.push_back(CWindow());
+    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
+    PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
+
+    wl_signal_add(&XDGSURFACE->surface->events.commit, &PNEWWINDOW->listen_commitWindow);
+    wl_signal_add(&XDGSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
+    wl_signal_add(&XDGSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
+    wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
+    wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
+    wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
+
+    Debug::log(LOG, "New XDG Surface created.");
+}
+
+// ------------------------------------------------------------ //
+//  __          _______ _   _ _____   ______          _______   //
+//  \ \        / /_   _| \ | |  __ \ / __ \ \        / / ____|  //
+//   \ \  /\  / /  | | |  \| | |  | | |  | \ \  /\  / / (___    //
+//    \ \/  \/ /   | | | . ` | |  | | |  | |\ \/  \/ / \___ \   //
+//     \  /\  /   _| |_| |\  | |__| | |__| | \  /\  /  ____) |  //
+//      \/  \/   |_____|_| \_|_____/ \____/   \/  \/  |_____/   //
+//                                                              //
+// ------------------------------------------------------------ //
+
 void Events::listener_mapWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
 
@@ -277,10 +345,8 @@ void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
 }
 
-void Events::listener_mouseAxis(wl_listener* listener, void* data) {
-    const auto E = (wlr_event_pointer_axis*)data;
-
-    wlr_seat_pointer_notify_axis(g_pCompositor->m_sWLRSeat, E->time_msec, E->orientation, E->delta, E->delta_discrete, E->source);
+void Events::listener_activate(wl_listener* listener, void* data) {
+    // TODO
 }
 
 void Events::listener_activateX11(wl_listener* listener, void* data) {
@@ -300,46 +366,15 @@ void Events::listener_configureX11(wl_listener* listener, void* data) {
     wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
 }
 
-void Events::listener_readyXWayland(wl_listener* listener, void* data) {
-    const auto XCBCONNECTION = xcb_connect(g_pXWaylandManager->m_sWLRXWayland->display_name, NULL);
-    const auto ERR = xcb_connection_has_error(XCBCONNECTION);
-    if (ERR) {
-        Debug::log(LogLevel::ERR, "xcb_connection_has_error failed with %i", ERR);
-        return;
-    }
-
-    // TODO: atoms
-
-    wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sWLRSeat);
-
-    const auto XCURSOR = wlr_xcursor_manager_get_xcursor(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", 1);
-    if (XCURSOR) {
-        wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, XCURSOR->images[0]->width, XCURSOR->images[0]->height, XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y);
-    }
-
-    xcb_disconnect(XCBCONNECTION);
-}
-
-void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
-    const auto XWSURFACE = (wlr_xwayland_surface*)data;
-
-    g_pCompositor->m_lWindows.push_back(CWindow());
-    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
-
-    PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
-    PNEWWINDOW->m_iX11Type = XWSURFACE->override_redirect ? 2 : 1;
-    PNEWWINDOW->m_bIsX11 = true;
-
-    wl_signal_add(&XWSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
-    wl_signal_add(&XWSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
-    wl_signal_add(&XWSURFACE->events.request_activate, &PNEWWINDOW->listen_activateX11);
-    wl_signal_add(&XWSURFACE->events.request_configure, &PNEWWINDOW->listen_configureX11);
-    wl_signal_add(&XWSURFACE->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
-    wl_signal_add(&XWSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
-    wl_signal_add(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
-
-    Debug::log(LOG, "New XWayland Surface created.");
-}
+// ---------------------------------------------------- //
+//   _____  ________      _______ _____ ______  _____   //
+//  |  __ \|  ____\ \    / /_   _/ ____|  ____|/ ____|  //
+//  | |  | | |__   \ \  / /  | || |    | |__  | (___    //
+//  | |  | |  __|   \ \/ /   | || |    |  __|  \___ \   //
+//  | |__| | |____   \  /   _| || |____| |____ ____) |  //
+//  |_____/|______|   \/   |_____\_____|______|_____/   //
+//                                                      //
+// ---------------------------------------------------- //
 
 void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {
     SKeyboard* PKEYBOARD = wl_container_of(listener, PKEYBOARD, listen_keyboardDestroy);
@@ -374,6 +409,19 @@ void Events::listener_mouseButton(wl_listener* listener, void* data) {
     g_pInputManager->onMouseButton((wlr_event_pointer_button*)data);
 }
 
+void Events::listener_mouseAxis(wl_listener* listener, void* data) {
+    const auto E = (wlr_event_pointer_axis*)data;
+
+    wlr_seat_pointer_notify_axis(g_pCompositor->m_sWLRSeat, E->time_msec, E->orientation, E->delta, E->delta_discrete, E->source);
+}
+
+void Events::listener_requestMouse(wl_listener* listener, void* data) {
+    const auto EVENT = (wlr_seat_pointer_request_set_cursor_event*)data;
+
+    if (EVENT->seat_client == g_pCompositor->m_sWLRSeat->pointer_state.focused_client)
+        wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, EVENT->surface, EVENT->hotspot_x, EVENT->hotspot_y);
+}
+
 void Events::listener_newInput(wl_listener* listener, void* data) {
     const auto DEVICE = (wlr_input_device*)data;
 
@@ -395,26 +443,15 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
     wlr_seat_set_capabilities(g_pCompositor->m_sWLRSeat, capabilities);
 }
 
-void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
-    // A window got opened
-    const auto XDGSURFACE = (wlr_xdg_surface*)data;
-
-    if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
-        return; // TODO: handle?
-
-    g_pCompositor->m_lWindows.push_back(CWindow());
-    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
-    PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
-
-    wl_signal_add(&XDGSURFACE->surface->events.commit, &PNEWWINDOW->listen_commitWindow);
-    wl_signal_add(&XDGSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
-    wl_signal_add(&XDGSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
-    wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
-    wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
-    wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
-
-    Debug::log(LOG, "New XDG Surface created.");
-}
+// ------------------------------ //
+//   __  __ _____  _____  _____   //
+//  |  \/  |_   _|/ ____|/ ____|  //
+//  | \  / | | | | (___ | |       //
+//  | |\/| | | |  \___ \| |       //
+//  | |  | |_| |_ ____) | |____   //
+//  |_|  |_|_____|_____/ \_____|  //
+//                                //
+// ------------------------------ //
 
 void Events::listener_outputMgrApply(wl_listener* listener, void* data) {
     const auto CONFIG = (wlr_output_configuration_v1*)data;
@@ -426,13 +463,6 @@ void Events::listener_outputMgrTest(wl_listener* listener, void* data) {
     g_pHyprRenderer->outputMgrApplyTest(CONFIG, true);
 }
 
-void Events::listener_requestMouse(wl_listener* listener, void* data) {
-    const auto EVENT = (wlr_seat_pointer_request_set_cursor_event*)data;
-
-    if (EVENT->seat_client == g_pCompositor->m_sWLRSeat->pointer_state.focused_client)
-        wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, EVENT->surface, EVENT->hotspot_x, EVENT->hotspot_y);
-}
-
 void Events::listener_requestSetPrimarySel(wl_listener* listener, void* data) {
     const auto EVENT = (wlr_seat_request_set_primary_selection_event*)data;
     wlr_seat_set_primary_selection(g_pCompositor->m_sWLRSeat, EVENT->source, EVENT->serial);
@@ -441,4 +471,24 @@ void Events::listener_requestSetPrimarySel(wl_listener* listener, void* data) {
 void Events::listener_requestSetSel(wl_listener* listener, void* data) {
     const auto EVENT = (wlr_seat_request_set_selection_event*)data;
     wlr_seat_set_selection(g_pCompositor->m_sWLRSeat, EVENT->source, EVENT->serial);
+}
+
+void Events::listener_readyXWayland(wl_listener* listener, void* data) {
+    const auto XCBCONNECTION = xcb_connect(g_pXWaylandManager->m_sWLRXWayland->display_name, NULL);
+    const auto ERR = xcb_connection_has_error(XCBCONNECTION);
+    if (ERR) {
+        Debug::log(LogLevel::ERR, "xcb_connection_has_error failed with %i", ERR);
+        return;
+    }
+
+    // TODO: atoms
+
+    wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sWLRSeat);
+
+    const auto XCURSOR = wlr_xcursor_manager_get_xcursor(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", 1);
+    if (XCURSOR) {
+        wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, XCURSOR->images[0]->width, XCURSOR->images[0]->height, XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y);
+    }
+
+    xcb_disconnect(XCBCONNECTION);
 }

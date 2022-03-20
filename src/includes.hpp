@@ -27,8 +27,8 @@
 // pthread first because it uses class in a C++ way and XWayland includes that...
 #include <pthread.h>
 
-#define class YOU_FUCKING_IDIOTS
-#define namespace CAN_ALL_SUCK_MY_BALLS
+#define class _class
+#define namespace _namespace
 #define static
 
 extern "C" {

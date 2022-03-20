@@ -143,7 +143,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     }
 
     // If it's not, get the last node.
-    const auto PLASTFOCUS = getNodeFromWindow(g_pCompositor->m_pLastFocus);
+    const auto PLASTFOCUS = getNodeFromWindow(g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus));
     SDwindleNodeData* OPENINGON = PLASTFOCUS;
     if (PLASTFOCUS) {
         if (PLASTFOCUS->monitorID != PNODE->monitorID) {

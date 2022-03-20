@@ -183,6 +183,8 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = 0;
 
+    if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
+        g_pCompositor->m_pLastFocus = nullptr;
 
     wl_list_remove(&layersurface->listen_destroyLayerSurface.link);
     wl_list_remove(&layersurface->listen_mapLayerSurface.link);
@@ -211,6 +213,9 @@ void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
 
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = 0;
+
+    if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
+        g_pCompositor->m_pLastFocus = nullptr;
 
     Debug::log(LOG, "LayerSurface %x unmapped", layersurface);
 }
@@ -477,6 +482,9 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_unmapWindow);
 
+    if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
+        g_pCompositor->m_pLastFocus = nullptr;
+
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
@@ -492,6 +500,9 @@ void Events::listener_commitWindow(wl_listener* listener, void* data) {
 
 void Events::listener_destroyWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_destroyWindow);
+
+    if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
+        g_pCompositor->m_pLastFocus = nullptr;
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 

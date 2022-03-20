@@ -282,21 +282,25 @@ void CCompositor::focusWindow(CWindow* pWindow) {
 
     const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
 
-    if (m_sWLRSeat->keyboard_state.focused_surface == PWINDOWSURFACE)
-        return; // Don't focus when already focused on this.
+    focusSurface(PWINDOWSURFACE);
 
-    // Unfocus last window
-    if (m_pLastFocus && windowValidMapped(m_pLastFocus))
-        g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(m_pLastFocus), false);
+    Debug::log(LOG, "Set keyboard focus to %x, with name: %s", pWindow, pWindow->m_szTitle.c_str());
+}
+
+void CCompositor::focusSurface(wlr_surface* pSurface) {
+    if (m_sWLRSeat->keyboard_state.focused_surface == pSurface)
+        return;  // Don't focus when already focused on this.
+
+    // Unfocus last surface
+    if (m_pLastFocus)
+        g_pXWaylandManager->activateSurface(m_pLastFocus, false);
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sWLRSeat);
-    wlr_seat_keyboard_notify_enter(m_sWLRSeat, PWINDOWSURFACE, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+    wlr_seat_keyboard_notify_enter(m_sWLRSeat, pSurface, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 
-    g_pXWaylandManager->activateSurface(PWINDOWSURFACE, true);
-    
-    m_pLastFocus = pWindow;
+    m_pLastFocus = pSurface;
 
-    Debug::log(LOG, "Set keyboard %x focus to %x, with name: %s", KEYBOARD, pWindow, pWindow->m_szTitle.c_str());
+    g_pXWaylandManager->activateSurface(pSurface, true);
 }
 
 bool CCompositor::windowValidMapped(CWindow* pWindow) {
@@ -330,6 +334,29 @@ CWindow* CCompositor::getWindowForPopup(wlr_xdg_popup* popup) {
     for (auto& p : m_lXDGPopups) {
         if (p.popup == popup)
             return p.parentWindow;
+    }
+
+    return nullptr;
+}
+
+wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::list<SLayerSurface*>* layerSurfaces, Vector2D* sCoords) {
+    for (auto& l : *layerSurfaces) {
+        if (!l->layerSurface->mapped)
+            continue;
+
+        const auto SURFACEAT = wlr_layer_surface_v1_surface_at(l->layerSurface, pos.x - l->geometry.x, pos.y - l->geometry.y, &sCoords->x, &sCoords->y);
+
+        if (SURFACEAT)
+            return SURFACEAT;
+    }
+
+    return nullptr;
+}
+
+CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
+    for (auto& w : m_lWindows) {
+        if (g_pXWaylandManager->getWindowSurface(&w) == pSurface)
+            return &w;
     }
 
     return nullptr;

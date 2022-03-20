@@ -63,8 +63,8 @@ void CKeybindManager::spawn(std::string args) {
 }
 
 void CKeybindManager::killActive(std::string args) {
-    if (g_pCompositor->m_pLastFocus && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastFocus))
-        g_pXWaylandManager->sendCloseWindow(g_pCompositor->m_pLastFocus);
+    if (g_pCompositor->m_pLastFocus && g_pCompositor->windowValidMapped(g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus)))
+        g_pXWaylandManager->sendCloseWindow(g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus));
 
     g_pCompositor->focusWindow(g_pCompositor->windowFromCursor());
 }
@@ -74,7 +74,7 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
-    const auto ACTIVEWINDOW = g_pCompositor->m_pLastFocus;
+    const auto ACTIVEWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus);
 
     if (g_pCompositor->windowValidMapped(ACTIVEWINDOW)) {
         ACTIVEWINDOW->m_bIsFloating = !ACTIVEWINDOW->m_bIsFloating;

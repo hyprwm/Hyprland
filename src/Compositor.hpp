@@ -53,7 +53,7 @@ public:
 
     void                    startCompositor(); 
 
-    CWindow*                m_pLastFocus = nullptr;
+    wlr_surface*            m_pLastFocus = nullptr;
     SMonitor*               m_pLastMonitor = nullptr;
 
     // ------------------------------------------------- //
@@ -63,15 +63,18 @@ public:
     SMonitor*               getMonitorFromVector(const Vector2D&);
     void                    removeWindowFromVectorSafe(CWindow*);
     void                    focusWindow(CWindow*);
+    void                    focusSurface(wlr_surface*);
     bool                    windowExists(CWindow*);
     bool                    windowValidMapped(CWindow*);
     CWindow*                vectorToWindow(const Vector2D&);
     CWindow*                vectorToWindowIdeal(const Vector2D&);
+    wlr_surface*            vectorToLayerSurface(const Vector2D&, std::list<SLayerSurface*>*, Vector2D*);
     CWindow*                windowFromCursor();
     CWindow*                windowFloatingFromCursor();
     SMonitor*               getMonitorFromOutput(wlr_output*);
     SLayerSurface*          getLayerForPopup(SLayerPopup*);
     CWindow*                getWindowForPopup(wlr_xdg_popup*);
+    CWindow*                getWindowFromSurface(wlr_surface*);
 
 private:
     void                    initAllSignals();

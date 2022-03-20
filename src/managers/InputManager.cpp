@@ -20,9 +20,32 @@ void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
 
 void CInputManager::mouseMoveUnified(uint32_t time) {
 
-    const auto PWINDOW = g_pCompositor->windowFromCursor();
+    // first top layers
+    wlr_surface* foundSurface = nullptr;
+    Vector2D mouseCoords = getMouseCoordsInternal();
+    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    Vector2D surfacePos;
 
-    if (!PWINDOW) {
+    foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfacePos);
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfacePos); 
+
+    // then windows
+    if (!foundSurface && g_pCompositor->vectorToWindowIdeal(mouseCoords)) {
+        foundSurface = g_pXWaylandManager->getWindowSurface(g_pCompositor->windowFromCursor());
+        if (foundSurface)
+            surfacePos = g_pCompositor->windowFromCursor()->m_vRealPosition;
+    }
+        
+    // then surfaces below
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfacePos);
+
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfacePos);
+
+
+    if (!foundSurface) {
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
 
         wlr_seat_pointer_clear_focus(g_pCompositor->m_sWLRSeat);
@@ -33,11 +56,11 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     if (time)
         wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
 
-    g_pCompositor->focusWindow(PWINDOW);
+    g_pCompositor->focusSurface(foundSurface);
 
-    Vector2D surfaceLocal = Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - PWINDOW->m_vEffectivePosition;
+    Vector2D surfaceLocal = Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - surfacePos;
 
-    wlr_seat_pointer_notify_enter(g_pCompositor->m_sWLRSeat, g_pXWaylandManager->getWindowSurface(PWINDOW), surfaceLocal.x, surfaceLocal.y);
+    wlr_seat_pointer_notify_enter(g_pCompositor->m_sWLRSeat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sWLRSeat, time, surfaceLocal.x, surfaceLocal.y);
 
     g_pCompositor->m_pLastMonitor = g_pCompositor->getMonitorFromCursor();
@@ -63,8 +86,6 @@ void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
     }
 
     g_pCompositor->focusWindow(g_pCompositor->vectorToWindowIdeal(Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y)));
-    if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastFocus))
-        Debug::log(LOG, "Clicked, window with focus now: %x (window xy: %f, %f, cursor xy: %f %f)", g_pCompositor->m_pLastFocus, g_pCompositor->m_pLastFocus->m_vRealPosition.x, g_pCompositor->m_pLastFocus->m_vRealPosition.y, g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y);
 
     // notify app if we didnt handle it
     wlr_seat_pointer_notify_button(g_pCompositor->m_sWLRSeat, e->time_msec, e->button, e->state);

@@ -130,9 +130,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     // Workspace doesn't exist, create and switch
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
-    // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
-    // and that'd be annoying as hell
-    g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
+    const auto OLDWORKSPACE = PMONITOR->activeWorkspace;
 
     g_pCompositor->m_lWorkspaces.push_back(SWorkspace());
     const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
@@ -141,4 +139,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     PWORKSPACE->monitorID = PMONITOR->ID;
     
     PMONITOR->activeWorkspace = workspaceToChangeTo;
+
+    // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
+    // and that'd be annoying as hell
+    g_pCompositor->fixXWaylandWindowsOnWorkspace(workspaceToChangeTo);
 }

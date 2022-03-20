@@ -173,7 +173,6 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     WLRLAYERSURFACE->data = layerSurface;
     layerSurface->monitorID = PMONITOR->ID;
 
-    // todo: arrange
     Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer, PMONITOR->szName.c_str());
  }
 
@@ -204,6 +203,9 @@ void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_mapLayerSurface);
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
+
+    if (layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP || layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
+        g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
     Debug::log(LOG, "LayerSurface %x mapped", layersurface);
 }

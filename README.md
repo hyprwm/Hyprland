@@ -14,7 +14,6 @@ For Hyprland without the land part, see [Hypr](https://github.com/vaxerski/Hypr)
 WARNING! 
 Hyprland is in very early dev, expect bugs, instabilities and crashes. You have been warned!
 Nevertheless, REPORT any you find! Make an issue!
-<br/>
 
 # Key features
  - Config reloaded instantly upon saving
@@ -23,7 +22,6 @@ Nevertheless, REPORT any you find! Make an issue!
  - Monitor rules
  - Tiling/floating windows
  - Moving/resizing windows
-<br/>
 
 # Major to-dos
  - Animations
@@ -31,7 +29,6 @@ Nevertheless, REPORT any you find! Make an issue!
  - Blur
  - Window rules
  - STABILITY
-<br/>
 
 # Installation
 Please refer to the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Installation)

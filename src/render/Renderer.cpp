@@ -32,6 +32,29 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
 }
 
+bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
+    wlr_box geometry = {pWindow->m_vRealPosition.x, pWindow->m_vRealPosition.y, pWindow->m_vRealSize.x, pWindow->m_vRealSize.y};
+
+    if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
+        return false;
+
+    // now check if it has the same workspace
+    if (pWindow->m_iWorkspaceID == pMonitor->activeWorkspace)
+        return true;
+
+    // if not, check if it maybe is active on a different monitor.
+    for (auto& m : g_pCompositor->m_lMonitors) {
+        if (&m == pMonitor)
+            continue;
+
+
+        if (m.activeWorkspace == pWindow->m_iWorkspaceID)
+            return true;
+    }
+
+    return false;
+}
+
 void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(ID);
 
@@ -50,12 +73,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     for (auto& w : g_pCompositor->m_lWindows) {
 
-        if (w.m_bIsX11 || w.m_iWorkspaceID != PMONITOR->activeWorkspace)
+        if (w.m_bIsX11)
             continue;
 
-        wlr_box geometry = { w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y };
-
-        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geometry))
+        if (!shouldRenderWindow(&w, PMONITOR))
             continue;
 
         // render the bad boy
@@ -71,15 +92,13 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     for (auto& w : g_pCompositor->m_lWindows) {
 
-        if (!w.m_bIsX11 || w.m_iWorkspaceID != PMONITOR->activeWorkspace)
+        if (!w.m_bIsX11)
             continue;
 
         if (!g_pCompositor->windowValidMapped(&w))
             continue;
 
-        wlr_box geometry = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-
-        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &geometry)) 
+        if (!shouldRenderWindow(&w, PMONITOR))
             continue;
 
         // render the bad boy

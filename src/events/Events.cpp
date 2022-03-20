@@ -167,6 +167,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     wl_signal_add(&WLRLAYERSURFACE->surface->events.destroy, &layerSurface->listen_destroyLayerSurface);
     wl_signal_add(&WLRLAYERSURFACE->events.map, &layerSurface->listen_mapLayerSurface);
     wl_signal_add(&WLRLAYERSURFACE->events.unmap, &layerSurface->listen_unmapLayerSurface);
+    wl_signal_add(&WLRLAYERSURFACE->events.new_popup, &layerSurface->listen_newPopup);
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
     WLRLAYERSURFACE->data = layerSurface;
@@ -226,7 +227,7 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
         return;
 
     // fix if it changed its mon
-    if (layersurface->monitorID != PMONITOR->ID) {
+    if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
         POLDMON->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
         PMONITOR->m_aLayerSurfaceLists[layersurface->layer].push_back(layersurface);
@@ -285,6 +286,97 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
 
     Debug::log(LOG, "New XDG Surface created.");
+}
+
+// --------------------------------------------- //
+//   _____   ____  _____  _    _ _____   _____   //
+//  |  __ \ / __ \|  __ \| |  | |  __ \ / ____|  //
+//  | |__) | |  | | |__) | |  | | |__) | (___    //
+//  |  ___/| |  | |  ___/| |  | |  ___/ \___ \   //
+//  | |    | |__| | |    | |__| | |     ____) |  //
+//  |_|     \____/|_|     \____/|_|    |_____/   //
+//                                               //
+// --------------------------------------------- //
+
+void createNewPopup(wlr_xdg_popup* popup, void* parent, bool parentIsLayer) {
+
+    if (!popup)
+        return;
+
+    g_pCompositor->m_lLayerPopups.push_back(SLayerPopup());
+    const auto PNEWPOPUP = &g_pCompositor->m_lLayerPopups.back();
+
+    PNEWPOPUP->popup = popup;
+    if (parentIsLayer)
+        PNEWPOPUP->parentSurface = (SLayerSurface*)parent;
+    else
+        PNEWPOPUP->parentPopup = (wlr_xdg_popup*)parent;
+
+    wl_signal_add(&popup->base->events.map, &PNEWPOPUP->listen_mapPopup);
+    wl_signal_add(&popup->base->events.unmap, &PNEWPOPUP->listen_unmapPopup);
+    wl_signal_add(&popup->base->events.destroy, &PNEWPOPUP->listen_destroyPopup);
+    wl_signal_add(&popup->base->events.new_popup, &PNEWPOPUP->listen_newPopupFromPopup);
+    wl_signal_add(&popup->base->surface->events.commit, &PNEWPOPUP->listen_commitPopup);
+
+    const auto PLAYER = g_pCompositor->getLayerForPopup(PNEWPOPUP);
+    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(PLAYER->layerSurface->output);
+
+    wlr_box box = { .x = -PLAYER->geometry.x, .y = -PLAYER->geometry.y, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y };
+
+    wlr_xdg_popup_unconstrain_from_box(PNEWPOPUP->popup, &box);
+}
+
+void Events::listener_newPopup(wl_listener* listener, void* data) {
+    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_newPopup);
+
+    const auto WLRPOPUP = (wlr_xdg_popup*)data;
+
+    createNewPopup(WLRPOPUP, layersurface, true);
+
+    Debug::log(LOG, "New layer popup created from surface %x", layersurface);
+}
+
+void Events::listener_newPopupFromPopup(wl_listener* listener, void* data) {
+    SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_newPopupFromPopup);
+
+    const auto WLRPOPUP = (wlr_xdg_popup*)data;
+
+    createNewPopup(WLRPOPUP, layerPopup, true);
+
+    Debug::log(LOG, "New layer popup created from popup %x", layerPopup);
+}
+
+void Events::listener_destroyPopup(wl_listener* listener, void* data) {
+    SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_destroyPopup);
+
+    wl_list_remove(&layerPopup->listen_mapPopup.link);
+    wl_list_remove(&layerPopup->listen_unmapPopup.link);
+    wl_list_remove(&layerPopup->listen_destroyPopup.link);
+    wl_list_remove(&layerPopup->listen_commitPopup.link);
+    
+    g_pCompositor->m_lLayerPopups.remove(*layerPopup);
+
+    Debug::log(LOG, "Destroyed popup %x", layerPopup);
+}
+
+void Events::listener_mapPopup(wl_listener* listener, void* data) {
+    SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_mapPopup);
+
+    const auto PLAYER = g_pCompositor->getLayerForPopup(layerPopup);
+
+    wlr_surface_send_enter(layerPopup->popup->base->surface, PLAYER->layerSurface->output);
+
+    Debug::log(LOG, "Mapped popup %x", layerPopup);
+}
+
+void Events::listener_unmapPopup(wl_listener* listener, void* data) {
+    SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_unmapPopup);
+
+}
+
+void Events::listener_commitPopup(wl_listener* listener, void* data) {
+    SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_commitPopup);
+
 }
 
 // ------------------------------------------------------------ //

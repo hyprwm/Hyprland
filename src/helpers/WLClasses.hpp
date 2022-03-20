@@ -12,6 +12,7 @@ struct SLayerSurface {
     DYNLISTENER(mapLayerSurface);
     DYNLISTENER(unmapLayerSurface);
     DYNLISTENER(commitLayerSurface);
+    DYNLISTENER(newPopup);
 
     wlr_box                 geometry;
     zwlr_layer_shell_v1_layer layer;
@@ -42,5 +43,22 @@ struct SKeyboard {
     // For the list lookup
     bool operator==(const SKeyboard& rhs) {
         return keyboard == rhs.keyboard;
+    }
+};
+
+struct SLayerPopup {
+    wlr_xdg_popup*  popup = nullptr;
+    SLayerSurface*  parentSurface = nullptr;
+    wlr_xdg_popup*  parentPopup = nullptr;
+
+    DYNLISTENER(mapPopup);
+    DYNLISTENER(destroyPopup);
+    DYNLISTENER(unmapPopup);
+    DYNLISTENER(commitPopup);
+    DYNLISTENER(newPopupFromPopup);
+
+    // For the list lookup
+    bool operator==(const SLayerPopup& rhs) {
+        return popup == rhs.popup;
     }
 };

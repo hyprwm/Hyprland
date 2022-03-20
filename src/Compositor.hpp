@@ -48,6 +48,7 @@ public:
 
     std::list<SMonitor>     m_lMonitors;
     std::list<CWindow>      m_lWindows;
+    std::list<SLayerPopup>  m_lLayerPopups;
 
     void                    startCompositor(); 
 
@@ -69,6 +70,7 @@ public:
     CWindow*                windowFromCursor();
     CWindow*                windowFloatingFromCursor();
     SMonitor*               getMonitorFromOutput(wlr_output*);
+    SLayerSurface*          getLayerForPopup(SLayerPopup*);
 
 private:
     void                    initAllSignals();

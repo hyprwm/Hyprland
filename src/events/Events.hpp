@@ -13,6 +13,15 @@ namespace Events {
     LISTENER(unmapLayerSurface);
     LISTENER(commitLayerSurface);
 
+    // Popups
+    LISTENER(newPopup);
+    LISTENER(newPopupFromPopup);
+    LISTENER(mapPopup);
+    LISTENER(unmapPopup);
+    LISTENER(destroyPopup);
+    LISTENER(commitPopup);
+
+
     // Surface XDG (window)
     LISTENER(newXDGSurface);
 

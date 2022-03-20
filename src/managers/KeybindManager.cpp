@@ -142,5 +142,5 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
     // and that'd be annoying as hell
-    g_pCompositor->fixXWaylandWindowsOnWorkspace(workspaceToChangeTo);
+    g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACE);
 }

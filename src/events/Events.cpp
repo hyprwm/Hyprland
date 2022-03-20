@@ -141,11 +141,21 @@ void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
 void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
 
-    if (!WLRLAYERSURFACE->output || !WLRLAYERSURFACE->output->data) {
-        Debug::log(LOG, "New LayerSurface has no preferred monitor.");
+    if (!WLRLAYERSURFACE->output) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+
+        if (!PMONITOR) {
+            Debug::log(ERR, "No monitor at cursor on new layer without a monitor. Ignoring.");
+            wlr_layer_surface_v1_destroy(WLRLAYERSURFACE);
+            return;
+        }
+
+        Debug::log(LOG, "New LayerSurface has no preferred monitor. Assigning Monitor %s", PMONITOR->szName);
+
+        WLRLAYERSURFACE->output = PMONITOR->output;
     }
 
-    const auto PMONITOR = (SMonitor*)((WLRLAYERSURFACE->output && WLRLAYERSURFACE->output->data) ? WLRLAYERSURFACE->output->data : g_pCompositor->getMonitorFromCursor());
+    const auto PMONITOR = (SMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
     PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].push_back(new SLayerSurface());
     SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
 
@@ -163,7 +173,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     layerSurface->monitorID = PMONITOR->ID;
 
     // todo: arrange
-    Debug::log(LOG, "LayerSurface %x created on monitor %s", layerSurface, PMONITOR->szName.c_str());
+    Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer, PMONITOR->szName.c_str());
  }
 
 void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {

@@ -94,6 +94,13 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"])
                 return true;
+
+        if (pWindow->m_uSurface.xwayland->modal)
+            return true;
+
+        const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
+        if (SIZEHINTS && SIZEHINTS->min_width > 0 && SIZEHINTS->min_height > 0 && (SIZEHINTS->max_width == SIZEHINTS->min_width || SIZEHINTS->max_height == SIZEHINTS->min_height))
+            return true;
     }
 
     return false;

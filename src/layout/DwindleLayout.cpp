@@ -137,23 +137,11 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
         return;
     }
 
-    // If it's not, get the last node.
-    const auto PLASTFOCUS = getNodeFromWindow(g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus));
-    SDwindleNodeData* OPENINGON = PLASTFOCUS;
-    if (PLASTFOCUS) {
-        if (PLASTFOCUS->workspaceID != PNODE->workspaceID) {
-            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindow(g_pInputManager->getMouseCoordsInternal()));
-        }
-    } else {
-        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindow(g_pInputManager->getMouseCoordsInternal()));
-    }
+    // If it's not, get the node under our cursor
+    SDwindleNodeData* OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
 
     if (!OPENINGON) {
-        OPENINGON = getFirstNodeOnWorkspace(PNODE->workspaceID);
-    }
-
-    if (!OPENINGON) {
-        Debug::log(ERR, "OPENINGON still null?????");
+        Debug::log(ERR, "OPENINGON null?????");
         return;
     }
 

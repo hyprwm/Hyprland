@@ -71,6 +71,7 @@ public:
     bool                    windowValidMapped(CWindow*);
     CWindow*                vectorToWindow(const Vector2D&);
     CWindow*                vectorToWindowIdeal(const Vector2D&);
+    CWindow*                vectorToWindowTiled(const Vector2D&);
     wlr_surface*            vectorToLayerSurface(const Vector2D&, std::list<SLayerSurface*>*, Vector2D*);
     CWindow*                windowFromCursor();
     CWindow*                windowFloatingFromCursor();

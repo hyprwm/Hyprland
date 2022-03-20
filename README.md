@@ -27,8 +27,19 @@ Nevertheless, REPORT any you find! Make an issue!
  - Animations
  - Rounded corners
  - Blur
+ - Fadein/out
  - Window rules
+ - Drag and drop
+ - Fix electron rendering issues
+ - Fix closing layers not recalcing layout
+ - Fix sloppy dragging of windows
+ - Optimization
+ - IPC done correctly with a socket
+ - Fix weird scroll on XWayland
+ - Become sane
  - STABILITY
+ - More config options for tweakers
+ - Improve hyprctl
 
 # Installation
 Please refer to the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Installation)

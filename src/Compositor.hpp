@@ -84,6 +84,7 @@ public:
     void                    sanityCheckWorkspaces();
     int                     getWindowsOnWorkspace(const int&);
     CWindow*                getFirstWindowOnWorkspace(const int&);
+    void                    fixXWaylandWindowsOnWorkspace(const int&);
 
 private:
     void                    initAllSignals();

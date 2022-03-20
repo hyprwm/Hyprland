@@ -68,7 +68,7 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
 
 void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size) {
     if (pWindow->m_bIsX11)
-        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vEffectivePosition.x, pWindow->m_vEffectivePosition.y, size.x, size.y);
+        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vRealPosition.x, pWindow->m_vRealPosition.y, size.x, size.y);
 
     else 
         wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y);
@@ -97,4 +97,10 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
     }
 
     return false;
+}
+
+void CHyprXWaylandManager::moveXWaylandWindow(CWindow* pWindow, const Vector2D& pos) {
+    if (pWindow->m_bIsX11) {
+        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, pWindow->m_vRealSize.x, pWindow->m_vRealSize.y);
+    }
 }

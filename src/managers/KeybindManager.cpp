@@ -100,8 +100,20 @@ void CKeybindManager::changeworkspace(std::string args) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->monitorID);
 
         // if it's not visible, make it visible.
-        if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo))
+        if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo)) {
+            const auto OLDWORKSPACEID = PMONITOR->activeWorkspace;
+
+            // change it
             PMONITOR->activeWorkspace = workspaceToChangeTo;
+
+            // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
+            // and that'd be annoying as hell
+            g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACEID);
+
+            // and fix on the new workspace
+            g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
+        }
+           
 
         // If the monitor is not the one our cursor's at, warp to it.
         if (PMONITOR != g_pCompositor->getMonitorFromCursor()) {
@@ -111,7 +123,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         // focus the first window
         g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(workspaceToChangeTo));
-        
+
         return;
     }
 

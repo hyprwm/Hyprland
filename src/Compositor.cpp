@@ -216,6 +216,17 @@ CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     return nullptr;
 }
 
+CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
+    const auto PMONITOR = getMonitorFromVector(pos);
+    for (auto& w : m_lWindows) {
+        wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace && !w.m_bIsFloating)
+            return &w;
+    }
+
+    return nullptr;
+}
+
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
     // first loop over floating cuz they're above

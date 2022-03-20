@@ -50,5 +50,17 @@ debug:
 clear:
 	rm -rf build
 	rm -f *.o *-protocol.h *-protocol.c
+	rm -f ./hyprctl/hyprctl
+
+all:
+	make config
+	make release
+	cd ./hyprctl && make all && cd ..
+
+install:
+	make all
+	sudo cp ./example/hyprland.desktop /usr/share/wayland-sessions/
+	sudo cp ./build/Hyprland /usr/bin
+	sudo cp ./hyprctl/hyprctl /usr/bin
 
 config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o

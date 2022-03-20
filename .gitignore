@@ -16,3 +16,5 @@ build/
 *-protocol.c
 *-protocol.h
 .ccls-cache
+
+hyprctl/hyprctl

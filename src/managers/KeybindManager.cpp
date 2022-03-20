@@ -78,6 +78,10 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
 
     if (g_pCompositor->windowValidMapped(ACTIVEWINDOW)) {
         ACTIVEWINDOW->m_bIsFloating = !ACTIVEWINDOW->m_bIsFloating;
+
+        ACTIVEWINDOW->m_vRealPosition = ACTIVEWINDOW->m_vRealPosition + Vector2D(5, 5);
+        ACTIVEWINDOW->m_vSize = ACTIVEWINDOW->m_vRealPosition - Vector2D(10, 10);
+
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(ACTIVEWINDOW);
     }
 }

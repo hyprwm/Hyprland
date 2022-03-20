@@ -18,6 +18,7 @@ public:
     void                setWindowSize(CWindow*, const Vector2D&);
     void                setWindowStyleTiled(CWindow*, uint32_t);
     wlr_surface*        surfaceAt(CWindow*, const Vector2D&, Vector2D&);
+    bool                shouldBeFloated(CWindow*);
 };
 
 inline std::unique_ptr<CHyprXWaylandManager> g_pXWaylandManager;

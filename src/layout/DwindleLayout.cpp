@@ -304,3 +304,11 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
     if (PMONITOR)
         DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
 }
+
+void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
+    const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    pWindow->m_vRealSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
+    pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.x) / 2.f, PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.y) / 2.f);
+}

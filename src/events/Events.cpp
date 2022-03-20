@@ -396,7 +396,10 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
+    if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
+        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
+    else
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
     
     g_pCompositor->focusWindow(PWINDOW);
 
@@ -579,11 +582,21 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
     const auto XCBCONNECTION = xcb_connect(g_pXWaylandManager->m_sWLRXWayland->display_name, NULL);
     const auto ERR = xcb_connection_has_error(XCBCONNECTION);
     if (ERR) {
-        Debug::log(LogLevel::ERR, "xcb_connection_has_error failed with %i", ERR);
+        Debug::log(LogLevel::ERR, "XWayland -> xcb_connection_has_error failed with %i", ERR);
         return;
     }
 
-    // TODO: atoms
+    for (auto& ATOM : HYPRATOMS) {
+        xcb_intern_atom_cookie_t cookie = xcb_intern_atom(XCBCONNECTION, 0, ATOM.first.length(), ATOM.first.c_str());
+        xcb_intern_atom_reply_t* reply = xcb_intern_atom_reply(XCBCONNECTION, cookie, NULL);
+
+        if (!reply) {
+            Debug::log(LogLevel::ERR, "XWayland -> Atom failed: %s", ATOM.first.c_str());
+            continue;
+        }
+
+        ATOM.second = reply->atom;
+    }
 
     wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sWLRSeat);
 

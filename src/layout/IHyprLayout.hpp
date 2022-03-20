@@ -14,5 +14,6 @@ public:
     virtual void        changeWindowFloatingMode(CWindow*)  = 0;
     virtual void        onBeginDragWindow()                 = 0;
     virtual void        onMouseMove(const Vector2D&)        = 0;
+    virtual void        onWindowCreatedFloating(CWindow*)   = 0;
 
 };

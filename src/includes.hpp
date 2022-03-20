@@ -69,6 +69,7 @@ extern "C" {
 #include <wlr/util/log.h>
 #include <wlr/xwayland.h>
 #include <xkbcommon/xkbcommon.h>
+#include <X11/Xproto.h>
 }
 
 #undef class

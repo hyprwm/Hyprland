@@ -4,10 +4,6 @@
 #include "config/ConfigManager.hpp"
 
 int main(int argc, char** argv) {
-    const std::string DEBUGPATH = "/tmp/hypr/hyprland.log";
-    const std::string DEBUGPATH2 = "/tmp/hypr/hyprlandd.log";
-    unlink(DEBUGPATH2.c_str());
-    unlink(DEBUGPATH.c_str());
 
     if (!getenv("XDG_RUNTIME_DIR"))
         RIP("XDG_RUNTIME_DIR not set!");

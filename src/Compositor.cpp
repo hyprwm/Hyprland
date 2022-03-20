@@ -1,6 +1,9 @@
 #include "Compositor.hpp"
 
 CCompositor::CCompositor() {
+    unlink("/tmp/hypr/hyprland.log");
+    unlink("/tmp/hypr/hyprlandd.log");
+    unlink("/tmp/hypr/.hyprlandrq");
 
     m_sWLDisplay = wl_display_create();
 

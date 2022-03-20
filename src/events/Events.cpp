@@ -72,7 +72,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     g_pCompositor->m_lWorkspaces.push_back(SWorkspace());
     const auto PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
 
-    PNEWWORKSPACE->ID = g_pCompositor->m_lWorkspaces.size();
+    PNEWWORKSPACE->ID = monitorRule.defaultWorkspaceID == -1 ? g_pCompositor->m_lWorkspaces.size() : monitorRule.defaultWorkspaceID;
     PNEWWORKSPACE->monitorID = newMonitor.ID;
 
     newMonitor.activeWorkspace = PNEWWORKSPACE->ID;

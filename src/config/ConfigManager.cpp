@@ -156,6 +156,19 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND});
 }
 
+void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
+
+    const auto DISPLAY = value.substr(0, value.find_first_of(','));
+    const auto WORKSPACEID = stoi(value.substr(value.find_first_of(',') + 1));
+
+    for (auto& mr : m_dMonitorRules) {
+        if (mr.name == DISPLAY) {
+            mr.defaultWorkspaceID = WORKSPACEID;
+            break;
+        }
+    }
+}
+
 void CConfigManager::parseLine(std::string& line) {
     // first check if its not a comment
     const auto COMMENTSTART = line.find_first_of('#');
@@ -207,8 +220,10 @@ void CConfigManager::parseLine(std::string& line) {
     } else if (COMMAND == "bind") {
         handleBind(COMMAND, VALUE);
         return;
+    } else if (COMMAND == "workspace") {
+        handleDefaultWorkspace(COMMAND, VALUE);
+        return;
     }
-
 
     configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 }

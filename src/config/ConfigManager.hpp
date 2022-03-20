@@ -20,6 +20,7 @@ struct SMonitorRule {
     float       mfact = 0.5;
     float       scale = 1;
     float       refreshRate = 60;
+    int         defaultWorkspaceID = -1;
 };
 
 class CConfigManager {
@@ -55,6 +56,7 @@ private:
     void                handleRawExec(const std::string&, const std::string&);
     void                handleMonitor(const std::string&, const std::string&);
     void                handleBind(const std::string&, const std::string&);
+    void                handleDefaultWorkspace(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

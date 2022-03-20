@@ -13,8 +13,8 @@
 CConfigManager::CConfigManager() {
     configValues["general:max_fps"].intValue = 240;
     configValues["general:sensitivity"].floatValue = 0.25f;
-    configValues["general:main_mod"].strValue = "SUPER"; // exposed to the user for easier configuring
-    configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER"); // actually used and automatically calculated
+    configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
+    configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
 
     configValues["general:border_size"].intValue = 1;
     configValues["general:gaps_in"].intValue = 5;
@@ -24,6 +24,7 @@ CConfigManager::CConfigManager() {
 }
 
 void CConfigManager::init() {
+    
     loadConfigLoadVars();
 
     const char* const ENVHOME = getenv("HOME");
@@ -289,7 +290,8 @@ void CConfigManager::tick() {
     struct stat fileStat;
     int err = stat(CONFIGPATH.c_str(), &fileStat);
     if (err != 0) {
-        Debug::log(WARN, "Error at ticking config, error %i", errno);
+        Debug::log(WARN, "Error at ticking config at %s, error %i: %s", CONFIGPATH.c_str(), err, strerror(err));
+        return;
     }
 
     // check if we need to reload cfg

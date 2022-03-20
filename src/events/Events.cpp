@@ -321,7 +321,7 @@ void createNewPopup(wlr_xdg_popup* popup, void* parent, bool parentIsLayer) {
     const auto PLAYER = g_pCompositor->getLayerForPopup(PNEWPOPUP);
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(PLAYER->layerSurface->output);
 
-    wlr_box box = { .x = -PLAYER->geometry.x, .y = -PLAYER->geometry.y, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y };
+    wlr_box box = {.x = PMONITOR->vecPosition.x, .y = PMONITOR->vecPosition.y, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
 
     wlr_xdg_popup_unconstrain_from_box(PNEWPOPUP->popup, &box);
 }
@@ -377,6 +377,74 @@ void Events::listener_unmapPopup(wl_listener* listener, void* data) {
 void Events::listener_commitPopup(wl_listener* listener, void* data) {
     SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_commitPopup);
 
+}
+
+void createNewPopupXDG(wlr_xdg_popup* popup, void* parent, bool parentIsWindow) {
+    if (!popup)
+        return;
+
+    g_pCompositor->m_lXDGPopups.push_back(SXDGPopup());
+    const auto PNEWPOPUP = &g_pCompositor->m_lXDGPopups.back();
+
+    PNEWPOPUP->popup = popup;
+    if (parentIsWindow)
+        PNEWPOPUP->parentWindow = (CWindow*)parent;
+    else {
+        PNEWPOPUP->parentPopup = (wlr_xdg_popup*)parent;
+        PNEWPOPUP->parentWindow = g_pCompositor->getWindowForPopup((wlr_xdg_popup*)parent);
+    }
+        
+
+    wl_signal_add(&popup->base->events.map, &PNEWPOPUP->listen_mapPopupXDG);
+    wl_signal_add(&popup->base->events.unmap, &PNEWPOPUP->listen_unmapPopupXDG);
+    wl_signal_add(&popup->base->events.destroy, &PNEWPOPUP->listen_destroyPopupXDG);
+    wl_signal_add(&popup->base->events.new_popup, &PNEWPOPUP->listen_newPopupFromPopupXDG);
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PNEWPOPUP->parentWindow->m_iMonitorID);
+
+    wlr_box box = {.x = PMONITOR->vecPosition.x, .y = PMONITOR->vecPosition.y, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
+
+    wlr_xdg_popup_unconstrain_from_box(PNEWPOPUP->popup, &box);
+}
+
+void Events::listener_newPopupXDG(wl_listener* listener, void* data) {
+    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_newPopupXDG);
+
+    const auto WLRPOPUP = (wlr_xdg_popup*)data;
+
+    createNewPopupXDG(WLRPOPUP, PWINDOW, true);
+
+    Debug::log(LOG, "New layer popup created from XDG window %x -> %s", PWINDOW, PWINDOW->m_szTitle.c_str());
+}
+
+void Events::listener_newPopupFromPopupXDG(wl_listener* listener, void* data) {
+    SXDGPopup* PPOPUP = wl_container_of(listener, PPOPUP, listen_newPopupFromPopupXDG);
+
+    const auto WLRPOPUP = (wlr_xdg_popup*)data;
+
+    createNewPopupXDG(WLRPOPUP, PPOPUP, true);
+
+    Debug::log(LOG, "New layer popup created from XDG popup %x -> %s", PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
+}
+
+void Events::listener_mapPopupXDG(wl_listener* listener, void* data) {
+    
+}
+
+void Events::listener_unmapPopupXDG(wl_listener* listener, void* data) {
+    
+}
+
+void Events::listener_destroyPopupXDG(wl_listener* listener, void* data) {
+    SXDGPopup* PPOPUP = wl_container_of(listener, PPOPUP, listen_destroyPopupXDG);
+
+    wl_list_remove(&PPOPUP->listen_mapPopupXDG.link);
+    wl_list_remove(&PPOPUP->listen_unmapPopupXDG.link);
+    wl_list_remove(&PPOPUP->listen_destroyPopupXDG.link);
+
+    g_pCompositor->m_lXDGPopups.remove(*PPOPUP);
+
+    Debug::log(LOG, "Destroyed popup XDG %x", PPOPUP);
 }
 
 // ------------------------------------------------------------ //

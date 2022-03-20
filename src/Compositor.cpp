@@ -322,6 +322,15 @@ SLayerSurface* CCompositor::getLayerForPopup(SLayerPopup* pPopup) {
             }
         }
     }
-    
+
     return CurrentPopup->parentSurface;
+}
+
+CWindow* CCompositor::getWindowForPopup(wlr_xdg_popup* popup) {
+    for (auto& p : m_lXDGPopups) {
+        if (p.popup == popup)
+            return p.parentWindow;
+    }
+
+    return nullptr;
 }

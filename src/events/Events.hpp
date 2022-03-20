@@ -26,6 +26,7 @@ namespace Events {
     LISTENER(unmapPopupXDG);
     LISTENER(destroyPopupXDG);
     LISTENER(commitPopupXDG);
+    LISTENER(newPopupFromPopupXDG);
 
     // Surface XDG (window)
     LISTENER(newXDGSurface);

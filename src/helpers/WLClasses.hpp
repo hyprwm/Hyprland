@@ -3,6 +3,7 @@
 #include "../events/Events.hpp"
 #include "../defines.hpp"
 #include "../../wlr-layer-shell-unstable-v1-protocol.h"
+#include "../Window.hpp"
 
 struct SLayerSurface {
     wlr_layer_surface_v1*   layerSurface;
@@ -59,6 +60,22 @@ struct SLayerPopup {
 
     // For the list lookup
     bool operator==(const SLayerPopup& rhs) {
+        return popup == rhs.popup;
+    }
+};
+
+struct SXDGPopup {
+    CWindow*        parentWindow = nullptr;
+    wlr_xdg_popup*  parentPopup = nullptr;
+    wlr_xdg_popup*  popup = nullptr;
+
+    DYNLISTENER(newPopupFromPopupXDG);
+    DYNLISTENER(destroyPopupXDG);
+    DYNLISTENER(mapPopupXDG);
+    DYNLISTENER(unmapPopupXDG);
+
+    // For the list lookup
+    bool operator==(const SXDGPopup& rhs) {
         return popup == rhs.popup;
     }
 };

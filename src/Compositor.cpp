@@ -419,3 +419,20 @@ CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
 
     return nullptr;
 }
+
+void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
+    const auto ISVISIBLE = isWorkspaceVisible(id);
+
+    for (auto& w : m_lWindows) {
+        if (w.m_iWorkspaceID == id) {
+
+            // moveXWaylandWindow only moves XWayland windows
+            // so there is no need to check here
+            // if the window is XWayland or not.
+            if (ISVISIBLE)
+                g_pXWaylandManager->moveXWaylandWindow(&w, w.m_vRealPosition);
+            else 
+                g_pXWaylandManager->moveXWaylandWindow(&w, Vector2D(42069,42069));
+        }
+    }
+}

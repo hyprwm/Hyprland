@@ -294,4 +294,13 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize);
     }
+
+    // get middle point
+    Vector2D middle = DRAGGINGWINDOW->m_vRealPosition + DRAGGINGWINDOW->m_vRealSize / 2.f;
+
+    // and check its monitor
+    const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
+
+    if (PMONITOR)
+        DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
 }

@@ -59,6 +59,7 @@ public:
 
     SMonitor*               getMonitorFromID(const int&);
     SMonitor*               getMonitorFromCursor();
+    SMonitor*               getMonitorFromVector(const Vector2D&);
     void                    removeWindowFromVectorSafe(CWindow*);
     void                    focusWindow(CWindow*);
     bool                    windowExists(CWindow*);

@@ -57,7 +57,7 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_destroyLayerSurface);
 
     if (layersurface->layerSurface->mapped)
-        layersurface->layerSurface->mapped = 0;
+        layersurface->layerSurface->mapped = false;
 
     if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
@@ -73,11 +73,20 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
     PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
     delete layersurface;
 
+    // rearrange to fix the reserved areas
+    if (PMONITOR) {
+        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+    }
+        
+
     Debug::log(LOG, "LayerSurface %x destroyed", layersurface);
 }
 
 void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_mapLayerSurface);
+
+    layersurface->layerSurface->mapped = true;
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
 
@@ -105,7 +114,7 @@ void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_unmapLayerSurface);
 
     if (layersurface->layerSurface->mapped)
-        layersurface->layerSurface->mapped = 0;
+        layersurface->layerSurface->mapped = false;
 
     if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;

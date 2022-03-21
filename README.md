@@ -31,7 +31,6 @@ Nevertheless, REPORT any you find! Make an issue!
  - Window rules
  - Drag and drop
  - Fix electron rendering issues
- - Fix closing layers not recalcing layout
  - Fix sloppy dragging of windows
  - Optimization
  - IPC done correctly with a socket

@@ -23,7 +23,14 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_bMappedX11 = true;
     PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
 
-    wl_signal_add(&g_pXWaylandManager->getWindowSurface(PWINDOW)->events.new_subsurface, &PWINDOW->listen_newSubsurfaceWindow);
+    const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(PWINDOW);
+
+    if (!PWINDOWSURFACE) {
+        g_pCompositor->m_lWindows.remove(*PWINDOW);
+        return;
+    }
+
+    wl_signal_add(&PWINDOWSURFACE->events.new_subsurface, &PWINDOW->listen_newSubsurfaceWindow);
 
     if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);

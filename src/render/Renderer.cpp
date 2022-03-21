@@ -164,63 +164,158 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
     Debug::log(LOG, "OutputMgr Applied/Tested.");
 }
 
-void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayerSurface*>& layerSurfaces) {
+// taken from Sway.
+// this is just too much of a spaghetti for me to understand
+void apply_exclusive(struct wlr_box* usable_area, uint32_t anchor, int32_t exclusive, int32_t margin_top, int32_t margin_right, int32_t margin_bottom, int32_t margin_left) {
+    if (exclusive <= 0) {
+        return;
+    }
+    struct {
+        uint32_t singular_anchor;
+        uint32_t anchor_triplet;
+        int* positive_axis;
+        int* negative_axis;
+        int margin;
+    } edges[] = {
+        // Top
+        {
+            .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP,
+            .anchor_triplet =
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP,
+            .positive_axis = &usable_area->y,
+            .negative_axis = &usable_area->height,
+            .margin = margin_top,
+        },
+        // Bottom
+        {
+            .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
+            .anchor_triplet =
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
+            .positive_axis = NULL,
+            .negative_axis = &usable_area->height,
+            .margin = margin_bottom,
+        },
+        // Left
+        {
+            .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT,
+            .anchor_triplet =
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
+            .positive_axis = &usable_area->x,
+            .negative_axis = &usable_area->width,
+            .margin = margin_left,
+        },
+        // Right
+        {
+            .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
+            .anchor_triplet =
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
+                ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
+            .positive_axis = NULL,
+            .negative_axis = &usable_area->width,
+            .margin = margin_right,
+        },
+    };
+    for (size_t i = 0; i < sizeof(edges) / sizeof(edges[0]); ++i) {
+        if ((anchor == edges[i].singular_anchor || anchor == edges[i].anchor_triplet) && exclusive + edges[i].margin > 0) {
+            if (edges[i].positive_axis) {
+                *edges[i].positive_axis += exclusive + edges[i].margin;
+            }
+            if (edges[i].negative_axis) {
+                *edges[i].negative_axis -= exclusive + edges[i].margin;
+            }
+            break;
+        }
+    }
+}
+
+void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayerSurface*>& layerSurfaces, bool exclusiveZone, wlr_box* usableArea) {
+    wlr_box full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
+
     for (auto& ls : layerSurfaces) {
-
-        const auto STATE = &ls->layerSurface->current;
-        wlr_box layerBox = { .width = STATE->desired_width, .height = STATE->desired_height };
-
-        if (STATE->anchor & (ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT))
-            layerBox.width = pMonitor->vecSize.x;
-        if (STATE->anchor & (ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM))
-            layerBox.height = pMonitor->vecSize.y;
-
-        if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) {
-            pMonitor->vecReservedTopLeft.y = STATE->desired_height;
-            layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
-            layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
-
-            layerBox.width -= STATE->margin.left + STATE->margin.right;
-            layerBox.height -= STATE->margin.top + STATE->margin.bottom;
-        }
-        if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
-            pMonitor->vecReservedBottomRight.y = STATE->desired_height;
-            layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
-            layerBox.y = pMonitor->vecPosition.y + pMonitor->vecSize.y - layerBox.height - STATE->margin.bottom;
-
-            layerBox.width -= STATE->margin.left + STATE->margin.right;
-            layerBox.height -= STATE->margin.top + STATE->margin.bottom;
-        }
-        if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) {
-            pMonitor->vecReservedTopLeft.x = STATE->desired_width;
-            layerBox.x = pMonitor->vecPosition.x + STATE->margin.left;
-            layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
-
-            layerBox.width -= STATE->margin.left + STATE->margin.right;
-            layerBox.height -= STATE->margin.top + STATE->margin.bottom;
-        }
-        if (STATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
-            pMonitor->vecReservedBottomRight.x = STATE->desired_width;
-            layerBox.x = pMonitor->vecPosition.x + pMonitor->vecSize.x - layerBox.width - STATE->margin.right;
-            layerBox.y = pMonitor->vecPosition.y + STATE->margin.top;
-
-            layerBox.width -= STATE->margin.left + STATE->margin.right;
-            layerBox.height -= STATE->margin.top + STATE->margin.bottom;
+        const auto PLAYER = ls->layerSurface;
+        const auto PSTATE = &PLAYER->current;
+        if (exclusiveZone != (PSTATE->exclusive_zone > 0)) {
+            continue;
         }
 
-        if (!(STATE->anchor & (ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM))) {
-            // no anchors. center
-            layerBox.x = pMonitor->vecPosition.x + (pMonitor->vecSize.x - layerBox.width) / 2.f;
-            layerBox.y = pMonitor->vecPosition.y + (pMonitor->vecSize.y - layerBox.height) / 2.f;
-
-            // TODO: maybe allow the app to choose for itself its x and y?
+        wlr_box bounds;
+        if (PSTATE->exclusive_zone == -1) {
+            bounds = full_area;
+        } else {
+            bounds = *usableArea;
         }
 
-        ls->geometry = layerBox;
+        wlr_box box = {
+            .width = PSTATE->desired_width,
+            .height = PSTATE->desired_height};
+        // Horizontal axis
+        const uint32_t both_horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
+        if (box.width == 0) {
+            box.x = bounds.x;
+        } else if ((PSTATE->anchor & both_horiz) == both_horiz) {
+            box.x = bounds.x + ((bounds.width / 2) - (box.width / 2));
+        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT)) {
+            box.x = bounds.x;
+        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
+            box.x = bounds.x + (bounds.width - box.width);
+        } else {
+            box.x = bounds.x + ((bounds.width / 2) - (box.width / 2));
+        }
+        // Vertical axis
+        const uint32_t both_vert = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
+        if (box.height == 0) {
+            box.y = bounds.y;
+        } else if ((PSTATE->anchor & both_vert) == both_vert) {
+            box.y = bounds.y + ((bounds.height / 2) - (box.height / 2));
+        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP)) {
+            box.y = bounds.y;
+        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM)) {
+            box.y = bounds.y + (bounds.height - box.height);
+        } else {
+            box.y = bounds.y + ((bounds.height / 2) - (box.height / 2));
+        }
+        // Margin
+        if (box.width == 0) {
+            box.x += PSTATE->margin.left;
+            box.width = bounds.width -
+                        (PSTATE->margin.left + PSTATE->margin.right);
+        } else if ((PSTATE->anchor & both_horiz) == both_horiz) {
+            // don't apply margins
+        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT)) {
+            box.x += PSTATE->margin.left;
+        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
+            box.x -= PSTATE->margin.right;
+        }
+        if (box.height == 0) {
+            box.y += PSTATE->margin.top;
+            box.height = bounds.height -
+                         (PSTATE->margin.top + PSTATE->margin.bottom);
+        } else if ((PSTATE->anchor & both_vert) == both_vert) {
+            // don't apply margins
+        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP)) {
+            box.y += PSTATE->margin.top;
+        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM)) {
+            box.y -= PSTATE->margin.bottom;
+        }
+        if (box.width <= 0 || box.height <= 0) {
+            Debug::log(ERR, "LayerSurface %x has a negative/zero w/h???", ls);
+            continue;
+        }
+        // Apply
+        ls->geometry = box;
 
-        wlr_layer_surface_v1_configure(ls->layerSurface, layerBox.width, layerBox.height);
+        apply_exclusive(usableArea, PSTATE->anchor, PSTATE->exclusive_zone, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
-        Debug::log(LOG, "LayerSurface %x arranged: x: %i y: %i w: %i h: %i", &ls, layerBox.x, layerBox.y, layerBox.width, layerBox.height);
+        wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
+
+        Debug::log(LOG, "LayerSurface %x arranged: x: %i y: %i w: %i h: %i", &ls, box.x, box.y, box.width, box.height);
     }
 }
 
@@ -234,8 +329,18 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     PMONITOR->vecReservedBottomRight    = Vector2D();
     PMONITOR->vecReservedTopLeft        = Vector2D();
 
+    wlr_box usableArea = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+
     for (auto& la : PMONITOR->m_aLayerSurfaceLists)
-        arrangeLayerArray(PMONITOR, la);
+        arrangeLayerArray(PMONITOR, la, true, &usableArea);
+
+    for (auto& la : PMONITOR->m_aLayerSurfaceLists)
+        arrangeLayerArray(PMONITOR, la, false, &usableArea);
+
+    PMONITOR->vecReservedTopLeft = Vector2D(usableArea.x, usableArea.y) - PMONITOR->vecPosition;
+    PMONITOR->vecReservedBottomRight = PMONITOR->vecSize - Vector2D(usableArea.width, usableArea.height) - PMONITOR->vecReservedTopLeft;
+
+    Debug::log(LOG, "Monitor %s layers arranged: reserved: %i %i %i %i", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y, PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 
 void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {

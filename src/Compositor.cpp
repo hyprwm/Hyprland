@@ -5,6 +5,8 @@ CCompositor::CCompositor() {
     unlink("/tmp/hypr/hyprlandd.log");
     unlink("/tmp/hypr/.hyprlandrq");
 
+    system("mkdir -p /tmp/hypr");
+
     m_sWLDisplay = wl_display_create();
 
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay);
@@ -88,6 +90,7 @@ void CCompositor::initAllSignals() {
     wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listen_newInput);
     wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listen_requestMouse);
     wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
+    wl_signal_add(&m_sWLRSeat->events.request_start_drag, &Events::listen_requestDrag);
     wl_signal_add(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface);
     wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listen_change);
     wl_signal_add(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply);

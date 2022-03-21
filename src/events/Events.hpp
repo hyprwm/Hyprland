@@ -81,4 +81,8 @@ namespace Events {
     // XWayland
     LISTENER(readyXWayland);
     LISTENER(surfaceXWayland);
+
+    // Drag & Drop
+    LISTENER(requestDrag);
+    LISTENER(startDrag);
 };

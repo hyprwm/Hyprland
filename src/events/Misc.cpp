@@ -64,3 +64,19 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 
     xcb_disconnect(XCBCONNECTION);
 }
+
+void Events::listener_requestDrag(wl_listener* listener, void* data) {
+    const auto E = (wlr_seat_request_start_drag_event*)data;
+
+    if (!wlr_seat_validate_pointer_grab_serial(g_pCompositor->m_sWLRSeat, E->origin, E->serial)) {
+        Debug::log(LOG, "Ignoring drag and drop request: serial mismatch.");
+        wlr_data_source_destroy(E->drag->source);
+        return;
+    }
+
+    wlr_seat_start_pointer_drag(g_pCompositor->m_sWLRSeat, E->drag, E->serial);
+}
+
+void Events::listener_startDrag(wl_listener* listener, void* data) {
+    // TODO: draw the drag icon
+}

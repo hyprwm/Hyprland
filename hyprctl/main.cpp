@@ -102,9 +102,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (!strcmp(argv[1], "monitors")) request("R>monitors");
-    else if (!strcmp(argv[1], "clients")) request("R>clients");
-    else if (!strcmp(argv[1], "workspaces")) request("R>workspaces");
+    if (!strcmp(argv[1], "monitors")) request("monitors");
+    else if (!strcmp(argv[1], "clients")) request("clients");
+    else if (!strcmp(argv[1], "workspaces")) request("workspaces");
     else {
         printf(USAGE.c_str());
         return 1;

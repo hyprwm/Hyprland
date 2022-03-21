@@ -97,9 +97,9 @@ void HyprCtl::startHyprCtlSocket() {
             std::string request(readBuffer);
 
             std::string reply = "";
-            if (request == "R>monitors") reply = monitorsRequest();
-            if (request == "R>workspaces") reply = workspacesRequest();
-            if (request == "R>clients") reply = clientsRequest();
+            if (request == "monitors") reply = monitorsRequest();
+            if (request == "workspaces") reply = workspacesRequest();
+            if (request == "clients") reply = clientsRequest();
 
             write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
 

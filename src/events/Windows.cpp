@@ -32,8 +32,10 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 
     wl_signal_add(&PWINDOWSURFACE->events.new_subsurface, &PWINDOW->listen_newSubsurfaceWindow);
 
-    if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
+    if (g_pXWaylandManager->shouldBeFloated(PWINDOW)) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
+        PWINDOW->m_bIsFloating = true;
+    }
     else
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
     

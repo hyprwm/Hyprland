@@ -44,6 +44,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     wl_signal_add(&WLRLAYERSURFACE->events.map, &layerSurface->listen_mapLayerSurface);
     wl_signal_add(&WLRLAYERSURFACE->events.unmap, &layerSurface->listen_unmapLayerSurface);
     wl_signal_add(&WLRLAYERSURFACE->events.new_popup, &layerSurface->listen_newPopup);
+    wl_signal_add(&WLRLAYERSURFACE->surface->events.new_subsurface, &layerSurface->listen_newSubsurface);
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
     WLRLAYERSURFACE->data = layerSurface;
@@ -144,44 +145,72 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 }
 
-void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
-    const auto XWSURFACE = (wlr_xwayland_surface*)data;
+//
+// Subsurfaces
+//
 
-    g_pCompositor->m_lWindows.push_back(CWindow());
-    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
+void createSubsurface(wlr_subsurface* pSubSurface, SLayerSurface* pLayerSurface) {
+    if (!pSubSurface || !pLayerSurface)
+        return;
 
-    PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
-    PNEWWINDOW->m_iX11Type = XWSURFACE->override_redirect ? 2 : 1;
-    PNEWWINDOW->m_bIsX11 = true;
+    g_pCompositor->m_lSubsurfaces.push_back(SSubsurface());
+    const auto PNEWSUBSURFACE = &g_pCompositor->m_lSubsurfaces.back();
 
-    wl_signal_add(&XWSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
-    wl_signal_add(&XWSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
-    wl_signal_add(&XWSURFACE->events.request_activate, &PNEWWINDOW->listen_activateX11);
-    wl_signal_add(&XWSURFACE->events.request_configure, &PNEWWINDOW->listen_configureX11);
-    wl_signal_add(&XWSURFACE->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
-    wl_signal_add(&XWSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
-    wl_signal_add(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
+    PNEWSUBSURFACE->subsurface = pSubSurface;
+    PNEWSUBSURFACE->pParentSurface = pLayerSurface;
 
-    Debug::log(LOG, "New XWayland Surface created.");
+    wl_signal_add(&pSubSurface->events.map, &PNEWSUBSURFACE->listen_mapSubsurface);
+    wl_signal_add(&pSubSurface->events.unmap, &PNEWSUBSURFACE->listen_unmapSubsurface);
+    wl_signal_add(&pSubSurface->events.destroy, &PNEWSUBSURFACE->listen_destroySubsurface);
+    wl_signal_add(&pSubSurface->surface->events.commit, &PNEWSUBSURFACE->listen_commitSubsurface);
 }
 
-void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
-    // A window got opened
-    const auto XDGSURFACE = (wlr_xdg_surface*)data;
+void damageSubsurface(SSubsurface* subSurface, bool all = false) {
+    if (!subSurface->pParentSurface->layerSurface->output)
+        return;
 
-    if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
-        return;  // TODO: handle?
+    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(subSurface->pParentSurface->layerSurface->output);
 
-    g_pCompositor->m_lWindows.push_back(CWindow());
-    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
-    PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
+    if (!PMONITOR)
+        return; // wut?
 
-    wl_signal_add(&XDGSURFACE->surface->events.commit, &PNEWWINDOW->listen_commitWindow);
-    wl_signal_add(&XDGSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
-    wl_signal_add(&XDGSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
-    wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
-    wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
-    wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
+    int x = subSurface->subsurface->current.x + subSurface->pParentSurface->geometry.x;
+    int y = subSurface->subsurface->current.y + subSurface->pParentSurface->geometry.y;
 
-    Debug::log(LOG, "New XDG Surface created.");
+    g_pHyprRenderer->damageSurface(PMONITOR, x, y, subSurface->subsurface->surface, &all);
+}
+
+void Events::listener_newSubsurface(wl_listener* listener, void* data) {
+    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_newSubsurface);
+
+    createSubsurface((wlr_subsurface*)data, layersurface);
+}
+
+void Events::listener_mapSubsurface(wl_listener* listener, void* data) {
+    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_mapSubsurface);
+
+    damageSubsurface(subsurface, true);
+}
+
+void Events::listener_unmapSubsurface(wl_listener* listener, void* data) {
+    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_unmapSubsurface);
+
+    damageSubsurface(subsurface, true);
+}
+
+void Events::listener_commitSubsurface(wl_listener* listener, void* data) {
+    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_commitSubsurface);
+
+    damageSubsurface(subsurface, false);
+}
+
+void Events::listener_destroySubsurface(wl_listener* listener, void* data) {
+    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_destroySubsurface);
+
+    wl_list_remove(&subsurface->listen_mapSubsurface.link);
+    wl_list_remove(&subsurface->listen_unmapSubsurface.link);
+    wl_list_remove(&subsurface->listen_destroySubsurface.link);
+    wl_list_remove(&subsurface->listen_commitSubsurface.link);
+
+    g_pCompositor->m_lSubsurfaces.remove(*subsurface);
 }

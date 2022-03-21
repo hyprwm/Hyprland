@@ -14,6 +14,7 @@ public:
     DYNLISTENER(setTitleWindow);
     DYNLISTENER(fullscreenWindow);
     DYNLISTENER(newPopupXDG);
+    DYNLISTENER(newSubsurfaceWindow);
 
     union {
         wlr_xdg_surface* xdg;

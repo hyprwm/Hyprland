@@ -264,3 +264,50 @@ void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {
     border.x = correctPos.x + pWindow->m_vRealSize.x;
     wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
 }
+
+void damageSurfaceIter(struct wlr_surface* surface, int x, int y, void* data) {
+    auto* renderdata = (SRenderData*)data;
+    bool entire = (bool*)renderdata->data;
+
+    wlr_box box = {.x = renderdata->x, .y = renderdata->y, .width = renderdata->w, .height = renderdata->h};
+    scaleBox(&box, renderdata->output->scale);
+
+    pixman_region32_t damageRegion;
+    pixman_region32_init(&damageRegion);
+    wlr_surface_get_effective_damage(renderdata->surface, &damageRegion);
+    wlr_region_scale(&damageRegion, &damageRegion, renderdata->output->scale);
+
+    if (std::ceil(renderdata->output->scale) > renderdata->surface->current.scale) {
+        wlr_region_expand(&damageRegion, &damageRegion, std::ceil(renderdata->output->scale) - renderdata->surface->current.scale);
+    }
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(renderdata->output);
+
+    pixman_region32_translate(&damageRegion, box.x, box.y);
+    wlr_output_damage_add(PMONITOR->damage, &damageRegion);
+    pixman_region32_fini(&damageRegion);
+
+    if (entire)
+        wlr_output_damage_add_box(PMONITOR->damage, &box);
+
+    if (!wl_list_empty(&surface->current.frame_callback_list)) {
+        wlr_output_schedule_frame(renderdata->output);
+    }
+}
+
+void CHyprRenderer::damageSurface(SMonitor* pMonitor, double x, double y, wlr_surface* pSurface, void* data) {
+    if (!pSurface || !pMonitor)
+        return; // wut?
+
+    SRenderData renderData = {
+        .output = pMonitor->output,
+        .x = x,
+        .y = y,
+        .data = data,
+        .surface = pSurface,
+        .w = pSurface->current.width,
+        .h = pSurface->current.height
+    };
+
+    wlr_surface_for_each_surface(pSurface, damageSurfaceIter, &renderData);
+}

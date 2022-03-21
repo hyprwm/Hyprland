@@ -36,6 +36,7 @@ target_link_libraries(Hyprland PkgConfig::deps)
 
 target_link_libraries(Hyprland
         wlroots
+        pixman-1
         ${CMAKE_THREAD_LIBS_INIT}
 )
 

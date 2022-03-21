@@ -11,6 +11,7 @@ public:
     void                renderAllClientsForMonitor(const int&, timespec*);
     void                outputMgrApplyTest(wlr_output_configuration_v1*, bool);
     void                arrangeLayersForMonitor(const int&);
+    void                damageSurface(SMonitor*, double, double, wlr_surface*, void*);
 
 private:
     void                arrangeLayerArray(SMonitor*, const std::list<SLayerSurface*>&);

@@ -1,5 +1,5 @@
-# Hyprland
-*logo is a to-do :P*<br/>
+![Logo](https://raw.githubusercontent.com/vaxerski/Hyprland/master/assets/hyprland.png)
+
 ![Issues](https://img.shields.io/github/issues/vaxerski/Hyprland)
 ![PRs](https://img.shields.io/github/issues-pr/vaxerski/Hyprland)
 ![Lang](https://img.shields.io/github/languages/top/vaxerski/Hyprland)

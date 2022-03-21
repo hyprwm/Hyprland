@@ -379,6 +379,15 @@ CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
     return nullptr;
 }
 
+CWindow* CCompositor::getFullscreenWindowOnWorkspace(const int& ID) {
+    for (auto& w : m_lWindows) {
+        if (w.m_iWorkspaceID == ID && w.m_bIsFullscreen)
+            return &w;
+    }
+
+    return nullptr;
+}
+
 bool CCompositor::isWorkspaceVisible(const int& w) {
     for (auto& m : m_lMonitors) {
         if (m.activeWorkspace == w)
@@ -426,13 +435,15 @@ CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
 void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
     const auto ISVISIBLE = isWorkspaceVisible(id);
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
+
     for (auto& w : m_lWindows) {
         if (w.m_iWorkspaceID == id) {
 
             // moveXWaylandWindow only moves XWayland windows
             // so there is no need to check here
             // if the window is XWayland or not.
-            if (ISVISIBLE)
+            if (ISVISIBLE && (!PWORKSPACE->hasFullscreenWindow || w.m_bIsFullscreen))
                 g_pXWaylandManager->moveXWaylandWindow(&w, w.m_vRealPosition);
             else 
                 g_pXWaylandManager->moveXWaylandWindow(&w, Vector2D(42069,42069));

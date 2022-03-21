@@ -27,6 +27,7 @@ private:
     void                spawn(std::string);
     void                toggleActiveFloating(std::string);
     void                changeworkspace(std::string);
+    void                fullscreenActive(std::string);
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

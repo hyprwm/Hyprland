@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <list>
 #include "../helpers/Monitor.hpp"
+#include "../helpers/Workspace.hpp"
 #include "../Window.hpp"
 
 class CHyprRenderer {
@@ -16,6 +17,8 @@ public:
 private:
     void                arrangeLayerArray(SMonitor*, const std::list<SLayerSurface*>&, bool, wlr_box*);
     void                drawBorderForWindow(CWindow*, SMonitor*);
+    void                renderWorkspaceWithFullscreenWindow(SMonitor*, SWorkspace*, timespec*);
+    void                renderWindow(CWindow*, SMonitor*, timespec*, bool);
 };
 
 inline std::unique_ptr<CHyprRenderer> g_pHyprRenderer;

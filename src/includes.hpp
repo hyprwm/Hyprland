@@ -66,8 +66,10 @@ extern "C" {
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_scene.h>
+#include <wlr/types/wlr_output_damage.h>
 #include <wlr/util/log.h>
 #include <wlr/xwayland.h>
+#include <wlr/util/region.h>
 #include <xkbcommon/xkbcommon.h>
 #include <X11/Xproto.h>
 }

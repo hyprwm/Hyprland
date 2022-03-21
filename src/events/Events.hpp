@@ -13,6 +13,13 @@ namespace Events {
     LISTENER(unmapLayerSurface);
     LISTENER(commitLayerSurface);
 
+    // Subsurfaces
+    LISTENER(newSubsurface);
+    LISTENER(mapSubsurface);
+    LISTENER(unmapSubsurface);
+    LISTENER(destroySubsurface);
+    LISTENER(commitSubsurface);
+
     // Popups
     LISTENER(newPopup);
     LISTENER(newPopupFromPopup);
@@ -40,6 +47,9 @@ namespace Events {
     LISTENER(fullscreenWindow);
     LISTENER(activateX11);
     LISTENER(configureX11);
+
+    // Window subsurfaces
+    LISTENER(newSubsurfaceWindow);
 
     // Input events
     LISTENER(mouseMove);

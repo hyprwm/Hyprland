@@ -53,6 +53,7 @@ public:
     std::list<SLayerPopup>  m_lLayerPopups;
     std::list<SXDGPopup>    m_lXDGPopups;
     std::list<SWorkspace>   m_lWorkspaces;
+    std::list<SSubsurface>  m_lSubsurfaces;
 
     void                    startCompositor(); 
 

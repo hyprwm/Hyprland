@@ -14,6 +14,7 @@ struct SLayerSurface {
     DYNLISTENER(unmapLayerSurface);
     DYNLISTENER(commitLayerSurface);
     DYNLISTENER(newPopup);
+    DYNLISTENER(newSubsurface);
 
     wlr_box                 geometry;
     zwlr_layer_shell_v1_layer layer;
@@ -27,11 +28,31 @@ struct SLayerSurface {
     }
 };
 
+struct SSubsurface {
+    wlr_subsurface*     subsurface = nullptr;
+    SLayerSurface*      pParentSurface = nullptr;
+
+    DYNLISTENER(mapSubsurface);
+    DYNLISTENER(unmapSubsurface);
+    DYNLISTENER(destroySubsurface);
+    DYNLISTENER(commitSubsurface);
+    DYNLISTENER(newSubsurface);
+
+    // For the list lookup
+    bool operator==(const SSubsurface& rhs) {
+        return subsurface == rhs.subsurface && pParentSurface == rhs.pParentSurface;
+    }
+};
+
 struct SRenderData {
     wlr_output* output;
     timespec* when;
-    int x;
-    int y;
+    int x, y;
+
+    // for iters
+    void* data = nullptr;
+    wlr_surface* surface = nullptr;
+    int w, h;
 };
 
 struct SKeyboard {

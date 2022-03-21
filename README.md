@@ -1,4 +1,4 @@
-![Logo](https://raw.githubusercontent.com/vaxerski/Hyprland/master/assets/hyprland.png)
+![Logo](https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png)
 
 ![Issues](https://img.shields.io/github/issues/vaxerski/Hyprland)
 ![PRs](https://img.shields.io/github/issues-pr/vaxerski/Hyprland)

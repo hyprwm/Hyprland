@@ -29,7 +29,6 @@ Nevertheless, REPORT any you find! Make an issue!
  - Blur
  - Fadein/out
  - Window rules
- - Drag and drop
  - Fix electron rendering issues
  - Fix sloppy dragging of windows
  - Optimization

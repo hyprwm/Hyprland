@@ -32,7 +32,6 @@ Nevertheless, REPORT any you find! Make an issue!
  - Fix electron rendering issues
  - Fix sloppy dragging of windows
  - Optimization
- - IPC done correctly with a socket
  - Fix weird scroll on XWayland
  - Become sane
  - STABILITY

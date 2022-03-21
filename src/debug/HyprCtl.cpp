@@ -1,6 +1,12 @@
 #include "HyprCtl.hpp"
 
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <string>
@@ -46,31 +52,58 @@ std::string workspacesRequest() {
     return result;
 }
 
-void HyprCtl::tickHyprCtl() {
-    struct stat buf;
+void HyprCtl::startHyprCtlSocket() {
+    int port = 9187;
 
-    if (stat("/tmp/hypr/.hyprlandrq", &buf) == 0) {
-        // file exists, let's open it
+    std::thread([&]() {
+        const auto SOCKET = socket(AF_INET, SOCK_STREAM, 0);
 
-        requestStream.open("/tmp/hypr/.hyprlandrq");
-
-        std::string request = "";
-        std::getline(requestStream, request);
-
-        requestStream.close();
-        
-        std::string reply = "";
-        if (request == "R>monitors") reply = monitorsRequest();
-        if (request == "R>workspaces") reply = workspacesRequest();
-        if (request == "R>clients") reply = clientsRequest();
-
-        if (reply != "") {
-            std::ofstream ofs;
-            ofs.open("/tmp/hypr/.hyprlandrq", std::ios::trunc);
-            ofs << "RPLY:\n" << reply;
-            ofs.close();
+        if (SOCKET < 0) {
+            Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
+            return;
         }
 
-        // the hyprctl app deletes the file when done.
-    }
+        const sockaddr_in SERVERADDRESS = {.sin_family = AF_INET, .sin_port = port, .sin_addr = (in_addr)INADDR_ANY};
+
+        if (bind(SOCKET, (sockaddr*)&SERVERADDRESS, sizeof(SERVERADDRESS)) < 0) {
+            Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
+            return;
+        }
+
+        // 10 max queued.
+        listen(SOCKET, 10);
+
+        sockaddr_in clientAddress;
+        socklen_t clientSize = sizeof(clientAddress);
+
+        char readBuffer[1024] = {0};
+
+        Debug::log(LOG, "Hypr socket started on port %i", SERVERADDRESS.sin_port);
+
+        std::string cmd = "rm -f /tmp/hypr/.socket && echo \"" + std::to_string(SERVERADDRESS.sin_port) + "\" > /tmp/hypr/.socket";
+        system(cmd.c_str()); // forgive me for using system() but it works and it doesnt matter here that much
+
+        while(1) {
+            const auto ACCEPTEDCONNECTION = accept(SOCKET, (sockaddr*)&clientAddress, &clientSize);
+
+            if (ACCEPTEDCONNECTION < 0) {
+                Debug::log(ERR, "Couldn't listen on the Hyprland Socket. (3) IPC will not work.");
+                break;
+            }
+
+            auto messageSize = read(ACCEPTEDCONNECTION, readBuffer, 1024);
+            readBuffer[messageSize == 1024 ? 1024 : messageSize] = '\0';
+
+            std::string request(readBuffer);
+
+            std::string reply = "";
+            if (request == "R>monitors") reply = monitorsRequest();
+            if (request == "R>workspaces") reply = workspacesRequest();
+            if (request == "R>clients") reply = clientsRequest();
+
+            write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
+
+            close(ACCEPTEDCONNECTION);
+        }
+    }).detach();
 }

@@ -1,11 +1,17 @@
 #include <ctype.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
-#include <fstream>
 #include <iostream>
-#include <string.h>
+#include <string>
+#include <fstream>
 #include <string>
 
 const std::string USAGE = R"#(
@@ -16,64 +22,76 @@ usage: hyprctl [command] [(opt)args]
     clients
 )#";
 
-void readReply() {
-    std::ifstream ifs;
+void request(std::string arg) {
+    const auto SERVERSOCKET = socket(AF_INET, SOCK_STREAM, 0);
 
-    while (1) {
-        usleep(1000 * 25);
-
-        ifs.open("/tmp/hypr/.hyprlandrq");
-
-        if (ifs.good()) {
-            std::string reply = "";
-            std::getline(ifs, reply);
-
-            if (reply.find("RPLY:") != std::string::npos) {
-                reply = "";
-                std::string temp = "";
-                while (std::getline(ifs, temp))
-                    reply += temp + '\n';
-
-                std::cout << reply;
-
-                unlink("/tmp/hypr/.hyprlandrq"); // cleanup
-                break;
-            }
-        }
+    if (SERVERSOCKET < 0) {
+        std::cout << "Couldn't open a socket (1)";
+        return;
     }
-}
 
-void requestMonitors() {
-    std::ofstream ofs;
-    ofs.open("/tmp/hypr/.hyprlandrq", std::ios::trunc);
+    const auto SERVER = gethostbyname("localhost");
 
-    ofs << "R>monitors";
+    if (!SERVER) {
+        std::cout << "Couldn't get host (2)";
+        return;
+    }
 
-    ofs.close();
+    sockaddr_in serverAddress = {0};
+    serverAddress.sin_family = AF_INET;
+    bcopy((char*)SERVER->h_addr, (char*)&serverAddress.sin_addr.s_addr, SERVER->h_length);
 
-    readReply();
-}
+    std::ifstream socketPortStream;
+    socketPortStream.open("/tmp/hypr/.socket");
+    
+    if (!socketPortStream.good()) {
+        std::cout << "No socket port file (2a)";
+        return;
+    }
 
-void requestClients() {
-    std::ofstream ofs;
-    ofs.open("/tmp/hypr/.hyprlandrq", std::ios::trunc);
+    std::string port = "";
+    std::getline(socketPortStream, port);
+    socketPortStream.close();
 
-    ofs << "R>clients";
+    int portInt = 0;
+    try {
+        portInt = std::stoi(port.c_str());
+    } catch (...) {
+        std::cout << "Port not an int?! (2b)";
+        return;
+    }
 
-    ofs.close();
+    if (portInt == 0) {
+        std::cout << "Port not an int?! (2c)";
+        return;
+    }
+    
+    serverAddress.sin_port = portInt;
 
-    readReply();
-}
+    if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        std::cout << "Couldn't connect to port " << port << " (3) Is Hyprland running?";
+        return;
+    }
 
-void requestWorkspaces() {
-    std::ofstream ofs;
-    ofs.open("/tmp/hypr/.hyprlandrq", std::ios::trunc);
+    auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
 
-    ofs << "R>workspaces";
+    if (sizeWritten < 0) {
+        std::cout << "Couldn't write (4)";
+        return;
+    }
 
-    ofs.close();
+    char buffer[8192] = {0};
 
-    readReply();
+    sizeWritten = read(SERVERSOCKET,buffer, 8192);
+
+    if (sizeWritten < 0) {
+        std::cout << "Couldn't read (5)";
+        return;
+    }
+
+    close(SERVERSOCKET);
+
+    std::cout << std::string(buffer);
 }
 
 int main(int argc, char** argv) {
@@ -84,9 +102,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (!strcmp(argv[1], "monitors")) requestMonitors();
-    else if (!strcmp(argv[1], "clients")) requestClients();
-    else if (!strcmp(argv[1], "workspaces")) requestWorkspaces();
+    if (!strcmp(argv[1], "monitors")) request("R>monitors");
+    else if (!strcmp(argv[1], "clients")) request("R>clients");
+    else if (!strcmp(argv[1], "workspaces")) request("R>workspaces");
     else {
         printf(USAGE.c_str());
         return 1;

@@ -14,7 +14,7 @@ public:
     void                damageSurface(SMonitor*, double, double, wlr_surface*, void*);
 
 private:
-    void                arrangeLayerArray(SMonitor*, const std::list<SLayerSurface*>&);
+    void                arrangeLayerArray(SMonitor*, const std::list<SLayerSurface*>&, bool, wlr_box*);
     void                drawBorderForWindow(CWindow*, SMonitor*);
 };
 

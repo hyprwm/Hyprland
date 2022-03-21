@@ -23,6 +23,8 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_bMappedX11 = true;
     PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
 
+    wl_signal_add(&g_pXWaylandManager->getWindowSurface(PWINDOW)->events.new_subsurface, &PWINDOW->listen_newSubsurfaceWindow);
+
     if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
     else
@@ -121,7 +123,6 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     wl_signal_add(&XWSURFACE->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
     wl_signal_add(&XWSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
     wl_signal_add(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
-    wl_signal_add(&XWSURFACE->surface->events.new_subsurface, &PNEWWINDOW->listen_newSubsurfaceWindow);
 
     Debug::log(LOG, "New XWayland Surface created.");
 }
@@ -143,7 +144,6 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
     wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
     wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
-    wl_signal_add(&XDGSURFACE->surface->events.new_subsurface, &PNEWWINDOW->listen_newSubsurfaceWindow);
 
     Debug::log(LOG, "New XDG Surface created.");
 }

@@ -20,15 +20,30 @@ void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
 
 void CInputManager::mouseMoveUnified(uint32_t time) {
 
-    // first top layers
     wlr_surface* foundSurface = nullptr;
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
     Vector2D surfacePos;
 
-    foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfacePos);
+    // first, we check if the workspace doesnt have a fullscreen window
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    if (PWORKSPACE->hasFullscreenWindow) {
+        const auto PFULLSCREENWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->ID);
+
+        // should never ever happen but who knows
+        if (PFULLSCREENWINDOW) {
+            foundSurface = g_pXWaylandManager->getWindowSurface(PFULLSCREENWINDOW);
+            if (foundSurface)
+                surfacePos = PFULLSCREENWINDOW->m_vRealPosition;
+        } 
+    }
+
+    // then surfaces on top
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfacePos); 
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfacePos);
+    
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfacePos);
 
     // then windows
     if (!foundSurface && g_pCompositor->vectorToWindowIdeal(mouseCoords)) {
@@ -79,6 +94,8 @@ void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
                 dragButton = e->button;
 
                 g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
+
+                return;
             }
             break;
         case WLR_BUTTON_RELEASED:
@@ -86,8 +103,6 @@ void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
             dragButton = -1;
             break;
     }
-
-    g_pCompositor->focusWindow(g_pCompositor->vectorToWindowIdeal(Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y)));
 
     // notify app if we didnt handle it
     wlr_seat_pointer_notify_button(g_pCompositor->m_sWLRSeat, e->time_msec, e->button, e->state);

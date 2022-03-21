@@ -50,6 +50,13 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
 
+
+    // remove the fullscreen window status from workspace if we closed it
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+
+    if (PWORKSPACE->hasFullscreenWindow && PWINDOW->m_bIsFullscreen)
+        PWORKSPACE->hasFullscreenWindow = false;
+
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
@@ -87,9 +94,7 @@ void Events::listener_setTitleWindow(wl_listener* listener, void* data) {
 void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_fullscreenWindow);
 
-    PWINDOW->m_bIsFullscreen = !PWINDOW->m_bIsFullscreen;
-
-    // todo: do it
+    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
 
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
 }

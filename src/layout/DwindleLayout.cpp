@@ -228,6 +228,12 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
 
 void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+
+    // Ignore any recalc events if we have a fullscreen window.
+    if (PWORKSPACE->hasFullscreenWindow)
+        return;
+
     const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->activeWorkspace);
 
     if (TOPNODE && PMONITOR) {
@@ -238,6 +244,15 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
 }
 
 void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
+
+    if (pWindow->m_bIsFullscreen) {
+        Debug::log(LOG, "Rejecting a change float order because window is fullscreen.");
+
+        // restore its' floating mode
+        pWindow->m_bIsFloating = !pWindow->m_bIsFloating;
+        return;
+    }
+
     const auto PNODE = getNodeFromWindow(pWindow);
 
     if (!PNODE) {
@@ -248,7 +263,15 @@ void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
 }
 
 void CHyprDwindleLayout::onBeginDragWindow() {
+
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
+
+    m_vBeginDragSizeXY = Vector2D();
+
+    if (DRAGGINGWINDOW->m_bIsFullscreen) {
+        Debug::log(LOG, "Rejecting drag on a fullscreen window.");
+        return;
+    }
 
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
@@ -264,7 +287,8 @@ void CHyprDwindleLayout::onBeginDragWindow() {
 void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
-    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW))
+    // Window invalid or drag begin size 0,0 meaning we rejected it.
+    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D())
         return;
         
     const auto DELTA = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
@@ -317,4 +341,60 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
             pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
         }
     }
+}
+
+void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
+    if (!g_pCompositor->windowValidMapped(pWindow))
+        return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->hasFullscreenWindow && !pWindow->m_bIsFullscreen) {
+        // if the window wants to be fullscreen but there already is one,
+        // ignore the request.
+        return;
+    }
+
+    // otherwise, accept it.
+    pWindow->m_bIsFullscreen = !pWindow->m_bIsFullscreen;
+    PWORKSPACE->hasFullscreenWindow = !PWORKSPACE->hasFullscreenWindow;
+
+    if (!pWindow->m_bIsFullscreen) {
+        // if it got its fullscreen disabled, set back its node if it had one
+        const auto PNODE = getNodeFromWindow(pWindow);
+        if (PNODE)
+            applyNodeDataToWindow(PNODE);
+        else {
+            // get back its' dimensions from position and size
+            pWindow->m_vEffectivePosition = pWindow->m_vPosition;
+            pWindow->m_vEffectiveSize = pWindow->m_vSize;
+
+            // TEMP: Remove when anims added
+            pWindow->m_vRealPosition = pWindow->m_vEffectivePosition;
+            pWindow->m_vRealSize = pWindow->m_vEffectiveSize;
+            g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
+        }
+    } else {
+        // if it now got fullscreen, make it fullscreen
+
+        // save position and size if floating
+        if (pWindow->m_bIsFloating) {
+            pWindow->m_vPosition = pWindow->m_vRealPosition;
+            pWindow->m_vSize = pWindow->m_vRealSize;
+        }
+
+        // apply new pos and size being monitors' box
+        pWindow->m_vEffectivePosition = PMONITOR->vecPosition;
+        pWindow->m_vEffectiveSize = PMONITOR->vecSize;
+
+        // TEMP: Remove when anims added
+        pWindow->m_vRealPosition = pWindow->m_vEffectivePosition;
+        pWindow->m_vRealSize = pWindow->m_vEffectiveSize;
+        g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
+    }
+
+    // we need to fix XWayland windows by sending them to NARNIA
+    // because otherwise they'd still be recieving mouse events
+    g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
 }

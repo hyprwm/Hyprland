@@ -86,6 +86,7 @@ public:
     int                     getWindowsOnWorkspace(const int&);
     CWindow*                getFirstWindowOnWorkspace(const int&);
     void                    fixXWaylandWindowsOnWorkspace(const int&);
+    CWindow*                getFullscreenWindowOnWorkspace(const int&);
 
 private:
     void                    initAllSignals();

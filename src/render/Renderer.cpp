@@ -55,6 +55,35 @@ bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
     return false;
 }
 
+void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, SWorkspace* pWorkspace, timespec* time) {
+    for (auto& w : g_pCompositor->m_lWindows) {
+        if (w.m_iWorkspaceID != pWorkspace->ID || !w.m_bIsFullscreen)
+            continue;
+
+        // found it!
+        renderWindow(&w, pMonitor, time, false);
+    }
+}
+
+void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate) {
+    // border
+    if (decorate)
+        drawBorderForWindow(pWindow, pMonitor);
+
+    SRenderData renderdata = {pMonitor->output, time, pWindow->m_vRealPosition.x, pWindow->m_vRealPosition.y};
+
+    wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+
+    if (pWindow->m_bIsX11) {
+        if (pWindow->m_uSurface.xwayland->surface) {
+            wlr_surface_for_each_surface(pWindow->m_uSurface.xwayland->surface, renderSurface, &renderdata);
+        }
+    }
+    else {
+        wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
+    } 
+}
+
 void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(ID);
 
@@ -71,30 +100,16 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         wlr_surface_for_each_surface(ls->layerSurface->surface, renderSurface, &renderdata);
     }
 
-    for (auto& w : g_pCompositor->m_lWindows) {
+    // if there is a fullscreen window, render it and then do not render anymore.
+    // fullscreen window will hide other windows and top layers
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
-        if (w.m_bIsX11)
-            continue;
-
-        if (!shouldRenderWindow(&w, PMONITOR))
-            continue;
-
-        // render the bad boy
-
-        // border
-        drawBorderForWindow(&w, PMONITOR);
-
-        SRenderData renderdata = {PMONITOR->output, time, w.m_vRealPosition.x, w.m_vRealPosition.y};
-
-        wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(&w), renderSurface, &renderdata);
-        wlr_xdg_surface_for_each_popup_surface(w.m_uSurface.xdg, renderSurface, &renderdata);
+    if (PWORKSPACE->hasFullscreenWindow) {
+        renderWorkspaceWithFullscreenWindow(PMONITOR, PWORKSPACE, time);
+        return;
     }
 
     for (auto& w : g_pCompositor->m_lWindows) {
-
-        if (!w.m_bIsX11)
-            continue;
-
         if (!g_pCompositor->windowValidMapped(&w))
             continue;
 
@@ -102,14 +117,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
             continue;
 
         // render the bad boy
-
-        // border
-        drawBorderForWindow(&w, PMONITOR);
-
-        SRenderData renderdata = {PMONITOR->output, time, w.m_vRealPosition.x, w.m_vRealPosition.y};
-
-        if (w.m_uSurface.xwayland->surface)
-            wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(&w), renderSurface, &renderdata);
+        renderWindow(&w, PMONITOR, time, true);        
     }
 
     // Render surfaces above windows for monitor

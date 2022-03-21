@@ -20,7 +20,8 @@ Nevertheless, REPORT any you find! Make an issue!
  - Easily expandable and readable codebase
  - Support for docks/whatever
  - Monitor rules
- - Tiling/floating windows
+ - Socket-based IPC
+ - Tiling/floating/fullscreen windows
  - Moving/resizing windows
 
 # Major to-dos

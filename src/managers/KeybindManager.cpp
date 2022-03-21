@@ -44,6 +44,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         else if (k.handler == "killactive") { killActive(k.arg); }
         else if (k.handler == "togglefloating") { toggleActiveFloating(k.arg); }
         else if (k.handler == "workspace") { changeworkspace(k.arg); }
+        else if (k.handler == "fullscreen") { fullscreenActive(k.arg); }
 
         found = true;
     }
@@ -143,4 +144,13 @@ void CKeybindManager::changeworkspace(std::string args) {
     // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
     // and that'd be annoying as hell
     g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACE);
+}
+
+void CKeybindManager::fullscreenActive(std::string args) {
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus);
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
 }

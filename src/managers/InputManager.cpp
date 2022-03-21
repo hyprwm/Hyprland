@@ -194,3 +194,7 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
     wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);
     wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sWLRSeat, &pKeyboard->keyboard->keyboard->modifiers);
 }
+
+void CInputManager::refocus() {
+    mouseMoveUnified(0);
+}

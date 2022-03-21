@@ -47,6 +47,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     wl_signal_add(&WLRLAYERSURFACE->surface->events.new_subsurface, &layerSurface->listen_newSubsurface);
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
+    layerSurface->layer = WLRLAYERSURFACE->current.layer;
     WLRLAYERSURFACE->data = layerSurface;
     layerSurface->monitorID = PMONITOR->ID;
 

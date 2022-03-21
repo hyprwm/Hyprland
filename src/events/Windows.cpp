@@ -61,13 +61,16 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
 
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 
+    // refocus on a new window
+    g_pInputManager->refocus();
+
     Debug::log(LOG, "Window %x unmapped", PWINDOW);
 }
 
 void Events::listener_commitWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_commitWindow);
 
-    PWINDOW;
+    Debug::log(LOG, "Window %x committed", PWINDOW);
 }
 
 void Events::listener_destroyWindow(wl_listener* listener, void* data) {

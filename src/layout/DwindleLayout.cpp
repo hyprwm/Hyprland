@@ -185,6 +185,9 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     PNODE->pParent = NEWPARENT;
 
     NEWPARENT->recalcSizePosRecursive();
+
+    applyNodeDataToWindow(PNODE);
+    applyNodeDataToWindow(OPENINGON);
 }
 
 void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {

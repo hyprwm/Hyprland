@@ -20,6 +20,7 @@ public:
     void            destroyMouse(wlr_input_device*);
 
     Vector2D        getMouseCoordsInternal();
+    void            refocus();
 
 
     // for dragging floating windows

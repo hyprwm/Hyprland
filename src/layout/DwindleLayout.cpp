@@ -291,9 +291,30 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
 }
 
 void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
-    const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+    wlr_box desiredGeometry = {0};
+    g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    pWindow->m_vRealSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
-    pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.x) / 2.f, PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.y) / 2.f);
+    if (desiredGeometry.width <= 0 || desiredGeometry.height <= 0) {
+        const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+        pWindow->m_vRealSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
+        pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.x) / 2.f, PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.y) / 2.f);
+
+    } else {
+        // we respect the size.
+        pWindow->m_vRealSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+
+        // check if it's on the correct monitor!
+        Vector2D middlePoint = Vector2D(desiredGeometry.x, desiredGeometry.y) + Vector2D(desiredGeometry.width, desiredGeometry.height) / 2.f;
+
+        if (g_pCompositor->getMonitorFromVector(middlePoint)->ID != pWindow->m_iMonitorID) {
+            // if it's not, fall back to the center placement
+            pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
+        } else {
+            // if it is, we respect where it wants to put itself.
+            // most of these are popups
+            // TODO: detect a popup in a more consistent way.
+            pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
+        }
+    }
 }

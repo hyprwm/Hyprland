@@ -101,6 +101,11 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
         if (SIZEHINTS && SIZEHINTS->min_width > 0 && SIZEHINTS->min_height > 0 && (SIZEHINTS->max_width == SIZEHINTS->min_width || SIZEHINTS->max_height == SIZEHINTS->min_height))
             return true;
+    } else {
+        const auto PSTATE = &pWindow->m_uSurface.xdg->toplevel->current;
+        
+        if ((PSTATE->min_width != 0 && PSTATE->min_height != 0 && (PSTATE->min_width == PSTATE->max_width || PSTATE->min_height == PSTATE->max_height)) || pWindow->m_uSurface.xdg->toplevel->parent)
+            return true;
     }
 
     return false;

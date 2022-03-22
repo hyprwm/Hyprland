@@ -52,6 +52,37 @@ std::string workspacesRequest() {
     return result;
 }
 
+std::string activeWindowRequest() {
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus);
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return "Invalid";
+
+    return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i\n\tfloating: %i\n\n",
+                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.x, (int)PWINDOW->m_vRealPosition.y, (int)PWINDOW->m_vRealSize.x, (int)PWINDOW->m_vRealSize.y, PWINDOW->m_iWorkspaceID, (int)PWINDOW->m_bIsFloating);
+}
+
+std::string layersRequest() {
+    std::string result = "";
+
+    for (auto& mon : g_pCompositor->m_lMonitors) {
+        result += getFormat("Monitor %s:\n");
+        int layerLevel = 0;
+        for (auto& level : mon.m_aLayerSurfaceLists) {
+            result += getFormat("\tLayer level %i:\n", layerLevel);
+
+            for (auto& layer : level) {
+                result += getFormat("\t\tLayer %x -> %s: xywh: %i %i %i %i\n", layer, (layer->layerSurface ? layer->layerSurface->_namespace : "null"), layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height);
+            }
+
+            layerLevel++;
+        }
+        result += "\n\n";
+    }
+
+    return result;
+}
+
 void HyprCtl::startHyprCtlSocket() {
     int port = 9187;
 
@@ -63,9 +94,20 @@ void HyprCtl::startHyprCtlSocket() {
             return;
         }
 
-        const sockaddr_in SERVERADDRESS = {.sin_family = AF_INET, .sin_port = port, .sin_addr = (in_addr)INADDR_ANY};
+        sockaddr_in SERVERADDRESS = {.sin_family = AF_INET, .sin_port = port, .sin_addr = (in_addr)INADDR_ANY};
 
-        if (bind(SOCKET, (sockaddr*)&SERVERADDRESS, sizeof(SERVERADDRESS)) < 0) {
+        bool bound = false;
+
+        while (port++ < 9200) {
+            if (bind(SOCKET, (sockaddr*)&SERVERADDRESS, sizeof(SERVERADDRESS)) >= 0) {
+                bound = true;
+                break;
+            }
+
+            SERVERADDRESS = {.sin_family = AF_INET, .sin_port = port, .sin_addr = (in_addr)INADDR_ANY};
+        }
+
+        if (!bound) {
             Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
             return;
         }
@@ -100,10 +142,14 @@ void HyprCtl::startHyprCtlSocket() {
             if (request == "monitors") reply = monitorsRequest();
             if (request == "workspaces") reply = workspacesRequest();
             if (request == "clients") reply = clientsRequest();
+            if (request == "activewindow") reply = activeWindowRequest();
+            if (request == "layers") reply = layersRequest();
 
             write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
 
             close(ACCEPTEDCONNECTION);
         }
+
+        close(SOCKET);
     }).detach();
 }

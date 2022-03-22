@@ -210,9 +210,17 @@ bool CCompositor::windowExists(CWindow* pWindow) {
 
 CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
+    // first loop over floating cuz they're above
+    // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
+            return &w;
+    }
+
+    for (auto& w : m_lWindows) {
+        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && !w.m_bIsFloating && PMONITOR->activeWorkspace == w.m_iWorkspaceID)
             return &w;
     }
 
@@ -236,7 +244,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
             return &w;
     }
 
@@ -256,7 +264,7 @@ CWindow* CCompositor::windowFromCursor() {
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
             return &w;
     }
 
@@ -273,7 +281,7 @@ CWindow* CCompositor::windowFloatingFromCursor() {
     const auto PMONITOR = getMonitorFromCursor();
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && w.m_iWorkspaceID == PMONITOR->activeWorkspace) 
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
             return &w;
     }
 

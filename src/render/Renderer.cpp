@@ -109,15 +109,34 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         return;
     }
 
+    // Non-floating
     for (auto& w : g_pCompositor->m_lWindows) {
         if (!g_pCompositor->windowValidMapped(&w))
+            continue;
+
+        if (w.m_bIsFloating)
+            continue;  // floating are in second pass
+
+        if (!shouldRenderWindow(&w, PMONITOR))
+            continue;
+
+        // render the bad boy
+        renderWindow(&w, PMONITOR, time, true);
+    }
+
+    // floating on top
+    for (auto& w : g_pCompositor->m_lWindows) {
+        if (!g_pCompositor->windowValidMapped(&w))
+            continue;
+
+        if (!w.m_bIsFloating)
             continue;
 
         if (!shouldRenderWindow(&w, PMONITOR))
             continue;
 
         // render the bad boy
-        renderWindow(&w, PMONITOR, time, true);        
+        renderWindow(&w, PMONITOR, time, true);
     }
 
     // Render surfaces above windows for monitor

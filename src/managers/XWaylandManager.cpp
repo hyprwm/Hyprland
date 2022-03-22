@@ -49,20 +49,24 @@ void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox)
 }
 
 std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
-    if (pWindow->m_bIsX11) {
-        if (pWindow->m_uSurface.xwayland) {
-            return pWindow->m_uSurface.xwayland->title;
+    try {
+        if (pWindow->m_bIsX11) {
+            if (pWindow->m_uSurface.xwayland) {
+                return std::string(pWindow->m_uSurface.xwayland->title);
+            }
+        } else {
+            return "";
         }
-    } else {
-		return "";
-    }
-    
-    if (pWindow->m_uSurface.xdg) {
-        if (pWindow->m_uSurface.xdg->toplevel) {
-            return pWindow->m_uSurface.xdg->toplevel->title;
+
+        if (pWindow->m_uSurface.xdg) {
+            if (pWindow->m_uSurface.xdg->toplevel) {
+                return std::string(pWindow->m_uSurface.xdg->toplevel->title);
+            }
+        } else {
+            return "";
         }
-    } else {
-		return "";
+    } catch (std::logic_error& e) {
+        Debug::log(ERR, "Error in getTitle: %s", e.what());
     }
 
     return "";

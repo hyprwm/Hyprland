@@ -49,6 +49,7 @@ public:
     bool            m_bMappedX11 = false;
     uint64_t        m_iX11Type = 0;
     bool            m_bIsModal = false;
+    bool            m_bX11DoesntWantBorders = false;
     DYNLISTENER(activateX11);
     DYNLISTENER(configureX11);
     //

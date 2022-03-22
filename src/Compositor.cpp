@@ -321,7 +321,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface) {
         return;  // Don't focus when already focused on this.
 
     // Unfocus last surface
-    if (m_pLastFocus)
+    if (m_pLastFocus && !wlr_surface_is_xwayland_surface(m_pLastFocus))
         g_pXWaylandManager->activateSurface(m_pLastFocus, false);
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);

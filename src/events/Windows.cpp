@@ -24,6 +24,9 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
     PWINDOW->m_bIsMapped = true;
 
+    // checks if the window wants borders and sets the appriopriate flag
+    g_pXWaylandManager->checkBorders(PWINDOW);
+
     const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(PWINDOW);
 
     if (!PWINDOWSURFACE) {

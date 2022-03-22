@@ -186,6 +186,8 @@ void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboar
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        Debug::log(LOG, "Pressed key %i, with the MODMASK being %i", e->keycode, MODS);
+
         for (int i = 0; i < syms; ++i)
             found = g_pKeybindManager->handleKeybinds(MODS, keysyms[i]) || found;
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {

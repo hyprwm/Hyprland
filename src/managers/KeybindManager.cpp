@@ -35,7 +35,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         // oMg such performance hit!!11!
         // this little maneouver is gonna cost us 4µs
         const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
-
+        // TODO: fix this with shift, shift makes all the keys uppercase
+        // if (shift) KBKEY -= someindex
+        
         if (key != KBKEY)
             continue;
 

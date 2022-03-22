@@ -89,6 +89,9 @@ void Events::listener_destroyWindow(wl_listener* listener, void* data) {
 void Events::listener_setTitleWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_setTitleWindow);
 
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+	    return;
+
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
 
     Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());

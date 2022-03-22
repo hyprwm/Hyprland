@@ -31,7 +31,6 @@ Nevertheless, REPORT any you find! Make an issue!
  - Fadein/out
  - Window rules
  - Fix electron rendering issues
- - Fix sloppy dragging of windows
  - Optimization
  - Fix weird scroll on XWayland
  - Become sane

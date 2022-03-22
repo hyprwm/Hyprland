@@ -106,7 +106,7 @@ void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
     }
 
     // notify app if we didnt handle it
-    const auto PWINDOW = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
+    const auto PWINDOW = g_pCompositor->vectorToWindow(getMouseCoordsInternal());
     if (g_pCompositor->windowValidMapped(PWINDOW) && g_pCompositor->doesSeatAcceptInput(g_pXWaylandManager->getWindowSurface(PWINDOW)))
         wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, e->time_msec, e->button, e->state);
 }

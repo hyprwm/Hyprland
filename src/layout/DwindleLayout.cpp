@@ -345,6 +345,9 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
             pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
         }
     }
+
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
+    g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
 }
 
 void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {

@@ -43,14 +43,8 @@ bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
         return true;
 
     // if not, check if it maybe is active on a different monitor.
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        if (&m == pMonitor)
-            continue;
-
-
-        if (m.activeWorkspace == pWindow->m_iWorkspaceID)
-            return true;
-    }
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
+        return true;
 
     return false;
 }

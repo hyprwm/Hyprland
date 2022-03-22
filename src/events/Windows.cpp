@@ -51,6 +51,7 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
 
+    PWINDOW->m_bMappedX11 = false;
 
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);

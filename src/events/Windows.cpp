@@ -66,6 +66,8 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     // refocus on a new window
     // TODO: investigate.
     // If a parent window has focus, any popups (XWayland) will be broken (they will disappear instantly)
+    // This might be way more sinister in nature and have a problem more deeply
+    // rooted in the code.
     // g_pInputManager->refocus();
 
     Debug::log(LOG, "Window %x unmapped", PWINDOW);

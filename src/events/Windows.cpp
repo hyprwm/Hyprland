@@ -39,7 +39,8 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     else
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
     
-    g_pCompositor->focusWindow(PWINDOW);
+    if (!PWINDOW->m_bIsModal)
+        g_pCompositor->focusWindow(PWINDOW);
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.x, PWINDOW->m_vRealPosition.y, PWINDOW->m_vRealSize.x, PWINDOW->m_vRealSize.y);
 }

@@ -100,3 +100,8 @@ struct SXDGPopup {
         return popup == rhs.popup;
     }
 };
+
+struct SSeat {
+    wlr_seat*       seat = nullptr;
+    wl_client*      exclusiveClient = nullptr;
+};

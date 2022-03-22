@@ -33,7 +33,7 @@ void Events::listener_keyboardMod(wl_listener* listener, void* data) {
 }
 
 void Events::listener_mouseFrame(wl_listener* listener, void* data) {
-    wlr_seat_pointer_notify_frame(g_pCompositor->m_sWLRSeat);
+    wlr_seat_pointer_notify_frame(g_pCompositor->m_sSeat.seat);
 }
 
 void Events::listener_mouseMove(wl_listener* listener, void* data) {
@@ -51,13 +51,13 @@ void Events::listener_mouseButton(wl_listener* listener, void* data) {
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
     const auto E = (wlr_event_pointer_axis*)data;
 
-    wlr_seat_pointer_notify_axis(g_pCompositor->m_sWLRSeat, E->time_msec, E->orientation, E->delta, E->delta_discrete, E->source);
+    wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, E->time_msec, E->orientation, E->delta, E->delta_discrete, E->source);
 }
 
 void Events::listener_requestMouse(wl_listener* listener, void* data) {
     const auto EVENT = (wlr_seat_pointer_request_set_cursor_event*)data;
 
-    if (EVENT->seat_client == g_pCompositor->m_sWLRSeat->pointer_state.focused_client)
+    if (EVENT->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
         wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, EVENT->surface, EVENT->hotspot_x, EVENT->hotspot_y);
 }
 
@@ -79,5 +79,5 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
 
     uint32_t capabilities = WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_KEYBOARD;
 
-    wlr_seat_set_capabilities(g_pCompositor->m_sWLRSeat, capabilities);
+    wlr_seat_set_capabilities(g_pCompositor->m_sSeat.seat, capabilities);
 }

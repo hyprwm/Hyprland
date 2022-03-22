@@ -67,6 +67,8 @@ extern "C" {
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_output_damage.h>
+#include <wlr/types/wlr_input_inhibitor.h>
+#include <wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h>
 #include <wlr/util/log.h>
 #include <wlr/xwayland.h>
 #include <wlr/util/region.h>

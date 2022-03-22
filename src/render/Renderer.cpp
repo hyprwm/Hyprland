@@ -61,7 +61,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, SWor
 
 void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate) {
     // border
-    if (decorate)
+    if (decorate && !pWindow->m_bX11DoesntWantBorders)
         drawBorderForWindow(pWindow, pMonitor);
 
     SRenderData renderdata = {pMonitor->output, time, pWindow->m_vRealPosition.x, pWindow->m_vRealPosition.y};

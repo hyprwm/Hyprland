@@ -109,7 +109,9 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLBAR"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_UTILITY"] ||
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"])
-                    return true;
+                    {
+                return true;
+                    }
 
         if (pWindow->m_uSurface.xwayland->modal) {
             pWindow->m_bIsModal = true;
@@ -117,7 +119,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
         }
 
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
-        if (SIZEHINTS && SIZEHINTS->min_width > 0 && SIZEHINTS->min_height > 0 && (SIZEHINTS->max_width == SIZEHINTS->min_width || SIZEHINTS->max_height == SIZEHINTS->min_height))
+        if (SIZEHINTS && (pWindow->m_uSurface.xwayland->parent || ((SIZEHINTS->min_width == SIZEHINTS->max_width) && (SIZEHINTS->min_height == SIZEHINTS->max_height))))
             return true;
     } else {
         const auto PSTATE = &pWindow->m_uSurface.xdg->toplevel->current;
@@ -132,5 +134,25 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
 void CHyprXWaylandManager::moveXWaylandWindow(CWindow* pWindow, const Vector2D& pos) {
     if (pWindow->m_bIsX11) {
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, pWindow->m_vRealSize.x, pWindow->m_vRealSize.y);
+    }
+}
+
+void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {
+    if (!pWindow->m_bIsX11)
+        return;
+
+    for (size_t i = 0; i < pWindow->m_uSurface.xwayland->window_type_len; i++) {
+        if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_NOTIFICATION"] ||
+            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"] ||
+            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
+            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"]) {
+            
+            pWindow->m_bX11DoesntWantBorders = true;
+            return;
+        }
+    }
+
+    if (pWindow->m_uSurface.xwayland->parent) {
+        pWindow->m_bX11DoesntWantBorders = true;
     }
 }

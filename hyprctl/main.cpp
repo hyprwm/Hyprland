@@ -105,6 +105,8 @@ int main(int argc, char** argv) {
     if (!strcmp(argv[1], "monitors")) request("monitors");
     else if (!strcmp(argv[1], "clients")) request("clients");
     else if (!strcmp(argv[1], "workspaces")) request("workspaces");
+    else if (!strcmp(argv[1], "activewindow")) request("activewindow");
+    else if (!strcmp(argv[1], "layers")) request("layers");
     else {
         printf(USAGE.c_str());
         return 1;

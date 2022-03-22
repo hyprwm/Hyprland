@@ -64,7 +64,9 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 
     // refocus on a new window
-    g_pInputManager->refocus();
+    // TODO: investigate.
+    // If a parent window has focus, any popups (XWayland) will be broken (they will disappear instantly)
+    // g_pInputManager->refocus();
 
     Debug::log(LOG, "Window %x unmapped", PWINDOW);
 }

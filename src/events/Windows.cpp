@@ -56,7 +56,6 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
         g_pCompositor->m_pLastFocus = nullptr;
 
     PWINDOW->m_bMappedX11 = false;
-    PWINDOW->m_bIsMapped = false;
 
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
@@ -65,6 +64,9 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
         PWORKSPACE->hasFullscreenWindow = false;
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+
+    // do this after onWindowRemoved because otherwise it'll think the window is invalid
+    PWINDOW->m_bIsMapped = false;
 
     // refocus on a new window
     // TODO: investigate.

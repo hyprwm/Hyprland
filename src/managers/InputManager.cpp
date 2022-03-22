@@ -47,7 +47,7 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
 
     // then windows
     const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowIdeal(mouseCoords);
-    if (!foundSurface && PWINDOWIDEAL && !PWINDOWIDEAL->m_bIsModal) {
+    if (!foundSurface && PWINDOWIDEAL) {
         foundSurface = g_pXWaylandManager->getWindowSurface(PWINDOWIDEAL);
         if (foundSurface)
             surfacePos = PWINDOWIDEAL->m_vRealPosition;

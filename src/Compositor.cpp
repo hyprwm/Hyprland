@@ -249,7 +249,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (w.m_bIsFloating && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w.m_iWorkspaceID) && !w.m_bIsModal)
+        if (w.m_bIsFloating && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w.m_iWorkspaceID))
             return &w;
     }
 
@@ -337,6 +337,9 @@ bool CCompositor::windowValidMapped(CWindow* pWindow) {
         return false;
 
     if (pWindow->m_bIsX11 && !pWindow->m_bMappedX11)
+        return false;
+
+    if (!pWindow->m_bIsMapped)
         return false;
 
     if (!g_pXWaylandManager->getWindowSurface(pWindow))

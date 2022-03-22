@@ -98,7 +98,7 @@ void HyprCtl::startHyprCtlSocket() {
 
         bool bound = false;
 
-        while (port++ < 9200) {
+        while (port++ < 9999) {
             if (bind(SOCKET, (sockaddr*)&SERVERADDRESS, sizeof(SERVERADDRESS)) >= 0) {
                 bound = true;
                 break;

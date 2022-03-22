@@ -42,6 +42,8 @@ public:
     std::string     m_szTitle = "";
     int             m_iWorkspaceID = -1;
 
+    bool            m_bIsMapped = false;
+
     // XWayland stuff
     bool            m_bIsX11 = false;
     bool            m_bMappedX11 = false;

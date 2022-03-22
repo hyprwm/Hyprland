@@ -22,6 +22,7 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
     PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
+    PWINDOW->m_bIsMapped = true;
 
     const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(PWINDOW);
 
@@ -52,6 +53,7 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
         g_pCompositor->m_pLastFocus = nullptr;
 
     PWINDOW->m_bMappedX11 = false;
+    PWINDOW->m_bIsMapped = false;
 
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
@@ -60,8 +62,6 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
         PWORKSPACE->hasFullscreenWindow = false;
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
-
-    g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 
     // refocus on a new window
     // TODO: investigate.

@@ -127,8 +127,10 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     PNODE->isNode = false;
     PNODE->layout = this;
 
+    SDwindleNodeData* OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
+
     // if it's the first, it's easy. Make it fullscreen.
-    if (getNodesOnWorkspace(PNODE->workspaceID) == 1) {
+    if (!OPENINGON) {
         PNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
         PNODE->size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
 
@@ -136,14 +138,8 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
 
         return;
     }
-
+    
     // If it's not, get the node under our cursor
-    SDwindleNodeData* OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
-
-    if (!OPENINGON) {
-        Debug::log(ERR, "OPENINGON null?????");
-        return;
-    }
 
     m_lDwindleNodesData.push_back(SDwindleNodeData());
     const auto NEWPARENT = &m_lDwindleNodesData.back();

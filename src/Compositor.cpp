@@ -467,5 +467,5 @@ void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
 }
 
 bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
-    return !m_sSeat.exclusiveClient || m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource);
+    return !m_sSeat.exclusiveClient || (surface && m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource));
 }

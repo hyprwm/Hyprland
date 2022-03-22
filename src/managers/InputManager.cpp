@@ -23,6 +23,7 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     wlr_surface* foundSurface = nullptr;
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    Vector2D surfaceCoords;
     Vector2D surfacePos;
 
     // first, we check if the workspace doesnt have a fullscreen window
@@ -40,10 +41,10 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
 
     // then surfaces on top
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfacePos);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords);
     
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfacePos);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords);
 
     // then windows
     const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowIdeal(mouseCoords);
@@ -55,10 +56,10 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
         
     // then surfaces below
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfacePos);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords);
 
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfacePos);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords);
 
 
     if (!foundSurface) {
@@ -72,14 +73,14 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     if (time)
         wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
-    g_pCompositor->focusSurface(foundSurface);
-
-    Vector2D surfaceLocal = Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - surfacePos;
+    Vector2D surfaceLocal = surfacePos == Vector2D() ? surfaceCoords : Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - surfacePos;
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
 
-    g_pCompositor->m_pLastMonitor = g_pCompositor->getMonitorFromCursor();
+    g_pCompositor->focusSurface(foundSurface);
+
+    g_pCompositor->m_pLastMonitor = PMONITOR;
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 }
 
@@ -105,10 +106,14 @@ void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
             break;
     }
 
+    refocus();
+
     // notify app if we didnt handle it
-    const auto PWINDOW = g_pCompositor->vectorToWindow(getMouseCoordsInternal());
-    if (g_pCompositor->windowValidMapped(PWINDOW) && g_pCompositor->doesSeatAcceptInput(g_pXWaylandManager->getWindowSurface(PWINDOW)))
+    if (g_pCompositor->doesSeatAcceptInput(g_pCompositor->m_pLastFocus)) {
         wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, e->time_msec, e->button, e->state);
+        Debug::log(LOG, "Seat notified of button %i (state %i) on surface %x", e->button, e->state, g_pCompositor->m_pLastFocus);
+    }
+        
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

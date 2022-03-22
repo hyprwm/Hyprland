@@ -51,7 +51,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     WLRLAYERSURFACE->data = layerSurface;
     layerSurface->monitorID = PMONITOR->ID;
 
-    Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer, PMONITOR->szName.c_str());
+    Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface->layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer, PMONITOR->szName.c_str());
 }
 
 void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
@@ -70,6 +70,8 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
+    Debug::log(LOG, "LayerSurface %x destroyed", layersurface->layerSurface);
+
     // remove the layersurface as it's not used anymore
     PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
     delete layersurface;
@@ -79,9 +81,6 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
     }
-        
-
-    Debug::log(LOG, "LayerSurface %x destroyed", layersurface);
 }
 
 void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
@@ -105,10 +104,10 @@ void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
-    if (layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP || layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
+    if (layersurface->layerSurface->current.keyboard_interactive)
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
-    Debug::log(LOG, "LayerSurface %x mapped", layersurface);
+    Debug::log(LOG, "LayerSurface %x mapped", layersurface->layerSurface);
 }
 
 void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
@@ -120,7 +119,7 @@ void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
     if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
 
-    Debug::log(LOG, "LayerSurface %x unmapped", layersurface);
+    Debug::log(LOG, "LayerSurface %x unmapped", layersurface->layerSurface);
 }
 
 void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {

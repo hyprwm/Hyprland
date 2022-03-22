@@ -46,6 +46,7 @@ public:
     bool            m_bIsX11 = false;
     bool            m_bMappedX11 = false;
     uint64_t        m_iX11Type = 0;
+    bool            m_bIsModal = false;
     DYNLISTENER(activateX11);
     DYNLISTENER(configureX11);
     //

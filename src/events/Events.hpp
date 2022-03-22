@@ -85,4 +85,8 @@ namespace Events {
     // Drag & Drop
     LISTENER(requestDrag);
     LISTENER(startDrag);
+
+    // Inhibit
+    LISTENER(InhibitActivate);
+    LISTENER(InhibitDeactivate);
 };

@@ -60,7 +60,7 @@ CCompositor::CCompositor() {
     m_sWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, 24);
     wlr_xcursor_manager_load(m_sWLRXCursorMgr, 1);
 
-    m_sWLRSeat = wlr_seat_create(m_sWLDisplay, "seat0");
+    m_sSeat.seat = wlr_seat_create(m_sWLDisplay, "seat0");
 
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
 
@@ -73,6 +73,9 @@ CCompositor::CCompositor() {
 
     wlr_xdg_output_manager_v1_create(m_sWLDisplay, m_sWLROutputLayout);
     m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
+
+    m_sWLRInhibitMgr = wlr_input_inhibit_manager_create(m_sWLDisplay);
+    m_sWLRKbShInhibitMgr = wlr_keyboard_shortcuts_inhibit_v1_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {
@@ -88,13 +91,15 @@ void CCompositor::initAllSignals() {
     wl_signal_add(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis);
     wl_signal_add(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame);
     wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listen_newInput);
-    wl_signal_add(&m_sWLRSeat->events.request_set_cursor, &Events::listen_requestMouse);
-    wl_signal_add(&m_sWLRSeat->events.request_set_selection, &Events::listen_requestSetSel);
-    wl_signal_add(&m_sWLRSeat->events.request_start_drag, &Events::listen_requestDrag);
+    wl_signal_add(&m_sSeat.seat->events.request_set_cursor, &Events::listen_requestMouse);
+    wl_signal_add(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel);
+    wl_signal_add(&m_sSeat.seat->events.request_start_drag, &Events::listen_requestDrag);
     wl_signal_add(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface);
     wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listen_change);
     wl_signal_add(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply);
     wl_signal_add(&m_sWLROutputMgr->events.test, &Events::listen_outputMgrTest);
+    wl_signal_add(&m_sWLRInhibitMgr->events.activate, &Events::listen_InhibitActivate);
+    wl_signal_add(&m_sWLRInhibitMgr->events.deactivate, &Events::listen_InhibitDeactivate);
 }
 
 void CCompositor::startCompositor() {
@@ -244,13 +249,13 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
+        if (w.m_bIsFloating && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w.m_iWorkspaceID) && !w.m_bIsModal)
             return &w;
     }
 
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
+        if (!w.m_bIsFloating && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
             return &w;
     }
 
@@ -278,7 +283,6 @@ CWindow* CCompositor::windowFromCursor() {
 }
 
 CWindow* CCompositor::windowFloatingFromCursor() {
-    const auto PMONITOR = getMonitorFromCursor();
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
         if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
@@ -301,7 +305,7 @@ SMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
 void CCompositor::focusWindow(CWindow* pWindow) {
 
     if (!pWindow) {
-        wlr_seat_keyboard_notify_clear_focus(m_sWLRSeat);
+        wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
         return;
     }
 
@@ -313,15 +317,15 @@ void CCompositor::focusWindow(CWindow* pWindow) {
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface) {
-    if (m_sWLRSeat->keyboard_state.focused_surface == pSurface)
+    if (m_sSeat.seat->keyboard_state.focused_surface == pSurface)
         return;  // Don't focus when already focused on this.
 
     // Unfocus last surface
     if (m_pLastFocus)
         g_pXWaylandManager->activateSurface(m_pLastFocus, false);
 
-    const auto KEYBOARD = wlr_seat_get_keyboard(m_sWLRSeat);
-    wlr_seat_keyboard_notify_enter(m_sWLRSeat, pSurface, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+    const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);
+    wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 
     m_pLastFocus = pSurface;
 
@@ -457,4 +461,8 @@ void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
                 g_pXWaylandManager->moveXWaylandWindow(&w, Vector2D(42069,42069));
         }
     }
+}
+
+bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
+    return !m_sSeat.exclusiveClient || m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource);
 }

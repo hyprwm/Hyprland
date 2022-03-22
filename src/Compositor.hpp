@@ -39,10 +39,11 @@ public:
     wlr_cursor*                      m_sWLRCursor;
     wlr_xcursor_manager*             m_sWLRXCursorMgr;
     wlr_virtual_keyboard_manager_v1* m_sWLRVKeyboardMgr;
-    wlr_seat*                        m_sWLRSeat;
     wlr_output_manager_v1*           m_sWLROutputMgr;
     wlr_presentation*                m_sWLRPresentation;
     wlr_scene*                       m_sWLRScene;
+    wlr_input_inhibit_manager*       m_sWLRInhibitMgr;
+    wlr_keyboard_shortcuts_inhibit_manager_v1* m_sWLRKbShInhibitMgr;
     // ------------------------------------------------- //
 
 
@@ -59,6 +60,8 @@ public:
 
     wlr_surface*            m_pLastFocus = nullptr;
     SMonitor*               m_pLastMonitor = nullptr;
+    
+    SSeat                   m_sSeat;
 
     // ------------------------------------------------- //
 
@@ -87,6 +90,7 @@ public:
     CWindow*                getFirstWindowOnWorkspace(const int&);
     void                    fixXWaylandWindowsOnWorkspace(const int&);
     CWindow*                getFullscreenWindowOnWorkspace(const int&);
+    bool                    doesSeatAcceptInput(wlr_surface*);
 
 private:
     void                    initAllSignals();

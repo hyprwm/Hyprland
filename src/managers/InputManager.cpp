@@ -46,10 +46,11 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfacePos);
 
     // then windows
-    if (!foundSurface && g_pCompositor->vectorToWindowIdeal(mouseCoords)) {
-        foundSurface = g_pXWaylandManager->getWindowSurface(g_pCompositor->windowFromCursor());
+    const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+    if (!foundSurface && PWINDOWIDEAL && !PWINDOWIDEAL->m_bIsModal) {
+        foundSurface = g_pXWaylandManager->getWindowSurface(PWINDOWIDEAL);
         if (foundSurface)
-            surfacePos = g_pCompositor->windowFromCursor()->m_vRealPosition;
+            surfacePos = PWINDOWIDEAL->m_vRealPosition;
     }
         
     // then surfaces below
@@ -63,29 +64,29 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     if (!foundSurface) {
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
 
-        wlr_seat_pointer_clear_focus(g_pCompositor->m_sWLRSeat);
+        wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
 
         return;
     }
 
     if (time)
-        wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
+        wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
     g_pCompositor->focusSurface(foundSurface);
 
     Vector2D surfaceLocal = Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - surfacePos;
 
-    wlr_seat_pointer_notify_enter(g_pCompositor->m_sWLRSeat, foundSurface, surfaceLocal.x, surfaceLocal.y);
-    wlr_seat_pointer_notify_motion(g_pCompositor->m_sWLRSeat, time, surfaceLocal.x, surfaceLocal.y);
+    wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+    wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
 
     g_pCompositor->m_pLastMonitor = g_pCompositor->getMonitorFromCursor();
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 }
 
 void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
-    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
+    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
-    const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sWLRSeat);
+    const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
 
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
@@ -105,7 +106,9 @@ void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
     }
 
     // notify app if we didnt handle it
-    wlr_seat_pointer_notify_button(g_pCompositor->m_sWLRSeat, e->time_msec, e->button, e->state);
+    const auto PWINDOW = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
+    if (g_pCompositor->windowValidMapped(PWINDOW) && g_pCompositor->doesSeatAcceptInput(g_pXWaylandManager->getWindowSurface(PWINDOW)))
+        wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, e->time_msec, e->button, e->state);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
@@ -133,7 +136,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     wl_signal_add(&keyboard->keyboard->events.key, &PNEWKEYBOARD->listen_keyboardKey);
     wl_signal_add(&keyboard->events.destroy, &PNEWKEYBOARD->listen_keyboardDestroy);
 
-    wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, keyboard);
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard);
 
     Debug::log(LOG, "New keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
 }
@@ -174,7 +177,7 @@ void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboar
 
     const auto MODS = wlr_keyboard_get_modifiers(pKeyboard->keyboard->keyboard);
 
-    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sWLRSeat);
+    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -185,14 +188,14 @@ void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboar
     }
 
     if (!found) {
-        wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);
-        wlr_seat_keyboard_notify_key(g_pCompositor->m_sWLRSeat, e->time_msec, e->keycode, e->state);
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->keyboard);
+        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e->time_msec, e->keycode, e->state);
     }
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
-    wlr_seat_set_keyboard(g_pCompositor->m_sWLRSeat, pKeyboard->keyboard);
-    wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sWLRSeat, &pKeyboard->keyboard->keyboard->modifiers);
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->keyboard);
+    wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &pKeyboard->keyboard->keyboard->modifiers);
 }
 
 void CInputManager::refocus() {

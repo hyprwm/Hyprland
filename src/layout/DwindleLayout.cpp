@@ -271,16 +271,17 @@ void CHyprDwindleLayout::onBeginDragWindow() {
 
     m_vBeginDragSizeXY = Vector2D();
 
-    if (DRAGGINGWINDOW->m_bIsFullscreen) {
-        Debug::log(LOG, "Rejecting drag on a fullscreen window.");
-        return;
-    }
-
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
         Debug::log(ERR, "Dragging attempted on an invalid window!");
         return;
     }
+
+    if (DRAGGINGWINDOW->m_bIsFullscreen) {
+	    Debug::log(LOG, "Rejecting drag on a fullscreen window.");
+	    return;
+    }
+
 
     m_vBeginDragXY = g_pInputManager->getMouseCoordsInternal();
     m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition;

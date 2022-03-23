@@ -35,10 +35,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         // oMg such performance hit!!11!
         // this little maneouver is gonna cost us 4µs
         const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
-        // TODO: fix this with shift, shift makes all the keys uppercase
-        // if (shift) KBKEY -= someindex
+        const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
         
-        if (key != KBKEY)
+        if (key != KBKEY && key != KBKEYUPPER)
             continue;
 
         // yes.
@@ -47,6 +46,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         else if (k.handler == "togglefloating") { toggleActiveFloating(k.arg); }
         else if (k.handler == "workspace") { changeworkspace(k.arg); }
         else if (k.handler == "fullscreen") { fullscreenActive(k.arg); }
+        else if (k.handler == "movetoworkspace") { moveActiveToWorkspace(k.arg); }
 
         found = true;
     }
@@ -155,4 +155,48 @@ void CKeybindManager::fullscreenActive(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+}
+
+void CKeybindManager::moveActiveToWorkspace(std::string args) {
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus);
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    int workspaceID;
+    try {
+        workspaceID = stoi(args);
+    } catch( ... ) {
+        Debug::log(ERR, "Invalid movetoworkspace: %s", args.c_str());
+        return;
+    }
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+
+    const auto OLDWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+
+    // hack
+    g_pKeybindManager->changeworkspace(std::to_string(workspaceID));
+
+    const auto NEWWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
+
+    OLDWORKSPACE->hasFullscreenWindow = false;
+
+    PWINDOW->m_iWorkspaceID = workspaceID;
+    PWINDOW->m_iMonitorID = NEWWORKSPACE->monitorID;
+    PWINDOW->m_bIsFullscreen = false;
+
+    if (NEWWORKSPACE->hasFullscreenWindow) {
+        g_pCompositor->getFullscreenWindowOnWorkspace(workspaceID)->m_bIsFullscreen = false;
+        NEWWORKSPACE->hasFullscreenWindow = false;
+    }
+
+    // Hack: So that the layout doesnt find our window at the cursor
+    PWINDOW->m_vPosition = Vector2D(-42069, -42069);
+    g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
+
+    if (PWINDOW->m_bIsFloating) {
+        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition - g_pCompositor->getMonitorFromID(OLDWORKSPACE->monitorID)->vecPosition;
+        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition + g_pCompositor->getMonitorFromID(NEWWORKSPACE->monitorID)->vecPosition;
+    }
 }

@@ -116,6 +116,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
 }
 
 void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
+    if (pWindow->m_bIsFloating)
+        return;
+
     m_lDwindleNodesData.push_back(SDwindleNodeData());
     const auto PNODE = &m_lDwindleNodesData.back();
 
@@ -127,7 +130,13 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     PNODE->isNode = false;
     PNODE->layout = this;
 
-    SDwindleNodeData* OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
+    SDwindleNodeData* OPENINGON;
+    const auto MONFROMCURSOR = g_pCompositor->getMonitorFromCursor();
+
+    if (PMONITOR == MONFROMCURSOR)
+        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
+    else
+        OPENINGON = getFirstNodeOnWorkspace(MONFROMCURSOR->activeWorkspace);
 
     // if it's the first, it's easy. Make it fullscreen.
     if (!OPENINGON) {

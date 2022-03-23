@@ -104,10 +104,11 @@ void Events::listener_destroyWindow(wl_listener* listener, void* data) {
     wl_list_remove(&PWINDOW->listen_destroyWindow.link);
     wl_list_remove(&PWINDOW->listen_setTitleWindow.link);
     wl_list_remove(&PWINDOW->listen_fullscreenWindow.link);
-    wl_list_remove(&PWINDOW->listen_commitWindow.link);
     if (PWINDOW->m_bIsX11) {
         wl_list_remove(&PWINDOW->listen_activateX11.link);
         wl_list_remove(&PWINDOW->listen_configureX11.link);
+    } else {
+        wl_list_remove(&PWINDOW->listen_commitWindow.link);
     }
 
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);

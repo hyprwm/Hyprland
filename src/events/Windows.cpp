@@ -90,11 +90,27 @@ void Events::listener_destroyWindow(wl_listener* listener, void* data) {
     if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
 
+    // TODO:
+    // We sometimes get invalid pointers here (stack ones)
+    // this obviously means we tainted wlroots.
+    // Investigate
+
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
-    g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
-
     Debug::log(LOG, "Window %x destroyed", PWINDOW);
+
+    wl_list_remove(&PWINDOW->listen_mapWindow.link);
+    wl_list_remove(&PWINDOW->listen_unmapWindow.link);
+    wl_list_remove(&PWINDOW->listen_destroyWindow.link);
+    wl_list_remove(&PWINDOW->listen_setTitleWindow.link);
+    wl_list_remove(&PWINDOW->listen_fullscreenWindow.link);
+    wl_list_remove(&PWINDOW->listen_commitWindow.link);
+    if (PWINDOW->m_bIsX11) {
+        wl_list_remove(&PWINDOW->listen_activateX11.link);
+        wl_list_remove(&PWINDOW->listen_configureX11.link);
+    }
+
+    g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 }
 
 void Events::listener_setTitleWindow(wl_listener* listener, void* data) {

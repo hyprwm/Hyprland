@@ -21,6 +21,12 @@ CConfigManager::CConfigManager() {
     configValues["general:gaps_out"].intValue = 20;
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
+
+    configValues["animations:enabled"].intValue = 1;
+    configValues["animations:speed"].floatValue = 7.f;
+    configValues["animations:windows"].intValue = 1;
+    configValues["animations:borders"].intValue = 1;
+    configValues["animations:fadein"].intValue = 1;
 }
 
 void CConfigManager::init() {

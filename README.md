@@ -16,6 +16,7 @@ Hyprland is in very early dev, expect bugs, instabilities and crashes. You have 
 Nevertheless, REPORT any you find! Make an issue!
 
 # Key features
+ - Basic window animations
  - Config reloaded instantly upon saving
  - Easily expandable and readable codebase
  - Support for docks/whatever
@@ -25,7 +26,7 @@ Nevertheless, REPORT any you find! Make an issue!
  - Moving/resizing windows
 
 # Major to-dos
- - Animations
+ - Animations (better)
  - Rounded corners
  - Blur
  - Fadein/out

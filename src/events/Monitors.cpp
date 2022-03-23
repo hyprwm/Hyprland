@@ -98,6 +98,14 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 void Events::listener_monitorFrame(wl_listener* listener, void* data) {
     SMonitor* const PMONITOR = wl_container_of(listener, PMONITOR, listen_monitorFrame);
 
+    // Hack: only check when monitor number 1 refreshes, saves a bit of resources.
+    // This is for stuff that should be run every frame
+    // TODO: do this on the most Hz monitor
+    if (PMONITOR->ID == 0) {
+        g_pCompositor->sanityCheckWorkspaces();
+        g_pAnimationManager->tick();
+    }
+
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     const float bgcol[4] = {0.1f, 0.1f, 0.1f, 1.f};
@@ -115,12 +123,6 @@ void Events::listener_monitorFrame(wl_listener* listener, void* data) {
     wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
 
     wlr_output_commit(PMONITOR->output);
-
-    // Sanity check the workspaces.
-    // Hack: only check when monitor number 1 refreshes, saves a bit of resources.
-    if (PMONITOR->ID == 0) {
-        g_pCompositor->sanityCheckWorkspaces();
-    }
 }
 
 void Events::listener_monitorDestroy(wl_listener* listener, void* data) {

@@ -18,7 +18,14 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     double outputX = 0, outputY = 0;
     wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, RDATA->output, &outputX, &outputY);
 
-    wlr_box windowBox = {outputX + RDATA->x + x, outputY + RDATA->y + y, surface->current.width, surface->current.height};
+
+    wlr_box windowBox;
+  //  if (RDATA->surface) {
+  //      windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
+  //      wlr_renderer_scissor(g_pCompositor->m_sWLRRenderer, &windowBox);
+  //  } else {
+        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, surface->current.width, surface->current.height};
+  //  }
     scaleBox(&windowBox, RDATA->output->scale);
 
     const auto TRANSFORM = wlr_output_transform_invert(surface->current.transform);
@@ -30,6 +37,8 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_surface_send_frame_done(surface, RDATA->when);
 
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
+
+    wlr_renderer_scissor(g_pCompositor->m_sWLRRenderer, nullptr);
 }
 
 bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
@@ -64,7 +73,11 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     if (decorate && !pWindow->m_bX11DoesntWantBorders)
         drawBorderForWindow(pWindow, pMonitor);
 
-    SRenderData renderdata = {pMonitor->output, time, pWindow->m_vRealPosition.x, pWindow->m_vRealPosition.y};
+    const auto REALPOS = pWindow->m_vRealPosition;
+    SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
+    renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
+    renderdata.w = pWindow->m_vRealSize.x;
+    renderdata.h = pWindow->m_vRealSize.y;
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 
@@ -373,7 +386,7 @@ void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {
     Vector2D correctPos = pWindow->m_vRealPosition - pMonitor->vecPosition;
 
     // top
-    wlr_box border = {correctPos.x - BORDERSIZE, correctPos.y - BORDERSIZE, pWindow->m_vRealSize.x + 2 * BORDERSIZE, BORDERSIZE };
+    wlr_box border = {correctPos.x - BORDERSIZE, correctPos.y - BORDERSIZE, pWindow->m_vRealSize.x + 2 * BORDERSIZE, BORDERSIZE};
     wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
 
     // bottom

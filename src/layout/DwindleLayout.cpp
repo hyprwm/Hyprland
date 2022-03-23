@@ -109,10 +109,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
     PWINDOW->m_vEffectivePosition = PWINDOW->m_vEffectivePosition + OFFSETTOPLEFT;
     PWINDOW->m_vEffectiveSize = PWINDOW->m_vEffectiveSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
 
-    // TEMP: remove when anims added
-    PWINDOW->m_vRealPosition = PWINDOW->m_vEffectivePosition;
-    PWINDOW->m_vRealSize = PWINDOW->m_vEffectiveSize;
-    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize);
+    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vEffectiveSize);
 }
 
 void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
@@ -144,6 +141,9 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
         PNODE->size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
 
         applyNodeDataToWindow(PNODE);
+
+        pWindow->m_vRealPosition = PNODE->position + PNODE->size / 2.f;
+        pWindow->m_vRealSize = Vector2D(5, 5);
 
         return;
     }
@@ -193,6 +193,9 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
+
+    pWindow->m_vRealPosition = PNODE->position + PNODE->size / 2.f;
+    pWindow->m_vRealSize = Vector2D(5,5);
 }
 
 void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {

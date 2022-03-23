@@ -126,6 +126,9 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the LayoutManager!");
     g_pLayoutManager = std::make_unique<CLayoutManager>();
+
+    Debug::log(LOG, "Creating the AnimationManager!");
+    g_pAnimationManager = std::make_unique<CAnimationManager>();
     //
     //
 

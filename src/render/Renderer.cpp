@@ -20,12 +20,12 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
 
     wlr_box windowBox;
-  //  if (RDATA->surface) {
-  //      windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
-  //      wlr_renderer_scissor(g_pCompositor->m_sWLRRenderer, &windowBox);
-  //  } else {
+    if (RDATA->surface) {
+        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
+        wlr_renderer_scissor(g_pCompositor->m_sWLRRenderer, &windowBox);
+    } else {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, surface->current.width, surface->current.height};
-  //  }
+    }
     scaleBox(&windowBox, RDATA->output->scale);
 
     const auto TRANSFORM = wlr_output_transform_invert(surface->current.transform);

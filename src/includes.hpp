@@ -75,6 +75,7 @@ extern "C" {
 #include <xkbcommon/xkbcommon.h>
 #include <X11/Xproto.h>
 #include <wlr/render/gles2.h>
+#include <wlr/render/wlr_texture.h>
 }
 
 #undef class

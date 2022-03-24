@@ -82,14 +82,14 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
 }
 
 void Events::listener_InhibitActivate(wl_listener* listener, void* data) {
-    g_pCompositor->m_sSeat.exclusiveClient = g_pCompositor->m_sWLRInhibitMgr->active_client;
-
     Debug::log(LOG, "Activated exclusive for %x.", g_pCompositor->m_sSeat.exclusiveClient);
+
+    g_pCompositor->m_sSeat.exclusiveClient = g_pCompositor->m_sWLRInhibitMgr->active_client;
 }
 
 void Events::listener_InhibitDeactivate(wl_listener* listener, void* data) {
+    Debug::log(LOG, "Deactivated exclusive.");
+
     g_pCompositor->m_sSeat.exclusiveClient = nullptr;
     g_pInputManager->refocus();
-
-    Debug::log(LOG, "Deactivated exclusive.");
 }

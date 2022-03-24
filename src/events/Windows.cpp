@@ -112,6 +112,8 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_unmapWindow);
 
+    Debug::log(LOG, "Window %x unmapped", PWINDOW);
+
     if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
 
@@ -134,8 +136,6 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     // This might be way more sinister in nature and have a problem more deeply
     // rooted in the code.
     // g_pInputManager->refocus();
-
-    Debug::log(LOG, "Window %x unmapped", PWINDOW);
 }
 
 void Events::listener_commitWindow(wl_listener* listener, void* data) {
@@ -147,6 +147,8 @@ void Events::listener_commitWindow(wl_listener* listener, void* data) {
 void Events::listener_destroyWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_destroyWindow);
 
+    Debug::log(LOG, "Window %x destroyed", PWINDOW);
+
     if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
 
@@ -156,8 +158,6 @@ void Events::listener_destroyWindow(wl_listener* listener, void* data) {
     // Investigate
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
-
-    Debug::log(LOG, "Window %x destroyed", PWINDOW);
 
     wl_list_remove(&PWINDOW->listen_mapWindow.link);
     wl_list_remove(&PWINDOW->listen_unmapWindow.link);
@@ -180,17 +180,17 @@ void Events::listener_setTitleWindow(wl_listener* listener, void* data) {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
 	    return;
 
-    PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
-
     Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());
+
+    PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
 }
 
 void Events::listener_fullscreenWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_fullscreenWindow);
 
-    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
-
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
+
+    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
 }
 
 void Events::listener_activate(wl_listener* listener, void* data) {
@@ -217,6 +217,8 @@ void Events::listener_configureX11(wl_listener* listener, void* data) {
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     const auto XWSURFACE = (wlr_xwayland_surface*)data;
 
+    Debug::log(LOG, "New XWayland Surface created.");
+
     g_pCompositor->m_lWindows.push_back(CWindow());
     const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
 
@@ -231,13 +233,13 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     wl_signal_add(&XWSURFACE->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
     wl_signal_add(&XWSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
     wl_signal_add(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
-
-    Debug::log(LOG, "New XWayland Surface created.");
 }
 
 void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     // A window got opened
     const auto XDGSURFACE = (wlr_xdg_surface*)data;
+
+    Debug::log(LOG, "New XDG Surface created. (%ix%i at %i %i)", XDGSURFACE->current.geometry.width, XDGSURFACE->current.geometry.height, XDGSURFACE->current.geometry.x, XDGSURFACE->current.geometry.y);
 
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return;  // TODO: handle?
@@ -252,8 +254,6 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
     wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
     wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
-
-    Debug::log(LOG, "New XDG Surface created.");
 }
 
 //
@@ -263,6 +263,8 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
 void createSubsurface(CWindow* pWindow, wlr_subsurface* pSubsurface) {
     if (!pWindow || !pSubsurface)
         return;
+
+    Debug::log(LOG, "New Window Subsurface %x created", pSubsurface);
 
     g_pCompositor->m_lSubsurfaces.push_back(SSubsurface());
     const auto PNEWSUBSURFACE = &g_pCompositor->m_lSubsurfaces.back();

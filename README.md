@@ -20,6 +20,7 @@ Nevertheless, REPORT any you find! Make an issue!
  - Config reloaded instantly upon saving
  - Easily expandable and readable codebase
  - Support for docks/whatever
+ - Window rules
  - Monitor rules
  - Socket-based IPC
  - Tiling/floating/fullscreen windows
@@ -30,7 +31,6 @@ Nevertheless, REPORT any you find! Make an issue!
  - Rounded corners
  - Blur
  - Fadein/out
- - Window rules
  - Fix electron rendering issues
  - Optimization
  - Fix weird scroll on XWayland

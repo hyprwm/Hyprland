@@ -357,8 +357,13 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
     }
 
-    pWindow->m_vRealPosition = pWindow->m_vEffectivePosition + pWindow->m_vEffectiveSize / 2.f;
-    pWindow->m_vRealSize = Vector2D(5,5);
+    if (!pWindow->m_bX11DoesntWantBorders) {
+        pWindow->m_vRealPosition = pWindow->m_vEffectivePosition + pWindow->m_vEffectiveSize / 2.f;
+        pWindow->m_vRealSize = Vector2D(5, 5);
+    } else {
+        pWindow->m_vRealPosition = pWindow->m_vEffectivePosition;
+        pWindow->m_vRealSize = pWindow->m_vEffectiveSize;
+    }
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
     g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);

@@ -163,6 +163,30 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND});
 }
 
+void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
+    const auto RULE = value.substr(0, value.find_first_of(","));
+    const auto VALUE = value.substr(value.find_first_of(",") + 1);
+
+    // check rule and value
+    if (RULE == "" || VALUE == "") {
+        return;
+    }
+
+    // verify we support a rule
+    if (RULE != "float" 
+        && RULE != "tile"
+        && RULE.find("move") != 0
+        && RULE.find("size") != 0
+        && RULE.find("monitor") != 0) {
+            Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
+            parseError = "Invalid rule found: " + RULE;
+            return;
+        }
+
+    m_dWindowRules.push_back({RULE, VALUE});
+
+}
+
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
 
     const auto DISPLAY = value.substr(0, value.find_first_of(','));
@@ -230,6 +254,9 @@ void CConfigManager::parseLine(std::string& line) {
     } else if (COMMAND == "workspace") {
         handleDefaultWorkspace(COMMAND, VALUE);
         return;
+    } else if (COMMAND == "windowrule") {
+        handleWindowRule(COMMAND, VALUE);
+        return;
     }
 
     configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
@@ -241,6 +268,7 @@ void CConfigManager::loadConfigLoadVars() {
     currentCategory = "";  // reset the category
 
     m_dMonitorRules.clear();
+    m_dWindowRules.clear();
     g_pKeybindManager->clearKeybinds();
 
     const char* const ENVHOME = getenv("HOME");
@@ -357,4 +385,33 @@ SMonitorRule CConfigManager::getMonitorRuleFor(std::string name) {
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
     return SMonitorRule{.name = "", .resolution = Vector2D(1280, 720), .offset = Vector2D(0, 0), .mfact = 0.5f, .scale = 1};
+}
+
+std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
+    if (!g_pCompositor->windowValidMapped(pWindow))
+        return std::vector<SWindowRule>();
+
+    std::vector<SWindowRule> returns;
+
+    std::string title = g_pXWaylandManager->getTitle(pWindow);
+    std::string appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
+
+    for (auto& rule : m_dWindowRules) {
+        // check if we have a matching rule
+        try {
+            std::regex classCheck(rule.szValue);
+
+            if (!std::regex_search(title, classCheck) && !std::regex_search(appidclass, classCheck))
+                continue;
+        } catch (...) {
+            Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
+        }
+
+        // applies. Read the rule and behave accordingly
+        Debug::log(LOG, "Window rule %s -> %s matched %x [%s]", rule.szRule.c_str(), rule.szValue.c_str(), pWindow, pWindow->m_szTitle.c_str());
+
+        returns.push_back(rule);
+    }
+
+    return returns;
 }

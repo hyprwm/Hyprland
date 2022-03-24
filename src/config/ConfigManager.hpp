@@ -6,6 +6,9 @@
 #include "../defines.hpp"
 #include <vector>
 #include <deque>
+#include <algorithm>
+#include <regex>
+#include "../Window.hpp"
 
 struct SConfigValue {
     int64_t intValue = -1;
@@ -23,6 +26,11 @@ struct SMonitorRule {
     int         defaultWorkspaceID = -1;
 };
 
+struct SWindowRule {
+    std::string szRule;
+    std::string szValue;
+};
+
 class CConfigManager {
 public:
     CConfigManager();
@@ -36,6 +44,8 @@ public:
 
     SMonitorRule        getMonitorRuleFor(std::string);
 
+    std::vector<SWindowRule> getMatchingRules(CWindow*);
+
 private:
     std::unordered_map<std::string, SConfigValue> configValues;
     time_t lastModifyTime = 0;  // for reloading the config if changed
@@ -47,6 +57,7 @@ private:
     bool isFirstLaunch = true;  // For exec-once
 
     std::deque<SMonitorRule> m_dMonitorRules;
+    std::deque<SWindowRule> m_dWindowRules;
 
     // internal methods
     void                loadConfigLoadVars();
@@ -56,6 +67,7 @@ private:
     void                handleRawExec(const std::string&, const std::string&);
     void                handleMonitor(const std::string&, const std::string&);
     void                handleBind(const std::string&, const std::string&);
+    void                handleWindowRule(const std::string&, const std::string&);
     void                handleDefaultWorkspace(const std::string&, const std::string&);
 };
 

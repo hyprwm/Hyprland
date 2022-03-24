@@ -14,6 +14,7 @@ public:
     void                activateSurface(wlr_surface*, bool);
     void                getGeometryForWindow(CWindow*, wlr_box*);
     std::string         getTitle(CWindow*);
+    std::string         getAppIDClass(CWindow*);
     void                sendCloseWindow(CWindow*);
     void                setWindowSize(CWindow*, const Vector2D&);
     void                setWindowStyleTiled(CWindow*, uint32_t);

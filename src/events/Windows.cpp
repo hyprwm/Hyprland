@@ -36,13 +36,73 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 
     wl_signal_add(&PWINDOWSURFACE->events.new_subsurface, &PWINDOW->listen_newSubsurfaceWindow);
 
-    if (g_pXWaylandManager->shouldBeFloated(PWINDOW)) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
+    if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
         PWINDOW->m_bIsFloating = true;
+
+    // window rules
+    const auto WINDOWRULES = g_pConfigManager->getMatchingRules(PWINDOW);
+
+    for (auto& r : WINDOWRULES) {
+        if (r.szRule.find("monitor") == 0) {
+            try {
+                const long int MONITOR = std::stoi(r.szRule.substr(r.szRule.find(" ")));
+
+                Debug::log(LOG, "Rule monitor, applying to window %x", PWINDOW);
+
+                if (MONITOR >= (long int)g_pCompositor->m_lMonitors.size() || MONITOR < (long int)0)
+                    PWINDOW->m_iMonitorID = 0;
+                else
+                    PWINDOW->m_iMonitorID = MONITOR;
+
+                PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
+            } catch (...) {
+                Debug::log(LOG, "Rule monitor failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
+            }
+        } else if (r.szRule.find("float") == 0) {
+            PWINDOW->m_bIsFloating = true;
+        } else if (r.szRule.find("tile") == 0) {
+            PWINDOW->m_bIsFloating = false;
+        }
+    }
+
+    if (PWINDOW->m_bIsFloating) {
+        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
+
+        // size and move rules
+        for (auto& r : WINDOWRULES) {
+            if (r.szRule.find("size") == 0) {
+                try {
+                    const auto VALUE = r.szRule.substr(r.szRule.find(" ") + 1);
+                    const auto SIZEX = stoi(VALUE.substr(0, VALUE.find(" ")));
+                    const auto SIZEY = stoi(VALUE.substr(VALUE.find(" ") + 1));
+
+                    Debug::log(LOG, "Rule size, applying to window %x", PWINDOW);
+
+                    PWINDOW->m_vEffectiveSize = Vector2D(SIZEX, SIZEY);
+                    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vEffectiveSize);
+                } catch (...) {
+                    Debug::log(LOG, "Rule size failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
+                }
+            } else if (r.szRule.find("move") == 0) {
+                try {
+                    const auto VALUE = r.szRule.substr(r.szRule.find(" ") + 1);
+                    const auto POSX = stoi(VALUE.substr(0, VALUE.find(" ")));
+                    const auto POSY = stoi(VALUE.substr(VALUE.find(" ") + 1));
+
+                    Debug::log(LOG, "Rule move, applying to window %x", PWINDOW);
+
+                    PWINDOW->m_vEffectivePosition = Vector2D(POSX, POSY) + PMONITOR->vecPosition;
+                } catch (...) {
+                    Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
+                }
+            }
+        }
     }
     else
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
-    
+
+    PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
+
     if (!PWINDOW->m_bIsModal)
         g_pCompositor->focusWindow(PWINDOW);
 

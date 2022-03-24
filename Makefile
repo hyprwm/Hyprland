@@ -69,8 +69,8 @@ all:
 
 install:
 	make all
-	sudo cp ./example/hyprland.desktop /usr/share/wayland-sessions/
-	sudo cp ./build/Hyprland /usr/bin
-	sudo cp ./hyprctl/hyprctl /usr/bin
+	cp ./example/hyprland.desktop /usr/share/wayland-sessions/
+	cp ./build/Hyprland /usr/bin
+	cp ./hyprctl/hyprctl /usr/bin
 
 config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o

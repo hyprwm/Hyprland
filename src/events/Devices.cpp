@@ -58,8 +58,8 @@ void Events::listener_requestMouse(wl_listener* listener, void* data) {
     const auto EVENT = (wlr_seat_pointer_request_set_cursor_event*)data;
 
     // TODO: crashes sometimes
-    //if (EVENT->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
-   //     wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, EVENT->surface, EVENT->hotspot_x, EVENT->hotspot_y);
+    if (EVENT->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
+        wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, EVENT->surface, EVENT->hotspot_x, EVENT->hotspot_y);
 }
 
 void Events::listener_newInput(wl_listener* listener, void* data) {

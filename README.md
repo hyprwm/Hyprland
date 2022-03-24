@@ -27,6 +27,7 @@ Nevertheless, REPORT any you find! Make an issue!
  - Moving/resizing windows
 
 # Major to-dos
+ - Switch to fully custom OpenGL rendering
  - Animations (better)
  - Rounded corners
  - Blur

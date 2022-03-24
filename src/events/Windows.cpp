@@ -47,14 +47,14 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
             try {
                 const long int MONITOR = std::stoi(r.szRule.substr(r.szRule.find(" ")));
 
-                Debug::log(LOG, "Rule monitor, applying to window %x", PWINDOW);
-
                 if (MONITOR >= (long int)g_pCompositor->m_lMonitors.size() || MONITOR < (long int)0)
                     PWINDOW->m_iMonitorID = 0;
                 else
                     PWINDOW->m_iMonitorID = MONITOR;
 
                 PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
+
+                Debug::log(LOG, "Rule monitor, applying to window %x -> mon: %i, workspace: %i", PWINDOW, PWINDOW->m_iMonitorID, PWINDOW->m_iWorkspaceID);
             } catch (...) {
                 Debug::log(LOG, "Rule monitor failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
             }
@@ -106,7 +106,7 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     if (!PWINDOW->m_bIsModal)
         g_pCompositor->focusWindow(PWINDOW);
 
-    Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.x, PWINDOW->m_vRealPosition.y, PWINDOW->m_vRealSize.x, PWINDOW->m_vRealSize.y);
+    Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vEffectivePosition.x, PWINDOW->m_vEffectivePosition.y, PWINDOW->m_vEffectiveSize.x, PWINDOW->m_vEffectiveSize.y);
 }
 
 void Events::listener_unmapWindow(wl_listener* listener, void* data) {

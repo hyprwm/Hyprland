@@ -42,7 +42,7 @@ int CHyprDwindleLayout::getNodesOnWorkspace(const int& id) {
 
 SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnWorkspace(const int& id) {
     for (auto& n : m_lDwindleNodesData) {
-        if (n.workspaceID == id)
+        if (n.workspaceID == id && n.pWindow && g_pCompositor->windowValidMapped(n.pWindow))
             return &n;
     }
     return nullptr;
@@ -130,13 +130,15 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     SDwindleNodeData* OPENINGON;
     const auto MONFROMCURSOR = g_pCompositor->getMonitorFromCursor();
 
-    if (PMONITOR == MONFROMCURSOR)
+    if (PMONITOR->ID == MONFROMCURSOR->ID)
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
     else
-        OPENINGON = getFirstNodeOnWorkspace(MONFROMCURSOR->activeWorkspace);
+        OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
+
+    Debug::log(LOG, "OPENINGON: %x, Workspace: %i, Monitor: %i", OPENINGON, PNODE->workspaceID, PMONITOR->ID);
 
     // if it's the first, it's easy. Make it fullscreen.
-    if (!OPENINGON) {
+    if (!OPENINGON || OPENINGON->pWindow == pWindow) {
         PNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
         PNODE->size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
 
@@ -199,8 +201,6 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
 }
 
 void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
-    if (!g_pCompositor->windowValidMapped(pWindow))
-        return;
 
     const auto PNODE = getNodeFromWindow(pWindow);
 

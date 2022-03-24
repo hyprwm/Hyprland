@@ -26,7 +26,7 @@ void CAnimationManager::tick() {
                 continue;
             }
 
-            if (deltaSmallToFlip(w.m_vRealPosition, w.m_vEffectivePosition) || deltaSmallToFlip(w.m_vRealSize, w.m_vEffectiveSize)) {
+            if (deltaSmallToFlip(w.m_vRealPosition, w.m_vEffectivePosition) && deltaSmallToFlip(w.m_vRealSize, w.m_vEffectiveSize)) {
                 w.m_vRealPosition = w.m_vEffectivePosition;
                 w.m_vRealSize = w.m_vEffectiveSize;
                 g_pXWaylandManager->setWindowSize(&w, w.m_vRealSize);

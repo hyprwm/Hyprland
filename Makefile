@@ -29,6 +29,16 @@ wlr-layer-shell-unstable-v1-protocol.c:
 
 wlr-layer-shell-unstable-v1-protocol.o: wlr-layer-shell-unstable-v1-protocol.h
 
+wlr-screencopy-unstable-v1-protocol.h:
+	$(WAYLAND_SCANNER) server-header \
+		protocols/wlr-screencopy-unstable-v1.xml $@
+
+wlr-screencopy-unstable-v1-protocol.c:
+	$(WAYLAND_SCANNER) private-code \
+		protocols/wlr-screencopy-unstable-v1.xml $@
+
+wlr-screencopy-unstable-v1-protocol.o: wlr-screencopy-unstable-v1-protocol.h
+
 idle-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		protocols/idle.xml $@
@@ -63,4 +73,4 @@ install:
 	sudo cp ./build/Hyprland /usr/bin
 	sudo cp ./hyprctl/hyprctl /usr/bin
 
-config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o idle-protocol.o
+config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o

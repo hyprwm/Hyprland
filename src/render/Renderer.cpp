@@ -20,7 +20,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
 
     wlr_box windowBox;
-    if (RDATA->surface) {
+    if (RDATA->surface && surface == RDATA->surface) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
         wlr_renderer_scissor(g_pCompositor->m_sWLRRenderer, &windowBox);
     } else {

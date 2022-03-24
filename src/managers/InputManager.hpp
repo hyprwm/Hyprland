@@ -8,10 +8,10 @@
 class CInputManager {
 public:
 
-    void            onMouseMoved(wlr_event_pointer_motion*);
-    void            onMouseWarp(wlr_event_pointer_motion_absolute*);
-    void            onMouseButton(wlr_event_pointer_button*);
-    void            onKeyboardKey(wlr_event_keyboard_key*, SKeyboard*);
+    void            onMouseMoved(wlr_pointer_motion_event*);
+    void            onMouseWarp(wlr_pointer_motion_absolute_event*);
+    void            onMouseButton(wlr_pointer_button_event*);
+    void            onKeyboardKey(wlr_keyboard_key_event*, SKeyboard*);
     void            onKeyboardMod(void*, SKeyboard*);
 
     void            newKeyboard(wlr_input_device*);

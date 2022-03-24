@@ -17,6 +17,12 @@ CCompositor::CCompositor() {
         return;
     }
 
+    const auto DRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
+    if (DRMFD < 0) {
+        Debug::log(CRIT, "Couldn't query the DRM FD!");
+        return;
+    }
+
     m_sWLRRenderer = wlr_renderer_autocreate(m_sWLRBackend);
 
     if (!m_sWLRRenderer) {

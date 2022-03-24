@@ -24,7 +24,7 @@ void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {
 
 void Events::listener_keyboardKey(wl_listener* listener, void* data) {
     SKeyboard* PKEYBOARD = wl_container_of(listener, PKEYBOARD, listen_keyboardKey);
-    g_pInputManager->onKeyboardKey((wlr_event_keyboard_key*)data, PKEYBOARD);
+    g_pInputManager->onKeyboardKey((wlr_keyboard_key_event*)data, PKEYBOARD);
 }
 
 void Events::listener_keyboardMod(wl_listener* listener, void* data) {
@@ -37,19 +37,19 @@ void Events::listener_mouseFrame(wl_listener* listener, void* data) {
 }
 
 void Events::listener_mouseMove(wl_listener* listener, void* data) {
-    g_pInputManager->onMouseMoved((wlr_event_pointer_motion*)data);
+    g_pInputManager->onMouseMoved((wlr_pointer_motion_event*)data);
 }
 
 void Events::listener_mouseMoveAbsolute(wl_listener* listener, void* data) {
-    g_pInputManager->onMouseWarp((wlr_event_pointer_motion_absolute*)data);
+    g_pInputManager->onMouseWarp((wlr_pointer_motion_absolute_event*)data);
 }
 
 void Events::listener_mouseButton(wl_listener* listener, void* data) {
-    g_pInputManager->onMouseButton((wlr_event_pointer_button*)data);
+    g_pInputManager->onMouseButton((wlr_pointer_button_event*)data);
 }
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
-    const auto E = (wlr_event_pointer_axis*)data;
+    const auto E = (wlr_pointer_axis_event*)data;
 
     wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, E->time_msec, E->orientation, E->delta, E->delta_discrete, E->source);
 }

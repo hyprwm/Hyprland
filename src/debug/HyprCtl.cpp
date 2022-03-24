@@ -122,8 +122,10 @@ void HyprCtl::startHyprCtlSocket() {
 
         Debug::log(LOG, "Hypr socket started on port %i", SERVERADDRESS.sin_port);
 
-        std::string cmd = "rm -f /tmp/hypr/.socket && echo \"" + std::to_string(SERVERADDRESS.sin_port) + "\" > /tmp/hypr/.socket";
+        std::string cmd = "rm -f /tmp/hypr/.socket";
         system(cmd.c_str()); // forgive me for using system() but it works and it doesnt matter here that much
+        cmd = "echo \"" + std::to_string(SERVERADDRESS.sin_port) + "\" > /tmp/hypr/.socket";
+        system(cmd.c_str());
 
         while(1) {
             const auto ACCEPTEDCONNECTION = accept(SOCKET, (sockaddr*)&clientAddress, &clientSize);

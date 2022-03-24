@@ -144,6 +144,43 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard->keyboard);
 
     Debug::log(LOG, "New keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
+
+    setKeyboardLayout();
+}
+
+void CInputManager::setKeyboardLayout() {
+
+    const auto RULES    = g_pConfigManager->getString("input:kb_rules");
+    const auto MODEL    = g_pConfigManager->getString("input:kb_model");
+    const auto LAYOUT   = g_pConfigManager->getString("input:kb_layout");
+    const auto VARIANT  = g_pConfigManager->getString("input:kb_variant");
+    const auto OPTIONS  = g_pConfigManager->getString("input:kb_options");
+
+    xkb_rule_names rules = {
+        .rules = RULES.c_str(),
+        .model = MODEL.c_str(),
+        .layout = LAYOUT.c_str(),
+        .variant = VARIANT.c_str(),
+        .options = OPTIONS.c_str()
+    };
+
+    const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    const auto KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+    if (!KEYMAP) {
+        Debug::log(ERR, "Keyboard layout %s with variant %s (rules: %s, model: %s, options: %s) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model, rules.options);
+        xkb_context_unref(CONTEXT);
+        return;
+    }
+
+    // TODO: configure devices one by one
+    for (auto& k : m_lKeyboards)
+        wlr_keyboard_set_keymap(k.keyboard->keyboard, KEYMAP);
+
+    xkb_keymap_unref(KEYMAP);
+    xkb_context_unref(CONTEXT);
+
+    Debug::log(LOG, "Set the keyboard layout to %s and variant to %s", rules.layout, rules.variant);
 }
 
 void CInputManager::newMouse(wlr_input_device* mouse) {

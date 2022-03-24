@@ -22,6 +22,8 @@ public:
     Vector2D        getMouseCoordsInternal();
     void            refocus();
 
+    void            setKeyboardLayout();
+
 
     // for dragging floating windows
     CWindow*        currentlyDraggedWindow = nullptr;

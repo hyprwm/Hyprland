@@ -23,7 +23,7 @@ CCompositor::CCompositor() {
         return;
     }
 
-    m_sWLRRenderer = wlr_renderer_autocreate(m_sWLRBackend);
+    m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(DRMFD);
 
     if (!m_sWLRRenderer) {
         Debug::log(CRIT, "m_sWLRRenderer was NULL!");

@@ -74,12 +74,14 @@ extern "C" {
 #include <wlr/util/region.h>
 #include <xkbcommon/xkbcommon.h>
 #include <X11/Xproto.h>
+#include <wlr/render/gles2.h>
 }
 
 #undef class
 #undef namespace
 #undef static
-
 #endif
+
+#include <GLES3/gl32.h>
 
 #include "helpers/Vector2D.hpp"

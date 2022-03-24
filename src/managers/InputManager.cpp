@@ -1,19 +1,19 @@
 #include "InputManager.hpp"
 #include "../Compositor.hpp"
 
-void CInputManager::onMouseMoved(wlr_event_pointer_motion* e) {
+void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     // TODO: sensitivity
 
     float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
-    wlr_cursor_move(g_pCompositor->m_sWLRCursor, e->device, e->delta_x * sensitivity, e->delta_y * sensitivity);
+    wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->delta_x * sensitivity, e->delta_y * sensitivity);
 
     mouseMoveUnified(e->time_msec);
     // todo: pointer
 }
 
-void CInputManager::onMouseWarp(wlr_event_pointer_motion_absolute* e) {
-    wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, e->device, e->x, e->y);
+void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
+    wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->x, e->y);
 
     mouseMoveUnified(e->time_msec);
 }
@@ -84,7 +84,7 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 }
 
-void CInputManager::onMouseButton(wlr_event_pointer_button* e) {
+void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
     const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
@@ -141,7 +141,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     wl_signal_add(&keyboard->keyboard->events.key, &PNEWKEYBOARD->listen_keyboardKey);
     wl_signal_add(&keyboard->events.destroy, &PNEWKEYBOARD->listen_keyboardDestroy);
 
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard);
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard->keyboard);
 
     Debug::log(LOG, "New keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
 }
@@ -174,7 +174,7 @@ void CInputManager::destroyMouse(wlr_input_device* mouse) {
     //
 }
 
-void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboard) {
+void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
     const auto KEYCODE = e->keycode + 8; // Because to xkbcommon it's +8 from libinput
 
     const xkb_keysym_t* keysyms;
@@ -195,13 +195,13 @@ void CInputManager::onKeyboardKey(wlr_event_keyboard_key* e, SKeyboard* pKeyboar
     }
 
     if (!found) {
-        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->keyboard);
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->keyboard->keyboard);
         wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e->time_msec, e->keycode, e->state);
     }
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->keyboard);
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->keyboard->keyboard);
     wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &pKeyboard->keyboard->keyboard->modifiers);
 }
 

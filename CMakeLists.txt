@@ -37,6 +37,9 @@ target_link_libraries(Hyprland PkgConfig::deps)
 target_link_libraries(Hyprland
         wlroots
         pixman-1
+        OpenGL
+        GLESv2
+        pthread
         ${CMAKE_THREAD_LIBS_INIT}
 )
 

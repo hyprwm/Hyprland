@@ -20,6 +20,7 @@ CCompositor::CCompositor() {
     const auto DRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
     if (DRMFD < 0) {
         Debug::log(CRIT, "Couldn't query the DRM FD!");
+        RIP("DRMFD NULL!");
         return;
     }
 
@@ -41,6 +42,13 @@ CCompositor::CCompositor() {
         return;
     }
 
+    m_sWLREGL = wlr_gles2_renderer_get_egl(m_sWLRRenderer);
+
+    if (!m_sWLREGL) {
+        Debug::log(CRIT, "m_sWLREGL was NULL!");
+        RIP("m_sWLREGL NULL!");
+        return;
+    }
 
     m_sWLRCompositor = wlr_compositor_create(m_sWLDisplay, m_sWLRRenderer);
     m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);

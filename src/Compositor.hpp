@@ -45,6 +45,7 @@ public:
     wlr_scene*                       m_sWLRScene;
     wlr_input_inhibit_manager*       m_sWLRInhibitMgr;
     wlr_keyboard_shortcuts_inhibit_manager_v1* m_sWLRKbShInhibitMgr;
+    wlr_egl*                         m_sWLREGL;
     // ------------------------------------------------- //
 
 

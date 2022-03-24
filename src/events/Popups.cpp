@@ -46,25 +46,27 @@ void createNewPopup(wlr_xdg_popup* popup, void* parent, bool parentIsLayer) {
 void Events::listener_newPopup(wl_listener* listener, void* data) {
     SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_newPopup);
 
+    Debug::log(LOG, "New layer popup created from surface %x", layersurface);
+
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
     createNewPopup(WLRPOPUP, layersurface, true);
-
-    Debug::log(LOG, "New layer popup created from surface %x", layersurface);
 }
 
 void Events::listener_newPopupFromPopup(wl_listener* listener, void* data) {
     SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_newPopupFromPopup);
 
+    Debug::log(LOG, "New layer popup created from popup %x", layerPopup);
+
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
     createNewPopup(WLRPOPUP, layerPopup, true);
-
-    Debug::log(LOG, "New layer popup created from popup %x", layerPopup);
 }
 
 void Events::listener_destroyPopup(wl_listener* listener, void* data) {
     SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_destroyPopup);
+
+    Debug::log(LOG, "Destroyed popup %x", layerPopup);
 
     wl_list_remove(&layerPopup->listen_mapPopup.link);
     wl_list_remove(&layerPopup->listen_unmapPopup.link);
@@ -72,23 +74,22 @@ void Events::listener_destroyPopup(wl_listener* listener, void* data) {
     wl_list_remove(&layerPopup->listen_commitPopup.link);
     
     g_pCompositor->m_lLayerPopups.remove(*layerPopup);
-
-    Debug::log(LOG, "Destroyed popup %x", layerPopup);
 }
 
 void Events::listener_mapPopup(wl_listener* listener, void* data) {
     SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_mapPopup);
 
+    Debug::log(LOG, "Mapped popup %x", layerPopup);
+
     const auto PLAYER = g_pCompositor->getLayerForPopup(layerPopup);
 
     wlr_surface_send_enter(layerPopup->popup->base->surface, PLAYER->layerSurface->output);
-
-    Debug::log(LOG, "Mapped popup %x", layerPopup);
 }
 
 void Events::listener_unmapPopup(wl_listener* listener, void* data) {
     SLayerPopup* layerPopup = wl_container_of(listener, layerPopup, listen_unmapPopup);
 
+    Debug::log(LOG, "LayerPopup %x unmapped", layerPopup);
 }
 
 void Events::listener_commitPopup(wl_listener* listener, void* data) {
@@ -99,6 +100,8 @@ void Events::listener_commitPopup(wl_listener* listener, void* data) {
 void createNewPopupXDG(wlr_xdg_popup* popup, void* parent, bool parentIsWindow) {
     if (!popup)
         return;
+
+    Debug::log(LOG, "New XDG Popup %x created", popup);
 
     g_pCompositor->m_lXDGPopups.push_back(SXDGPopup());
     const auto PNEWPOPUP = &g_pCompositor->m_lXDGPopups.back();
@@ -127,39 +130,39 @@ void createNewPopupXDG(wlr_xdg_popup* popup, void* parent, bool parentIsWindow) 
 void Events::listener_newPopupXDG(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_newPopupXDG);
 
+    Debug::log(LOG, "New layer popup created from XDG window %x -> %s", PWINDOW, PWINDOW->m_szTitle.c_str());
+
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
     createNewPopupXDG(WLRPOPUP, PWINDOW, true);
-
-    Debug::log(LOG, "New layer popup created from XDG window %x -> %s", PWINDOW, PWINDOW->m_szTitle.c_str());
 }
 
 void Events::listener_newPopupFromPopupXDG(wl_listener* listener, void* data) {
     SXDGPopup* PPOPUP = wl_container_of(listener, PPOPUP, listen_newPopupFromPopupXDG);
 
+    Debug::log(LOG, "New layer popup created from XDG popup %x -> %s", PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
+
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
     createNewPopupXDG(WLRPOPUP, PPOPUP, true);
-
-    Debug::log(LOG, "New layer popup created from XDG popup %x -> %s", PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
 }
 
 void Events::listener_mapPopupXDG(wl_listener* listener, void* data) {
-    
+    Debug::log(LOG, "New XDG Popup mapped");
 }
 
 void Events::listener_unmapPopupXDG(wl_listener* listener, void* data) {
-    
+    Debug::log(LOG, "XDG Popup unmapped");
 }
 
 void Events::listener_destroyPopupXDG(wl_listener* listener, void* data) {
     SXDGPopup* PPOPUP = wl_container_of(listener, PPOPUP, listen_destroyPopupXDG);
+
+    Debug::log(LOG, "Destroyed popup XDG %x", PPOPUP);
 
     wl_list_remove(&PPOPUP->listen_mapPopupXDG.link);
     wl_list_remove(&PPOPUP->listen_unmapPopupXDG.link);
     wl_list_remove(&PPOPUP->listen_destroyPopupXDG.link);
 
     g_pCompositor->m_lXDGPopups.remove(*PPOPUP);
-
-    Debug::log(LOG, "Destroyed popup XDG %x", PPOPUP);
 }

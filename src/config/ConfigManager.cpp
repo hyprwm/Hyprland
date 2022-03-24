@@ -27,6 +27,12 @@ CConfigManager::CConfigManager() {
     configValues["animations:windows"].intValue = 1;
     configValues["animations:borders"].intValue = 1;
     configValues["animations:fadein"].intValue = 1;
+
+    configValues["input:kb_layout"].strValue = "en";
+    configValues["input:kb_variant"].strValue = "";
+    configValues["input:kb_options"].strValue = "";
+    configValues["input:kb_rules"].strValue = "";
+    configValues["input:kb_model"].strValue = "";
 }
 
 void CConfigManager::init() {
@@ -311,6 +317,9 @@ void CConfigManager::loadConfigLoadVars() {
 
     for (auto& m : g_pCompositor->m_lMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
+
+    // Update the keyboard layout to the cfg'd one
+    g_pInputManager->setKeyboardLayout();
 
     // Calculate the mod mask for main_mod
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);

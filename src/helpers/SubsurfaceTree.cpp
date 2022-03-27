@@ -56,6 +56,16 @@ SSurfaceTreeNode* SubsurfaceTree::createTreeRoot(wlr_surface* pSurface, applyGlo
 void destroySubsurface(SSubsurface* pSubsurface);
 
 void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
+    bool exists = false;
+    for (auto& n : surfaceTreeNodes) {
+        if (&n == pNode) {
+            exists = true;
+            break;
+        }
+    }
+
+    RASSERT(exists, "Tried to delete a surfaceTreeNode that doesn't exist!");
+
     for (auto& c : pNode->childSubsurfaces)
         destroySubsurface(&c);
 

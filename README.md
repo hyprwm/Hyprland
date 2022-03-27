@@ -56,3 +56,10 @@ Hyprland without a config is a bad idea!
 
 # Contributions
 Welcome, I'll make a CONTRIBUTING.md some time in the future.
+
+# Special thanks
+tinywl - for showing how 2 do stuff
+sway - for showing how 2 do stuff the overkill way
+vivarium - for showing how 2 do stuff the simple way
+dwl - for showing how 2 do stuff the hacky way
+wayfire - for showing how 2 do custom rendering

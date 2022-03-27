@@ -321,7 +321,7 @@ SMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
 
 void CCompositor::focusWindow(CWindow* pWindow) {
 
-    if (!pWindow) {
+    if (!pWindow || !windowValidMapped(pWindow)) {
         wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
         return;
     }
@@ -337,11 +337,18 @@ void CCompositor::focusSurface(wlr_surface* pSurface) {
     if (m_sSeat.seat->keyboard_state.focused_surface == pSurface)
         return;  // Don't focus when already focused on this.
 
+    if (!pSurface)
+        return;
+
     // Unfocus last surface
     if (m_pLastFocus && !wlr_surface_is_xwayland_surface(m_pLastFocus))
         g_pXWaylandManager->activateSurface(m_pLastFocus, false);
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);
+
+    if (!KEYBOARD)
+        return;
+
     wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 
     m_pLastFocus = pSurface;

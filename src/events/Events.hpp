@@ -1,6 +1,12 @@
 #pragma once
 #include "../defines.hpp"
 
+//
+// LISTEN_NAME -> the wl_listener
+//
+// LISTENER_NAME -> the wl_listener.notify function
+//
+
 namespace Events {
     // Monitor events
     LISTENER(change);
@@ -14,19 +20,15 @@ namespace Events {
     LISTENER(commitLayerSurface);
 
     // Subsurfaces
-    LISTENER(newSubsurface);
+    LISTENER(newSubsurfaceNode);
+    LISTENER(destroySubsurfaceNode);
     LISTENER(mapSubsurface);
     LISTENER(unmapSubsurface);
     LISTENER(destroySubsurface);
     LISTENER(commitSubsurface);
 
     // Popups
-    LISTENER(newPopup);
-    LISTENER(newPopupFromPopup);
-    LISTENER(mapPopup);
-    LISTENER(unmapPopup);
-    LISTENER(destroyPopup);
-    LISTENER(commitPopup);
+    LISTENER(newPopup); // LayerSurface
 
     LISTENER(newPopupXDG);
     LISTENER(mapPopupXDG);
@@ -49,7 +51,7 @@ namespace Events {
     LISTENER(configureX11);
 
     // Window subsurfaces
-    LISTENER(newSubsurfaceWindow);
+   // LISTENER(newSubsurfaceWindow);
 
     // Input events
     LISTENER(mouseMove);

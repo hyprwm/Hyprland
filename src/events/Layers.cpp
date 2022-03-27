@@ -44,7 +44,6 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     wl_signal_add(&WLRLAYERSURFACE->events.map, &layerSurface->listen_mapLayerSurface);
     wl_signal_add(&WLRLAYERSURFACE->events.unmap, &layerSurface->listen_unmapLayerSurface);
     wl_signal_add(&WLRLAYERSURFACE->events.new_popup, &layerSurface->listen_newPopup);
-    wl_signal_add(&WLRLAYERSURFACE->surface->events.new_subsurface, &layerSurface->listen_newSubsurface);
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
     layerSurface->layer = WLRLAYERSURFACE->current.layer;
@@ -108,6 +107,8 @@ void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
 
     if (layersurface->layerSurface->current.keyboard_interactive)
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
+
+    layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 }
 
 void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
@@ -152,82 +153,6 @@ void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
     }
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-}
 
-//
-// Subsurfaces
-//
-
-void createSubsurface(wlr_subsurface* pSubSurface, SLayerSurface* pLayerSurface) {
-    if (!pSubSurface || !pLayerSurface)
-        return;
-
-    Debug::log(LOG, "Subsurface %x created", pSubSurface);
-
-    g_pCompositor->m_lSubsurfaces.push_back(SSubsurface());
-    const auto PNEWSUBSURFACE = &g_pCompositor->m_lSubsurfaces.back();
-
-    PNEWSUBSURFACE->subsurface = pSubSurface;
-    PNEWSUBSURFACE->pParentSurface = pLayerSurface;
-
-    wl_signal_add(&pSubSurface->events.map, &PNEWSUBSURFACE->listen_mapSubsurface);
-    wl_signal_add(&pSubSurface->events.unmap, &PNEWSUBSURFACE->listen_unmapSubsurface);
-    wl_signal_add(&pSubSurface->events.destroy, &PNEWSUBSURFACE->listen_destroySubsurface);
-    wl_signal_add(&pSubSurface->surface->events.commit, &PNEWSUBSURFACE->listen_commitSubsurface);
-}
-
-void damageSubsurface(SSubsurface* subSurface, bool all = false) {
-    if (!subSurface->pParentSurface->layerSurface->output)
-        return;
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(subSurface->pParentSurface->layerSurface->output);
-
-    if (!PMONITOR)
-        return; // wut?
-
-    int x = subSurface->subsurface->current.x + subSurface->pParentSurface->geometry.x;
-    int y = subSurface->subsurface->current.y + subSurface->pParentSurface->geometry.y;
-
-    g_pHyprRenderer->damageSurface(PMONITOR, x, y, subSurface->subsurface->surface, &all);
-}
-
-void Events::listener_newSubsurface(wl_listener* listener, void* data) {
-    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_newSubsurface);
-
-    createSubsurface((wlr_subsurface*)data, layersurface);
-}
-
-void Events::listener_mapSubsurface(wl_listener* listener, void* data) {
-    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_mapSubsurface);
-
-    Debug::log(LOG, "Subsurface %x mapped", subsurface);
-
-    damageSubsurface(subsurface, true);
-}
-
-void Events::listener_unmapSubsurface(wl_listener* listener, void* data) {
-    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_unmapSubsurface);
-
-    Debug::log(LOG, "Subsurface %x unmapped", subsurface);
-
-    damageSubsurface(subsurface, true);
-}
-
-void Events::listener_commitSubsurface(wl_listener* listener, void* data) {
-    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_commitSubsurface);
-
-    damageSubsurface(subsurface, false);
-}
-
-void Events::listener_destroySubsurface(wl_listener* listener, void* data) {
-    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_destroySubsurface);
-
-    Debug::log(LOG, "Subsurface %x destroyed", subsurface);
-
-    wl_list_remove(&subsurface->listen_mapSubsurface.link);
-    wl_list_remove(&subsurface->listen_unmapSubsurface.link);
-    wl_list_remove(&subsurface->listen_destroySubsurface.link);
-    wl_list_remove(&subsurface->listen_commitSubsurface.link);
-
-    g_pCompositor->m_lSubsurfaces.remove(*subsurface);
+    layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 }

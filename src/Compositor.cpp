@@ -365,20 +365,6 @@ bool CCompositor::windowValidMapped(CWindow* pWindow) {
     return true;
 }
 
-SLayerSurface* CCompositor::getLayerForPopup(SLayerPopup* pPopup) {
-    auto CurrentPopup = pPopup;
-    while (CurrentPopup->parentPopup != nullptr) {
-        for (auto& p : g_pCompositor->m_lLayerPopups) {
-            if (p.popup == CurrentPopup->parentPopup) {
-                CurrentPopup = &p;
-                break;
-            }
-        }
-    }
-
-    return CurrentPopup->parentSurface;
-}
-
 CWindow* CCompositor::getWindowForPopup(wlr_xdg_popup* popup) {
     for (auto& p : m_lXDGPopups) {
         if (p.popup == popup)

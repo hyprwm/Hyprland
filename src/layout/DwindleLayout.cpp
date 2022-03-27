@@ -396,7 +396,6 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
             pWindow->m_vEffectivePosition = pWindow->m_vPosition;
             pWindow->m_vEffectiveSize = pWindow->m_vSize;
 
-            // TEMP: Remove when anims added
             g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
         }
     } else {
@@ -412,9 +411,6 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
         pWindow->m_vEffectivePosition = PMONITOR->vecPosition;
         pWindow->m_vEffectiveSize = PMONITOR->vecSize;
 
-        // TEMP: Remove when anims added
-        pWindow->m_vRealPosition = pWindow->m_vEffectivePosition;
-        pWindow->m_vRealSize = pWindow->m_vEffectiveSize;
         g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
     }
 

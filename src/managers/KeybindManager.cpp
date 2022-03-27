@@ -28,6 +28,10 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
 
 bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key) {
     bool found = false;
+
+    if (handleInternalKeybinds(key))
+        return true;
+
     for (auto& k : m_dKeybinds) {
         if (modmask != k.modmask) 
             continue;
@@ -54,6 +58,21 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
     }
 
     return found;
+}
+
+bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
+    // Handles the CTRL+ALT+FX TTY keybinds
+    if (!(keysym >= XKB_KEY_XF86Switch_VT_1 && keysym <= XKB_KEY_XF86Switch_VT_12))
+        return false;
+
+    const auto PSESSION = wlr_backend_get_session(g_pCompositor->m_sWLRBackend);
+    if (PSESSION) {
+        const auto TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
+        wlr_session_change_vt(PSESSION, TTY);
+        return true;
+    }
+
+    return false;
 }
 
 // Dispatchers

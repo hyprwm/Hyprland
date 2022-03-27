@@ -141,7 +141,9 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     // refocus on a new window
     g_pInputManager->refocus();
 
+
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
+    
     PWINDOW->m_pSurfaceTree = nullptr;
 }
 

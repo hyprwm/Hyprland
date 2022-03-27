@@ -267,7 +267,14 @@ void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);
 
     if (!PNODE) {
+        // save real pos cuz the func applies the default 5,5 mid
+        const auto PSAVEDPOS = pWindow->m_vRealPosition;
+        const auto PSAVEDSIZE = pWindow->m_vRealSize;
+
         onWindowCreated(pWindow);
+
+        pWindow->m_vRealPosition = PSAVEDPOS;
+        pWindow->m_vRealSize = PSAVEDSIZE;
     } else {
         onWindowRemoved(pWindow);
     }

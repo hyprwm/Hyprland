@@ -2,6 +2,7 @@
 
 #include "defines.hpp"
 #include "events/Events.hpp"
+#include "helpers/SubsurfaceTree.hpp"
 
 
 class CWindow {
@@ -53,6 +54,8 @@ public:
     DYNLISTENER(activateX11);
     DYNLISTENER(configureX11);
     //
+
+    SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 
 
     // For the list lookup

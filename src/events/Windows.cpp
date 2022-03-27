@@ -15,6 +15,12 @@
 //                                                              //
 // ------------------------------------------------------------ //
 
+void addViewCoords(void* pWindow, int* x, int* y) {
+    const auto PWINDOW = (CWindow*)pWindow;
+    *x += PWINDOW->m_vEffectivePosition.x;
+    *y += PWINDOW->m_vEffectivePosition.y;
+}
+
 void Events::listener_mapWindow(wl_listener* listener, void* data) {
     CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_mapWindow);
 
@@ -106,6 +112,8 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
     if (!PWINDOW->m_bIsModal)
         g_pCompositor->focusWindow(PWINDOW);
 
+    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW);
+
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vEffectivePosition.x, PWINDOW->m_vEffectivePosition.y, PWINDOW->m_vEffectiveSize.x, PWINDOW->m_vEffectiveSize.y);
 }
 
@@ -132,6 +140,9 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
 
     // refocus on a new window
     g_pInputManager->refocus();
+
+    SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
+    PWINDOW->m_pSurfaceTree = nullptr;
 }
 
 void Events::listener_commitWindow(wl_listener* listener, void* data) {
@@ -149,6 +160,11 @@ void Events::listener_destroyWindow(wl_listener* listener, void* data) {
         g_pCompositor->m_pLastFocus = nullptr;
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+
+    if (PWINDOW->m_pSurfaceTree) {
+        SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
+        PWINDOW->m_pSurfaceTree = nullptr;
+    }
 
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 }

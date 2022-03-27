@@ -1,4 +1,5 @@
 #include "includes.hpp"
+#include "debug/Log.hpp"
 
 #ifndef NDEBUG
 #define ISDEBUG true
@@ -10,6 +11,7 @@
 
 #define LISTENER(name) void listener_##name(wl_listener*, void*); inline wl_listener listen_##name = { .notify = listener_##name };
 #define DYNLISTENER(name) wl_listener listen_##name = { .notify = Events::listener_##name };
+#define DYNMULTILISTENER(name) wl_listener listen_##name;
 
 #define VECINRECT(vec, x1, y1, x2, y2) (vec.x >= (x1) && vec.x <= (x2) && vec.y >= (y1) && vec.y <= (y2))
 
@@ -23,3 +25,7 @@
 #define BLUE(c) ((double)(((c)) & 0xff) / 255.0)
 
 #define HYPRATOM(name) {name, 0}
+
+#define RASSERT(expr, reason) if (expr) { Debug::log(CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n%s\n\nat: line %s in %s", reason, __LINE__, __FILE__); RIP("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");}
+
+#define ASSERT(expr) RASSERT(expr, "?")

@@ -53,7 +53,6 @@ public:
 
     std::list<SMonitor>     m_lMonitors;
     std::list<CWindow>      m_lWindows;
-    std::list<SLayerPopup>  m_lLayerPopups;
     std::list<SXDGPopup>    m_lXDGPopups;
     std::list<SWorkspace>   m_lWorkspaces;
     std::list<SSubsurface>  m_lSubsurfaces;
@@ -82,7 +81,6 @@ public:
     CWindow*                windowFromCursor();
     CWindow*                windowFloatingFromCursor();
     SMonitor*               getMonitorFromOutput(wlr_output*);
-    SLayerSurface*          getLayerForPopup(SLayerPopup*);
     CWindow*                getWindowForPopup(wlr_xdg_popup*);
     CWindow*                getWindowFromSurface(wlr_surface*);
     bool                    isWorkspaceVisible(const int&);

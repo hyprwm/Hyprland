@@ -34,7 +34,7 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
         return;
     }
 
-    wl_signal_add(&PWINDOWSURFACE->events.new_subsurface, &PWINDOW->listen_newSubsurfaceWindow);
+  //  wl_signal_add(&PWINDOWSURFACE->events.new_subsurface, &PWINDOW->listen_newSubsurfaceWindow);
 
     if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
         PWINDOW->m_bIsFloating = true;
@@ -131,11 +131,7 @@ void Events::listener_unmapWindow(wl_listener* listener, void* data) {
     PWINDOW->m_bIsMapped = false;
 
     // refocus on a new window
-    // TODO: investigate.
-    // If a parent window has focus, any popups (XWayland) will be broken (they will disappear instantly)
-    // This might be way more sinister in nature and have a problem more deeply
-    // rooted in the code.
-    // g_pInputManager->refocus();
+    g_pInputManager->refocus();
 }
 
 void Events::listener_commitWindow(wl_listener* listener, void* data) {
@@ -152,24 +148,7 @@ void Events::listener_destroyWindow(wl_listener* listener, void* data) {
     if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
 
-    // TODO:
-    // We sometimes get invalid pointers here (stack ones)
-    // this obviously means we tainted wlroots.
-    // Investigate
-
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
-
-    wl_list_remove(&PWINDOW->listen_mapWindow.link);
-    wl_list_remove(&PWINDOW->listen_unmapWindow.link);
-    wl_list_remove(&PWINDOW->listen_destroyWindow.link);
-    wl_list_remove(&PWINDOW->listen_setTitleWindow.link);
-    wl_list_remove(&PWINDOW->listen_fullscreenWindow.link);
-    if (PWINDOW->m_bIsX11) {
-        wl_list_remove(&PWINDOW->listen_activateX11.link);
-        wl_list_remove(&PWINDOW->listen_configureX11.link);
-    } else {
-        wl_list_remove(&PWINDOW->listen_commitWindow.link);
-    }
 
     g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
 }
@@ -254,31 +233,5 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
     wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
     wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
-}
-
-//
-// Subsurfaces
-//
-
-void createSubsurface(CWindow* pWindow, wlr_subsurface* pSubsurface) {
-    if (!pWindow || !pSubsurface)
-        return;
-
-    Debug::log(LOG, "New Window Subsurface %x created", pSubsurface);
-
-    g_pCompositor->m_lSubsurfaces.push_back(SSubsurface());
-    const auto PNEWSUBSURFACE = &g_pCompositor->m_lSubsurfaces.back();
-
-    wl_signal_add(&pSubsurface->events.destroy, &PNEWSUBSURFACE->listen_destroySubsurface);
-    wl_signal_add(&pSubsurface->events.map, &PNEWSUBSURFACE->listen_mapSubsurface);
-    wl_signal_add(&pSubsurface->events.unmap, &PNEWSUBSURFACE->listen_unmapSubsurface);
-    wl_signal_add(&pSubsurface->surface->events.commit, &PNEWSUBSURFACE->listen_commitSubsurface);
-}
-
-void Events::listener_newSubsurfaceWindow(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_newSubsurfaceWindow);
-
-    const auto PSUBSURFACE = (wlr_subsurface*)data;
-
-    createSubsurface(PWINDOW, PSUBSURFACE);
+    wl_signal_add(&XDGSURFACE->events.new_popup, &PNEWWINDOW->listen_newPopupXDG);
 }

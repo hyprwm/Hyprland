@@ -21,6 +21,7 @@ public:
 private:
     std::deque<SKeybind> m_dKeybinds;
 
+    bool                handleInternalKeybinds(xkb_keysym_t);
 
     // -------------- Dispatchers -------------- //
     void                killActive(std::string);

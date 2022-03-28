@@ -64,7 +64,11 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
         }
     }
 
-    RASSERT(exists, "Tried to delete a surfaceTreeNode that doesn't exist!");
+    if (!exists) {
+	    Debug::log(ERR, "Tried to remove a SurfaceTreeNode that doesn't exist?? (Node %x)", pNode);
+	    return;
+    }
+
 
     for (auto& c : pNode->childSubsurfaces)
         destroySubsurface(&c);

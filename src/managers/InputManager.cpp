@@ -137,9 +137,9 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     xkb_context_unref(CONTEXT);
     wlr_keyboard_set_repeat_info(keyboard->keyboard, 25, 600);
 
-    addWLSignal(&keyboard->keyboard->events.modifiers, &PNEWKEYBOARD->listen_keyboardMod, PNEWKEYBOARD, "Keyboard");
-    addWLSignal(&keyboard->keyboard->events.key, &PNEWKEYBOARD->listen_keyboardKey, PNEWKEYBOARD, "Keyboard");
-    addWLSignal(&keyboard->events.destroy, &PNEWKEYBOARD->listen_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&keyboard->keyboard->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&keyboard->keyboard->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
 
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard->keyboard);
 
@@ -200,9 +200,9 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
 }
 
 void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
-    wl_list_remove(&pKeyboard->listen_keyboardMod.link);
-    wl_list_remove(&pKeyboard->listen_keyboardKey.link);
-    wl_list_remove(&pKeyboard->listen_keyboardDestroy.link);
+    pKeyboard->hyprListener_keyboardDestroy.removeCallback();
+    pKeyboard->hyprListener_keyboardMod.removeCallback();
+    pKeyboard->hyprListener_keyboardKey.removeCallback();
 
     m_lKeyboards.remove(*pKeyboard);
 }

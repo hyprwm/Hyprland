@@ -79,8 +79,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     g_pCompositor->m_lMonitors.push_back(newMonitor);
     //
 
-    addWLSignal(&OUTPUT->events.frame, &g_pCompositor->m_lMonitors.back().listen_monitorFrame, &g_pCompositor->m_lMonitors.back(), "Monitor");
-    addWLSignal(&OUTPUT->events.destroy, &g_pCompositor->m_lMonitors.back().listen_monitorDestroy, &g_pCompositor->m_lMonitors.back(), "Monitor");
+    g_pCompositor->m_lMonitors.back().hyprListener_monitorFrame.initCallback(&OUTPUT->events.frame, &Events::listener_monitorFrame, &g_pCompositor->m_lMonitors.back());
+    g_pCompositor->m_lMonitors.back().hyprListener_monitorDestroy.initCallback(&OUTPUT->events.destroy, &Events::listener_monitorDestroy, &g_pCompositor->m_lMonitors.back());
 
     wlr_output_enable(OUTPUT, 1);
     if (!wlr_output_commit(OUTPUT)) {
@@ -95,8 +95,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i@%i, pointer %x", OUTPUT->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (int)monitorRule.refreshRate, OUTPUT);
 }
 
-void Events::listener_monitorFrame(wl_listener* listener, void* data) {
-    SMonitor* const PMONITOR = wl_container_of(listener, PMONITOR, listen_monitorFrame);
+void Events::listener_monitorFrame(void* owner, void* data) {
+    SMonitor* const PMONITOR = (SMonitor*)owner;
 
     // Hack: only check when monitor number 1 refreshes, saves a bit of resources.
     // This is for stuff that should be run every frame
@@ -125,7 +125,7 @@ void Events::listener_monitorFrame(wl_listener* listener, void* data) {
     wlr_output_commit(PMONITOR->output);
 }
 
-void Events::listener_monitorDestroy(wl_listener* listener, void* data) {
+void Events::listener_monitorDestroy(void* owner, void* data) {
     const auto OUTPUT = (wlr_output*)data;
 
     SMonitor* pMonitor = nullptr;

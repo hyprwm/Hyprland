@@ -10,9 +10,9 @@ typedef void (*applyGlobalOffsetFn)(void *, int *, int *);
 struct SSurfaceTreeNode {
     wlr_surface*        pSurface = nullptr;
 
-    DYNMULTILISTENER(newSubsurface);
-    DYNMULTILISTENER(commit);
-    DYNMULTILISTENER(destroy);
+    DYNLISTENER(newSubsurface);
+    DYNLISTENER(commit);
+    DYNLISTENER(destroy);
 
     SSurfaceTreeNode*   pParent = nullptr;
     SSubsurface*        pSubsurface = nullptr;
@@ -33,9 +33,9 @@ struct SSubsurface {
     SSurfaceTreeNode*   pParent = nullptr;
     SSurfaceTreeNode*   pChild = nullptr;
 
-    DYNMULTILISTENER(map);
-    DYNMULTILISTENER(unmap);
-    DYNMULTILISTENER(destroy);
+    DYNLISTENER(map);
+    DYNLISTENER(unmap);
+    DYNLISTENER(destroy);
 
     bool operator==(const SSubsurface& rhs) {
         return pSubsurface == rhs.pSubsurface;

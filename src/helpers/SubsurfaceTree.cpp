@@ -26,13 +26,9 @@ SSurfaceTreeNode* createTree(wlr_surface* pSurface) {
 
     PNODE->pSurface = pSurface;
 
-    PNODE->listen_newSubsurface.notify = Events::listener_newSubsurfaceNode;
-    PNODE->listen_commit.notify = Events::listener_commitSubsurface;
-    PNODE->listen_destroy.notify = Events::listener_destroySubsurfaceNode;
-
-    addWLSignal(&pSurface->events.commit, &PNODE->listen_commit, PNODE, "SurfaceTreeNode");
-    addWLSignal(&pSurface->events.destroy, &PNODE->listen_destroy, PNODE, "SurfaceTreeNode");
-    addWLSignal(&pSurface->events.new_subsurface, &PNODE->listen_newSubsurface, PNODE, "SurfaceTreeNode");
+    PNODE->hyprListener_newSubsurface.initCallback(&pSurface->events.new_subsurface, &Events::listener_newSubsurfaceNode, PNODE, "SurfaceTreeNode");
+    PNODE->hyprListener_commit.initCallback(&pSurface->events.commit, &Events::listener_commitSubsurface, PNODE, "SurfaceTreeNode");
+    PNODE->hyprListener_destroy.initCallback(&pSurface->events.destroy, &Events::listener_destroySubsurfaceNode, PNODE, "SurfaceTreeNode");
 
     return PNODE;
 }
@@ -75,9 +71,9 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
 
     pNode->childSubsurfaces.clear();
 
-    wl_list_remove(&pNode->listen_newSubsurface.link);
-    wl_list_remove(&pNode->listen_commit.link);
-    wl_list_remove(&pNode->listen_destroy.link);
+    pNode->hyprListener_commit.removeCallback();
+    pNode->hyprListener_destroy.removeCallback();
+    pNode->hyprListener_newSubsurface.removeCallback();
 
     Debug::log(LOG, "SurfaceTree Node removed");
 }
@@ -88,17 +84,17 @@ void destroySubsurface(SSubsurface* pSubsurface) {
         pSubsurface->pChild = nullptr;
     }
 
-    wl_list_remove(&pSubsurface->listen_map.link);
-    wl_list_remove(&pSubsurface->listen_unmap.link);
-    wl_list_remove(&pSubsurface->listen_destroy.link);
+    pSubsurface->hyprListener_destroy.removeCallback();
+    pSubsurface->hyprListener_map.removeCallback();
+    pSubsurface->hyprListener_unmap.removeCallback();
 }
 
 //
 // Subsurface listeners
 //
 
-void Events::listener_newSubsurfaceNode(wl_listener* listener, void* data) {
-    SSurfaceTreeNode* pNode = wl_container_of(listener, pNode, listen_newSubsurface);
+void Events::listener_newSubsurfaceNode(void* owner, void* data) {
+    SSurfaceTreeNode* pNode = (SSurfaceTreeNode*)owner;
 
     const auto PSUBSURFACE = (wlr_subsurface*)data;
 
@@ -110,25 +106,21 @@ void Events::listener_newSubsurfaceNode(wl_listener* listener, void* data) {
     PNEWSUBSURFACE->pSubsurface = PSUBSURFACE;
     PNEWSUBSURFACE->pParent = pNode;
 
-    PNEWSUBSURFACE->listen_map.notify = Events::listener_mapSubsurface;
-    PNEWSUBSURFACE->listen_unmap.notify = Events::listener_unmapSubsurface;
-    PNEWSUBSURFACE->listen_destroy.notify = Events::listener_destroySubsurface;
-
-    addWLSignal(&PSUBSURFACE->events.map, &PNEWSUBSURFACE->listen_map, PNEWSUBSURFACE, "Subsurface");
-    addWLSignal(&PSUBSURFACE->events.unmap, &PNEWSUBSURFACE->listen_unmap, PNEWSUBSURFACE, "Subsurface");
-    addWLSignal(&PSUBSURFACE->events.destroy, &PNEWSUBSURFACE->listen_destroy, PNEWSUBSURFACE, "Subsurface");
+    PNEWSUBSURFACE->hyprListener_map.initCallback(&PSUBSURFACE->events.map, &Events::listener_mapSubsurface, PNEWSUBSURFACE, "Subsurface");
+    PNEWSUBSURFACE->hyprListener_unmap.initCallback(&PSUBSURFACE->events.unmap, &Events::listener_unmapLayerSurface, PNEWSUBSURFACE, "Subsurface");
+    PNEWSUBSURFACE->hyprListener_destroy.initCallback(&PSUBSURFACE->events.destroy, &Events::listener_destroySubsurface, PNEWSUBSURFACE, "Subsurface");
 }
 
-void Events::listener_mapSubsurface(wl_listener* listener, void* data) {
-    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_map);
+void Events::listener_mapSubsurface(void* owner, void* data) {
+    SSubsurface* subsurface = (SSubsurface*)owner;
 
     Debug::log(LOG, "Subsurface %x mapped", subsurface->pSubsurface);
 
     subsurface->pChild = createSubsurfaceNode(subsurface->pParent, subsurface, subsurface->pSubsurface->surface);
 }
 
-void Events::listener_unmapSubsurface(wl_listener* listener, void* data) {
-    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_unmap);
+void Events::listener_unmapSubsurface(void* owner, void* data) {
+    SSubsurface* subsurface = (SSubsurface*)owner;
 
     Debug::log(LOG, "Subsurface %x unmapped", subsurface);
 
@@ -149,29 +141,29 @@ void Events::listener_unmapSubsurface(wl_listener* listener, void* data) {
     }
 }
 
-void Events::listener_commitSubsurface(wl_listener* listener, void* data) {
-    SSurfaceTreeNode* pNode = wl_container_of(listener, pNode, listen_commit);
+void Events::listener_commitSubsurface(void* owner, void* data) {
+    SSurfaceTreeNode* pNode = (SSurfaceTreeNode*)owner;
 }
 
-void Events::listener_destroySubsurface(wl_listener* listener, void* data) {
-    SSubsurface* subsurface = wl_container_of(listener, subsurface, listen_destroy);
+void Events::listener_destroySubsurface(void* owner, void* data) {
+    SSubsurface* subsurface = (SSubsurface*)owner;
 
     Debug::log(LOG, "Subsurface %x destroyed", subsurface);
 
     subsurface->pParent->childSubsurfaces.remove(*subsurface);
 }
 
-void Events::listener_destroySubsurfaceNode(wl_listener* listener, void* data) {
-    SSurfaceTreeNode* pNode = wl_container_of(listener, pNode, listen_destroy);
+void Events::listener_destroySubsurfaceNode(void* owner, void* data) {
+    SSurfaceTreeNode* pNode = (SSurfaceTreeNode*)owner;
 
     Debug::log(LOG, "Subsurface Node %x destroyed", pNode);
 
     for (auto& c : pNode->childSubsurfaces)
         destroySubsurface(&c);
 
-    wl_list_remove(&pNode->listen_newSubsurface.link);
-    wl_list_remove(&pNode->listen_commit.link);
-    wl_list_remove(&pNode->listen_destroy.link);
+    pNode->hyprListener_commit.removeCallback();
+    pNode->hyprListener_newSubsurface.removeCallback();
+    pNode->hyprListener_destroy.removeCallback();
 
     SubsurfaceTree::surfaceTreeNodes.remove(*pNode);
 }

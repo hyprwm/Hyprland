@@ -43,15 +43,10 @@ void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
 void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     pHyprPopup->popup = popup;
 
-    pHyprPopup->listen_mapPopupXDG.notify = Events::listener_mapPopupXDG;
-    pHyprPopup->listen_unmapPopupXDG.notify = Events::listener_unmapPopupXDG;
-    pHyprPopup->listen_destroyPopupXDG.notify = Events::listener_destroyPopupXDG;
-    pHyprPopup->listen_newPopupFromPopupXDG.notify = Events::listener_newPopupXDG;
-
-    addWLSignal(&popup->base->events.map, &pHyprPopup->listen_mapPopupXDG, pHyprPopup, "HyprPopup");
-    addWLSignal(&popup->base->events.unmap, &pHyprPopup->listen_unmapPopupXDG, pHyprPopup, "HyprPopup");
-    addWLSignal(&popup->base->surface->events.destroy, &pHyprPopup->listen_destroyPopupXDG, pHyprPopup, "HyprPopup");
-    addWLSignal(&popup->base->events.new_popup, &pHyprPopup->listen_newPopupFromPopupXDG, pHyprPopup, "HyprPopup");
+    pHyprPopup->hyprListener_destroyPopupXDG.initCallback(&popup->base->surface->events.destroy, &Events::listener_destroyPopupXDG, pHyprPopup, "HyprPopup");
+    pHyprPopup->hyprListener_mapPopupXDG.initCallback(&popup->base->events.map, &Events::listener_mapPopupXDG, pHyprPopup, "HyprPopup");
+    pHyprPopup->hyprListener_unmapPopupXDG.initCallback(&popup->base->events.unmap, &Events::listener_unmapPopupXDG, pHyprPopup, "HyprPopup");
+    pHyprPopup->hyprListener_newPopupFromPopupXDG.initCallback(&popup->base->events.new_popup, &Events::listener_newPopupFromPopupXDG, pHyprPopup, "HyprPopup");
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
@@ -60,8 +55,8 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     wlr_xdg_popup_unconstrain_from_box(popup, &box);
 }
 
-void Events::listener_newPopup(wl_listener* listener, void* data) {
-    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_newPopup);
+void Events::listener_newPopup(void* owner, void* data) {
+    SLayerSurface* layersurface = (SLayerSurface*)owner;
 
     Debug::log(LOG, "New layer popup created from surface %x", layersurface);
 
@@ -76,8 +71,8 @@ void Events::listener_newPopup(wl_listener* listener, void* data) {
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
 
-void Events::listener_newPopupXDG(wl_listener* listener, void* data) {
-    CWindow* PWINDOW = wl_container_of(listener, PWINDOW, listen_newPopupXDG);
+void Events::listener_newPopupXDG(void* owner, void* data) {
+    CWindow* PWINDOW = (CWindow*)owner;
 
     Debug::log(LOG, "New layer popup created from XDG window %x -> %s", PWINDOW, PWINDOW->m_szTitle.c_str());
 
@@ -92,8 +87,8 @@ void Events::listener_newPopupXDG(wl_listener* listener, void* data) {
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
 
-void Events::listener_newPopupFromPopupXDG(wl_listener* listener, void* data) {
-    SXDGPopup* PPOPUP = wl_container_of(listener, PPOPUP, listen_newPopupFromPopupXDG);
+void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
+    SXDGPopup* PPOPUP = (SXDGPopup*)owner;
 
     Debug::log(LOG, "New layer popup created from XDG popup %x -> %s", PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
 
@@ -110,8 +105,8 @@ void Events::listener_newPopupFromPopupXDG(wl_listener* listener, void* data) {
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
 
-void Events::listener_mapPopupXDG(wl_listener* listener, void* data) {
-    SXDGPopup* PPOPUP = wl_container_of(listener, PPOPUP, listen_mapPopupXDG);
+void Events::listener_mapPopupXDG(void* owner, void* data) {
+    SXDGPopup* PPOPUP = (SXDGPopup*)owner;
 
     Debug::log(LOG, "New XDG Popup mapped");
 
@@ -120,8 +115,8 @@ void Events::listener_mapPopupXDG(wl_listener* listener, void* data) {
     Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode %x", PPOPUP->pSurfaceTree);
 }
 
-void Events::listener_unmapPopupXDG(wl_listener* listener, void* data) {
-    SXDGPopup* PPOPUP = wl_container_of(listener, PPOPUP, listen_unmapPopupXDG);
+void Events::listener_unmapPopupXDG(void* owner, void* data) {
+    SXDGPopup* PPOPUP = (SXDGPopup*)owner;
     Debug::log(LOG, "XDG Popup unmapped");
 
     SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);
@@ -129,8 +124,8 @@ void Events::listener_unmapPopupXDG(wl_listener* listener, void* data) {
     PPOPUP->pSurfaceTree = nullptr;
 }
 
-void Events::listener_destroyPopupXDG(wl_listener* listener, void* data) {
-    SXDGPopup* PPOPUP = wl_container_of(listener, PPOPUP, listen_destroyPopupXDG);
+void Events::listener_destroyPopupXDG(void* owner, void* data) {
+    SXDGPopup* PPOPUP = (SXDGPopup*)owner;
 
     Debug::log(LOG, "Destroyed popup XDG %x", PPOPUP);
 

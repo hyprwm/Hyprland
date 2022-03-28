@@ -1,5 +1,6 @@
 #include "includes.hpp"
 #include "debug/Log.hpp"
+#include "helpers/MiscFunctions.hpp"
 
 #ifndef NDEBUG
 #define ISDEBUG true
@@ -26,10 +27,14 @@
 
 #define HYPRATOM(name) {name, 0}
 
+#ifndef __INTELLISENSE__
 #define RASSERT(expr, reason)                                                                                                                                                                                                                                                                                                                  \
     if (!expr) {                                                                                                                                                                                                                                                                                                                               \
         Debug::log(CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n%s\n\nat: line %d in %s", std::string(reason).c_str(), __LINE__, ([]() constexpr->std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })().c_str()); \
         RIP("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");                                                                                                                                                                                                                                                         \
     }
+#else
+#define RASSERT(expr, reason)
+#endif
 
 #define ASSERT(expr) RASSERT(expr, "?")

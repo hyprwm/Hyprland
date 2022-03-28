@@ -79,8 +79,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     g_pCompositor->m_lMonitors.push_back(newMonitor);
     //
 
-    wl_signal_add(&OUTPUT->events.frame, &g_pCompositor->m_lMonitors.back().listen_monitorFrame);
-    wl_signal_add(&OUTPUT->events.destroy, &g_pCompositor->m_lMonitors.back().listen_monitorDestroy);
+    addWLSignal(&OUTPUT->events.frame, &g_pCompositor->m_lMonitors.back().listen_monitorFrame, &g_pCompositor->m_lMonitors.back(), "Monitor");
+    addWLSignal(&OUTPUT->events.destroy, &g_pCompositor->m_lMonitors.back().listen_monitorDestroy, &g_pCompositor->m_lMonitors.back(), "Monitor");
 
     wlr_output_enable(OUTPUT, 1);
     if (!wlr_output_commit(OUTPUT)) {

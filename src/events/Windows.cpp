@@ -40,8 +40,6 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
         return;
     }
 
-  //  wl_signal_add(&PWINDOWSURFACE->events.new_subsurface, &PWINDOW->listen_newSubsurfaceWindow);
-
     if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
         PWINDOW->m_bIsFloating = true;
 
@@ -223,13 +221,13 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     PNEWWINDOW->m_iX11Type = XWSURFACE->override_redirect ? 2 : 1;
     PNEWWINDOW->m_bIsX11 = true;
 
-    wl_signal_add(&XWSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
-    wl_signal_add(&XWSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
-    wl_signal_add(&XWSURFACE->events.request_activate, &PNEWWINDOW->listen_activateX11);
-    wl_signal_add(&XWSURFACE->events.request_configure, &PNEWWINDOW->listen_configureX11);
-    wl_signal_add(&XWSURFACE->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
-    wl_signal_add(&XWSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
-    wl_signal_add(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
+    addWLSignal(&XWSURFACE->events.map, &PNEWWINDOW->listen_mapWindow, PNEWWINDOW, "XWayland Window");
+    addWLSignal(&XWSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow, PNEWWINDOW, "XWayland Window");
+    addWLSignal(&XWSURFACE->events.request_activate, &PNEWWINDOW->listen_activateX11, PNEWWINDOW, "XWayland Window");
+    addWLSignal(&XWSURFACE->events.request_configure, &PNEWWINDOW->listen_configureX11, PNEWWINDOW, "XWayland Window");
+    addWLSignal(&XWSURFACE->events.set_title, &PNEWWINDOW->listen_setTitleWindow, PNEWWINDOW, "XWayland Window");
+    addWLSignal(&XWSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow, PNEWWINDOW, "XWayland Window");
+    addWLSignal(&XWSURFACE->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow, PNEWWINDOW, "XWayland Window");
 }
 
 void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
@@ -245,11 +243,11 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 
-    wl_signal_add(&XDGSURFACE->surface->events.commit, &PNEWWINDOW->listen_commitWindow);
-    wl_signal_add(&XDGSURFACE->events.map, &PNEWWINDOW->listen_mapWindow);
-    wl_signal_add(&XDGSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow);
-    wl_signal_add(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow);
-    wl_signal_add(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow);
-    wl_signal_add(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow);
-    wl_signal_add(&XDGSURFACE->events.new_popup, &PNEWWINDOW->listen_newPopupXDG);
+    addWLSignal(&XDGSURFACE->surface->events.commit, &PNEWWINDOW->listen_commitWindow, PNEWWINDOW, "XDG Window");
+    addWLSignal(&XDGSURFACE->events.map, &PNEWWINDOW->listen_mapWindow, PNEWWINDOW, "XDG Window");
+    addWLSignal(&XDGSURFACE->events.unmap, &PNEWWINDOW->listen_unmapWindow, PNEWWINDOW, "XDG Window");
+    addWLSignal(&XDGSURFACE->events.destroy, &PNEWWINDOW->listen_destroyWindow, PNEWWINDOW, "XDG Window");
+    addWLSignal(&XDGSURFACE->toplevel->events.set_title, &PNEWWINDOW->listen_setTitleWindow, PNEWWINDOW, "XDG Window");
+    addWLSignal(&XDGSURFACE->toplevel->events.request_fullscreen, &PNEWWINDOW->listen_fullscreenWindow, PNEWWINDOW, "XDG Window");
+    addWLSignal(&XDGSURFACE->events.new_popup, &PNEWWINDOW->listen_newPopupXDG, PNEWWINDOW, "XDG Window");
 }

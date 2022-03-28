@@ -39,11 +39,11 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
         WLRLAYERSURFACE->output = g_pCompositor->m_lMonitors.front().output;  // TODO: current mon
     }
 
-    wl_signal_add(&WLRLAYERSURFACE->surface->events.commit, &layerSurface->listen_commitLayerSurface);
-    wl_signal_add(&WLRLAYERSURFACE->surface->events.destroy, &layerSurface->listen_destroyLayerSurface);
-    wl_signal_add(&WLRLAYERSURFACE->events.map, &layerSurface->listen_mapLayerSurface);
-    wl_signal_add(&WLRLAYERSURFACE->events.unmap, &layerSurface->listen_unmapLayerSurface);
-    wl_signal_add(&WLRLAYERSURFACE->events.new_popup, &layerSurface->listen_newPopup);
+    addWLSignal(&WLRLAYERSURFACE->surface->events.commit, &layerSurface->listen_commitLayerSurface, layerSurface, "layerSurface");
+    addWLSignal(&WLRLAYERSURFACE->surface->events.destroy, &layerSurface->listen_destroyLayerSurface, layerSurface, "layerSurface");
+    addWLSignal(&WLRLAYERSURFACE->events.map, &layerSurface->listen_mapLayerSurface, layerSurface, "layerSurface");
+    addWLSignal(&WLRLAYERSURFACE->events.unmap, &layerSurface->listen_unmapLayerSurface, layerSurface, "layerSurface");
+    addWLSignal(&WLRLAYERSURFACE->events.new_popup, &layerSurface->listen_newPopup, layerSurface, "layerSurface");
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
     layerSurface->layer = WLRLAYERSURFACE->current.layer;

@@ -48,10 +48,10 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     pHyprPopup->listen_destroyPopupXDG.notify = Events::listener_destroyPopupXDG;
     pHyprPopup->listen_newPopupFromPopupXDG.notify = Events::listener_newPopupXDG;
 
-    wl_signal_add(&popup->base->events.map, &pHyprPopup->listen_mapPopupXDG);
-    wl_signal_add(&popup->base->events.unmap, &pHyprPopup->listen_unmapPopupXDG);
-    wl_signal_add(&popup->base->surface->events.destroy, &pHyprPopup->listen_destroyPopupXDG);
-    wl_signal_add(&popup->base->events.new_popup, &pHyprPopup->listen_newPopupFromPopupXDG);
+    addWLSignal(&popup->base->events.map, &pHyprPopup->listen_mapPopupXDG, pHyprPopup, "HyprPopup");
+    addWLSignal(&popup->base->events.unmap, &pHyprPopup->listen_unmapPopupXDG, pHyprPopup, "HyprPopup");
+    addWLSignal(&popup->base->surface->events.destroy, &pHyprPopup->listen_destroyPopupXDG, pHyprPopup, "HyprPopup");
+    addWLSignal(&popup->base->events.new_popup, &pHyprPopup->listen_newPopupFromPopupXDG, pHyprPopup, "HyprPopup");
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 

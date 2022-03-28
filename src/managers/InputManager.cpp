@@ -137,9 +137,9 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     xkb_context_unref(CONTEXT);
     wlr_keyboard_set_repeat_info(keyboard->keyboard, 25, 600);
 
-    wl_signal_add(&keyboard->keyboard->events.modifiers, &PNEWKEYBOARD->listen_keyboardMod);
-    wl_signal_add(&keyboard->keyboard->events.key, &PNEWKEYBOARD->listen_keyboardKey);
-    wl_signal_add(&keyboard->events.destroy, &PNEWKEYBOARD->listen_keyboardDestroy);
+    addWLSignal(&keyboard->keyboard->events.modifiers, &PNEWKEYBOARD->listen_keyboardMod, PNEWKEYBOARD, "Keyboard");
+    addWLSignal(&keyboard->keyboard->events.key, &PNEWKEYBOARD->listen_keyboardKey, PNEWKEYBOARD, "Keyboard");
+    addWLSignal(&keyboard->events.destroy, &PNEWKEYBOARD->listen_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
 
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard->keyboard);
 

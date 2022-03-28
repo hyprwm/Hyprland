@@ -112,6 +112,8 @@ void Events::listener_mapWindow(wl_listener* listener, void* data) {
 
     PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW);
 
+    Debug::log(LOG, "Window got assigned a surfaceTreeNode %x", PWINDOW->m_pSurfaceTree);
+
     if (!PWINDOW->m_bIsX11) {
         addWLSignal(&PWINDOW->m_uSurface.xdg->surface->events.commit, &PWINDOW->listen_commitWindow, PWINDOW, "XDG Window Late");
         addWLSignal(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &PWINDOW->listen_setTitleWindow, PWINDOW, "XDG Window Late");

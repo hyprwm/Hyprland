@@ -14,41 +14,41 @@ namespace Events {
 
     // Layer events
     LISTENER(newLayerSurface);
-    LISTENER(destroyLayerSurface);
-    LISTENER(mapLayerSurface);
-    LISTENER(unmapLayerSurface);
-    LISTENER(commitLayerSurface);
+    DYNLISTENFUNC(destroyLayerSurface);
+    DYNLISTENFUNC(mapLayerSurface);
+    DYNLISTENFUNC(unmapLayerSurface);
+    DYNLISTENFUNC(commitLayerSurface);
 
     // Subsurfaces
-    LISTENER(newSubsurfaceNode);
-    LISTENER(destroySubsurfaceNode);
-    LISTENER(mapSubsurface);
-    LISTENER(unmapSubsurface);
-    LISTENER(destroySubsurface);
-    LISTENER(commitSubsurface);
+    DYNLISTENFUNC(newSubsurfaceNode);
+    DYNLISTENFUNC(destroySubsurfaceNode);
+    DYNLISTENFUNC(mapSubsurface);
+    DYNLISTENFUNC(unmapSubsurface);
+    DYNLISTENFUNC(destroySubsurface);
+    DYNLISTENFUNC(commitSubsurface);
 
     // Popups
-    LISTENER(newPopup); // LayerSurface
+    DYNLISTENFUNC(newPopup);  // LayerSurface
 
-    LISTENER(newPopupXDG);
-    LISTENER(mapPopupXDG);
-    LISTENER(unmapPopupXDG);
-    LISTENER(destroyPopupXDG);
-    LISTENER(commitPopupXDG);
-    LISTENER(newPopupFromPopupXDG);
+    DYNLISTENFUNC(newPopupXDG);
+    DYNLISTENFUNC(mapPopupXDG);
+    DYNLISTENFUNC(unmapPopupXDG);
+    DYNLISTENFUNC(destroyPopupXDG);
+    DYNLISTENFUNC(commitPopupXDG);
+    DYNLISTENFUNC(newPopupFromPopupXDG);
 
     // Surface XDG (window)
     LISTENER(newXDGSurface);
 
     // Window events
-    LISTENER(commitWindow);
-    LISTENER(mapWindow);
-    LISTENER(unmapWindow);
-    LISTENER(destroyWindow);
-    LISTENER(setTitleWindow);
-    LISTENER(fullscreenWindow);
-    LISTENER(activateX11);
-    LISTENER(configureX11);
+    DYNLISTENFUNC(commitWindow);
+    DYNLISTENFUNC(mapWindow);
+    DYNLISTENFUNC(unmapWindow);
+    DYNLISTENFUNC(destroyWindow);
+    DYNLISTENFUNC(setTitleWindow);
+    DYNLISTENFUNC(fullscreenWindow);
+    DYNLISTENFUNC(activateX11);
+    DYNLISTENFUNC(configureX11);
 
     // Window subsurfaces
    // LISTENER(newSubsurfaceWindow);
@@ -62,23 +62,23 @@ namespace Events {
     
     LISTENER(newInput);
 
-    LISTENER(keyboardKey);
-    LISTENER(keyboardMod);
-    LISTENER(keyboardDestroy);
+    DYNLISTENFUNC(keyboardKey);
+    DYNLISTENFUNC(keyboardMod);
+    DYNLISTENFUNC(keyboardDestroy);
 
     // Various
     LISTENER(requestMouse);
     LISTENER(requestSetSel);
     LISTENER(requestSetPrimarySel);
-    LISTENER(activate);
+    DYNLISTENFUNC(activate);
 
     // outputMgr
     LISTENER(outputMgrApply);
     LISTENER(outputMgrTest);
 
     // Monitor part 2 the sequel
-    LISTENER(monitorFrame);
-    LISTENER(monitorDestroy);
+    DYNLISTENFUNC(monitorFrame);
+    DYNLISTENFUNC(monitorDestroy);
 
     // XWayland
     LISTENER(readyXWayland);

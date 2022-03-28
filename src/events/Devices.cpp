@@ -15,20 +15,20 @@
 //                                                      //
 // ---------------------------------------------------- //
 
-void Events::listener_keyboardDestroy(wl_listener* listener, void* data) {
-    SKeyboard* PKEYBOARD = wl_container_of(listener, PKEYBOARD, listen_keyboardDestroy);
+void Events::listener_keyboardDestroy(void* owner, void* data) {
+    SKeyboard* PKEYBOARD = (SKeyboard*)owner;
     g_pInputManager->destroyKeyboard(PKEYBOARD);
 
     Debug::log(LOG, "Destroyed keyboard %x", PKEYBOARD);
 }
 
-void Events::listener_keyboardKey(wl_listener* listener, void* data) {
-    SKeyboard* PKEYBOARD = wl_container_of(listener, PKEYBOARD, listen_keyboardKey);
+void Events::listener_keyboardKey(void* owner, void* data) {
+    SKeyboard* PKEYBOARD = (SKeyboard*)owner;
     g_pInputManager->onKeyboardKey((wlr_keyboard_key_event*)data, PKEYBOARD);
 }
 
-void Events::listener_keyboardMod(wl_listener* listener, void* data) {
-    SKeyboard* PKEYBOARD = wl_container_of(listener, PKEYBOARD, listen_keyboardMod);
+void Events::listener_keyboardMod(void* owner, void* data) {
+    SKeyboard* PKEYBOARD = (SKeyboard*)owner;
     g_pInputManager->onKeyboardMod(data, PKEYBOARD);
 }
 

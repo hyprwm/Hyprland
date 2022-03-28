@@ -39,11 +39,11 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
         WLRLAYERSURFACE->output = g_pCompositor->m_lMonitors.front().output;  // TODO: current mon
     }
 
-    addWLSignal(&WLRLAYERSURFACE->surface->events.commit, &layerSurface->listen_commitLayerSurface, layerSurface, "layerSurface");
-    addWLSignal(&WLRLAYERSURFACE->surface->events.destroy, &layerSurface->listen_destroyLayerSurface, layerSurface, "layerSurface");
-    addWLSignal(&WLRLAYERSURFACE->events.map, &layerSurface->listen_mapLayerSurface, layerSurface, "layerSurface");
-    addWLSignal(&WLRLAYERSURFACE->events.unmap, &layerSurface->listen_unmapLayerSurface, layerSurface, "layerSurface");
-    addWLSignal(&WLRLAYERSURFACE->events.new_popup, &layerSurface->listen_newPopup, layerSurface, "layerSurface");
+    layerSurface->hyprListener_commitLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.commit, &Events::listener_commitLayerSurface, layerSurface, "layerSurface");
+    layerSurface->hyprListener_destroyLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.destroy, &Events::listener_destroyLayerSurface, layerSurface, "layerSurface");
+    layerSurface->hyprListener_mapLayerSurface.initCallback(&WLRLAYERSURFACE->events.map, &Events::listener_mapLayerSurface, layerSurface, "layerSurface");
+    layerSurface->hyprListener_unmapLayerSurface.initCallback(&WLRLAYERSURFACE->events.unmap, &Events::listener_unmapLayerSurface, layerSurface, "layerSurface");
+    layerSurface->hyprListener_newPopup.initCallback(&WLRLAYERSURFACE->events.new_popup, &Events::listener_newPopup, layerSurface, "layerSurface");
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
     layerSurface->layer = WLRLAYERSURFACE->current.layer;
@@ -53,8 +53,8 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface->layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer, PMONITOR->szName.c_str());
 }
 
-void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
-    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_destroyLayerSurface);
+void Events::listener_destroyLayerSurface(void* owner, void* data) {
+    SLayerSurface* layersurface = (SLayerSurface*)owner;
 
     Debug::log(LOG, "LayerSurface %x destroyed", layersurface->layerSurface);
 
@@ -64,10 +64,11 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
     if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
 
-    wl_list_remove(&layersurface->listen_destroyLayerSurface.link);
-    wl_list_remove(&layersurface->listen_mapLayerSurface.link);
-    wl_list_remove(&layersurface->listen_unmapLayerSurface.link);
-    wl_list_remove(&layersurface->listen_commitLayerSurface.link);
+    layersurface->hyprListener_commitLayerSurface.removeCallback();
+    layersurface->hyprListener_destroyLayerSurface.removeCallback();
+    layersurface->hyprListener_mapLayerSurface.removeCallback();
+    layersurface->hyprListener_unmapLayerSurface.removeCallback();
+    layersurface->hyprListener_newPopup.removeCallback();
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
@@ -82,8 +83,8 @@ void Events::listener_destroyLayerSurface(wl_listener* listener, void* data) {
     }
 }
 
-void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
-    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_mapLayerSurface);
+void Events::listener_mapLayerSurface(void* owner, void* data) {
+    SLayerSurface* layersurface = (SLayerSurface*)owner;
 
     Debug::log(LOG, "LayerSurface %x mapped", layersurface->layerSurface);
 
@@ -111,8 +112,8 @@ void Events::listener_mapLayerSurface(wl_listener* listener, void* data) {
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 }
 
-void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
-    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_unmapLayerSurface);
+void Events::listener_unmapLayerSurface(void* owner, void* data) {
+    SLayerSurface* layersurface = (SLayerSurface*)owner;
 
     Debug::log(LOG, "LayerSurface %x unmapped", layersurface->layerSurface);
 
@@ -123,8 +124,8 @@ void Events::listener_unmapLayerSurface(wl_listener* listener, void* data) {
         g_pCompositor->m_pLastFocus = nullptr;
 }
 
-void Events::listener_commitLayerSurface(wl_listener* listener, void* data) {
-    SLayerSurface* layersurface = wl_container_of(listener, layersurface, listen_commitLayerSurface);
+void Events::listener_commitLayerSurface(void* owner, void* data) {
+    SLayerSurface* layersurface = (SLayerSurface*)owner;
 
     if (!layersurface->layerSurface || !layersurface->layerSurface->output)
         return;

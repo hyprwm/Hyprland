@@ -30,9 +30,9 @@ SSurfaceTreeNode* createTree(wlr_surface* pSurface) {
     PNODE->listen_commit.notify = Events::listener_commitSubsurface;
     PNODE->listen_destroy.notify = Events::listener_destroySubsurfaceNode;
 
-    wl_signal_add(&pSurface->events.commit, &PNODE->listen_commit);
-    wl_signal_add(&pSurface->events.destroy, &PNODE->listen_destroy);
-    wl_signal_add(&pSurface->events.new_subsurface, &PNODE->listen_newSubsurface);
+    addWLSignal(&pSurface->events.commit, &PNODE->listen_commit, PNODE, "SurfaceTreeNode");
+    addWLSignal(&pSurface->events.destroy, &PNODE->listen_destroy, PNODE, "SurfaceTreeNode");
+    addWLSignal(&pSurface->events.new_subsurface, &PNODE->listen_newSubsurface, PNODE, "SurfaceTreeNode");
 
     return PNODE;
 }
@@ -110,9 +110,9 @@ void Events::listener_newSubsurfaceNode(wl_listener* listener, void* data) {
     PNEWSUBSURFACE->listen_unmap.notify = Events::listener_unmapSubsurface;
     PNEWSUBSURFACE->listen_destroy.notify = Events::listener_destroySubsurface;
 
-    wl_signal_add(&PSUBSURFACE->events.map, &PNEWSUBSURFACE->listen_map);
-    wl_signal_add(&PSUBSURFACE->events.unmap, &PNEWSUBSURFACE->listen_unmap);
-    wl_signal_add(&PSUBSURFACE->events.destroy, &PNEWSUBSURFACE->listen_destroy);
+    addWLSignal(&PSUBSURFACE->events.map, &PNEWSUBSURFACE->listen_map, PNEWSUBSURFACE, "Subsurface");
+    addWLSignal(&PSUBSURFACE->events.unmap, &PNEWSUBSURFACE->listen_unmap, PNEWSUBSURFACE, "Subsurface");
+    addWLSignal(&PSUBSURFACE->events.destroy, &PNEWSUBSURFACE->listen_destroy, PNEWSUBSURFACE, "Subsurface");
 }
 
 void Events::listener_mapSubsurface(wl_listener* listener, void* data) {

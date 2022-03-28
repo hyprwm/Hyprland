@@ -10,8 +10,8 @@ CHyprXWaylandManager::CHyprXWaylandManager() {
         return;
     }
 
-    wl_signal_add(&m_sWLRXWayland->events.ready, &Events::listen_readyXWayland);
-    wl_signal_add(&m_sWLRXWayland->events.new_surface, &Events::listen_surfaceXWayland);
+    addWLSignal(&m_sWLRXWayland->events.ready, &Events::listen_readyXWayland, m_sWLRXWayland, "XWayland Manager");
+    addWLSignal(&m_sWLRXWayland->events.new_surface, &Events::listen_surfaceXWayland, m_sWLRXWayland, "XWayland Manager");
 
     setenv("DISPLAY", m_sWLRXWayland->display_name, 1);
 

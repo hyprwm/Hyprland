@@ -97,23 +97,23 @@ CCompositor::~CCompositor() {
 }
 
 void CCompositor::initAllSignals() {
-    wl_signal_add(&m_sWLRBackend->events.new_output, &Events::listen_newOutput);
-    wl_signal_add(&m_sWLRXDGShell->events.new_surface, &Events::listen_newXDGSurface);
-    wl_signal_add(&m_sWLRCursor->events.motion, &Events::listen_mouseMove);
-    wl_signal_add(&m_sWLRCursor->events.motion_absolute, &Events::listen_mouseMoveAbsolute);
-    wl_signal_add(&m_sWLRCursor->events.button, &Events::listen_mouseButton);
-    wl_signal_add(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis);
-    wl_signal_add(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame);
-    wl_signal_add(&m_sWLRBackend->events.new_input, &Events::listen_newInput);
-    wl_signal_add(&m_sSeat.seat->events.request_set_cursor, &Events::listen_requestMouse);
-    wl_signal_add(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel);
-    wl_signal_add(&m_sSeat.seat->events.request_start_drag, &Events::listen_requestDrag);
-    wl_signal_add(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface);
-    wl_signal_add(&m_sWLROutputLayout->events.change, &Events::listen_change);
-    wl_signal_add(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply);
-    wl_signal_add(&m_sWLROutputMgr->events.test, &Events::listen_outputMgrTest);
-    wl_signal_add(&m_sWLRInhibitMgr->events.activate, &Events::listen_InhibitActivate);
-    wl_signal_add(&m_sWLRInhibitMgr->events.deactivate, &Events::listen_InhibitDeactivate);
+    addWLSignal(&m_sWLRBackend->events.new_output, &Events::listen_newOutput, m_sWLRBackend, "Backend");
+    addWLSignal(&m_sWLRXDGShell->events.new_surface, &Events::listen_newXDGSurface, m_sWLRXDGShell, "XDG Shell");
+    addWLSignal(&m_sWLRCursor->events.motion, &Events::listen_mouseMove, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.motion_absolute, &Events::listen_mouseMoveAbsolute, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.button, &Events::listen_mouseButton, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRBackend->events.new_input, &Events::listen_newInput, m_sWLRBackend, "Backend");
+    addWLSignal(&m_sSeat.seat->events.request_set_cursor, &Events::listen_requestMouse, &m_sSeat, "Seat");
+    addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
+    addWLSignal(&m_sSeat.seat->events.request_start_drag, &Events::listen_requestDrag, &m_sSeat, "Seat");
+    addWLSignal(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface, m_sWLRLayerShell, "LayerShell");
+    addWLSignal(&m_sWLROutputLayout->events.change, &Events::listen_change, m_sWLROutputLayout, "OutputLayout");
+    addWLSignal(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply, m_sWLROutputMgr, "OutputMgr");
+    addWLSignal(&m_sWLROutputMgr->events.test, &Events::listen_outputMgrTest, m_sWLROutputMgr, "OutputMgr");
+    addWLSignal(&m_sWLRInhibitMgr->events.activate, &Events::listen_InhibitActivate, m_sWLRInhibitMgr, "InhibitMgr");
+    addWLSignal(&m_sWLRInhibitMgr->events.deactivate, &Events::listen_InhibitDeactivate, m_sWLRInhibitMgr, "InhibitMgr");
 }
 
 void CCompositor::startCompositor() {

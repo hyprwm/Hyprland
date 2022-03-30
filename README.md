@@ -1,5 +1,6 @@
 ![Logo](https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png)
 
+![BuildStatus](https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg)
 ![Issues](https://img.shields.io/github/issues/vaxerski/Hyprland)
 ![PRs](https://img.shields.io/github/issues-pr/vaxerski/Hyprland)
 ![Lang](https://img.shields.io/github/languages/top/vaxerski/Hyprland)

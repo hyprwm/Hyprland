@@ -1,0 +1,38 @@
+name: Build Hyprland
+
+on: [push, pull_request]
+jobs:
+  gcc:
+    name: "Build Hyprland with make and g++"
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux
+    steps:
+      - name: Get required pacman pkgs
+        run: |
+           sed -i 's/SigLevel    = Required DatabaseOptional/SigLevel    = Optional TrustAll/' /etc/pacman.conf
+           pacman --noconfirm --noprogressbar -Syyu
+           pacman --noconfirm --noprogressbar -Sy glslang libepoxy libfontenc libxcvt libxfont2 libxkbfile vulkan-headers vulkan-validation-layers xcb-util-errors xcb-util-renderutil xcb-util-wm xorg-fonts-encodings xorg-server-common xorg-setxkbmap xorg-xkbcomp xorg-xwayland git cmake go clang lld libc++ pkgconf meson ninja wayland wayland-protocols libinput libxkbcommon pixman glm libdrm libglvnd cairo pango systemd scdoc base-devel seatd
+
+      - name: Set up user
+        run: |
+          useradd -m githubuser
+          echo -e "root ALL=(ALL:ALL) ALL\ngithubuser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers
+
+      - name: Get yay
+        run: |
+          su githubuser -c "cd ~ && mkdir yay && git clone https://aur.archlinux.org/yay.git"
+          chown -R githubuser /home/githubuser/yay
+          su githubuser -c "cd ~/yay && makepkg -si --noconfirm --noprogressbar"
+
+      - name: Get wlroots-git
+        run: |
+          su githubuser -c "yay -S --mflags --skipinteg --noprovides --answerclean All --answerdiff None --answeredit None --answerupgrade None wlroots-git"
+
+      - name: Checkout Hyprland
+        uses: actions/checkout@v2
+
+      - name: Build Hyprland
+        run: |
+          git submodule sync --recursive && git submodule update --init --force --recursive
+          make all

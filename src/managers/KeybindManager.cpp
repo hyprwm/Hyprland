@@ -176,6 +176,8 @@ void CKeybindManager::fullscreenActive(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+
+    g_pXWaylandManager->setWindowFullscreen(PWINDOW, PWINDOW->m_bIsFullscreen);
 }
 
 void CKeybindManager::moveActiveToWorkspace(std::string args) {

@@ -45,6 +45,9 @@ public:
 
     bool            m_bIsMapped = false;
 
+    // This is for fullscreen apps
+    bool            m_bCreatedOverFullscreen = false;
+
     // XWayland stuff
     bool            m_bIsX11 = false;
     bool            m_bMappedX11 = false;

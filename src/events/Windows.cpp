@@ -24,7 +24,8 @@ void addViewCoords(void* pWindow, int* x, int* y) {
 void Events::listener_mapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
     PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
@@ -42,6 +43,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
         PWINDOW->m_bIsFloating = true;
+
+    if (PWORKSPACE->hasFullscreenWindow && !PWINDOW->m_bIsFloating) {
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->ID);
+        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PFULLWINDOW);
+        g_pXWaylandManager->setWindowFullscreen(PFULLWINDOW, PFULLWINDOW->m_bIsFullscreen);
+    }
 
     // window rules
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(PWINDOW);
@@ -71,6 +78,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PWINDOW->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
+        PWINDOW->m_bCreatedOverFullscreen = true;
 
         // size and move rules
         for (auto& r : WINDOWRULES) {

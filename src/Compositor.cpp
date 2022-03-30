@@ -209,8 +209,8 @@ SMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
     const auto OUTPUT = wlr_output_layout_output_at(m_sWLROutputLayout, point.x, point.y);
 
     if (!OUTPUT) {
-        Debug::log(WARN, "getMonitorFromVector: vector outside monitors??");
-        return nullptr;
+        Debug::log(WARN, "getMonitorFromVector: vector outside monitors? Returning front");
+        return &m_lMonitors.front();
     }
 
     return getMonitorFromOutput(OUTPUT);

@@ -24,7 +24,7 @@ void addViewCoords(void* pWindow, int* x, int* y) {
 void Events::listener_mapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
     PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;

@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <string>
 
@@ -84,9 +85,9 @@ std::string layersRequest() {
 }
 
 void HyprCtl::startHyprCtlSocket() {
-    int port = 9187;
-
     std::thread([&]() {
+        uint16_t connectPort = 9187;
+
         const auto SOCKET = socket(AF_INET, SOCK_STREAM, 0);
 
         if (SOCKET < 0) {
@@ -94,23 +95,19 @@ void HyprCtl::startHyprCtlSocket() {
             return;
         }
 
-        sockaddr_in SERVERADDRESS = {.sin_family = AF_INET, .sin_port = port, .sin_addr = (in_addr)INADDR_ANY};
+        sockaddr_in SERVERADDRESS = {.sin_family = AF_INET, .sin_port = connectPort, .sin_addr = (in_addr)INADDR_ANY};
 
-        bool bound = false;
-
-        while (port++ < 9999) {
-            if (bind(SOCKET, (sockaddr*)&SERVERADDRESS, sizeof(SERVERADDRESS)) >= 0) {
-                bound = true;
+        while(connectPort < 11000) {
+            if (bind(SOCKET, (sockaddr*)&SERVERADDRESS, sizeof(SERVERADDRESS)) < 0) {
+                Debug::log(LOG, "IPC: Port %d failed with an error: %s", connectPort, strerror(errno));
+            } else {
                 break;
             }
 
-            SERVERADDRESS = {.sin_family = AF_INET, .sin_port = port, .sin_addr = (in_addr)INADDR_ANY};
+            connectPort++;
+            SERVERADDRESS.sin_port = connectPort;
         }
-
-        if (!bound) {
-            Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
-            return;
-        }
+        
 
         // 10 max queued.
         listen(SOCKET, 10);
@@ -120,11 +117,11 @@ void HyprCtl::startHyprCtlSocket() {
 
         char readBuffer[1024] = {0};
 
-        Debug::log(LOG, "Hypr socket started on port %i", SERVERADDRESS.sin_port);
+        Debug::log(LOG, "Hypr socket started on port %i", connectPort);
 
         std::string cmd = "rm -f /tmp/hypr/.socket";
         system(cmd.c_str()); // forgive me for using system() but it works and it doesnt matter here that much
-        cmd = "echo \"" + std::to_string(SERVERADDRESS.sin_port) + "\" > /tmp/hypr/.socket";
+        cmd = "echo \"" + std::to_string(connectPort) + "\" > /tmp/hypr/.socket";
         system(cmd.c_str());
 
         while(1) {

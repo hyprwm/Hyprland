@@ -175,3 +175,11 @@ void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {
         pWindow->m_bX11DoesntWantBorders = true;
     }
 }
+
+void CHyprXWaylandManager::setWindowFullscreen(CWindow* pWindow, bool fullscreen) {
+    if (pWindow->m_bIsX11) {
+        wlr_xwayland_surface_set_fullscreen(pWindow->m_uSurface.xwayland, fullscreen);
+    } else {
+        wlr_xdg_toplevel_set_fullscreen(pWindow->m_uSurface.xdg->toplevel, fullscreen);
+    }
+}

@@ -341,6 +341,11 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
+    if (!PMONITOR){
+        Debug::log(ERR, "Window %x (%s) has an invalid monitor in onWindowCreatedFloating!!!", pWindow, pWindow->m_szTitle.c_str());
+        return;
+    }
+
     if (desiredGeometry.width <= 0 || desiredGeometry.height <= 0) {
         const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
         pWindow->m_vEffectiveSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);

@@ -8,6 +8,8 @@
 class CWindow {
 public:
 
+    ~CWindow();
+
     DYNLISTENER(commitWindow);
     DYNLISTENER(mapWindow);
     DYNLISTENER(unmapWindow);

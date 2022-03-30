@@ -236,13 +236,13 @@ CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsMapped && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
             return &w;
     }
 
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y) && !w.m_bIsFloating && PMONITOR->activeWorkspace == w.m_iWorkspaceID)
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsMapped && !w.m_bIsFloating && PMONITOR->activeWorkspace == w.m_iWorkspaceID)
             return &w;
     }
 
@@ -253,7 +253,7 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace && !w.m_bIsFloating)
+        if (w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace && !w.m_bIsFloating)
             return &w;
     }
 
@@ -266,13 +266,13 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (w.m_bIsFloating && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w.m_iWorkspaceID))
+        if (w.m_bIsFloating && w.m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w.m_iWorkspaceID))
             return &w;
     }
 
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (!w.m_bIsFloating && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
+        if (!w.m_bIsFloating && w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
             return &w;
     }
 
@@ -286,13 +286,13 @@ CWindow* CCompositor::windowFromCursor() {
     // TODO: make an actual Z-system
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsMapped && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
             return &w;
     }
 
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsMapped && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
             return &w;
     }
 
@@ -302,7 +302,7 @@ CWindow* CCompositor::windowFromCursor() {
 CWindow* CCompositor::windowFloatingFromCursor() {
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsMapped && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
             return &w;
     }
 

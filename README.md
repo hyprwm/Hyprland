@@ -13,7 +13,7 @@ For Hyprland without the land part, see [Hypr](https://github.com/vaxerski/Hypr)
 
 
 WARNING! 
-Hyprland is in very early dev, expect bugs, instabilities and crashes. You have been warned!
+Hyprland is in early dev, expect bugs, instabilities and crashes. You have been warned!
 Nevertheless, REPORT any you find! Make an issue!
 
 # Key features
@@ -29,6 +29,7 @@ Nevertheless, REPORT any you find! Make an issue!
 
 # Major to-dos
  - Switch to fully custom OpenGL rendering
+ - Damage tracking
  - Animations (better)
  - Rounded corners
  - Blur

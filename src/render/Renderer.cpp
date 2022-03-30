@@ -59,12 +59,24 @@ bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
 }
 
 void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, SWorkspace* pWorkspace, timespec* time) {
+    CWindow* pWorkspaceWindow = nullptr;
+
     for (auto& w : g_pCompositor->m_lWindows) {
         if (w.m_iWorkspaceID != pWorkspace->ID || !w.m_bIsFullscreen)
             continue;
 
         // found it!
         renderWindow(&w, pMonitor, time, false);
+
+        pWorkspaceWindow = &w;
+    }
+
+    // then render windows over fullscreen
+    for (auto& w : g_pCompositor->m_lWindows) {
+        if (w.m_iWorkspaceID != pWorkspaceWindow->m_iWorkspaceID || !w.m_bCreatedOverFullscreen || !w.m_bIsMapped)
+            continue;
+
+        renderWindow(&w, pMonitor, time, true);
     }
 }
 

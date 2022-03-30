@@ -23,8 +23,10 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     wlr_surface* foundSurface = nullptr;
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    if (PMONITOR)
+        g_pCompositor->m_pLastMonitor = PMONITOR;
     Vector2D surfaceCoords;
-    Vector2D surfacePos;
+    Vector2D surfacePos = Vector2D(-1337, -1337);
 
     // first, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
@@ -36,6 +38,16 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
             foundSurface = g_pXWaylandManager->getWindowSurface(PFULLSCREENWINDOW);
             if (foundSurface)
                 surfacePos = PFULLSCREENWINDOW->m_vRealPosition;
+
+            for (auto& w : g_pCompositor->m_lWindows) {
+                wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
+                if (w.m_iWorkspaceID == PFULLSCREENWINDOW->m_iWorkspaceID && w.m_bIsMapped && w.m_bCreatedOverFullscreen && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+                    foundSurface = g_pXWaylandManager->getWindowSurface(&w);
+                    if (foundSurface)
+                        surfacePos = w.m_vRealPosition;
+                    break;
+                }
+            }
         } 
     }
 
@@ -73,14 +85,13 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     if (time)
         wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
-    Vector2D surfaceLocal = surfacePos == Vector2D() ? surfaceCoords : Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - surfacePos;
+    Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - surfacePos;
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
 
     g_pCompositor->focusSurface(foundSurface);
 
-    g_pCompositor->m_pLastMonitor = PMONITOR;
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 }
 

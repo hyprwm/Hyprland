@@ -20,6 +20,8 @@ usage: hyprctl [command] [(opt)args]
     monitors
     workspaces
     clients
+    activewindow
+    layers
 )#";
 
 void request(std::string arg) {

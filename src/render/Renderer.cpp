@@ -395,7 +395,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
 
 void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {
     const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
-    const auto BORDERCOL = pWindow == g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus) ? g_pConfigManager->getInt("general:col.active_border") : g_pConfigManager->getInt("general:col.inactive_border");
+    const auto BORDERCOL = pWindow->m_cRealBorderColor.getAsHex();
 
     const float BORDERWLRCOL[4] = {RED(BORDERCOL), GREEN(BORDERCOL), BLUE(BORDERCOL), ALPHA(BORDERCOL)};
 

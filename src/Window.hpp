@@ -62,6 +62,9 @@ public:
 
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 
+    // Animated border
+    CColor          m_cRealBorderColor = CColor(0,0,0,0);
+
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

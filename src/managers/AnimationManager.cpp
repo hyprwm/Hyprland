@@ -8,34 +8,47 @@ void CAnimationManager::tick() {
     if (!g_pConfigManager->getInt("animations:enabled"))
         animationsDisabled = true;
 
-    const bool WINDOWSENABLED   = g_pConfigManager->getInt("animations:windows");
-  //  const bool BORDERSENABLED   = g_pConfigManager->getInt("animations:borders");
-  //  const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein");
+    const bool WINDOWSENABLED   = g_pConfigManager->getInt("animations:windows") && !animationsDisabled;
+    const bool BORDERSENABLED   = g_pConfigManager->getInt("animations:borders") && !animationsDisabled;
+  //  const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein") && !animationsDisabled;
     const float ANIMSPEED       = g_pConfigManager->getFloat("animations:speed");
 
+    const auto BORDERACTIVECOL  = CColor(g_pConfigManager->getInt("general:col.active_border"));
+    const auto BORDERINACTIVECOL = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
+
     for (auto& w : g_pCompositor->m_lWindows) {
-        if (animationsDisabled) {
-            w.m_vRealPosition = w.m_vEffectivePosition;
-            w.m_vRealSize = w.m_vEffectiveSize;
-            continue;
+
+        // process the borders
+        const auto& COLOR = g_pXWaylandManager->getWindowSurface(&w) == g_pCompositor->m_pLastFocus ? BORDERACTIVECOL : BORDERINACTIVECOL;
+
+        if (BORDERSENABLED) {
+            if (!deltazero(COLOR, w.m_cRealBorderColor)) {
+                if (deltaSmallToFlip(COLOR, w.m_cRealBorderColor)) {
+                    w.m_cRealBorderColor = COLOR;
+                } else {
+                    w.m_cRealBorderColor = parabolic(ANIMSPEED, w.m_cRealBorderColor, COLOR);
+                }
+            }
+        } else {
+            w.m_cRealBorderColor = COLOR;
         }
 
         // process the window
         if (WINDOWSENABLED) {
-            if (deltazero(w.m_vRealPosition, w.m_vEffectivePosition) && deltazero(w.m_vRealSize, w.m_vEffectiveSize)) {
-                continue;
+            if (!deltazero(w.m_vRealPosition, w.m_vEffectivePosition) || !deltazero(w.m_vRealSize, w.m_vEffectiveSize)) {
+                if (deltaSmallToFlip(w.m_vRealPosition, w.m_vEffectivePosition) && deltaSmallToFlip(w.m_vRealSize, w.m_vEffectiveSize)) {
+                    w.m_vRealPosition = w.m_vEffectivePosition;
+                    w.m_vRealSize = w.m_vEffectiveSize;
+                    g_pXWaylandManager->setWindowSize(&w, w.m_vRealSize);
+                } else {
+                    // if it is to be animated, animate it.
+                    w.m_vRealPosition = Vector2D(parabolic(w.m_vRealPosition.x, w.m_vEffectivePosition.x, ANIMSPEED), parabolic(w.m_vRealPosition.y, w.m_vEffectivePosition.y, ANIMSPEED));
+                    w.m_vRealSize = Vector2D(parabolic(w.m_vRealSize.x, w.m_vEffectiveSize.x, ANIMSPEED), parabolic(w.m_vRealSize.y, w.m_vEffectiveSize.y, ANIMSPEED));
+                }
             }
-
-            if (deltaSmallToFlip(w.m_vRealPosition, w.m_vEffectivePosition) && deltaSmallToFlip(w.m_vRealSize, w.m_vEffectiveSize)) {
-                w.m_vRealPosition = w.m_vEffectivePosition;
-                w.m_vRealSize = w.m_vEffectiveSize;
-                g_pXWaylandManager->setWindowSize(&w, w.m_vRealSize);
-                continue;
-            }
-
-            // if it is to be animated, animate it.
-            w.m_vRealPosition = Vector2D(parabolic(w.m_vRealPosition.x, w.m_vEffectivePosition.x, ANIMSPEED), parabolic(w.m_vRealPosition.y, w.m_vEffectivePosition.y, ANIMSPEED));
-            w.m_vRealSize = Vector2D(parabolic(w.m_vRealSize.x, w.m_vEffectiveSize.x, ANIMSPEED), parabolic(w.m_vRealSize.y, w.m_vEffectiveSize.y, ANIMSPEED));
+        } else {
+            w.m_vRealPosition = w.m_vEffectivePosition;
+            w.m_vRealSize = w.m_vEffectiveSize;
         }
     }
 }
@@ -44,10 +57,29 @@ bool CAnimationManager::deltaSmallToFlip(const Vector2D& a, const Vector2D& b) {
     return std::abs(a.x - b.x) < 0.5f && std::abs(a.y - b.y) < 0.5f;
 }
 
+bool CAnimationManager::deltaSmallToFlip(const CColor& a, const CColor& b) {
+    return std::abs(a.r - b.r) < 0.5f && std::abs(a.g - b.g) < 0.5f && std::abs(a.b - b.b) < 0.5f && std::abs(a.a - b.a) < 0.5f;
+}
+
 bool CAnimationManager::deltazero(const Vector2D& a, const Vector2D& b) {
     return a.x == b.x && a.y == b.y;
 }
 
-double CAnimationManager::parabolic(double from, double to, double incline) {
+bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
+    return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
+}
+
+double CAnimationManager::parabolic(const double from, const double to, const double incline) {
     return from + ((to - from) / incline);
+}
+
+CColor CAnimationManager::parabolic(const double incline, const CColor& from, const CColor& to) {
+    CColor newColor;
+
+    newColor.r = parabolic(from.r, to.r, incline);
+    newColor.g = parabolic(from.g, to.g, incline);
+    newColor.b = parabolic(from.b, to.b, incline);
+    newColor.a = parabolic(from.a, to.a, incline);
+
+    return newColor;
 }

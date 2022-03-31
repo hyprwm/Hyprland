@@ -20,11 +20,18 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
 
 void CInputManager::mouseMoveUnified(uint32_t time) {
 
+    // update stuff
+    updateDragIcon();
+
+
+    // focus
     wlr_surface* foundSurface = nullptr;
     Vector2D mouseCoords = getMouseCoordsInternal();
+
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
     if (PMONITOR)
         g_pCompositor->m_pLastMonitor = PMONITOR;
+
     Vector2D surfaceCoords;
     Vector2D surfacePos = Vector2D(-1337, -1337);
 
@@ -255,4 +262,19 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
 
 void CInputManager::refocus() {
     mouseMoveUnified(0);
+}
+
+void CInputManager::updateDragIcon() {
+    if (!g_pInputManager->m_sDrag.dragIcon)
+        return;
+
+    switch (g_pInputManager->m_sDrag.dragIcon->drag->grab_type) {
+        case WLR_DRAG_GRAB_KEYBOARD:
+            break;
+        case WLR_DRAG_GRAB_KEYBOARD_POINTER:
+            g_pInputManager->m_sDrag.pos = g_pInputManager->getMouseCoordsInternal();
+            break;
+        default:
+            break;
+    }
 }

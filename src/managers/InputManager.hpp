@@ -24,10 +24,14 @@ public:
 
     void            setKeyboardLayout();
 
+    void            updateDragIcon();
+
 
     // for dragging floating windows
     CWindow*        currentlyDraggedWindow = nullptr;
     int             dragButton = -1;
+
+    SDrag           m_sDrag;
 
 private:
 

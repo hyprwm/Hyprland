@@ -13,6 +13,10 @@ void CAnimationManager::tick() {
   //  const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein") && !animationsDisabled;
     const float ANIMSPEED       = g_pConfigManager->getFloat("animations:speed");
 
+    // Process speeds
+    const float WINDOWSPEED     = g_pConfigManager->getFloat("animations:windows_speed") == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:windows_speed");
+    const float BORDERSPEED     = g_pConfigManager->getFloat("animations:borders_speed") == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:borders_speed");
+
     const auto BORDERACTIVECOL  = CColor(g_pConfigManager->getInt("general:col.active_border"));
     const auto BORDERINACTIVECOL = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
 
@@ -26,7 +30,7 @@ void CAnimationManager::tick() {
                 if (deltaSmallToFlip(COLOR, w.m_cRealBorderColor)) {
                     w.m_cRealBorderColor = COLOR;
                 } else {
-                    w.m_cRealBorderColor = parabolic(ANIMSPEED, w.m_cRealBorderColor, COLOR);
+                    w.m_cRealBorderColor = parabolic(BORDERSPEED, w.m_cRealBorderColor, COLOR);
                 }
             }
         } else {
@@ -42,8 +46,8 @@ void CAnimationManager::tick() {
                     g_pXWaylandManager->setWindowSize(&w, w.m_vRealSize);
                 } else {
                     // if it is to be animated, animate it.
-                    w.m_vRealPosition = Vector2D(parabolic(w.m_vRealPosition.x, w.m_vEffectivePosition.x, ANIMSPEED), parabolic(w.m_vRealPosition.y, w.m_vEffectivePosition.y, ANIMSPEED));
-                    w.m_vRealSize = Vector2D(parabolic(w.m_vRealSize.x, w.m_vEffectiveSize.x, ANIMSPEED), parabolic(w.m_vRealSize.y, w.m_vEffectiveSize.y, ANIMSPEED));
+                    w.m_vRealPosition = Vector2D(parabolic(w.m_vRealPosition.x, w.m_vEffectivePosition.x, WINDOWSPEED), parabolic(w.m_vRealPosition.y, w.m_vEffectivePosition.y, WINDOWSPEED));
+                    w.m_vRealSize = Vector2D(parabolic(w.m_vRealSize.x, w.m_vEffectiveSize.x, WINDOWSPEED), parabolic(w.m_vRealSize.y, w.m_vEffectiveSize.y, WINDOWSPEED));
                 }
             }
         } else {

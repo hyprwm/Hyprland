@@ -2,6 +2,7 @@
 #include "debug/Log.hpp"
 #include "helpers/MiscFunctions.hpp"
 #include "helpers/WLListener.hpp"
+#include "helpers/Color.hpp"
 
 #ifndef NDEBUG
 #define ISDEBUG true

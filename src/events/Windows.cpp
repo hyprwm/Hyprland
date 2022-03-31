@@ -182,7 +182,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {
-    CWindow* PWINDOW = (CWindow*)owner;
+  //  CWindow* PWINDOW = (CWindow*)owner;
 
     // Debug::log(LOG, "Window %x committed", PWINDOW); // SPAM!
 }

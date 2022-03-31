@@ -84,6 +84,7 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     PNEWPOPUP->popup = WLRPOPUP;
     PNEWPOPUP->lx = &PWINDOW->m_vEffectivePosition.x;
     PNEWPOPUP->ly = &PWINDOW->m_vEffectivePosition.y;
+    PNEWPOPUP->parentWindow = PWINDOW;
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
 

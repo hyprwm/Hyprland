@@ -348,8 +348,9 @@ void CCompositor::focusSurface(wlr_surface* pSurface) {
     if (!pSurface)
         return;
 
-    // Unfocus last surface
-    if (m_pLastFocus && !wlr_surface_is_xwayland_surface(m_pLastFocus))
+    // Unfocus last surface if should
+    const auto PWINDOWATCURSOR = vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
+    if (m_pLastFocus && !(PWINDOWATCURSOR && g_pXWaylandManager->getWindowSurface(PWINDOWATCURSOR) == m_pLastFocus))
         g_pXWaylandManager->activateSurface(m_pLastFocus, false);
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);

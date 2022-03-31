@@ -155,6 +155,9 @@ void CCompositor::startCompositor() {
     setenv("QT_QPA_PLATFORM", "wayland", true);
     setenv("MOZ_ENABLE_WAYLAND", "1", true);
 
+    // Set XDG_CURRENT_DESKTOP to our compositor's name
+    setenv("XDG_CURRENT_DESKTOP", "hyprland", true);
+
     m_szWLDisplaySocket = wl_display_add_socket_auto(m_sWLDisplay);
 
     if (!m_szWLDisplaySocket) {

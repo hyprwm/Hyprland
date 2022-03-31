@@ -78,6 +78,8 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, SWor
 
         renderWindow(&w, pMonitor, time, true);
     }
+
+    renderDragIcon(pMonitor, time);
 }
 
 void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate) {
@@ -167,6 +169,8 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         SRenderData renderdata = {PMONITOR->output, time, ls->geometry.x, ls->geometry.y};
         wlr_surface_for_each_surface(ls->layerSurface->surface, renderSurface, &renderdata);
     }
+
+    renderDragIcon(PMONITOR, time);
 }
 
 void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {
@@ -461,4 +465,16 @@ void CHyprRenderer::damageSurface(SMonitor* pMonitor, double x, double y, wlr_su
     };
 
     wlr_surface_for_each_surface(pSurface, damageSurfaceIter, &renderData);
+}
+
+void CHyprRenderer::renderDragIcon(SMonitor* pMonitor, timespec* time) {
+    if (!(g_pInputManager->m_sDrag.dragIcon && g_pInputManager->m_sDrag.iconMapped && g_pInputManager->m_sDrag.dragIcon->surface))
+        return;
+
+    SRenderData renderdata = {pMonitor->output, time, g_pInputManager->m_sDrag.pos.x, g_pInputManager->m_sDrag.pos.y};
+    renderdata.surface = g_pInputManager->m_sDrag.dragIcon->surface;
+    renderdata.w = g_pInputManager->m_sDrag.dragIcon->surface->current.width;
+    renderdata.h = g_pInputManager->m_sDrag.dragIcon->surface->current.height;
+
+    wlr_surface_for_each_surface(g_pInputManager->m_sDrag.dragIcon->surface, renderSurface, &renderdata);
 }

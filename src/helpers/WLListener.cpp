@@ -1,6 +1,7 @@
 #include "WLListener.hpp"
 #include "MiscFunctions.hpp"
 #include <string>
+#include "../debug/Log.hpp"
 
 void handleWrapped(wl_listener* listener, void* data) {
     CHyprWLListener* pListener = wl_container_of(listener, pListener, m_sListener);
@@ -22,6 +23,7 @@ CHyprWLListener::~CHyprWLListener() {
 
 void CHyprWLListener::removeCallback() {
     if (m_bIsConnected) {
+        Debug::log(LOG, "Callback %x -> %x, %s removed.", m_pCallback, m_pOwner, m_szAuthor.c_str());
         wl_list_remove(&m_sListener.link);
         wl_list_init(&m_sListener.link);
     }

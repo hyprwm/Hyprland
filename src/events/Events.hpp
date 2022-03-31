@@ -87,6 +87,12 @@ namespace Events {
     // Drag & Drop
     LISTENER(requestDrag);
     LISTENER(startDrag);
+    DYNLISTENFUNC(destroyDrag);
+
+    DYNLISTENFUNC(mapDragIcon);
+    DYNLISTENFUNC(unmapDragIcon);
+    DYNLISTENFUNC(destroyDragIcon);
+    DYNLISTENFUNC(commitDragIcon);
 
     // Inhibit
     LISTENER(InhibitActivate);

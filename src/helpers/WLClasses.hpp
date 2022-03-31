@@ -78,3 +78,22 @@ struct SSeat {
     wlr_seat*       seat = nullptr;
     wl_client*      exclusiveClient = nullptr;
 };
+
+struct SDrag {
+    wlr_drag*       drag = nullptr;
+
+    DYNLISTENER(destroy);
+
+    // Icon
+
+    bool            iconMapped = false;
+
+    wlr_drag_icon*  dragIcon = nullptr;
+    
+    Vector2D        pos;
+
+    DYNLISTENER(destroyIcon);
+    DYNLISTENER(mapIcon);
+    DYNLISTENER(unmapIcon);
+    DYNLISTENER(commitIcon);
+};

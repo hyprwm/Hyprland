@@ -78,7 +78,67 @@ void Events::listener_requestDrag(wl_listener* listener, void* data) {
 }
 
 void Events::listener_startDrag(wl_listener* listener, void* data) {
-    // TODO: draw the drag icon
+   
+    if (g_pInputManager->m_sDrag.drag)
+        return; // don't handle multiple drags
+
+    g_pInputManager->m_sDrag.drag = (wlr_drag*)data;
+
+    wlr_drag* wlrDrag = (wlr_drag*)data;
+
+    Debug::log(LOG, "Started drag %x", wlrDrag);
+
+    wlrDrag->data = data;
+
+    g_pInputManager->m_sDrag.hyprListener_destroy.initCallback(&wlrDrag->events.destroy, &Events::listener_destroyDrag, &g_pInputManager->m_sDrag, "Drag");
+
+    if (wlrDrag->icon) {
+        Debug::log(LOG, "Drag started with an icon %x", wlrDrag->icon);
+
+        g_pInputManager->m_sDrag.dragIcon = wlrDrag->icon;
+        wlrDrag->icon->data = g_pInputManager->m_sDrag.dragIcon;
+
+        g_pInputManager->m_sDrag.hyprListener_mapIcon.initCallback(&wlrDrag->icon->events.map, &Events::listener_mapDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
+        g_pInputManager->m_sDrag.hyprListener_unmapIcon.initCallback(&wlrDrag->icon->events.unmap, &Events::listener_unmapDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
+        g_pInputManager->m_sDrag.hyprListener_destroyIcon.initCallback(&wlrDrag->icon->events.destroy, &Events::listener_destroyDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
+        g_pInputManager->m_sDrag.hyprListener_commitIcon.initCallback(&wlrDrag->icon->surface->events.commit, &Events::listener_commitDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
+    }
+}
+
+void Events::listener_destroyDrag(void* owner, void* data) {
+    Debug::log(LOG, "Drag destroyed.");
+
+    g_pInputManager->m_sDrag.drag = nullptr;
+    g_pInputManager->m_sDrag.dragIcon = nullptr;
+    g_pInputManager->m_sDrag.hyprListener_destroy.removeCallback();
+
+    g_pInputManager->refocus();
+}
+
+void Events::listener_mapDragIcon(void* owner, void* data) {
+    Debug::log(LOG, "Drag icon mapped.");
+    g_pInputManager->m_sDrag.iconMapped = true;
+}
+
+void Events::listener_unmapDragIcon(void* owner, void* data) {
+    Debug::log(LOG, "Drag icon unmapped.");
+    g_pInputManager->m_sDrag.iconMapped = false;
+}
+
+void Events::listener_destroyDragIcon(void* owner, void* data) {
+    Debug::log(LOG, "Drag icon destroyed.");
+
+    g_pInputManager->m_sDrag.dragIcon = nullptr;
+    g_pInputManager->m_sDrag.hyprListener_commitIcon.removeCallback();
+    g_pInputManager->m_sDrag.hyprListener_destroyIcon.removeCallback();
+    g_pInputManager->m_sDrag.hyprListener_mapIcon.removeCallback();
+    g_pInputManager->m_sDrag.hyprListener_unmapIcon.removeCallback();
+}
+
+void Events::listener_commitDragIcon(void* owner, void* data) {
+    g_pInputManager->updateDragIcon();
+
+    Debug::log(LOG, "Drag icon committed.");
 }
 
 void Events::listener_InhibitActivate(wl_listener* listener, void* data) {

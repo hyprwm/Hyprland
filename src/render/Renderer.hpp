@@ -19,6 +19,7 @@ private:
     void                drawBorderForWindow(CWindow*, SMonitor*);
     void                renderWorkspaceWithFullscreenWindow(SMonitor*, SWorkspace*, timespec*);
     void                renderWindow(CWindow*, SMonitor*, timespec*, bool);
+    void                renderDragIcon(SMonitor*, timespec*);
 };
 
 inline std::unique_ptr<CHyprRenderer> g_pHyprRenderer;

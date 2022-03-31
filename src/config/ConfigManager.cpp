@@ -24,8 +24,11 @@ CConfigManager::CConfigManager() {
 
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;
+    configValues["animations:windows_speed"].floatValue = 0.f;
     configValues["animations:windows"].intValue = 1;
+    configValues["animations:borders_speed"].floatValue = 0.f;
     configValues["animations:borders"].intValue = 1;
+    configValues["animations:fadein_speed"].floatValue = 0.f;
     configValues["animations:fadein"].intValue = 1;
 
     configValues["input:kb_layout"].strValue = "en";

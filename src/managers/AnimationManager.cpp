@@ -9,8 +9,8 @@ void CAnimationManager::tick() {
         animationsDisabled = true;
 
     const bool WINDOWSENABLED   = g_pConfigManager->getInt("animations:windows");
-    const bool BORDERSENABLED   = g_pConfigManager->getInt("animations:borders");
-    const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein");
+  //  const bool BORDERSENABLED   = g_pConfigManager->getInt("animations:borders");
+  //  const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein");
     const float ANIMSPEED       = g_pConfigManager->getFloat("animations:speed");
 
     for (auto& w : g_pCompositor->m_lWindows) {

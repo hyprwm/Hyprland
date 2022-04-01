@@ -289,34 +289,6 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     return nullptr;
 }
 
-CWindow* CCompositor::vectorToWindowIdealExcludeWithSurface(const Vector2D& pos, CWindow* pWindow, wlr_surface** ppSurface) {
-    const auto PMONITOR = getMonitorFromVector(pos);
-    // first loop over floating cuz they're above
-    // TODO: make an actual Z-system
-    for (auto& w : m_lWindows) {
-        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (&w != pWindow && w.m_bIsFloating && w.m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w.m_iWorkspaceID)) {
-            double sx, sy;
-            if (ppSurface)
-                *ppSurface = wlr_surface_surface_at(g_pXWaylandManager->getWindowSurface(&w), pos.x - w.m_vRealPosition.x, pos.y - w.m_vRealPosition.y, &sx, &sy);
-
-            return &w;
-        }
-    }
-
-    for (auto& w : m_lWindows) {
-        wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (&w != pWindow && !w.m_bIsFloating && w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace){
-            double sx, sy;
-            if (ppSurface)
-                *ppSurface = wlr_surface_surface_at(g_pXWaylandManager->getWindowSurface(&w), pos.x - w.m_vRealPosition.x, pos.y - w.m_vRealPosition.y, &sx, &sy);
-            return &w;
-        }
-    }
-
-    return nullptr;
-}
-
 CWindow* CCompositor::windowFromCursor() {
     const auto PMONITOR = getMonitorFromCursor();
 
@@ -370,17 +342,16 @@ void CCompositor::focusWindow(CWindow* pWindow) {
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface) {
-    if (m_pLastFocus == pSurface)
+    if (m_sSeat.seat->keyboard_state.focused_surface == pSurface)
         return;  // Don't focus when already focused on this.
 
     if (!pSurface)
         return;
 
     // Unfocus last surface if should
-    if (m_pLastFocus && !wlr_surface_is_xwayland_surface(pSurface)) {
+    const auto PWINDOWATCURSOR = vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
+    if (m_pLastFocus && !(PWINDOWATCURSOR && g_pXWaylandManager->getWindowSurface(PWINDOWATCURSOR) == m_pLastFocus))
         g_pXWaylandManager->activateSurface(m_pLastFocus, false);
-        Debug::log(LOG, "Last focus %x deactivated", m_pLastFocus);
-    }
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);
 
@@ -394,9 +365,9 @@ void CCompositor::focusSurface(wlr_surface* pSurface) {
     g_pXWaylandManager->activateSurface(pSurface, true);
 
     if (const auto PWINDOW = getWindowFromSurface(pSurface); PWINDOW)
-        Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s (%dx%d)", pSurface, PWINDOW->m_szTitle.c_str(), pSurface->current.width, pSurface->current.height);
+        Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, PWINDOW->m_szTitle.c_str());
     else
-        Debug::log(LOG, "Set keyboard focus to surface %x (%dx%d)", pSurface, pSurface->current.width, pSurface->current.height);
+        Debug::log(LOG, "Set keyboard focus to surface %x", pSurface);
 }
 
 bool CCompositor::windowValidMapped(CWindow* pWindow) {

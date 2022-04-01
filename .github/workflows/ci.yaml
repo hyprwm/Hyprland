@@ -3,7 +3,7 @@ name: Build Hyprland
 on: [push, pull_request]
 jobs:
   gcc:
-    name: "Build Hyprland with make and g++"
+    name: "Build Hyprland (Arch)"
     runs-on: ubuntu-latest
     container:
       image: archlinux

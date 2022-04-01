@@ -109,8 +109,6 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
-            refocus();
-
             if ((e->button == BTN_LEFT || e->button == BTN_RIGHT) && wlr_keyboard_get_modifiers(PKEYBOARD) == (uint32_t)g_pConfigManager->getInt("general:main_mod_internal")) {
                 currentlyDraggedWindow = g_pCompositor->windowFloatingFromCursor();
                 dragButton = e->button;

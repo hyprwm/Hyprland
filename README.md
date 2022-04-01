@@ -5,7 +5,7 @@
  <img src="https://img.shields.io/github/issues/vaxerski/Hyprland" />
  <img src="https://img.shields.io/github/issues-pr/vaxerski/Hyprland" />
  <img src="https://img.shields.io/github/languages/top/vaxerski/Hyprland" />
- <img src="hhttps://img.shields.io/github/license/vaxerski/Hyprland" />
+ <img src="https://img.shields.io/github/license/vaxerski/Hyprland" />
  <img src="https://img.shields.io/tokei/lines/github/vaxerski/Hyprland" />
  <img src="https://img.shields.io/badge/Hi-mom!-ff69b4" />
 </p>

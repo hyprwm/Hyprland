@@ -1,12 +1,14 @@
-![Logo](https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png)
-
-![BuildStatus](https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg)
-![Issues](https://img.shields.io/github/issues/vaxerski/Hyprland)
-![PRs](https://img.shields.io/github/issues-pr/vaxerski/Hyprland)
-![Lang](https://img.shields.io/github/languages/top/vaxerski/Hyprland)
-![License](https://img.shields.io/github/license/vaxerski/Hyprland)
-![Best](https://img.shields.io/badge/Standard-C%2B%2B20-success)
-![HiMom](https://img.shields.io/badge/Hi-mom!-ff69b4)
+<p align="center">
+ <img src="https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png" />
+ <br/><br/>
+ <img src="https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg" />
+ <img src="https://img.shields.io/github/issues/vaxerski/Hyprland" />
+ <img src="https://img.shields.io/github/issues-pr/vaxerski/Hyprland" />
+ <img src="https://img.shields.io/github/languages/top/vaxerski/Hyprland" />
+ <img src="hhttps://img.shields.io/github/license/vaxerski/Hyprland" />
+ <img src="https://img.shields.io/tokei/lines/github/vaxerski/Hyprland" />
+ <img src="https://img.shields.io/badge/Hi-mom!-ff69b4" />
+</p>
 <br/><br/>
 Hyprland is a Dynamic Tiling Wayland Compositor in early development stages.
 For Hyprland without the land part, see [Hypr](https://github.com/vaxerski/Hypr), the Xorg window manager.

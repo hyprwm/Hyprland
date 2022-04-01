@@ -23,6 +23,7 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     // update stuff
     updateDragIcon();
 
+
     // focus
     wlr_surface* foundSurface = nullptr;
     Vector2D mouseCoords = getMouseCoordsInternal();
@@ -65,10 +66,11 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords);
 
     // then windows
-    const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowIdealExcludeWithSurface(mouseCoords, nullptr, &foundSurface);
-
-    if (foundSurface && PWINDOWIDEAL) {
-        surfacePos = PWINDOWIDEAL->m_vRealPosition;
+    const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+    if (!foundSurface && PWINDOWIDEAL) {
+        foundSurface = g_pXWaylandManager->getWindowSurface(PWINDOWIDEAL);
+        if (foundSurface)
+            surfacePos = PWINDOWIDEAL->m_vRealPosition;
     }
         
     // then surfaces below
@@ -121,6 +123,8 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
             dragButton = -1;
             break;
     }
+
+    refocus();
 
     // notify app if we didnt handle it
     if (g_pCompositor->doesSeatAcceptInput(g_pCompositor->m_pLastFocus)) {

@@ -22,6 +22,8 @@ CConfigManager::CConfigManager() {
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
 
+    configValues["dwindle:pseudotile"].intValue = 0;
+
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;
     configValues["animations:windows_speed"].floatValue = 0.f;
@@ -186,6 +188,7 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         && RULE != "tile"
         && RULE.find("move") != 0
         && RULE.find("size") != 0
+        && RULE.find("pseudo") != 0
         && RULE.find("monitor") != 0) {
             Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
             parseError = "Invalid rule found: " + RULE;

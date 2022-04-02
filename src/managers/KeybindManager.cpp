@@ -53,6 +53,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         else if (k.handler == "workspace") { changeworkspace(k.arg); }
         else if (k.handler == "fullscreen") { fullscreenActive(k.arg); }
         else if (k.handler == "movetoworkspace") { moveActiveToWorkspace(k.arg); }
+        else if (k.handler == "pseudo") { toggleActivePseudo(k.arg); }
 
         found = true;
     }
@@ -112,6 +113,17 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
 
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(ACTIVEWINDOW);
     }
+}
+
+void CKeybindManager::toggleActivePseudo(std::string args) {
+    const auto ACTIVEWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(ACTIVEWINDOW))
+        return;
+
+    ACTIVEWINDOW->m_bIsPseudotiled = !ACTIVEWINDOW->m_bIsPseudotiled;
+
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(ACTIVEWINDOW);
 }
 
 void CKeybindManager::changeworkspace(std::string args) {

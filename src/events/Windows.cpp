@@ -73,6 +73,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsFloating = true;
         } else if (r.szRule.find("tile") == 0) {
             PWINDOW->m_bIsFloating = false;
+        } else if (r.szRule.find("pseudo") == 0) {
+            PWINDOW->m_bIsPseudotiled = true;
         }
     }
 
@@ -109,9 +111,18 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 }
             }
         }
+
+        // set the pseudo size to the GOAL of our current size
+        // because the windows are animated on RealSize
+        PWINDOW->m_vPseudoSize = PWINDOW->m_vEffectiveSize;
     }
-    else
+    else {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
+
+        // Set the pseudo size here too so that it doesnt end up being 0x0
+        PWINDOW->m_vPseudoSize = PWINDOW->m_vEffectiveSize - Vector2D(10,10);
+    }
+        
 
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
 

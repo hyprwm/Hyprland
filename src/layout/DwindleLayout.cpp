@@ -109,6 +109,30 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
     PWINDOW->m_vEffectivePosition = PWINDOW->m_vEffectivePosition + OFFSETTOPLEFT;
     PWINDOW->m_vEffectiveSize = PWINDOW->m_vEffectiveSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
 
+    if (PWINDOW->m_bIsPseudotiled) {
+        // Calculate pseudo
+        float scale = 1;
+
+        // adjust if doesnt fit
+        if (PWINDOW->m_vPseudoSize.x > PWINDOW->m_vEffectiveSize.x || PWINDOW->m_vPseudoSize.y > PWINDOW->m_vEffectiveSize.y) {
+            if (PWINDOW->m_vPseudoSize.x > PWINDOW->m_vEffectiveSize.x) {
+                scale = PWINDOW->m_vEffectiveSize.x / PWINDOW->m_vPseudoSize.x;
+            }
+
+            if (PWINDOW->m_vPseudoSize.y * scale > PWINDOW->m_vEffectiveSize.y) {
+                scale = PWINDOW->m_vEffectiveSize.y / PWINDOW->m_vPseudoSize.y;
+            }
+
+            auto DELTA = PWINDOW->m_vEffectiveSize - PWINDOW->m_vPseudoSize * scale;
+            PWINDOW->m_vEffectiveSize = PWINDOW->m_vPseudoSize * scale;
+            PWINDOW->m_vEffectivePosition = PWINDOW->m_vEffectivePosition + DELTA / 2.f;  // center
+        } else {
+            auto DELTA = PWINDOW->m_vEffectiveSize - PWINDOW->m_vPseudoSize;
+            PWINDOW->m_vEffectivePosition = PWINDOW->m_vEffectivePosition + DELTA / 2.f;  // center
+            PWINDOW->m_vEffectiveSize = PWINDOW->m_vPseudoSize;
+        }
+    }
+
     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vEffectiveSize);
 }
 
@@ -271,6 +295,9 @@ void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
         const auto PSAVEDPOS = pWindow->m_vRealPosition;
         const auto PSAVEDSIZE = pWindow->m_vRealSize;
 
+        // if the window is pseudo, update its size
+        pWindow->m_vPseudoSize = pWindow->m_vRealSize;
+
         onWindowCreated(pWindow);
 
         pWindow->m_vRealPosition = PSAVEDPOS;
@@ -429,4 +456,13 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
     // we need to fix XWayland windows by sending them to NARNIA
     // because otherwise they'd still be recieving mouse events
     g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
+}
+
+void CHyprDwindleLayout::recalculateWindow(CWindow* pWindow) {
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE)
+        return;
+
+    PNODE->recalcSizePosRecursive();
 }

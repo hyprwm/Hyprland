@@ -24,8 +24,6 @@ public:
         wlr_xwayland_surface* xwayland;
     } m_uSurface;
 
-    // TODO: XWayland
-
     // this is the position and size of the "bounding box"
     Vector2D            m_vPosition = Vector2D(0,0);
     Vector2D            m_vSize = Vector2D(0,0);
@@ -37,6 +35,10 @@ public:
     // this is the real position and size used to draw the thing
     Vector2D            m_vRealPosition = Vector2D(0,0);
     Vector2D            m_vRealSize = Vector2D(0,0);
+
+    // this is used for pseudotiling
+    bool                m_bIsPseudotiled = false;
+    Vector2D            m_vPseudoSize = Vector2D(0,0);
 
     uint64_t        m_iTags = 0;
     bool            m_bIsFloating = false;

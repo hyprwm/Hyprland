@@ -27,6 +27,7 @@ private:
     void                killActive(std::string);
     void                spawn(std::string);
     void                toggleActiveFloating(std::string);
+    void                toggleActivePseudo(std::string);
     void                changeworkspace(std::string);
     void                fullscreenActive(std::string);
     void                moveActiveToWorkspace(std::string);

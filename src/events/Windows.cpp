@@ -156,8 +156,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
     }
 
-    if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
+    if (PWINDOW == g_pCompositor->m_pLastWindow) {
+        g_pCompositor->m_pLastWindow = nullptr;
         g_pCompositor->m_pLastFocus = nullptr;
+    }
 
     PWINDOW->m_bMappedX11 = false;
 
@@ -175,7 +177,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // refocus on a new window
     g_pInputManager->refocus();
 
-
+    Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %x", PWINDOW);
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
     
     PWINDOW->m_pSurfaceTree = nullptr;
@@ -192,8 +194,10 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     Debug::log(LOG, "Window %x destroyed", PWINDOW);
 
-    if (g_pXWaylandManager->getWindowSurface(PWINDOW) == g_pCompositor->m_pLastFocus)
+    if (PWINDOW == g_pCompositor->m_pLastWindow) {
+        g_pCompositor->m_pLastWindow = nullptr;
         g_pCompositor->m_pLastFocus = nullptr;
+    }
 
     PWINDOW->hyprListener_mapWindow.removeCallback();
     PWINDOW->hyprListener_unmapWindow.removeCallback();
@@ -202,6 +206,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     if (PWINDOW->m_pSurfaceTree) {
+        Debug::log(LOG, "Destroying Subsurface tree of %x in destroyWindow", PWINDOW);
         SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
         PWINDOW->m_pSurfaceTree = nullptr;
     }

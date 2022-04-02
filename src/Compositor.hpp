@@ -60,7 +60,7 @@ public:
     void                    startCompositor(); 
 
     wlr_surface*            m_pLastFocus = nullptr;
-    wlr_surface*            m_pLastFocusWindow = nullptr;
+    CWindow*                m_pLastWindow = nullptr;
     SMonitor*               m_pLastMonitor = nullptr;
     
     SSeat                   m_sSeat;
@@ -71,7 +71,7 @@ public:
     SMonitor*               getMonitorFromCursor();
     SMonitor*               getMonitorFromVector(const Vector2D&);
     void                    removeWindowFromVectorSafe(CWindow*);
-    void                    focusWindow(CWindow*);
+    void                    focusWindow(CWindow*, wlr_surface* pSurface = nullptr);
     void                    focusSurface(wlr_surface*, CWindow* pWindowOwner = nullptr);
     bool                    windowExists(CWindow*);
     bool                    windowValidMapped(CWindow*);

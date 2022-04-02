@@ -388,6 +388,13 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
 
     wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 
+    wlr_seat_keyboard_focus_change_event event = {
+        .seat = m_sSeat.seat,
+        .old_surface = m_pLastFocus,
+        .new_surface = pSurface,
+    };
+    wlr_signal_emit_safe(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
+
     if (const auto PWINDOW = getWindowFromSurface(pSurface); PWINDOW)
         Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, PWINDOW->m_szTitle.c_str());
     else

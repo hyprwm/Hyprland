@@ -154,6 +154,10 @@ void Events::listener_destroySubsurface(void* owner, void* data) {
 
     Debug::log(LOG, "Subsurface %x destroyed", subsurface);
 
+    subsurface->hyprListener_destroy.removeCallback();
+    subsurface->hyprListener_map.removeCallback();
+    subsurface->hyprListener_unmap.removeCallback();
+
     subsurface->pParent->childSubsurfaces.remove(*subsurface);
 }
 

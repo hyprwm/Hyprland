@@ -335,8 +335,6 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     if (PFOUND) {
         sl.x = subx;
         sl.y = suby;
-        if (PFOUND != PSURFACE->surface)
-            Debug::log(LOG, "found non-base on window XDG %x", pWindow);
         return PFOUND;
     }
 
@@ -356,16 +354,20 @@ SMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
     return nullptr;
 }
 
-void CCompositor::focusWindow(CWindow* pWindow) {
+void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     if (!pWindow || !windowValidMapped(pWindow)) {
         wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
         return;
     }
 
-    const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+    const auto PWINDOWSURFACE = pSurface ? pSurface : g_pXWaylandManager->getWindowSurface(pWindow);
 
-    focusSurface(PWINDOWSURFACE);
+    focusSurface(PWINDOWSURFACE, pWindow);
+
+    g_pXWaylandManager->activateWindow(pWindow, true);
+
+    m_pLastWindow = pWindow;
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
@@ -376,8 +378,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         return;
 
     // Unfocus last surface if should
-    if (m_pLastFocus && !wlr_surface_is_xwayland_surface(pSurface) && !m_pLastFocusWindow)
-        g_pXWaylandManager->activateSurface(m_pLastFocus, false);
+    if (m_pLastFocus && m_sSeat.seat->keyboard_state.focused_surface && wlr_surface_is_xdg_surface(m_pLastFocus))
+        wlr_xdg_toplevel_set_activated(wlr_xdg_surface_from_wlr_surface(m_pLastFocus)->toplevel, false);
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);
 
@@ -385,16 +387,6 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         return;
 
     wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
-
-    m_pLastFocus = pSurface;
-    m_pLastFocusWindow = nullptr;
-
-    if (pWindowOwner) {
-        g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(pWindowOwner), true);
-        m_pLastFocusWindow = pSurface;
-    }
-    else
-        g_pXWaylandManager->activateSurface(pSurface, true);
 
     if (const auto PWINDOW = getWindowFromSurface(pSurface); PWINDOW)
         Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, PWINDOW->m_szTitle.c_str());
@@ -527,7 +519,10 @@ bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
 }
 
 bool CCompositor::isWindowActive(CWindow* pWindow) {
+    if (!windowValidMapped(pWindow))
+        return false;
+
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
 
-    return PSURFACE == m_pLastFocus || PSURFACE == m_pLastFocusWindow;
+    return PSURFACE == m_pLastFocus || pWindow == m_pLastWindow;
 }

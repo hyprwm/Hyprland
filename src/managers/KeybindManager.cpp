@@ -88,9 +88,12 @@ void CKeybindManager::spawn(std::string args) {
 }
 
 void CKeybindManager::killActive(std::string args) {
-    if (g_pCompositor->m_pLastFocus && g_pCompositor->windowValidMapped(g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus)))
-        g_pXWaylandManager->sendCloseWindow(g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus));
-
+    if (g_pCompositor->m_pLastWindow && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow)) {
+        g_pXWaylandManager->sendCloseWindow(g_pCompositor->m_pLastWindow);
+        g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastWindow = nullptr;
+    }
+    
     g_pCompositor->focusWindow(g_pCompositor->windowFromCursor());
 }
 
@@ -99,7 +102,7 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
-    const auto ACTIVEWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus);
+    const auto ACTIVEWINDOW = g_pCompositor->m_pLastWindow;
 
     if (g_pCompositor->windowValidMapped(ACTIVEWINDOW)) {
         ACTIVEWINDOW->m_bIsFloating = !ACTIVEWINDOW->m_bIsFloating;
@@ -170,7 +173,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 }
 
 void CKeybindManager::fullscreenActive(std::string args) {
-    const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus);
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;
@@ -187,7 +190,7 @@ void CKeybindManager::fullscreenActive(std::string args) {
 }
 
 void CKeybindManager::moveActiveToWorkspace(std::string args) {
-    const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus);
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;

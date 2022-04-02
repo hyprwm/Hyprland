@@ -54,7 +54,7 @@ std::string workspacesRequest() {
 }
 
 std::string activeWindowRequest() {
-    const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus);
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return "Invalid";

@@ -37,6 +37,19 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
         wlr_xwayland_surface_activate(wlr_xwayland_surface_from_wlr_surface(pSurface), activate);
 }
 
+void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
+    if (pWindow == g_pCompositor->m_pLastWindow)
+        return;
+
+    if (pWindow->m_bIsX11)
+        wlr_xwayland_surface_activate(pWindow->m_uSurface.xwayland, activate);
+    else
+        wlr_xdg_toplevel_set_activated(pWindow->m_uSurface.xdg->toplevel, activate);
+
+    g_pCompositor->m_pLastFocus = getWindowSurface(pWindow);
+    g_pCompositor->m_pLastWindow = pWindow;
+}
+
 void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox) {
     if (pWindow->m_bIsX11) {
         pbox->x = pWindow->m_uSurface.xwayland->x;

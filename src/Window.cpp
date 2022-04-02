@@ -2,6 +2,8 @@
 #include "Compositor.hpp"
 
 CWindow::~CWindow() {
-    if ((this->m_uSurface.xdg || this->m_uSurface.xwayland) && g_pCompositor->m_pLastFocus == g_pXWaylandManager->getWindowSurface(this))
+    if (g_pCompositor->isWindowActive(this)) {
         g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastWindow = nullptr;
+    }
 }

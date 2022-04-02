@@ -34,28 +34,32 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
 
     Vector2D surfaceCoords;
     Vector2D surfacePos = Vector2D(-1337, -1337);
+    CWindow* pFoundWindow = nullptr;
 
     // first, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     if (PWORKSPACE->hasFullscreenWindow) {
-        const auto PFULLSCREENWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->ID);
+        pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->ID);
 
-        // should never ever happen but who knows
-        if (PFULLSCREENWINDOW) {
-            foundSurface = g_pXWaylandManager->getWindowSurface(PFULLSCREENWINDOW);
-            if (foundSurface)
-                surfacePos = PFULLSCREENWINDOW->m_vRealPosition;
-
-            for (auto& w : g_pCompositor->m_lWindows) {
-                wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-                if (w.m_iWorkspaceID == PFULLSCREENWINDOW->m_iWorkspaceID && w.m_bIsMapped && w.m_bCreatedOverFullscreen && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-                    foundSurface = g_pXWaylandManager->getWindowSurface(&w);
-                    if (foundSurface)
-                        surfacePos = w.m_vRealPosition;
-                    break;
-                }
+        for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); ++w) {
+            wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+            if (w->m_iWorkspaceID == pFoundWindow->m_iWorkspaceID && w->m_bIsMapped && w->m_bCreatedOverFullscreen && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+                foundSurface = g_pXWaylandManager->getWindowSurface(&(*w));
+                if (foundSurface)
+                    surfacePos = w->m_vRealPosition;
+                break;
             }
-        } 
+        }
+
+        if (pFoundWindow && !foundSurface) {
+            if (pFoundWindow->m_bIsX11) {
+                foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+                if (foundSurface)
+                    surfacePos = pFoundWindow->m_vRealPosition;
+            } else {
+                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+            }
+        }
     }
 
     // then surfaces on top
@@ -66,16 +70,16 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords);
 
     // then windows
-    const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowIdeal(mouseCoords);
-    if (!foundSurface && PWINDOWIDEAL) {
-        if (!PWINDOWIDEAL->m_bIsX11) {
-            foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, PWINDOWIDEAL, surfaceCoords);
+    pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+    if (!foundSurface && pFoundWindow) {
+        if (!pFoundWindow->m_bIsX11) {
+            foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
         } else {
-            foundSurface = g_pXWaylandManager->getWindowSurface(PWINDOWIDEAL);
-            surfacePos = PWINDOWIDEAL->m_vRealPosition;
+            foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+            surfacePos = pFoundWindow->m_vRealPosition;
         }
     }
-        
+
     // then surfaces below
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords);
@@ -100,7 +104,10 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
 
-    g_pCompositor->focusSurface(foundSurface, PWINDOWIDEAL ? PWINDOWIDEAL : nullptr);
+    if (pFoundWindow)
+        g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+    else
+        g_pCompositor->focusSurface(foundSurface);
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 }

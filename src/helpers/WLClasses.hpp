@@ -38,6 +38,7 @@ struct SRenderData {
     void* data = nullptr;
     wlr_surface* surface = nullptr;
     int w, h;
+    void* pMonitor = nullptr;
 };
 
 struct SKeyboard {
@@ -53,18 +54,21 @@ struct SKeyboard {
     }
 };
 
+struct SMonitor;
+
 struct SXDGPopup {
     CWindow*        parentWindow = nullptr;
     SXDGPopup*      parentPopup = nullptr;
     wlr_xdg_popup*  popup = nullptr;
+    SMonitor*       monitor = nullptr;
 
     DYNLISTENER(newPopupFromPopupXDG);
     DYNLISTENER(destroyPopupXDG);
     DYNLISTENER(mapPopupXDG);
     DYNLISTENER(unmapPopupXDG);
 
-    double* lx;
-    double* ly;
+    double lx;
+    double ly;
 
     SSurfaceTreeNode* pSurfaceTree = nullptr;
 

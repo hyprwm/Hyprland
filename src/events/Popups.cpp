@@ -18,8 +18,8 @@
 void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
     SXDGPopup *const PPOPUP = (SXDGPopup*)pPopup;
 
-    int px = 0;
-    int py = 0;
+    int px = PPOPUP->monitor->vecPosition.x;
+    int py = PPOPUP->monitor->vecPosition.y;
 
     auto curPopup = PPOPUP;
     while (true) {
@@ -33,8 +33,8 @@ void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
         }
     }
 
-    px += *PPOPUP->lx;
-    py += *PPOPUP->ly;
+    px += PPOPUP->lx;
+    py += PPOPUP->ly;
 
     *x += px;
     *y += py;
@@ -53,6 +53,8 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     wlr_box box = {.x = PMONITOR->vecPosition.x, .y = PMONITOR->vecPosition.y, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
 
     wlr_xdg_popup_unconstrain_from_box(popup, &box);
+
+    pHyprPopup->monitor = PMONITOR;
 }
 
 void Events::listener_newPopup(void* owner, void* data) {
@@ -67,9 +69,12 @@ void Events::listener_newPopup(void* owner, void* data) {
     g_pCompositor->m_lXDGPopups.push_back(SXDGPopup());
     const auto PNEWPOPUP = &g_pCompositor->m_lXDGPopups.back();
 
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
+
     PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = &layersurface->position.x;
-    PNEWPOPUP->ly = &layersurface->position.y;
+    PNEWPOPUP->lx = layersurface->position.x;
+    PNEWPOPUP->ly = layersurface->position.y;
+    PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
 
@@ -85,10 +90,13 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     g_pCompositor->m_lXDGPopups.push_back(SXDGPopup());
     const auto PNEWPOPUP = &g_pCompositor->m_lXDGPopups.back();
 
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+
     PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = &PWINDOW->m_vEffectivePosition.x;
-    PNEWPOPUP->ly = &PWINDOW->m_vEffectivePosition.y;
+    PNEWPOPUP->lx = PWINDOW->m_vEffectivePosition.x;
+    PNEWPOPUP->ly = PWINDOW->m_vEffectivePosition.y;
     PNEWPOPUP->parentWindow = PWINDOW;
+    PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
 
@@ -112,6 +120,7 @@ void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
     PNEWPOPUP->lx = PPOPUP->lx;
     PNEWPOPUP->ly = PPOPUP->ly;
     PNEWPOPUP->parentWindow = PPOPUP->parentWindow;
+    PNEWPOPUP->monitor = PPOPUP->monitor;
 
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
@@ -121,7 +130,7 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
 
     ASSERT(PPOPUP);
 
-    Debug::log(LOG, "New XDG Popup mapped at %d %d", (int)*PPOPUP->lx, (int)*PPOPUP->ly);
+    Debug::log(LOG, "New XDG Popup mapped at %d %d", (int)PPOPUP->lx, (int)PPOPUP->ly);
 
     PPOPUP->pSurfaceTree = SubsurfaceTree::createTreeRoot(PPOPUP->popup->base->surface, addPopupGlobalCoords, PPOPUP);
 

@@ -54,12 +54,13 @@ Head onto the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Configuring-
 Hyprland without a config is a bad idea!
 <br/>
 
+# Contributions
+Very welcome! see [Contributing.md](https://github.com/vaxerski/Hyprland/blob/main/CONTRIBUTING.md) for instuctions and guidelines!
+<br/>
+
 # Gallery
 ![Image1](https://i.imgur.com/SIPepse.png)
 <br/>
-
-# Contributions
-Welcome, I'll make a CONTRIBUTING.md some time in the future.
 
 # Special thanks
 tinywl - for showing how 2 do stuff

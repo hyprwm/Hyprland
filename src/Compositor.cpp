@@ -335,6 +335,8 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     if (PFOUND) {
         sl.x = subx;
         sl.y = suby;
+        if (PFOUND != PSURFACE->surface)
+            Debug::log(LOG, "found non-base on window XDG %x", pWindow);
         return PFOUND;
     }
 

@@ -142,7 +142,11 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
 }
 
 void Events::listener_commitSubsurface(void* owner, void* data) {
-   // SSurfaceTreeNode* pNode = (SSurfaceTreeNode*)owner;
+    SSurfaceTreeNode* pNode = (SSurfaceTreeNode*)owner;
+
+    int lx = 0, ly = 0;
+
+    addSurfaceGlobalOffset(pNode, &lx, &ly);
 }
 
 void Events::listener_destroySubsurface(void* owner, void* data) {

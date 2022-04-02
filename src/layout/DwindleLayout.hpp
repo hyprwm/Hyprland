@@ -32,6 +32,7 @@ public:
     virtual void        onWindowCreated(CWindow*);
     virtual void        onWindowRemoved(CWindow*);
     virtual void        recalculateMonitor(const int&);
+    virtual void        recalculateWindow(CWindow*);
     virtual void        changeWindowFloatingMode(CWindow*);
     virtual void        onBeginDragWindow();
     virtual void        onMouseMove(const Vector2D&);

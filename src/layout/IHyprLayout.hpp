@@ -15,10 +15,16 @@ public:
     */
     virtual void        onWindowRemoved(CWindow*)           = 0;
     /*
-        Called when a the monitor requires a layout recalculation
+        Called when the monitor requires a layout recalculation
         this usually means reserved area changes
     */
     virtual void        recalculateMonitor(const int&)      = 0;
+
+    /*
+        Called when the compositor requests a window
+        to be recalculated, e.g. when pseudo is toggled.
+    */
+    virtual void        recalculateWindow(CWindow*)         = 0;
 
     /*
         Called when a window is requested to be floated

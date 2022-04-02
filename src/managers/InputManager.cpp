@@ -68,9 +68,12 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     // then windows
     const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowIdeal(mouseCoords);
     if (!foundSurface && PWINDOWIDEAL) {
-        foundSurface = g_pXWaylandManager->getWindowSurface(PWINDOWIDEAL);
-        if (foundSurface)
+        if (!PWINDOWIDEAL->m_bIsX11) {
+            foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, PWINDOWIDEAL, surfaceCoords);
+        } else {
+            foundSurface = g_pXWaylandManager->getWindowSurface(PWINDOWIDEAL);
             surfacePos = PWINDOWIDEAL->m_vRealPosition;
+        }
     }
         
     // then surfaces below
@@ -97,7 +100,7 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
 
-    g_pCompositor->focusSurface(foundSurface);
+    g_pCompositor->focusSurface(foundSurface, PWINDOWIDEAL ? PWINDOWIDEAL : nullptr);
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 }
@@ -109,6 +112,8 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
+            refocus();
+
             if ((e->button == BTN_LEFT || e->button == BTN_RIGHT) && wlr_keyboard_get_modifiers(PKEYBOARD) == (uint32_t)g_pConfigManager->getInt("general:main_mod_internal")) {
                 currentlyDraggedWindow = g_pCompositor->windowFloatingFromCursor();
                 dragButton = e->button;

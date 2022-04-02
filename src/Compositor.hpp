@@ -60,6 +60,7 @@ public:
     void                    startCompositor(); 
 
     wlr_surface*            m_pLastFocus = nullptr;
+    wlr_surface*            m_pLastFocusWindow = nullptr;
     SMonitor*               m_pLastMonitor = nullptr;
     
     SSeat                   m_sSeat;
@@ -71,13 +72,14 @@ public:
     SMonitor*               getMonitorFromVector(const Vector2D&);
     void                    removeWindowFromVectorSafe(CWindow*);
     void                    focusWindow(CWindow*);
-    void                    focusSurface(wlr_surface*);
+    void                    focusSurface(wlr_surface*, CWindow* pWindowOwner = nullptr);
     bool                    windowExists(CWindow*);
     bool                    windowValidMapped(CWindow*);
     CWindow*                vectorToWindow(const Vector2D&);
     CWindow*                vectorToWindowIdeal(const Vector2D&);
     CWindow*                vectorToWindowTiled(const Vector2D&);
     wlr_surface*            vectorToLayerSurface(const Vector2D&, std::list<SLayerSurface*>*, Vector2D*);
+    wlr_surface*            vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
     CWindow*                windowFromCursor();
     CWindow*                windowFloatingFromCursor();
     SMonitor*               getMonitorFromOutput(wlr_output*);
@@ -91,6 +93,7 @@ public:
     void                    fixXWaylandWindowsOnWorkspace(const int&);
     CWindow*                getFullscreenWindowOnWorkspace(const int&);
     bool                    doesSeatAcceptInput(wlr_surface*);
+    bool                    isWindowActive(CWindow*);
 
 private:
     void                    initAllSignals();

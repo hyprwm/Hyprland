@@ -3,3 +3,4 @@
 #include "../includes.hpp"
 
 void addWLSignal(wl_signal*, wl_listener*, void* pOwner, std::string ownerString);
+void wlr_signal_emit_safe(struct wl_signal *signal, void *data);

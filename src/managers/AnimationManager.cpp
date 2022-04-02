@@ -23,7 +23,7 @@ void CAnimationManager::tick() {
     for (auto& w : g_pCompositor->m_lWindows) {
 
         // process the borders
-        const auto& COLOR = g_pXWaylandManager->getWindowSurface(&w) == g_pCompositor->m_pLastFocus ? BORDERACTIVECOL : BORDERINACTIVECOL;
+        const auto& COLOR = g_pCompositor->isWindowActive(&w) ? BORDERACTIVECOL : BORDERINACTIVECOL;
 
         if (BORDERSENABLED) {
             if (!deltazero(COLOR, w.m_cRealBorderColor)) {

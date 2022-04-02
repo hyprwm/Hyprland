@@ -11,7 +11,7 @@
 </p>
 <br/><br/>
 Hyprland is a Dynamic Tiling Wayland Compositor in early development stages.
-For Hyprland without the land part, see [Hypr](https://github.com/vaxerski/Hypr), the Xorg window manager.
+For Hyprland without the land part, see <a href="https://github.com/vaxerski/Hypr">Hypr</a>, the Xorg window manager.
 
 
 WARNING! 

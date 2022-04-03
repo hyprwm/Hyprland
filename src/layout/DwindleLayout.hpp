@@ -35,6 +35,7 @@ public:
     virtual void        recalculateWindow(CWindow*);
     virtual void        changeWindowFloatingMode(CWindow*);
     virtual void        onBeginDragWindow();
+    virtual void        onEndDragWindow();
     virtual void        onMouseMove(const Vector2D&);
     virtual void        onWindowCreatedFloating(CWindow*);
     virtual void        fullscreenRequestForWindow(CWindow*);

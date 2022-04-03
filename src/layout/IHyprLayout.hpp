@@ -37,6 +37,11 @@ public:
     */
     virtual void        onBeginDragWindow()                 = 0;
     /*
+        Called when a window is ended being dragged
+        (mouse up)
+    */
+    virtual void        onEndDragWindow()                   = 0;
+    /*
         Called whenever the mouse moves, should the layout want to 
         do anything with it.
         Useful for dragging.

@@ -42,6 +42,7 @@ public:
 
     uint64_t        m_iTags = 0;
     bool            m_bIsFloating = false;
+    bool            m_bDraggingTiled = false; // for dragging around tiled windows
     bool            m_bIsFullscreen = false;
     uint64_t        m_iMonitorID = -1;
     std::string     m_szTitle = "";

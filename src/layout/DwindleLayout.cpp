@@ -324,10 +324,23 @@ void CHyprDwindleLayout::onBeginDragWindow() {
 	    return;
     }
 
+    if (!DRAGGINGWINDOW->m_bIsFloating) {
+        DRAGGINGWINDOW->m_bDraggingTiled = true;
+        changeWindowFloatingMode(DRAGGINGWINDOW);
+    } else {
+        DRAGGINGWINDOW->m_bDraggingTiled = false;
+    }
 
     m_vBeginDragXY = g_pInputManager->getMouseCoordsInternal();
     m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition;
     m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize;
+}
+
+void CHyprDwindleLayout::onEndDragWindow() {
+    const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
+
+    if (DRAGGINGWINDOW->m_bDraggingTiled)
+        changeWindowFloatingMode(DRAGGINGWINDOW);
 }
 
 void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {

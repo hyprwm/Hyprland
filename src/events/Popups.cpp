@@ -18,8 +18,8 @@
 void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
     SXDGPopup *const PPOPUP = (SXDGPopup*)pPopup;
 
-    int px = PPOPUP->monitor->vecPosition.x;
-    int py = PPOPUP->monitor->vecPosition.y;
+    int px = 0;
+    int py = 0;
 
     auto curPopup = PPOPUP;
     while (true) {
@@ -72,8 +72,8 @@ void Events::listener_newPopup(void* owner, void* data) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
     PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = layersurface->position.x;
-    PNEWPOPUP->ly = layersurface->position.y;
+    PNEWPOPUP->lx = layersurface->position.x - PMONITOR->vecPosition.x;
+    PNEWPOPUP->ly = layersurface->position.y - PMONITOR->vecPosition.y;
     PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
@@ -93,8 +93,8 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
     PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = PWINDOW->m_vEffectivePosition.x;
-    PNEWPOPUP->ly = PWINDOW->m_vEffectivePosition.y;
+    PNEWPOPUP->lx = PWINDOW->m_vEffectivePosition.x - PMONITOR->vecPosition.x;
+    PNEWPOPUP->ly = PWINDOW->m_vEffectivePosition.y - PMONITOR->vecPosition.y;
     PNEWPOPUP->parentWindow = PWINDOW;
     PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);

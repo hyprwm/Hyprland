@@ -18,12 +18,6 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     double outputX = 0, outputY = 0;
     wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, RDATA->output, &outputX, &outputY);
 
-    if (RDATA->pMonitor) { // BUG THIS TODO: this is just to show the popup on a monitor that isnt at 0,0
-                            // the popups are broken.
-        x -= ((SMonitor*)RDATA->pMonitor)->vecPosition.x;
-        y -= ((SMonitor*)RDATA->pMonitor)->vecPosition.y;
-    }
-
     wlr_box windowBox;
     if (RDATA->surface && surface == RDATA->surface) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};

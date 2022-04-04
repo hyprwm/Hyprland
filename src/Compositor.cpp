@@ -243,10 +243,10 @@ bool CCompositor::windowExists(CWindow* pWindow) {
 CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
-    for (auto& w : m_lWindows) {
-        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsMapped && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
-            return &w;
+    for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
+        wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID))
+            return &(*w);
     }
 
     for (auto& w : m_lWindows) {
@@ -272,10 +272,10 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
-    for (auto& w : m_lWindows) {
-        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (w.m_bIsFloating && w.m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w.m_iWorkspaceID))
-            return &w;
+    for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
+        wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+        if (w->m_bIsFloating && w->m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w->m_iWorkspaceID))
+            return &(*w);
     }
 
     for (auto& w : m_lWindows) {
@@ -291,10 +291,10 @@ CWindow* CCompositor::windowFromCursor() {
     const auto PMONITOR = getMonitorFromCursor();
 
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
-    for (auto& w : m_lWindows) {
-        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsMapped && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
-            return &w;
+    for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
+        wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID))
+            return &(*w);
     }
 
     for (auto& w : m_lWindows) {
@@ -307,10 +307,10 @@ CWindow* CCompositor::windowFromCursor() {
 }
 
 CWindow* CCompositor::windowFloatingFromCursor() {
-    for (auto& w : m_lWindows) {
-        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsMapped && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
-            return &w;
+    for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
+        wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID))
+            return &(*w);
     }
 
     return nullptr;

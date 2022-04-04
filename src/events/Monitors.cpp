@@ -113,9 +113,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
 
     g_pHyprOpenGL->begin(PMONITOR);
-    g_pHyprOpenGL->clear(CColor(11, 11, 11, 255));
+    g_pHyprOpenGL->clear(CColor(11, 55, 11, 255));
 
-    
+    wlr_box box = {1,1,100,300};
+    g_pHyprOpenGL->renderRect(&box, CColor(255,0,255,255)); // THIS FUCKING SHIT DOESNT WORK!!!!!!
 
     g_pHyprOpenGL->end();
 

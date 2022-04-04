@@ -136,7 +136,7 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
     float matrix[9];
-    wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.projection); // TODO: write own, don't use WLR here
+    wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -152,7 +152,7 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
     glUseProgram(m_shQUAD.program);
 
     glUniformMatrix3fv(m_shQUAD.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(m_shQUAD.color, 0.1f, 0.1f, 0.1f, 1.f);
+    glUniform4f(m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.r / 255.f, col.a / 255.f);
 
     glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 

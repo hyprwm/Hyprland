@@ -94,6 +94,7 @@ public:
     CWindow*                getFullscreenWindowOnWorkspace(const int&);
     bool                    doesSeatAcceptInput(wlr_surface*);
     bool                    isWindowActive(CWindow*);
+    void                    moveWindowToTop(CWindow*);
 
 private:
     void                    initAllSignals();

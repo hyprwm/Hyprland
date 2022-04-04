@@ -121,6 +121,10 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
         case WLR_BUTTON_PRESSED:
             refocus();
 
+            // if clicked on a floating window make it top
+            if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_bIsFloating)
+                g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
+
             if ((e->button == BTN_LEFT || e->button == BTN_RIGHT) && wlr_keyboard_get_modifiers(PKEYBOARD) == (uint32_t)g_pConfigManager->getInt("general:main_mod_internal")) {
                 currentlyDraggedWindow = g_pCompositor->windowFromCursor();
                 dragButton = e->button;

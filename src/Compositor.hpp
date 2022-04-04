@@ -18,6 +18,7 @@
 #include "helpers/Workspace.hpp"
 #include "Window.hpp"
 #include "render/Renderer.hpp"
+#include "render/OpenGL.hpp"
 
 class CCompositor {
 public:
@@ -46,6 +47,7 @@ public:
     wlr_input_inhibit_manager*       m_sWLRInhibitMgr;
     wlr_keyboard_shortcuts_inhibit_manager_v1* m_sWLRKbShInhibitMgr;
     wlr_egl*                         m_sWLREGL;
+    int                              m_iDRMFD;
     // ------------------------------------------------- //
 
 

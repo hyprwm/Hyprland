@@ -12,19 +12,6 @@
 
 #include <string>
 
-std::string getFormat(const char* fmt, ...) {
-    char buf[2048] = "";
-
-    va_list args;
-    va_start(args, fmt);
-
-    vsprintf(buf, fmt , args);
-
-    va_end(args);
-
-    return std::string(buf);
-}
-
 std::string monitorsRequest() {
     std::string result = "";
     for (auto& m : g_pCompositor->m_lMonitors) {

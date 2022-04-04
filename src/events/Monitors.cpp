@@ -108,19 +108,25 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    const float bgcol[4] = {0.1f, 0.1f, 0.1f, 1.f};
 
     if (!wlr_output_attach_render(PMONITOR->output, nullptr))
         return;
 
-    wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
-    wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, bgcol);
+    g_pHyprOpenGL->begin(PMONITOR);
+    g_pHyprOpenGL->clear(CColor(11, 11, 11, 255));
 
-    g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
+    
 
-    wlr_output_render_software_cursors(PMONITOR->output, NULL);
+    g_pHyprOpenGL->end();
 
-    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+   // wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+   // wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, bgcol);
+
+   // g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
+
+   // wlr_output_render_software_cursors(PMONITOR->output, NULL);
+
+ //   wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
 
     wlr_output_commit(PMONITOR->output);
 }

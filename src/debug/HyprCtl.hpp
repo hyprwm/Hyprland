@@ -2,6 +2,7 @@
 
 #include "../Compositor.hpp"
 #include <fstream>
+#include "../helpers/MiscFunctions.hpp"
 
 namespace HyprCtl {
     void            startHyprCtlSocket();

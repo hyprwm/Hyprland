@@ -304,6 +304,8 @@ void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
         pWindow->m_vRealSize = PSAVEDSIZE;
     } else {
         onWindowRemoved(pWindow);
+
+        g_pCompositor->moveWindowToTop(pWindow);
     }
 }
 
@@ -327,6 +329,7 @@ void CHyprDwindleLayout::onBeginDragWindow() {
     if (!DRAGGINGWINDOW->m_bIsFloating) {
         DRAGGINGWINDOW->m_bDraggingTiled = true;
         changeWindowFloatingMode(DRAGGINGWINDOW);
+        DRAGGINGWINDOW->m_bIsFloating = true;
     } else {
         DRAGGINGWINDOW->m_bDraggingTiled = false;
     }
@@ -339,8 +342,11 @@ void CHyprDwindleLayout::onBeginDragWindow() {
 void CHyprDwindleLayout::onEndDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
-    if (DRAGGINGWINDOW->m_bDraggingTiled)
+    if (DRAGGINGWINDOW->m_bDraggingTiled) {
+        DRAGGINGWINDOW->m_bIsFloating = false;
         changeWindowFloatingMode(DRAGGINGWINDOW);
+    }
+        
 }
 
 void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
@@ -419,6 +425,8 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
     g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
+
+    g_pCompositor->moveWindowToTop(pWindow);
 }
 
 void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
@@ -465,6 +473,8 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
 
         g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
     }
+
+    g_pCompositor->moveWindowToTop(pWindow);
 
     // we need to fix XWayland windows by sending them to NARNIA
     // because otherwise they'd still be recieving mouse events

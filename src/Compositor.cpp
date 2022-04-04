@@ -242,8 +242,7 @@ bool CCompositor::windowExists(CWindow* pWindow) {
 
 CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
-    // first loop over floating cuz they're above
-    // TODO: make an actual Z-system
+    // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
         if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsMapped && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
@@ -272,8 +271,7 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
 
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
-    // first loop over floating cuz they're above
-    // TODO: make an actual Z-system
+    // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
         if (w.m_bIsFloating && w.m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w.m_iWorkspaceID))
@@ -292,8 +290,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 CWindow* CCompositor::windowFromCursor() {
     const auto PMONITOR = getMonitorFromCursor();
 
-    // first loop over floating cuz they're above
-    // TODO: make an actual Z-system
+    // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
         if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsMapped && w.m_bIsFloating && isWorkspaceVisible(w.m_iWorkspaceID))
@@ -532,4 +529,16 @@ bool CCompositor::isWindowActive(CWindow* pWindow) {
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
 
     return PSURFACE == m_pLastFocus || pWindow == m_pLastWindow;
+}
+
+void CCompositor::moveWindowToTop(CWindow* pWindow) {
+    if (!windowValidMapped(pWindow))
+        return;
+
+    for (auto it = m_lWindows.begin(); it != m_lWindows.end(); ++it) {
+        if (&(*it) == pWindow) {
+            m_lWindows.splice(m_lWindows.end(), m_lWindows, it);
+            break;
+        }
+    }
 }

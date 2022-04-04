@@ -21,34 +21,34 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     // Init shaders
 
     GLuint prog = createProgram(QUADVERTSRC, QUADFRAGSRC);
-    m_qShaderQuad.program = prog;
-    m_qShaderQuad.proj = glGetUniformLocation(prog, "proj");
-    m_qShaderQuad.color = glGetUniformLocation(prog, "color");
-    m_qShaderQuad.posAttrib = glGetUniformLocation(prog, "pos");
+    m_shQUAD.program = prog;
+    m_shQUAD.proj = glGetUniformLocation(prog, "proj");
+    m_shQUAD.color = glGetUniformLocation(prog, "color");
+    m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
     m_shRGBA.program = prog;
     m_shRGBA.proj = glGetUniformLocation(prog, "proj");
     m_shRGBA.tex = glGetUniformLocation(prog, "tex");
     m_shRGBA.alpha = glGetUniformLocation(prog, "alpha");
-    m_shRGBA.texAttrib = glGetUniformLocation(prog, "texcoord");
-    m_shRGBA.posAttrib = glGetUniformLocation(prog, "pos");
+    m_shRGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_shRGBA.posAttrib = glGetAttribLocation(prog, "pos");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
     m_shRGBX.program = prog;
     m_shRGBX.tex = glGetUniformLocation(prog, "tex");
     m_shRGBX.proj = glGetUniformLocation(prog, "proj");
     m_shRGBX.alpha = glGetUniformLocation(prog, "alpha");
-    m_shRGBX.texAttrib = glGetUniformLocation(prog, "texcoord");
-    m_shRGBX.posAttrib = glGetUniformLocation(prog, "pos");
+    m_shRGBX.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_shRGBX.posAttrib = glGetAttribLocation(prog, "pos");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCEXT);
     m_shEXT.program = prog;
     m_shEXT.tex = glGetUniformLocation(prog, "tex");
     m_shEXT.proj = glGetUniformLocation(prog, "proj");
     m_shEXT.alpha = glGetUniformLocation(prog, "alpha");
-    m_shEXT.posAttrib = glGetUniformLocation(prog, "pos");
-    m_shEXT.texAttrib = glGetUniformLocation(prog, "texcoord");
+    m_shEXT.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shEXT.texAttrib = glGetAttribLocation(prog, "texcoord");
 
     Debug::log(LOG, "Shaders initialized successfully.");
 
@@ -103,7 +103,7 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor) {
 
     glViewport(0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y);
 
-    wlr_matrix_projection(m_RenderData.projection, pMonitor->vecSize.x, pMonitor->vecSize.y, WL_OUTPUT_TRANSFORM_NORMAL);
+    wlr_matrix_projection(m_RenderData.projection, pMonitor->vecSize.x, pMonitor->vecSize.y, WL_OUTPUT_TRANSFORM_NORMAL); // TODO: this is deprecated
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
@@ -120,6 +120,8 @@ void CHyprOpenGLImpl::clear(const CColor& color) {
 }
 
 void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
+    RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
+
     if (!pBox) {
         glDisable(GL_SCISSOR_TEST);
         return;
@@ -127,4 +129,36 @@ void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
 
     glScissor(pBox->x, pBox->y, pBox->width, pBox->height);
     glEnable(GL_SCISSOR_TEST);
+}
+
+void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
+    RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
+    RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
+
+    float matrix[9];
+    wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.projection); // TODO: write own, don't use WLR here
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+
+    wlr_matrix_transpose(glMatrix, glMatrix);
+
+    if (col.a == 255.f) 
+        glDisable(GL_BLEND);
+    else
+        glEnable(GL_BLEND);
+
+    glUseProgram(m_shQUAD.program);
+
+    glUniformMatrix3fv(m_shQUAD.proj, 1, GL_FALSE, glMatrix);
+    glUniform4f(m_shQUAD.color, 0.1f, 0.1f, 0.1f, 1.f);
+
+    glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+    glEnableVertexAttribArray(m_shQUAD.posAttrib);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(m_shQUAD.posAttrib);
 }

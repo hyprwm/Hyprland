@@ -30,10 +30,11 @@ Nevertheless, REPORT any you find! Make an issue!
  - Moving/resizing windows
 
 # Major to-dos
- - Switch to fully custom OpenGL rendering
  - Damage tracking
  - Animations (better)
  - Rounded corners
+ - Fix XWayland focus
+ - Fix GDK popups on multimon
  - Blur
  - Fadein/out
  - Fix electron rendering issues

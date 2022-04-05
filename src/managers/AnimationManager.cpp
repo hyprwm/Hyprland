@@ -47,6 +47,10 @@ void CAnimationManager::tick() {
             }
         }
 
+        // process fadein/out for unmapped windows, but nothing else.
+        if (!g_pCompositor->windowValidMapped(&w))
+            continue;
+
         // process the borders
         const auto& COLOR = g_pCompositor->isWindowActive(&w) ? BORDERACTIVECOL : BORDERINACTIVECOL;
 

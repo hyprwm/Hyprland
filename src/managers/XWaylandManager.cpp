@@ -32,17 +32,21 @@ wlr_surface* CHyprXWaylandManager::getWindowSurface(CWindow* pWindow) {
 void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate) {
     if (wlr_surface_is_xdg_surface(pSurface))
         wlr_xdg_toplevel_set_activated(wlr_xdg_surface_from_wlr_surface(pSurface)->toplevel, activate);
-
-    else if (wlr_surface_is_xwayland_surface(pSurface))
+    else if (wlr_surface_is_xwayland_surface(pSurface)) {
         wlr_xwayland_surface_activate(wlr_xwayland_surface_from_wlr_surface(pSurface), activate);
+        wlr_xwayland_surface_restack(wlr_xwayland_surface_from_wlr_surface(pSurface), NULL, XCB_STACK_MODE_ABOVE);
+    }
+        
 }
 
 void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
     if (pWindow == g_pCompositor->m_pLastWindow)
         return;
 
-    if (pWindow->m_bIsX11)
+    if (pWindow->m_bIsX11) {
         wlr_xwayland_surface_activate(pWindow->m_uSurface.xwayland, activate);
+        wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
+    }
     else
         wlr_xdg_toplevel_set_activated(pWindow->m_uSurface.xdg->toplevel, activate);
 

@@ -42,6 +42,9 @@ struct SRenderData {
 
     // for rounding
     bool dontRound = true;
+
+    // for fade
+    float fadeAlpha = 255.f;
 };
 
 struct SKeyboard {

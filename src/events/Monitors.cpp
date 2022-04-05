@@ -104,6 +104,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (PMONITOR->ID == 0) {
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
+        g_pCompositor->cleanupWindows();
     }
 
     timespec now;

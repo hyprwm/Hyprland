@@ -16,7 +16,7 @@ public:
 
 private:
     void                arrangeLayerArray(SMonitor*, const std::list<SLayerSurface*>&, bool, wlr_box*);
-    void                drawBorderForWindow(CWindow*, SMonitor*);
+    void                drawBorderForWindow(CWindow*, SMonitor*, float a = 255.f);
     void                renderWorkspaceWithFullscreenWindow(SMonitor*, SWorkspace*, timespec*);
     void                renderWindow(CWindow*, SMonitor*, timespec*, bool);
     void                renderDragIcon(SMonitor*, timespec*);

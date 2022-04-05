@@ -230,7 +230,7 @@ SMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
 }
 
 void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
-    if (windowExists(pWindow))
+    if (windowExists(pWindow) && !pWindow->m_bFadingOut)
         m_lWindows.remove(*pWindow);
 }
 
@@ -550,6 +550,17 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
         if (&(*it) == pWindow) {
             m_lWindows.splice(m_lWindows.end(), m_lWindows, it);
             break;
+        }
+    }
+}
+
+void CCompositor::cleanupWindows() {
+    for (auto& w : m_lWindowsFadingOut) {
+        if (!w->m_bFadingOut || w->m_fAlpha == 0.f) {
+            m_lWindows.remove(*w);
+            m_lWindowsFadingOut.remove(w);
+            Debug::log(LOG, "Cleanup: cleaned up a window");
+            return;
         }
     }
 }

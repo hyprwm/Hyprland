@@ -10,17 +10,42 @@ void CAnimationManager::tick() {
 
     const bool WINDOWSENABLED   = g_pConfigManager->getInt("animations:windows") && !animationsDisabled;
     const bool BORDERSENABLED   = g_pConfigManager->getInt("animations:borders") && !animationsDisabled;
-  //  const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein") && !animationsDisabled;
+    const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein") && !animationsDisabled;
     const float ANIMSPEED       = g_pConfigManager->getFloat("animations:speed");
 
     // Process speeds
     const float WINDOWSPEED     = g_pConfigManager->getFloat("animations:windows_speed") == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:windows_speed");
     const float BORDERSPEED     = g_pConfigManager->getFloat("animations:borders_speed") == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:borders_speed");
+    const float FADESPEED       = g_pConfigManager->getFloat("animations:fadein_speed")  == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:fadein_speed");
 
     const auto BORDERACTIVECOL  = CColor(g_pConfigManager->getInt("general:col.active_border"));
     const auto BORDERINACTIVECOL = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
 
     for (auto& w : g_pCompositor->m_lWindows) {
+
+        // process fadeinout
+        if (FADEENABLED) {
+            const auto GOALALPHA = w.m_bIsMapped ? 255.f : 0.f;
+            w.m_bFadingOut = false;
+
+            if (!deltazero(w.m_fAlpha, GOALALPHA)) {
+                if (deltaSmallToFlip(w.m_fAlpha, GOALALPHA)) {
+                    w.m_fAlpha = GOALALPHA;
+                } else {
+                    if (w.m_fAlpha > GOALALPHA)
+                        w.m_bFadingOut = true;
+                    w.m_fAlpha = parabolic(w.m_fAlpha, GOALALPHA, FADESPEED);
+                }
+            }
+
+        } else {
+            if (w.m_bIsMapped)
+                w.m_fAlpha = 255.f;
+            else {
+                w.m_fAlpha = 0.f;
+                w.m_bFadingOut = false;
+            }
+        }
 
         // process the borders
         const auto& COLOR = g_pCompositor->isWindowActive(&w) ? BORDERACTIVECOL : BORDERINACTIVECOL;

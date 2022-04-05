@@ -31,7 +31,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     float matrix[9];
     wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, RDATA->output->transform_matrix);
 
-    g_pHyprOpenGL->renderTexture(TEXTURE, matrix, 255.f, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));  // TODO: fadeinout
+    g_pHyprOpenGL->renderTexture(TEXTURE, matrix, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));  // TODO: fadeinout
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
@@ -88,12 +88,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.w = pWindow->m_vRealSize.x;
     renderdata.h = pWindow->m_vRealSize.y;
     renderdata.dontRound = false;
+    renderdata.fadeAlpha = pWindow->m_fAlpha;
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 
     // border
     if (decorate && !pWindow->m_bX11DoesntWantBorders)
-        drawBorderForWindow(pWindow, pMonitor);
+        drawBorderForWindow(pWindow, pMonitor, pWindow->m_fAlpha);
 
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->surface) {
@@ -394,13 +395,14 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     Debug::log(LOG, "Monitor %s layers arranged: reserved: %f %f %f %f", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y, PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 
-void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {
+void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor, float alpha) {
     const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
 
     if (BORDERSIZE < 1)
         return;
 
-    const auto BORDERCOL = pWindow->m_cRealBorderColor;
+    auto BORDERCOL = pWindow->m_cRealBorderColor;
+    BORDERCOL.a *= (alpha / 255.f);
 
     Vector2D correctPos = pWindow->m_vRealPosition - pMonitor->vecPosition;
     Vector2D correctSize = pWindow->m_vRealSize;

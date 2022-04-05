@@ -8,6 +8,7 @@
 
 #include "Shaders.hpp"
 #include "Shader.hpp"
+#include "Texture.hpp"
 
 inline const float matrixFlip180[] = {
 	1.0f, 0.0f, 0.0f,
@@ -35,6 +36,8 @@ public:
     void    end();
 
     void    renderRect(wlr_box*, const CColor&);
+    void    renderTexture(wlr_texture*, float matrix[9], float a);
+    void    renderTexture(const CTexture&, float matrix[9], float a);
 
     void    clear(const CColor&);
     void    scissor(const wlr_box*);

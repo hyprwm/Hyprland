@@ -152,7 +152,7 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
     glUseProgram(m_shQUAD.program);
 
     glUniformMatrix3fv(m_shQUAD.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.r / 255.f, col.a / 255.f);
+    glUniform4f(m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
     glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
@@ -161,4 +161,65 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glDisableVertexAttribArray(m_shQUAD.posAttrib);
+}
+
+void CHyprOpenGLImpl::renderTexture(wlr_texture* tex,float matrix[9], float alpha) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
+
+    renderTexture(CTexture(tex), matrix, alpha);
+}
+
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float alpha) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
+    RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+
+    wlr_matrix_transpose(glMatrix, glMatrix);
+
+    CShader* shader = nullptr;
+
+    switch (tex.m_iType) {
+        case TEXTURE_RGBA:
+            shader = &m_shRGBA;
+            glEnable(GL_BLEND);
+            break;
+        case TEXTURE_RGBX:
+            shader = &m_shRGBX;
+            if (alpha == 255.f)
+                glDisable(GL_BLEND);
+            break;
+        case TEXTURE_EXTERNAL:
+            shader = &m_shEXT;
+            glEnable(GL_BLEND);
+            break;
+        default:
+            RASSERT(false, "tex.m_iTarget unsupported!");
+    }
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(tex.m_iTarget, tex.m_iTexID);
+
+    glTexParameteri(tex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glUseProgram(shader->program);
+
+    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
+    glUniform1i(shader->tex, 0);
+    glUniform1f(shader->alpha, alpha / 255.f);
+
+    glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+    glEnableVertexAttribArray(shader->posAttrib);
+    glEnableVertexAttribArray(shader->texAttrib);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(shader->posAttrib);
+    glDisableVertexAttribArray(shader->texAttrib);
+
+    glBindTexture(tex.m_iTarget, 0);
 }

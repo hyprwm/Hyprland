@@ -361,6 +361,14 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
+    if (m_pLastWindow == pWindow)
+        return;
+
+    if (windowValidMapped(m_pLastWindow) && m_pLastWindow->m_bIsX11) {
+        wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
+        wlr_seat_pointer_clear_focus(m_sSeat.seat);
+    }
+
     const auto PWINDOWSURFACE = pSurface ? pSurface : g_pXWaylandManager->getWindowSurface(pWindow);
 
     focusSurface(PWINDOWSURFACE, pWindow);

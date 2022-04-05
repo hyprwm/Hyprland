@@ -126,8 +126,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
 
-    if (!PWINDOW->m_bIsModal)
-        g_pCompositor->focusWindow(PWINDOW);
+    g_pCompositor->focusWindow(PWINDOW);
 
     PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW);
 
@@ -195,7 +194,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {
-  //  CWindow* PWINDOW = (CWindow*)owner;
+    CWindow* PWINDOW = (CWindow*)owner;
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
 
     // Debug::log(LOG, "Window %x committed", PWINDOW); // SPAM!
 }
@@ -259,10 +261,29 @@ void Events::listener_activateX11(void* owner, void* data) {
 void Events::listener_configureX11(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
     const auto E = (wlr_xwayland_surface_configure_event*)data;
 
-    // TODO: ignore if tiled?
+    if (!PWINDOW->m_bIsFloating) {
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize);
+        g_pInputManager->refocus();
+        return;
+    }
+
     wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
+    wlr_xwayland_surface_restack(PWINDOW->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
+    PWINDOW->m_vEffectivePosition = Vector2D(E->x, E->y);
+    PWINDOW->m_vEffectiveSize = Vector2D(E->width, E->height);
+    PWINDOW->m_vRealPosition = PWINDOW->m_vEffectivePosition;
+    PWINDOW->m_vRealSize = PWINDOW->m_vRealSize;
+    PWINDOW->m_vPosition = PWINDOW->m_vPosition;
+    PWINDOW->m_vSize = PWINDOW->m_vSize;
+
+    wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
+
+    g_pInputManager->refocus();
 }
 
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {

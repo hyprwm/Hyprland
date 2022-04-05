@@ -82,10 +82,6 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, SWor
 }
 
 void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate) {
-    // border
-    if (decorate && !pWindow->m_bX11DoesntWantBorders)
-        drawBorderForWindow(pWindow, pMonitor);
-
     const auto REALPOS = pWindow->m_vRealPosition;
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
@@ -93,6 +89,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.h = pWindow->m_vRealSize.y;
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+
+    // border
+    if (decorate && !pWindow->m_bX11DoesntWantBorders)
+        drawBorderForWindow(pWindow, pMonitor);
 
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->surface) {

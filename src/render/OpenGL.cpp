@@ -181,19 +181,17 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float 
 
     CShader* shader = nullptr;
 
+    glEnable(GL_BLEND);
+
     switch (tex.m_iType) {
         case TEXTURE_RGBA:
             shader = &m_shRGBA;
-            glEnable(GL_BLEND);
             break;
         case TEXTURE_RGBX:
             shader = &m_shRGBX;
-            if (alpha == 255.f)
-                glDisable(GL_BLEND);
             break;
         case TEXTURE_EXTERNAL:
             shader = &m_shEXT;
-            glEnable(GL_BLEND);
             break;
         default:
             RASSERT(false, "tex.m_iTarget unsupported!");

@@ -58,6 +58,7 @@ public:
     std::list<SXDGPopup>    m_lXDGPopups;
     std::list<SWorkspace>   m_lWorkspaces;
     std::list<SSubsurface>  m_lSubsurfaces;
+    std::list<CWindow*>     m_lWindowsFadingOut;
 
     void                    startCompositor(); 
 
@@ -97,6 +98,7 @@ public:
     bool                    doesSeatAcceptInput(wlr_surface*);
     bool                    isWindowActive(CWindow*);
     void                    moveWindowToTop(CWindow*);
+    void                    cleanupWindows();
 
 private:
     void                    initAllSignals();

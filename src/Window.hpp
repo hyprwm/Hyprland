@@ -68,6 +68,10 @@ public:
     // Animated border
     CColor          m_cRealBorderColor = CColor(0,0,0,0);
 
+    // Fade in-out
+    float           m_fAlpha = 0.f;
+    bool            m_bFadingOut = false;
+
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

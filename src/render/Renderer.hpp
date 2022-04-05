@@ -5,6 +5,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Workspace.hpp"
 #include "../Window.hpp"
+#include "OpenGL.hpp"
 
 class CHyprRenderer {
 public:
@@ -20,6 +21,9 @@ private:
     void                renderWorkspaceWithFullscreenWindow(SMonitor*, SWorkspace*, timespec*);
     void                renderWindow(CWindow*, SMonitor*, timespec*, bool);
     void                renderDragIcon(SMonitor*, timespec*);
+
+
+    friend class CHyprOpenGLImpl;
 };
 
 inline std::unique_ptr<CHyprRenderer> g_pHyprRenderer;

@@ -5,10 +5,12 @@
 #include "../helpers/Color.hpp"
 #include <wlr/render/egl.h>
 #include <list>
+#include <unordered_map>
 
 #include "Shaders.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
+#include "Framebuffer.hpp"
 
 inline const float matrixFlip180[] = {
 	1.0f, 0.0f, 0.0f,
@@ -40,10 +42,17 @@ public:
     void    renderTexture(const CTexture&, float matrix[9], float a, int round = 0);
     void    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 
+    void    makeWindowSnapshot(CWindow*);
+    void    renderSnapshot(CWindow**);
+
     void    clear(const CColor&);
     void    scissor(const wlr_box*);
 
     SCurrentRenderData m_RenderData;
+
+    GLint  m_iCurrentOutputFb = 0;
+
+    std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
 
 private:
     std::list<GLuint>       m_lBuffers;

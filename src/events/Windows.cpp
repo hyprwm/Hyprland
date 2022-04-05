@@ -171,6 +171,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pCompositor->m_pLastFocus = nullptr;
     }
 
+    // Allow the renderer to catch the last frame.
+    g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
+
     PWINDOW->m_bMappedX11 = false;
 
     // remove the fullscreen window status from workspace if we closed it

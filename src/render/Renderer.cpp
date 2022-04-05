@@ -82,6 +82,11 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, SWor
 }
 
 void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate) {
+    if (pWindow->m_bFadingOut) {
+        g_pHyprOpenGL->renderSnapshot(&pWindow);
+        return;
+    }
+
     const auto REALPOS = pWindow->m_vRealPosition;
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
@@ -134,7 +139,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // Non-floating
     for (auto& w : g_pCompositor->m_lWindows) {
-        if (!g_pCompositor->windowValidMapped(&w))
+        if (!g_pCompositor->windowValidMapped(&w) && !w.m_bFadingOut)
             continue;
 
         if (w.m_bIsFloating)
@@ -149,7 +154,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // floating on top
     for (auto& w : g_pCompositor->m_lWindows) {
-        if (!g_pCompositor->windowValidMapped(&w))
+        if (!g_pCompositor->windowValidMapped(&w) && !w.m_bFadingOut)
             continue;
 
         if (!w.m_bIsFloating)

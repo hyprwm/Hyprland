@@ -559,6 +559,8 @@ void CCompositor::cleanupWindows() {
         if (!w->m_bFadingOut || w->m_fAlpha == 0.f) {
             m_lWindows.remove(*w);
             m_lWindowsFadingOut.remove(w);
+            g_pHyprOpenGL->m_mWindowFramebuffers[w].release();
+            g_pHyprOpenGL->m_mWindowFramebuffers.erase(w);
             Debug::log(LOG, "Cleanup: cleaned up a window");
             return;
         }

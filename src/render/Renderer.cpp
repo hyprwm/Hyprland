@@ -31,7 +31,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     float matrix[9];
     wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, RDATA->output->transform_matrix);
 
-    g_pHyprOpenGL->renderTexture(TEXTURE, matrix, 255.f, g_pConfigManager->getInt("decoration:rounding")); // TODO: fadeinout
+    g_pHyprOpenGL->renderTexture(TEXTURE, matrix, 255.f, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));  // TODO: fadeinout
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
@@ -87,6 +87,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
     renderdata.w = pWindow->m_vRealSize.x;
     renderdata.h = pWindow->m_vRealSize.y;
+    renderdata.dontRound = false;
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 

@@ -39,6 +39,9 @@ struct SRenderData {
     wlr_surface* surface = nullptr;
     int w, h;
     void* pMonitor = nullptr;
+
+    // for rounding
+    bool dontRound = true;
 };
 
 struct SKeyboard {

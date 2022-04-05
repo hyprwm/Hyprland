@@ -240,9 +240,9 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
 	    return;
 
-    Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());
-
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
+
+    Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());
 }
 
 void Events::listener_fullscreenWindow(void* owner, void* data) {

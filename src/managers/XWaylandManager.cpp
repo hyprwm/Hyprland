@@ -78,11 +78,8 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
         } else {
             return "";
         }
-    } catch (std::exception& e) {
-        if (e.what())
-            Debug::log(ERR, "Error in getTitle: %s", e.what());
-        else
-            Debug::log(ERR, "Error in getTitle [e.what() nullptr]");
+    } catch (...) {
+        Debug::log(ERR, "Error in getTitle (probably null title)");
     }
 
     return "";

@@ -113,21 +113,17 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
 
     g_pHyprOpenGL->begin(PMONITOR);
-    g_pHyprOpenGL->clear(CColor(11, 55, 11, 255));
+    g_pHyprOpenGL->clear(CColor(11, 11, 11, 255));
 
-    wlr_box box = {1,1,100,300};
-    g_pHyprOpenGL->renderRect(&box, CColor(255,0,255,255));
+    g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
+
+    wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+
+    wlr_output_render_software_cursors(PMONITOR->output, NULL);
+
+    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
 
     g_pHyprOpenGL->end();
-
-   // wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
-   // wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, bgcol);
-
-   // g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
-
-   // wlr_output_render_software_cursors(PMONITOR->output, NULL);
-
- //   wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
 
     wlr_output_commit(PMONITOR->output);
 }

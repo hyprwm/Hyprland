@@ -84,5 +84,6 @@ extern "C" {
 #endif
 
 #include <GLES3/gl32.h>
+#include <GLES2/gl2ext.h>
 
 #include "helpers/Vector2D.hpp"

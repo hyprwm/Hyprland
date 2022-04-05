@@ -261,8 +261,8 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
     m_lDwindleNodesData.remove(*PNODE);
 
     // jump back like it jumps in
-    pWindow->m_vEffectivePosition = pWindow->m_vEffectivePosition + ((pWindow->m_vEffectiveSize - Vector2D(5, 5)) * 0.5f);
-    pWindow->m_vEffectiveSize = Vector2D(5, 5);
+    //pWindow->m_vEffectivePosition = pWindow->m_vEffectivePosition + ((pWindow->m_vEffectiveSize - Vector2D(5, 5)) * 0.5f);
+   // pWindow->m_vEffectiveSize = Vector2D(5, 5);
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const int& monid) {

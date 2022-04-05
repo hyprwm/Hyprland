@@ -106,6 +106,8 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor) {
     wlr_matrix_projection(m_RenderData.projection, pMonitor->vecSize.x, pMonitor->vecSize.y, WL_OUTPUT_TRANSFORM_NORMAL); // TODO: this is deprecated
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &m_iCurrentOutputFb);
 }
 
 void CHyprOpenGLImpl::end() {
@@ -323,4 +325,58 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, i
     glDrawArrays(GL_LINE_STRIP, 0, 41);
 
     glDisableVertexAttribArray(m_shQUAD.posAttrib);
+}
+
+void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
+    // we trust the window is valid.
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    wlr_output_attach_render(PMONITOR->output, nullptr);
+
+    begin(PMONITOR);
+
+    const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
+
+    PFRAMEBUFFER->m_tTransform = g_pXWaylandManager->getWindowSurface(pWindow)->current.transform;
+
+    PFRAMEBUFFER->alloc(PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+
+    PFRAMEBUFFER->bind();
+
+    clear(CColor(0,0,0,0)); // JIC
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders);
+
+    // restore original fb
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);
+    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y);
+
+    end();
+
+    wlr_output_rollback(PMONITOR->output);
+}
+
+void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
+    const auto PWINDOW = *pWindow;
+
+    auto it = m_mWindowFramebuffers.begin();
+    for (;it != m_mWindowFramebuffers.end(); it++) {
+        if (it->first == PWINDOW) {
+            break;
+        }
+    }
+
+    if (it == m_mWindowFramebuffers.end() || !it->second.m_cTex.m_iTexID)
+        return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+
+    const auto TRANSFORM = wlr_output_transform_invert(it->second.m_tTransform);
+    float matrix[9];
+    wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, PMONITOR->output->transform_matrix);
+
+    renderTexture(it->second.m_cTex, matrix, PWINDOW->m_fAlpha, 0);
 }

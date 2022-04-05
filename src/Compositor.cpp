@@ -17,14 +17,14 @@ CCompositor::CCompositor() {
         return;
     }
 
-    const auto DRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
-    if (DRMFD < 0) {
+    m_iDRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
+    if (m_iDRMFD < 0) {
         Debug::log(CRIT, "Couldn't query the DRM FD!");
         RIP("DRMFD NULL!");
         return;
     }
 
-    m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(DRMFD);
+    m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
 
     if (!m_sWLRRenderer) {
         Debug::log(CRIT, "m_sWLRRenderer was NULL!");
@@ -132,6 +132,9 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the InputManager!");
     g_pInputManager = std::make_unique<CInputManager>();
+
+    Debug::log(LOG, "Creating the CHyprOpenGLImpl!");
+    g_pHyprOpenGL = std::make_unique<CHyprOpenGLImpl>();
 
     Debug::log(LOG, "Creating the HyprRenderer!");
     g_pHyprRenderer = std::make_unique<CHyprRenderer>();

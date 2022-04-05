@@ -21,7 +21,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_box windowBox;
     if (RDATA->surface && surface == RDATA->surface) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
-        wlr_renderer_scissor(g_pCompositor->m_sWLRRenderer, &windowBox);
+        g_pHyprOpenGL->scissor(&windowBox);
     } else {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, surface->current.width, surface->current.height};
     }
@@ -31,13 +31,13 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     float matrix[9];
     wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, RDATA->output->transform_matrix);
 
-    wlr_render_texture_with_matrix(g_pCompositor->m_sWLRRenderer, TEXTURE, matrix, 1); // TODO: fadein/out
+    g_pHyprOpenGL->renderTexture(TEXTURE, matrix, 255.f); // TODO: fadeinout
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
 
-    wlr_renderer_scissor(g_pCompositor->m_sWLRRenderer, nullptr);
+    g_pHyprOpenGL->scissor(nullptr);
 }
 
 bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
@@ -395,29 +395,27 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
 
 void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {
     const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
-    const auto BORDERCOL = pWindow->m_cRealBorderColor.getAsHex();
-
-    const float BORDERWLRCOL[4] = {RED(BORDERCOL), GREEN(BORDERCOL), BLUE(BORDERCOL), ALPHA(BORDERCOL)};
+    const auto BORDERCOL = pWindow->m_cRealBorderColor;
 
     Vector2D correctPos = pWindow->m_vRealPosition - pMonitor->vecPosition;
 
     // top
     wlr_box border = {correctPos.x - BORDERSIZE, correctPos.y - BORDERSIZE, pWindow->m_vRealSize.x + 2 * BORDERSIZE, BORDERSIZE};
-    wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
+    g_pHyprOpenGL->renderRect(&border, BORDERCOL);
 
     // bottom
     border.y = correctPos.y + pWindow->m_vRealSize.y;
-    wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
+    g_pHyprOpenGL->renderRect(&border, BORDERCOL);
 
     // left
     border.y = correctPos.y;
     border.width = BORDERSIZE;
     border.height = pWindow->m_vRealSize.y;
-    wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
+    g_pHyprOpenGL->renderRect(&border, BORDERCOL);
 
     // right
     border.x = correctPos.x + pWindow->m_vRealSize.x;
-    wlr_render_rect(g_pCompositor->m_sWLRRenderer, &border, BORDERWLRCOL, pMonitor->output->transform_matrix);
+    g_pHyprOpenGL->renderRect(&border, BORDERCOL);
 }
 
 void damageSurfaceIter(struct wlr_surface* surface, int x, int y, void* data) {

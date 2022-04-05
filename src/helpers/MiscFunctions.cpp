@@ -42,3 +42,16 @@ void wlr_signal_emit_safe(struct wl_signal *signal, void *data) {
     wl_list_remove(&cursor.link);
     wl_list_remove(&end.link);
 }
+
+std::string getFormat(const char *fmt, ...) {
+    char buf[2048] = "";
+
+    va_list args;
+    va_start(args, fmt);
+
+    vsprintf(buf, fmt, args);
+
+    va_end(args);
+
+    return std::string(buf);
+}

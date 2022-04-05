@@ -38,11 +38,52 @@ void main() {
 
 inline const std::string TEXFRAGSRCRGBA = R"#(
 precision mediump float;
-varying vec2 v_texcoord;
+varying vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 uniform float alpha;
 
+uniform vec2 topLeft;
+uniform vec2 bottomRight;
+uniform vec2 fullSize;
+uniform float radius;
+
 void main() {
+
+	vec2 pixCoord = fullSize * v_texcoord;
+
+	if (pixCoord[0] < topLeft[0]) {
+		// we're close left
+		if (pixCoord[1] < topLeft[1]) {
+			// top
+			if (distance(topLeft, pixCoord) > radius) {
+				gl_FragColor = vec4(0,0,0,0);
+				return;
+			}
+		} else if (pixCoord[1] > bottomRight[1]) {
+			// bottom
+			if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord) > radius) {
+				gl_FragColor = vec4(0,0,0,0);
+				return;
+			}
+		}
+	}
+	else if (pixCoord[0] > bottomRight[0]) {
+		// we're close right
+		if (pixCoord[1] < topLeft[1]) {
+			// top
+			if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord) > radius) {
+				gl_FragColor = vec4(0,0,0,0);
+				return;
+			}
+		} else if (pixCoord[1] > bottomRight[1]) {
+			// bottom
+			if (distance(bottomRight, pixCoord) > radius) {
+				gl_FragColor = vec4(0,0,0,0);
+				return;
+			}
+		}
+	}
+
 	gl_FragColor = texture2D(tex, v_texcoord) * alpha;
 })#";
 

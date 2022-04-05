@@ -22,6 +22,8 @@ CConfigManager::CConfigManager() {
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
 
+    configValues["decoration:rounding"].intValue = 1;
+
     configValues["dwindle:pseudotile"].intValue = 0;
 
     configValues["animations:enabled"].intValue = 1;

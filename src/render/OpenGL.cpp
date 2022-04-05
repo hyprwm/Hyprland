@@ -163,13 +163,13 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
     glDisableVertexAttribArray(m_shQUAD.posAttrib);
 }
 
-void CHyprOpenGLImpl::renderTexture(wlr_texture* tex,float matrix[9], float alpha) {
+void CHyprOpenGLImpl::renderTexture(wlr_texture* tex,float matrix[9], float alpha, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTexture(CTexture(tex), matrix, alpha);
+    renderTexture(CTexture(tex), matrix, alpha, round);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float alpha) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float alpha, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -209,6 +209,19 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float 
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
     glUniform1i(shader->tex, 0);
     glUniform1f(shader->alpha, alpha / 255.f);
+
+    // round is in px
+    // so we need to do some maf
+
+    const auto TOPLEFT = Vector2D(round, round);
+    const auto BOTTOMRIGHT = Vector2D(tex.m_vSize.x - round, tex.m_vSize.y - round);
+    const auto FULLSIZE = tex.m_vSize;
+
+    // Rounded corners
+    glUniform2f(glGetUniformLocation(shader->program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(glGetUniformLocation(shader->program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(glGetUniformLocation(shader->program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(glGetUniformLocation(shader->program, "radius"), round);
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);

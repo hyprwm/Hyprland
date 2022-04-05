@@ -31,7 +31,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     float matrix[9];
     wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, RDATA->output->transform_matrix);
 
-    g_pHyprOpenGL->renderTexture(TEXTURE, matrix, 255.f); // TODO: fadeinout
+    g_pHyprOpenGL->renderTexture(TEXTURE, matrix, 255.f, g_pConfigManager->getInt("decoration:rounding")); // TODO: fadeinout
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
@@ -395,6 +395,10 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
 
 void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {
     const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
+
+    if (BORDERSIZE < 1)
+        return;
+
     const auto BORDERCOL = pWindow->m_cRealBorderColor;
 
     Vector2D correctPos = pWindow->m_vRealPosition - pMonitor->vecPosition;

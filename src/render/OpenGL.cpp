@@ -236,3 +236,93 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float 
 
     glBindTexture(tex.m_iTarget, 0);
 }
+
+void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
+    // 0-1 space god damnit
+    arr[counter * 2 + 0] = x / box->width;
+    arr[counter * 2 + 1] = y / box->height;
+    counter++;
+}
+
+void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, int radius) {
+    RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
+    RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
+
+    float matrix[9];
+    wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+
+    wlr_matrix_transpose(glMatrix, glMatrix);
+
+    if (col.a == 255.f)
+        glDisable(GL_BLEND);
+    else
+        glEnable(GL_BLEND);
+
+    glUseProgram(m_shQUAD.program);
+
+    glUniformMatrix3fv(m_shQUAD.proj, 1, GL_FALSE, glMatrix);
+    glUniform4f(m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
+
+    // Sides are ONLY for corners meaning they have to be divisible by 4.
+    // 32 sides shouldn't be taxing at all on the performance.
+    const int SIDES = 32;  // sides
+    const int SIDES34 = 24; // 3/4th of the sides
+    float verts[(SIDES + 8 + 1) * 4]; // 8 for the connections and 1 because last is doubled (begin/end)
+    int vertNo = 0;
+
+    // start from 0,0 tex coord space
+    float x = 0, y = 0, w = box->width, h = box->height;
+
+    pushVert2D(x + radius, y + h, verts, vertNo, box);
+    pushVert2D(x + w - radius, y + h, verts, vertNo, box);
+
+    float x1 = x + w - radius;
+    float y1 = y + h - radius;
+
+    for (int i = 0; i <= SIDES / 4; i++) {
+        pushVert2D(x1 + (sin((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), y1 + (cos((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), verts, vertNo, box);
+    }
+
+    // Right Line
+    pushVert2D(x + w, y + radius, verts, vertNo, box);
+
+    x1 = x + w - radius;
+    y1 = y + radius;
+
+    for (int i = SIDES / 4; i <= SIDES / 2; i++) {
+        pushVert2D(x1 + (sin((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), y1 + (cos((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), verts, vertNo, box);
+    }
+
+    // Top Line
+    pushVert2D(x + radius, y, verts, vertNo, box);
+
+    x1 = x + radius;
+    y1 = y + radius;
+
+    for (int i = SIDES / 2; i <= SIDES34; i++) {
+        pushVert2D(x1 + (sin((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), y1 + (cos((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), verts, vertNo, box);
+    }
+
+    // Left Line
+    pushVert2D(x, y + h - radius, verts, vertNo, box);
+
+    x1 = x + radius;
+    y1 = y + h - radius;
+
+    for (int i = SIDES34; i <= SIDES; i++) {
+        pushVert2D(x1 + (sin((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), y1 + (cos((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), verts, vertNo, box);
+    }
+
+    glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, verts);
+
+    glEnableVertexAttribArray(m_shQUAD.posAttrib);
+
+    glLineWidth(thick);
+    glDrawArrays(GL_LINE_STRIP, 0, 41);
+
+    glDisableVertexAttribArray(m_shQUAD.posAttrib);
+}

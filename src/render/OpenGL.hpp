@@ -38,6 +38,7 @@ public:
     void    renderRect(wlr_box*, const CColor&);
     void    renderTexture(wlr_texture*, float matrix[9], float a, int round = 0);
     void    renderTexture(const CTexture&, float matrix[9], float a, int round = 0);
+    void    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 
     void    clear(const CColor&);
     void    scissor(const wlr_box*);

@@ -402,24 +402,11 @@ void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor) {
     const auto BORDERCOL = pWindow->m_cRealBorderColor;
 
     Vector2D correctPos = pWindow->m_vRealPosition - pMonitor->vecPosition;
+    Vector2D correctSize = pWindow->m_vRealSize;
 
     // top
-    wlr_box border = {correctPos.x - BORDERSIZE, correctPos.y - BORDERSIZE, pWindow->m_vRealSize.x + 2 * BORDERSIZE, BORDERSIZE};
-    g_pHyprOpenGL->renderRect(&border, BORDERCOL);
-
-    // bottom
-    border.y = correctPos.y + pWindow->m_vRealSize.y;
-    g_pHyprOpenGL->renderRect(&border, BORDERCOL);
-
-    // left
-    border.y = correctPos.y;
-    border.width = BORDERSIZE;
-    border.height = pWindow->m_vRealSize.y;
-    g_pHyprOpenGL->renderRect(&border, BORDERCOL);
-
-    // right
-    border.x = correctPos.x + pWindow->m_vRealSize.x;
-    g_pHyprOpenGL->renderRect(&border, BORDERCOL);
+    wlr_box border = {correctPos.x - BORDERSIZE / 2.f, correctPos.y - BORDERSIZE / 2.f, pWindow->m_vRealSize.x + BORDERSIZE, pWindow->m_vRealSize.y + BORDERSIZE};
+    g_pHyprOpenGL->renderBorder(&border, BORDERCOL, BORDERSIZE, g_pConfigManager->getInt("decoration:rounding"));
 }
 
 void damageSurfaceIter(struct wlr_surface* surface, int x, int y, void* data) {

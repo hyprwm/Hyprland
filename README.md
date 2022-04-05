@@ -22,6 +22,7 @@ Nevertheless, REPORT any you find! Make an issue!
  - Basic window animations
  - Config reloaded instantly upon saving
  - Easily expandable and readable codebase
+ - Rounded corners
  - Support for docks/whatever
  - Window rules
  - Monitor rules
@@ -32,7 +33,6 @@ Nevertheless, REPORT any you find! Make an issue!
 # Major to-dos
  - Damage tracking
  - Animations (better)
- - Rounded corners
  - Fix XWayland focus
  - Fix GDK popups on multimon
  - Blur

@@ -30,6 +30,14 @@ SSurfaceTreeNode* createTree(wlr_surface* pSurface) {
     PNODE->hyprListener_commit.initCallback(&pSurface->events.commit, &Events::listener_commitSubsurface, PNODE, "SurfaceTreeNode");
     PNODE->hyprListener_destroy.initCallback(&pSurface->events.destroy, &Events::listener_destroySubsurfaceNode, PNODE, "SurfaceTreeNode");
 
+    wlr_subsurface* wlrSubsurface;
+    wl_list_for_each(wlrSubsurface, &pSurface->current.subsurfaces_below, current.link) {
+        Events::listener_newSubsurfaceNode(PNODE, wlrSubsurface);
+    }
+    wl_list_for_each(wlrSubsurface, &pSurface->current.subsurfaces_above, current.link) {
+        Events::listener_newSubsurfaceNode(PNODE, wlrSubsurface);
+    }
+
     return PNODE;
 }
 
@@ -109,6 +117,14 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
     PNEWSUBSURFACE->hyprListener_map.initCallback(&PSUBSURFACE->events.map, &Events::listener_mapSubsurface, PNEWSUBSURFACE, "Subsurface");
     PNEWSUBSURFACE->hyprListener_unmap.initCallback(&PSUBSURFACE->events.unmap, &Events::listener_unmapLayerSurface, PNEWSUBSURFACE, "Subsurface");
     PNEWSUBSURFACE->hyprListener_destroy.initCallback(&PSUBSURFACE->events.destroy, &Events::listener_destroySubsurface, PNEWSUBSURFACE, "Subsurface");
+
+    wlr_subsurface* existingWlrSubsurface;
+    wl_list_for_each(existingWlrSubsurface, &PSUBSURFACE->surface->current.subsurfaces_below, current.link) {
+        listener_newSubsurfaceNode(pNode, existingWlrSubsurface);
+    }
+    wl_list_for_each(existingWlrSubsurface, &PSUBSURFACE->surface->current.subsurfaces_above, current.link) {
+        listener_newSubsurfaceNode(pNode, existingWlrSubsurface);
+    }
 }
 
 void Events::listener_mapSubsurface(void* owner, void* data) {

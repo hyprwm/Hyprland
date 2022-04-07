@@ -75,7 +75,7 @@ public:
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
-        return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize;
+        return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize && m_fAlpha == rhs.m_fAlpha && m_bFadingOut == rhs.m_bFadingOut;
     }
 
 };

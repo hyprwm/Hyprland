@@ -50,7 +50,7 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
-    double lx = 0, ly = 0;
+    double lx = pHyprPopup->lx, ly = pHyprPopup->ly;
     wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &lx, &ly);
 
     wlr_box box = {.x = lx, .y = ly, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
@@ -58,6 +58,8 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     wlr_xdg_popup_unconstrain_from_box(popup, &box);
 
     pHyprPopup->monitor = PMONITOR;
+
+    Debug::log(LOG, "Popup: Coords %ix%i, at %i %i", popup->geometry.width, popup->geometry.height, popup->geometry.x, popup->geometry.y);
 }
 
 void Events::listener_newPopup(void* owner, void* data) {

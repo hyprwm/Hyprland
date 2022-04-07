@@ -69,6 +69,7 @@ all:
 
 install:
 	make all
+	mkdir -p /usr/share/wayland-sessions
 	cp ./example/hyprland.desktop /usr/share/wayland-sessions/
 	cp ./build/Hyprland /usr/bin
 	cp ./hyprctl/hyprctl /usr/bin

@@ -248,9 +248,11 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
 void Events::listener_fullscreenWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
-
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+
+    Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
+    
+    g_pXWaylandManager->setWindowFullscreen(PWINDOW, PWINDOW->m_bIsFullscreen);
 }
 
 void Events::listener_activate(void* owner, void* data) {

@@ -162,6 +162,9 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
 }
 
 void CHyprXWaylandManager::moveXWaylandWindow(CWindow* pWindow, const Vector2D& pos) {
+    if (!g_pCompositor->windowValidMapped(pWindow))
+        return;
+        
     if (pWindow->m_bIsX11) {
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, pWindow->m_vRealSize.x, pWindow->m_vRealSize.y);
     }

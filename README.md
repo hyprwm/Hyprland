@@ -10,6 +10,8 @@
  <img src="https://img.shields.io/badge/Hi-mom!-ff69b4" />
 </p>
 <br/><br/>
+People asked me to make a discord server, so <a href="https://discord.gg/hQ9XvMUjjr">join here!</a>
+<br/><br/>
 Hyprland is a Dynamic Tiling Wayland Compositor in early development stages.
 For Hyprland without the land part, see <a href="https://github.com/vaxerski/Hypr">Hypr</a>, the Xorg window manager.
 

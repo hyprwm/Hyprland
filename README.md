@@ -2,6 +2,7 @@
  <img src="https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png" />
  <br/><br/>
  <img src="https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg" />
+ <a href="https://discord.gg/hQ9XvMUjjr"><img src="https://img.shields.io/badge/Join%20the-Discord%20server-6666ff" /></a>
  <img src="https://img.shields.io/github/issues/vaxerski/Hyprland" />
  <img src="https://img.shields.io/github/issues-pr/vaxerski/Hyprland" />
  <img src="https://img.shields.io/github/languages/top/vaxerski/Hyprland" />

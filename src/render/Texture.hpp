@@ -14,6 +14,9 @@ public:
     CTexture();
     CTexture(wlr_texture*);
 
+    void                destroyTexture();
+    void                allocate();
+
     TEXTURETYPE         m_iType = TEXTURE_RGBA;
     GLenum              m_iTarget = GL_TEXTURE_2D;
     GLuint              m_iTexID = 0;

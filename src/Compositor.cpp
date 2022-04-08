@@ -121,6 +121,9 @@ void CCompositor::startCompositor() {
     // Init all the managers BEFORE we start with the wayland server so that ALL of the stuff is initialized
     // properly and we dont get any bad mem reads.
     //
+    Debug::log(LOG, "Creating the CHyprError!");
+    g_pHyprError = std::make_unique<CHyprError>();
+    
     Debug::log(LOG, "Creating the KeybindManager!");
     g_pKeybindManager = std::make_unique<CKeybindManager>();
 

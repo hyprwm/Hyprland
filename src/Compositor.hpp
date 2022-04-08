@@ -19,6 +19,7 @@
 #include "Window.hpp"
 #include "render/Renderer.hpp"
 #include "render/OpenGL.hpp"
+#include "hyprerror/HyprError.hpp"
 
 class CCompositor {
 public:

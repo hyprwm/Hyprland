@@ -20,3 +20,16 @@ CTexture::CTexture(wlr_texture* tex) {
 
     m_vSize = Vector2D(tex->width, tex->height);
 }
+
+void CTexture::destroyTexture() {
+    if (m_iTexID) {
+        glDeleteTextures(1, &m_iTexID);
+        m_iTexID = 0;
+    }
+}
+
+void CTexture::allocate() {
+    if (!m_iTexID) {
+        glGenTextures(1, &m_iTexID);
+    }
+}

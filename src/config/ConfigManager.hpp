@@ -10,6 +10,8 @@
 #include <regex>
 #include "../Window.hpp"
 
+#include "defaultConfig.hpp"
+
 struct SConfigValue {
     int64_t intValue = -1;
     float floatValue = -1;

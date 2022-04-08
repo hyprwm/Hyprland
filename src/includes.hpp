@@ -19,6 +19,7 @@
 #include <wayland-server-core.h>
 #include <mutex>
 #include <thread>
+#include <filesystem>
 
 
 #if true

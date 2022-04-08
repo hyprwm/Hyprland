@@ -310,7 +310,7 @@ void CConfigManager::loadConfigLoadVars() {
                 Debug::log(ERR, "Error reading line from config. Line:");
                 Debug::log(NONE, "%s", line.c_str());
 
-                parseError = "Config error at line " + std::to_string(linenum) + ": Line parsing error.";
+                parseError += "Config error at line " + std::to_string(linenum) + ": Line parsing error.";
             }
 
             if (parseError != "" && parseError.find("Config error at line") != 0) {
@@ -331,6 +331,12 @@ void CConfigManager::loadConfigLoadVars() {
 
     // Calculate the mod mask for main_mod
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);
+
+    // parseError will be displayed next frame
+    if (parseError != "")
+        g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(255, 50, 50, 255));
+    else
+        g_pHyprError->destroy();
 }
 
 void CConfigManager::tick() {

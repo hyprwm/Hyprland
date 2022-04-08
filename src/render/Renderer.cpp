@@ -79,6 +79,10 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, SWor
     }
 
     renderDragIcon(pMonitor, time);
+
+    // if correct monitor draw hyprerror
+    if (pMonitor == &g_pCompositor->m_lMonitors.front())
+        g_pHyprError->draw();
 }
 
 void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate) {
@@ -178,6 +182,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     }
 
     renderDragIcon(PMONITOR, time);
+
+    // if correct monitor draw hyprerror
+    if (PMONITOR == &g_pCompositor->m_lMonitors.front())
+        g_pHyprError->draw();
 }
 
 void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {

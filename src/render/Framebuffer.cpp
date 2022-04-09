@@ -20,7 +20,7 @@ bool CFramebuffer::alloc(int w, int h) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
-    if (firstAlloc)
+    if (firstAlloc || m_Size != Vector2D(w, h))
     {
         glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);

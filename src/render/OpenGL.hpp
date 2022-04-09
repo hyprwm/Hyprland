@@ -51,8 +51,10 @@ public:
     SCurrentRenderData m_RenderData;
 
     GLint  m_iCurrentOutputFb = 0;
+    GLint  m_iWLROutputFb = 0;
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
+    std::unordered_map<SMonitor*, CFramebuffer> m_mMonitorFramebuffers;
 
 private:
     std::list<GLuint>       m_lBuffers;

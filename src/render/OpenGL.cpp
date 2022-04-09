@@ -108,10 +108,32 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor) {
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &m_iCurrentOutputFb);
+    m_iWLROutputFb = m_iCurrentOutputFb;
+
+    // ensure a framebuffer for the monitor exists
+    if (m_mMonitorFramebuffers.find(pMonitor) == m_mMonitorFramebuffers.end() || m_mMonitorFramebuffers[pMonitor].m_Size != pMonitor->vecSize)  
+        m_mMonitorFramebuffers[pMonitor].alloc(pMonitor->vecSize.x, pMonitor->vecSize.y);
+
+    // bind the Hypr Framebuffer
+    m_mMonitorFramebuffers[pMonitor].bind();
+    clear(CColor(11, 11, 11, 255));
 }
 
 void CHyprOpenGLImpl::end() {
+    // end the render, copy the data to the WLR framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
+    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
+    float matrix[9];
+    wlr_box windowBox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+
+    clear(CColor(11, 11, 11, 255));
+
+    renderTexture(m_mMonitorFramebuffers[m_RenderData.pMonitor].m_cTex, matrix, 255.f, 0);
+
+    // reset our data
     m_RenderData.pMonitor = nullptr;
+    m_iWLROutputFb = 0;
 }
 
 void CHyprOpenGLImpl::clear(const CColor& color) {

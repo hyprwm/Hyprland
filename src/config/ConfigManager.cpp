@@ -262,8 +262,8 @@ void CConfigManager::parseLine(std::string& line) {
     } else if (COMMAND == "exec-once") {
         if (isFirstLaunch) {
             handleRawExec(COMMAND, VALUE);
-            return;
         }
+        return;
     } else if (COMMAND == "monitor") {
         handleMonitor(COMMAND, VALUE);
         return;

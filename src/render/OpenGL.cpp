@@ -326,7 +326,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
     const auto RADIUS = g_pConfigManager->getInt("decoration:blur_size") + 2;
     const auto PFRAMEBUFFER = &m_mMonitorFramebuffers[m_RenderData.pMonitor];
 
-    auto drawWithShader = [=](CShader* pShader) {
+    auto drawWithShader = [&](CShader* pShader) {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(PFRAMEBUFFER->m_cTex.m_iTarget, PFRAMEBUFFER->m_cTex.m_iTexID);
 

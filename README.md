@@ -62,7 +62,7 @@ Very welcome! see [Contributing.md](https://github.com/vaxerski/Hyprland/blob/ma
 <br/>
 
 # Gallery
-![Image1](https://i.imgur.com/SIPepse.png)
+![Image1](https://i.imgur.com/ZA4Fa8R.png)
 <br/>
 
 # Special thanks

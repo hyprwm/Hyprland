@@ -31,7 +31,10 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     float matrix[9];
     wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, RDATA->output->transform_matrix);
 
-    g_pHyprOpenGL->renderTexture(TEXTURE, matrix, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));  // TODO: fadeinout
+    if (RDATA->surface && surface == RDATA->surface)
+        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, matrix, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
+    else
+        g_pHyprOpenGL->renderTexture(TEXTURE, matrix, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 

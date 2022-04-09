@@ -40,6 +40,7 @@ public:
     void    renderRect(wlr_box*, const CColor&);
     void    renderTexture(wlr_texture*, float matrix[9], float a, int round = 0);
     void    renderTexture(const CTexture&, float matrix[9], float a, int round = 0);
+    void    renderTextureWithBlur(const CTexture&, float matrix[9], float a, int round = 0);
     void    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 
     void    makeWindowSnapshot(CWindow*);
@@ -68,6 +69,8 @@ private:
     CShader                 m_shRGBA;
     CShader                 m_shRGBX;
     CShader                 m_shEXT;
+    CShader                 m_shBLUR1;
+    CShader                 m_shBLUR2;
     //
 
     GLuint                  createProgram(const std::string&, const std::string&);

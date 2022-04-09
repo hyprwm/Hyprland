@@ -26,6 +26,7 @@ Nevertheless, REPORT any you find! Make an issue!
  - Config reloaded instantly upon saving
  - Easily expandable and readable codebase
  - Rounded corners
+ - Window blur
  - Fade in/out
  - Support for docks/whatever
  - Window rules
@@ -38,7 +39,6 @@ Nevertheless, REPORT any you find! Make an issue!
  - Damage tracking
  - Animations (better)
  - Fix GDK popups on multimon
- - Blur
  - Fix electron rendering issues
  - Optimization
  - Fix weird scroll on XWayland

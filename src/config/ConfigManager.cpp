@@ -23,6 +23,8 @@ CConfigManager::CConfigManager() {
     configValues["general:col.inactive_border"].intValue = 0xff444444;
 
     configValues["decoration:rounding"].intValue = 1;
+    configValues["decoration:blur"].intValue = 1;
+    configValues["decoration:blur_size"].intValue = 8;
 
     configValues["dwindle:pseudotile"].intValue = 0;
 

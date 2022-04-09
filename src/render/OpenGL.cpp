@@ -50,6 +50,22 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shEXT.posAttrib = glGetAttribLocation(prog, "pos");
     m_shEXT.texAttrib = glGetAttribLocation(prog, "texcoord");
 
+    prog = createProgram(TEXVERTSRC, FRAGBLUR1);
+    m_shBLUR1.program = prog;
+    m_shBLUR1.tex = glGetUniformLocation(prog, "tex");
+    m_shBLUR1.alpha = glGetUniformLocation(prog, "alpha");
+    m_shBLUR1.proj = glGetUniformLocation(prog, "proj");
+    m_shBLUR1.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shBLUR1.texAttrib = glGetAttribLocation(prog, "texcoord");
+
+    prog = createProgram(TEXVERTSRC, FRAGBLUR2);
+    m_shBLUR2.program = prog;
+    m_shBLUR2.tex = glGetUniformLocation(prog, "tex");
+    m_shBLUR2.alpha = glGetUniformLocation(prog, "alpha");
+    m_shBLUR2.proj = glGetUniformLocation(prog, "proj");
+    m_shBLUR2.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shBLUR2.texAttrib = glGetAttribLocation(prog, "texcoord");
+
     Debug::log(LOG, "Shaders initialized successfully.");
 
     // End shaders
@@ -257,6 +273,97 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float 
     glDisableVertexAttribArray(shader->texAttrib);
 
     glBindTexture(tex.m_iTarget, 0);
+}
+
+// This is probably not the quickest method possible,
+// feel free to contribute if you have a better method.
+// cheers.
+
+// 2-pass pseudo-gaussian blur
+void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9], float a, int round) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
+    RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
+
+    // if blur disabled, just render the texture
+    if (g_pConfigManager->getInt("decoration:blur") == 0) {
+        renderTexture(tex, matrix, a, round);
+        return;
+    }
+
+    // create a stencil for our thang
+    glEnable(GL_STENCIL_TEST);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    // we clear the stencil and then draw our texture with GL_ALWAYS to make a stencil mask.
+    glClear(GL_STENCIL_BUFFER_BIT);
+
+    glStencilMask(0xFF);
+
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+
+    renderTexture(tex, matrix, 0, round); // 0 alpha because we dont want to draw to the FB
+
+    // then we disable writing to the mask and ONLY accept writing within the stencil
+    glStencilMask(0x00);
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
+
+    glEnable(GL_BLEND);
+
+    // now we make the blur by blurring the main framebuffer (it will only affect the stencil)
+
+    // matrix
+    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
+    float matrixFull[9];
+    wlr_box fullMonBox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    wlr_matrix_project_box(matrixFull, &fullMonBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrixFull);
+    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+
+    wlr_matrix_transpose(glMatrix, glMatrix);
+
+    const auto RADIUS = g_pConfigManager->getInt("decoration:blur_size") + 2;
+    const auto PFRAMEBUFFER = &m_mMonitorFramebuffers[m_RenderData.pMonitor];
+
+    auto drawWithShader = [=](CShader* pShader) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(PFRAMEBUFFER->m_cTex.m_iTarget, PFRAMEBUFFER->m_cTex.m_iTexID);
+
+        glTexParameteri(tex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        glUseProgram(pShader->program);
+
+        glUniform1f(glGetUniformLocation(pShader->program, "radius"), RADIUS);
+        glUniform2f(glGetUniformLocation(pShader->program, "resolution"), m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y);
+        glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
+        glUniform1i(pShader->tex, 0);
+        glUniform1f(pShader->alpha, a / 255.f);
+
+        glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+        glVertexAttribPointer(pShader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+        glEnableVertexAttribArray(pShader->posAttrib);
+        glEnableVertexAttribArray(pShader->texAttrib);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        glDisableVertexAttribArray(pShader->posAttrib);
+        glDisableVertexAttribArray(pShader->texAttrib);
+    };
+
+    drawWithShader(&m_shBLUR1); // horizontal pass
+    drawWithShader(&m_shBLUR2); // vertical pass
+
+    glBindTexture(tex.m_iTarget, 0);
+
+    // when the blur is done, let's render the window itself
+    renderTexture(tex, matrix, a, round);
+
+    // and disable the stencil
+    glStencilMask(0xFF);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glDisable(GL_STENCIL_TEST);
 }
 
 void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {

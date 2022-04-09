@@ -54,6 +54,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         else if (k.handler == "fullscreen") { fullscreenActive(k.arg); }
         else if (k.handler == "movetoworkspace") { moveActiveToWorkspace(k.arg); }
         else if (k.handler == "pseudo") { toggleActivePseudo(k.arg); }
+        else if (k.handler == "movefocus") { moveFocusTo(k.arg); }
 
         found = true;
     }
@@ -243,4 +244,23 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition - g_pCompositor->getMonitorFromID(OLDWORKSPACE->monitorID)->vecPosition;
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition + g_pCompositor->getMonitorFromID(NEWWORKSPACE->monitorID)->vecPosition;
     }
+}
+
+void CKeybindManager::moveFocusTo(std::string args) {
+    char arg = args[0];
+
+    if (arg != 'l' && arg != 'r' && arg != 'u' && arg != 'd' && arg != 't' && arg != 'b') {
+        Debug::log(ERR, "Cannot move window in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        return;
+    }
+
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(PLASTWINDOW))
+        return;
+    
+    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+
+    if (PWINDOWTOCHANGETO)
+        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
 }

@@ -31,6 +31,7 @@ private:
     void                changeworkspace(std::string);
     void                fullscreenActive(std::string);
     void                moveActiveToWorkspace(std::string);
+    void                moveFocusTo(std::string);
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

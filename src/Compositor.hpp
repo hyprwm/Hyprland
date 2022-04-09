@@ -100,6 +100,7 @@ public:
     bool                    isWindowActive(CWindow*);
     void                    moveWindowToTop(CWindow*);
     void                    cleanupWindows();
+    CWindow*                getWindowInDirection(CWindow*, char);
 
 private:
     void                    initAllSignals();

@@ -569,3 +569,64 @@ void CCompositor::cleanupWindows() {
         }
     }
 }
+
+CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
+    const auto POSA = pWindow->m_vPosition;
+    const auto SIZEA = pWindow->m_vSize;
+
+    auto longestIntersect = -1;
+    CWindow* longestIntersectWindow = nullptr;
+
+    for (auto& w : m_lWindows) {
+        if (&w == pWindow || !windowValidMapped(&w) || w.m_bIsFloating || w.m_iWorkspaceID != pWindow->m_iWorkspaceID)
+            continue;
+
+        const auto POSB = w.m_vPosition;
+        const auto SIZEB = w.m_vSize;
+        switch (dir) {
+            case 'l':
+                if (STICKS(POSA.x, POSB.x + SIZEB.x)) {
+                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    if (INTERSECTLEN > longestIntersect) {
+                        longestIntersect = INTERSECTLEN;
+                        longestIntersectWindow = &w;
+                    }
+                }
+                break;
+            case 'r':
+                if (STICKS(POSA.x + SIZEA.x, POSB.x)) {
+                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    if (INTERSECTLEN > longestIntersect) {
+                        longestIntersect = INTERSECTLEN;
+                        longestIntersectWindow = &w;
+                    }
+                }
+                break;
+            case 't':
+            case 'u':
+                if (STICKS(POSA.y, POSB.y + SIZEB.y)) {
+                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    if (INTERSECTLEN > longestIntersect) {
+                        longestIntersect = INTERSECTLEN;
+                        longestIntersectWindow = &w;
+                    }
+                }
+                break;
+            case 'b':
+            case 'd':
+                if (STICKS(POSA.y + SIZEA.y, POSB.y)) {
+                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    if (INTERSECTLEN > longestIntersect) {
+                        longestIntersect = INTERSECTLEN;
+                        longestIntersectWindow = &w;
+                    }
+                }
+                break;
+        }
+    }
+
+    if (longestIntersect != -1)
+        return longestIntersectWindow;
+
+    return nullptr;
+}

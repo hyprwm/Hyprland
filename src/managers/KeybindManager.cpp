@@ -261,6 +261,9 @@ void CKeybindManager::moveFocusTo(std::string args) {
     
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
-    if (PWINDOWTOCHANGETO)
+    if (PWINDOWTOCHANGETO) {
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+        Vector2D middle = PWINDOWTOCHANGETO->m_vPosition + PWINDOWTOCHANGETO->m_vSize / 2.f;
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
+    }  
 }

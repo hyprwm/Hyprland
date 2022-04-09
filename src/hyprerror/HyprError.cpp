@@ -78,7 +78,7 @@ void CHyprError::createQueued() {
 }
 
 void CHyprError::draw() {
-    if (!m_bIsCreated) {
+    if (!m_bIsCreated || m_szQueued != "") {
         if (m_szQueued != "")
             createQueued();
         return;
@@ -88,6 +88,7 @@ void CHyprError::draw() {
         m_bQueuedDestroy = false;
         m_tTexture.destroyTexture();
         m_bIsCreated = false;
+        m_szQueued = "";
         return;
     }
 

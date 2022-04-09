@@ -324,6 +324,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
     wlr_matrix_transpose(glMatrix, glMatrix);
 
     const auto RADIUS = g_pConfigManager->getInt("decoration:blur_size") + 2;
+    const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
     const auto PFRAMEBUFFER = &m_mMonitorFramebuffers[m_RenderData.pMonitor];
 
     auto drawWithShader = [&](CShader* pShader) {
@@ -352,8 +353,10 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
         glDisableVertexAttribArray(pShader->texAttrib);
     };
 
-    drawWithShader(&m_shBLUR1); // horizontal pass
-    drawWithShader(&m_shBLUR2); // vertical pass
+    for (int i = 0; i < BLURPASSES; ++i) {
+        drawWithShader(&m_shBLUR1);  // horizontal pass
+        drawWithShader(&m_shBLUR2);  // vertical pass
+    }
 
     glBindTexture(tex.m_iTarget, 0);
 

@@ -47,6 +47,7 @@ public:
     void    renderSnapshot(CWindow**);
 
     void    clear(const CColor&);
+    void    clearWithTex();
     void    scissor(const wlr_box*);
 
     SCurrentRenderData m_RenderData;
@@ -56,6 +57,7 @@ public:
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
     std::unordered_map<SMonitor*, CFramebuffer> m_mMonitorFramebuffers;
+    std::unordered_map<SMonitor*, CTexture> m_mMonitorBGTextures;
 
 private:
     std::list<GLuint>       m_lBuffers;
@@ -75,6 +77,7 @@ private:
 
     GLuint                  createProgram(const std::string&, const std::string&);
     GLuint                  compileShader(const GLuint&, std::string);
+    void                    createBGTextureForMonitor(SMonitor*);
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

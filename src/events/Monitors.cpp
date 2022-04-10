@@ -115,6 +115,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     g_pHyprOpenGL->begin(PMONITOR);
     g_pHyprOpenGL->clear(CColor(11, 11, 11, 255));
+    g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
     g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
 

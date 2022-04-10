@@ -217,8 +217,6 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     OPENINGON->pParent = NEWPARENT;
     PNODE->pParent = NEWPARENT;
 
-    NEWPARENT->splitRatio = 1.5f;
-
     NEWPARENT->recalcSizePosRecursive();
 
     applyNodeDataToWindow(PNODE);

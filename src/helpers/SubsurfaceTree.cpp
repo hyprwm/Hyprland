@@ -115,7 +115,7 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
     PNEWSUBSURFACE->pParent = pNode;
 
     PNEWSUBSURFACE->hyprListener_map.initCallback(&PSUBSURFACE->events.map, &Events::listener_mapSubsurface, PNEWSUBSURFACE, "Subsurface");
-    PNEWSUBSURFACE->hyprListener_unmap.initCallback(&PSUBSURFACE->events.unmap, &Events::listener_unmapLayerSurface, PNEWSUBSURFACE, "Subsurface");
+    PNEWSUBSURFACE->hyprListener_unmap.initCallback(&PSUBSURFACE->events.unmap, &Events::listener_unmapSubsurface, PNEWSUBSURFACE, "Subsurface");
     PNEWSUBSURFACE->hyprListener_destroy.initCallback(&PSUBSURFACE->events.destroy, &Events::listener_destroySubsurface, PNEWSUBSURFACE, "Subsurface");
 
     wlr_subsurface* existingWlrSubsurface;
@@ -167,6 +167,9 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
 
 void Events::listener_destroySubsurface(void* owner, void* data) {
     SSubsurface* subsurface = (SSubsurface*)owner;
+
+    if (subsurface->pChild)
+        listener_destroySubsurfaceNode(subsurface->pChild, nullptr);
 
     Debug::log(LOG, "Subsurface %x destroyed", subsurface);
 

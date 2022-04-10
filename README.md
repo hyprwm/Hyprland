@@ -22,7 +22,7 @@ Hyprland is in early dev, expect bugs, instabilities and crashes. You have been 
 Nevertheless, REPORT any you find! Make an issue!
 
 # Key features
- - Basic window animations
+ - Parabolic window animations
  - Config reloaded instantly upon saving
  - Easily expandable and readable codebase
  - Rounded corners
@@ -37,11 +37,10 @@ Nevertheless, REPORT any you find! Make an issue!
 
 # Major to-dos
  - Damage tracking
- - Animations (better)
- - Fix GDK popups on multimon
+ - Animations (some new, like workspace)
  - Fix electron rendering issues
  - Optimization
- - Fix weird scroll on XWayland
+ - Fix weird scroll on XWayland (if possible)
  - Become sane
  - STABILITY
  - More config options for tweakers
@@ -66,7 +65,12 @@ Very welcome! see [Contributing.md](https://github.com/vaxerski/Hyprland/blob/ma
 ![Image2](https://i.imgur.com/BpXxM8H.png)
 <br/>
 
+# Stars over time
+[![Stars over time](https://starchart.cc/vaxerski/Hyprland.svg)](https://starchart.cc/vaxerski/Hyprland)
+
 # Special thanks
+wlroots - for their amazing library
+
 tinywl - for showing how 2 do stuff
 
 sway - for showing how 2 do stuff the overkill way
@@ -75,4 +79,4 @@ vivarium - for showing how 2 do stuff the simple way
 
 dwl - for showing how 2 do stuff the hacky way
 
-wayfire - for showing how 2 do custom rendering
+wayfire - for showing how 2 do some graphics stuff

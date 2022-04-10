@@ -30,6 +30,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_bMappedX11 = true;
     PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
     PWINDOW->m_bIsMapped = true;
+    PWINDOW->m_bReadyToDelete = false;
+    PWINDOW->m_bFadingOut = false;
 
     // checks if the window wants borders and sets the appriopriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
@@ -212,26 +214,14 @@ void Events::listener_commitWindow(void* owner, void* data) {
 void Events::listener_destroyWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    Debug::log(LOG, "Window %x destroyed", PWINDOW);
+    Debug::log(LOG, "Window %x destroyed, queueing.", PWINDOW);
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) {
         g_pCompositor->m_pLastWindow = nullptr;
         g_pCompositor->m_pLastFocus = nullptr;
     }
 
-    PWINDOW->hyprListener_mapWindow.removeCallback();
-    PWINDOW->hyprListener_unmapWindow.removeCallback();
-    PWINDOW->hyprListener_destroyWindow.removeCallback();
-
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
-
-    if (PWINDOW->m_pSurfaceTree) {
-        Debug::log(LOG, "Destroying Subsurface tree of %x in destroyWindow", PWINDOW);
-        SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
-        PWINDOW->m_pSurfaceTree = nullptr;
-    }
-
-    g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
+    PWINDOW->m_bReadyToDelete = true;
 }
 
 void Events::listener_setTitleWindow(void* owner, void* data) {

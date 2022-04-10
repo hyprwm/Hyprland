@@ -18,6 +18,8 @@ struct SDwindleNodeData {
 
     int             workspaceID = -1;
 
+    float           splitRatio = 1.f;
+
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) {
         return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && position == rhs.position && size == rhs.size && pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
@@ -45,6 +47,7 @@ public:
     std::list<SDwindleNodeData>     m_lDwindleNodesData;
 
     Vector2D                        m_vBeginDragXY;
+    Vector2D                        m_vLastDragXY;
     Vector2D                        m_vBeginDragPositionXY;
     Vector2D                        m_vBeginDragSizeXY;
 

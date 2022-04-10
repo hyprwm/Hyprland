@@ -99,7 +99,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
     renderdata.w = pWindow->m_vRealSize.x;
     renderdata.h = pWindow->m_vRealSize.y;
-    renderdata.dontRound = false;
+    renderdata.dontRound = pWindow->m_bIsFullscreen;
     renderdata.fadeAlpha = pWindow->m_fAlpha;
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
@@ -114,6 +114,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         }
     }
     else {
+        renderdata.dontRound = false; // restore dontround
         renderdata.pMonitor = pMonitor;
         wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
     } 

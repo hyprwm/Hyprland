@@ -88,6 +88,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         return;
     }
 
+    // TODO: this doesn't seem to set the X and Y correctly,
+    // wlr_output_layout_output_coords returns invalid values, I think...
     wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, OUTPUT, monitorRule.offset.x, monitorRule.offset.y);
 
     wlr_output_set_custom_mode(OUTPUT, OUTPUT->width, OUTPUT->height, (int)(round(monitorRule.refreshRate * 1000)));

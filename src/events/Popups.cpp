@@ -50,16 +50,13 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
-    double lx = pHyprPopup->lx, ly = pHyprPopup->ly;
-    wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, PMONITOR->output, &lx, &ly);
-
-    wlr_box box = {.x = lx, .y = ly, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
+    wlr_box box = {.x = PMONITOR->vecPosition.x - pHyprPopup->lx, .y = PMONITOR->vecPosition.y - pHyprPopup->ly, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
 
     wlr_xdg_popup_unconstrain_from_box(popup, &box);
 
     pHyprPopup->monitor = PMONITOR;
 
-    Debug::log(LOG, "Popup: Coords %ix%i, at %i %i", popup->geometry.width, popup->geometry.height, popup->geometry.x, popup->geometry.y);
+    Debug::log(LOG, "Popup: Unconstrained from lx ly: %f %f, pHyprPopup lx ly: %f %f", (float)PMONITOR->vecPosition.x, (float)PMONITOR->vecPosition.y, (float)pHyprPopup->lx, (float)pHyprPopup->ly);
 }
 
 void Events::listener_newPopup(void* owner, void* data) {
@@ -77,8 +74,8 @@ void Events::listener_newPopup(void* owner, void* data) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
     PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = layersurface->position.x - PMONITOR->vecPosition.x;
-    PNEWPOPUP->ly = layersurface->position.y - PMONITOR->vecPosition.y;
+    PNEWPOPUP->lx = layersurface->position.x;
+    PNEWPOPUP->ly = layersurface->position.y;
     PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
@@ -98,8 +95,8 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
     PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = PWINDOW->m_vEffectivePosition.x - PMONITOR->vecPosition.x;
-    PNEWPOPUP->ly = PWINDOW->m_vEffectivePosition.y - PMONITOR->vecPosition.y;
+    PNEWPOPUP->lx = PWINDOW->m_vEffectivePosition.x;
+    PNEWPOPUP->ly = PWINDOW->m_vEffectivePosition.y;
     PNEWPOPUP->parentWindow = PWINDOW;
     PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);

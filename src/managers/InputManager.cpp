@@ -2,14 +2,12 @@
 #include "../Compositor.hpp"
 
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
-    // TODO: sensitivity
 
     float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->delta_x * sensitivity, e->delta_y * sensitivity);
 
     mouseMoveUnified(e->time_msec);
-    // todo: pointer
 }
 
 void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {

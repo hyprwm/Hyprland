@@ -40,8 +40,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         // this little maneouver is gonna cost us 4µs
         const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
         const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
-        // TODO: fix 0-9 keys and other modified ones with shift
-        // or mention in the fucking wiki
+        // small TODO: fix 0-9 keys and other modified ones with shift
         
         if (key != KBKEY && key != KBKEYUPPER)
             continue;

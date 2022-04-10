@@ -481,7 +481,17 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
+    // this is a hack but it works :P
+    // we need to disable blur or else we will get a black background, as the shader
+    // will try to copy the bg to apply blur.
+    // this isn't entirely correct, but like, oh well.
+    // small todo: maybe make this correct? :P
+    const auto BLURVAL = g_pConfigManager->getInt("decoration:blur");
+    g_pConfigManager->setInt("decoration:blur", 0);
+
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders);
+
+    g_pConfigManager->setInt("decoration:blur", BLURVAL);
 
     // restore original fb
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);

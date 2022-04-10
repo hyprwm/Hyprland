@@ -43,6 +43,9 @@ public:
     int                 getInt(std::string);
     float               getFloat(std::string);
     std::string         getString(std::string);
+    void                setFloat(std::string, float);
+    void                setInt(std::string, int);
+    void                setString(std::string, std::string);
 
     SMonitorRule        getMonitorRuleFor(std::string);
 

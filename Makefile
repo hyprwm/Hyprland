@@ -73,5 +73,9 @@ install:
 	cp ./example/hyprland.desktop /usr/share/wayland-sessions/
 	cp ./build/Hyprland /usr/bin
 	cp ./hyprctl/hyprctl /usr/bin
+	mkdir -p /usr/share/hyprland
+	cp ./assets/wall_2K.png /usr/share/hyprland
+	cp ./assets/wall_4K.png /usr/share/hyprland
+	cp ./assets/wall_8K.png /usr/share/hyprland
 
 config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o

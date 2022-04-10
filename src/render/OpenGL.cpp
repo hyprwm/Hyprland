@@ -127,8 +127,10 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor) {
     m_iWLROutputFb = m_iCurrentOutputFb;
 
     // ensure a framebuffer for the monitor exists
-    if (m_mMonitorFramebuffers.find(pMonitor) == m_mMonitorFramebuffers.end() || m_mMonitorFramebuffers[pMonitor].m_Size != pMonitor->vecSize)  
+    if (m_mMonitorFramebuffers.find(pMonitor) == m_mMonitorFramebuffers.end() || m_mMonitorFramebuffers[pMonitor].m_Size != pMonitor->vecSize) {
         m_mMonitorFramebuffers[pMonitor].alloc(pMonitor->vecSize.x, pMonitor->vecSize.y);
+        createBGTextureForMonitor(pMonitor);
+    }
 
     // bind the Hypr Framebuffer
     m_mMonitorFramebuffers[pMonitor].bind();
@@ -491,6 +493,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 }
 
 void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render snapshot rect without begin()!");
     const auto PWINDOW = *pWindow;
 
     auto it = m_mWindowFramebuffers.begin();
@@ -511,4 +514,55 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, PMONITOR->output->transform_matrix);
 
     renderTexture(it->second.m_cTex, matrix, PWINDOW->m_fAlpha, 0);
+}
+
+void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
+    RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
+
+    // release the last tex if exists
+    const auto PTEX = &m_mMonitorBGTextures[pMonitor];
+    PTEX->destroyTexture();
+
+    PTEX->allocate();
+
+    // check if wallpapers exist
+    if (!std::filesystem::exists("/usr/share/hyprland/wall_8K.png"))
+        return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
+
+    // get the adequate tex
+    std::string texPath = "/usr/share/hyprland/wall_";
+    if (pMonitor->vecSize.x > 7000)
+        texPath += "8K.png";
+    else if (pMonitor->vecSize.x > 3000)
+        texPath += "4K.png";
+    else
+        texPath += "2K.png";
+
+    // create a new one with cairo
+    const auto CAIROSURFACE = cairo_image_surface_create_from_png(texPath.c_str());
+
+    const auto CAIRO = cairo_create(CAIROSURFACE);
+
+    // copy the data to an OpenGL texture we have
+    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    glBindTexture(GL_TEXTURE_2D, PTEX->m_iTexID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pMonitor->vecSize.x, pMonitor->vecSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+
+    cairo_surface_destroy(CAIROSURFACE);
+    cairo_destroy(CAIRO);
+}
+
+void CHyprOpenGLImpl::clearWithTex() {
+    RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
+    
+    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
+    float matrix[9];
+    wlr_box box = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    wlr_matrix_project_box(matrix, &box, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+
+    renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], matrix, 255, 0);
 }

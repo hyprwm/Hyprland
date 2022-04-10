@@ -406,8 +406,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     };
     wlr_signal_emit_safe(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
 
-    if (const auto PWINDOW = getWindowFromSurface(pSurface); PWINDOW)
-        Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, PWINDOW->m_szTitle.c_str());
+    if (pWindowOwner)
+        Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, pWindowOwner->m_szTitle.c_str());
     else
         Debug::log(LOG, "Set keyboard focus to surface %x", pSurface);
 }
@@ -560,11 +560,27 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
 void CCompositor::cleanupWindows() {
     for (auto& w : m_lWindowsFadingOut) {
         if (!w->m_bFadingOut || w->m_fAlpha == 0.f) {
-            m_lWindows.remove(*w);
-            m_lWindowsFadingOut.remove(w);
+            if (!w->m_bReadyToDelete)
+                continue;
+
+            w->hyprListener_mapWindow.removeCallback();
+            w->hyprListener_unmapWindow.removeCallback();
+            w->hyprListener_destroyWindow.removeCallback();
+
+            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
+
+            if (w->m_pSurfaceTree) {
+                Debug::log(LOG, "Destroying Subsurface tree of %x in destroyWindow", w);
+                SubsurfaceTree::destroySurfaceTree(w->m_pSurfaceTree);
+                w->m_pSurfaceTree = nullptr;
+            }
+
             g_pHyprOpenGL->m_mWindowFramebuffers[w].release();
             g_pHyprOpenGL->m_mWindowFramebuffers.erase(w);
-            Debug::log(LOG, "Cleanup: cleaned up a window");
+            m_lWindows.remove(*w);
+            m_lWindowsFadingOut.remove(w);
+
+            Debug::log(LOG, "Cleanup: destroyed a window");
             return;
         }
     }

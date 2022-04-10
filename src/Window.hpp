@@ -71,6 +71,7 @@ public:
     // Fade in-out
     float           m_fAlpha = 0.f;
     bool            m_bFadingOut = false;
+    bool            m_bReadyToDelete = false;
 
 
     // For the list lookup

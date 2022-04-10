@@ -237,11 +237,20 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     // Hack: So that the layout doesnt find our window at the cursor
     PWINDOW->m_vPosition = Vector2D(-42069, -42069);
+    
+    // Save the real position and size because the layout might set its own
+    const auto PSAVEDSIZE = PWINDOW->m_vRealSize;
+    const auto PSAVEDPOS = PWINDOW->m_vRealPosition;
     g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
+    // and restore it
+    PWINDOW->m_vRealPosition = PSAVEDPOS;
+    PWINDOW->m_vRealSize = PSAVEDSIZE;
 
     if (PWINDOW->m_bIsFloating) {
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition - g_pCompositor->getMonitorFromID(OLDWORKSPACE->monitorID)->vecPosition;
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition + g_pCompositor->getMonitorFromID(NEWWORKSPACE->monitorID)->vecPosition;
+        PWINDOW->m_vEffectivePosition = PWINDOW->m_vRealPosition;
+        PWINDOW->m_vPosition = PWINDOW->m_vRealPosition;
     }
 }
 

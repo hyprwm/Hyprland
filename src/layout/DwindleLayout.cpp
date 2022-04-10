@@ -338,6 +338,7 @@ void CHyprDwindleLayout::onBeginDragWindow() {
         if (g_pInputManager->dragButton == BTN_LEFT) {
             changeWindowFloatingMode(DRAGGINGWINDOW);
             DRAGGINGWINDOW->m_bIsFloating = true;
+            DRAGGINGWINDOW->m_bDraggingTiled = true;
         }
     }
 

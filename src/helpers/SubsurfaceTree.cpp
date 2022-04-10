@@ -73,7 +73,6 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
 	    return;
     }
 
-
     for (auto& c : pNode->childSubsurfaces)
         destroySubsurface(&c);
 
@@ -82,6 +81,8 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
     pNode->hyprListener_commit.removeCallback();
     pNode->hyprListener_destroy.removeCallback();
     pNode->hyprListener_newSubsurface.removeCallback();
+
+    surfaceTreeNodes.remove(*pNode);
 
     Debug::log(LOG, "SurfaceTree Node removed");
 }

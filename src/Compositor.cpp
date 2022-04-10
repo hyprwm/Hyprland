@@ -563,18 +563,6 @@ void CCompositor::cleanupWindows() {
             if (!w->m_bReadyToDelete)
                 continue;
 
-            w->hyprListener_mapWindow.removeCallback();
-            w->hyprListener_unmapWindow.removeCallback();
-            w->hyprListener_destroyWindow.removeCallback();
-
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
-
-            if (w->m_pSurfaceTree) {
-                Debug::log(LOG, "Destroying Subsurface tree of %x in destroyWindow", w);
-                SubsurfaceTree::destroySurfaceTree(w->m_pSurfaceTree);
-                w->m_pSurfaceTree = nullptr;
-            }
-
             g_pHyprOpenGL->m_mWindowFramebuffers[w].release();
             g_pHyprOpenGL->m_mWindowFramebuffers.erase(w);
             m_lWindows.remove(*w);

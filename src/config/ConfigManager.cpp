@@ -345,8 +345,9 @@ void CConfigManager::loadConfigLoadVars() {
     for (auto& m : g_pCompositor->m_lMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
 
-    // Update the keyboard layout to the cfg'd one
-    g_pInputManager->setKeyboardLayout();
+    // Update the keyboard layout to the cfg'd one if this is not the first launch
+    if (!isFirstLaunch)
+        g_pInputManager->setKeyboardLayout();
 
     // Calculate the mod mask for main_mod
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);

@@ -221,6 +221,18 @@ void Events::listener_destroyWindow(void* owner, void* data) {
         g_pCompositor->m_pLastFocus = nullptr;
     }
 
+    PWINDOW->hyprListener_mapWindow.removeCallback();
+    PWINDOW->hyprListener_unmapWindow.removeCallback();
+    PWINDOW->hyprListener_destroyWindow.removeCallback();
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+
+    if (PWINDOW->m_pSurfaceTree) {
+        Debug::log(LOG, "Destroying Subsurface tree of %x in destroyWindow", PWINDOW);
+        SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
+        PWINDOW->m_pSurfaceTree = nullptr;
+    }
+
     PWINDOW->m_bReadyToDelete = true;
 }
 

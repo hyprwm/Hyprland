@@ -407,6 +407,18 @@ std::string CConfigManager::getString(std::string v) {
     return getConfigValueSafe(v).strValue;
 }
 
+void CConfigManager::setInt(std::string v, int val) {
+    configValues[v].intValue = val;
+}
+
+void CConfigManager::setFloat(std::string v, float val) {
+    configValues[v].floatValue = val;
+}
+
+void CConfigManager::setString(std::string v, std::string val) {
+    configValues[v].strValue = val;
+}
+
 SMonitorRule CConfigManager::getMonitorRuleFor(std::string name) {
     SMonitorRule* found = nullptr;
 

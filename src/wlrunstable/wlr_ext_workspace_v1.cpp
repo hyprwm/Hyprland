@@ -541,7 +541,7 @@ static struct wlr_ext_workspace_manager_v1 *manager_from_resource(
 	return (wlr_ext_workspace_manager_v1 *)wl_resource_get_user_data(resource);
 }
 
-static void rworkspace_manager_commit(struct wl_client *client,
+static void workspace_manager_commit(struct wl_client *client,
 		struct wl_resource *resource) {
 	struct wlr_ext_workspace_manager_v1 *manager = manager_from_resource(resource);
 	if (!manager) {

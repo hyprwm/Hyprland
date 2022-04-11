@@ -500,7 +500,7 @@ void CCompositor::sanityCheckWorkspaces() {
 int CCompositor::getWindowsOnWorkspace(const int& id) {
     int no = 0;
     for (auto& w : m_lWindows) {
-        if (w.m_iWorkspaceID == id)
+        if (w.m_iWorkspaceID == id && w.m_bIsMapped)
             no++;
     }
 

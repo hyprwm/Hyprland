@@ -18,5 +18,7 @@ public:
     CTexture        m_cTex;
     GLuint          m_iFb = -1;
 
+    CTexture*       m_pStencilTex = nullptr;
+
     wl_output_transform m_tTransform; // for saving state
 };

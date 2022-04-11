@@ -127,13 +127,20 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor) {
     m_iWLROutputFb = m_iCurrentOutputFb;
 
     // ensure a framebuffer for the monitor exists
-    if (m_mMonitorFramebuffers.find(pMonitor) == m_mMonitorFramebuffers.end() || m_mMonitorFramebuffers[pMonitor].m_Size != pMonitor->vecSize) {
-        m_mMonitorFramebuffers[pMonitor].alloc(pMonitor->vecSize.x, pMonitor->vecSize.y);
+    if (m_mMonitorRenderResources.find(pMonitor) == m_mMonitorRenderResources.end() || m_mMonitorRenderResources[pMonitor].primaryFB.m_Size != pMonitor->vecSize) {
+        m_mMonitorRenderResources[pMonitor].stencilTex.allocate();
+
+        m_mMonitorRenderResources[pMonitor].primaryFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
+        m_mMonitorRenderResources[pMonitor].mirrorFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
+
+        m_mMonitorRenderResources[pMonitor].primaryFB.alloc(pMonitor->vecSize.x, pMonitor->vecSize.y);
+        m_mMonitorRenderResources[pMonitor].mirrorFB.alloc(pMonitor->vecSize.x, pMonitor->vecSize.y);
+
         createBGTextureForMonitor(pMonitor);
     }
 
-    // bind the Hypr Framebuffer
-    m_mMonitorFramebuffers[pMonitor].bind();
+    // bind the primary Hypr Framebuffer
+    m_mMonitorRenderResources[pMonitor].primaryFB.bind();
     clear(CColor(11, 11, 11, 255));
 }
 
@@ -147,7 +154,7 @@ void CHyprOpenGLImpl::end() {
 
     clear(CColor(11, 11, 11, 255));
 
-    renderTexture(m_mMonitorFramebuffers[m_RenderData.pMonitor].m_cTex, matrix, 255.f, 0);
+    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, matrix, 255.f, 0);
 
     // reset our data
     m_RenderData.pMonitor = nullptr;
@@ -292,22 +299,29 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
         return;
     }
 
-    // create a stencil for our thang
-    glEnable(GL_STENCIL_TEST);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    // bind the mirror FB and clear it.
+    m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.bind();
+    clear(CColor(0, 0, 0, 0));
 
-    // we clear the stencil and then draw our texture with GL_ALWAYS to make a stencil mask.
+    // init stencil for blurring only behind da window
+    glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
 
-    glStencilMask(0xFF);
+    glEnable(GL_STENCIL_TEST);
 
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilFunc(GL_ALWAYS, 1, -1);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    renderTexture(tex, matrix, 0, round); // 0 alpha because we dont want to draw to the FB
+    // render our window to the mirror FB while also writing to the stencil
+    renderTexture(tex, matrix, a, round);
 
     // then we disable writing to the mask and ONLY accept writing within the stencil
-    glStencilMask(0x00);
-    glStencilFunc(GL_EQUAL, 1, 0xFF);
+    glStencilFunc(GL_EQUAL, 1, -1);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    // now we bind back the primary FB
+    // the mirror FB now has only our window.
+    m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();
 
     glEnable(GL_BLEND);
 
@@ -327,7 +341,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
 
     const auto RADIUS = g_pConfigManager->getInt("decoration:blur_size") + 2;
     const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
-    const auto PFRAMEBUFFER = &m_mMonitorFramebuffers[m_RenderData.pMonitor];
+    const auto PFRAMEBUFFER = &m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB;
 
     auto drawWithShader = [&](CShader* pShader) {
         glActiveTexture(GL_TEXTURE0);
@@ -363,10 +377,11 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
     glBindTexture(tex.m_iTarget, 0);
 
     // when the blur is done, let's render the window itself
-    renderTexture(tex, matrix, a, round);
+    // we get it from the mirrored FB                                 full because it's the FB   255 alpha cuz we rendered with a before, same for rounding
+    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex, matrixFull, 255.f, 0);
 
     // and disable the stencil
-    glStencilMask(0xFF);
+    glStencilMask(-1);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glDisable(GL_STENCIL_TEST);
 }

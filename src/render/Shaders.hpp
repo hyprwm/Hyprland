@@ -56,13 +56,13 @@ void main() {
 		if (pixCoord[1] < topLeft[1]) {
 			// top
 			if (distance(topLeft, pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		} else if (pixCoord[1] > bottomRight[1]) {
 			// bottom
 			if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		}
@@ -72,13 +72,13 @@ void main() {
 		if (pixCoord[1] < topLeft[1]) {
 			// top
 			if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		} else if (pixCoord[1] > bottomRight[1]) {
 			// bottom
 			if (distance(bottomRight, pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		}
@@ -107,13 +107,13 @@ void main() {
 		if (pixCoord[1] < topLeft[1]) {
 			// top
 			if (distance(topLeft, pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		} else if (pixCoord[1] > bottomRight[1]) {
 			// bottom
 			if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		}
@@ -123,13 +123,13 @@ void main() {
 		if (pixCoord[1] < topLeft[1]) {
 			// top
 			if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		} else if (pixCoord[1] > bottomRight[1]) {
 			// bottom
 			if (distance(bottomRight, pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		}
@@ -261,13 +261,13 @@ void main() {
 		if (pixCoord[1] < topLeft[1]) {
 			// top
 			if (distance(topLeft, pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		} else if (pixCoord[1] > bottomRight[1]) {
 			// bottom
 			if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		}
@@ -277,13 +277,13 @@ void main() {
 		if (pixCoord[1] < topLeft[1]) {
 			// top
 			if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		} else if (pixCoord[1] > bottomRight[1]) {
 			// bottom
 			if (distance(bottomRight, pixCoord) > radius) {
-				gl_FragColor = vec4(0,0,0,0);
+				discard;
 				return;
 			}
 		}

@@ -29,6 +29,13 @@ struct SCurrentRenderData {
     float       projection[9];
 };
 
+struct SMonitorRenderData {
+    CFramebuffer primaryFB;
+    CFramebuffer mirrorFB;
+
+    CTexture     stencilTex;
+};
+
 class CHyprOpenGLImpl {
 public:
 
@@ -56,7 +63,7 @@ public:
     GLint  m_iWLROutputFb = 0;
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
-    std::unordered_map<SMonitor*, CFramebuffer> m_mMonitorFramebuffers;
+    std::unordered_map<SMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
     std::unordered_map<SMonitor*, CTexture> m_mMonitorBGTextures;
 
 private:

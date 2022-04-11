@@ -29,6 +29,17 @@ bool CFramebuffer::alloc(int w, int h) {
         glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cTex.m_iTexID, 0);
 
+
+        if (m_pStencilTex) {
+            glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
+            glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_pStencilTex->m_iTexID, 0);
+        }
+
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Framebuffer incomplete, couldn't create! (FB status: %i)", status);
 

@@ -90,6 +90,8 @@ CCompositor::CCompositor() {
 
     m_sWLRInhibitMgr = wlr_input_inhibit_manager_create(m_sWLDisplay);
     m_sWLRKbShInhibitMgr = wlr_keyboard_shortcuts_inhibit_v1_create(m_sWLDisplay);
+
+    m_sWLREXTWorkspaceMgr = wlr_ext_workspace_manager_v1_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {
@@ -478,9 +480,9 @@ bool CCompositor::isWorkspaceVisible(const int& w) {
     return false;
 }
 
-SWorkspace* CCompositor::getWorkspaceByID(const int& id) {
+CWorkspace* CCompositor::getWorkspaceByID(const int& id) {
     for (auto& w : m_lWorkspaces) {
-        if (w.ID == id)
+        if (w.m_iID == id)
             return &w;
     }
 
@@ -489,8 +491,9 @@ SWorkspace* CCompositor::getWorkspaceByID(const int& id) {
 
 void CCompositor::sanityCheckWorkspaces() {
     for (auto it = m_lWorkspaces.begin(); it != m_lWorkspaces.end(); ++it) {
-        if (getWindowsOnWorkspace(it->ID) == 0 && !isWorkspaceVisible(it->ID))
+        if (getWindowsOnWorkspace(it->m_iID) == 0 && !isWorkspaceVisible(it->m_iID)) {
             it = m_lWorkspaces.erase(it);
+        }
     }
 }
 
@@ -524,7 +527,7 @@ void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
             // moveXWaylandWindow only moves XWayland windows
             // so there is no need to check here
             // if the window is XWayland or not.
-            if (ISVISIBLE && (!PWORKSPACE->hasFullscreenWindow || w.m_bIsFullscreen))
+            if (ISVISIBLE && (!PWORKSPACE->m_bHasFullscreenWindow || w.m_bIsFullscreen))
                 g_pXWaylandManager->moveXWaylandWindow(&w, w.m_vRealPosition);
             else 
                 g_pXWaylandManager->moveXWaylandWindow(&w, Vector2D(42069,42069));
@@ -633,4 +636,11 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
         return longestIntersectWindow;
 
     return nullptr;
+}
+
+void CCompositor::deactivateAllWLRWorkspaces() {
+    for (auto& w : m_lWorkspaces) {
+        if (w.m_pWlrHandle)
+            wlr_ext_workspace_handle_v1_set_active(w.m_pWlrHandle, false);
+    }
 }

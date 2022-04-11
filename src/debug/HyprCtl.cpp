@@ -35,7 +35,7 @@ std::string workspacesRequest() {
     std::string result = "";
     for (auto& w : g_pCompositor->m_lWorkspaces) {
         result += getFormat("workspace ID %i on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\n",
-                            w.ID, g_pCompositor->getMonitorFromID(w.monitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w.ID), (int)w.hasFullscreenWindow);
+                            w.m_iID, g_pCompositor->getMonitorFromID(w.m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w.m_iID), (int)w.m_bHasFullscreenWindow);
     }
     return result;
 }

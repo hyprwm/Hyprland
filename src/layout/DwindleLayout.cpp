@@ -68,7 +68,7 @@ SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const int& id) {
 }
 
 void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(pNode->workspaceID)->monitorID);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(pNode->workspaceID)->m_iMonitorID);
 
     if (!PMONITOR){
         Debug::log(ERR, "Orphaned Node %x (workspace ID: %i)!!", pNode, pNode->workspaceID);
@@ -272,7 +272,7 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
     // Ignore any recalc events if we have a fullscreen window.
-    if (PWORKSPACE->hasFullscreenWindow)
+    if (PWORKSPACE->m_bHasFullscreenWindow)
         return;
 
     const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->activeWorkspace);
@@ -505,7 +505,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
-    if (PWORKSPACE->hasFullscreenWindow && !pWindow->m_bIsFullscreen) {
+    if (PWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen) {
         // if the window wants to be fullscreen but there already is one,
         // ignore the request.
         return;
@@ -513,7 +513,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
 
     // otherwise, accept it.
     pWindow->m_bIsFullscreen = !pWindow->m_bIsFullscreen;
-    PWORKSPACE->hasFullscreenWindow = !PWORKSPACE->hasFullscreenWindow;
+    PWORKSPACE->m_bHasFullscreenWindow = !PWORKSPACE->m_bHasFullscreenWindow;
 
     if (!pWindow->m_bIsFullscreen) {
         // if it got its fullscreen disabled, set back its node if it had one

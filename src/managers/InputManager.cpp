@@ -27,8 +27,19 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
     Vector2D mouseCoords = getMouseCoordsInternal();
 
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
-    if (PMONITOR)
+    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
+        // update wlr workspaces when this happens
+        if (g_pCompositor->m_pLastMonitor)
+            wlr_ext_workspace_group_handle_v1_output_leave(g_pCompositor->m_pLastMonitor->pWLRWorkspaceGroupHandle, g_pCompositor->m_pLastMonitor->output);
+
         g_pCompositor->m_pLastMonitor = PMONITOR;
+
+        wlr_ext_workspace_group_handle_v1_output_enter(PMONITOR->pWLRWorkspaceGroupHandle, PMONITOR->output);
+
+        // set active workspace and deactivate all other in wlr
+        g_pCompositor->deactivateAllWLRWorkspaces();
+        wlr_ext_workspace_handle_v1_set_active(g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_pWlrHandle, true);
+    }
 
     Vector2D surfaceCoords;
     Vector2D surfacePos = Vector2D(-1337, -1337);
@@ -36,8 +47,8 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
 
     // first, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-    if (PWORKSPACE->hasFullscreenWindow) {
-        pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->ID);
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
         for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); ++w) {
             wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};

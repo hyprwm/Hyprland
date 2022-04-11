@@ -136,7 +136,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // if it exists, we warp to it
     if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->monitorID);
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_iMonitorID);
 
         // if it's not visible, make it visible.
         if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo)) {
@@ -163,6 +163,12 @@ void CKeybindManager::changeworkspace(std::string args) {
         // focus the first window
         g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(workspaceToChangeTo));
 
+        // set active and deactivate all other in wlr
+        g_pCompositor->deactivateAllWLRWorkspaces();
+        wlr_ext_workspace_handle_v1_set_active(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_pWlrHandle, true);
+
+        Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
+
         return;
     }
 
@@ -171,17 +177,26 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     const auto OLDWORKSPACE = PMONITOR->activeWorkspace;
 
-    g_pCompositor->m_lWorkspaces.push_back(SWorkspace());
+    g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID);
     const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
 
-    PWORKSPACE->ID = workspaceToChangeTo;
-    PWORKSPACE->monitorID = PMONITOR->ID;
+    // We are required to set the name here immediately
+    wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, std::to_string(workspaceToChangeTo).c_str());
+
+    PWORKSPACE->m_iID = workspaceToChangeTo;
+    PWORKSPACE->m_iMonitorID = PMONITOR->ID;
     
     PMONITOR->activeWorkspace = workspaceToChangeTo;
 
     // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
     // and that'd be annoying as hell
     g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACE);
+
+    // set active and deactivate all other
+    g_pCompositor->deactivateAllWLRWorkspaces();
+    wlr_ext_workspace_handle_v1_set_active(PWORKSPACE->m_pWlrHandle, true);
+
+    Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }
 
 void CKeybindManager::fullscreenActive(std::string args) {
@@ -224,15 +239,15 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     const auto NEWWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
-    OLDWORKSPACE->hasFullscreenWindow = false;
+    OLDWORKSPACE->m_bHasFullscreenWindow = false;
 
     PWINDOW->m_iWorkspaceID = workspaceID;
-    PWINDOW->m_iMonitorID = NEWWORKSPACE->monitorID;
+    PWINDOW->m_iMonitorID = NEWWORKSPACE->m_iMonitorID;
     PWINDOW->m_bIsFullscreen = false;
 
-    if (NEWWORKSPACE->hasFullscreenWindow) {
+    if (NEWWORKSPACE->m_bHasFullscreenWindow) {
         g_pCompositor->getFullscreenWindowOnWorkspace(workspaceID)->m_bIsFullscreen = false;
-        NEWWORKSPACE->hasFullscreenWindow = false;
+        NEWWORKSPACE->m_bHasFullscreenWindow = false;
     }
 
     // Hack: So that the layout doesnt find our window at the cursor
@@ -247,8 +262,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     PWINDOW->m_vRealSize = PSAVEDSIZE;
 
     if (PWINDOW->m_bIsFloating) {
-        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition - g_pCompositor->getMonitorFromID(OLDWORKSPACE->monitorID)->vecPosition;
-        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition + g_pCompositor->getMonitorFromID(NEWWORKSPACE->monitorID)->vecPosition;
+        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition;
+        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition + g_pCompositor->getMonitorFromID(NEWWORKSPACE->m_iMonitorID)->vecPosition;
         PWINDOW->m_vEffectivePosition = PWINDOW->m_vRealPosition;
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition;
     }

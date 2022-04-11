@@ -46,8 +46,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
         PWINDOW->m_bIsFloating = true;
 
-    if (PWORKSPACE->hasFullscreenWindow && !PWINDOW->m_bIsFloating) {
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->ID);
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
         g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PFULLWINDOW);
         g_pXWaylandManager->setWindowFullscreen(PFULLWINDOW, PFULLWINDOW->m_bIsFullscreen);
     }
@@ -181,8 +181,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
-    if (PWORKSPACE->hasFullscreenWindow && PWINDOW->m_bIsFullscreen)
-        PWORKSPACE->hasFullscreenWindow = false;
+    if (PWORKSPACE->m_bHasFullscreenWindow && PWINDOW->m_bIsFullscreen)
+        PWORKSPACE->m_bHasFullscreenWindow = false;
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 

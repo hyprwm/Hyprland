@@ -88,3 +88,5 @@ extern "C" {
 #include <GLES3/gl3ext.h>
 
 #include "helpers/Vector2D.hpp"
+
+#include "../ext-workspace-unstable-v1-protocol.h"

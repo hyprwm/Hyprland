@@ -67,20 +67,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     newMonitor.vecSize = monitorRule.resolution;
     newMonitor.refreshRate = monitorRule.refreshRate;
 
-    // Workspace
-    g_pCompositor->m_lWorkspaces.push_back(SWorkspace());
-    const auto PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
-
-    PNEWWORKSPACE->ID = monitorRule.defaultWorkspaceID == -1 ? g_pCompositor->m_lWorkspaces.size() : monitorRule.defaultWorkspaceID;
-    PNEWWORKSPACE->monitorID = newMonitor.ID;
-
-    newMonitor.activeWorkspace = PNEWWORKSPACE->ID;
-
     g_pCompositor->m_lMonitors.push_back(newMonitor);
-    //
+    const auto PNEWMONITOR = &g_pCompositor->m_lMonitors.back();
 
-    g_pCompositor->m_lMonitors.back().hyprListener_monitorFrame.initCallback(&OUTPUT->events.frame, &Events::listener_monitorFrame, &g_pCompositor->m_lMonitors.back());
-    g_pCompositor->m_lMonitors.back().hyprListener_monitorDestroy.initCallback(&OUTPUT->events.destroy, &Events::listener_monitorDestroy, &g_pCompositor->m_lMonitors.back());
+    PNEWMONITOR->hyprListener_monitorFrame.initCallback(&OUTPUT->events.frame, &Events::listener_monitorFrame, PNEWMONITOR);
+    PNEWMONITOR->hyprListener_monitorDestroy.initCallback(&OUTPUT->events.destroy, &Events::listener_monitorDestroy, PNEWMONITOR);
 
     wlr_output_enable(OUTPUT, 1);
     if (!wlr_output_commit(OUTPUT)) {
@@ -95,6 +86,26 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     wlr_output_set_custom_mode(OUTPUT, OUTPUT->width, OUTPUT->height, (int)(round(monitorRule.refreshRate * 1000)));
 
     Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i@%i, pointer %x", OUTPUT->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (int)monitorRule.refreshRate, OUTPUT);
+
+    // add a WLR workspace group
+    PNEWMONITOR->pWLRWorkspaceGroupHandle = wlr_ext_workspace_group_handle_v1_create(g_pCompositor->m_sWLREXTWorkspaceMgr);
+
+    // Workspace
+    const auto WORKSPACEID = monitorRule.defaultWorkspaceID == -1 ? g_pCompositor->m_lWorkspaces.size() : monitorRule.defaultWorkspaceID;
+    g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID);
+    const auto PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
+
+    // We are required to set the name here immediately
+    wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, std::to_string(WORKSPACEID).c_str());
+
+    PNEWWORKSPACE->m_iID = WORKSPACEID;
+    PNEWWORKSPACE->m_iMonitorID = newMonitor.ID;
+
+    PNEWMONITOR->activeWorkspace = PNEWWORKSPACE->m_iID;
+
+    g_pCompositor->deactivateAllWLRWorkspaces();
+    wlr_ext_workspace_handle_v1_set_active(PNEWWORKSPACE->m_pWlrHandle, true);
+    //
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {

@@ -60,11 +60,11 @@ bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
     return false;
 }
 
-void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, SWorkspace* pWorkspace, timespec* time) {
+void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
     CWindow* pWorkspaceWindow = nullptr;
 
     for (auto& w : g_pCompositor->m_lWindows) {
-        if (w.m_iWorkspaceID != pWorkspace->ID || !w.m_bIsFullscreen)
+        if (w.m_iWorkspaceID != pWorkspace->m_iID || !w.m_bIsFullscreen)
             continue;
 
         // found it!
@@ -140,7 +140,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     // fullscreen window will hide other windows and top layers
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
-    if (PWORKSPACE->hasFullscreenWindow) {
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
         renderWorkspaceWithFullscreenWindow(PMONITOR, PWORKSPACE, time);
         return;
     }

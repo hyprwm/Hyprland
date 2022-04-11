@@ -33,6 +33,10 @@ struct SMonitor {
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);
 
+    // hack: a group = workspaces on a monitor.
+    // I don't really care lol :P
+    wlr_ext_workspace_group_handle_v1* pWLRWorkspaceGroupHandle = nullptr;
+
 
     // For the list lookup
 

@@ -27,6 +27,7 @@ Nevertheless, REPORT any you find! Make an issue!
  - Easily expandable and readable codebase
  - Rounded corners
  - Window blur
+ - Workspaces Protocol support
  - Fade in/out
  - Support for docks/whatever
  - Window rules

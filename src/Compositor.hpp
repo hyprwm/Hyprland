@@ -49,6 +49,7 @@ public:
     wlr_keyboard_shortcuts_inhibit_manager_v1* m_sWLRKbShInhibitMgr;
     wlr_egl*                         m_sWLREGL;
     int                              m_iDRMFD;
+    wlr_ext_workspace_manager_v1*    m_sWLREXTWorkspaceMgr;
     // ------------------------------------------------- //
 
 
@@ -57,7 +58,7 @@ public:
     std::list<SMonitor>     m_lMonitors;
     std::list<CWindow>      m_lWindows;
     std::list<SXDGPopup>    m_lXDGPopups;
-    std::list<SWorkspace>   m_lWorkspaces;
+    std::list<CWorkspace>   m_lWorkspaces;
     std::list<SSubsurface>  m_lSubsurfaces;
     std::list<CWindow*>     m_lWindowsFadingOut;
 
@@ -90,7 +91,7 @@ public:
     CWindow*                getWindowForPopup(wlr_xdg_popup*);
     CWindow*                getWindowFromSurface(wlr_surface*);
     bool                    isWorkspaceVisible(const int&);
-    SWorkspace*             getWorkspaceByID(const int&);
+    CWorkspace*             getWorkspaceByID(const int&);
     void                    sanityCheckWorkspaces();
     int                     getWindowsOnWorkspace(const int&);
     CWindow*                getFirstWindowOnWorkspace(const int&);
@@ -101,6 +102,7 @@ public:
     void                    moveWindowToTop(CWindow*);
     void                    cleanupWindows();
     CWindow*                getWindowInDirection(CWindow*, char);
+    void                    deactivateAllWLRWorkspaces();
 
 private:
     void                    initAllSignals();

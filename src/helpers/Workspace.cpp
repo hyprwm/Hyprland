@@ -18,6 +18,8 @@ CWorkspace::CWorkspace(int monitorID) {
     *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.x;
     *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.y;
     wlr_ext_workspace_handle_v1_set_coordinates(m_pWlrHandle, &m_wlrCoordinateArr);
+    wlr_ext_workspace_handle_v1_set_hidden(m_pWlrHandle, false);
+    wlr_ext_workspace_handle_v1_set_urgent(m_pWlrHandle, false);
 }
 
 CWorkspace::~CWorkspace() {

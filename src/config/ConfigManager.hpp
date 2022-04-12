@@ -51,6 +51,9 @@ public:
 
     std::vector<SWindowRule> getMatchingRules(CWindow*);
 
+    // no-op when done.
+    void                dispatchExecOnce();
+
 private:
     std::unordered_map<std::string, SConfigValue> configValues;
     time_t lastModifyTime = 0;  // for reloading the config if changed
@@ -63,6 +66,9 @@ private:
 
     std::deque<SMonitorRule> m_dMonitorRules;
     std::deque<SWindowRule> m_dWindowRules;
+
+    bool firstExecDispatched = false;
+    std::deque<std::string> firstExecRequests;
 
     // internal methods
     void                loadConfigLoadVars();

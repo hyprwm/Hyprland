@@ -263,7 +263,7 @@ void CConfigManager::parseLine(std::string& line) {
         return;
     } else if (COMMAND == "exec-once") {
         if (isFirstLaunch) {
-            handleRawExec(COMMAND, VALUE);
+            firstExecRequests.push_back(VALUE);
         }
         return;
     } else if (COMMAND == "monitor") {
@@ -478,4 +478,17 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
     }
 
     return returns;
+}
+
+void CConfigManager::dispatchExecOnce() {
+    if (firstExecDispatched || isFirstLaunch)
+        return;
+
+    firstExecDispatched = true;
+
+    for (auto& c : firstExecRequests) {
+        handleRawExec("", c);
+    }
+
+    firstExecRequests.clear(); // free some kb of memory :P
 }

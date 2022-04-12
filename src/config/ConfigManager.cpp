@@ -28,6 +28,8 @@ CConfigManager::CConfigManager() {
     configValues["decoration:blur_passes"].intValue = 1;
 
     configValues["dwindle:pseudotile"].intValue = 0;
+    configValues["dwindle:col.group_border"].intValue = 0x66777700;
+    configValues["dwindle:col.group_border_active"].intValue = 0x66ffff00;
 
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;

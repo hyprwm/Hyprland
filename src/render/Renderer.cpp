@@ -89,6 +89,9 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
 }
 
 void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate) {
+    if (pWindow->m_bHidden)
+        return;
+
     if (pWindow->m_bFadingOut) {
         g_pHyprOpenGL->renderSnapshot(&pWindow);
         return;

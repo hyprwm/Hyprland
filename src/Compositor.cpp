@@ -253,13 +253,13 @@ CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
         wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID))
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden)
             return &(*w);
     }
 
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
-        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsMapped && !w.m_bIsFloating && PMONITOR->activeWorkspace == w.m_iWorkspaceID)
+        if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsMapped && !w.m_bIsFloating && PMONITOR->activeWorkspace == w.m_iWorkspaceID && !w.m_bHidden)
             return &w;
     }
 
@@ -270,7 +270,7 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace && !w.m_bIsFloating)
+        if (w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace && !w.m_bIsFloating && !w.m_bHidden)
             return &w;
     }
 
@@ -282,13 +282,13 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
         wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
-        if (w->m_bIsFloating && w->m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w->m_iWorkspaceID))
+        if (w->m_bIsFloating && w->m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden)
             return &(*w);
     }
 
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
-        if (!w.m_bIsFloating && w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace)
+        if (!w.m_bIsFloating && w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace && !w.m_bHidden)
             return &w;
     }
 
@@ -317,7 +317,7 @@ CWindow* CCompositor::windowFromCursor() {
 CWindow* CCompositor::windowFloatingFromCursor() {
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
         wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
-        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID))
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden)
             return &(*w);
     }
 
@@ -422,6 +422,9 @@ bool CCompositor::windowValidMapped(CWindow* pWindow) {
         return false;
 
     if (!pWindow->m_bIsMapped)
+        return false;
+
+    if (pWindow->m_bHidden)
         return false;
 
     if (!g_pXWaylandManager->getWindowSurface(pWindow))

@@ -54,6 +54,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         else if (k.handler == "movetoworkspace") { moveActiveToWorkspace(k.arg); }
         else if (k.handler == "pseudo") { toggleActivePseudo(k.arg); }
         else if (k.handler == "movefocus") { moveFocusTo(k.arg); }
+        else if (k.handler == "togglegroup") { toggleGroup(k.arg); }
+        else if (k.handler == "changegroupactive") { changeGroupActive(k.arg); }
 
         found = true;
     }
@@ -289,4 +291,12 @@ void CKeybindManager::moveFocusTo(std::string args) {
         Vector2D middle = PWINDOWTOCHANGETO->m_vPosition + PWINDOWTOCHANGETO->m_vSize / 2.f;
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
     }  
+}
+
+void CKeybindManager::toggleGroup(std::string args) {
+    g_pLayoutManager->getCurrentLayout()->toggleWindowGroup(g_pCompositor->m_pLastWindow);
+}
+
+void CKeybindManager::changeGroupActive(std::string args) {
+    g_pLayoutManager->getCurrentLayout()->switchGroupWindow(g_pCompositor->m_pLastWindow);
 }

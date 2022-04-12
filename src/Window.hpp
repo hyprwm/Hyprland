@@ -73,6 +73,9 @@ public:
     bool            m_bFadingOut = false;
     bool            m_bReadyToDelete = false;
 
+    // For hidden windows and stuff
+    bool            m_bHidden = false;
+
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

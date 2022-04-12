@@ -283,20 +283,9 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
         }
     }
 
-    if (PSIBLING->pParent)
-        PSIBLING->pParent->recalcSizePosRecursive();
-    else 
-        PSIBLING->recalcSizePosRecursive();
-
     // check if it was grouped
     if (PNODE->pGroupParent) {
-        const auto MEMBERSCOPY = PNODE->pGroupParent->groupMembers;
-        PNODE->pGroupParent->groupMembers.clear();
-        for (auto& c : MEMBERSCOPY) {
-            if (c != PNODE) {
-                PNODE->pGroupParent->groupMembers.push_back(c);
-            }
-        }
+        PNODE->pGroupParent->groupMembers.erase(PNODE->pGroupParent->groupMembers.begin() + PNODE->pGroupParent->groupMemberActive);
 
         if ((long unsigned int)PNODE->pGroupParent->groupMemberActive >= PNODE->pGroupParent->groupMembers.size())
             PNODE->pGroupParent->groupMemberActive = 0;
@@ -310,7 +299,17 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
         } else {
             PNODE->pGroupParent->recalcSizePosRecursive();
         }
+
+        // if the parent is to be removed, remove the group
+        if (PPARENT == PNODE->pGroupParent) {
+            toggleWindowGroup(PPARENT->groupMembers[PPARENT->groupMemberActive]->pWindow);
+        }
     }
+
+    if (PSIBLING->pParent)
+        PSIBLING->pParent->recalcSizePosRecursive();
+    else 
+        PSIBLING->recalcSizePosRecursive();
 
     m_lDwindleNodesData.remove(*PPARENT);
     m_lDwindleNodesData.remove(*PNODE);

@@ -48,7 +48,8 @@ void CAnimationManager::tick() {
         }
 
         // process fadein/out for unmapped windows, but nothing else.
-        if (!g_pCompositor->windowValidMapped(&w))
+        // we can't use windowValidMapped because we want to animate hidden windows too.
+        if (!g_pCompositor->windowExists(&w) || !w.m_bIsMapped || !g_pXWaylandManager->getWindowSurface(&w))
             continue;
 
         // process the borders

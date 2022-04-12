@@ -2,6 +2,7 @@
 
 #include "IHyprLayout.hpp"
 #include <list>
+#include <deque>
 
 class CHyprDwindleLayout;
 
@@ -12,6 +13,11 @@ struct SDwindleNodeData {
     CWindow*        pWindow = nullptr;
 
     std::array<SDwindleNodeData*, 2> children = { nullptr, nullptr };
+
+    bool            isGroup = false;
+    int             groupMemberActive = 0;
+    std::deque<SDwindleNodeData*> groupMembers;
+    SDwindleNodeData* pGroupParent = nullptr;
 
     Vector2D        position;
     Vector2D        size;
@@ -26,6 +32,7 @@ struct SDwindleNodeData {
     }
 
     void            recalcSizePosRecursive();
+    void            getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
     CHyprDwindleLayout* layout = nullptr;
 };
 
@@ -41,6 +48,9 @@ public:
     virtual void        onMouseMove(const Vector2D&);
     virtual void        onWindowCreatedFloating(CWindow*);
     virtual void        fullscreenRequestForWindow(CWindow*);
+    virtual void        toggleWindowGroup(CWindow*);
+    virtual void        switchGroupWindow(CWindow*);
+    virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
 
    private:
 

@@ -3,6 +3,11 @@
 #include "../defines.hpp"
 #include "../Window.hpp"
 
+struct SWindowRenderLayoutHints {
+    bool        isBorderColor = false;
+    CColor      borderColor;
+};
+
 interface IHyprLayout {
 public:
 
@@ -61,4 +66,22 @@ public:
     */
     virtual void        fullscreenRequestForWindow(CWindow*)    = 0;
 
+    /*
+        Called when the user requests a window to be made into a group,
+        or when they want the group to be released.
+        Everything else is free to interpret by the layout.
+    */
+    virtual void         toggleWindowGroup(CWindow*)         = 0;
+
+    /*
+        Called when the user requests a group window switch
+    */
+    virtual void         switchGroupWindow(CWindow*)         = 0;
+
+    /* 
+        Required to be handled, but may return just SWindowRenderLayoutHints()
+        Called when the renderer requests any special draw flags for
+        a specific window, e.g. border color for groups.
+    */
+    virtual SWindowRenderLayoutHints requestRenderHints(CWindow*) = 0;
 };

@@ -52,7 +52,9 @@ void CAnimationManager::tick() {
             continue;
 
         // process the borders
-        const auto& COLOR = g_pCompositor->isWindowActive(&w) ? BORDERACTIVECOL : BORDERINACTIVECOL;
+        const auto RENDERHINTS = g_pLayoutManager->getCurrentLayout()->requestRenderHints(&w);
+
+        const auto& COLOR = RENDERHINTS.isBorderColor ? RENDERHINTS.borderColor : g_pCompositor->isWindowActive(&w) ? BORDERACTIVECOL : BORDERINACTIVECOL;
 
         if (BORDERSENABLED) {
             if (!deltazero(COLOR, w.m_cRealBorderColor)) {

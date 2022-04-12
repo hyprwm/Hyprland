@@ -259,7 +259,11 @@ void CConfigManager::parseLine(std::string& line) {
     const auto VALUE = line.substr(EQUALSPLACE + 1);
 
     if (COMMAND == "exec") {
-        handleRawExec(COMMAND, VALUE);
+        if (isFirstLaunch) {
+            firstExecRequests.push_back(VALUE);
+        } else {
+            handleRawExec(COMMAND, VALUE);
+        }
         return;
     } else if (COMMAND == "exec-once") {
         if (isFirstLaunch) {

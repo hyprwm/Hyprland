@@ -118,6 +118,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
         g_pCompositor->cleanupWindows();
+
+        g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
     }
 
     timespec now;

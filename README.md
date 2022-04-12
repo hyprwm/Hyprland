@@ -49,7 +49,16 @@ Nevertheless, REPORT any you find! Make an issue!
  - Improve hyprctl
 
 # Installation
-Please refer to the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Installation)
+I do not maintain any packages, but some kind people have made them for me. If I missed any, please let me know.
+
+_Arch (AUR, -git)_
+```
+yay -S hyprland-git
+```
+## Manual building
+If your distro doesn't have Hyprland in its repositories, or you want to modify Hyprland,
+
+please refer to the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Installation) for the installation instructions.
 <br/>
 
 # Configuring

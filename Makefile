@@ -88,4 +88,10 @@ install:
 	cp ./assets/wall_4K.png /usr/share/hyprland
 	cp ./assets/wall_8K.png /usr/share/hyprland
 
+uninstall:
+	rm -f /usr/share/wayland-sessions/hyprland.desktop
+	rm -f /usr/bin/Hyprland
+	rm -f /usr/bin/hyprctl
+	rm -rf /usr/share/hyprland
+
 config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o

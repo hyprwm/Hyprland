@@ -38,6 +38,7 @@ Nevertheless, REPORT any you find! Make an issue!
 
 # Major to-dos
  - Damage tracking
+ - Input Methods (wlr_input_method_v2)
  - Animations (some new, like workspace)
  - Fix electron rendering issues
  - Optimization

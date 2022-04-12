@@ -550,6 +550,8 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 
     PTEX->allocate();
 
+    Debug::log(LOG, "Allocated texture for BGTex");
+
     // check if wallpapers exist
     if (!std::filesystem::exists("/usr/share/hyprland/wall_8K.png"))
         return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
@@ -579,6 +581,8 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 
     cairo_surface_destroy(CAIROSURFACE);
     cairo_destroy(CAIRO);
+
+    Debug::log(LOG, "Background created for monitor %s", pMonitor->szName.c_str());
 }
 
 void CHyprOpenGLImpl::clearWithTex() {

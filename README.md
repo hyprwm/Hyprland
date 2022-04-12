@@ -52,6 +52,8 @@ Nevertheless, REPORT any you find! Make an issue!
 Please refer to the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Installation)
 <br/>
 
+An AUR(-git) version can be found [here](https://aur.archlinux.org/packages/hyprland-git)
+
 # Configuring
 Head onto the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Configuring-Hyprland) to see more.
 

@@ -281,16 +281,32 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
 
-    if (!g_pCompositor->windowValidMapped(PLASTWINDOW))
+    auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
+        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+        Vector2D middle = PWINDOWTOCHANGETO->m_vEffectivePosition + PWINDOWTOCHANGETO->m_vEffectiveSize / 2.f;
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
+    };
+
+    if (!g_pCompositor->windowValidMapped(PLASTWINDOW)) {
+        const auto PWINDOWTOCHANGETO = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
+        if (!PWINDOWTOCHANGETO)
+            return;
+
+        switchToWindow(PWINDOWTOCHANGETO);
+
         return;
+    }
     
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     if (PWINDOWTOCHANGETO) {
-        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        Vector2D middle = PWINDOWTOCHANGETO->m_vPosition + PWINDOWTOCHANGETO->m_vSize / 2.f;
-        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
-    }  
+        switchToWindow(PWINDOWTOCHANGETO);
+    } else {
+        const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW);
+        if (PWINDOWNEXT) {
+            switchToWindow(PWINDOWNEXT);
+        }
+    }
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

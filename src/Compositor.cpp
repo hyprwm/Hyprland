@@ -650,3 +650,26 @@ void CCompositor::deactivateAllWLRWorkspaces() {
             wlr_ext_workspace_handle_v1_set_active(w.m_pWlrHandle, false);
     }
 }
+
+CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow) {
+    bool gotToWindow = false;
+    for (auto& w : m_lWindows) {
+        if (&w != pWindow && !gotToWindow)
+            continue;
+
+        if (&w == pWindow) {
+            gotToWindow = true;
+            continue;
+        }
+
+        if (w.m_iWorkspaceID == pWindow->m_iWorkspaceID && windowValidMapped(&w))
+            return &w;
+    }
+
+    for (auto& w : m_lWindows) {
+        if (&w != pWindow && w.m_iWorkspaceID == pWindow->m_iWorkspaceID && windowValidMapped(&w))
+            return &w;
+    }
+
+    return nullptr;
+}

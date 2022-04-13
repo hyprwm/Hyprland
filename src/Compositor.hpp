@@ -103,6 +103,7 @@ public:
     void                    cleanupWindows();
     CWindow*                getWindowInDirection(CWindow*, char);
     void                    deactivateAllWLRWorkspaces();
+    CWindow*                getNextWindowOnWorkspace(CWindow*);
 
 private:
     void                    initAllSignals();

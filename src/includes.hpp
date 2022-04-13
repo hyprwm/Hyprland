@@ -84,8 +84,15 @@ extern "C" {
 #undef static
 #endif
 
+#ifdef LEGACY_RENDERER
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#define GLES2
+#else
+#define GLES32
 #include <GLES3/gl32.h>
 #include <GLES3/gl3ext.h>
+#endif
 
 #include "helpers/Vector2D.hpp"
 

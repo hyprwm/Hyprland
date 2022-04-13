@@ -19,6 +19,11 @@ file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
 
+IF(LEGACY_RENDERER MATCHES true)
+    message(STATUS "Using the legacy GLES2 renderer!")
+    add_definitions( -DLEGACY_RENDERER )
+ENDIF(LEGACY_RENDERER MATCHES true)
+
 IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake!")
 ELSE()

@@ -30,15 +30,17 @@ bool CFramebuffer::alloc(int w, int h) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cTex.m_iTexID, 0);
 
 
+        // TODO: Allow this with gles2
+        #ifndef GLES2
         if (m_pStencilTex) {
             glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
 
             glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
             glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_pStencilTex->m_iTexID, 0);
         }
+        #endif
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Framebuffer incomplete, couldn't create! (FB status: %i)", status);
@@ -55,7 +57,11 @@ bool CFramebuffer::alloc(int w, int h) {
 }
 
 void CFramebuffer::bind() {
+    #ifndef GLES2
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iFb);
+    #else
+    glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
+    #endif
     glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y);
 }
 

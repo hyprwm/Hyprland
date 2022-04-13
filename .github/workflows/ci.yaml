@@ -30,7 +30,7 @@ jobs:
           su githubuser -c "yay -S --mflags --skipinteg --noprovides --answerclean All --answerdiff None --answeredit None --answerupgrade None wlroots-git"
 
       - name: Checkout Hyprland
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build Hyprland
         run: |

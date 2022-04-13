@@ -16,11 +16,12 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
     mouseMoveUnified(e->time_msec);
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time) {
+void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // update stuff
     updateDragIcon();
 
+    g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
     // focus
     wlr_surface* foundSurface = nullptr;
@@ -110,15 +111,24 @@ void CInputManager::mouseMoveUnified(uint32_t time) {
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - surfacePos;
 
-    if (pFoundWindow)
-        g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+    if (pFoundWindow) {
+        if (g_pConfigManager->getInt("input:follow_mouse") == 0 && !refocus) {
+            if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating)) {
+                // enter if change floating style
+                g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+                wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+            }
+            wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
+            return; // don't enter any new surfaces
+        } else {
+            g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+        }
+    }
     else
         g_pCompositor->focusSurface(foundSurface);
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
-
-    g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 }
 
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
@@ -288,7 +298,7 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
 }
 
 void CInputManager::refocus() {
-    mouseMoveUnified(0);
+    mouseMoveUnified(0, true);
 }
 
 void CInputManager::updateDragIcon() {

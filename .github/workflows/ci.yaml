@@ -28,7 +28,7 @@ jobs:
       - name: Get wlroots-git
         run: |
           su githubuser -c "yay -S --mflags --skipinteg --noprovides --answerclean All --answerdiff None --answeredit None --answerupgrade None wlroots-git"
-          
+
       - name: Fix permissions for git
         run: |
           git config --global --add safe.directory /__w/Hyprland/Hyprland
@@ -36,7 +36,12 @@ jobs:
       - name: Checkout Hyprland
         uses: actions/checkout@v3
 
-      - name: Build Hyprland
+      - name: Build Hyprland With default settings
         run: |
           git submodule sync --recursive && git submodule update --init --force --recursive
           make all
+
+      - name: Build Hyprland with LEGACY_RENDERER
+        run: |
+          make legacyrenderer
+

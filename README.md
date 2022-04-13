@@ -17,9 +17,9 @@ Hyprland is a Dynamic Tiling Wayland Compositor in early development stages.
 For Hyprland without the land part, see <a href="https://github.com/vaxerski/Hypr">Hypr</a>, the Xorg window manager.
 
 
-WARNING! 
-Hyprland is in early dev, expect bugs, instabilities and crashes. You have been warned!
-Nevertheless, REPORT any you find! Make an issue!
+Hyprland is in early dev, expect some bugs. However, once you get it working, it's pretty stable. :P
+
+Hyprland needs testers! Try it out and report bugs or suggestions!
 
 # Key features
  - Parabolic window animations

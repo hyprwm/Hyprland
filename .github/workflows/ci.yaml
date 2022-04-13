@@ -28,7 +28,11 @@ jobs:
       - name: Get wlroots-git
         run: |
           su githubuser -c "yay -S --mflags --skipinteg --noprovides --answerclean All --answerdiff None --answeredit None --answerupgrade None wlroots-git"
-
+          
+      - name: Fix permissions for git
+        run: |
+          git config --global --add safe.directory /__w/Hyprland/Hyprland
+        
       - name: Checkout Hyprland
         uses: actions/checkout@v3
 

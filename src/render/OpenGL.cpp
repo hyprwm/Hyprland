@@ -566,12 +566,17 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 
     // get the adequate tex
     std::string texPath = "/usr/share/hyprland/wall_";
-    if (pMonitor->vecSize.x > 7000)
+    Vector2D textureSize;
+    if (pMonitor->vecSize.x > 7000) {
+        textureSize = Vector2D(7680, 4320);
         texPath += "8K.png";
-    else if (pMonitor->vecSize.x > 3000)
+    } else if (pMonitor->vecSize.x > 3000) {
+        textureSize = Vector2D(3840, 2160);
         texPath += "4K.png";
-    else
+    } else {
+        textureSize = Vector2D(1920, 1080);
         texPath += "2K.png";
+    }
 
     // create a new one with cairo
     const auto CAIROSURFACE = cairo_image_surface_create_from_png(texPath.c_str());
@@ -587,7 +592,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
     #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pMonitor->vecSize.x, pMonitor->vecSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureSize.x, textureSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);
     cairo_destroy(CAIRO);

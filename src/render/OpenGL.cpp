@@ -18,6 +18,10 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     Debug::log(LOG, "Renderer: %s", glGetString(GL_RENDERER));
     Debug::log(LOG, "Supported extensions size: %d", std::count(m_szExtensions.begin(), m_szExtensions.end(), ' '));
 
+    #ifdef GLES2
+    Debug::log(WARN, "!RENDERER: Using the legacy GLES2 renderer!");
+    #endif
+
     // Init shaders
 
     GLuint prog = createProgram(QUADVERTSRC, QUADFRAGSRC);
@@ -509,7 +513,11 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     g_pConfigManager->setInt("decoration:blur", BLURVAL);
 
     // restore original fb
+    #ifndef GLES2
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);
+    #else
+    glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
+    #endif
     glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y);
 
     end();
@@ -575,8 +583,10 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
     glBindTexture(GL_TEXTURE_2D, PTEX->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    #ifndef GLES2
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    #endif
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pMonitor->vecSize.x, pMonitor->vecSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);

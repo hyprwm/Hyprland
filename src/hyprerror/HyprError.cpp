@@ -64,8 +64,12 @@ void CHyprError::createQueued() {
     glBindTexture(GL_TEXTURE_2D, m_tTexture.m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    
+    #ifndef GLES2
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    #endif
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecSize.x, PMONITOR->vecSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     // delete cairo

@@ -59,6 +59,14 @@ idle-protocol.c:
 
 idle-protocol.o: idle-protocol.h
 
+legacyrenderer:
+	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:STRING=true -H./ -B./build -G Ninja
+	cmake --build ./build --config Release --target all -j 10
+
+legacyrendererdebug:
+	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:STRING=true -H./ -B./build -G Ninja
+	cmake --build ./build --config Release --target all -j 10
+
 release:
 	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja
 	cmake --build ./build --config Release --target all -j 10

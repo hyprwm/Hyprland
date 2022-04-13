@@ -37,7 +37,7 @@ private:
 
     std::list<SKeyboard> m_lKeyboards;
 
-    void            mouseMoveUnified(uint32_t);
+    void            mouseMoveUnified(uint32_t, bool refocus = false);
 
 };
 

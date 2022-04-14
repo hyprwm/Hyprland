@@ -366,7 +366,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (m_pLastWindow == pWindow)
+    if (m_pLastWindow == pWindow && m_sSeat.seat->keyboard_state.focused_surface == pSurface)
         return;
 
     if (windowValidMapped(m_pLastWindow) && m_pLastWindow->m_bIsX11) {

@@ -101,12 +101,9 @@ void CHyprError::draw() {
     if (g_pHyprOpenGL->m_RenderData.pMonitor != PMONITOR)
         return; // wrong mon
 
-    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
-    float matrix[9];
     wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
-    wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, PMONITOR->output->transform_matrix);
 
-    g_pHyprOpenGL->renderTexture(m_tTexture, matrix, 255.f, 0);
+    g_pHyprOpenGL->renderTexture(m_tTexture, &windowBox, 255.f, 0);
 }
 
 void CHyprError::destroy() {

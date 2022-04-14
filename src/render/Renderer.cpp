@@ -27,20 +27,14 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     }
     scaleBox(&windowBox, RDATA->output->scale);
 
-    const auto TRANSFORM = wlr_output_transform_invert(surface->current.transform);
-    float matrix[9];
-    wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, RDATA->output->transform_matrix);
-
     if (RDATA->surface && surface == RDATA->surface)
-        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, matrix, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
+        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
     else
-        g_pHyprOpenGL->renderTexture(TEXTURE, matrix, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
+        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
-
-    g_pHyprOpenGL->scissor(nullptr);
 }
 
 bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
@@ -432,51 +426,52 @@ void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor, fl
     g_pHyprOpenGL->renderBorder(&border, BORDERCOL, BORDERSIZE, g_pConfigManager->getInt("decoration:rounding"));
 }
 
-void damageSurfaceIter(struct wlr_surface* surface, int x, int y, void* data) {
-    auto* renderdata = (SRenderData*)data;
-    bool entire = (bool*)renderdata->data;
+void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
+    if (!pSurface)
+        return; // wut?
 
-    wlr_box box = {.x = renderdata->x, .y = renderdata->y, .width = renderdata->w, .height = renderdata->h};
-    scaleBox(&box, renderdata->output->scale);
+    pixman_region32_t damageBox;
+    pixman_region32_init(&damageBox);
+    wlr_surface_get_effective_damage(pSurface, &damageBox);
 
-    pixman_region32_t damageRegion;
-    pixman_region32_init(&damageRegion);
-    wlr_surface_get_effective_damage(renderdata->surface, &damageRegion);
-    wlr_region_scale(&damageRegion, &damageRegion, renderdata->output->scale);
+    pixman_region32_translate(&damageBox, x, y);
 
-    if (std::ceil(renderdata->output->scale) > renderdata->surface->current.scale) {
-        wlr_region_expand(&damageRegion, &damageRegion, std::ceil(renderdata->output->scale) - renderdata->surface->current.scale);
+    for (auto& m : g_pCompositor->m_lMonitors) {
+        double lx = 0, ly = 0;
+        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m.output, &lx, &ly);
+        pixman_region32_translate(&damageBox, lx, ly);
+        wlr_output_damage_add(m.damage, &damageBox);
+        pixman_region32_translate(&damageBox, -lx, -ly);
     }
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(renderdata->output);
+    pixman_region32_fini(&damageBox);
+}
 
-    pixman_region32_translate(&damageRegion, box.x, box.y);
-    wlr_output_damage_add(PMONITOR->damage, &damageRegion);
-    pixman_region32_fini(&damageRegion);
+void CHyprRenderer::damageWindow(CWindow* pWindow) {
+    if (!pWindow->m_bIsFloating) {
+        // damage by size & pos
+        // TODO TEMP: revise when added shadows/etc
 
-    if (entire)
-        wlr_output_damage_add_box(PMONITOR->damage, &box);
-
-    if (!wl_list_empty(&surface->current.frame_callback_list)) {
-        wlr_output_schedule_frame(renderdata->output);
+        wlr_box damageBox = {pWindow->m_vPosition.x, pWindow->m_vPosition.y, pWindow->m_vSize.x, pWindow->m_vSize.y};
+        for (auto& m : g_pCompositor->m_lMonitors)
+            wlr_output_damage_add_box(m.damage, &damageBox);
+    } else {
+        // damage by effective size & pos + border size + 1 (JIC)
+        const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
+        wlr_box damageBox = { pWindow->m_vEffectivePosition.x - BORDERSIZE - 1, pWindow->m_vEffectivePosition.y - BORDERSIZE - 1, pWindow->m_vEffectiveSize.x + 2 * BORDERSIZE + 2, pWindow->m_vEffectiveSize.y + 2 * BORDERSIZE + 2};
+        for (auto& m : g_pCompositor->m_lMonitors)
+            wlr_output_damage_add_box(m.damage, &damageBox);
     }
 }
 
-void CHyprRenderer::damageSurface(SMonitor* pMonitor, double x, double y, wlr_surface* pSurface, void* data) {
-    if (!pSurface || !pMonitor)
-        return; // wut?
+void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
+    wlr_box damageBox = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
+    wlr_output_damage_add_box(pMonitor->damage, &damageBox);
+}
 
-    SRenderData renderData = {
-        .output = pMonitor->output,
-        .x = x,
-        .y = y,
-        .data = data,
-        .surface = pSurface,
-        .w = pSurface->current.width,
-        .h = pSurface->current.height
-    };
-
-    wlr_surface_for_each_surface(pSurface, damageSurfaceIter, &renderData);
+void CHyprRenderer::damageBox(wlr_box* pBox) {
+    for (auto& m : g_pCompositor->m_lMonitors)
+        wlr_output_damage_add_box(m.damage, pBox);
 }
 
 void CHyprRenderer::renderDragIcon(SMonitor* pMonitor, timespec* time) {
@@ -489,4 +484,15 @@ void CHyprRenderer::renderDragIcon(SMonitor* pMonitor, timespec* time) {
     renderdata.h = g_pInputManager->m_sDrag.dragIcon->surface->current.height;
 
     wlr_surface_for_each_surface(g_pInputManager->m_sDrag.dragIcon->surface, renderSurface, &renderdata);
+}
+
+DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& mode) {
+    if (mode == "full")
+        return DAMAGE_TRACKING_FULL;
+    if (mode == "monitor")
+        return DAMAGE_TRACKING_MONITOR;
+    if (mode == "none")
+        return DAMAGE_TRACKING_NONE;
+
+    return DAMAGE_TRACKING_INVALID;
 }

@@ -1,5 +1,6 @@
 #include "SubsurfaceTree.hpp"
 #include "../events/Events.hpp"
+#include "../Compositor.hpp"
 
 void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
     *lx += node->pSurface->sx;
@@ -164,6 +165,8 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
     int lx = 0, ly = 0;
 
     addSurfaceGlobalOffset(pNode, &lx, &ly);
+
+    g_pHyprRenderer->damageSurface(pNode->pSurface, lx, ly);
 }
 
 void Events::listener_destroySubsurface(void* owner, void* data) {

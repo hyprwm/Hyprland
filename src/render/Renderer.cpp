@@ -457,7 +457,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     } else {
         // damage by real size & pos + border size * 2 (JIC)
         const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
-        wlr_box damageBox = { pWindow->m_vRealPosition.x - BORDERSIZE * 2 - 1, pWindow->m_vRealPosition.y - BORDERSIZE * 2 - 1, pWindow->m_vRealSize.x + 4 * BORDERSIZE + 2, pWindow->m_vRealSize.y + 4 * BORDERSIZE + 2};
+        wlr_box damageBox = { pWindow->m_vRealPosition.x - BORDERSIZE - 1, pWindow->m_vRealPosition.y - BORDERSIZE - 1, pWindow->m_vRealSize.x + 2 * BORDERSIZE + 2, pWindow->m_vRealSize.y + 2 * BORDERSIZE + 2};
         for (auto& m : g_pCompositor->m_lMonitors)
             wlr_output_damage_add_box(m.damage, &damageBox);
     }

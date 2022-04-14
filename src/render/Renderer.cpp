@@ -21,7 +21,6 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_box windowBox;
     if (RDATA->surface && surface == RDATA->surface) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
-        g_pHyprOpenGL->scissor(&windowBox);
     } else {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, surface->current.width, surface->current.height};
     }
@@ -456,9 +455,9 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
         for (auto& m : g_pCompositor->m_lMonitors)
             wlr_output_damage_add_box(m.damage, &damageBox);
     } else {
-        // damage by effective size & pos + border size + 1 (JIC)
+        // damage by real size & pos + border size * 2 (JIC)
         const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
-        wlr_box damageBox = { pWindow->m_vEffectivePosition.x - BORDERSIZE - 1, pWindow->m_vEffectivePosition.y - BORDERSIZE - 1, pWindow->m_vEffectiveSize.x + 2 * BORDERSIZE + 2, pWindow->m_vEffectiveSize.y + 2 * BORDERSIZE + 2};
+        wlr_box damageBox = { pWindow->m_vRealPosition.x - BORDERSIZE * 2 - 1, pWindow->m_vRealPosition.y - BORDERSIZE * 2 - 1, pWindow->m_vRealSize.x + 4 * BORDERSIZE + 2, pWindow->m_vRealSize.y + 4 * BORDERSIZE + 2};
         for (auto& m : g_pCompositor->m_lMonitors)
             wlr_output_damage_add_box(m.damage, &damageBox);
     }

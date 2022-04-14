@@ -179,6 +179,8 @@ void CHyprOpenGLImpl::clear(const CColor& color) {
             glClear(GL_COLOR_BUFFER_BIT);
         }
     }
+
+    scissor((wlr_box*)nullptr);
 }
 
 void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
@@ -248,6 +250,7 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
 void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
+    // TODO: optimize this, this is bad
     if (pixman_region32_not_empty(m_RenderData.pDamage)) {
         PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
             const auto RECT = RECTSARR[i];
@@ -256,6 +259,8 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float al
             renderTextureInternal(tex, pBox, alpha, round);
         }
     }
+
+    scissor((wlr_box*)nullptr);
 }
 
 void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, float alpha, int round) {
@@ -329,12 +334,28 @@ void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, 
     glBindTexture(tex.m_iTarget, 0);
 }
 
+void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, int round) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
+
+    // TODO: optimize this, this is bad
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+
+            renderTextureWithBlurInternal(tex, pBox, a, round);
+        }
+    }
+
+    scissor((wlr_box*)nullptr);
+}
+
 // This is probably not the quickest method possible,
 // feel free to contribute if you have a better method.
 // cheers.
 
 // 2-pass pseudo-gaussian blur
-void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, int round) {
+void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box* pBox, float a, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 

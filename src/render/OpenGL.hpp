@@ -90,6 +90,7 @@ private:
     void                    createBGTextureForMonitor(SMonitor*);
 
     void                    renderTextureInternal(const CTexture&, wlr_box* pBox, float a, int round = 0);
+    void                    renderTextureWithBlurInternal(const CTexture&, wlr_box*, float a, int round = 0);
     
 };
 

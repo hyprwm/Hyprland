@@ -27,6 +27,8 @@ inline const float fullVerts[] = {
 struct SCurrentRenderData {
     SMonitor*   pMonitor = nullptr;
     float       projection[9];
+
+    pixman_region32_t* pDamage = nullptr;
 };
 
 struct SMonitorRenderData {
@@ -41,13 +43,13 @@ public:
 
     CHyprOpenGLImpl();
 
-    void    begin(SMonitor*);
+    void    begin(SMonitor*, pixman_region32_t*);
     void    end();
 
     void    renderRect(wlr_box*, const CColor&);
-    void    renderTexture(wlr_texture*, float matrix[9], float a, int round = 0);
-    void    renderTexture(const CTexture&, float matrix[9], float a, int round = 0);
-    void    renderTextureWithBlur(const CTexture&, float matrix[9], float a, int round = 0);
+    void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
+    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0);
+    void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, int round = 0);
     void    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 
     void    makeWindowSnapshot(CWindow*);
@@ -56,6 +58,7 @@ public:
     void    clear(const CColor&);
     void    clearWithTex();
     void    scissor(const wlr_box*);
+    void    scissor(const pixman_box32*);
 
     SCurrentRenderData m_RenderData;
 
@@ -85,6 +88,9 @@ private:
     GLuint                  createProgram(const std::string&, const std::string&);
     GLuint                  compileShader(const GLuint&, std::string);
     void                    createBGTextureForMonitor(SMonitor*);
+
+    void                    renderTextureInternal(const CTexture&, wlr_box* pBox, float a, int round = 0);
+    
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

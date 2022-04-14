@@ -380,8 +380,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     g_pXWaylandManager->activateWindow(pWindow, true);
 
-    // do pointer focus too
-    wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, 0, 0);
+    // do pointer focus too                                     
+    const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition;
+    wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, POINTERLOCAL.x, POINTERLOCAL.y);
 
     m_pLastWindow = pWindow;
 }

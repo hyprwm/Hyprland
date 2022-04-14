@@ -54,6 +54,7 @@ CCompositor::CCompositor() {
     m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);
     m_sWLRDataDevMgr = wlr_data_device_manager_create(m_sWLDisplay);
 
+    m_sWLRDmabuf = wlr_linux_dmabuf_v1_create(m_sWLDisplay, m_sWLRRenderer);
     wlr_export_dmabuf_manager_v1_create(m_sWLDisplay);
     wlr_screencopy_manager_v1_create(m_sWLDisplay);
     wlr_data_control_manager_v1_create(m_sWLDisplay);

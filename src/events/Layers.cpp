@@ -156,4 +156,6 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
+
+    g_pHyprRenderer->damageBox(&layersurface->geometry);
 }

@@ -361,7 +361,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box
 
     // if blur disabled, just render the texture
     if (g_pConfigManager->getInt("decoration:blur") == 0) {
-        renderTexture(tex, pBox, a, round);
+        renderTextureInternal(tex, pBox, a, round);
         return;
     }
 
@@ -384,7 +384,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // render our window to the mirror FB while also writing to the stencil
-    renderTexture(tex, pBox, a, round);
+    renderTextureInternal(tex, pBox, a, round);
 
     // then we disable writing to the mask and ONLY accept writing within the stencil
     glStencilFunc(GL_EQUAL, 1, -1);
@@ -448,7 +448,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box
 
     // when the blur is done, let's render the window itself
     // we get it from the mirrored FB                                 full because it's the FB   255 alpha cuz we rendered with a before, same for rounding
-    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex, &fullMonBox, 255.f, 0);
+    renderTextureInternal(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex, &fullMonBox, 255.f, 0);
 
     // and disable the stencil
     glStencilMask(-1);
@@ -618,7 +618,7 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
-    renderTexture(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha, 0);
+    renderTextureInternal(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha, 0);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {

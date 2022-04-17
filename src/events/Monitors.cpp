@@ -157,6 +157,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     PNEWMONITOR->activeWorkspace = PNEWWORKSPACE->m_iID;
 
+    PNEWMONITOR->scale = monitorRule.scale;
+
     g_pCompositor->deactivateAllWLRWorkspaces();
     wlr_ext_workspace_handle_v1_set_active(PNEWWORKSPACE->m_pWlrHandle, true);
     //

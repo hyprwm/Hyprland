@@ -14,6 +14,7 @@ struct SMonitor {
 
     uint64_t    ID              = -1;
     int         activeWorkspace = -1;
+    float       scale = 1;
 
     std::string szName          = "";
 

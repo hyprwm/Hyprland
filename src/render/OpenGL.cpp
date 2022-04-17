@@ -1,5 +1,6 @@
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
+#include "../helpers/MiscFunctions.hpp"
 
 CHyprOpenGLImpl::CHyprOpenGLImpl() {
     RASSERT(eglMakeCurrent(g_pCompositor->m_sWLREGL->display, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pCompositor->m_sWLREGL->context), "Couldn't make the EGL current!");
@@ -140,8 +141,8 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
         m_mMonitorRenderResources[pMonitor].primaryFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
         m_mMonitorRenderResources[pMonitor].mirrorFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
 
-        m_mMonitorRenderResources[pMonitor].primaryFB.alloc(pMonitor->vecSize.x, pMonitor->vecSize.y);
-        m_mMonitorRenderResources[pMonitor].mirrorFB.alloc(pMonitor->vecSize.x, pMonitor->vecSize.y);
+        m_mMonitorRenderResources[pMonitor].primaryFB.alloc(pMonitor->vecSize.x * pMonitor->scale, pMonitor->vecSize.y * pMonitor->scale);
+        m_mMonitorRenderResources[pMonitor].mirrorFB.alloc(pMonitor->vecSize.x * pMonitor->scale, pMonitor->vecSize.y * pMonitor->scale);
 
         createBGTextureForMonitor(pMonitor);
     }
@@ -162,6 +163,7 @@ void CHyprOpenGLImpl::end() {
 
     clear(CColor(11, 11, 11, 255));
 
+    scaleBox(&windowBox, m_RenderData.pMonitor->scale);
     renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &windowBox, 255.f, 0);
 
     // reset our data
@@ -469,6 +471,8 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
 void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, int radius) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
+
+    scaleBox(box, m_RenderData.pMonitor->scale);
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here

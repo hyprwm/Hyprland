@@ -55,3 +55,10 @@ std::string getFormat(const char *fmt, ...) {
 
     return std::string(buf);
 }
+
+void scaleBox(wlr_box* box, float scale) {
+    box->width = std::round((box->x + box->width) * scale) - std::round(box->x * scale);
+    box->height = std::round((box->y + box->height) * scale) - std::round(box->y * scale);
+    box->x = std::round(box->x * scale);
+    box->y = std::round(box->y * scale);
+}

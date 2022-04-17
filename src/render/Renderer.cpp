@@ -1,13 +1,6 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 
-void scaleBox(wlr_box* box, float scale) {
-    box->width = std::round((box->x + box->width) * scale) - std::round(box->x * scale);
-    box->height = std::round((box->y + box->height) * scale) - std::round(box->y * scale);
-    box->x = std::round(box->x * scale);
-    box->y = std::round(box->y * scale);
-}
-
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE = wlr_surface_get_texture(surface);
     const auto RDATA = (SRenderData*)data;
@@ -465,12 +458,14 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 
 void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
     wlr_box damageBox = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
+    scaleBox(&damageBox, pMonitor->scale);
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
 }
 
 void CHyprRenderer::damageBox(wlr_box* pBox) {
-    for (auto& m : g_pCompositor->m_lMonitors)
+    for (auto& m : g_pCompositor->m_lMonitors) {
         wlr_output_damage_add_box(m.damage, pBox);
+    }
 }
 
 void CHyprRenderer::renderDragIcon(SMonitor* pMonitor, timespec* time) {

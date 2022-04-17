@@ -50,6 +50,7 @@ public:
     wlr_egl*                         m_sWLREGL;
     int                              m_iDRMFD;
     wlr_ext_workspace_manager_v1*    m_sWLREXTWorkspaceMgr;
+    wlr_linux_dmabuf_v1*             m_sWLRDmabuf;
     // ------------------------------------------------- //
 
 

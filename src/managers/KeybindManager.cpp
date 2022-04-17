@@ -56,6 +56,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         else if (k.handler == "movefocus") { moveFocusTo(k.arg); }
         else if (k.handler == "togglegroup") { toggleGroup(k.arg); }
         else if (k.handler == "changegroupactive") { changeGroupActive(k.arg); }
+        else {
+            Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
+        }
 
         found = true;
     }
@@ -130,10 +133,28 @@ void CKeybindManager::toggleActivePseudo(std::string args) {
 
 void CKeybindManager::changeworkspace(std::string args) {
     int workspaceToChangeTo = 0;
-    try {
-        workspaceToChangeTo = stoi(args);
-    } catch (...) {
-        Debug::log(ERR, "Invalid arg \"%s\" in changeWorkspace!", args.c_str());
+
+    if (args.find_first_of("+") == 0) {
+        try {
+            workspaceToChangeTo = g_pCompositor->m_pLastMonitor->activeWorkspace + std::stoi(args.substr(1));
+        } catch (...) {
+            Debug::log(ERR, "Invalid arg \"%s\" in changeWorkspace!", args.c_str());
+            return;
+        }
+    } else if (args.find_first_of("-") == 0) {
+        try {
+            workspaceToChangeTo = std::clamp(g_pCompositor->m_pLastMonitor->activeWorkspace - std::stoi(args.substr(1)), 1, INT_MAX);
+        } catch (...) {
+            Debug::log(ERR, "Invalid arg \"%s\" in changeWorkspace!", args.c_str());
+            return;
+        }
+    } else {
+        try {
+            workspaceToChangeTo = stoi(args);
+        } catch (...) {
+            Debug::log(ERR, "Invalid arg \"%s\" in changeWorkspace!", args.c_str());
+            return;
+        }
     }
 
     // if it exists, we warp to it
@@ -171,6 +192,9 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 
+        // focus
+        g_pInputManager->refocus();
+
         return;
     }
 
@@ -200,6 +224,9 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // mark the monitor dirty
     g_pHyprRenderer->damageMonitor(PMONITOR);
+
+    // focus (clears the last)
+    g_pInputManager->refocus();
 
     Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }

@@ -145,6 +145,14 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
     nextItem();
 
+    if (curitem == "disable" || curitem == "disabled") {
+        newrule.disabled = true;
+
+        m_dMonitorRules.push_back(newrule);
+
+        return;
+    }
+
     newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
     newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));
 

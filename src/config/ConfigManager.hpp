@@ -26,6 +26,7 @@ struct SMonitorRule {
     float       scale = 1;
     float       refreshRate = 60;
     int         defaultWorkspaceID = -1;
+    bool        disabled = false;
 };
 
 struct SWindowRule {

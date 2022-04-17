@@ -21,7 +21,13 @@ void CAnimationManager::tick() {
     const auto BORDERACTIVECOL  = CColor(g_pConfigManager->getInt("general:col.active_border"));
     const auto BORDERINACTIVECOL = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
 
+    const auto BORDERSIZE       = g_pConfigManager->getInt("general:border_size");
+
     for (auto& w : g_pCompositor->m_lWindows) {
+
+        // get the box before transforms, for damage tracking later
+        wlr_box WLRBOXPREV = { w.m_vRealPosition.x - BORDERSIZE - 1, w.m_vRealPosition.y - BORDERSIZE - 1, w.m_vRealSize.x + 2 * BORDERSIZE + 2, w.m_vRealSize.y + 2 * BORDERSIZE + 2};
+        bool needsDamage = false;
 
         // process fadeinout
         if (FADEENABLED) {
@@ -36,21 +42,34 @@ void CAnimationManager::tick() {
                         w.m_bFadingOut = true;
                     w.m_fAlpha = parabolic(w.m_fAlpha, GOALALPHA, FADESPEED);
                 }
+
+                needsDamage = true;
             }
 
         } else {
-            if (w.m_bIsMapped)
-                w.m_fAlpha = 255.f;
-            else {
-                w.m_fAlpha = 0.f;
-                w.m_bFadingOut = false;
+            const auto GOALALPHA = w.m_bIsMapped ? 255.f : 0.f;
+
+            if (!deltazero(GOALALPHA, w.m_fAlpha)) {
+                if (w.m_bIsMapped)
+                    w.m_fAlpha = 255.f;
+                else {
+                    w.m_fAlpha = 0.f;
+                    w.m_bFadingOut = false;
+                }
+
+                needsDamage = true;
             }
         }
 
         // process fadein/out for unmapped windows, but nothing else.
         // we can't use windowValidMapped because we want to animate hidden windows too.
-        if (!g_pCompositor->windowExists(&w) || !w.m_bIsMapped || !g_pXWaylandManager->getWindowSurface(&w))
+        if (!g_pCompositor->windowExists(&w) || !w.m_bIsMapped || !g_pXWaylandManager->getWindowSurface(&w)){
+            if (needsDamage) {
+                g_pHyprRenderer->damageWindow(&w); // only window, it didnt move cuz its unmappy
+            }
+
             continue;
+        }
 
         // process the borders
         const auto RENDERHINTS = g_pLayoutManager->getCurrentLayout()->requestRenderHints(&w);
@@ -64,8 +83,11 @@ void CAnimationManager::tick() {
                 } else {
                     w.m_cRealBorderColor = parabolic(BORDERSPEED, w.m_cRealBorderColor, COLOR);
                 }
+                needsDamage = true;
             }
         } else {
+            if (!deltazero(w.m_cRealBorderColor, COLOR))
+                needsDamage = true;
             w.m_cRealBorderColor = COLOR;
         }
 
@@ -81,10 +103,20 @@ void CAnimationManager::tick() {
                     w.m_vRealPosition = Vector2D(parabolic(w.m_vRealPosition.x, w.m_vEffectivePosition.x, WINDOWSPEED), parabolic(w.m_vRealPosition.y, w.m_vEffectivePosition.y, WINDOWSPEED));
                     w.m_vRealSize = Vector2D(parabolic(w.m_vRealSize.x, w.m_vEffectiveSize.x, WINDOWSPEED), parabolic(w.m_vRealSize.y, w.m_vEffectiveSize.y, WINDOWSPEED));
                 }
+
+                needsDamage = true;
             }
         } else {
+            if (!deltazero(w.m_vRealPosition, w.m_vEffectivePosition) || !deltazero(w.m_vRealSize, w.m_vEffectiveSize))
+                needsDamage = true;
+
             w.m_vRealPosition = w.m_vEffectivePosition;
             w.m_vRealSize = w.m_vEffectiveSize;
+        }
+
+        if (needsDamage) {
+            g_pHyprRenderer->damageBox(&WLRBOXPREV);
+            g_pHyprRenderer->damageWindow(&w);
         }
     }
 }
@@ -97,8 +129,16 @@ bool CAnimationManager::deltaSmallToFlip(const CColor& a, const CColor& b) {
     return std::abs(a.r - b.r) < 0.5f && std::abs(a.g - b.g) < 0.5f && std::abs(a.b - b.b) < 0.5f && std::abs(a.a - b.a) < 0.5f;
 }
 
+bool CAnimationManager::deltaSmallToFlip(const float& a, const float& b) {
+    return std::abs(a - b) < 0.5f;
+}
+
 bool CAnimationManager::deltazero(const Vector2D& a, const Vector2D& b) {
     return a.x == b.x && a.y == b.y;
+}
+
+bool CAnimationManager::deltazero(const float& a, const float& b) {
+    return a == b;
 }
 
 bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {

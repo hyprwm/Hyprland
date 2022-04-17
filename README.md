@@ -28,6 +28,7 @@ Hyprland needs testers! Try it out and report bugs or suggestions!
  - Rounded corners
  - Window blur
  - Workspaces Protocol support
+ - Damage tracking (experimental)
  - Fade in/out
  - Support for docks/whatever
  - Window rules
@@ -37,7 +38,6 @@ Hyprland needs testers! Try it out and report bugs or suggestions!
  - Moving/resizing windows
 
 # Major to-dos
- - Damage tracking
  - Input Methods (wlr_input_method_v2)
  - Animations (some new, like workspace)
  - Fix electron rendering issues

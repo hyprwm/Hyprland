@@ -118,7 +118,7 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src) {
     return shader;
 }
 
-void CHyprOpenGLImpl::begin(SMonitor* pMonitor) {
+void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
     m_RenderData.pMonitor = pMonitor;
 
     glViewport(0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y);
@@ -145,20 +145,21 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor) {
 
     // bind the primary Hypr Framebuffer
     m_mMonitorRenderResources[pMonitor].primaryFB.bind();
+
+    m_RenderData.pDamage = pDamage;
+
+    // clear
     clear(CColor(11, 11, 11, 255));
 }
 
 void CHyprOpenGLImpl::end() {
     // end the render, copy the data to the WLR framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
-    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
-    float matrix[9];
     wlr_box windowBox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
-    wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
     clear(CColor(11, 11, 11, 255));
 
-    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, matrix, 255.f, 0);
+    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &windowBox, 255.f, 0);
 
     // reset our data
     m_RenderData.pMonitor = nullptr;
@@ -169,7 +170,17 @@ void CHyprOpenGLImpl::clear(const CColor& color) {
     RASSERT(m_RenderData.pMonitor, "Tried to render without begin()!");
 
     glClearColor(color.r / 255.f, color.g / 255.f, color.b / 255.f, color.a / 255.f);
-    glClear(GL_COLOR_BUFFER_BIT);
+
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
+    }
+
+    scissor((wlr_box*)nullptr);
 }
 
 void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
@@ -184,9 +195,23 @@ void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
     glEnable(GL_SCISSOR_TEST);
 }
 
+void CHyprOpenGLImpl::scissor(const pixman_box32* pBox) {
+    RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
+
+    if (!pBox) {
+        glDisable(GL_SCISSOR_TEST);
+        return;
+    }
+
+    glScissor(pBox->x1, pBox->y1, pBox->x2 - pBox->x1, pBox->y2 - pBox->y1);
+    glEnable(GL_SCISSOR_TEST);
+}
+
 void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
+
+    // TODO: respect damage
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
@@ -216,15 +241,36 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
     glDisableVertexAttribArray(m_shQUAD.posAttrib);
 }
 
-void CHyprOpenGLImpl::renderTexture(wlr_texture* tex,float matrix[9], float alpha, int round) {
+void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTexture(CTexture(tex), matrix, alpha, round);
+    renderTexture(CTexture(tex), pBox, alpha, round);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float alpha, int round) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
+
+    // TODO: optimize this, this is bad
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+
+            renderTextureInternal(tex, pBox, alpha, round);
+        }
+    }
+
+    scissor((wlr_box*)nullptr);
+}
+
+void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, float alpha, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
+
+    // get transform
+    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
+    float matrix[9];
+    wlr_matrix_project_box(matrix, pBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -288,20 +334,41 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, float matrix[9], float 
     glBindTexture(tex.m_iTarget, 0);
 }
 
+void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, int round) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
+
+    // TODO: optimize this, this is bad
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+
+            renderTextureWithBlurInternal(tex, pBox, a, round);
+        }
+    }
+
+    scissor((wlr_box*)nullptr);
+}
+
 // This is probably not the quickest method possible,
 // feel free to contribute if you have a better method.
 // cheers.
 
 // 2-pass pseudo-gaussian blur
-void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9], float a, int round) {
+void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box* pBox, float a, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
     // if blur disabled, just render the texture
     if (g_pConfigManager->getInt("decoration:blur") == 0) {
-        renderTexture(tex, matrix, a, round);
+        renderTextureInternal(tex, pBox, a, round);
         return;
     }
+
+    // get transform
+    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
+    float matrix[9];
+    wlr_matrix_project_box(matrix, pBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
     // bind the mirror FB and clear it.
     m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.bind();
@@ -317,7 +384,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // render our window to the mirror FB while also writing to the stencil
-    renderTexture(tex, matrix, a, round);
+    renderTextureInternal(tex, pBox, a, round);
 
     // then we disable writing to the mask and ONLY accept writing within the stencil
     glStencilFunc(GL_EQUAL, 1, -1);
@@ -332,7 +399,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
     // now we make the blur by blurring the main framebuffer (it will only affect the stencil)
 
     // matrix
-    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
     float matrixFull[9];
     wlr_box fullMonBox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
     wlr_matrix_project_box(matrixFull, &fullMonBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
@@ -382,7 +448,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, float matrix[9]
 
     // when the blur is done, let's render the window itself
     // we get it from the mirrored FB                                 full because it's the FB   255 alpha cuz we rendered with a before, same for rounding
-    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex, matrixFull, 255.f, 0);
+    renderTextureInternal(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex, &fullMonBox, 255.f, 0);
 
     // and disable the stencil
     glStencilMask(-1);
@@ -485,7 +551,16 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
     wlr_output_attach_render(PMONITOR->output, nullptr);
 
-    begin(PMONITOR);
+    // we need to "damage" the entire monitor
+    // so that we render the entire window
+    // this is temporary, doesnt mess with the actual wlr damage
+    pixman_region32_t fakeDamage;
+    pixman_region32_init(&fakeDamage);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+
+    begin(PMONITOR, &fakeDamage);
+
+    pixman_region32_fini(&fakeDamage);
 
     const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
 
@@ -541,12 +616,9 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-    const auto TRANSFORM = wlr_output_transform_invert(it->second.m_tTransform);
-    float matrix[9];
     wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
-    wlr_matrix_project_box(matrix, &windowBox, TRANSFORM, 0, PMONITOR->output->transform_matrix);
 
-    renderTexture(it->second.m_cTex, matrix, PWINDOW->m_fAlpha, 0);
+    renderTextureInternal(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha, 0);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
@@ -603,10 +675,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
     
-    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
-    float matrix[9];
     wlr_box box = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
-    wlr_matrix_project_box(matrix, &box, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
-    renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], matrix, 255, 0);
+    renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
 }

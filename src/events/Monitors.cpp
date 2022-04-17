@@ -141,6 +141,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // add a WLR workspace group
     PNEWMONITOR->pWLRWorkspaceGroupHandle = wlr_ext_workspace_group_handle_v1_create(g_pCompositor->m_sWLREXTWorkspaceMgr);
 
+    // add damage
+    PNEWMONITOR->damage = wlr_output_damage_create(OUTPUT);
+
     // Workspace
     const auto WORKSPACEID = monitorRule.defaultWorkspaceID == -1 ? g_pCompositor->m_lWorkspaces.size() + 1 /* Cuz workspaces doesnt have the new one yet and we start with 1 */ : monitorRule.defaultWorkspaceID;
     g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID);
@@ -176,10 +179,39 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    if (!wlr_output_attach_render(PMONITOR->output, nullptr))
-        return;
+    // check the damage
+    pixman_region32_t damage;
+    bool hasChanged;
+    pixman_region32_init(&damage);
 
-    g_pHyprOpenGL->begin(PMONITOR);
+    const auto DTMODE = g_pConfigManager->getInt("general:damage_tracking_internal");
+
+    if (DTMODE == -1) {
+        Debug::log(CRIT, "Damage tracking mode -1 ????");
+        return;
+    }
+
+    if (!wlr_output_damage_attach_render(PMONITOR->damage, &hasChanged, &damage)){
+        Debug::log(ERR, "Couldn't attach render to display %s ???", PMONITOR->szName.c_str());
+        return;
+    }
+
+    if (!hasChanged && DTMODE != DAMAGE_TRACKING_NONE) {
+        pixman_region32_fini(&damage);
+        wlr_output_rollback(PMONITOR->output);
+        wlr_output_schedule_frame(PMONITOR->output); // we update shit at the monitor's Hz so we need to schedule frames because rollback wont
+        return;
+    }
+
+    // if we have no tracking or full tracking, invalidate the entire monitor
+    if (DTMODE == DAMAGE_TRACKING_NONE || DTMODE == DAMAGE_TRACKING_MONITOR) {
+        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+    }
+
+    // TODO: this is getting called with extents being 0,0,0,0 should it be?
+    // potentially can save on resources.
+
+    g_pHyprOpenGL->begin(PMONITOR, &damage);
     g_pHyprOpenGL->clear(CColor(11, 11, 11, 255));
     g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
@@ -193,7 +225,20 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     g_pHyprOpenGL->end();
 
+    // calc frame damage
+    pixman_region32_t frameDamage;
+    pixman_region32_init(&frameDamage);
+
+    const auto TRANSFORM = wlr_output_transform_invert(PMONITOR->output->transform);
+    wlr_region_transform(&frameDamage, &PMONITOR->damage->current, TRANSFORM, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+
+    wlr_output_set_damage(PMONITOR->output, &frameDamage);
+    pixman_region32_fini(&frameDamage);
+    pixman_region32_fini(&damage);
+
     wlr_output_commit(PMONITOR->output);
+
+    wlr_output_schedule_frame(PMONITOR->output);
 }
 
 void Events::listener_monitorDestroy(void* owner, void* data) {

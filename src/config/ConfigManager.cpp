@@ -16,6 +16,9 @@ CConfigManager::CConfigManager() {
     configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
 
+    configValues["general:damage_tracking"].strValue = "none";
+    configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_NONE;
+
     configValues["general:border_size"].intValue = 1;
     configValues["general:gaps_in"].intValue = 5;
     configValues["general:gaps_out"].intValue = 20;
@@ -365,8 +368,15 @@ void CConfigManager::loadConfigLoadVars() {
     if (!isFirstLaunch)
         g_pInputManager->setKeyboardLayout();
 
-    // Calculate the mod mask for main_mod
+    // Calculate the internal vars
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);
+    const auto DAMAGETRACKINGMODE = g_pHyprRenderer->damageTrackingModeFromStr(configValues["general:damage_tracking"].strValue);
+    if (DAMAGETRACKINGMODE != DAMAGE_TRACKING_INVALID)
+        configValues["general:damage_tracking_internal"].intValue = DAMAGETRACKINGMODE;
+    else {
+        parseError = "invalid value for general:damage_tracking, supported: full, monitor, none";
+        configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_NONE;
+    }
 
     // parseError will be displayed next frame
     if (parseError != "")

@@ -222,6 +222,9 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pCompositor->deactivateAllWLRWorkspaces();
     wlr_ext_workspace_handle_v1_set_active(PWORKSPACE->m_pWlrHandle, true);
 
+    // mark the monitor dirty
+    g_pHyprRenderer->damageMonitor(PMONITOR);
+
     // focus (clears the last)
     g_pInputManager->refocus();
 

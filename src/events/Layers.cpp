@@ -145,15 +145,17 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
     }
 
-    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+    if (layersurface->layerSurface->current.committed != 0) {
+        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
-    if (layersurface->layer != layersurface->layerSurface->current.layer) {
-        PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
-        PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].push_back(layersurface);
-        layersurface->layer = layersurface->layerSurface->current.layer;
+        if (layersurface->layer != layersurface->layerSurface->current.layer) {
+            PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
+            PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].push_back(layersurface);
+            layersurface->layer = layersurface->layerSurface->current.layer;
+        }
+
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
     }
-
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 }

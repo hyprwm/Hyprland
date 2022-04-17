@@ -45,15 +45,22 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // new monitor added, let's accomodate for that.
     const auto OUTPUT = (wlr_output*)data;
 
+    // get monitor rule that matches
+    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(OUTPUT->name);
+
+    // if it's disabled, disable and ignore
+    if (monitorRule.disabled) {
+        wlr_output_enable(OUTPUT, 0);
+        wlr_output_commit(OUTPUT);
+        return;
+    }
+
     SMonitor newMonitor;
     newMonitor.output = OUTPUT;
     newMonitor.ID = g_pCompositor->m_lMonitors.size();
     newMonitor.szName = OUTPUT->name;
 
     wlr_output_init_render(OUTPUT, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
-
-    // get monitor rule that matches
-    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(OUTPUT->name);
 
     wlr_output_set_scale(OUTPUT, monitorRule.scale);
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, monitorRule.scale);

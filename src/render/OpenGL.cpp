@@ -37,6 +37,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shRGBA.alpha = glGetUniformLocation(prog, "alpha");
     m_shRGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_shRGBA.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shRGBA.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
     m_shRGBX.program = prog;
@@ -45,6 +46,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shRGBX.alpha = glGetUniformLocation(prog, "alpha");
     m_shRGBX.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_shRGBX.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shRGBX.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCEXT);
     m_shEXT.program = prog;
@@ -53,6 +55,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shEXT.alpha = glGetUniformLocation(prog, "alpha");
     m_shEXT.posAttrib = glGetAttribLocation(prog, "pos");
     m_shEXT.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_shEXT.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
 
     prog = createProgram(TEXVERTSRC, FRAGBLUR1);
     m_shBLUR1.program = prog;
@@ -263,7 +266,7 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float al
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, float alpha, int round) {
+void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardOpaque) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -306,6 +309,7 @@ void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, 
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
     glUniform1i(shader->tex, 0);
     glUniform1f(shader->alpha, alpha / 255.f);
+    glUniform1i(shader->discardOpaque, (int)discardOpaque);
 
     // round is in px
     // so we need to do some maf
@@ -383,8 +387,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box
     glStencilFunc(GL_ALWAYS, 1, -1);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    // render our window to the mirror FB while also writing to the stencil
-    renderTextureInternal(tex, pBox, a, round);
+    // render our window to the mirror FB while also writing to the stencil, discard opaque pixels
+    renderTextureInternal(tex, pBox, a, round, true);
 
     // then we disable writing to the mask and ONLY accept writing within the stencil
     glStencilFunc(GL_EQUAL, 1, -1);
@@ -446,14 +450,13 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box
 
     glBindTexture(tex.m_iTarget, 0);
 
-    // when the blur is done, let's render the window itself
-    // we get it from the mirrored FB                                 full because it's the FB   255 alpha cuz we rendered with a before, same for rounding
-    renderTextureInternal(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex, &fullMonBox, 255.f, 0);
-
-    // and disable the stencil
+    // disable the stencil
     glStencilMask(-1);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glDisable(GL_STENCIL_TEST);
+
+    // when the blur is done, let's render the window itself. We can't use mirror because it had discardOpaque
+    renderTextureInternal(tex, pBox, a, round);
 }
 
 void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {

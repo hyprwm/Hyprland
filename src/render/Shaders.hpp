@@ -47,7 +47,16 @@ uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
+uniform int discardOpaque;
+
 void main() {
+
+	vec4 pixColor = texture2D(tex, v_texcoord);
+
+	if (discardOpaque == 1 && pixColor[3] == 1.0) {
+		discard;
+		return;
+	}
 
 	vec2 pixCoord = fullSize * v_texcoord;
 
@@ -84,7 +93,7 @@ void main() {
 		}
 	}
 
-	gl_FragColor = texture2D(tex, v_texcoord) * alpha;
+	gl_FragColor = pixColor * alpha;
 })#";
 
 inline const std::string TEXFRAGSRCRGBX = R"#(
@@ -98,7 +107,14 @@ uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
+uniform int discardOpaque;
+
 void main() {
+
+	if (discardOpaque == 1) {
+		discard;
+		return;
+	}
 	
 	vec2 pixCoord = fullSize * v_texcoord;
 
@@ -252,7 +268,16 @@ uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
+uniform int discardOpaque;
+
 void main() {
+
+	vec4 pixColor = texture2D(texture0, v_texcoord);
+
+	if (discardOpaque == 1 && pixColor[3] == 1.0) {
+		discard;
+		return;
+	}
 
 	vec2 pixCoord = fullSize * v_texcoord;
 
@@ -289,5 +314,5 @@ void main() {
 		}
 	}
 
-	gl_FragColor = texture2D(texture0, v_texcoord) * alpha;
+	gl_FragColor = pixColor * alpha;
 })#";

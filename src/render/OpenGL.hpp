@@ -89,7 +89,7 @@ private:
     GLuint                  compileShader(const GLuint&, std::string);
     void                    createBGTextureForMonitor(SMonitor*);
 
-    void                    renderTextureInternal(const CTexture&, wlr_box* pBox, float a, int round = 0);
+    void                    renderTextureInternal(const CTexture&, wlr_box* pBox, float a, int round = 0, bool discardOpaque = false);
     void                    renderTextureWithBlurInternal(const CTexture&, wlr_box*, float a, int round = 0);
     
 };

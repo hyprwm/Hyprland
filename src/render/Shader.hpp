@@ -17,4 +17,5 @@ public:
     GLint alpha;
     GLint posAttrib;
     GLint texAttrib;
+    GLint discardOpaque;
 };

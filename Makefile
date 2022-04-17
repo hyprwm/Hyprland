@@ -49,6 +49,16 @@ ext-workspace-unstable-v1-protocol.c:
 
 ext-workspace-unstable-v1-protocol.o: ext-workspace-unstable-v1-protocol.h
 
+pointer-constraints-unstable-v1-protocol.h:
+	$(WAYLAND_SCANNER) server-header \
+		protocols/pointer-constraints-unstable-v1.xml $@
+
+pointer-constraints-unstable-v1-protocol.c:
+	$(WAYLAND_SCANNER) private-code \
+		protocols/pointer-constraints-unstable-v1.xml $@
+
+pointer-constraints-unstable-v1-protocol.o: pointer-constraints-unstable-v1-protocol.h
+
 idle-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		protocols/idle.xml $@
@@ -102,4 +112,4 @@ uninstall:
 	rm -f /usr/bin/hyprctl
 	rm -rf /usr/share/hyprland
 
-config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o
+config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o

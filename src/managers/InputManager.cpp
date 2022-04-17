@@ -5,6 +5,8 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
 
     float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
+    wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, e->delta_x, e->delta_y, e->unaccel_dx, e->unaccel_dy);
+
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->delta_x * sensitivity, e->delta_y * sensitivity);
 
     mouseMoveUnified(e->time_msec);
@@ -129,6 +131,19 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
+
+    // constraints
+    // All constraints TODO: multiple mice?
+    if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
+        const auto CONSTRAINTWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_sSeat.mouse->currentConstraint->surface);
+
+        if (g_pCompositor->m_pLastWindow == CONSTRAINTWINDOW) {
+            // todo: this is incorrect, but it will work in most cases for now
+            // i made this cuz i wanna play minecraft lol
+            Vector2D deltaToMiddle = (CONSTRAINTWINDOW->m_vRealPosition + CONSTRAINTWINDOW->m_vRealSize / 2.f) - mouseCoords;
+            wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToMiddle.x, deltaToMiddle.y);
+        }
+    }
 }
 
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
@@ -239,6 +254,11 @@ void CInputManager::setKeyboardLayout() {
 }
 
 void CInputManager::newMouse(wlr_input_device* mouse) {
+    m_lMice.emplace_back();
+    const auto PMOUSE = &m_lMice.back();
+
+    PMOUSE->mouse = mouse;
+
     if (wlr_input_device_is_libinput(mouse)) {
         const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(mouse);
 
@@ -250,6 +270,8 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
     }
 
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
+
+    g_pCompositor->m_sSeat.mouse = PMOUSE;
 
     Debug::log(LOG, "New mouse created, pointer WLR: %x", mouse);
 }
@@ -263,7 +285,14 @@ void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
 }
 
 void CInputManager::destroyMouse(wlr_input_device* mouse) {
-    //
+    for (auto& m : m_lMice) {
+        if (m.mouse == mouse) {
+            m_lMice.remove(m);
+            return;
+        }
+    }
+
+    g_pCompositor->m_sSeat.mouse = m_lMice.size() > 0 ? &m_lMice.front() : nullptr;
 }
 
 void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
@@ -314,4 +343,70 @@ void CInputManager::updateDragIcon() {
         default:
             break;
     }
+}
+
+void CInputManager::recheckConstraint(SMouse* pMouse) {
+    if (!pMouse->currentConstraint)
+        return;
+
+    const auto MOUSECOORDS = getMouseCoordsInternal();
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(pMouse->currentConstraint->surface);
+    const auto PREGION = &pMouse->currentConstraint->region;
+
+    if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED) {
+        pixman_region32_copy(&pMouse->confinedTo, PREGION);
+    } else {
+        pixman_region32_clear(&pMouse->confinedTo);
+    }
+
+    Debug::log(LOG, "Constraint rechecked: %i, %i to %i, %i", PREGION->extents.x1, PREGION->extents.y1, PREGION->extents.x2, PREGION->extents.y2);
+}
+
+void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* constraint) {
+
+    if (pMouse->currentConstraint == constraint)
+        return;
+
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(constraint->surface);
+    const auto MOUSECOORDS = getMouseCoordsInternal();
+
+    pMouse->hyprListener_commitConstraint.removeCallback();
+
+    if (pMouse->currentConstraint) {
+        if (!constraint) {
+            // warpe to hint
+
+            if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
+                if (PWINDOW) {
+                    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
+                        constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.x, constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.y);
+
+                    wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
+                }
+            }
+        }
+        
+        wlr_pointer_constraint_v1_send_deactivated(pMouse->currentConstraint);
+    }
+
+    pMouse->currentConstraint = constraint;
+
+    if (pixman_region32_not_empty(&constraint->current.region)) {
+        pixman_region32_intersect(&constraint->region, &constraint->surface->input_region, &constraint->current.region);
+    } else {
+        pixman_region32_copy(&constraint->region, &constraint->surface->input_region);
+    }
+
+    // warp to the constraint
+    recheckConstraint(pMouse);
+
+    wlr_pointer_constraint_v1_send_activated(pMouse->currentConstraint);
+
+    pMouse->hyprListener_commitConstraint.initCallback(&pMouse->currentConstraint->surface->events.commit, &Events::listener_commitConstraint, pMouse, "Mouse constraint commit");
+
+    Debug::log(LOG, "Constrained mouse to %x", pMouse->currentConstraint);
+}
+
+void Events::listener_commitConstraint(void* owner, void* data) {
+    //g_pInputManager->recheckConstraint((SMouse*)owner);
 }

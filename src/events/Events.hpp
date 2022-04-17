@@ -65,6 +65,11 @@ namespace Events {
     DYNLISTENFUNC(keyboardKey);
     DYNLISTENFUNC(keyboardMod);
     DYNLISTENFUNC(keyboardDestroy);
+    
+    DYNLISTENFUNC(commitConstraint);
+    LISTENER(newConstraint);
+    DYNLISTENFUNC(setConstraintRegion);
+    DYNLISTENFUNC(destroyConstraint);
 
     // Various
     LISTENER(requestMouse);

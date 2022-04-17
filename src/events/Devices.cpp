@@ -81,3 +81,39 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
 
     wlr_seat_set_capabilities(g_pCompositor->m_sSeat.seat, capabilities);
 }
+
+void Events::listener_newConstraint(wl_listener* listener, void* data) {
+    const auto PCONSTRAINT = (wlr_pointer_constraint_v1*)data;
+
+    Debug::log(LOG, "New mouse constraint at %x", PCONSTRAINT);
+
+    g_pInputManager->m_lConstraints.emplace_back();
+    const auto CONSTRAINT = &g_pInputManager->m_lConstraints.back();
+
+    CONSTRAINT->pMouse = g_pCompositor->m_sSeat.mouse;
+    CONSTRAINT->constraint = PCONSTRAINT;
+
+    CONSTRAINT->hyprListener_destroyConstraint.initCallback(&PCONSTRAINT->events.destroy, &Events::listener_destroyConstraint, CONSTRAINT, "Constraint");
+    CONSTRAINT->hyprListener_setConstraintRegion.initCallback(&PCONSTRAINT->events.set_region, &Events::listener_setConstraintRegion, CONSTRAINT, "Constraint");
+
+    if (g_pCompositor->m_pLastFocus == PCONSTRAINT->surface) {
+        g_pInputManager->constrainMouse(CONSTRAINT->pMouse, PCONSTRAINT);
+    }
+}
+
+void Events::listener_destroyConstraint(void* owner, void* data) {
+    const auto PCONSTRAINT = (SConstraint*)owner;
+
+    if (PCONSTRAINT->pMouse->currentConstraint == PCONSTRAINT->constraint) {
+        PCONSTRAINT->pMouse->hyprListener_commitConstraint.removeCallback();
+        PCONSTRAINT->pMouse->currentConstraint = nullptr;
+    }
+
+    Debug::log(LOG, "Unconstrained mouse from %x", PCONSTRAINT->constraint);
+
+    g_pInputManager->m_lConstraints.remove(*PCONSTRAINT);
+}
+
+void Events::listener_setConstraintRegion(void* owner, void* data) {
+    // no
+}

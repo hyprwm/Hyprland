@@ -60,6 +60,32 @@ struct SKeyboard {
     }
 };
 
+struct SMouse {
+    wlr_input_device* mouse = nullptr;
+
+    wlr_pointer_constraint_v1* currentConstraint = nullptr;
+
+    pixman_region32_t confinedTo;
+
+    DYNLISTENER(commitConstraint);
+
+    bool operator==(const SMouse& b) {
+        return mouse == b.mouse;
+    }
+};
+
+struct SConstraint {
+    SMouse* pMouse = nullptr;
+    wlr_pointer_constraint_v1* constraint = nullptr;
+
+    DYNLISTENER(setConstraintRegion);
+    DYNLISTENER(destroyConstraint);
+
+    bool operator==(const SConstraint& b) {
+        return constraint == b.constraint;
+    }
+};
+
 struct SMonitor;
 
 struct SXDGPopup {
@@ -87,6 +113,8 @@ struct SXDGPopup {
 struct SSeat {
     wlr_seat*       seat = nullptr;
     wl_client*      exclusiveClient = nullptr;
+
+    SMouse*         mouse = nullptr;
 };
 
 struct SDrag {

@@ -19,6 +19,9 @@ public:
     void            destroyKeyboard(SKeyboard*);
     void            destroyMouse(wlr_input_device*);
 
+    void            constrainMouse(SMouse*, wlr_pointer_constraint_v1*);
+    void            recheckConstraint(SMouse*);
+
     Vector2D        getMouseCoordsInternal();
     void            refocus();
 
@@ -33,12 +36,14 @@ public:
 
     SDrag           m_sDrag;
 
+    std::list<SConstraint> m_lConstraints;
+
 private:
 
     std::list<SKeyboard> m_lKeyboards;
+    std::list<SMouse>    m_lMice;
 
     void            mouseMoveUnified(uint32_t, bool refocus = false);
-
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

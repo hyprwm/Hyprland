@@ -412,6 +412,8 @@ void CHyprDwindleLayout::onBeginDragWindow() {
     m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition;
     m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize;
     m_vLastDragXY = m_vBeginDragXY;
+
+    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }
 
 void CHyprDwindleLayout::onEndDragWindow() {
@@ -422,6 +424,7 @@ void CHyprDwindleLayout::onEndDragWindow() {
         changeWindowFloatingMode(DRAGGINGWINDOW);
     }
         
+    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }
 
 void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
@@ -433,7 +436,13 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
         
     const auto DELTA = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
     const auto TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
+
+    if (abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f)
+        return;
+
     m_vLastDragXY = mousePos;
+
+    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     if (g_pInputManager->dragButton == BTN_LEFT) {
         DRAGGINGWINDOW->m_vRealPosition = m_vBeginDragPositionXY + DELTA;
@@ -515,6 +524,8 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
         DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
         DRAGGINGWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
     }
+
+    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }
 
 void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {

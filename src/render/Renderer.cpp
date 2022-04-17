@@ -89,7 +89,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.w = pWindow->m_vRealSize.x;
     renderdata.h = pWindow->m_vRealSize.y;
     renderdata.dontRound = pWindow->m_bIsFullscreen;
-    renderdata.fadeAlpha = pWindow->m_fAlpha;
+    renderdata.fadeAlpha = pWindow->m_fAlpha * (pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity"));
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 

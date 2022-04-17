@@ -16,8 +16,8 @@ CConfigManager::CConfigManager() {
     configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
 
-    configValues["general:damage_tracking"].strValue = "full";
-    configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_FULL;
+    configValues["general:damage_tracking"].strValue = "none";
+    configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_NONE;
 
     configValues["general:border_size"].intValue = 1;
     configValues["general:gaps_in"].intValue = 5;

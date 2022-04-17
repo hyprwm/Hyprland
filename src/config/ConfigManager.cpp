@@ -29,6 +29,8 @@ CConfigManager::CConfigManager() {
     configValues["decoration:blur"].intValue = 1;
     configValues["decoration:blur_size"].intValue = 8;
     configValues["decoration:blur_passes"].intValue = 1;
+    configValues["decoration:active_opacity"].floatValue = 1;
+    configValues["decoration:inactive_opacity"].floatValue = 1;
 
     configValues["dwindle:pseudotile"].intValue = 0;
     configValues["dwindle:col.group_border"].intValue = 0x66777700;

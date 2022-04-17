@@ -54,6 +54,7 @@ CCompositor::CCompositor() {
     m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);
     m_sWLRDataDevMgr = wlr_data_device_manager_create(m_sWLDisplay);
 
+    m_sWLRDmabuf = wlr_linux_dmabuf_v1_create(m_sWLDisplay, m_sWLRRenderer);
     wlr_export_dmabuf_manager_v1_create(m_sWLDisplay);
     wlr_screencopy_manager_v1_create(m_sWLDisplay);
     wlr_data_control_manager_v1_create(m_sWLDisplay);
@@ -366,7 +367,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (m_pLastWindow == pWindow)
+    if (m_pLastWindow == pWindow && m_sSeat.seat->keyboard_state.focused_surface == pSurface)
         return;
 
     if (windowValidMapped(m_pLastWindow) && m_pLastWindow->m_bIsX11) {
@@ -380,8 +381,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     g_pXWaylandManager->activateWindow(pWindow, true);
 
-    // do pointer focus too
-    wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, 0, 0);
+    // do pointer focus too                                     
+    const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition;
+    wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, POINTERLOCAL.x, POINTERLOCAL.y);
 
     m_pLastWindow = pWindow;
 }

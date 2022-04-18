@@ -47,7 +47,7 @@ struct SRenderData {
     float fadeAlpha = 255.f;
 
     // for alpha settings
-    float alpha = 255.f;
+    float alpha = 1.f;
 };
 
 struct SKeyboard {

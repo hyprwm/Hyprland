@@ -1,24 +1,31 @@
-<p align="center">
+
+![Badge Workflow]
+
+<div align = center>
 
 ![Banner]
 
-<br/><br/>
- 
-![Badge Workflow]
-[![Badge Discord]][Discord]
-![Badge Issues]
-![Badge Pull Requests]
-![Badge Language]
-![Badge License]
-![Badge Lines]
-![Badge Hi]
+<br>
+<br>
 
-</p>
-<br/><br/>
+
+![Badge License]![Badge Lines]![Badge Language] <br>
+![Badge Pull Requests]![Badge Issues]
+
+<br>
+
+[![Badge Discord]][Discord]
+
+
+</div>
+
+<br>
+<br>
 
 People asked me to make a discord server, so [join here!][Discord]
 
-<br/><br/>
+<br>
+<br>
 
 Hyprland is a Dynamic Tiling Wayland Compositor in early development stages.
 For Hyprland without the land part, see [Hypr], the Xorg window manager.
@@ -139,10 +146,10 @@ wayfire - for showing how 2 do some graphics stuff
 <!----------------------------------{ Badges }--------------------------------->
 
 [Badge Workflow]: https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg
-[Badge Discord]: https://img.shields.io/badge/Join%20the-Discord%20server-6666ff
-[Badge Issues]: https://img.shields.io/github/issues/vaxerski/Hyprland
-[Badge Pull Requests]: https://img.shields.io/github/issues-pr/vaxerski/Hyprland
-[Badge Language]: https://img.shields.io/github/languages/top/vaxerski/Hyprland
-[Badge License]: https://img.shields.io/github/license/vaxerski/Hyprland
-[Badge Lines]: https://img.shields.io/tokei/lines/github/vaxerski/Hyprland
-[Badge Hi]: https://img.shields.io/badge/Hi-mom!-ff69b4
+
+[Badge Discord]: https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white
+[Badge Issues]: https://img.shields.io/github/issues/vaxerski/Hyprland?style=for-the-badge&label=%ef%bc%a9%ef%bd%93%ef%bd%93%ef%bd%95%ef%bd%85%ef%bd%93
+[Badge Pull Requests]: https://img.shields.io/github/issues-pr/vaxerski/Hyprland?style=for-the-badge&label=%ef%bc%b0%ef%bd%95%ef%bd%8c%ef%bd%8c%20%ef%bc%b2%ef%bd%85%ef%bd%91%ef%bd%95%ef%bd%85%ef%bd%93%ef%bd%94%ef%bd%93
+[Badge Language]: https://img.shields.io/github/languages/top/vaxerski/Hyprland?style=for-the-badge&label=%ef%bc%a3%ef%bc%8b%ef%bc%8b
+[Badge License]: https://img.shields.io/badge/License-BSD_3--Clause-blue.svg?style=for-the-badge&label=%ef%bc%ac%ef%bd%89%ef%bd%83%ef%bd%85%ef%bd%8e%ef%bd%93%ef%bd%85
+[Badge Lines]: https://img.shields.io/tokei/lines/github/vaxerski/Hyprland?style=for-the-badge&label=%ef%bc%a3%ef%bd%8f%ef%bd%84%ef%bd%85

@@ -24,6 +24,7 @@
 
 ---
 
+**[<kbd> <br> Install <br> </kbd>][Install]** 
 **[<kbd> <br> Configure <br> </kbd>][Configure]** 
 **[<kbd> <br> Contribute <br> </kbd>][Contribute]**
 

@@ -21,13 +21,15 @@
  
 <br>
 
-</div>
 
 ---
 
 **[<kbd> <br> Configure <br> </kbd>][Configure]** 
 **[<kbd> <br> Contribute <br> </kbd>][Contribute]**
 
+---
+
+</div>
 
 For Hyprland without the land part, see [Hypr], the Xorg window manager.
 
@@ -35,21 +37,20 @@ Hyprland is in early dev, expect some bugs. However, once you get it working, it
 
 Hyprland needs testers! Try it out and report bugs or suggestions!
 
-# Key features
- - Parabolic window animations
- - Config reloaded instantly upon saving
- - Easily expandable and readable codebase
- - Rounded corners
- - Window blur
- - Workspaces Protocol support
- - Damage tracking (experimental)
- - Fade in/out
- - Support for docks/whatever
- - Window rules
- - Monitor rules
- - Socket-based IPC
- - Tiling/floating/fullscreen windows
- - Moving/resizing windows
+# Features
+- Easily expandable and readable codebase
+- Config reloaded instantly upon saving
+- Parabolic Window Animations
+- Workspaces Protocol Support
+- Tiling / Floating / Fullscreen
+- Window / Monitor Rules
+- Moving / Resizing
+- Socket - Based IPC
+- Rounded Corners
+- Damage Tracking ( *Experimental* )
+- Docks Support
+- Fade In / Out
+- Window Blur
 
 # Major to-dos
  - Input Methods (wlr_input_method_v2)

@@ -82,7 +82,8 @@ please refer to the [Wiki Page][Install] for the installation instructions.
 
 <div align = center>
 
-# Gallery
+## Gallery
+
 ![Preview A]
 ![Preview B]
 
@@ -92,7 +93,7 @@ please refer to the [Wiki Page][Install] for the installation instructions.
 
 <br>
 
-# Stars Over Time
+## Stars Over Time
 
 [![Stars Preview]][Stars]
 
@@ -104,18 +105,33 @@ please refer to the [Wiki Page][Install] for the installation instructions.
 
 </div>
 
-# Special Thanks
-wlroots - for their amazing library
+## Special Thanks
 
-tinywl - for showing how 2 do stuff
+<br>
 
-sway - for showing how 2 do stuff the overkill way
+**[WlRoots]**
 
-vivarium - for showing how 2 do stuff the simple way
+  *Their amazing library*
 
-dwl - for showing how 2 do stuff the hacky way
+**[TinyWl]**
 
-wayfire - for showing how 2 do some graphics stuff
+  *Showing how 2 do stuff*
+
+**[Sway]**
+
+  *Showing how 2 do stuff the overkill way*
+
+**[Vivarium]**
+
+  *Showing how 2 do stuff the simple way*
+
+**[DWL]**
+
+  *Showing how 2 do stuff the hacky way*
+
+**[Wayfire]**
+
+  *Showing how 2 do some graphics stuff*
 
 
 <!----------------------------------------------------------------------------->
@@ -131,6 +147,16 @@ wayfire - for showing how 2 do some graphics stuff
 [Issues]: https://github.com/vaxerski/Hyprland/issues
 
 [License]: LICENSE
+
+
+<!----------------------------------{ Thanks }--------------------------------->
+
+[Vivarium]: https://github.com/inclement/vivarium
+[WlRoots]: https://gitlab.freedesktop.org/wlroots/wlroots
+[Wayfire]: https://github.com/WayfireWM/wayfire
+[TinyWl]: https://gitlab.freedesktop.org/wlroots/wlroots/-/blob/master/tinywl/tinywl.c
+[Sway]: https://github.com/swaywm/sway
+[DWL]: https://github.com/djpohly/dwl
 
 <!----------------------------------{ Images }--------------------------------->
 

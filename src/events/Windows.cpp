@@ -32,6 +32,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_bIsMapped = true;
     PWINDOW->m_bReadyToDelete = false;
     PWINDOW->m_bFadingOut = false;
+    PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
 
     // checks if the window wants borders and sets the appriopriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
@@ -124,9 +125,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         // Set the pseudo size here too so that it doesnt end up being 0x0
         PWINDOW->m_vPseudoSize = PWINDOW->m_vEffectiveSize - Vector2D(10,10);
     }
-        
-
-    PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
 
     g_pCompositor->focusWindow(PWINDOW);
 

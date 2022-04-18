@@ -12,14 +12,13 @@
 
 <br>
 
-[![Badge Discord]][Discord]
-
-<br>
-<br>
-
 ***A Dynamic Wayland Tiling Compositor***
 
 <br>
+<br>
+
+[![Badge Discord]][Discord]
+ 
 <br>
 
 </div>

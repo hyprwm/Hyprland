@@ -72,6 +72,8 @@ private:
     std::deque<std::string> firstExecRequests;
 
     // internal methods
+    void                setDefaultVars();
+
     void                loadConfigLoadVars();
     SConfigValue        getConfigValueSafe(std::string);
     void                parseLine(std::string&);

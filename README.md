@@ -26,6 +26,7 @@
 
 **[<kbd> <br> Install <br> </kbd>][Install]** 
 **[<kbd> <br> Configure <br> </kbd>][Configure]** 
+**[<kbd> <br> Todo <br> </kbd>][Todo]** 
 **[<kbd> <br> Contribute <br> </kbd>][Contribute]**
 
 ---
@@ -53,22 +54,13 @@ Hyprland needs testers! Try it out and report bugs or suggestions!
 - Fade In / Out
 - Window Blur
 
-# Major to-dos
- - Input Methods (wlr_input_method_v2)
- - Animations (some new, like workspace)
- - Fix electron rendering issues
- - Optimization
- - Fix weird scroll on XWayland (if possible)
- - Become sane
- - STABILITY
- - More config options for tweakers
- - Improve hyprctl
 
-
+<br>
+<br>
 
 <div align = center>
 
-## Gallery
+# Gallery
 
 <br>
 
@@ -81,7 +73,7 @@ Hyprland needs testers! Try it out and report bugs or suggestions!
 <br>
 <br>
 
-## Stars Over Time
+# Stars Over Time
 
 <br>
 
@@ -92,7 +84,7 @@ Hyprland needs testers! Try it out and report bugs or suggestions!
 
 </div>
 
-## Special Thanks
+# Special Thanks
 
 <br>
 
@@ -131,6 +123,7 @@ Hyprland needs testers! Try it out and report bugs or suggestions!
 
 [Pull Requests]: https://github.com/vaxerski/Hyprland/pulls
 [Issues]: https://github.com/vaxerski/Hyprland/issues
+[Todo]: https://github.com/vaxerski/Hyprland/projects?type=beta
 
 [Contribute]: docs/Contribute.md
 [Install]: docs/Install.md

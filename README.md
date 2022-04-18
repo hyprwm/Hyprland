@@ -33,7 +33,7 @@
 ### Related
 
 *For **Hyprland** without the* `land` *part,* <br>
-*see **[Hypr]**, the Xorg window manager.*
+*see **[Hypr]**, the **Xorg Window Manager**.*
 
 <br>
 
@@ -44,7 +44,7 @@
 
 ![Badge Workflow]
 
-*However Once you get it working, it's pretty stable*
+*However once you get it working, it's pretty stable*
 
 <br>
 
@@ -62,10 +62,10 @@
 - Workspaces Protocol Support
 - Tiling / Floating / Fullscreen
 - Window / Monitor Rules
-- Moving / Resizing
 - Socket - Based IPC
 - Rounded Corners
 - Damage Tracking ( *Experimental* )
+- Moving / Resizing
 - Docks Support
 - Fade In / Out
 - Window Blur

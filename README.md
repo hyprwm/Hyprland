@@ -1,6 +1,3 @@
-
-![Badge Workflow]
-
 <div align = center>
 
 ![Banner]
@@ -44,6 +41,8 @@
 
 *This project is still in it's early stages* <br>
 ***Expect Some Bugs***
+
+![Badge Workflow]
 
 *However Once you get it working, it's pretty stable*
 

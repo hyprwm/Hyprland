@@ -156,7 +156,8 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
-            refocus();
+            if (!g_pCompositor->m_sSeat.mouse->currentConstraint)
+                refocus();
 
             // if clicked on a floating window make it top
             if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_bIsFloating)
@@ -352,7 +353,6 @@ void CInputManager::recheckConstraint(SMouse* pMouse) {
     if (!pMouse->currentConstraint)
         return;
 
-    const auto MOUSECOORDS = getMouseCoordsInternal();
     const auto PREGION = &pMouse->currentConstraint->region;
 
     if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED) {

@@ -31,7 +31,8 @@
 
 ---
 
-
+<br>
+ 
 ### Related
 
 *For **Hyprland** without the* `land` *part,* <br>

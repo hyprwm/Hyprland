@@ -13,6 +13,7 @@
 CConfigManager::CConfigManager() {
     configValues["general:max_fps"].intValue = 240;
     configValues["general:sensitivity"].floatValue = 0.25f;
+    configValues["general:apply_sens_to_raw"].intValue = 1;
     configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
 

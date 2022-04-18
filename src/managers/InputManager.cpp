@@ -5,7 +5,10 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
 
     float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
-    wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, e->delta_x, e->delta_y, e->unaccel_dx, e->unaccel_dy);
+    if (g_pConfigManager->getInt("general:apply_sens_to_raw") == 1)
+        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, e->delta_x * sensitivity, e->delta_y * sensitivity, e->unaccel_dx * sensitivity, e->unaccel_dy * sensitivity);
+    else
+        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, e->delta_x, e->delta_y, e->unaccel_dx, e->unaccel_dy);
 
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->delta_x * sensitivity, e->delta_y * sensitivity);
 

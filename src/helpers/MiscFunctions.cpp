@@ -62,3 +62,15 @@ void scaleBox(wlr_box* box, float scale) {
     box->x = std::round(box->x * scale);
     box->y = std::round(box->y * scale);
 }
+
+std::string removeBeginEndSpacesTabs(std::string str) {
+    while (str[0] == ' ' || str[0] == '\t') {
+        str = str.substr(1);
+    }
+
+    while (str[str.length() - 1] == ' ' || str[str.length() - 1] == '\t') {
+        str = str.substr(0, str.length() - 1);
+    }
+
+    return str;
+}

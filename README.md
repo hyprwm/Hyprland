@@ -1,20 +1,27 @@
 <p align="center">
- <img src="https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png" />
- <br/><br/>
- <img src="https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg" />
- <a href="https://discord.gg/hQ9XvMUjjr"><img src="https://img.shields.io/badge/Join%20the-Discord%20server-6666ff" /></a>
- <img src="https://img.shields.io/github/issues/vaxerski/Hyprland" />
- <img src="https://img.shields.io/github/issues-pr/vaxerski/Hyprland" />
- <img src="https://img.shields.io/github/languages/top/vaxerski/Hyprland" />
- <img src="https://img.shields.io/github/license/vaxerski/Hyprland" />
- <img src="https://img.shields.io/tokei/lines/github/vaxerski/Hyprland" />
- <img src="https://img.shields.io/badge/Hi-mom!-ff69b4" />
+
+![Banner]
+
+<br/><br/>
+ 
+![Badge Workflow]
+[![Badge Discord]][Discord]
+![Badge Issues]
+![Badge Pull Requests]
+![Badge Language]
+![Badge License]
+![Badge Lines]
+![Badge Hi]
+
 </p>
 <br/><br/>
-People asked me to make a discord server, so <a href="https://discord.gg/hQ9XvMUjjr">join here!</a>
+
+People asked me to make a discord server, so [join here!][Discord]
+
 <br/><br/>
+
 Hyprland is a Dynamic Tiling Wayland Compositor in early development stages.
-For Hyprland without the land part, see <a href="https://github.com/vaxerski/Hypr">Hypr</a>, the Xorg window manager.
+For Hyprland without the land part, see [Hypr], the Xorg window manager.
 
 
 Hyprland is in early dev, expect some bugs. However, once you get it working, it's pretty stable. :P
@@ -60,26 +67,26 @@ yay -S hyprland-git
 ## Manual building
 If your distro doesn't have Hyprland in its repositories, or you want to modify Hyprland,
 
-please refer to the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Installation) for the installation instructions.
+please refer to the [Wiki Page][Install] for the installation instructions.
 <br/>
 
 # Configuring
-Head onto the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Configuring-Hyprland) to see more.
+Head onto the [Wiki Page][Configure] to see more.
 
 Hyprland without a config is a bad idea!
 <br/>
 
 # Contributions
-Very welcome! see [Contributing.md](https://github.com/vaxerski/Hyprland/blob/main/CONTRIBUTING.md) for instuctions and guidelines!
+Very welcome! see [Contributing.md][Contribute] for instuctions and guidelines!
 <br/>
 
 # Gallery
-![Image1](https://i.imgur.com/ZA4Fa8R.png)
-![Image2](https://i.imgur.com/BpXxM8H.png)
+![Preview A]
+![Preview B]
 <br/>
 
 # Stars over time
-[![Stars over time](https://starchart.cc/vaxerski/Hyprland.svg)](https://starchart.cc/vaxerski/Hyprland)
+[![Stars Preview]][Stars]
 
 # Special thanks
 wlroots - for their amazing library
@@ -93,3 +100,33 @@ vivarium - for showing how 2 do stuff the simple way
 dwl - for showing how 2 do stuff the hacky way
 
 wayfire - for showing how 2 do some graphics stuff
+
+
+<!----------------------------------------------------------------------------->
+
+[Contribute]: https://github.com/vaxerski/Hyprland/blob/main/CONTRIBUTING.md
+[Configure]: https://github.com/vaxerski/Hyprland/wiki/Configuring-Hyprland
+[Install]: https://github.com/vaxerski/Hyprland/wiki/Installation
+[Discord]: https://discord.gg/hQ9XvMUjjr
+[Stars]: https://starchart.cc/vaxerski/Hyprland
+[Hypr]: https://github.com/vaxerski/Hypr
+
+
+<!----------------------------------{ Images }--------------------------------->
+
+[Stars Preview]: https://starchart.cc/vaxerski/Hyprland.svg
+[Preview A]: https://i.imgur.com/ZA4Fa8R.png
+[Preview B]: https://i.imgur.com/BpXxM8H.png
+[Banner]: https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png
+
+
+<!----------------------------------{ Badges }--------------------------------->
+
+[Badge Workflow]: https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg
+[Badge Discord]: https://img.shields.io/badge/Join%20the-Discord%20server-6666ff
+[Badge Issues]: https://img.shields.io/github/issues/vaxerski/Hyprland
+[Badge Pull Requests]: https://img.shields.io/github/issues-pr/vaxerski/Hyprland
+[Badge Language]: https://img.shields.io/github/languages/top/vaxerski/Hyprland
+[Badge License]: https://img.shields.io/github/license/vaxerski/Hyprland
+[Badge Lines]: https://img.shields.io/tokei/lines/github/vaxerski/Hyprland
+[Badge Hi]: https://img.shields.io/badge/Hi-mom!-ff69b4

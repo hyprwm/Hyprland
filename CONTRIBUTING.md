@@ -9,7 +9,8 @@
 
 Check the **[Wiki]** for debugging instructions.
 
-Afterwards, pick yourself an **[Issue]** or *implement your own suggestion!*
+Afterwards, pick yourself an **[Issue]** <br>
+or *implement your own suggestion!*
 
 *As the **Hyprland** is still in its early stages,* <br>
 *I'd recommend you stick to bug fixes first.*
@@ -28,7 +29,8 @@ Afterwards, pick yourself an **[Issue]** or *implement your own suggestion
 
 - ***Test your changes!***
 
-  *Run it on bare metal and check if everything works.*
+  *Run it on bare metal and* <br>
+  *check if everything works.*
 
 <!----------------------------------------------------------------------------->
 

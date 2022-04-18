@@ -20,9 +20,9 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     scaleBox(&windowBox, RDATA->output->scale);
 
     if (RDATA->surface && surface == RDATA->surface)
-        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
+        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
     else
-        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
+        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
@@ -89,7 +89,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.w = pWindow->m_vRealSize.x;
     renderdata.h = pWindow->m_vRealSize.y;
     renderdata.dontRound = pWindow->m_bIsFullscreen;
-    renderdata.fadeAlpha = pWindow->m_fAlpha * (pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity"));
+    renderdata.fadeAlpha = pWindow->m_fAlpha;
+    renderdata.alpha = pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 

@@ -7,8 +7,8 @@
 
 <br>
 
-![Badge License]![Badge Lines]![Badge Language] <br>
-![Badge Pull Requests]![Badge Issues]
+[![Badge License]][License]![Badge Lines]![Badge Language] <br>
+[![Badge Pull Requests]][Pull Requests][![Badge Issues]][Issues]
 
 <br>
 
@@ -126,6 +126,10 @@ wayfire - for showing how 2 do some graphics stuff
 [Stars]: https://starchart.cc/vaxerski/Hyprland
 [Hypr]: https://github.com/vaxerski/Hypr
 
+[Pull Requests]: https://github.com/vaxerski/Hyprland/pulls
+[Issues]: https://github.com/vaxerski/Hyprland/issues
+
+[License]: LICENSE
 
 <!----------------------------------{ Images }--------------------------------->
 

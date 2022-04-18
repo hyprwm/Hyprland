@@ -353,7 +353,6 @@ void CInputManager::recheckConstraint(SMouse* pMouse) {
         return;
 
     const auto MOUSECOORDS = getMouseCoordsInternal();
-    const auto PWINDOW = g_pCompositor->getWindowFromSurface(pMouse->currentConstraint->surface);
     const auto PREGION = &pMouse->currentConstraint->region;
 
     if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED) {

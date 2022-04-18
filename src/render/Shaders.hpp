@@ -53,7 +53,7 @@ void main() {
 
 	vec4 pixColor = texture2D(tex, v_texcoord);
 
-	if (discardOpaque == 1 && pixColor[3] == 1.0) {
+	if (discardOpaque == 1 && pixColor[3] * alpha == 1.0) {
 		discard;
 		return;
 	}
@@ -111,7 +111,7 @@ uniform int discardOpaque;
 
 void main() {
 
-	if (discardOpaque == 1) {
+	if (discardOpaque == 1 && alpha == 1.0) {
 		discard;
 		return;
 	}
@@ -274,7 +274,7 @@ void main() {
 
 	vec4 pixColor = texture2D(texture0, v_texcoord);
 
-	if (discardOpaque == 1 && pixColor[3] == 1.0) {
+	if (discardOpaque == 1 && pixColor[3] * alpha == 1.0) {
 		discard;
 		return;
 	}

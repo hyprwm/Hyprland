@@ -53,7 +53,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // first, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
+    if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface) {
         pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
         for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); ++w) {

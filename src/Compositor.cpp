@@ -367,6 +367,11 @@ SMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
 
 void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
+    if (g_pCompositor->m_sSeat.exclusiveClient) {
+        Debug::log(LOG, "Disallowing setting focus to a window due to there being an active input inhibitor layer.");
+        return;
+    }
+
     if (!pWindow || !windowValidMapped(pWindow)) {
         wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
         return;
@@ -394,6 +399,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
+
     if (m_sSeat.seat->keyboard_state.focused_surface == pSurface || (pWindowOwner && m_sSeat.seat->keyboard_state.focused_surface == g_pXWaylandManager->getWindowSurface(pWindowOwner)))
         return;  // Don't focus when already focused on this.
 

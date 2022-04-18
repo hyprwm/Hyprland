@@ -143,7 +143,8 @@ void Events::listener_commitDragIcon(void* owner, void* data) {
 
 void Events::listener_InhibitActivate(wl_listener* listener, void* data) {
     Debug::log(LOG, "Activated exclusive for %x.", g_pCompositor->m_sSeat.exclusiveClient);
-
+    
+    g_pInputManager->refocus();
     g_pCompositor->m_sSeat.exclusiveClient = g_pCompositor->m_sWLRInhibitMgr->active_client;
 }
 

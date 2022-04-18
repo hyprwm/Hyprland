@@ -31,13 +31,29 @@
 
 ---
 
+
+### Related
+
+*For **Hyprland** without the* `land` *part,* <br>
+*see **[Hypr]**, the Xorg window manager.*
+
+<br>
+
+### Notice
+
+*This project is still in it's early stages* <br>
+***Expect Some Bugs***
+
+*However Once you get it working, it's pretty stable*
+
+<br>
+
+### Help Wanted
+
+**We needs testers!** <br>
+*Try it out and report bugs or suggestions!*
+
 </div>
-
-For Hyprland without the land part, see [Hypr], the Xorg window manager.
-
-Hyprland is in early dev, expect some bugs. However, once you get it working, it's pretty stable. :P
-
-Hyprland needs testers! Try it out and report bugs or suggestions!
 
 # Features
 - Easily expandable and readable codebase

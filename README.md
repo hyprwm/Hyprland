@@ -25,6 +25,8 @@
 
 ---
 
+**[<kbd> <br> Configure <br> </kbd>][Configure]** 
+**[<kbd> <br> Contribute <br> </kbd>][Contribute]**
 
 
 For Hyprland without the land part, see [Hypr], the Xorg window manager.
@@ -75,15 +77,7 @@ If your distro doesn't have Hyprland in its repositories, or you want to modify 
 please refer to the [Wiki Page][Install] for the installation instructions.
 <br/>
 
-# Configuring
-Head onto the [Wiki Page][Configure] to see more.
 
-Hyprland without a config is a bad idea!
-<br/>
-
-# Contributions
-Very welcome! see [Contributing.md][Contribute] for instuctions and guidelines!
-<br/>
 
 <div align = center>
 

@@ -84,23 +84,24 @@ please refer to the [Wiki Page][Install] for the installation instructions.
 
 ## Gallery
 
+<br>
+
 ![Preview A]
-![Preview B]
 
 <br>
 
----
+![Preview B]
 
+<br>
 <br>
 
 ## Stars Over Time
 
+<br>
+
 [![Stars Preview]][Stars]
 
 <br>
-
----
-
 <br>
 
 </div>
@@ -119,19 +120,19 @@ please refer to the [Wiki Page][Install] for the installation instructions.
 
 **[Sway]**
 
-  *Showing how 2 do stuff the overkill way*
+  *Showing how 2 do stuff the **overkill** way*
 
 **[Vivarium]**
 
-  *Showing how 2 do stuff the simple way*
+  *Showing how 2 do stuff the **simple** way*
 
 **[DWL]**
 
-  *Showing how 2 do stuff the hacky way*
+  *Showing how 2 do stuff the **hacky** way*
 
 **[Wayfire]**
 
-  *Showing how 2 do some graphics stuff*
+  *Showing how 2 do some **graphics** stuff*
 
 
 <!----------------------------------------------------------------------------->

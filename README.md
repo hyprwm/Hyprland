@@ -132,7 +132,6 @@
 <!----------------------------------------------------------------------------->
 
 [Configure]: https://github.com/vaxerski/Hyprland/wiki/Configuring-Hyprland
-[Install]: https://github.com/vaxerski/Hyprland/wiki/Installation
 [Discord]: https://discord.gg/hQ9XvMUjjr
 [Stars]: https://starchart.cc/vaxerski/Hyprland
 [Hypr]: https://github.com/vaxerski/Hypr

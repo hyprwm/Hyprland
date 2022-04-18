@@ -82,6 +82,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         return;
     }
 
+
     auto& CONFIGENTRY = configValues.at(COMMAND);
     if (CONFIGENTRY.intValue != -1) {
         try {
@@ -271,8 +272,9 @@ void CConfigManager::parseLine(std::string& line) {
     if (EQUALSPLACE == std::string::npos)
         return;
 
-    const auto COMMAND = line.substr(0, EQUALSPLACE);
-    const auto VALUE = line.substr(EQUALSPLACE + 1);
+    const auto COMMAND = removeBeginEndSpacesTabs(line.substr(0, EQUALSPLACE));
+    const auto VALUE = removeBeginEndSpacesTabs(line.substr(EQUALSPLACE + 1));
+    //
 
     if (COMMAND == "exec") {
         if (isFirstLaunch) {

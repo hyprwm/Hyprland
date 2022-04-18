@@ -148,6 +148,10 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
             return true;
         }
 
+        if (pWindow->m_iX11Type == 2) {
+            return true; // override_redirect
+        }
+
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
         if (SIZEHINTS && (pWindow->m_uSurface.xwayland->parent || ((SIZEHINTS->min_width == SIZEHINTS->max_width) && (SIZEHINTS->min_height == SIZEHINTS->max_height))))
             return true;
@@ -185,7 +189,7 @@ void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {
         }
     }
 
-    if (pWindow->m_uSurface.xwayland->parent) {
+    if (pWindow->m_uSurface.xwayland->parent || pWindow->m_iX11Type == 2) {
         pWindow->m_bX11DoesntWantBorders = true;
     }
 }

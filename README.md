@@ -80,15 +80,31 @@ Hyprland without a config is a bad idea!
 Very welcome! see [Contributing.md][Contribute] for instuctions and guidelines!
 <br/>
 
+<div align = center>
+
 # Gallery
 ![Preview A]
 ![Preview B]
-<br/>
 
-# Stars over time
+<br>
+
+---
+
+<br>
+
+# Stars Over Time
+
 [![Stars Preview]][Stars]
 
-# Special thanks
+<br>
+
+---
+
+<br>
+
+</div>
+
+# Special Thanks
 wlroots - for their amazing library
 
 tinywl - for showing how 2 do stuff

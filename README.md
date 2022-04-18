@@ -6,8 +6,6 @@
 ![Banner]
 
 <br>
-<br>
-
 
 ![Badge License]![Badge Lines]![Badge Language] <br>
 ![Badge Pull Requests]![Badge Issues]
@@ -16,20 +14,21 @@
 
 [![Badge Discord]][Discord]
 
+<br>
+<br>
+
+***A Dynamic Wayland Tiling Compositor***
+
+<br>
+<br>
 
 </div>
 
-<br>
-<br>
+---
 
-People asked me to make a discord server, so [join here!][Discord]
 
-<br>
-<br>
 
-Hyprland is a Dynamic Tiling Wayland Compositor in early development stages.
 For Hyprland without the land part, see [Hypr], the Xorg window manager.
-
 
 Hyprland is in early dev, expect some bugs. However, once you get it working, it's pretty stable. :P
 

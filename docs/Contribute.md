@@ -3,8 +3,6 @@
 
 *Thank you for considering contributing to Hyprland.*
 
-<br>
-
 ## Development
 
 Check the [Wiki] for debugging instructions.
@@ -12,8 +10,6 @@ Check the [Wiki] for debugging instructions.
 Afterwards, pick yourself an [Issue] or implement your own suggestion.
 
 *As Hyprland is still in its early stages of development, I'd recommend you stick to bug fixes first.*
-
-<br>
 
 ## Pull Requests
 

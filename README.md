@@ -29,9 +29,7 @@ For Hyprland without the `land` part, see [Hypr], the Xorg window manager.
 # Notice
 This project is still in its early development, expect bugs.
 
-Once you get it working though, it's pretty stable.
-
-<br>
+Once you get it working though, it's pretty stable.<br/>
 
 ### Help Wanted
 

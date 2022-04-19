@@ -212,7 +212,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     wlr_keyboard_set_keymap(keyboard->keyboard, KEYMAP);
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
-    wlr_keyboard_set_repeat_info(keyboard->keyboard, REPEATRATE, REPEATDELAY);
+    wlr_keyboard_set_repeat_info(keyboard->keyboard, std::max(0, REPEATRATE), std::max(0, REPEATDELAY));
 
     PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&keyboard->keyboard->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
     PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&keyboard->keyboard->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");

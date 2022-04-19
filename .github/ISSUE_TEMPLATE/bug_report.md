@@ -3,7 +3,6 @@ name: Bug report
 about: Found a bug? Report it here!
 title: ''
 labels: bug
-assignees: vaxerski
 
 ---
 

@@ -55,6 +55,9 @@ void CConfigManager::setDefaultVars() {
     configValues["input:kb_options"].strValue = "";
     configValues["input:kb_rules"].strValue = "";
     configValues["input:kb_model"].strValue = "";
+    configValues["input:repeat_rate"].intValue = 25;
+    configValues["input:repeat_delay"].intValue = 600;
+    configValues["input:touchpad:disable_while_typing"].intValue = 1;
 
     configValues["input:follow_mouse"].intValue = 1;
 
@@ -260,7 +263,14 @@ void CConfigManager::parseLine(std::string& line) {
     if (line.find(" {") != std::string::npos) {
         auto cat = line.substr(0, line.find(" {"));
         transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
-        currentCategory = cat;
+        if (currentCategory.length() != 0) {
+            currentCategory.push_back(':');
+            currentCategory.append(cat);
+        }
+        else {
+            currentCategory = cat;
+        }
+
         return;
     }
 

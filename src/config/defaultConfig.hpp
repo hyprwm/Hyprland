@@ -19,6 +19,12 @@ input {
     kb_model=
     kb_options=
     kb_rules=
+    repeat_rate=
+    repeat_delay=
+
+    touchpad {
+        disable_while_typing=
+    }
 }
 
 general {

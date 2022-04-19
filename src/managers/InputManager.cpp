@@ -206,10 +206,13 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     const auto KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
+    const auto REPEATRATE = g_pConfigManager->getInt("input:repeat_rate");
+    const auto REPEATDELAY = g_pConfigManager->getInt("input:repeat_delay");
+
     wlr_keyboard_set_keymap(keyboard->keyboard, KEYMAP);
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
-    wlr_keyboard_set_repeat_info(keyboard->keyboard, 25, 600);
+    wlr_keyboard_set_repeat_info(keyboard->keyboard, std::max(0, REPEATRATE), std::max(0, REPEATDELAY));
 
     PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&keyboard->keyboard->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
     PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&keyboard->keyboard->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
@@ -271,6 +274,11 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
 
         if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV))
             libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, 0 /* Natural */);
+        
+        if (libinput_device_config_dwt_is_available(LIBINPUTDEV)) {
+            const auto DWT = static_cast<enum libinput_config_dwt_state>(g_pConfigManager->getInt("input:touchpad:disable_while_typing") != 0);
+            libinput_device_config_dwt_set_enabled(LIBINPUTDEV, DWT);
+        }
     }
 
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);

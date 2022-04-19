@@ -1,95 +1,153 @@
-<p align="center">
- <img src="https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png" />
- <br/><br/>
- <img src="https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg" />
- <a href="https://discord.gg/hQ9XvMUjjr"><img src="https://img.shields.io/badge/Join%20the-Discord%20server-6666ff" /></a>
- <img src="https://img.shields.io/github/issues/vaxerski/Hyprland" />
- <img src="https://img.shields.io/github/issues-pr/vaxerski/Hyprland" />
- <img src="https://img.shields.io/github/languages/top/vaxerski/Hyprland" />
- <img src="https://img.shields.io/github/license/vaxerski/Hyprland" />
- <img src="https://img.shields.io/tokei/lines/github/vaxerski/Hyprland" />
- <img src="https://img.shields.io/badge/Hi-mom!-ff69b4" />
-</p>
-<br/><br/>
-People asked me to make a discord server, so <a href="https://discord.gg/hQ9XvMUjjr">join here!</a>
-<br/><br/>
-Hyprland is a Dynamic Tiling Wayland Compositor in early development stages.
-For Hyprland without the land part, see <a href="https://github.com/vaxerski/Hypr">Hypr</a>, the Xorg window manager.
+<div align = center>
 
+![Banner]
 
-Hyprland is in early dev, expect some bugs. However, once you get it working, it's pretty stable. :P
+<br>
 
-Hyprland needs testers! Try it out and report bugs or suggestions!
+![Badge Workflow] 
+[![Badge License]][License] 
+![Badge Lines] 
+![Badge Language] 
+[![Badge Pull Requests]][Pull Requests] 
+[![Badge Issues]][Issues] 
+![Badge Hi Mom]<br>
+[![Badge Discord]][Discord]
 
-# Key features
- - Parabolic window animations
- - Config reloaded instantly upon saving
- - Easily expandable and readable codebase
- - Rounded corners
- - Window blur
- - Workspaces Protocol support
- - Damage tracking (experimental)
- - Fade in/out
- - Support for docks/whatever
- - Window rules
- - Monitor rules
- - Socket-based IPC
- - Tiling/floating/fullscreen windows
- - Moving/resizing windows
+<br>
 
-# Major to-dos
- - Input Methods (wlr_input_method_v2)
- - Animations (some new, like workspace)
- - Fix electron rendering issues
- - Optimization
- - Fix weird scroll on XWayland (if possible)
- - Become sane
- - STABILITY
- - More config options for tweakers
- - Improve hyprctl
+Hyprland is a dynamic tiling Wayland compositor based on wlroots that doesn't sacrifice on its looks.
 
-# Installation
-I do not maintain any packages, but some kind people have made them for me. If I missed any, please let me know.
+For Hyprland without the `land` part, see [Hypr], the Xorg window manager.
 
-**Warning:** since I am not the maintainer, I cannot guarantee that those packages will always work and be up to date. Use at your own disclosure. If they don't, try building manually.
+<br>
+<br>
 
-_Arch (AUR, -git)_
-```
-yay -S hyprland-git
-```
-## Manual building
-If your distro doesn't have Hyprland in its repositories, or you want to modify Hyprland,
+---
 
-please refer to the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Installation) for the installation instructions.
-<br/>
+**[<kbd> <br> Install <br> </kbd>][Install]** 
+**[<kbd> <br> Configure <br> </kbd>][Configure]** 
+**[<kbd> <br> Contribute <br> </kbd>][Contribute]**
 
-# Configuring
-Head onto the [Wiki Page](https://github.com/vaxerski/Hyprland/wiki/Configuring-Hyprland) to see more.
+---
 
-Hyprland without a config is a bad idea!
-<br/>
+<br>
 
-# Contributions
-Very welcome! see [Contributing.md](https://github.com/vaxerski/Hyprland/blob/main/CONTRIBUTING.md) for instuctions and guidelines!
-<br/>
+</div>
+ 
+# Notice
+
+This project is still in its early development, expect bugs.
+
+Once you get it working though, it's pretty stable.<br/>
+
+### Help Wanted
+
+Hyprland needs testers! <br/>
+Try it out and report bugs / suggestions!
+
+# Features
+
+- Easily expandable and readable codebase
+- Config reloaded instantly upon saving
+- Parabolic window animations
+- Workspaces protocol support
+- Tiling / floating / fullscreen windows
+- Window / monitor rules
+- Socket-based IPC
+- Rounded corners
+- Damage tracking ( *Experimental* )
+- Moving / resizing
+- Docks support
+- Fade in / out
+- Window blur
+
+<br>
+<br>
+
+<div align = center>
 
 # Gallery
-![Image1](https://i.imgur.com/ZA4Fa8R.png)
-![Image2](https://i.imgur.com/BpXxM8H.png)
-<br/>
 
-# Stars over time
-[![Stars over time](https://starchart.cc/vaxerski/Hyprland.svg)](https://starchart.cc/vaxerski/Hyprland)
+<br>
 
-# Special thanks
-wlroots - for their amazing library
+![Preview A]
 
-tinywl - for showing how 2 do stuff
+<br>
 
-sway - for showing how 2 do stuff the overkill way
+![Preview B]
 
-vivarium - for showing how 2 do stuff the simple way
+<br>
+<br>
 
-dwl - for showing how 2 do stuff the hacky way
+# Stars Over Time
 
-wayfire - for showing how 2 do some graphics stuff
+<br>
+
+[![Stars Preview]][Stars]
+
+<br>
+<br>
+
+</div>
+
+# Special Thanks
+
+<br>
+
+**[wlroots]** - *For their amazing library*
+
+**[tinywl]** - *For showing how 2 do stuff*
+
+**[Sway]** - *For showing how 2 do stuff the overkill way*
+
+**[Vivarium]** - *For showing how 2 do stuff the simple way*
+
+**[dwl]** - *For showing how 2 do stuff the hacky way*
+
+**[Wayfire]** - *For showing how 2 do some graphics stuff*
+
+
+<!----------------------------------------------------------------------------->
+
+[Configure]: https://github.com/vaxerski/Hyprland/wiki/Configuring-Hyprland
+[Discord]: https://discord.gg/hQ9XvMUjjr
+[Stars]: https://starchart.cc/vaxerski/Hyprland
+[Hypr]: https://github.com/vaxerski/Hypr
+
+[Pull Requests]: https://github.com/vaxerski/Hyprland/pulls
+[Issues]: https://github.com/vaxerski/Hyprland/issues
+[Todo]: https://github.com/vaxerski/Hyprland/projects?type=beta
+
+[Contribute]: docs/Contribute.md
+[Install]: docs/Install.md
+[License]: LICENSE
+
+
+<!----------------------------------{ Thanks }--------------------------------->
+
+[Vivarium]: https://github.com/inclement/vivarium
+[WlRoots]: https://gitlab.freedesktop.org/wlroots/wlroots
+[Wayfire]: https://github.com/WayfireWM/wayfire
+[TinyWl]: https://gitlab.freedesktop.org/wlroots/wlroots/-/blob/master/tinywl/tinywl.c
+[Sway]: https://github.com/swaywm/sway
+[DWL]: https://github.com/djpohly/dwl
+
+<!----------------------------------{ Images }--------------------------------->
+
+[Stars Preview]: https://starchart.cc/vaxerski/Hyprland.svg
+[Preview A]: https://i.imgur.com/ZA4Fa8R.png
+[Preview B]: https://i.imgur.com/BpXxM8H.png
+[Banner]: https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png
+
+
+<!----------------------------------{ Badges }--------------------------------->
+
+[Badge Workflow]: https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg
+
+[Badge Discord]: https://img.shields.io/badge/Join%20the-Discord%20server-6666ff
+[Badge Issues]: https://img.shields.io/github/issues/vaxerski/Hyprland
+[Badge Pull Requests]: https://img.shields.io/github/issues-pr/vaxerski/Hyprland
+[Badge Language]: https://img.shields.io/github/languages/top/vaxerski/Hyprland
+[Badge License]: https://img.shields.io/github/license/vaxerski/Hyprland
+[Badge Lines]: https://img.shields.io/tokei/lines/github/vaxerski/Hyprland
+[Badge Hi Mom]: https://img.shields.io/badge/Hi-mom!-ff69b4

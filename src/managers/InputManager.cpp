@@ -271,6 +271,11 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
 
         if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV))
             libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, 0 /* Natural */);
+        
+        if (libinput_device_config_dwt_is_available(LIBINPUTDEV)) {
+            const auto DWT = static_cast<enum libinput_config_dwt_state>(g_pConfigManager->getInt("input:touchpad:disable_while_typing") != 0);
+            libinput_device_config_dwt_set_enabled(LIBINPUTDEV, DWT);
+        }
     }
 
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);

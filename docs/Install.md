@@ -5,8 +5,7 @@
 
 ## Packages
 
-*I do not maintain any packages, however* <br>
-*some kind people have made them for me.*
+*I do not maintain any packages, but some kind people have made them for me.*
 
 <br>
 
@@ -14,16 +13,14 @@
 
 <br>
 
-### Warning
+## Notice
 
-Since I am not the maintainer, I cannot <br>
-guarantee that those packages will <br>
-always work and be up to date.
+Since I am not the maintainer, I cannot guarantee that those packages will always work and be up to date.
 
 <br>
 
 ***Use at your own disclosure.*** <br>
-*If they don't, try building manually.*
+*If they don't work, try building manually.*
 
 <br>
 
@@ -32,7 +29,6 @@ always work and be up to date.
 ```sh
 yay -S hyprland-git
 ```
-
 <br>
 
 ---
@@ -41,9 +37,7 @@ yay -S hyprland-git
 
 ## Building
 
-If your distro doesn't have **Hyprland** in its repositories, <br>
-or you want to modify it, please refer to the **[Wiki Pages][Install]** <br>
-for the installation instructions.
+If your distro doesn't have **Hyprland** in its repositories, or you want to modify it, please refer to the **[Wiki Page][Install]** for the installation instructions.
 
 
 <!----------------------------------------------------------------------------->

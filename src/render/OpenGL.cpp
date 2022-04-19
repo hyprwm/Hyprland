@@ -686,3 +686,14 @@ void CHyprOpenGLImpl::clearWithTex() {
 
     renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
 }
+
+void CHyprOpenGLImpl::destroyMonitorResources(SMonitor* pMonitor) {
+    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorFB.release();
+    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].primaryFB.release();
+    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].stencilTex.destroyTexture();
+    g_pHyprOpenGL->m_mMonitorBGTextures[pMonitor].destroyTexture();
+    g_pHyprOpenGL->m_mMonitorRenderResources.erase(pMonitor);
+    g_pHyprOpenGL->m_mMonitorBGTextures.erase(pMonitor);
+
+    Debug::log(LOG, "Monitor %s -> destroyed all render data", pMonitor->szName.c_str());
+}

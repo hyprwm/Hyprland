@@ -60,6 +60,8 @@ public:
     void    scissor(const wlr_box*);
     void    scissor(const pixman_box32*);
 
+    void    destroyMonitorResources(SMonitor*);
+
     SCurrentRenderData m_RenderData;
 
     GLint  m_iCurrentOutputFb = 0;

@@ -87,63 +87,15 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // wlr_output_layout_output_coords returns invalid values, I think...
     wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, OUTPUT, monitorRule.offset.x, monitorRule.offset.y);
 
-    // loop over modes and choose an appropriate one.
-    if (!wl_list_empty(&OUTPUT->modes)) {
-        wlr_output_mode* mode;
-        bool found = false;
-
-        wl_list_for_each(mode, &OUTPUT->modes, link) {
-            // if delta of refresh rate, w and h chosen and mode is < 1 we accept it
-            if (DELTALESSTHAN(mode->width, monitorRule.resolution.x, 1) && DELTALESSTHAN(mode->height, monitorRule.resolution.y, 1) && DELTALESSTHAN(mode->refresh / 1000.f, monitorRule.refreshRate, 1)) {
-                wlr_output_set_mode(OUTPUT, mode);
-
-                if (!wlr_output_test(OUTPUT)) {
-                    Debug::log(LOG, "Monitor %s: REJECTED available mode: %ix%i@%2f!",
-                               OUTPUT->name, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (float)monitorRule.refreshRate,
-                               mode->width, mode->height, mode->refresh / 1000.f);
-                    continue;
-                }
-
-                Debug::log(LOG, "Monitor %s: requested %ix%i@%2f, found available mode: %ix%i@%imHz, applying.",
-                           OUTPUT->name, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (float)monitorRule.refreshRate,
-                           mode->width, mode->height, mode->refresh);
-
-                found = true;
-
-                break;
-            }
-        }
-
-        if (!found) {
-            const auto PREFERREDMODE = wlr_output_preferred_mode(OUTPUT);
-
-            if (!PREFERREDMODE) {
-                Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f",
-                           (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (float)monitorRule.refreshRate);
-                return;
-            }
-
-            // Preferred is valid
-            wlr_output_set_mode(OUTPUT, PREFERREDMODE);
-
-            Debug::log(ERR, "Monitor %s got an invalid requested mode: %ix%i@%2f, using the preferred one instead: %ix%i@%2f",
-                       OUTPUT->name, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (float)monitorRule.refreshRate,
-                       PREFERREDMODE->width, PREFERREDMODE->height, PREFERREDMODE->refresh / 1000.f);
-        }
-    }
-
-    if (!wlr_output_commit(OUTPUT)) {
-        Debug::log(ERR, "Couldn't commit output named %s", OUTPUT->name);
-        return;
-    }
+    // set mode, also applies
+    g_pHyprRenderer->applyMonitorRule(PNEWMONITOR, &monitorRule, true);
 
     Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", OUTPUT->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, OUTPUT);
 
+    PNEWMONITOR->damage = wlr_output_damage_create(PNEWMONITOR->output);
+
     // add a WLR workspace group
     PNEWMONITOR->pWLRWorkspaceGroupHandle = wlr_ext_workspace_group_handle_v1_create(g_pCompositor->m_sWLREXTWorkspaceMgr);
-
-    // add damage
-    PNEWMONITOR->damage = wlr_output_damage_create(OUTPUT);
 
     // Workspace
     const auto WORKSPACEID = monitorRule.defaultWorkspaceID == -1 ? g_pCompositor->m_lWorkspaces.size() + 1 /* Cuz workspaces doesnt have the new one yet and we start with 1 */ : monitorRule.defaultWorkspaceID;
@@ -179,6 +131,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pCompositor->cleanupWindows();
 
         g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
+
+        if (g_pConfigManager->m_bWantsMonitorReload)
+            g_pConfigManager->performMonitorReload();
     }
 
     timespec now;

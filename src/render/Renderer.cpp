@@ -491,3 +491,76 @@ DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& 
 
     return DAMAGE_TRACKING_INVALID;
 }
+
+void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
+
+    // Check if the rule isn't already applied
+    if (!force && DELTALESSTHAN(pMonitor->vecSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale) {
+        Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());
+        return;
+    }
+
+    wlr_output_set_scale(pMonitor->output, pMonitorRule->scale);
+    pMonitor->scale = pMonitorRule->scale;
+
+    // loop over modes and choose an appropriate one.
+    if (!wl_list_empty(&pMonitor->output->modes)) {
+        wlr_output_mode* mode;
+        bool found = false;
+
+        wl_list_for_each(mode, &pMonitor->output->modes, link) {
+            // if delta of refresh rate, w and h chosen and mode is < 1 we accept it
+            if (DELTALESSTHAN(mode->width, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(mode->height, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(mode->refresh / 1000.f, pMonitorRule->refreshRate, 1)) {
+                wlr_output_set_mode(pMonitor->output, mode);
+
+                if (!wlr_output_test(pMonitor->output)) {
+                    Debug::log(LOG, "Monitor %s: REJECTED available mode: %ix%i@%2f!",
+                               pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,
+                               mode->width, mode->height, mode->refresh / 1000.f);
+                    continue;
+                }
+
+                Debug::log(LOG, "Monitor %s: requested %ix%i@%2f, found available mode: %ix%i@%imHz, applying.",
+                           pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,
+                           mode->width, mode->height, mode->refresh);
+
+                found = true;
+
+                pMonitor->refreshRate = mode->refresh / 1000.f;
+                pMonitor->vecSize = Vector2D(mode->width, mode->height);
+
+                break;
+            }
+        }
+
+        if (!found) {
+            const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
+
+            if (!PREFERREDMODE) {
+                Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f",
+                           (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
+                return;
+            }
+
+            // Preferred is valid
+            wlr_output_set_mode(pMonitor->output, PREFERREDMODE);
+
+            Debug::log(ERR, "Monitor %s got an invalid requested mode: %ix%i@%2f, using the preferred one instead: %ix%i@%2f",
+                       pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,
+                       PREFERREDMODE->width, PREFERREDMODE->height, PREFERREDMODE->refresh / 1000.f);
+
+            pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
+            pMonitor->vecSize = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
+        }
+    } else {
+        wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (int)pMonitorRule->refreshRate * 1000);
+    }
+
+    // update renderer
+    g_pHyprOpenGL->destroyMonitorResources(pMonitor);
+
+    if (!wlr_output_commit(pMonitor->output)) {
+        Debug::log(ERR, "Couldn't commit output named %s", pMonitor->output->name);
+        return;
+    }
+}

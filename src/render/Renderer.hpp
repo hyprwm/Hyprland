@@ -7,6 +7,8 @@
 #include "../Window.hpp"
 #include "OpenGL.hpp"
 
+struct SMonitorRule;
+
 // TODO: add fuller damage tracking for updating only parts of a window
 enum DAMAGETRACKINGMODES {
     DAMAGE_TRACKING_INVALID = -1,
@@ -25,6 +27,7 @@ public:
     void                damageWindow(CWindow*);
     void                damageBox(wlr_box*);
     void                damageMonitor(SMonitor*);
+    void                applyMonitorRule(SMonitor*, SMonitorRule*, bool force = false);
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 

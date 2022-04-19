@@ -55,6 +55,9 @@ public:
     // no-op when done.
     void                dispatchExecOnce();
 
+    void                performMonitorReload();
+    bool                m_bWantsMonitorReload = false;
+
 private:
     std::unordered_map<std::string, SConfigValue> configValues;
     time_t lastModifyTime = 0;  // for reloading the config if changed

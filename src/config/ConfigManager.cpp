@@ -260,7 +260,14 @@ void CConfigManager::parseLine(std::string& line) {
     if (line.find(" {") != std::string::npos) {
         auto cat = line.substr(0, line.find(" {"));
         transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
-        currentCategory = cat;
+        if (currentCategory.length() != 0) {
+            currentCategory.push_back(':');
+            currentCategory.append(cat);
+        }
+        else {
+            currentCategory = cat;
+        }
+
         return;
     }
 

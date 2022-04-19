@@ -1,39 +1,27 @@
 
 # Installation
 
-<br>
-
 ## Packages
 
 *I do not maintain any packages, but some kind people have made them for me.*
 
-<br>
-
 **If I missed any, please let me know.**
-
-<br>
 
 ## Notice
 
 Since I am not the maintainer, I cannot guarantee that those packages will always work and be up to date.
 
-<br>
-
 ***Use at your own disclosure.*** <br>
 *If they don't work, try building manually.*
-
-<br>
 
 #### Arch ( AUR / -git )
 
 ```sh
 yay -S hyprland-git
 ```
-<br>
 
 ---
 
-<br>
 
 ## Building
 

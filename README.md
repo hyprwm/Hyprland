@@ -4,7 +4,7 @@
 
 <br>
 
-[![Badge License]][License] ![Badge Lines] ![Badge Language] [![Badge Pull Requests]][Pull Requests] [![Badge Issues]][Issues] ![Badge Hi Mom]<br/>
+![Badge Workflow] [![Badge License]][License] ![Badge Lines] ![Badge Language] [![Badge Pull Requests]][Pull Requests] [![Badge Issues]][Issues] ![Badge Hi Mom]<br/>
 [![Badge Discord]][Discord]
 <br>
 

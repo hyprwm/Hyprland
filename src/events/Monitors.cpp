@@ -14,6 +14,8 @@
 //                                                           //
 // --------------------------------------------------------- //
 
+SMonitor* pMostHzMonitor = nullptr;
+
 void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
@@ -66,7 +68,6 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, monitorRule.scale);
     wlr_output_set_transform(OUTPUT, WL_OUTPUT_TRANSFORM_NORMAL);  // TODO: support other transforms
 
-    wlr_output_set_mode(OUTPUT, wlr_output_preferred_mode(OUTPUT));
     wlr_output_enable_adaptive_sync(OUTPUT, 1);
 
     // create it in the arr
@@ -103,9 +104,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
                     continue;
                 }
 
-                Debug::log(LOG, "Monitor %s: requested %ix%i@%2f, found available mode: %ix%i@%2f, applying.",
+                Debug::log(LOG, "Monitor %s: requested %ix%i@%2f, found available mode: %ix%i@%imHz, applying.",
                            OUTPUT->name, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (float)monitorRule.refreshRate,
-                           mode->width, mode->height, mode->refresh / 1000.f);
+                           mode->width, mode->height, mode->refresh);
 
                 found = true;
 
@@ -136,7 +137,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         return;
     }
 
-    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i@%i, pointer %x", OUTPUT->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, (int)monitorRule.refreshRate, OUTPUT);
+    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", OUTPUT->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, OUTPUT);
 
     // add a WLR workspace group
     PNEWMONITOR->pWLRWorkspaceGroupHandle = wlr_ext_workspace_group_handle_v1_create(g_pCompositor->m_sWLREXTWorkspaceMgr);
@@ -161,16 +162,18 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     g_pCompositor->deactivateAllWLRWorkspaces();
     wlr_ext_workspace_handle_v1_set_active(PNEWWORKSPACE->m_pWlrHandle, true);
+
+    if (!pMostHzMonitor || monitorRule.refreshRate > pMostHzMonitor->refreshRate)
+        pMostHzMonitor = PNEWMONITOR;
     //
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {
     SMonitor* const PMONITOR = (SMonitor*)owner;
 
-    // Hack: only check when monitor number 1 refreshes, saves a bit of resources.
+    // Hack: only check when monitor with top hz refreshes, saves a bit of resources.
     // This is for stuff that should be run every frame
-    // TODO: do this on the most Hz monitor
-    if (PMONITOR->ID == 0) {
+    if (PMONITOR->ID == pMostHzMonitor->ID) {
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
         g_pCompositor->cleanupWindows();

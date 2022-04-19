@@ -4,13 +4,21 @@
 
 <br>
 
-![Badge Workflow] [![Badge License]][License] ![Badge Lines] ![Badge Language] [![Badge Pull Requests]][Pull Requests] [![Badge Issues]][Issues] ![Badge Hi Mom]<br/>
+![Badge Workflow] 
+[![Badge License]][License] 
+![Badge Lines] 
+![Badge Language] 
+[![Badge Pull Requests]][Pull Requests] 
+[![Badge Issues]][Issues] 
+![Badge Hi Mom]<br>
 [![Badge Discord]][Discord]
+
 <br>
 
 Hyprland is a dynamic tiling Wayland compositor based on wlroots that doesn't sacrifice on its looks.
 
 For Hyprland without the `land` part, see [Hypr], the Xorg window manager.
+
 <br>
 <br>
 
@@ -27,6 +35,7 @@ For Hyprland without the `land` part, see [Hypr], the Xorg window manager.
 </div>
  
 # Notice
+
 This project is still in its early development, expect bugs.
 
 Once you get it working though, it's pretty stable.<br/>
@@ -37,6 +46,7 @@ Hyprland needs testers! <br/>
 Try it out and report bugs / suggestions!
 
 # Features
+
 - Easily expandable and readable codebase
 - Config reloaded instantly upon saving
 - Parabolic window animations
@@ -50,7 +60,6 @@ Try it out and report bugs / suggestions!
 - Docks support
 - Fade in / out
 - Window blur
-
 
 <br>
 <br>

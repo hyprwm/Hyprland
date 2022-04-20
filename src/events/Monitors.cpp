@@ -118,6 +118,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     if (!pMostHzMonitor || monitorRule.refreshRate > pMostHzMonitor->refreshRate)
         pMostHzMonitor = PNEWMONITOR;
     //
+
+    if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
+        g_pCompositor->m_pLastMonitor = PNEWMONITOR; 
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {

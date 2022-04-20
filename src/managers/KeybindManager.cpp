@@ -62,6 +62,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         else if (k.handler == "movewindow") { moveActiveTo(k.arg); }
         else if (k.handler == "togglegroup") { toggleGroup(k.arg); }
         else if (k.handler == "changegroupactive") { changeGroupActive(k.arg); }
+        else if (k.handler == "splitratio") { alterSplitRatio(k.arg); }
         else {
             Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
         }
@@ -142,29 +143,11 @@ void CKeybindManager::toggleActivePseudo(std::string args) {
 }
 
 void CKeybindManager::changeworkspace(std::string args) {
-    int workspaceToChangeTo = 0;
+    int workspaceToChangeTo = std::clamp((int)getPlusMinusKeywordResult(args, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
 
-    if (args.find_first_of("+") == 0) {
-        try {
-            workspaceToChangeTo = g_pCompositor->m_pLastMonitor->activeWorkspace + std::stoi(args.substr(1));
-        } catch (...) {
-            Debug::log(ERR, "Invalid arg \"%s\" in changeWorkspace!", args.c_str());
-            return;
-        }
-    } else if (args.find_first_of("-") == 0) {
-        try {
-            workspaceToChangeTo = std::clamp(g_pCompositor->m_pLastMonitor->activeWorkspace - std::stoi(args.substr(1)), 1, INT_MAX);
-        } catch (...) {
-            Debug::log(ERR, "Invalid arg \"%s\" in changeWorkspace!", args.c_str());
-            return;
-        }
-    } else {
-        try {
-            workspaceToChangeTo = stoi(args);
-        } catch (...) {
-            Debug::log(ERR, "Invalid arg \"%s\" in changeWorkspace!", args.c_str());
-            return;
-        }
+    if (workspaceToChangeTo == INT_MAX) {
+        Debug::log(ERR, "Error in changeworkspace, invalid value");
+        return;
     }
 
     // if it exists, we warp to it
@@ -359,12 +342,12 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
 
-    if (!PLASTWINDOW)
+    if (!g_pCompositor->windowValidMapped(PLASTWINDOW))
         return;
 
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
-    if (!PWINDOWTOCHANGETO)
+    if (!g_pCompositor->windowValidMapped(PWINDOWTOCHANGETO))
         return;
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
@@ -376,4 +359,29 @@ void CKeybindManager::toggleGroup(std::string args) {
 
 void CKeybindManager::changeGroupActive(std::string args) {
     g_pLayoutManager->getCurrentLayout()->switchGroupWindow(g_pCompositor->m_pLastWindow);
+}
+
+void CKeybindManager::alterSplitRatio(std::string args) {
+    float splitratio = 0;
+
+    if (args == "+" || args == "-") {
+        Debug::log(LOG, "alterSplitRatio: using LEGACY +/-, consider switching to the Hyprland syntax.");
+        splitratio = (args == "+" ? 0.05f : -0.05f);
+    }
+
+    if (splitratio == 0) {
+        splitratio = getPlusMinusKeywordResult(args, 0);
+    }
+
+    if (splitratio == INT_MAX) {
+        Debug::log(ERR, "Splitratio invalid in alterSplitRatio!");
+        return;
+    }
+
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(PLASTWINDOW))
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->alterSplitRatioBy(PLASTWINDOW, splitratio);
 }

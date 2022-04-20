@@ -779,3 +779,16 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     // recalc the workspace
     getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
 }
+
+void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
+    // window should be valid, insallah
+
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE || !PNODE->pParent)
+        return;
+
+    PNODE->pParent->splitRatio = std::clamp(PNODE->pParent->splitRatio + ratio, 0.1f, 1.9f);
+
+    PNODE->pParent->recalcSizePosRecursive();
+}

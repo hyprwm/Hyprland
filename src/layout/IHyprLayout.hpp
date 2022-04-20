@@ -90,4 +90,10 @@ public:
         The layout is free to ignore.
     */
     virtual void         switchWindows(CWindow*, CWindow*)      = 0;
+
+    /*
+        Called when the user requests to change the splitratio by X
+        on a window
+    */
+    virtual void         alterSplitRatioBy(CWindow*, float)     = 0;
 };

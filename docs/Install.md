@@ -23,9 +23,9 @@ yay -S hyprland-git
 ---
 
 
-## Building
+## Building / No XWayland / other
 
-If your distro doesn't have **Hyprland** in its repositories, or you want to modify it, please refer to the **[Wiki Page][Install]** for the installation instructions.
+If your distro doesn't have **Hyprland** in its repositories, you want to modify it, or use custom build flags, please refer to the **[Wiki Page][Install]** for the installation instructions.
 
 
 <!----------------------------------------------------------------------------->

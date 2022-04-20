@@ -32,6 +32,7 @@ private:
     void                fullscreenActive(std::string);
     void                moveActiveToWorkspace(std::string);
     void                moveFocusTo(std::string);
+    void                moveActiveTo(std::string);
     void                toggleGroup(std::string);
     void                changeGroupActive(std::string);
 };

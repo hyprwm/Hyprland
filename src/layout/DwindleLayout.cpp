@@ -727,3 +727,55 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
 
     return hints;
 }
+
+void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
+    // windows should be valid, insallah
+
+    const auto PNODE = getNodeFromWindow(pWindow);
+    const auto PNODE2 = getNodeFromWindow(pWindow2);
+
+    if (!PNODE2 || !PNODE)
+        return;
+
+    // we will not delete the nodes, just fix the tree
+    if (PNODE2->pParent == PNODE->pParent) {
+        const auto PPARENT = PNODE->pParent;
+
+        if (PPARENT->children[0] == PNODE) {
+            PPARENT->children[0] = PNODE2;
+            PPARENT->children[1] = PNODE;
+        } else {
+            PPARENT->children[0] = PNODE;
+            PPARENT->children[1] = PNODE2;
+        }
+    } else {
+        if (PNODE->pParent) {
+            const auto PPARENT = PNODE->pParent;
+
+            if (PPARENT->children[0] == PNODE) {
+                PPARENT->children[0] = PNODE2;
+            } else {
+                PPARENT->children[1] = PNODE2;
+            }
+        }
+
+        if (PNODE2->pParent) {
+            const auto PPARENT = PNODE2->pParent;
+
+            if (PPARENT->children[0] == PNODE2) {
+                PPARENT->children[0] = PNODE;
+            } else {
+                PPARENT->children[1] = PNODE;
+            }
+        }
+    }
+
+    const auto PPARENTNODE2 = PNODE2->pParent;
+    PNODE2->pParent = PNODE->pParent;
+    PNODE->pParent = PPARENTNODE2;
+
+    // these are window nodes, so no children.
+
+    // recalc the workspace
+    getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
+}

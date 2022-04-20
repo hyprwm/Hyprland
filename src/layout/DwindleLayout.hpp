@@ -51,6 +51,7 @@ public:
     virtual void        toggleWindowGroup(CWindow*);
     virtual void        switchGroupWindow(CWindow*);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
+    virtual void switchWindows(CWindow*, CWindow*);
 
    private:
 

@@ -35,6 +35,7 @@ private:
     void                moveActiveTo(std::string);
     void                toggleGroup(std::string);
     void                changeGroupActive(std::string);
+    void                alterSplitRatio(std::string);
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

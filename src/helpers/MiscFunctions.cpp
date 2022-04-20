@@ -74,3 +74,41 @@ std::string removeBeginEndSpacesTabs(std::string str) {
 
     return str;
 }
+
+float getPlusMinusKeywordResult(std::string source, float relative) {
+    float result = INT_MAX;
+
+    if (source.find_first_of("+") == 0) {
+        try {
+            if (source.find('.') != std::string::npos)
+                result = relative + std::stof(source.substr(1));
+            else
+                result = relative + std::stoi(source.substr(1));
+        } catch (...) {
+            Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
+            return INT_MAX;
+        }
+    } else if (source.find_first_of("-") == 0) {
+        try {
+            if (source.find('.') != std::string::npos)
+                result = relative - std::stof(source.substr(1));
+            else
+                result = relative - std::stoi(source.substr(1));
+        } catch (...) {
+            Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
+            return INT_MAX;
+        }
+    } else {
+        try {
+            if (source.find('.') != std::string::npos)
+                result = stof(source);
+            else
+                result = stoi(source);
+        } catch (...) {
+            Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
+            return INT_MAX;
+        }
+    }
+
+    return result;
+}

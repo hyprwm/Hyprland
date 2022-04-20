@@ -59,6 +59,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         else if (k.handler == "movetoworkspace") { moveActiveToWorkspace(k.arg); }
         else if (k.handler == "pseudo") { toggleActivePseudo(k.arg); }
         else if (k.handler == "movefocus") { moveFocusTo(k.arg); }
+        else if (k.handler == "movewindow") { moveActiveTo(k.arg); }
         else if (k.handler == "togglegroup") { toggleGroup(k.arg); }
         else if (k.handler == "changegroupactive") { changeGroupActive(k.arg); }
         else {
@@ -93,7 +94,7 @@ void CKeybindManager::spawn(std::string args) {
         args = "WAYLAND_DISPLAY=" + std::string(g_pCompositor->m_szWLDisplaySocket) + " DISPLAY=" + std::string(g_pXWaylandManager->m_sWLRXWayland->display_name) + " " + args;
     else
         args = "WAYLAND_DISPLAY=" + std::string(g_pCompositor->m_szWLDisplaySocket) + " " + args;
-        
+
     Debug::log(LOG, "Executing %s", args.c_str());
     if (fork() == 0) {
         execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
@@ -314,7 +315,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
     char arg = args[0];
 
     if (arg != 'l' && arg != 'r' && arg != 'u' && arg != 'd' && arg != 't' && arg != 'b') {
-        Debug::log(ERR, "Cannot move window in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        Debug::log(ERR, "Cannot move focus in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return;
     }
 
@@ -346,6 +347,27 @@ void CKeybindManager::moveFocusTo(std::string args) {
             switchToWindow(PWINDOWNEXT);
         }
     }
+}
+
+void CKeybindManager::moveActiveTo(std::string args) {
+    char arg = args[0];
+
+    if (arg != 'l' && arg != 'r' && arg != 'u' && arg != 'd' && arg != 't' && arg != 'b') {
+        Debug::log(ERR, "Cannot move window in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        return;
+    }
+
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PLASTWINDOW)
+        return;
+
+    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+
+    if (!PWINDOWTOCHANGETO)
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

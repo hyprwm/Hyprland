@@ -84,4 +84,10 @@ public:
         a specific window, e.g. border color for groups.
     */
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*) = 0;
+
+    /* 
+        Called when the user requests two windows to be swapped places.
+        The layout is free to ignore.
+    */
+    virtual void         switchWindows(CWindow*, CWindow*)      = 0;
 };

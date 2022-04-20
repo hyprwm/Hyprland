@@ -3,19 +3,21 @@
 #include "../events/Events.hpp"
 
 CHyprXWaylandManager::CHyprXWaylandManager() {
-    m_sWLRXWayland = wlr_xwayland_create(g_pCompositor->m_sWLDisplay, g_pCompositor->m_sWLRCompositor, 1);
+    if (XWAYLAND) {
+        m_sWLRXWayland = wlr_xwayland_create(g_pCompositor->m_sWLDisplay, g_pCompositor->m_sWLRCompositor, 1);
 
-    if (!m_sWLRXWayland) {
-        Debug::log(ERR, "Couldn't start up the XWaylandManager because wlr_xwayland_create returned a nullptr!");
-        return;
+        if (!m_sWLRXWayland) {
+            Debug::log(ERR, "Couldn't start up the XWaylandManager because wlr_xwayland_create returned a nullptr!");
+            return;
+        }
+
+        addWLSignal(&m_sWLRXWayland->events.ready, &Events::listen_readyXWayland, m_sWLRXWayland, "XWayland Manager");
+        addWLSignal(&m_sWLRXWayland->events.new_surface, &Events::listen_surfaceXWayland, m_sWLRXWayland, "XWayland Manager");
+
+        setenv("DISPLAY", m_sWLRXWayland->display_name, 1);
+
+        Debug::log(LOG, "CHyprXWaylandManager started on display %s", m_sWLRXWayland->display_name);
     }
-
-    addWLSignal(&m_sWLRXWayland->events.ready, &Events::listen_readyXWayland, m_sWLRXWayland, "XWayland Manager");
-    addWLSignal(&m_sWLRXWayland->events.new_surface, &Events::listen_surfaceXWayland, m_sWLRXWayland, "XWayland Manager");
-
-    setenv("DISPLAY", m_sWLRXWayland->display_name, 1);
-
-    Debug::log(LOG, "CHyprXWaylandManager started on display %s", m_sWLRXWayland->display_name);
 }
 
 CHyprXWaylandManager::~CHyprXWaylandManager() {

@@ -24,6 +24,11 @@ IF(LEGACY_RENDERER MATCHES true)
     add_definitions( -DLEGACY_RENDERER )
 ENDIF(LEGACY_RENDERER MATCHES true)
 
+IF(NO_XWAYLAND MATCHES true)
+    message(STATUS "Using the NO_XWAYLAND flag, disabling XWayland!")
+    add_definitions( -DNO_XWAYLAND )
+ENDIF(NO_XWAYLAND MATCHES true)
+
 IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake!")
 ELSE()

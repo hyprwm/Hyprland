@@ -98,6 +98,12 @@ extern "C" {
 #include <GLES3/gl3ext.h>
 #endif
 
+#ifdef NO_XWAYLAND
+#define XWAYLAND false
+#else
+#define XWAYLAND true
+#endif
+
 #include "helpers/Vector2D.hpp"
 
 #include "../ext-workspace-unstable-v1-protocol.h"

@@ -89,7 +89,11 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 // Dispatchers
 
 void CKeybindManager::spawn(std::string args) {
-    args = "WAYLAND_DISPLAY=" + std::string(g_pCompositor->m_szWLDisplaySocket) + " DISPLAY=" + std::string(g_pXWaylandManager->m_sWLRXWayland->display_name) + " " + args;
+    if (g_pXWaylandManager->m_sWLRXWayland)
+        args = "WAYLAND_DISPLAY=" + std::string(g_pCompositor->m_szWLDisplaySocket) + " DISPLAY=" + std::string(g_pXWaylandManager->m_sWLRXWayland->display_name) + " " + args;
+    else
+        args = "WAYLAND_DISPLAY=" + std::string(g_pCompositor->m_szWLDisplaySocket) + " " + args;
+        
     Debug::log(LOG, "Executing %s", args.c_str());
     if (fork() == 0) {
         execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);

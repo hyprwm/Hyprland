@@ -8,7 +8,7 @@ public:
     CHyprXWaylandManager();
     ~CHyprXWaylandManager();
 
-    wlr_xwayland*       m_sWLRXWayland;
+    wlr_xwayland*       m_sWLRXWayland = nullptr;
 
     wlr_surface*        getWindowSurface(CWindow*);
     void                activateSurface(wlr_surface*, bool);

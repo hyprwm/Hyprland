@@ -159,6 +159,14 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     if (curitem == "disable" || curitem == "disabled") {
         newrule.disabled = true;
 
+        // overwrite if exists
+        for (auto& r : m_dMonitorRules) {
+            if (r.name == newrule.name) {
+                r = newrule;
+                return;
+            }
+        }
+
         m_dMonitorRules.push_back(newrule);
 
         return;
@@ -182,6 +190,14 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     nextItem();
 
     newrule.scale = stof(curitem);
+
+    // overwrite if exists
+    for (auto& r : m_dMonitorRules) {
+        if (r.name == newrule.name) {
+            r = newrule;
+            return;
+        }
+    }
 
     m_dMonitorRules.push_back(newrule);
 }

@@ -187,6 +187,15 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
     newrule.scale = stof(curitem);
 
+    nextItem();
+
+    if (curitem != "") {
+        // warning for old cfg
+        Debug::log(ERR, "Error in parsing rule for %s, possibly old config!", newrule.name.c_str());
+        parseError = "Error in setting monitor rule. Are you using the old syntax? Confront the wiki.";
+        return;
+    }
+
     // overwrite if exists
     for (auto& r : m_dMonitorRules) {
         if (r.name == newrule.name) {

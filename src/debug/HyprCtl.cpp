@@ -88,6 +88,22 @@ std::string dispatchRequest(std::string in) {
     return "ok";
 }
 
+std::string dispatchKeyword(std::string in) {
+    // get rid of the keyword keyword
+    in = in.substr(in.find_first_of(' ') + 1);
+
+    const auto COMMAND = in.substr(0, in.find_first_of(' '));
+
+    const auto VALUE = in.substr(in.find_first_of(' ') + 1);
+
+    std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE, true);
+
+    if (retval == "") 
+        return "ok";
+
+    return retval;
+}
+
 void HyprCtl::startHyprCtlSocket() {
     std::thread([&]() {
         uint16_t connectPort = 9187;
@@ -149,6 +165,7 @@ void HyprCtl::startHyprCtlSocket() {
                 else if (request == "activewindow") reply = activeWindowRequest();
                 else if (request == "layers") reply = layersRequest();
                 else if (request.find("dispatch") == 0) reply = dispatchRequest(request);
+                else if (request.find("keyword") == 0) reply = dispatchKeyword(request);
             } catch (std::exception& e) {
                 Debug::log(ERR, "Error in request: %s", e.what());
                 reply = "Err: " + std::string(e.what());

@@ -23,6 +23,7 @@ usage: hyprctl [command] [(opt)args]
     activewindow
     layers
     dispatch
+    keyword
 )#";
 
 void request(std::string arg) {
@@ -109,6 +110,17 @@ void dispatchRequest(int argc, char** argv) {
     request(rq);
 }
 
+void keywordRequest(int argc, char** argv) {
+    if (argc < 4) {
+        std::cout << "keyword requires 2 params";
+        return;
+    }
+
+    std::string rq = "keyword " + std::string(argv[2]) + " " + std::string(argv[3]);
+
+    request(rq);
+}
+
 int main(int argc, char** argv) {
     int bflag = 0, sflag = 0, index, c;
 
@@ -123,6 +135,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "activewindow")) request("activewindow");
     else if (!strcmp(argv[1], "layers")) request("layers");
     else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
+    else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);
     else {
         printf(USAGE.c_str());
         return 1;

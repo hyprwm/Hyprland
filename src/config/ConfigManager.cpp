@@ -253,6 +253,41 @@ void CConfigManager::handleDefaultWorkspace(const std::string& command, const st
     }
 }
 
+std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
+    if (dynamic)
+        parseError = "";
+
+    if (COMMAND == "exec") {
+        if (isFirstLaunch) {
+            firstExecRequests.push_back(VALUE);
+        } else {
+            handleRawExec(COMMAND, VALUE);
+        }
+    } else if (COMMAND == "exec-once") {
+        if (isFirstLaunch) {
+            firstExecRequests.push_back(VALUE);
+        }
+    } else if (COMMAND == "monitor") {
+        handleMonitor(COMMAND, VALUE);
+    } else if (COMMAND == "bind") {
+        handleBind(COMMAND, VALUE);
+    } else if (COMMAND == "workspace") {
+        handleDefaultWorkspace(COMMAND, VALUE);
+    } else if (COMMAND == "windowrule") {
+        handleWindowRule(COMMAND, VALUE);
+    } else {
+        configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
+    }
+
+    if (dynamic) {
+        std::string retval = parseError;
+        parseError = "";
+        return retval;
+    }
+
+    return parseError;
+}
+
 void CConfigManager::parseLine(std::string& line) {
     // first check if its not a comment
     const auto COMMENTSTART = line.find_first_of('#');
@@ -298,33 +333,7 @@ void CConfigManager::parseLine(std::string& line) {
     const auto VALUE = removeBeginEndSpacesTabs(line.substr(EQUALSPLACE + 1));
     //
 
-    if (COMMAND == "exec") {
-        if (isFirstLaunch) {
-            firstExecRequests.push_back(VALUE);
-        } else {
-            handleRawExec(COMMAND, VALUE);
-        }
-        return;
-    } else if (COMMAND == "exec-once") {
-        if (isFirstLaunch) {
-            firstExecRequests.push_back(VALUE);
-        }
-        return;
-    } else if (COMMAND == "monitor") {
-        handleMonitor(COMMAND, VALUE);
-        return;
-    } else if (COMMAND == "bind") {
-        handleBind(COMMAND, VALUE);
-        return;
-    } else if (COMMAND == "workspace") {
-        handleDefaultWorkspace(COMMAND, VALUE);
-        return;
-    } else if (COMMAND == "windowrule") {
-        handleWindowRule(COMMAND, VALUE);
-        return;
-    }
-
-    configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
+    parseKeyword(COMMAND, VALUE);
 }
 
 void CConfigManager::loadConfigLoadVars() {

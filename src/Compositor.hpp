@@ -66,6 +66,7 @@ public:
     std::list<CWindow*>     m_lWindowsFadingOut;
 
     void                    startCompositor(); 
+    void                    cleanupExit();
 
     wlr_surface*            m_pLastFocus = nullptr;
     CWindow*                m_pLastWindow = nullptr;

@@ -100,7 +100,12 @@ CCompositor::CCompositor() {
 }
 
 CCompositor::~CCompositor() {
+    cleanupExit();
+}
 
+void handleCritSignal(int signo) {
+    g_pCompositor->cleanupExit();
+    exit(signo);
 }
 
 void CCompositor::initAllSignals() {
@@ -123,6 +128,24 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRInhibitMgr->events.activate, &Events::listen_InhibitActivate, m_sWLRInhibitMgr, "InhibitMgr");
     addWLSignal(&m_sWLRInhibitMgr->events.deactivate, &Events::listen_InhibitDeactivate, m_sWLRInhibitMgr, "InhibitMgr");
     addWLSignal(&m_sWLRPointerConstraints->events.new_constraint, &Events::listen_newConstraint, m_sWLRPointerConstraints, "PointerConstraints");
+
+    signal(SIGINT, handleCritSignal);
+    signal(SIGTERM, handleCritSignal);
+}
+
+void CCompositor::cleanupExit() {
+    if (!m_sWLDisplay)
+        return;
+
+    if (g_pXWaylandManager->m_sWLRXWayland) {
+        wlr_xwayland_destroy(g_pXWaylandManager->m_sWLRXWayland);
+        g_pXWaylandManager->m_sWLRXWayland = nullptr;
+    }
+
+    wl_display_destroy_clients(m_sWLDisplay);
+    wl_display_destroy(m_sWLDisplay);
+
+    m_sWLDisplay = nullptr;
 }
 
 void CCompositor::startCompositor() {

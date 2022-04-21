@@ -713,7 +713,7 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow) {
 int CCompositor::getNextAvailableNamedWorkspace() {
     int lowest = -1337 + 1;
     for (auto& w : m_lWorkspaces) {
-        if (w.m_iID < 0 && w.m_iID < lowest)
+        if (w.m_iID < -1 && w.m_iID < lowest)
             lowest = w.m_iID;
     }
 

@@ -85,6 +85,8 @@ std::string dispatchRequest(std::string in) {
 
     DISPATCHER->second(DISPATCHARG);
 
+    Debug::log(LOG, "Hyprctl: dispatcher %s : %s", DISPATCHSTR.c_str(), DISPATCHARG.c_str());
+
     return "ok";
 }
 
@@ -100,6 +102,8 @@ std::string dispatchKeyword(std::string in) {
 
     if (COMMAND == "monitor")
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
+
+    Debug::log(LOG, "Hyprctl: keyword %s : %s", COMMAND.c_str(), VALUE.c_str());
 
     if (retval == "") 
         return "ok";

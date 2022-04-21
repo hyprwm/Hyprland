@@ -185,10 +185,6 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
     nextItem();
 
-    newrule.mfact = stof(curitem);
-
-    nextItem();
-
     newrule.scale = stof(curitem);
 
     // overwrite if exists
@@ -547,7 +543,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(std::string name) {
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
-    return SMonitorRule{.name = "", .resolution = Vector2D(1280, 720), .offset = Vector2D(0, 0), .mfact = 0.5f, .scale = 1};
+    return SMonitorRule{.name = "", .resolution = Vector2D(1280, 720), .offset = Vector2D(0, 0), .scale = 1};
 }
 
 std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {

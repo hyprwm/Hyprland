@@ -22,7 +22,6 @@ struct SMonitorRule {
     std::string name = "";
     Vector2D    resolution = Vector2D(1280,720);
     Vector2D    offset = Vector2D(0,0);
-    float       mfact = 0.5;
     float       scale = 1;
     float       refreshRate = 60;
     int         defaultWorkspaceID = -1;

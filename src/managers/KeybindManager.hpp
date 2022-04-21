@@ -19,13 +19,14 @@ public:
 
     bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&);
     void                addKeybind(SKeybind);
+    void                removeKeybind(uint32_t, const std::string&);
     uint32_t            stringToModMask(std::string);
     void                clearKeybinds();
 
     std::unordered_map<std::string, std::function<void(std::string)>> m_mDispatchers;
 
 private:
-    std::deque<SKeybind> m_dKeybinds;
+    std::list<SKeybind> m_lKeybinds;
 
     bool                handleInternalKeybinds(xkb_keysym_t);
 

@@ -215,6 +215,17 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND});
 }
 
+void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {
+    auto valueCopy = value;
+
+    const auto MOD = g_pKeybindManager->stringToModMask(valueCopy.substr(0, valueCopy.find_first_of(",")));
+    valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
+
+    const auto KEY = valueCopy;
+
+    g_pKeybindManager->removeKeybind(MOD, KEY);
+}
+
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
     const auto RULE = value.substr(0, value.find_first_of(","));
     const auto VALUE = value.substr(value.find_first_of(",") + 1);
@@ -271,6 +282,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleMonitor(COMMAND, VALUE);
     } else if (COMMAND == "bind") {
         handleBind(COMMAND, VALUE);
+    } else if (COMMAND == "unbind") {
+        handleUnbind(COMMAND, VALUE);
     } else if (COMMAND == "workspace") {
         handleDefaultWorkspace(COMMAND, VALUE);
     } else if (COMMAND == "windowrule") {

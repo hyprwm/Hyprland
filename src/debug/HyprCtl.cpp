@@ -98,6 +98,8 @@ std::string dispatchKeyword(std::string in) {
 
     std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE, true);
 
+    g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
+
     if (retval == "") 
         return "ok";
 

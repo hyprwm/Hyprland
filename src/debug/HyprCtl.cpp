@@ -111,6 +111,60 @@ std::string dispatchKeyword(std::string in) {
     return retval;
 }
 
+void HyprCtl::tickHyprCtl() {
+    if (!requestMade)
+        return;
+
+    std::string reply = "";
+
+    try {
+        if (request == "monitors")
+            reply = monitorsRequest();
+        else if (request == "workspaces")
+            reply = workspacesRequest();
+        else if (request == "clients")
+            reply = clientsRequest();
+        else if (request == "activewindow")
+            reply = activeWindowRequest();
+        else if (request == "layers")
+            reply = layersRequest();
+        else if (request.find("dispatch") == 0)
+            reply = dispatchRequest(request);
+        else if (request.find("keyword") == 0)
+            reply = dispatchKeyword(request);
+    } catch (std::exception& e) {
+        Debug::log(ERR, "Error in request: %s", e.what());
+        reply = "Err: " + std::string(e.what());
+    }
+
+    request = reply;
+
+    requestMade = false;
+    requestReady = true;
+}
+
+std::string getRequestFromThread(std::string rq) {
+    while (HyprCtl::request != "" || HyprCtl::requestMade || HyprCtl::requestReady) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    HyprCtl::request = rq;
+    HyprCtl::requestMade = true;
+
+    while (!HyprCtl::requestReady) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    HyprCtl::requestReady = false;
+    HyprCtl::requestMade = false;
+
+    std::string toReturn = HyprCtl::request;
+
+    HyprCtl::request = "";
+
+    return toReturn;
+}
+
 void HyprCtl::startHyprCtlSocket() {
     std::thread([&]() {
         uint16_t connectPort = 9187;
@@ -164,19 +218,7 @@ void HyprCtl::startHyprCtlSocket() {
 
             std::string request(readBuffer);
 
-            std::string reply = "";
-            try {
-                if (request == "monitors") reply = monitorsRequest();
-                else if (request == "workspaces") reply = workspacesRequest();
-                else if (request == "clients") reply = clientsRequest();
-                else if (request == "activewindow") reply = activeWindowRequest();
-                else if (request == "layers") reply = layersRequest();
-                else if (request.find("dispatch") == 0) reply = dispatchRequest(request);
-                else if (request.find("keyword") == 0) reply = dispatchKeyword(request);
-            } catch (std::exception& e) {
-                Debug::log(ERR, "Error in request: %s", e.what());
-                reply = "Err: " + std::string(e.what());
-            }
+            std::string reply = getRequestFromThread(request);
             
             write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
 

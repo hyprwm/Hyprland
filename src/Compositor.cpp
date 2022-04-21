@@ -711,13 +711,13 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow) {
 }
 
 int CCompositor::getNextAvailableNamedWorkspace() {
-    int highest = -1337 - 1;
+    int lowest = -1337 + 1;
     for (auto& w : m_lWorkspaces) {
-        if (w.m_iID < 0 && w.m_iID > highest)
-            highest = w.m_iID;
+        if (w.m_iID < 0 && w.m_iID < lowest)
+            lowest = w.m_iID;
     }
 
-    return highest + 1;
+    return lowest - 1;
 }
 
 CWorkspace* CCompositor::getWorkspaceByName(const std::string& name) {

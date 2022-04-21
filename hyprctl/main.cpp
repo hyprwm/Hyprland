@@ -22,6 +22,7 @@ usage: hyprctl [command] [(opt)args]
     clients
     activewindow
     layers
+    dispatch
 )#";
 
 void request(std::string arg) {
@@ -96,6 +97,18 @@ void request(std::string arg) {
     std::cout << std::string(buffer);
 }
 
+void dispatchRequest(int argc, char** argv) {
+
+    if (argc < 4) {
+        std::cout << "dispatch requires 2 params";
+        return;
+    }
+
+    std::string rq = "dispatch " + std::string(argv[2]) + " " + std::string(argv[3]);
+
+    request(rq);
+}
+
 int main(int argc, char** argv) {
     int bflag = 0, sflag = 0, index, c;
 
@@ -109,6 +122,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "workspaces")) request("workspaces");
     else if (!strcmp(argv[1], "activewindow")) request("activewindow");
     else if (!strcmp(argv[1], "layers")) request("layers");
+    else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
     else {
         printf(USAGE.c_str());
         return 1;

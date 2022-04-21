@@ -71,6 +71,23 @@ std::string layersRequest() {
     return result;
 }
 
+std::string dispatchRequest(std::string in) {
+    // get rid of the dispatch keyword
+    in = in.substr(in.find_first_of(' ') + 1);
+
+    const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));
+
+    const auto DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
+
+    const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(DISPATCHSTR);
+    if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end())
+        return "Invalid dispatcher";
+
+    DISPATCHER->second(DISPATCHARG);
+
+    return "ok";
+}
+
 void HyprCtl::startHyprCtlSocket() {
     std::thread([&]() {
         uint16_t connectPort = 9187;
@@ -125,12 +142,18 @@ void HyprCtl::startHyprCtlSocket() {
             std::string request(readBuffer);
 
             std::string reply = "";
-            if (request == "monitors") reply = monitorsRequest();
-            if (request == "workspaces") reply = workspacesRequest();
-            if (request == "clients") reply = clientsRequest();
-            if (request == "activewindow") reply = activeWindowRequest();
-            if (request == "layers") reply = layersRequest();
-
+            try {
+                if (request == "monitors") reply = monitorsRequest();
+                else if (request == "workspaces") reply = workspacesRequest();
+                else if (request == "clients") reply = clientsRequest();
+                else if (request == "activewindow") reply = activeWindowRequest();
+                else if (request == "layers") reply = layersRequest();
+                else if (request.find("dispatch") == 0) reply = dispatchRequest(request);
+            } catch (std::exception& e) {
+                Debug::log(ERR, "Error in request: %s", e.what());
+                reply = "Err: " + std::string(e.what());
+            }
+            
             write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
 
             close(ACCEPTEDCONNECTION);

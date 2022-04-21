@@ -1,5 +1,22 @@
 #include "KeybindManager.hpp"
 
+CKeybindManager::CKeybindManager() {
+    // initialize all dispatchers
+
+    m_mDispatchers["exec"]              = spawn;
+    m_mDispatchers["killactive"]        = killActive;
+    m_mDispatchers["togglefloating"]    = toggleActiveFloating;
+    m_mDispatchers["workspace"]         = changeworkspace;
+    m_mDispatchers["fullscreen"]        = fullscreenActive;
+    m_mDispatchers["movetoworkspace"]   = moveActiveToWorkspace;
+    m_mDispatchers["pseudo"]            = toggleActivePseudo;
+    m_mDispatchers["movefocus"]         = moveFocusTo;
+    m_mDispatchers["movewindow"]        = moveActiveTo;
+    m_mDispatchers["togglegroup"]       = toggleGroup;
+    m_mDispatchers["changegroupactive"] = changeGroupActive;
+    m_mDispatchers["splitratio"]        = alterSplitRatio;
+}
+
 void CKeybindManager::addKeybind(SKeybind kb) {
     m_dKeybinds.push_back(kb);
 }
@@ -50,21 +67,15 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         if (key != KBKEY && key != KBKEYUPPER)
             continue;
 
-        // yes.
-        if (k.handler == "exec") { spawn(k.arg); }
-        else if (k.handler == "killactive") { killActive(k.arg); }
-        else if (k.handler == "togglefloating") { toggleActiveFloating(k.arg); }
-        else if (k.handler == "workspace") { changeworkspace(k.arg); }
-        else if (k.handler == "fullscreen") { fullscreenActive(k.arg); }
-        else if (k.handler == "movetoworkspace") { moveActiveToWorkspace(k.arg); }
-        else if (k.handler == "pseudo") { toggleActivePseudo(k.arg); }
-        else if (k.handler == "movefocus") { moveFocusTo(k.arg); }
-        else if (k.handler == "movewindow") { moveActiveTo(k.arg); }
-        else if (k.handler == "togglegroup") { toggleGroup(k.arg); }
-        else if (k.handler == "changegroupactive") { changeGroupActive(k.arg); }
-        else if (k.handler == "splitratio") { alterSplitRatio(k.arg); }
-        else {
+
+        const auto DISPATCHER = m_mDispatchers.find(k.handler);
+
+        // Should never happen, as we check in the ConfigManager, but oh well
+        if (DISPATCHER == m_mDispatchers.end()) {
             Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
+        } else {
+            // call the dispatcher
+            DISPATCHER->second(k.arg);
         }
 
         found = true;

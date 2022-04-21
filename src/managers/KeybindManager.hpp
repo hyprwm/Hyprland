@@ -3,6 +3,8 @@
 #include "../defines.hpp"
 #include <deque>
 #include "../Compositor.hpp"
+#include <unordered_map>
+#include <functional>
 
 struct SKeybind {
     std::string       key = 0;
@@ -13,10 +15,14 @@ struct SKeybind {
 
 class CKeybindManager {
 public:
+    CKeybindManager();
+
     bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&);
     void                addKeybind(SKeybind);
     uint32_t            stringToModMask(std::string);
     void                clearKeybinds();
+
+    std::unordered_map<std::string, std::function<void(std::string)>> m_mDispatchers;
 
 private:
     std::deque<SKeybind> m_dKeybinds;
@@ -24,18 +30,18 @@ private:
     bool                handleInternalKeybinds(xkb_keysym_t);
 
     // -------------- Dispatchers -------------- //
-    void                killActive(std::string);
-    void                spawn(std::string);
-    void                toggleActiveFloating(std::string);
-    void                toggleActivePseudo(std::string);
-    void                changeworkspace(std::string);
-    void                fullscreenActive(std::string);
-    void                moveActiveToWorkspace(std::string);
-    void                moveFocusTo(std::string);
-    void                moveActiveTo(std::string);
-    void                toggleGroup(std::string);
-    void                changeGroupActive(std::string);
-    void                alterSplitRatio(std::string);
+    static void         killActive(std::string);
+    static void         spawn(std::string);
+    static void         toggleActiveFloating(std::string);
+    static void         toggleActivePseudo(std::string);
+    static void         changeworkspace(std::string);
+    static void         fullscreenActive(std::string);
+    static void         moveActiveToWorkspace(std::string);
+    static void         moveFocusTo(std::string);
+    static void         moveActiveTo(std::string);
+    static void         toggleGroup(std::string);
+    static void         changeGroupActive(std::string);
+    static void         alterSplitRatio(std::string);
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

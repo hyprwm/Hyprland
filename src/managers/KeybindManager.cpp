@@ -18,7 +18,15 @@ CKeybindManager::CKeybindManager() {
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
-    m_dKeybinds.push_back(kb);
+    m_lKeybinds.push_back(kb);
+}
+
+void CKeybindManager::removeKeybind(uint32_t mod, const std::string& key) {
+    for (auto it = m_lKeybinds.begin(); it != m_lKeybinds.end(); ++it) {
+        if (it->modmask == mod && it->key == key) {
+            it = m_lKeybinds.erase(it);
+        }
+    }
 }
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
@@ -54,7 +62,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         return false;
     }
 
-    for (auto& k : m_dKeybinds) {
+    for (auto& k : m_lKeybinds) {
         if (modmask != k.modmask) 
             continue;
 
@@ -126,7 +134,7 @@ void CKeybindManager::killActive(std::string args) {
 }
 
 void CKeybindManager::clearKeybinds() {
-    m_dKeybinds.clear();
+    m_lKeybinds.clear();
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {

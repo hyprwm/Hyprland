@@ -86,6 +86,7 @@ private:
     void                handleRawExec(const std::string&, const std::string&);
     void                handleMonitor(const std::string&, const std::string&);
     void                handleBind(const std::string&, const std::string&);
+    void                handleUnbind(const std::string&, const std::string&);
     void                handleWindowRule(const std::string&, const std::string&);
     void                handleDefaultWorkspace(const std::string&, const std::string&);
 };

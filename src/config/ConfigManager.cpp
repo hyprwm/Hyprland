@@ -203,6 +203,14 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     const auto COMMAND = valueCopy;
 
+    const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(HANDLER);
+
+    if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end()) {
+        Debug::log(ERR, "Invalid dispatcher!");
+        parseError = "Invalid dispatcher, requested \"" + HANDLER + "\" does not exist";
+        return;
+    }
+
     if (KEY != "")
         g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND});
 }

@@ -154,7 +154,22 @@ void CKeybindManager::toggleActivePseudo(std::string args) {
 }
 
 void CKeybindManager::changeworkspace(std::string args) {
-    int workspaceToChangeTo = std::clamp((int)getPlusMinusKeywordResult(args, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
+    int workspaceToChangeTo = 0;
+    std::string workspaceName = "";
+
+    if (args.find("name:") == 0) {
+        const auto WORKSPACENAME = args.substr(args.find_first_of(':') + 1);
+        const auto WORKSPACE = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
+        if (!WORKSPACE) {
+            workspaceToChangeTo = g_pCompositor->getNextAvailableNamedWorkspace();
+        } else {
+            workspaceToChangeTo = WORKSPACE->m_iID;
+        }
+        workspaceName = WORKSPACENAME;
+    } else {
+        workspaceToChangeTo = std::clamp((int)getPlusMinusKeywordResult(args, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
+        workspaceName = std::to_string(workspaceToChangeTo);
+    }
 
     if (workspaceToChangeTo == INT_MAX) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
@@ -211,10 +226,11 @@ void CKeybindManager::changeworkspace(std::string args) {
     const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
 
     // We are required to set the name here immediately
-    wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, std::to_string(workspaceToChangeTo).c_str());
+    wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, workspaceName.c_str());
 
     PWORKSPACE->m_iID = workspaceToChangeTo;
     PWORKSPACE->m_iMonitorID = PMONITOR->ID;
+    PWORKSPACE->m_szName = workspaceName;
     
     PMONITOR->activeWorkspace = workspaceToChangeTo;
 
@@ -258,32 +274,29 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;
 
-    int workspaceID;
-    try {
-        workspaceID = stoi(args);
-    } catch( ... ) {
-        Debug::log(ERR, "Invalid movetoworkspace: %s", args.c_str());
-        return;
-    }
-
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     const auto OLDWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
     // hack
-    g_pKeybindManager->changeworkspace(std::to_string(workspaceID));
+    g_pKeybindManager->changeworkspace(args);
 
-    const auto NEWWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByString(args);
+
+    if (PWORKSPACE == OLDWORKSPACE) {
+        Debug::log(LOG, "Not moving to workspace because it didn't change.");
+        return;
+    }
 
     OLDWORKSPACE->m_bHasFullscreenWindow = false;
 
-    PWINDOW->m_iWorkspaceID = workspaceID;
-    PWINDOW->m_iMonitorID = NEWWORKSPACE->m_iMonitorID;
+    PWINDOW->m_iWorkspaceID = PWORKSPACE->m_iID;
+    PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
     PWINDOW->m_bIsFullscreen = false;
 
-    if (NEWWORKSPACE->m_bHasFullscreenWindow) {
-        g_pCompositor->getFullscreenWindowOnWorkspace(workspaceID)->m_bIsFullscreen = false;
-        NEWWORKSPACE->m_bHasFullscreenWindow = false;
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID)->m_bIsFullscreen = false;
+        PWORKSPACE->m_bHasFullscreenWindow = false;
     }
 
     // Hack: So that the layout doesnt find our window at the cursor
@@ -299,7 +312,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     if (PWINDOW->m_bIsFloating) {
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition;
-        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition + g_pCompositor->getMonitorFromID(NEWWORKSPACE->m_iMonitorID)->vecPosition;
+        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition;
         PWINDOW->m_vEffectivePosition = PWINDOW->m_vRealPosition;
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition;
     }

@@ -96,6 +96,8 @@ public:
     CWindow*                getWindowFromSurface(wlr_surface*);
     bool                    isWorkspaceVisible(const int&);
     CWorkspace*             getWorkspaceByID(const int&);
+    CWorkspace*             getWorkspaceByName(const std::string&);
+    CWorkspace*             getWorkspaceByString(const std::string&);
     void                    sanityCheckWorkspaces();
     int                     getWindowsOnWorkspace(const int&);
     CWindow*                getFirstWindowOnWorkspace(const int&);
@@ -108,6 +110,7 @@ public:
     CWindow*                getWindowInDirection(CWindow*, char);
     void                    deactivateAllWLRWorkspaces();
     CWindow*                getNextWindowOnWorkspace(CWindow*);
+    int                     getNextAvailableNamedWorkspace();
 
 private:
     void                    initAllSignals();

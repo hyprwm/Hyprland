@@ -58,6 +58,8 @@ public:
     void                performMonitorReload();
     bool                m_bWantsMonitorReload = false;
 
+    std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
+
 private:
     std::unordered_map<std::string, SConfigValue> configValues;
     time_t lastModifyTime = 0;  // for reloading the config if changed

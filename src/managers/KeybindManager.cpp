@@ -161,7 +161,7 @@ void CKeybindManager::toggleActivePseudo(std::string args) {
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(ACTIVEWINDOW);
 }
 
-void CKeybindManager::changeworkspace(std::string args) {
+void CKeybindManager::gichangeworkspace(std::string args) {
     int workspaceToChangeTo = 0;
     std::string workspaceName = "";
 

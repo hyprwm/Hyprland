@@ -494,6 +494,8 @@ DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& 
 
 void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
 
+    Debug::log(LOG, "Applying monitor rule for %s", pMonitor->szName.c_str());
+
     // Check if the rule isn't already applied
     if (!force && DELTALESSTHAN(pMonitor->vecSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale) {
         Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());
@@ -563,4 +565,19 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
         Debug::log(ERR, "Couldn't commit output named %s", pMonitor->output->name);
         return;
     }
+
+    wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitorRule->offset.x, (int)pMonitorRule->offset.y);
+
+    //wlr_output_damage_add_whole(pMonitor->damage);
+
+    wlr_output_enable(pMonitor->output, true);
+
+    // updato wlroots
+    Events::listener_change(nullptr, nullptr);
+
+    // updato us
+    arrangeLayersForMonitor(pMonitor->ID);
+
+    // frame skip
+    pMonitor->needsFrameSkip = true;
 }

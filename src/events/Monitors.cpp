@@ -139,6 +139,13 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             g_pConfigManager->performMonitorReload();
     }
 
+    if (PMONITOR->needsFrameSkip) {
+        PMONITOR->needsFrameSkip = false;
+        wlr_output_schedule_frame(PMONITOR->output);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        return;
+    }
+
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 

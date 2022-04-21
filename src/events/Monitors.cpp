@@ -3,6 +3,7 @@
 #include "../managers/InputManager.hpp"
 #include "../render/Renderer.hpp"
 #include "Events.hpp"
+#include "../debug/HyprCtl.hpp"
 
 // --------------------------------------------------------- //
 //   __  __  ____  _   _ _____ _______ ____  _____   _____   //
@@ -132,6 +133,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
         g_pCompositor->cleanupWindows();
+
+        HyprCtl::tickHyprCtl(); // so that we dont get that race condition multithread bullshit
 
         g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
 

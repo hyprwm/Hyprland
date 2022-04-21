@@ -709,3 +709,37 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow) {
 
     return nullptr;
 }
+
+int CCompositor::getNextAvailableNamedWorkspace() {
+    int highest = -1337 - 1;
+    for (auto& w : m_lWorkspaces) {
+        if (w.m_iID < 0 && w.m_iID > highest)
+            highest = w.m_iID;
+    }
+
+    return highest + 1;
+}
+
+CWorkspace* CCompositor::getWorkspaceByName(const std::string& name) {
+    for (auto& w : m_lWorkspaces) {
+        if (w.m_szName == name)
+            return &w;
+    }
+
+    return nullptr;
+}
+
+CWorkspace* CCompositor::getWorkspaceByString(const std::string& str) {
+    if (str.find("name:") == 0) {
+        return getWorkspaceByName(str.substr(str.find_first_of(':') + 1));
+    }
+
+    try {
+        int id = std::stoi(str);
+        return getWorkspaceByID(id);
+    } catch (std::exception& e) {
+        Debug::log(ERR, "Error in getWorkspaceByString, invalid id");
+    }
+
+    return nullptr;
+}

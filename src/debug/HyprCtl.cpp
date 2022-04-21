@@ -15,8 +15,8 @@
 std::string monitorsRequest() {
     std::string result = "";
     for (auto& m : g_pCompositor->m_lMonitors) {
-        result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tactive workspace: %i\n\treserved: %i %i %i %i\n\n",
-                            m.szName.c_str(), m.ID, (int)m.vecSize.x, (int)m.vecSize.y, m.refreshRate, (int)m.vecPosition.x, (int)m.vecPosition.y, m.activeWorkspace, (int)m.vecReservedTopLeft.x, (int)m.vecReservedTopLeft.y, (int)m.vecReservedBottomRight.x, (int)m.vecReservedBottomRight.y);
+        result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tactive workspace: %i (%s)\n\treserved: %i %i %i %i\n\n",
+                            m.szName.c_str(), m.ID, (int)m.vecSize.x, (int)m.vecSize.y, m.refreshRate, (int)m.vecPosition.x, (int)m.vecPosition.y, m.activeWorkspace, g_pCompositor->getWorkspaceByID(m.activeWorkspace)->m_szName.c_str(), (int)m.vecReservedTopLeft.x, (int)m.vecReservedTopLeft.y, (int)m.vecReservedBottomRight.x, (int)m.vecReservedBottomRight.y);
     }
 
     return result;
@@ -25,8 +25,8 @@ std::string monitorsRequest() {
 std::string clientsRequest() {
     std::string result = "";
     for (auto& w : g_pCompositor->m_lWindows) {
-        result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i\n\tfloating: %i\n\n",
-                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.x, (int)w.m_vRealPosition.y, (int)w.m_vRealSize.x, (int)w.m_vRealSize.y, w.m_iWorkspaceID, (int)w.m_bIsFloating);
+        result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i (%s)\n\tfloating: %i\n\n",
+                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.x, (int)w.m_vRealPosition.y, (int)w.m_vRealSize.x, (int)w.m_vRealSize.y, w.m_iWorkspaceID, (w.m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID)->m_szName.c_str()), (int)w.m_bIsFloating);
     }
     return result;
 }
@@ -34,8 +34,8 @@ std::string clientsRequest() {
 std::string workspacesRequest() {
     std::string result = "";
     for (auto& w : g_pCompositor->m_lWorkspaces) {
-        result += getFormat("workspace ID %i on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\n",
-                            w.m_iID, g_pCompositor->getMonitorFromID(w.m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w.m_iID), (int)w.m_bHasFullscreenWindow);
+        result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\n",
+                            w.m_iID, w.m_szName.c_str(), g_pCompositor->getMonitorFromID(w.m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w.m_iID), (int)w.m_bHasFullscreenWindow);
     }
     return result;
 }
@@ -46,8 +46,8 @@ std::string activeWindowRequest() {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return "Invalid";
 
-    return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i\n\tfloating: %i\n\n",
-                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.x, (int)PWINDOW->m_vRealPosition.y, (int)PWINDOW->m_vRealSize.x, (int)PWINDOW->m_vRealSize.y, PWINDOW->m_iWorkspaceID, (int)PWINDOW->m_bIsFloating);
+    return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i (%s)\n\tfloating: %i\n\n",
+                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.x, (int)PWINDOW->m_vRealPosition.y, (int)PWINDOW->m_vRealSize.x, (int)PWINDOW->m_vRealSize.y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating);
 }
 
 std::string layersRequest() {

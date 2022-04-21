@@ -25,6 +25,7 @@ For Hyprland without the `land` part, see [Hypr], the Xorg window manager.
 ---
 
 **[<kbd> <br> Install <br> </kbd>][Install]** 
+**[<kbd> <br> Quick Start <br> </kbd>][Quick Start]** 
 **[<kbd> <br> Configure <br> </kbd>][Configure]** 
 **[<kbd> <br> Contribute <br> </kbd>][Contribute]**
 
@@ -119,7 +120,8 @@ Try it out and report bugs / suggestions!
 [Todo]: https://github.com/vaxerski/Hyprland/projects?type=beta
 
 [Contribute]: docs/Contribute.md
-[Install]: docs/Install.md
+[Install]: https://github.com/vaxerski/Hyprland/wiki/Installation
+[Quick Start]: https://github.com/vaxerski/Hyprland/wiki/Quick-start
 [License]: LICENSE
 
 

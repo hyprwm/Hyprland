@@ -25,6 +25,7 @@ struct SMonitor {
     wlr_output* output          = nullptr;
     float       refreshRate     = 60;
     wlr_output_damage* damage   = nullptr;
+    bool        needsFrameSkip  = false;
     
     // Double-linked list because we need to have constant mem addresses for signals
     // We have to store pointers and use raw new/delete because they might be moved between them
@@ -33,6 +34,7 @@ struct SMonitor {
 
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);
+    DYNLISTENER(monitorMode);
 
     // hack: a group = workspaces on a monitor.
     // I don't really care lol :P

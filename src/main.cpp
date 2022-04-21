@@ -22,8 +22,7 @@ int main(int argc, char** argv) {
     // If we are here it means we got yote.
     Debug::log(LOG, "Hyprland reached the end.");
 
-    wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
-    wl_display_destroy(g_pCompositor->m_sWLDisplay);
+    g_pCompositor->cleanupExit();
 
     return EXIT_SUCCESS;
 }

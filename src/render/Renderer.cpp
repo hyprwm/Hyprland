@@ -92,11 +92,14 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.fadeAlpha = pWindow->m_fAlpha;
     renderdata.alpha = pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
 
+    // apply window special data
+    renderdata.alpha *= pWindow->m_sSpecialRenderData.alpha;
+
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 
     // border
     if (decorate && !pWindow->m_bX11DoesntWantBorders)
-        drawBorderForWindow(pWindow, pMonitor, pWindow->m_fAlpha);
+        drawBorderForWindow(pWindow, pMonitor, pWindow->m_fAlpha * renderdata.alpha);
 
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->surface) {

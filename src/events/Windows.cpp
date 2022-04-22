@@ -98,8 +98,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
             if (r.szRule.find("size") == 0) {
                 try {
                     const auto VALUE = r.szRule.substr(r.szRule.find(" ") + 1);
-                    const auto SIZEX = stoi(VALUE.substr(0, VALUE.find(" ")));
-                    const auto SIZEY = stoi(VALUE.substr(VALUE.find(" ") + 1));
+                    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(" "));
+                    const auto SIZEYSTR = VALUE.substr(VALUE.find(" ") + 1);
+
+                    const auto SIZEX = SIZEXSTR.find('%') == std::string::npos ? std::stoi(SIZEXSTR) : std::stoi(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x;
+                    const auto SIZEY = SIZEYSTR.find('%') == std::string::npos ? std::stoi(SIZEYSTR) : std::stoi(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y;
 
                     Debug::log(LOG, "Rule size, applying to window %x", PWINDOW);
 
@@ -111,8 +114,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
             } else if (r.szRule.find("move") == 0) {
                 try {
                     const auto VALUE = r.szRule.substr(r.szRule.find(" ") + 1);
-                    const auto POSX = stoi(VALUE.substr(0, VALUE.find(" ")));
-                    const auto POSY = stoi(VALUE.substr(VALUE.find(" ") + 1));
+                    const auto POSXSTR = VALUE.substr(0, VALUE.find(" "));
+                    const auto POSYSTR = VALUE.substr(VALUE.find(" ") + 1);
+
+                    const auto POSX = POSXSTR.find('%') == std::string::npos ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x;
+                    const auto POSY = POSYSTR.find('%') == std::string::npos ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y;
 
                     Debug::log(LOG, "Rule move, applying to window %x", PWINDOW);
 

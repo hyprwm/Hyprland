@@ -72,7 +72,7 @@ std::string layersRequest() {
 }
 
 std::string versionRequest() {
-    std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + ", flags: (if any)\n";
+    std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " (" + GIT_COMMIT_MESSAGE + ").\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
     result += "legacyrenderer\n";

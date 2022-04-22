@@ -58,3 +58,6 @@
 #ifndef GIT_BRANCH
 #define GIT_BRANCH "?"
 #endif
+#ifndef GIT_COMMIT_MESSAGE
+#define GIT_COMMIT_MESSAGE "?"
+#endif

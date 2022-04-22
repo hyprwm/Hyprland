@@ -4,6 +4,9 @@
 #include "events/Events.hpp"
 #include "helpers/SubsurfaceTree.hpp"
 
+struct SWindowSpecialRenderData {
+    float alpha = 1.f;
+};  
 
 class CWindow {
 public:
@@ -76,6 +79,8 @@ public:
     // For hidden windows and stuff
     bool            m_bHidden = false;
 
+    // Special render data, rules, etc
+    SWindowSpecialRenderData m_sSpecialRenderData;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

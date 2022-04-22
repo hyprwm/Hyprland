@@ -259,6 +259,7 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
     // verify we support a rule
     if (RULE != "float" 
         && RULE != "tile"
+        && RULE.find("opacity") != 0
         && RULE.find("move") != 0
         && RULE.find("size") != 0
         && RULE.find("pseudo") != 0

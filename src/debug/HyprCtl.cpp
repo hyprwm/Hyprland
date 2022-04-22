@@ -71,6 +71,22 @@ std::string layersRequest() {
     return result;
 }
 
+std::string versionRequest() {
+    std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + ", flags: (if any)\n";
+
+#ifdef LEGACY_RENDERER
+    result += "legacyrenderer\n";
+#endif
+#ifndef NDEBUG
+    result += "debug\n";
+#endif
+#ifdef NO_XWAYLAND
+    result += "no xwayland\n";
+#endif
+
+    return result;
+}
+
 std::string dispatchRequest(std::string in) {
     // get rid of the dispatch keyword
     in = in.substr(in.find_first_of(' ') + 1);
@@ -131,6 +147,8 @@ void HyprCtl::tickHyprCtl() {
             reply = activeWindowRequest();
         else if (request == "layers")
             reply = layersRequest();
+        else if (request == "version")
+            reply = versionRequest();
         else if (request.find("dispatch") == 0)
             reply = dispatchRequest(request);
         else if (request.find("keyword") == 0)

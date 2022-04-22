@@ -50,3 +50,11 @@
 #endif
 
 #define ASSERT(expr) RASSERT(expr, "?")
+
+// git stuff
+#ifndef GIT_COMMIT_HASH
+#define GIT_COMMIT_HASH "?"
+#endif
+#ifndef GIT_BRANCH
+#define GIT_BRANCH "?"
+#endif

@@ -7,6 +7,22 @@ set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
 message(STATUS "Configuring Hyprland!")
 
+# Get git info
+# hash and branch
+execute_process(
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(
+    COMMAND git rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+#
+#
+
 include_directories(.)
 add_compile_options(-std=c++20 -DWLR_USE_UNSTABLE )
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing)
@@ -35,6 +51,9 @@ ELSE()
     # add_compile_options(-O3) # may crash for some
     message(STATUS "Configuring Hyprland in Release with CMake!")
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+
+target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+target_compile_definitions(Hyprland PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
 
 target_link_libraries(Hyprland rt)
 

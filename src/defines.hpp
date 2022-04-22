@@ -61,3 +61,6 @@
 #ifndef GIT_COMMIT_MESSAGE
 #define GIT_COMMIT_MESSAGE "?"
 #endif
+#ifndef GIT_DIRTY
+#define GIT_DIRTY "?"
+#endif

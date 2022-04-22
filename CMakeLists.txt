@@ -26,6 +26,12 @@ execute_process(
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_MESSAGE
     OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(
+    COMMAND bash -c "git diff-index --quiet HEAD -- || echo \"dirty\""
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_DIRTY
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 #
 #
 
@@ -61,6 +67,7 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
 target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 target_compile_definitions(Hyprland PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
 target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_MESSAGE=\"${GIT_COMMIT_MESSAGE}\"")
+target_compile_definitions(Hyprland PRIVATE "-DGIT_DIRTY=\"${GIT_DIRTY}\"")
 
 target_link_libraries(Hyprland rt)
 

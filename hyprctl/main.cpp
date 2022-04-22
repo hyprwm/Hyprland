@@ -24,6 +24,7 @@ usage: hyprctl [command] [(opt)args]
     layers
     dispatch
     keyword
+    version
 )#";
 
 void request(std::string arg) {
@@ -134,6 +135,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "workspaces")) request("workspaces");
     else if (!strcmp(argv[1], "activewindow")) request("activewindow");
     else if (!strcmp(argv[1], "layers")) request("layers");
+    else if (!strcmp(argv[1], "version")) request("version");
     else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
     else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);
     else {

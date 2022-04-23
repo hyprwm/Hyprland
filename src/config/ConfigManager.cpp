@@ -606,3 +606,7 @@ void CConfigManager::performMonitorReload() {
 
     m_bWantsMonitorReload = false;
 }
+
+SConfigValue* CConfigManager::getConfigValuePtr(std::string val) {
+    return &configValues[val];
+}

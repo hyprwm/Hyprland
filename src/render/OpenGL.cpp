@@ -625,7 +625,7 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
-    renderTextureInternal(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha, 0);
+    renderTextureInternal(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), 0);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {

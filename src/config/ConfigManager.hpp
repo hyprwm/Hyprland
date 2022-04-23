@@ -1,5 +1,7 @@
 #pragma once
 
+#define CONFIG_MANAGER_H
+
 #include <map>
 #include "../debug/Log.hpp"
 #include <unordered_map>
@@ -46,6 +48,8 @@ public:
     void                setFloat(std::string, float);
     void                setInt(std::string, int);
     void                setString(std::string, std::string);
+
+    SConfigValue*       getConfigValuePtr(std::string);
 
     SMonitorRule        getMonitorRuleFor(std::string);
 

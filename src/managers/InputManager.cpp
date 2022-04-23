@@ -57,11 +57,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
         for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); ++w) {
-            wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+            wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
             if (w->m_iWorkspaceID == pFoundWindow->m_iWorkspaceID && w->m_bIsMapped && w->m_bCreatedOverFullscreen && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
                 foundSurface = g_pXWaylandManager->getWindowSurface(&(*w));
                 if (foundSurface)
-                    surfacePos = w->m_vRealPosition;
+                    surfacePos = w->m_vRealPosition.vec();
                 break;
             }
         }
@@ -70,7 +70,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (pFoundWindow->m_bIsX11) {
                 foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
                 if (foundSurface)
-                    surfacePos = pFoundWindow->m_vRealPosition;
+                    surfacePos = pFoundWindow->m_vRealPosition.vec();
             } else {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             }
@@ -91,7 +91,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
         } else {
             foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
-            surfacePos = pFoundWindow->m_vRealPosition;
+            surfacePos = pFoundWindow->m_vRealPosition.vec();
         }
     }
 
@@ -143,7 +143,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         if (g_pCompositor->m_pLastWindow == CONSTRAINTWINDOW) {
             // todo: this is incorrect, but it will work in most cases for now
             // i made this cuz i wanna play minecraft lol
-            Vector2D deltaToMiddle = (CONSTRAINTWINDOW->m_vRealPosition + CONSTRAINTWINDOW->m_vRealSize / 2.f) - mouseCoords;
+            Vector2D deltaToMiddle = (CONSTRAINTWINDOW->m_vRealPosition.vec() + CONSTRAINTWINDOW->m_vRealSize.vec() / 2.f) - mouseCoords;
             wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToMiddle.x, deltaToMiddle.y);
         }
     }
@@ -389,7 +389,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
             if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
                 if (PWINDOW) {
                     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
-                        constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.x, constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.y);
+                        constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.vec().x, constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.vec().y);
 
                     wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
                 }

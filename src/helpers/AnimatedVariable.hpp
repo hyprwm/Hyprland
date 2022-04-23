@@ -22,37 +22,37 @@ public:
     ~CAnimatedVariable();
 
     // gets the current vector value (real time)
-    Vector2D vec() {
+    const Vector2D& vec() const {
         ASSERT(m_eVarType == AVARTYPE_VECTOR);
         return m_vValue;
     }
 
     // gets the current float value (real time)
-    float fl() {
+    const float& fl() const {
         ASSERT(m_eVarType == AVARTYPE_FLOAT);
         return m_fValue;
     }
 
     // gets the current color value (real time)
-    CColor col() {
+    const CColor& col() const {
         ASSERT(m_eVarType == AVARTYPE_COLOR);
         return m_cValue;
     }
 
     // gets the goal vector value
-    Vector2D goalv() {
+    const Vector2D& goalv() const {
         ASSERT(m_eVarType == AVARTYPE_VECTOR);
         return m_vGoal;
     }
 
     // gets the goal float value
-    float goalf() {
+    const float& goalf() const {
         ASSERT(m_eVarType == AVARTYPE_FLOAT);
         return m_fGoal;
     }
 
     // gets the goal color value
-    CColor goalc() {
+    const CColor& goalc() const {
         ASSERT(m_eVarType == AVARTYPE_COLOR);
         return m_cGoal;
     }

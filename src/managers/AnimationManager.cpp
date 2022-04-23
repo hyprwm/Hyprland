@@ -1,6 +1,24 @@
 #include "AnimationManager.hpp"
 #include "../Compositor.hpp"
 
+CAnimationManager::CAnimationManager() {
+    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.25f, 1.f)};
+    m_mBezierCurves["default"].setup(&points);
+}
+
+void CAnimationManager::removeAllBeziers() {
+    m_mBezierCurves.clear();
+
+    // add the default one
+    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.25f, 1.f)};
+    m_mBezierCurves["default"].setup(&points);
+}
+
+void CAnimationManager::addBezierWithName(std::string name, const Vector2D& p1, const Vector2D& p2) {
+    std::vector points = {p1, p2};
+    m_mBezierCurves[name].setup(&points);
+}
+
 void CAnimationManager::tick() {
 
     bool animationsDisabled = false;
@@ -9,61 +27,88 @@ void CAnimationManager::tick() {
         animationsDisabled = true;
 
     const float ANIMSPEED       = g_pConfigManager->getFloat("animations:speed");
-
     const auto BORDERSIZE       = g_pConfigManager->getInt("general:border_size");
+    const auto BEZIERSTR        = g_pConfigManager->getString("animations:curve");
+
+    auto DEFAULTBEZIER = m_mBezierCurves.find(BEZIERSTR);
+    if (DEFAULTBEZIER == m_mBezierCurves.end())
+        DEFAULTBEZIER = m_mBezierCurves.find("default");
 
     for (auto& av : m_lAnimatedVariables) {
-        // first, we check if it's disabled, if so, warp
-        if (av->m_pEnabled == 0 || animationsDisabled) {
-            av->warp();
-            continue;
-        }
-
         // get speed
         const auto SPEED = *av->m_pSpeed == 0 ? ANIMSPEED : *av->m_pSpeed;
 
         // window stuff
         const auto PWINDOW = (CWindow*)av->m_pWindow;
-        bool needsDamage = false;
         wlr_box WLRBOXPREV = {PWINDOW->m_vRealPosition.vec().x - BORDERSIZE - 1, PWINDOW->m_vRealPosition.vec().y - BORDERSIZE - 1, PWINDOW->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, PWINDOW->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
 
-        // TODO: curves
+        // check if it's disabled, if so, warp
+        if (av->m_pEnabled == 0 || animationsDisabled) {
+            av->warp();
+            g_pHyprRenderer->damageBox(&WLRBOXPREV);
+            g_pHyprRenderer->damageWindow(PWINDOW);
+            continue;
+        }
 
-        // parabolic with a switch unforto
+        // beziers are with a switch unforto
         // TODO: maybe do something cleaner
+
+        // get the spent % (0 - 1)
+        const auto DURATIONPASSED = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - av->animationBegin).count();
+        const float SPENT = std::clamp((DURATIONPASSED / 100.f) / SPEED, 0.f, 1.f);
+
         switch (av->m_eVarType) {
             case AVARTYPE_FLOAT: {
                 if (!deltazero(av->m_fValue, av->m_fGoal)) {
-                    if (deltaSmallToFlip(av->m_fValue, av->m_fGoal)) {
-                        av->warp();
-                    } else {
-                        av->m_fValue = parabolic(av->m_fValue, av->m_fGoal, SPEED);
-                    }
+                    const auto DELTA = av->m_fGoal - av->m_fBegun;
+                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
 
-                    needsDamage = true;
+                    if (BEZIER != m_mBezierCurves.end())
+                        av->m_fValue = av->m_fBegun + BEZIER->second.getYForPoint(SPENT) * DELTA;
+                    else
+                        av->m_fValue = av->m_fBegun + DEFAULTBEZIER->second.getYForPoint(SPENT) * DELTA;
+
+                    if (SPENT >= 1.f) {
+                        av->warp();
+                    }
+                } else {
+                    continue; // dont process
                 }
                 break;
             }
             case AVARTYPE_VECTOR: {
                 if (!deltazero(av->m_vValue, av->m_vGoal)) {
-                    if (deltaSmallToFlip(av->m_vValue, av->m_vGoal)) {
+                    const auto DELTA = av->m_vGoal - av->m_vBegun;
+                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+
+                    if (BEZIER != m_mBezierCurves.end())
+                        av->m_vValue = av->m_vBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
+                    else
+                        av->m_vValue = av->m_vBegun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
+
+                    if (SPENT >= 1.f) {
                         av->warp();
-                    } else {
-                        av->m_vValue.x = parabolic(av->m_vValue.x, av->m_vGoal.x, SPEED);
-                        av->m_vValue.y = parabolic(av->m_vValue.y, av->m_vGoal.y, SPEED);
                     }
-                    needsDamage = true;
+                } else {
+                    continue;  // dont process
                 }
                 break;
             }
             case AVARTYPE_COLOR: {
                 if (!deltazero(av->m_cValue, av->m_cGoal)) {
-                    if (deltaSmallToFlip(av->m_cValue, av->m_cGoal)) {
+                    const auto DELTA = av->m_cGoal - av->m_cBegun;
+                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+
+                    if (BEZIER != m_mBezierCurves.end())
+                        av->m_cValue = av->m_cBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
+                    else
+                        av->m_cValue = av->m_cBegun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
+
+                    if (SPENT >= 1.f) {
                         av->warp();
-                    } else {
-                        av->m_cValue = parabolic(SPEED, av->m_cValue, av->m_cGoal);
                     }
-                    needsDamage = true;
+                } else {
+                    continue;  // dont process
                 }
                 break;
             }
@@ -72,11 +117,9 @@ void CAnimationManager::tick() {
             }
         }
 
-        // invalidate the window
-        if (needsDamage) {
-            g_pHyprRenderer->damageBox(&WLRBOXPREV);
-            g_pHyprRenderer->damageWindow(PWINDOW);
-        }
+        // damage the window
+        g_pHyprRenderer->damageBox(&WLRBOXPREV);
+        g_pHyprRenderer->damageWindow(PWINDOW);
     }
 }
 
@@ -102,19 +145,4 @@ bool CAnimationManager::deltazero(const float& a, const float& b) {
 
 bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
     return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
-}
-
-double CAnimationManager::parabolic(const double from, const double to, const double incline) {
-    return from + ((to - from) / incline);
-}
-
-CColor CAnimationManager::parabolic(const double incline, const CColor& from, const CColor& to) {
-    CColor newColor;
-
-    newColor.r = parabolic(from.r, to.r, incline);
-    newColor.g = parabolic(from.g, to.g, incline);
-    newColor.b = parabolic(from.b, to.b, incline);
-    newColor.a = parabolic(from.a, to.a, incline);
-
-    return newColor;
 }

@@ -3,6 +3,8 @@
 void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
     m_dPoints.clear();
 
+    const auto BEGIN = std::chrono::high_resolution_clock::now();
+
     m_dPoints.emplace_back(Vector2D(0,0));
 
     for (auto& p : *pVec) {
@@ -13,11 +15,23 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
 
     RASSERT(m_dPoints.size() == 4, "CBezierCurve only supports cubic beziers! (points num: %i)", m_dPoints.size());
 
-    // bake 100 points for faster lookups
-    // T -> X ( / 100 )
-    for (int i = 0; i < 100; ++i) {
-        m_aPointsBaked[i] = getXForT((i + 1) / 100.f);
+    // bake BAKEDPOINTS points for faster lookups
+    // T -> X ( / BAKEDPOINTS )
+    for (int i = 0; i < BAKEDPOINTS; ++i) {
+        m_aPointsBaked[i] = getXForT((i + 1) / (float)BAKEDPOINTS);
     }
+
+    const auto ELAPSEDUS = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - BEGIN).count() / 1000.f;
+    const auto POINTSSIZE = m_aPointsBaked.size() * sizeof(m_aPointsBaked[0]) / 1000.f;
+
+    const auto BEGINCALC = std::chrono::high_resolution_clock::now();
+    for (float i = 0.1f; i < 1.f; i += 0.1f)
+        getYForPoint(i);
+    const auto ELAPSEDCALCAVG = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - BEGINCALC).count() / 1000.f / 10.f;
+
+    Debug::log(LOG, "Created a bezier curve, baked %i points, mem usage: %.2fkB, time to bake: %.2fµs. Estimated average calc time: %.2fµs.",
+        BAKEDPOINTS, POINTSSIZE, ELAPSEDUS, ELAPSEDCALCAVG);
+
 }
 
 float CBezierCurve::getYForT(float t) {
@@ -35,8 +49,8 @@ float CBezierCurve::getYForPoint(float x) {
     float lowerX = 0;
     float mid = 0.5;
 
-    while(std::abs(upperX - lowerX) > 0.01f) {
-        if (m_aPointsBaked[((int)(mid * 100.f))] > x) {
+    while(std::abs(upperX - lowerX) > INVBAKEDPOINTS) {
+        if (m_aPointsBaked[((int)(mid * (float)BAKEDPOINTS))] > x) {
             upperX = mid;
         } else {
             lowerX = mid;
@@ -46,10 +60,10 @@ float CBezierCurve::getYForPoint(float x) {
     }
 
     // in the name of performance i shall make a hack
-    const auto PERCINDELTA = (x - m_aPointsBaked[(int)(100.f * lowerX)]) / (m_aPointsBaked[(int)(100.f * upperX)] - m_aPointsBaked[(int)(100.f * lowerX)]);
+    const auto PERCINDELTA = (x - m_aPointsBaked[(int)((float)BAKEDPOINTS * lowerX)]) / (m_aPointsBaked[(int)((float)BAKEDPOINTS * upperX)] - m_aPointsBaked[(int)((float)BAKEDPOINTS * lowerX)]);
 
-    if (std::isnan(PERCINDELTA) || std::isinf(PERCINDELTA)) // can sometimes happen for VERY small x
+    if (std::isnan(PERCINDELTA) || std::isinf(PERCINDELTA))  // can sometimes happen for VERY small x
         return 0.f;
 
-    return getYForT(mid + PERCINDELTA * 0.01f);
+    return getYForT(mid + PERCINDELTA * INVBAKEDPOINTS);
 }

@@ -3,6 +3,9 @@
 #include "../defines.hpp"
 #include <deque>
 
+constexpr int BAKEDPOINTS = 200;
+constexpr float INVBAKEDPOINTS = 1.f / BAKEDPOINTS;
+
 // an implementation of a cubic bezier curve
 // might do better later
 // TODO: n-point curves
@@ -20,5 +23,5 @@ private:
     // this INCLUDES the 0,0 and 1,1 points.
     std::deque<Vector2D>    m_dPoints;
 
-    std::array<float, 100>  m_aPointsBaked;
+    std::array<float, BAKEDPOINTS>  m_aPointsBaked;
 };

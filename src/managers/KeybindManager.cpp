@@ -321,7 +321,6 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (PWINDOW->m_bIsFloating) {
         PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition);
         PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
-        PWINDOW->m_vEffectivePosition = PWINDOW->m_vRealPosition.vec();
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
     }
 }
@@ -338,7 +337,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        Vector2D middle = PWINDOWTOCHANGETO->m_vEffectivePosition + PWINDOWTOCHANGETO->m_vEffectiveSize / 2.f;
+        Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
     };
 

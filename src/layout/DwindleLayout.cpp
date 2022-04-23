@@ -451,10 +451,10 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
         DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
     } else {
         if (DRAGGINGWINDOW->m_bIsFloating) {
-            DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
+            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
             DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().x, (double)20, (double)999999), std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().y, (double)20, (double)999999)));
 
-            g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.vec());
+            g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
         } else {
             // we need to adjust the splitratio
 

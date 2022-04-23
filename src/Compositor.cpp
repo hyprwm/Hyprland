@@ -158,6 +158,9 @@ void CCompositor::startCompositor() {
     Debug::log(LOG, "Creating the KeybindManager!");
     g_pKeybindManager = std::make_unique<CKeybindManager>();
 
+    Debug::log(LOG, "Creating the AnimationManager!");
+    g_pAnimationManager = std::make_unique<CAnimationManager>();
+
     Debug::log(LOG, "Creating the ConfigManager!");
     g_pConfigManager = std::make_unique<CConfigManager>();
 
@@ -178,9 +181,6 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the LayoutManager!");
     g_pLayoutManager = std::make_unique<CLayoutManager>();
-
-    Debug::log(LOG, "Creating the AnimationManager!");
-    g_pAnimationManager = std::make_unique<CAnimationManager>();
     //
     //
 

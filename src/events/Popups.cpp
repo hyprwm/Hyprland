@@ -95,8 +95,8 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
     PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = PWINDOW->m_vEffectivePosition.x;
-    PNEWPOPUP->ly = PWINDOW->m_vEffectivePosition.y;
+    PNEWPOPUP->lx = PWINDOW->m_vRealPosition.goalv().x;
+    PNEWPOPUP->ly = PWINDOW->m_vRealPosition.goalv().y;
     PNEWPOPUP->parentWindow = PWINDOW;
     PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);

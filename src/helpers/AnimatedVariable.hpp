@@ -21,19 +21,40 @@ public:
 
     ~CAnimatedVariable();
 
+    // gets the current vector value (real time)
     Vector2D vec() {
         ASSERT(m_eVarType == AVARTYPE_VECTOR);
         return m_vValue;
     }
 
+    // gets the current float value (real time)
     float fl() {
         ASSERT(m_eVarType == AVARTYPE_FLOAT);
         return m_fValue;
     }
 
+    // gets the current color value (real time)
     CColor col() {
         ASSERT(m_eVarType == AVARTYPE_COLOR);
         return m_cValue;
+    }
+
+    // gets the goal vector value
+    Vector2D goalv() {
+        ASSERT(m_eVarType == AVARTYPE_VECTOR);
+        return m_vGoal;
+    }
+
+    // gets the goal float value
+    float goalf() {
+        ASSERT(m_eVarType == AVARTYPE_FLOAT);
+        return m_fGoal;
+    }
+
+    // gets the goal color value
+    CColor goalc() {
+        ASSERT(m_eVarType == AVARTYPE_COLOR);
+        return m_cGoal;
     }
 
     void operator=(const Vector2D& v) {

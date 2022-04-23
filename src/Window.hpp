@@ -32,10 +32,6 @@ public:
     Vector2D            m_vPosition = Vector2D(0,0);
     Vector2D            m_vSize = Vector2D(0,0);
 
-    // this is the position and size of the goal placement
-    Vector2D            m_vEffectivePosition = Vector2D(0,0);
-    Vector2D            m_vEffectiveSize = Vector2D(0,0);
-
     // this is the real position and size used to draw the thing
     CAnimatedVariable m_vRealPosition;
     CAnimatedVariable m_vRealSize;

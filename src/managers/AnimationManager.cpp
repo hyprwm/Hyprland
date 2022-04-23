@@ -2,7 +2,7 @@
 #include "../Compositor.hpp"
 
 CAnimationManager::CAnimationManager() {
-    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.25f, 1.f)};
+    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
     m_mBezierCurves["default"].setup(&points);
 }
 
@@ -10,7 +10,7 @@ void CAnimationManager::removeAllBeziers() {
     m_mBezierCurves.clear();
 
     // add the default one
-    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.25f, 1.f)};
+    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
     m_mBezierCurves["default"].setup(&points);
 }
 

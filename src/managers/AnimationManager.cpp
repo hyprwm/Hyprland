@@ -8,115 +8,71 @@ void CAnimationManager::tick() {
     if (!g_pConfigManager->getInt("animations:enabled"))
         animationsDisabled = true;
 
-    const bool WINDOWSENABLED   = g_pConfigManager->getInt("animations:windows") && !animationsDisabled;
-    const bool BORDERSENABLED   = g_pConfigManager->getInt("animations:borders") && !animationsDisabled;
-    const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein") && !animationsDisabled;
     const float ANIMSPEED       = g_pConfigManager->getFloat("animations:speed");
-
-    // Process speeds
-    const float WINDOWSPEED     = g_pConfigManager->getFloat("animations:windows_speed") == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:windows_speed");
-    const float BORDERSPEED     = g_pConfigManager->getFloat("animations:borders_speed") == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:borders_speed");
-    const float FADESPEED       = g_pConfigManager->getFloat("animations:fadein_speed")  == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:fadein_speed");
-
-    const auto BORDERACTIVECOL  = CColor(g_pConfigManager->getInt("general:col.active_border"));
-    const auto BORDERINACTIVECOL = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
 
     const auto BORDERSIZE       = g_pConfigManager->getInt("general:border_size");
 
-    for (auto& w : g_pCompositor->m_lWindows) {
-
-        // get the box before transforms, for damage tracking later
-        wlr_box WLRBOXPREV = { w.m_vRealPosition.x - BORDERSIZE - 1, w.m_vRealPosition.y - BORDERSIZE - 1, w.m_vRealSize.x + 2 * BORDERSIZE + 2, w.m_vRealSize.y + 2 * BORDERSIZE + 2};
-        bool needsDamage = false;
-
-        // process fadeinout
-        if (FADEENABLED) {
-            const auto GOALALPHA = w.m_bIsMapped ? 255.f : 0.f;
-            w.m_bFadingOut = false;
-
-            if (!deltazero(w.m_fAlpha, GOALALPHA)) {
-                if (deltaSmallToFlip(w.m_fAlpha, GOALALPHA)) {
-                    w.m_fAlpha = GOALALPHA;
-                } else {
-                    if (w.m_fAlpha > GOALALPHA)
-                        w.m_bFadingOut = true;
-                    w.m_fAlpha = parabolic(w.m_fAlpha, GOALALPHA, FADESPEED);
-                }
-
-                needsDamage = true;
-            }
-
-        } else {
-            const auto GOALALPHA = w.m_bIsMapped ? 255.f : 0.f;
-
-            if (!deltazero(GOALALPHA, w.m_fAlpha)) {
-                if (w.m_bIsMapped)
-                    w.m_fAlpha = 255.f;
-                else {
-                    w.m_fAlpha = 0.f;
-                    w.m_bFadingOut = false;
-                }
-
-                needsDamage = true;
-            }
-        }
-
-        // process fadein/out for unmapped windows, but nothing else.
-        // we can't use windowValidMapped because we want to animate hidden windows too.
-        if (!g_pCompositor->windowExists(&w) || !w.m_bIsMapped || !g_pXWaylandManager->getWindowSurface(&w)){
-            if (needsDamage) {
-                g_pHyprRenderer->damageWindow(&w); // only window, it didnt move cuz its unmappy
-            }
-
+    for (auto& av : m_lAnimatedVariables) {
+        // first, we check if it's disabled, if so, warp
+        if (av->m_pEnabled == 0 || animationsDisabled) {
+            av->warp();
             continue;
         }
 
-        // process the borders
-        const auto RENDERHINTS = g_pLayoutManager->getCurrentLayout()->requestRenderHints(&w);
+        // get speed
+        const auto SPEED = *av->m_pSpeed == 0 ? ANIMSPEED : *av->m_pSpeed;
 
-        const auto& COLOR = RENDERHINTS.isBorderColor ? RENDERHINTS.borderColor : g_pCompositor->isWindowActive(&w) ? BORDERACTIVECOL : BORDERINACTIVECOL;
+        // window stuff
+        const auto PWINDOW = (CWindow*)av->m_pWindow;
+        bool needsDamage = false;
+        wlr_box WLRBOXPREV = {PWINDOW->m_vRealPosition.vec().x - BORDERSIZE - 1, PWINDOW->m_vRealPosition.vec().y - BORDERSIZE - 1, PWINDOW->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, PWINDOW->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
 
-        if (BORDERSENABLED) {
-            if (!deltazero(COLOR, w.m_cRealBorderColor)) {
-                if (deltaSmallToFlip(COLOR, w.m_cRealBorderColor)) {
-                    w.m_cRealBorderColor = COLOR;
-                } else {
-                    w.m_cRealBorderColor = parabolic(BORDERSPEED, w.m_cRealBorderColor, COLOR);
+        // TODO: curves
+
+        // parabolic with a switch unforto
+        // TODO: maybe do something cleaner
+        switch (av->m_eVarType) {
+            case AVARTYPE_FLOAT: {
+                if (!deltazero(av->m_fValue, av->m_fGoal)) {
+                    if (deltaSmallToFlip(av->m_fValue, av->m_fGoal)) {
+                        av->warp();
+                    } else {
+                        av->m_fValue = parabolic(av->m_fValue, av->m_fGoal, SPEED);
+                    }
+
+                    needsDamage = true;
                 }
-                needsDamage = true;
+                break;
             }
-        } else {
-            if (!deltazero(w.m_cRealBorderColor, COLOR))
-                needsDamage = true;
-            w.m_cRealBorderColor = COLOR;
+            case AVARTYPE_VECTOR: {
+                if (!deltazero(av->m_vValue, av->m_vGoal)) {
+                    if (deltaSmallToFlip(av->m_vValue, av->m_vGoal)) {
+                        av->warp();
+                    } else {
+                        av->m_vValue.x = parabolic(av->m_vValue.x, av->m_vGoal.x, SPEED);
+                        av->m_vValue.y = parabolic(av->m_vValue.y, av->m_vGoal.y, SPEED);
+                    }
+                    needsDamage = true;
+                }
+                break;
+            }
+            case AVARTYPE_COLOR: {
+                if (!deltazero(av->m_cValue, av->m_cGoal)) {
+                    if (deltaSmallToFlip(av->m_cValue, av->m_cGoal)) {
+                        av->warp();
+                    } else {
+                        av->m_cValue = parabolic(SPEED, av->m_cValue, av->m_cGoal);
+                    }
+                    needsDamage = true;
+                }
+                break;
+            }
         }
 
-        // process the window
-        if (WINDOWSENABLED) {
-            if (!deltazero(w.m_vRealPosition, w.m_vEffectivePosition) || !deltazero(w.m_vRealSize, w.m_vEffectiveSize)) {
-                if (deltaSmallToFlip(w.m_vRealPosition, w.m_vEffectivePosition) && deltaSmallToFlip(w.m_vRealSize, w.m_vEffectiveSize)) {
-                    w.m_vRealPosition = w.m_vEffectivePosition;
-                    w.m_vRealSize = w.m_vEffectiveSize;
-                    g_pXWaylandManager->setWindowSize(&w, w.m_vRealSize);
-                } else {
-                    // if it is to be animated, animate it.
-                    w.m_vRealPosition = Vector2D(parabolic(w.m_vRealPosition.x, w.m_vEffectivePosition.x, WINDOWSPEED), parabolic(w.m_vRealPosition.y, w.m_vEffectivePosition.y, WINDOWSPEED));
-                    w.m_vRealSize = Vector2D(parabolic(w.m_vRealSize.x, w.m_vEffectiveSize.x, WINDOWSPEED), parabolic(w.m_vRealSize.y, w.m_vEffectiveSize.y, WINDOWSPEED));
-                }
-
-                needsDamage = true;
-            }
-        } else {
-            if (!deltazero(w.m_vRealPosition, w.m_vEffectivePosition) || !deltazero(w.m_vRealSize, w.m_vEffectiveSize))
-                needsDamage = true;
-
-            w.m_vRealPosition = w.m_vEffectivePosition;
-            w.m_vRealSize = w.m_vEffectiveSize;
-        }
-
+        // invalidate the window
         if (needsDamage) {
             g_pHyprRenderer->damageBox(&WLRBOXPREV);
-            g_pHyprRenderer->damageWindow(&w);
+            g_pHyprRenderer->damageWindow(PWINDOW);
         }
     }
 }

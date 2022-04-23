@@ -2,11 +2,14 @@
 
 #include "../defines.hpp"
 #include <list>
+#include "../helpers/AnimatedVariable.hpp"
 
 class CAnimationManager {
 public:
 
     void            tick();
+
+    std::list<CAnimatedVariable*> m_lAnimatedVariables;
 
 private:
     bool            deltaSmallToFlip(const Vector2D& a, const Vector2D& b);

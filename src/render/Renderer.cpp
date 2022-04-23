@@ -30,7 +30,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 }
 
 bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
-    wlr_box geometry = {pWindow->m_vRealPosition.x, pWindow->m_vRealPosition.y, pWindow->m_vRealSize.x, pWindow->m_vRealSize.y};
+    wlr_box geometry = {pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, pWindow->m_vRealSize.vec().x, pWindow->m_vRealSize.vec().y};
 
     if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
         return false;
@@ -83,13 +83,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         return;
     }
 
-    const auto REALPOS = pWindow->m_vRealPosition;
+    const auto REALPOS = pWindow->m_vRealPosition.vec();
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
-    renderdata.w = pWindow->m_vRealSize.x;
-    renderdata.h = pWindow->m_vRealSize.y;
+    renderdata.w = pWindow->m_vRealSize.vec().x;
+    renderdata.h = pWindow->m_vRealSize.vec().y;
     renderdata.dontRound = pWindow->m_bIsFullscreen;
-    renderdata.fadeAlpha = pWindow->m_fAlpha;
+    renderdata.fadeAlpha = pWindow->m_fAlpha.fl();
     renderdata.alpha = pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
 
     // apply window special data
@@ -99,7 +99,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
 
     // border
     if (decorate && !pWindow->m_bX11DoesntWantBorders)
-        drawBorderForWindow(pWindow, pMonitor, pWindow->m_fAlpha * renderdata.alpha);
+        drawBorderForWindow(pWindow, pMonitor, pWindow->m_fAlpha.fl() * renderdata.alpha);
 
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->surface) {
@@ -411,14 +411,14 @@ void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor, fl
     if (BORDERSIZE < 1)
         return;
 
-    auto BORDERCOL = pWindow->m_cRealBorderColor;
+    auto BORDERCOL = pWindow->m_cRealBorderColor.col();
     BORDERCOL.a *= (alpha / 255.f);
 
-    Vector2D correctPos = pWindow->m_vRealPosition - pMonitor->vecPosition;
-    Vector2D correctSize = pWindow->m_vRealSize;
+    Vector2D correctPos = pWindow->m_vRealPosition.vec() - pMonitor->vecPosition;
+    Vector2D correctSize = pWindow->m_vRealSize.vec();
 
     // top
-    wlr_box border = {correctPos.x - BORDERSIZE / 2.f, correctPos.y - BORDERSIZE / 2.f, pWindow->m_vRealSize.x + BORDERSIZE, pWindow->m_vRealSize.y + BORDERSIZE};
+    wlr_box border = {correctPos.x - BORDERSIZE / 2.f, correctPos.y - BORDERSIZE / 2.f, pWindow->m_vRealSize.vec().x + BORDERSIZE, pWindow->m_vRealSize.vec().y + BORDERSIZE};
     g_pHyprOpenGL->renderBorder(&border, BORDERCOL, BORDERSIZE, g_pConfigManager->getInt("decoration:rounding"));
 }
 
@@ -454,7 +454,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     } else {
         // damage by real size & pos + border size * 2 (JIC)
         const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
-        wlr_box damageBox = { pWindow->m_vRealPosition.x - BORDERSIZE - 1, pWindow->m_vRealPosition.y - BORDERSIZE - 1, pWindow->m_vRealSize.x + 2 * BORDERSIZE + 2, pWindow->m_vRealSize.y + 2 * BORDERSIZE + 2};
+        wlr_box damageBox = { pWindow->m_vRealPosition.vec().x - BORDERSIZE - 1, pWindow->m_vRealPosition.vec().y - BORDERSIZE - 1, pWindow->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, pWindow->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
         for (auto& m : g_pCompositor->m_lMonitors)
             wlr_output_damage_add_box(m.damage, &damageBox);
     }

@@ -67,6 +67,9 @@ void CAnimationManager::tick() {
                 }
                 break;
             }
+            default: {
+                ;
+            }
         }
 
         // invalidate the window

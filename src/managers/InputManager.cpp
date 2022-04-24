@@ -116,7 +116,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (time)
         wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
-    Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y) - surfacePos;
+    Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
     if (pFoundWindow) {
         if (g_pConfigManager->getInt("input:follow_mouse") == 0 && !refocus) {

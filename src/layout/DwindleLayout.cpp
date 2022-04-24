@@ -449,6 +449,7 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (g_pInputManager->dragButton == BTN_LEFT) {
         DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
+        g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
     } else {
         if (DRAGGINGWINDOW->m_bIsFloating) {
             DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
@@ -601,8 +602,6 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
             // get back its' dimensions from position and size
             pWindow->m_vRealPosition = pWindow->m_vPosition;
             pWindow->m_vRealSize = pWindow->m_vSize;
-
-            g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
         }
     } else {
         // if it now got fullscreen, make it fullscreen
@@ -616,9 +615,9 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
         // apply new pos and size being monitors' box
         pWindow->m_vRealPosition = PMONITOR->vecPosition;
         pWindow->m_vRealSize = PMONITOR->vecSize;
-
-        g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
     }
+
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
     g_pCompositor->moveWindowToTop(pWindow);
 

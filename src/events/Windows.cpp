@@ -17,8 +17,8 @@
 
 void addViewCoords(void* pWindow, int* x, int* y) {
     const auto PWINDOW = (CWindow*)pWindow;
-    *x += PWINDOW->m_vEffectivePosition.x;
-    *y += PWINDOW->m_vEffectivePosition.y;
+    *x += PWINDOW->m_vRealPosition.goalv().x;
+    *y += PWINDOW->m_vRealPosition.goalv().y;
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {
@@ -33,6 +33,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_bReadyToDelete = false;
     PWINDOW->m_bFadingOut = false;
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
+    PWINDOW->m_fAlpha = 255.f;
 
     // checks if the window wants borders and sets the appriopriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
@@ -112,8 +113,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     Debug::log(LOG, "Rule size, applying to window %x", PWINDOW);
 
-                    PWINDOW->m_vEffectiveSize = Vector2D(SIZEX, SIZEY);
-                    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vEffectiveSize);
+                    PWINDOW->m_vRealSize = Vector2D(SIZEX, SIZEY);
+                    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
                 } catch (...) {
                     Debug::log(LOG, "Rule size failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }
@@ -128,7 +129,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     Debug::log(LOG, "Rule move, applying to window %x", PWINDOW);
 
-                    PWINDOW->m_vEffectivePosition = Vector2D(POSX, POSY) + PMONITOR->vecPosition;
+                    PWINDOW->m_vRealPosition = Vector2D(POSX, POSY) + PMONITOR->vecPosition;
                 } catch (...) {
                     Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }
@@ -137,13 +138,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize
-        PWINDOW->m_vPseudoSize = PWINDOW->m_vEffectiveSize;
+        PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv();
     }
     else {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
         // Set the pseudo size here too so that it doesnt end up being 0x0
-        PWINDOW->m_vPseudoSize = PWINDOW->m_vEffectiveSize - Vector2D(10,10);
+        PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv() - Vector2D(10,10);
     }
 
     g_pCompositor->focusWindow(PWINDOW);
@@ -164,7 +165,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XWayland Window Late");
     }
 
-    Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vEffectivePosition.x, PWINDOW->m_vEffectivePosition.y, PWINDOW->m_vEffectiveSize.x, PWINDOW->m_vEffectiveSize.y);
+    Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -193,6 +194,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // Allow the renderer to catch the last frame.
     g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
+
+    PWINDOW->m_fAlpha = 0.f;
 
     PWINDOW->m_bMappedX11 = false;
 
@@ -298,17 +301,15 @@ void Events::listener_configureX11(void* owner, void* data) {
     const auto E = (wlr_xwayland_surface_configure_event*)data;
 
     if (!PWINDOW->m_bIsFloating) {
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize);
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.vec());
         g_pInputManager->refocus();
         return;
     }
 
     wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
     wlr_xwayland_surface_restack(PWINDOW->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
-    PWINDOW->m_vEffectivePosition = Vector2D(E->x, E->y);
-    PWINDOW->m_vEffectiveSize = Vector2D(E->width, E->height);
-    PWINDOW->m_vRealPosition = PWINDOW->m_vEffectivePosition;
-    PWINDOW->m_vRealSize = PWINDOW->m_vRealSize;
+    PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(E->x, E->y));
+    PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(E->width, E->height));
     PWINDOW->m_vPosition = PWINDOW->m_vPosition;
     PWINDOW->m_vSize = PWINDOW->m_vSize;
 
@@ -322,7 +323,7 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
 
     Debug::log(LOG, "New XWayland Surface created.");
 
-    g_pCompositor->m_lWindows.push_back(CWindow());
+    g_pCompositor->m_lWindows.emplace_back();
     const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
 
     PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
@@ -343,7 +344,7 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return;  // TODO: handle?
 
-    g_pCompositor->m_lWindows.push_back(CWindow());
+    g_pCompositor->m_lWindows.emplace_back();
     const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 

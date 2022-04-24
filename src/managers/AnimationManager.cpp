@@ -1,6 +1,24 @@
 #include "AnimationManager.hpp"
 #include "../Compositor.hpp"
 
+CAnimationManager::CAnimationManager() {
+    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
+    m_mBezierCurves["default"].setup(&points);
+}
+
+void CAnimationManager::removeAllBeziers() {
+    m_mBezierCurves.clear();
+
+    // add the default one
+    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
+    m_mBezierCurves["default"].setup(&points);
+}
+
+void CAnimationManager::addBezierWithName(std::string name, const Vector2D& p1, const Vector2D& p2) {
+    std::vector points = {p1, p2};
+    m_mBezierCurves[name].setup(&points);
+}
+
 void CAnimationManager::tick() {
 
     bool animationsDisabled = false;
@@ -8,116 +26,100 @@ void CAnimationManager::tick() {
     if (!g_pConfigManager->getInt("animations:enabled"))
         animationsDisabled = true;
 
-    const bool WINDOWSENABLED   = g_pConfigManager->getInt("animations:windows") && !animationsDisabled;
-    const bool BORDERSENABLED   = g_pConfigManager->getInt("animations:borders") && !animationsDisabled;
-    const bool FADEENABLED      = g_pConfigManager->getInt("animations:fadein") && !animationsDisabled;
     const float ANIMSPEED       = g_pConfigManager->getFloat("animations:speed");
-
-    // Process speeds
-    const float WINDOWSPEED     = g_pConfigManager->getFloat("animations:windows_speed") == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:windows_speed");
-    const float BORDERSPEED     = g_pConfigManager->getFloat("animations:borders_speed") == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:borders_speed");
-    const float FADESPEED       = g_pConfigManager->getFloat("animations:fadein_speed")  == 0 ? ANIMSPEED : g_pConfigManager->getFloat("animations:fadein_speed");
-
-    const auto BORDERACTIVECOL  = CColor(g_pConfigManager->getInt("general:col.active_border"));
-    const auto BORDERINACTIVECOL = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
-
     const auto BORDERSIZE       = g_pConfigManager->getInt("general:border_size");
+    const auto BEZIERSTR        = g_pConfigManager->getString("animations:curve");
 
-    for (auto& w : g_pCompositor->m_lWindows) {
+    auto DEFAULTBEZIER = m_mBezierCurves.find(BEZIERSTR);
+    if (DEFAULTBEZIER == m_mBezierCurves.end())
+        DEFAULTBEZIER = m_mBezierCurves.find("default");
 
-        // get the box before transforms, for damage tracking later
-        wlr_box WLRBOXPREV = { w.m_vRealPosition.x - BORDERSIZE - 1, w.m_vRealPosition.y - BORDERSIZE - 1, w.m_vRealSize.x + 2 * BORDERSIZE + 2, w.m_vRealSize.y + 2 * BORDERSIZE + 2};
-        bool needsDamage = false;
+    for (auto& av : m_lAnimatedVariables) {
+        // get speed
+        const auto SPEED = *av->m_pSpeed == 0 ? ANIMSPEED : *av->m_pSpeed;
 
-        // process fadeinout
-        if (FADEENABLED) {
-            const auto GOALALPHA = w.m_bIsMapped ? 255.f : 0.f;
-            w.m_bFadingOut = false;
+        // window stuff
+        const auto PWINDOW = (CWindow*)av->m_pWindow;
+        wlr_box WLRBOXPREV = {PWINDOW->m_vRealPosition.vec().x - BORDERSIZE - 1, PWINDOW->m_vRealPosition.vec().y - BORDERSIZE - 1, PWINDOW->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, PWINDOW->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
 
-            if (!deltazero(w.m_fAlpha, GOALALPHA)) {
-                if (deltaSmallToFlip(w.m_fAlpha, GOALALPHA)) {
-                    w.m_fAlpha = GOALALPHA;
-                } else {
-                    if (w.m_fAlpha > GOALALPHA)
-                        w.m_bFadingOut = true;
-                    w.m_fAlpha = parabolic(w.m_fAlpha, GOALALPHA, FADESPEED);
-                }
-
-                needsDamage = true;
-            }
-
-        } else {
-            const auto GOALALPHA = w.m_bIsMapped ? 255.f : 0.f;
-
-            if (!deltazero(GOALALPHA, w.m_fAlpha)) {
-                if (w.m_bIsMapped)
-                    w.m_fAlpha = 255.f;
-                else {
-                    w.m_fAlpha = 0.f;
-                    w.m_bFadingOut = false;
-                }
-
-                needsDamage = true;
-            }
-        }
-
-        // process fadein/out for unmapped windows, but nothing else.
-        // we can't use windowValidMapped because we want to animate hidden windows too.
-        if (!g_pCompositor->windowExists(&w) || !w.m_bIsMapped || !g_pXWaylandManager->getWindowSurface(&w)){
-            if (needsDamage) {
-                g_pHyprRenderer->damageWindow(&w); // only window, it didnt move cuz its unmappy
-            }
-
+        // check if it's disabled, if so, warp
+        if (av->m_pEnabled == 0 || animationsDisabled) {
+            av->warp();
+            g_pHyprRenderer->damageBox(&WLRBOXPREV);
+            g_pHyprRenderer->damageWindow(PWINDOW);
             continue;
         }
 
-        // process the borders
-        const auto RENDERHINTS = g_pLayoutManager->getCurrentLayout()->requestRenderHints(&w);
+        // beziers are with a switch unforto
+        // TODO: maybe do something cleaner
 
-        const auto& COLOR = RENDERHINTS.isBorderColor ? RENDERHINTS.borderColor : g_pCompositor->isWindowActive(&w) ? BORDERACTIVECOL : BORDERINACTIVECOL;
+        // get the spent % (0 - 1)
+        const auto DURATIONPASSED = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - av->animationBegin).count();
+        const float SPENT = std::clamp((DURATIONPASSED / 100.f) / SPEED, 0.f, 1.f);
 
-        if (BORDERSENABLED) {
-            if (!deltazero(COLOR, w.m_cRealBorderColor)) {
-                if (deltaSmallToFlip(COLOR, w.m_cRealBorderColor)) {
-                    w.m_cRealBorderColor = COLOR;
+        switch (av->m_eVarType) {
+            case AVARTYPE_FLOAT: {
+                if (!deltazero(av->m_fValue, av->m_fGoal)) {
+                    const auto DELTA = av->m_fGoal - av->m_fBegun;
+                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+
+                    if (BEZIER != m_mBezierCurves.end())
+                        av->m_fValue = av->m_fBegun + BEZIER->second.getYForPoint(SPENT) * DELTA;
+                    else
+                        av->m_fValue = av->m_fBegun + DEFAULTBEZIER->second.getYForPoint(SPENT) * DELTA;
+
+                    if (SPENT >= 1.f) {
+                        av->warp();
+                    }
                 } else {
-                    w.m_cRealBorderColor = parabolic(BORDERSPEED, w.m_cRealBorderColor, COLOR);
+                    continue; // dont process
                 }
-                needsDamage = true;
+                break;
             }
-        } else {
-            if (!deltazero(w.m_cRealBorderColor, COLOR))
-                needsDamage = true;
-            w.m_cRealBorderColor = COLOR;
-        }
+            case AVARTYPE_VECTOR: {
+                if (!deltazero(av->m_vValue, av->m_vGoal)) {
+                    const auto DELTA = av->m_vGoal - av->m_vBegun;
+                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
 
-        // process the window
-        if (WINDOWSENABLED) {
-            if (!deltazero(w.m_vRealPosition, w.m_vEffectivePosition) || !deltazero(w.m_vRealSize, w.m_vEffectiveSize)) {
-                if (deltaSmallToFlip(w.m_vRealPosition, w.m_vEffectivePosition) && deltaSmallToFlip(w.m_vRealSize, w.m_vEffectiveSize)) {
-                    w.m_vRealPosition = w.m_vEffectivePosition;
-                    w.m_vRealSize = w.m_vEffectiveSize;
-                    g_pXWaylandManager->setWindowSize(&w, w.m_vRealSize);
+                    if (BEZIER != m_mBezierCurves.end())
+                        av->m_vValue = av->m_vBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
+                    else
+                        av->m_vValue = av->m_vBegun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
+
+                    if (SPENT >= 1.f) {
+                        av->warp();
+                    }
                 } else {
-                    // if it is to be animated, animate it.
-                    w.m_vRealPosition = Vector2D(parabolic(w.m_vRealPosition.x, w.m_vEffectivePosition.x, WINDOWSPEED), parabolic(w.m_vRealPosition.y, w.m_vEffectivePosition.y, WINDOWSPEED));
-                    w.m_vRealSize = Vector2D(parabolic(w.m_vRealSize.x, w.m_vEffectiveSize.x, WINDOWSPEED), parabolic(w.m_vRealSize.y, w.m_vEffectiveSize.y, WINDOWSPEED));
+                    continue;  // dont process
                 }
-
-                needsDamage = true;
+                break;
             }
-        } else {
-            if (!deltazero(w.m_vRealPosition, w.m_vEffectivePosition) || !deltazero(w.m_vRealSize, w.m_vEffectiveSize))
-                needsDamage = true;
+            case AVARTYPE_COLOR: {
+                if (!deltazero(av->m_cValue, av->m_cGoal)) {
+                    const auto DELTA = av->m_cGoal - av->m_cBegun;
+                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
 
-            w.m_vRealPosition = w.m_vEffectivePosition;
-            w.m_vRealSize = w.m_vEffectiveSize;
+                    if (BEZIER != m_mBezierCurves.end())
+                        av->m_cValue = av->m_cBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
+                    else
+                        av->m_cValue = av->m_cBegun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
+
+                    if (SPENT >= 1.f) {
+                        av->warp();
+                    }
+                } else {
+                    continue;  // dont process
+                }
+                break;
+            }
+            default: {
+                ;
+            }
         }
 
-        if (needsDamage) {
-            g_pHyprRenderer->damageBox(&WLRBOXPREV);
-            g_pHyprRenderer->damageWindow(&w);
-        }
+        // damage the window
+        g_pHyprRenderer->damageBox(&WLRBOXPREV);
+        g_pHyprRenderer->damageWindow(PWINDOW);
     }
 }
 
@@ -143,19 +145,4 @@ bool CAnimationManager::deltazero(const float& a, const float& b) {
 
 bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
     return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
-}
-
-double CAnimationManager::parabolic(const double from, const double to, const double incline) {
-    return from + ((to - from) / incline);
-}
-
-CColor CAnimationManager::parabolic(const double incline, const CColor& from, const CColor& to) {
-    CColor newColor;
-
-    newColor.r = parabolic(from.r, to.r, incline);
-    newColor.g = parabolic(from.g, to.g, incline);
-    newColor.b = parabolic(from.b, to.b, incline);
-    newColor.a = parabolic(from.a, to.a, incline);
-
-    return newColor;
 }

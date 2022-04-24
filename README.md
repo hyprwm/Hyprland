@@ -53,6 +53,8 @@ Try it out and report bugs / suggestions!
 - Bezier-curve window animations
 - Custom bezier curves
 - Workspaces protocol support
+- Dual Kawase blur
+- Window fade in / out
 - Tiling / floating / fullscreen windows
 - Window / monitor rules
 - Socket-based IPC
@@ -60,8 +62,6 @@ Try it out and report bugs / suggestions!
 - Damage tracking ( *Experimental* )
 - Moving / resizing
 - Docks support
-- Fade in / out
-- Window blur
 
 <br>
 <br>

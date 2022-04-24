@@ -145,6 +145,17 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                 return true;
                     }
 
+        if (pWindow->m_uSurface.xwayland->role) {
+            try {
+                std::string winrole = std::string(pWindow->m_uSurface.xwayland->role);
+                if (winrole.find("pop-up") != std::string::npos || winrole.find("task_dialog") != std::string::npos) {
+                    return true;
+                }
+            } catch (std::exception& e) {
+                Debug::log(ERR, "Error in shouldBeFloated, winrole threw %s", e.what());
+            }
+        }
+
         if (pWindow->m_uSurface.xwayland->modal) {
             pWindow->m_bIsModal = true;
             return true;

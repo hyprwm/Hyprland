@@ -551,8 +551,8 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
         // check if it's on the correct monitor!
         Vector2D middlePoint = Vector2D(desiredGeometry.x, desiredGeometry.y) + Vector2D(desiredGeometry.width, desiredGeometry.height) / 2.f;
 
-                                                                                            // TODO: detect a popup in a more consistent way.
-        if ((g_pCompositor->getMonitorFromVector(middlePoint) && g_pCompositor->getMonitorFromVector(middlePoint)->ID != pWindow->m_iMonitorID) || (desiredGeometry.x == 0 && desiredGeometry.y == 0)) {
+         // TODO: detect a popup in a more consistent way.
+        if (!g_pCompositor->isPointOnAnyMonitor(middlePoint) || (desiredGeometry.x == 0 && desiredGeometry.y == 0)) {
             // if it's not, fall back to the center placement
             pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
         } else {

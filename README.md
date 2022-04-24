@@ -50,7 +50,8 @@ Try it out and report bugs / suggestions!
 
 - Easily expandable and readable codebase
 - Config reloaded instantly upon saving
-- Parabolic window animations
+- Bezier-curve window animations
+- Custom bezier curves
 - Workspaces protocol support
 - Tiling / floating / fullscreen windows
 - Window / monitor rules

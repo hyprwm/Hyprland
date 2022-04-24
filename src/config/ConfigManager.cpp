@@ -43,10 +43,14 @@ void CConfigManager::setDefaultVars() {
 
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;
+    configValues["animations:curve"].strValue = "default";
+    configValues["animations:windows_curve"].strValue = "[[f]]";
     configValues["animations:windows_speed"].floatValue = 0.f;
     configValues["animations:windows"].intValue = 1;
+    configValues["animations:borders_curve"].strValue = "[[f]]";
     configValues["animations:borders_speed"].floatValue = 0.f;
     configValues["animations:borders"].intValue = 1;
+    configValues["animations:fadein_curve"].strValue = "[[f]]";
     configValues["animations:fadein_speed"].floatValue = 0.f;
     configValues["animations:fadein"].intValue = 1;
 
@@ -207,6 +211,39 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     m_dMonitorRules.push_back(newrule);
 }
 
+void CConfigManager::handleBezier(const std::string& command, const std::string& args) {
+    std::string curitem = "";
+
+    std::string argZ = args;
+
+    auto nextItem = [&]() {
+        auto idx = argZ.find_first_of(',');
+
+        if (idx != std::string::npos) {
+            curitem = argZ.substr(0, idx);
+            argZ = argZ.substr(idx + 1);
+        } else {
+            curitem = argZ;
+            argZ = "";
+        }
+    };
+
+    nextItem();
+
+    std::string bezierName = curitem;
+
+    nextItem();
+    float p1x = std::stof(curitem);
+    nextItem();
+    float p1y = std::stof(curitem);
+    nextItem();
+    float p2x = std::stof(curitem);
+    nextItem();
+    float p2y = std::stof(curitem);
+
+    g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
+}
+
 void CConfigManager::handleBind(const std::string& command, const std::string& value) {
     // example:
     // bind=SUPER,G,exec,dmenu_run <args>
@@ -311,6 +348,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleDefaultWorkspace(COMMAND, VALUE);
     } else if (COMMAND == "windowrule") {
         handleWindowRule(COMMAND, VALUE);
+    } else if (COMMAND == "bezier") {
+        handleBezier(COMMAND, VALUE);
     } else {
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
     }
@@ -379,10 +418,10 @@ void CConfigManager::loadConfigLoadVars() {
     
     // reset all vars before loading
     setDefaultVars();
-
     m_dMonitorRules.clear();
     m_dWindowRules.clear();
     g_pKeybindManager->clearKeybinds();
+    g_pAnimationManager->removeAllBeziers();
 
     const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
@@ -605,4 +644,8 @@ void CConfigManager::performMonitorReload() {
     }
 
     m_bWantsMonitorReload = false;
+}
+
+SConfigValue* CConfigManager::getConfigValuePtr(std::string val) {
+    return &configValues[val];
 }

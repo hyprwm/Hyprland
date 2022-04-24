@@ -119,8 +119,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
     PWINDOW->m_vSize = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
-    PWINDOW->m_vEffectivePosition = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
-    PWINDOW->m_vEffectiveSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
+    auto calcPos = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
+    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
 
     const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? GAPSOUT : GAPSIN,
                                         DISPLAYTOP ? GAPSOUT : GAPSIN);
@@ -128,34 +128,37 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
     const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? GAPSOUT : GAPSIN,
                                             DISPLAYBOTTOM ? GAPSOUT : GAPSIN);
 
-    PWINDOW->m_vEffectivePosition = PWINDOW->m_vEffectivePosition + OFFSETTOPLEFT;
-    PWINDOW->m_vEffectiveSize = PWINDOW->m_vEffectiveSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
+    calcPos = calcPos + OFFSETTOPLEFT;
+    calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
 
     if (PWINDOW->m_bIsPseudotiled) {
         // Calculate pseudo
         float scale = 1;
 
         // adjust if doesnt fit
-        if (PWINDOW->m_vPseudoSize.x > PWINDOW->m_vEffectiveSize.x || PWINDOW->m_vPseudoSize.y > PWINDOW->m_vEffectiveSize.y) {
-            if (PWINDOW->m_vPseudoSize.x > PWINDOW->m_vEffectiveSize.x) {
-                scale = PWINDOW->m_vEffectiveSize.x / PWINDOW->m_vPseudoSize.x;
+        if (PWINDOW->m_vPseudoSize.x > calcSize.x || PWINDOW->m_vPseudoSize.y > calcSize.y) {
+            if (PWINDOW->m_vPseudoSize.x > calcSize.x) {
+                scale = calcSize.x / PWINDOW->m_vPseudoSize.x;
             }
 
-            if (PWINDOW->m_vPseudoSize.y * scale > PWINDOW->m_vEffectiveSize.y) {
-                scale = PWINDOW->m_vEffectiveSize.y / PWINDOW->m_vPseudoSize.y;
+            if (PWINDOW->m_vPseudoSize.y * scale > calcSize.y) {
+                scale = calcSize.y / PWINDOW->m_vPseudoSize.y;
             }
 
-            auto DELTA = PWINDOW->m_vEffectiveSize - PWINDOW->m_vPseudoSize * scale;
-            PWINDOW->m_vEffectiveSize = PWINDOW->m_vPseudoSize * scale;
-            PWINDOW->m_vEffectivePosition = PWINDOW->m_vEffectivePosition + DELTA / 2.f;  // center
+            auto DELTA = calcSize - PWINDOW->m_vPseudoSize * scale;
+            calcSize = PWINDOW->m_vPseudoSize * scale;
+            calcPos = calcPos + DELTA / 2.f;  // center
         } else {
-            auto DELTA = PWINDOW->m_vEffectiveSize - PWINDOW->m_vPseudoSize;
-            PWINDOW->m_vEffectivePosition = PWINDOW->m_vEffectivePosition + DELTA / 2.f;  // center
-            PWINDOW->m_vEffectiveSize = PWINDOW->m_vPseudoSize;
+            auto DELTA = calcSize - PWINDOW->m_vPseudoSize;
+            calcPos = calcPos + DELTA / 2.f;  // center
+            calcSize = PWINDOW->m_vPseudoSize;
         }
     }
 
-    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vEffectiveSize);
+    PWINDOW->m_vRealSize = calcSize;
+    PWINDOW->m_vRealPosition = calcPos;
+
+    g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
 }
 
 void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
@@ -190,8 +193,8 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
 
         applyNodeDataToWindow(PNODE);
 
-        pWindow->m_vRealPosition = PNODE->position + PNODE->size / 2.f;
-        pWindow->m_vRealSize = Vector2D(5, 5);
+        pWindow->m_vRealPosition.setValue(PNODE->position + PNODE->size / 2.f);
+        pWindow->m_vRealSize.setValue(Vector2D(5, 5));
 
         return;
     }
@@ -265,8 +268,8 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
         applyNodeDataToWindow(OPENINGON);
     }
 
-    pWindow->m_vRealPosition = PNODE->position + PNODE->size / 2.f;
-    pWindow->m_vRealSize = Vector2D(5,5);
+    pWindow->m_vRealPosition.setValue(PNODE->position + PNODE->size / 2.f);
+    pWindow->m_vRealSize.setValue(Vector2D(5,5));
 }
 
 void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
@@ -364,16 +367,16 @@ void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
     if (!PNODE) {
         // save real pos cuz the func applies the default 5,5 mid
-        const auto PSAVEDPOS = pWindow->m_vRealPosition;
-        const auto PSAVEDSIZE = pWindow->m_vRealSize;
+        const auto PSAVEDPOS = pWindow->m_vRealPosition.vec();
+        const auto PSAVEDSIZE = pWindow->m_vRealSize.vec();
 
         // if the window is pseudo, update its size
-        pWindow->m_vPseudoSize = pWindow->m_vRealSize;
+        pWindow->m_vPseudoSize = pWindow->m_vRealSize.vec();
 
         onWindowCreated(pWindow);
 
-        pWindow->m_vRealPosition = PSAVEDPOS;
-        pWindow->m_vRealSize = PSAVEDSIZE;
+        pWindow->m_vRealPosition.setValue(PSAVEDPOS);
+        pWindow->m_vRealSize.setValue(PSAVEDSIZE);
     } else {
         onWindowRemoved(pWindow);
 
@@ -409,8 +412,8 @@ void CHyprDwindleLayout::onBeginDragWindow() {
     }
 
     m_vBeginDragXY = g_pInputManager->getMouseCoordsInternal();
-    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition;
-    m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize;
+    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition.vec();
+    m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize.vec();
     m_vLastDragXY = m_vBeginDragXY;
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
@@ -445,16 +448,13 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     if (g_pInputManager->dragButton == BTN_LEFT) {
-        DRAGGINGWINDOW->m_vRealPosition = m_vBeginDragPositionXY + DELTA;
-        DRAGGINGWINDOW->m_vEffectivePosition = DRAGGINGWINDOW->m_vRealPosition;
+        DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
     } else {
         if (DRAGGINGWINDOW->m_bIsFloating) {
-            DRAGGINGWINDOW->m_vRealSize = m_vBeginDragSizeXY + DELTA;
-            DRAGGINGWINDOW->m_vRealSize = Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.x, (double)20, (double)999999), std::clamp(DRAGGINGWINDOW->m_vRealSize.y, (double)20, (double)999999));
+            DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
+            DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().x, (double)20, (double)999999), std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().y, (double)20, (double)999999)));
 
-            DRAGGINGWINDOW->m_vEffectiveSize = DRAGGINGWINDOW->m_vRealSize;
-
-            g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize);
+            g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
         } else {
             // we need to adjust the splitratio
 
@@ -515,7 +515,7 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
     }
 
     // get middle point
-    Vector2D middle = DRAGGINGWINDOW->m_vRealPosition + DRAGGINGWINDOW->m_vRealSize / 2.f;
+    Vector2D middle = DRAGGINGWINDOW->m_vRealPosition.vec() + DRAGGINGWINDOW->m_vRealSize.vec() / 2.f;
 
     // and check its monitor
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
@@ -540,12 +540,12 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
 
     if (desiredGeometry.width <= 0 || desiredGeometry.height <= 0) {
         const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
-        pWindow->m_vEffectiveSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
-        pWindow->m_vEffectivePosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.x) / 2.f, PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.y) / 2.f);
+        pWindow->m_vRealSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
+        pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.vec().x) / 2.f, PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.vec().y) / 2.f);
 
     } else {
         // we respect the size.
-        pWindow->m_vEffectiveSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+        pWindow->m_vRealSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
 
         // check if it's on the correct monitor!
         Vector2D middlePoint = Vector2D(desiredGeometry.x, desiredGeometry.y) + Vector2D(desiredGeometry.width, desiredGeometry.height) / 2.f;
@@ -553,23 +553,23 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
                                                                                             // TODO: detect a popup in a more consistent way.
         if ((g_pCompositor->getMonitorFromVector(middlePoint) && g_pCompositor->getMonitorFromVector(middlePoint)->ID != pWindow->m_iMonitorID) || (desiredGeometry.x == 0 && desiredGeometry.y == 0)) {
             // if it's not, fall back to the center placement
-            pWindow->m_vEffectivePosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
+            pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
         } else {
             // if it is, we respect where it wants to put itself.
             // most of these are popups
-            pWindow->m_vEffectivePosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
+            pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
         }
     }
 
     if (!pWindow->m_bX11DoesntWantBorders) {
-        pWindow->m_vRealPosition = pWindow->m_vEffectivePosition + pWindow->m_vEffectiveSize / 2.f;
-        pWindow->m_vRealSize = Vector2D(5, 5);
+        pWindow->m_vRealPosition.setValue(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
+        pWindow->m_vRealSize.setValue(Vector2D(5, 5));
     } else {
-        pWindow->m_vRealPosition = pWindow->m_vEffectivePosition;
-        pWindow->m_vRealSize = pWindow->m_vEffectiveSize;
+        pWindow->m_vRealPosition.setValue(pWindow->m_vRealPosition.goalv());
+        pWindow->m_vRealSize.setValue(pWindow->m_vRealSize.goalv());
     }
 
-    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
     g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
 
     g_pCompositor->moveWindowToTop(pWindow);
@@ -599,25 +599,25 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
             applyNodeDataToWindow(PNODE);
         else {
             // get back its' dimensions from position and size
-            pWindow->m_vEffectivePosition = pWindow->m_vPosition;
-            pWindow->m_vEffectiveSize = pWindow->m_vSize;
+            pWindow->m_vRealPosition = pWindow->m_vPosition;
+            pWindow->m_vRealSize = pWindow->m_vSize;
 
-            g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
+            g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
         }
     } else {
         // if it now got fullscreen, make it fullscreen
 
         // save position and size if floating
         if (pWindow->m_bIsFloating) {
-            pWindow->m_vPosition = pWindow->m_vRealPosition;
-            pWindow->m_vSize = pWindow->m_vRealSize;
+            pWindow->m_vPosition = pWindow->m_vRealPosition.vec();
+            pWindow->m_vSize = pWindow->m_vRealSize.vec();
         }
 
         // apply new pos and size being monitors' box
-        pWindow->m_vEffectivePosition = PMONITOR->vecPosition;
-        pWindow->m_vEffectiveSize = PMONITOR->vecSize;
+        pWindow->m_vRealPosition = PMONITOR->vecPosition;
+        pWindow->m_vRealSize = PMONITOR->vecSize;
 
-        g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize);
+        g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
     }
 
     g_pCompositor->moveWindowToTop(pWindow);
@@ -650,14 +650,20 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
     if (PGROUPPARENT) {
         // if there is a parent, release it
-        for (auto& node : PGROUPPARENT->groupMembers)
+        const auto INACTIVEBORDERCOL = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
+        for (auto& node : PGROUPPARENT->groupMembers) {
             node->pGroupParent = nullptr;
+            node->pWindow->m_cRealBorderColor.setValueAndWarp(INACTIVEBORDERCOL); // no anim here because they pop in
+        }   
         
         PGROUPPARENT->groupMembers.clear();
 
         PGROUPPARENT->isGroup = false;
 
         PGROUPPARENT->recalcSizePosRecursive();
+
+        if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+            g_pCompositor->m_pLastWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("general:col.active_border"));
     } else {
         // if there is no parent, let's make one
 
@@ -675,8 +681,14 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
         PPARENT->groupMembers = allChildren;
 
-        for (auto& c : PPARENT->groupMembers) 
+        const auto GROUPINACTIVEBORDERCOL = CColor(g_pConfigManager->getInt("dwinle:col.group_border"));
+        for (auto& c : PPARENT->groupMembers) {
             c->pGroupParent = PPARENT;
+            c->pWindow->m_cRealBorderColor = GROUPINACTIVEBORDERCOL;
+
+            if (c->pWindow == g_pCompositor->m_pLastWindow)
+                c->pWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("dwindle:col.group_border_active"));
+        }
 
         PPARENT->groupMemberActive = 0;
 

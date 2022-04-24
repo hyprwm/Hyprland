@@ -158,6 +158,9 @@ void CCompositor::startCompositor() {
     Debug::log(LOG, "Creating the KeybindManager!");
     g_pKeybindManager = std::make_unique<CKeybindManager>();
 
+    Debug::log(LOG, "Creating the AnimationManager!");
+    g_pAnimationManager = std::make_unique<CAnimationManager>();
+
     Debug::log(LOG, "Creating the ConfigManager!");
     g_pConfigManager = std::make_unique<CConfigManager>();
 
@@ -178,9 +181,6 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the LayoutManager!");
     g_pLayoutManager = std::make_unique<CLayoutManager>();
-
-    Debug::log(LOG, "Creating the AnimationManager!");
-    g_pAnimationManager = std::make_unique<CAnimationManager>();
     //
     //
 
@@ -281,13 +281,13 @@ CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
-        wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+        wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
         if (wlr_box_contains_point(&box, pos.x, pos.y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden)
             return &(*w);
     }
 
     for (auto& w : m_lWindows) {
-        wlr_box box = {w.m_vRealPosition.x, w.m_vRealPosition.y, w.m_vRealSize.x, w.m_vRealSize.y};
+        wlr_box box = {w.m_vRealPosition.vec().x, w.m_vRealPosition.vec().y, w.m_vRealSize.vec().x, w.m_vRealSize.vec().y};
         if (wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsMapped && !w.m_bIsFloating && PMONITOR->activeWorkspace == w.m_iWorkspaceID && !w.m_bHidden)
             return &w;
     }
@@ -310,7 +310,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
-        wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+        wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
         if (w->m_bIsFloating && w->m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden)
             return &(*w);
     }
@@ -329,7 +329,7 @@ CWindow* CCompositor::windowFromCursor() {
 
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
-        wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+        wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
         if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID))
             return &(*w);
     }
@@ -345,7 +345,7 @@ CWindow* CCompositor::windowFromCursor() {
 
 CWindow* CCompositor::windowFloatingFromCursor() {
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
-        wlr_box box = {w->m_vRealPosition.x, w->m_vRealPosition.y, w->m_vRealSize.x, w->m_vRealSize.y};
+        wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
         if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden)
             return &(*w);
     }
@@ -364,7 +364,7 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
 
     double subx, suby;
 
-    const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.x, pos.y - pWindow->m_vRealPosition.y, &subx, &suby);
+    const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.vec().x, pos.y - pWindow->m_vRealPosition.vec().y, &subx, &suby);
 
     if (PFOUND) {
         sl.x = subx;
@@ -372,8 +372,8 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
         return PFOUND;
     }
 
-    sl.x = pos.x - pWindow->m_vRealPosition.x;
-    sl.y = pos.y - pWindow->m_vRealPosition.y;
+    sl.x = pos.x - pWindow->m_vRealPosition.vec().x;
+    sl.y = pos.y - pWindow->m_vRealPosition.vec().y;
 
     return PSURFACE->surface;
 }
@@ -403,22 +403,40 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     if (m_pLastWindow == pWindow && m_sSeat.seat->keyboard_state.focused_surface == pSurface)
         return;
 
-    if (windowValidMapped(m_pLastWindow) && m_pLastWindow->m_bIsX11) {
-        wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
-        wlr_seat_pointer_clear_focus(m_sSeat.seat);
+    const auto PLASTWINDOW = m_pLastWindow;
+    m_pLastWindow = pWindow;
+
+    // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
+    if (windowValidMapped(PLASTWINDOW)) {
+        const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(PLASTWINDOW);
+        if (RENDERDATA.isBorderColor)
+            PLASTWINDOW->m_cRealBorderColor = RENDERDATA.borderColor;
+        else
+            PLASTWINDOW->m_cRealBorderColor = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
+
+        if (PLASTWINDOW->m_bIsX11) {
+            wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
+            wlr_seat_pointer_clear_focus(m_sSeat.seat);
+        }
     }
+
+    m_pLastWindow = PLASTWINDOW;
 
     const auto PWINDOWSURFACE = pSurface ? pSurface : g_pXWaylandManager->getWindowSurface(pWindow);
 
     focusSurface(PWINDOWSURFACE, pWindow);
 
-    g_pXWaylandManager->activateWindow(pWindow, true);
+    g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
 
     // do pointer focus too                                     
-    const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition;
+    const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.goalv();
     wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, POINTERLOCAL.x, POINTERLOCAL.y);
 
-    m_pLastWindow = pWindow;
+    const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
+    if (RENDERDATA.isBorderColor)
+        pWindow->m_cRealBorderColor = RENDERDATA.borderColor;
+    else
+        pWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("general:col.active_border"));
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
@@ -570,7 +588,7 @@ void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
             // so there is no need to check here
             // if the window is XWayland or not.
             if (ISVISIBLE && (!PWORKSPACE->m_bHasFullscreenWindow || w.m_bIsFullscreen))
-                g_pXWaylandManager->moveXWaylandWindow(&w, w.m_vRealPosition);
+                g_pXWaylandManager->moveXWaylandWindow(&w, w.m_vRealPosition.vec());
             else 
                 g_pXWaylandManager->moveXWaylandWindow(&w, Vector2D(42069,42069));
         }
@@ -604,7 +622,7 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
 
 void CCompositor::cleanupWindows() {
     for (auto& w : m_lWindowsFadingOut) {
-        if (!w->m_bFadingOut || w->m_fAlpha == 0.f) {
+        if (!w->m_bFadingOut || w->m_fAlpha.fl() == 0.f) {
             if (!w->m_bReadyToDelete)
                 continue;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#define CONFIG_MANAGER_H
+
 #include <map>
 #include "../debug/Log.hpp"
 #include <unordered_map>
@@ -47,6 +49,8 @@ public:
     void                setInt(std::string, int);
     void                setString(std::string, std::string);
 
+    SConfigValue*       getConfigValuePtr(std::string);
+
     SMonitorRule        getMonitorRuleFor(std::string);
 
     std::vector<SWindowRule> getMatchingRules(CWindow*);
@@ -88,6 +92,7 @@ private:
     void                handleUnbind(const std::string&, const std::string&);
     void                handleWindowRule(const std::string&, const std::string&);
     void                handleDefaultWorkspace(const std::string&, const std::string&);
+    void                handleBezier(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

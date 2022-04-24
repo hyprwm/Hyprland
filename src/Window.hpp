@@ -3,6 +3,7 @@
 #include "defines.hpp"
 #include "events/Events.hpp"
 #include "helpers/SubsurfaceTree.hpp"
+#include "helpers/AnimatedVariable.hpp"
 
 struct SWindowSpecialRenderData {
     float alpha = 1.f;
@@ -10,7 +11,7 @@ struct SWindowSpecialRenderData {
 
 class CWindow {
 public:
-
+    CWindow();
     ~CWindow();
 
     DYNLISTENER(commitWindow);
@@ -31,13 +32,9 @@ public:
     Vector2D            m_vPosition = Vector2D(0,0);
     Vector2D            m_vSize = Vector2D(0,0);
 
-    // this is the position and size of the goal placement
-    Vector2D            m_vEffectivePosition = Vector2D(0,0);
-    Vector2D            m_vEffectiveSize = Vector2D(0,0);
-
     // this is the real position and size used to draw the thing
-    Vector2D            m_vRealPosition = Vector2D(0,0);
-    Vector2D            m_vRealSize = Vector2D(0,0);
+    CAnimatedVariable m_vRealPosition;
+    CAnimatedVariable m_vRealSize;
 
     // this is used for pseudotiling
     bool                m_bIsPseudotiled = false;
@@ -69,10 +66,10 @@ public:
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 
     // Animated border
-    CColor          m_cRealBorderColor = CColor(0,0,0,0);
+    CAnimatedVariable m_cRealBorderColor;
 
     // Fade in-out
-    float           m_fAlpha = 0.f;
+    CAnimatedVariable m_fAlpha;
     bool            m_bFadingOut = false;
     bool            m_bReadyToDelete = false;
 
@@ -84,7 +81,7 @@ public:
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
-        return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize && m_fAlpha == rhs.m_fAlpha && m_bFadingOut == rhs.m_bFadingOut;
+        return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize && m_bFadingOut == rhs.m_bFadingOut;
     }
 
 };

@@ -444,21 +444,27 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 }
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-
     if (!pWindow->m_bIsFloating) {
         // damage by size & pos
         // TODO TEMP: revise when added shadows/etc
 
-        wlr_box damageBox = {pWindow->m_vPosition.x - PMONITOR->vecPosition.x, pWindow->m_vPosition.y - PMONITOR->vecPosition.y, pWindow->m_vSize.x, pWindow->m_vSize.y};
-        for (auto& m : g_pCompositor->m_lMonitors)
-            wlr_output_damage_add_box(m.damage, &damageBox);
+        wlr_box damageBox = {pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, pWindow->m_vRealSize.vec().x, pWindow->m_vRealSize.vec().y};
+        for (auto& m : g_pCompositor->m_lMonitors) {
+            wlr_box fixedDamageBox = damageBox;
+            fixedDamageBox.x -= m.vecPosition.x;
+            fixedDamageBox.y -= m.vecPosition.y;
+            wlr_output_damage_add_box(m.damage, &fixedDamageBox);
+        }
     } else {
         // damage by real size & pos + border size * 2 (JIC)
         const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
         wlr_box damageBox = { pWindow->m_vRealPosition.vec().x - BORDERSIZE - 1, pWindow->m_vRealPosition.vec().y - BORDERSIZE - 1, pWindow->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, pWindow->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
-        for (auto& m : g_pCompositor->m_lMonitors)
-            wlr_output_damage_add_box(m.damage, &damageBox);
+        for (auto& m : g_pCompositor->m_lMonitors) {
+            wlr_box fixedDamageBox = damageBox;
+            fixedDamageBox.x -= m.vecPosition.x;
+            fixedDamageBox.y -= m.vecPosition.y;
+            wlr_output_damage_add_box(m.damage, &fixedDamageBox);
+        }
     }
 }
 
@@ -470,7 +476,8 @@ void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
 
 void CHyprRenderer::damageBox(wlr_box* pBox) {
     for (auto& m : g_pCompositor->m_lMonitors) {
-        wlr_output_damage_add_box(m.damage, pBox);
+        wlr_box damageBox = {pBox->x - m.vecPosition.x, pBox->y - m.vecPosition.y, pBox->width, pBox->height};
+        wlr_output_damage_add_box(m.damage, &damageBox);
     }
 }
 

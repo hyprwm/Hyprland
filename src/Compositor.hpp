@@ -111,6 +111,7 @@ public:
     void                    deactivateAllWLRWorkspaces();
     CWindow*                getNextWindowOnWorkspace(CWindow*);
     int                     getNextAvailableNamedWorkspace();
+    bool                    isPointOnAnyMonitor(const Vector2D&);
 
 private:
     void                    initAllSignals();

@@ -761,3 +761,12 @@ CWorkspace* CCompositor::getWorkspaceByString(const std::string& str) {
 
     return nullptr;
 }
+
+bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
+    for (auto& m : m_lMonitors) {
+        if (VECINRECT(point, m.vecPosition.x, m.vecPosition.y, m.vecSize.x + m.vecPosition.x, m.vecSize.y + m.vecPosition.y))
+            return true;
+    }
+
+    return false;
+}

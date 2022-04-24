@@ -85,13 +85,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords);
 
     // then windows
-    pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
-    if (!foundSurface && pFoundWindow) {
-        if (!pFoundWindow->m_bIsX11) {
-            foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
-        } else {
-            foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
-            surfacePos = pFoundWindow->m_vRealPosition.vec();
+    if (!foundSurface) {
+        pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+        if (pFoundWindow) {
+            if (!pFoundWindow->m_bIsX11) {
+                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+            } else {
+                foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+                surfacePos = pFoundWindow->m_vRealPosition.vec();
+            }
         }
     }
 

@@ -340,69 +340,29 @@ void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, 
     glBindTexture(tex.m_iTarget, 0);
 }
 
+// This probably isn't the fastest
+// but it works... well, I guess?
+//
+// Dual (or more) kawase blur
 void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
-    // TODO: optimize this, this is bad
-    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-            const auto RECT = RECTSARR[i];
-            scissor(&RECT);
-
-            renderTextureWithBlurInternal(tex, pBox, a, round);
-        }
-    }
-
-    scissor((wlr_box*)nullptr);
-}
-
-// This is probably not the quickest method possible,
-// feel free to contribute if you have a better method.
-// cheers.
-
-// 2-pass pseudo-gaussian blur
-void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box* pBox, float a, int round) {
-    RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
-
-    // if blur disabled, just render the texture
     if (g_pConfigManager->getInt("decoration:blur") == 0) {
-        renderTextureInternal(tex, pBox, a, round);
+        renderTexture(tex, pBox, a, round);
         return;
     }
 
-    // get transform
+    // TODO: only blur selected regions when damaged
+    // blur region + pad (blur size)
+
+    // basics
     const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
     float matrix[9];
     wlr_matrix_project_box(matrix, pBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
-    // bind the mirror FB and clear it.
+    // blur the primary FB into the mirrored one
     m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.bind();
     clear(CColor(0, 0, 0, 0));
-
-    // init stencil for blurring only behind da window
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-
-    glEnable(GL_STENCIL_TEST);
-
-    glStencilFunc(GL_ALWAYS, 1, -1);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    // render our window to the mirror FB while also writing to the stencil, discard opaque pixels
-    renderTextureInternal(tex, pBox, a, round, true);
-
-    // then we disable writing to the mask and ONLY accept writing within the stencil
-    glStencilFunc(GL_EQUAL, 1, -1);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    // now we bind back the primary FB
-    // the mirror FB now has only our window.
-    m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();
-
-    glEnable(GL_BLEND);
-
-    // now we make the blur by blurring the main framebuffer (it will only affect the stencil)
 
     // matrix
     float matrixFull[9];
@@ -415,23 +375,21 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box
 
     wlr_matrix_transpose(glMatrix, glMatrix);
 
-    const auto RADIUS = g_pConfigManager->getInt("decoration:blur_size") + 2;
+    const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
     const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
-    const auto PFRAMEBUFFER = &m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB;
 
-    auto drawWithShader = [&](CShader* pShader) {
+    auto drawWithShader = [&](CShader* pShader, Vector2D halfpixel) {
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(PFRAMEBUFFER->m_cTex.m_iTarget, PFRAMEBUFFER->m_cTex.m_iTexID);
 
         glTexParameteri(tex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         glUseProgram(pShader->program);
 
-        glUniform1f(glGetUniformLocation(pShader->program, "radius"), RADIUS);
-        glUniform2f(glGetUniformLocation(pShader->program, "resolution"), m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y);
+       // glUniform2f(glGetUniformLocation(pShader->program, "resolution"), m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y);
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
         glUniform1i(pShader->tex, 0);
-        glUniform1f(pShader->alpha, a / 255.f);
+        glUniform1f(glGetUniformLocation(pShader->program, "radius"), BLURSIZE * (a / 255.f) /* nice effect: less blur when less a */);
+        glUniform2f(glGetUniformLocation(pShader->program, "halfpixel"), halfpixel.x, halfpixel.y);
 
         glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
         glVertexAttribPointer(pShader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -445,20 +403,73 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(const CTexture& tex, wlr_box
         glDisableVertexAttribArray(pShader->texAttrib);
     };
 
-    for (int i = 0; i < BLURPASSES; ++i) {
-        drawWithShader(&m_shBLUR1);  // horizontal pass
-        drawWithShader(&m_shBLUR2);  // vertical pass
+    int sampleW = 0, sampleH = 0;
+
+    glBindTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTarget, m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTexID);
+
+    sampleW = m_RenderData.pMonitor->vecSize.x / 2.f;
+    sampleH = m_RenderData.pMonitor->vecSize.y / 2.f;
+
+    drawWithShader(&m_shBLUR1, Vector2D(0.5f / sampleW, 0.5f / sampleH));  // down
+
+    glBindTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex.m_iTarget, m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex.m_iTexID);
+
+    for (int i = 1; i < BLURPASSES; ++i) {
+        drawWithShader(&m_shBLUR1, Vector2D(0.5f / sampleW, 0.5f / sampleH));  // down
+    }
+
+    sampleW = m_RenderData.pMonitor->vecSize.x * 2.f;
+    sampleH = m_RenderData.pMonitor->vecSize.y * 2.f;
+
+    for (int i = BLURPASSES - 1; i >= 0; --i) {
+        drawWithShader(&m_shBLUR2, Vector2D(0.5f / sampleW, 0.5f / sampleH));  // up
     }
 
     glBindTexture(tex.m_iTarget, 0);
+
+    // ok, now we can make a stencil for our window to affect the draw of the copy
+    glClearStencil(0);
+    glClear(GL_STENCIL_BUFFER_BIT);
+
+    glEnable(GL_STENCIL_TEST);
+
+    glStencilFunc(GL_ALWAYS, 1, -1);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    renderTextureInternal(tex, pBox, a, round, true); // discard opaque
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+    glStencilFunc(GL_EQUAL, 1, -1);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    // Now we have a stencil and we need to scissor the updated regions
+
+    // bind the primary fb again for final drawing
+    m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+
+            // render our great blurred FB
+            renderTextureInternal(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex, &fullMonBox, 255.f); // 255.f because we adjusted blur strength to a
+
+            // render the window, but disable stencil for it
+            // because stencil has ignoreopaque
+            glDisable(GL_STENCIL_TEST);
+            glEnable(GL_BLEND);
+            renderTextureInternal(tex, pBox, a, round);
+            glEnable(GL_STENCIL_TEST);
+        }
+    }
 
     // disable the stencil
     glStencilMask(-1);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glDisable(GL_STENCIL_TEST);
 
-    // when the blur is done, let's render the window itself. We can't use mirror because it had discardOpaque
-    renderTextureInternal(tex, pBox, a, round);
+    scissor((wlr_box*)nullptr);
 }
 
 void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {

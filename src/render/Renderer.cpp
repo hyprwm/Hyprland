@@ -444,11 +444,13 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 }
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
     if (!pWindow->m_bIsFloating) {
         // damage by size & pos
         // TODO TEMP: revise when added shadows/etc
 
-        wlr_box damageBox = {pWindow->m_vPosition.x, pWindow->m_vPosition.y, pWindow->m_vSize.x, pWindow->m_vSize.y};
+        wlr_box damageBox = {pWindow->m_vPosition.x - PMONITOR->vecPosition.x, pWindow->m_vPosition.y - PMONITOR->vecPosition.y, pWindow->m_vSize.x, pWindow->m_vSize.y};
         for (auto& m : g_pCompositor->m_lMonitors)
             wlr_output_damage_add_box(m.damage, &damageBox);
     } else {
@@ -461,7 +463,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 }
 
 void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
-    wlr_box damageBox = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
+    wlr_box damageBox = {0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y};
     scaleBox(&damageBox, pMonitor->scale);
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
 }

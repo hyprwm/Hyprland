@@ -187,13 +187,13 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
     }
 
+    // Allow the renderer to catch the last frame.
+    g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
+
     if (PWINDOW == g_pCompositor->m_pLastWindow) {
         g_pCompositor->m_pLastWindow = nullptr;
         g_pCompositor->m_pLastFocus = nullptr;
     }
-
-    // Allow the renderer to catch the last frame.
-    g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
 
     PWINDOW->m_fAlpha = 0.f;
 

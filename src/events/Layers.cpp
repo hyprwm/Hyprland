@@ -80,6 +80,10 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
     if (PMONITOR) {
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+
+        // and damage
+        wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+        g_pHyprRenderer->damageBox(&geomFixed);
     }
 }
 
@@ -94,6 +98,9 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
+
+    if (!PMONITOR)
+        return;
 
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
@@ -110,6 +117,9 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
+
+    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+    g_pHyprRenderer->damageBox(&geomFixed);
 }
 
 void Events::listener_unmapLayerSurface(void* owner, void* data) {
@@ -122,6 +132,14 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
         g_pCompositor->m_pLastFocus = nullptr;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
+
+    if (!PMONITOR)
+        return;
+
+    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+    g_pHyprRenderer->damageBox(&geomFixed);
 }
 
 void Events::listener_commitLayerSurface(void* owner, void* data) {
@@ -134,6 +152,9 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     if (!PMONITOR)
         return;
+
+    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+    g_pHyprRenderer->damageBox(&geomFixed);
 
     // fix if it changed its mon
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
@@ -159,5 +180,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
-    g_pHyprRenderer->damageBox(&layersurface->geometry);
+    // i know i could reuse the last geomFixed box, but this way my stupid linter doesn't give me errors, and for some reason if i do = {...} it does, even though it compiles 
+    wlr_box geomFixedAfter = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+    g_pHyprRenderer->damageBox(&geomFixedAfter);
 }

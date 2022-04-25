@@ -112,6 +112,7 @@ public:
     CWindow*                getNextWindowOnWorkspace(CWindow*);
     int                     getNextAvailableNamedWorkspace();
     bool                    isPointOnAnyMonitor(const Vector2D&);
+    CWindow*                getConstraintWindow(SMouse*);
 
 private:
     void                    initAllSignals();

@@ -770,3 +770,21 @@ bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
 
     return false;
 }
+
+CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
+    if (!pMouse->currentConstraint)
+        return nullptr;
+
+    const auto PSURFACE = pMouse->currentConstraint->surface;
+
+    for (auto& w : m_lWindows) {
+        if (PSURFACE == g_pXWaylandManager->getWindowSurface(&w)) {
+            if (!w.m_bIsX11 && !windowValidMapped(&w))
+                continue;
+
+            return &w;
+        }
+    }
+
+    return nullptr;
+}

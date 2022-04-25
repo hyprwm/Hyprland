@@ -51,7 +51,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     Vector2D surfacePos = Vector2D(-1337, -1337);
     CWindow* pFoundWindow = nullptr;
 
-    // first, we check if the workspace doesnt have a fullscreen window
+    // overlay is above fullscreen
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords);
+
+    // then, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface) {
         pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
@@ -77,10 +81,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
     }
 
-    // then surfaces on top
-    if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords);
-    
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords);
 

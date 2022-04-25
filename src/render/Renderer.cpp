@@ -67,6 +67,12 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
         renderWindow(&w, pMonitor, time, true);
     }
 
+    // and the overlay layers
+    for (auto& ls : pMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+        SRenderData renderdata = {pMonitor->output, time, ls->geometry.x, ls->geometry.y};
+        wlr_surface_for_each_surface(ls->layerSurface->surface, renderSurface, &renderdata);
+    }
+
     renderDragIcon(pMonitor, time);
 
     // if correct monitor draw hyprerror

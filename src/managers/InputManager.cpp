@@ -140,12 +140,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     // constraints
     // All constraints TODO: multiple mice?
     if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
-        const auto CONSTRAINTWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_sSeat.mouse->currentConstraint->surface);
+        const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
-        if (g_pCompositor->m_pLastWindow == CONSTRAINTWINDOW) {
+        const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
+        const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
+
+        if (VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
             // todo: this is incorrect, but it will work in most cases for now
             // i made this cuz i wanna play minecraft lol
-            Vector2D deltaToMiddle = (CONSTRAINTWINDOW->m_vRealPosition.vec() + CONSTRAINTWINDOW->m_vRealSize.vec() / 2.f) - mouseCoords;
+            Vector2D deltaToMiddle = CONSTRAINTPOS + CONSTRAINTSIZE / 2.f - mouseCoords;
             wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToMiddle.x, deltaToMiddle.y);
         }
     }
@@ -371,7 +374,10 @@ void CInputManager::recheckConstraint(SMouse* pMouse) {
         pixman_region32_clear(&pMouse->confinedTo);
     }
 
-    Debug::log(LOG, "Constraint rechecked: %i, %i to %i, %i", PREGION->extents.x1, PREGION->extents.y1, PREGION->extents.x2, PREGION->extents.y2);
+    const auto PWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+    const auto PWINDOWNAME = PWINDOW ? PWINDOW->m_szTitle : "";
+
+    Debug::log(LOG, "Constraint rechecked: %i, %i to %i, %i for %x (window name: %s)", PREGION->extents.x1, PREGION->extents.y1, PREGION->extents.x2, PREGION->extents.y2, pMouse->currentConstraint->surface, PWINDOWNAME.c_str());
 }
 
 void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* constraint) {
@@ -390,10 +396,17 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
 
             if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
                 if (PWINDOW) {
-                    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
-                        constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.vec().x, constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.vec().y);
+                    if (PWINDOW->m_bIsX11) {
+                        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
+                                        constraint->current.cursor_hint.x + PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y + PWINDOW->m_vRealPosition.vec().y);
 
-                    wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
+                        wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
+                    } else {
+                        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
+                                        constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.vec().x, constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.vec().y);
+
+                        wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
+                    }
                 }
             }
         }

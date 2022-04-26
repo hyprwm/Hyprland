@@ -622,8 +622,11 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
 
 void CCompositor::cleanupWindows() {
     for (auto& w : m_lWindowsFadingOut) {
-        if (!w->m_bFadingOut || w->m_fAlpha.fl() == 0.f) {
-            if (!w->m_bReadyToDelete)
+
+        bool valid = windowValidMapped(w);
+        
+        if (!valid || !w->m_bFadingOut || w->m_fAlpha.fl() == 0.f) {
+            if (valid && !w->m_bReadyToDelete)
                 continue;
 
             g_pHyprOpenGL->m_mWindowFramebuffers[w].release();

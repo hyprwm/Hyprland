@@ -160,8 +160,33 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
     nextItem();
 
-    if (curitem == "disable" || curitem == "disabled") {
-        newrule.disabled = true;
+    if (curitem == "disable" || curitem == "disabled" || curitem == "addreserved") {
+        if (curitem == "disable" || curitem == "disabled")
+            newrule.disabled = true;
+        else if (curitem == "addreserved") {
+            nextItem();
+
+            int top = std::stoi(curitem);
+
+            nextItem();
+
+            int bottom = std::stoi(curitem);
+
+            nextItem();
+
+            int left = std::stoi(curitem);
+
+            nextItem();
+
+            int right = std::stoi(curitem);
+
+            m_mAdditionalReservedAreas[newrule.name] = {top, bottom, left, right};
+
+            return; // this is not a rule, ignore
+        } else {
+            Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");
+            return;
+        }
 
         // overwrite if exists
         for (auto& r : m_dMonitorRules) {
@@ -422,6 +447,7 @@ void CConfigManager::loadConfigLoadVars() {
     m_dWindowRules.clear();
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
+    m_mAdditionalReservedAreas.clear();
 
     const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");

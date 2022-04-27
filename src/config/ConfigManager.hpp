@@ -30,6 +30,13 @@ struct SMonitorRule {
     bool        disabled = false;
 };
 
+struct SMonitorAdditionalReservedArea {
+    int         top = 0;
+    int         bottom = 0;
+    int         left = 0;
+    int         right = 0;
+};
+
 struct SWindowRule {
     std::string szRule;
     std::string szValue;
@@ -54,6 +61,8 @@ public:
     SMonitorRule        getMonitorRuleFor(std::string);
 
     std::vector<SWindowRule> getMatchingRules(CWindow*);
+
+    std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
 
     // no-op when done.
     void                dispatchExecOnce();

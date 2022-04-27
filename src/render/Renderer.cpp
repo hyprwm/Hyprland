@@ -408,6 +408,10 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     PMONITOR->vecReservedTopLeft = Vector2D(usableArea.x, usableArea.y) - PMONITOR->vecPosition;
     PMONITOR->vecReservedBottomRight = PMONITOR->vecSize - Vector2D(usableArea.width, usableArea.height) - PMONITOR->vecReservedTopLeft;
 
+    const auto ENTRY = g_pConfigManager->m_mAdditionalReservedAreas[PMONITOR->szName];
+    PMONITOR->vecReservedTopLeft = PMONITOR->vecReservedTopLeft + Vector2D(ENTRY.left, ENTRY.top);
+    PMONITOR->vecReservedBottomRight = PMONITOR->vecReservedBottomRight + Vector2D(ENTRY.right, ENTRY.bottom);
+
     Debug::log(LOG, "Monitor %s layers arranged: reserved: %f %f %f %f", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y, PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 

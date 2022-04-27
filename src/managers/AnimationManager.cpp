@@ -47,6 +47,10 @@ void CAnimationManager::tick() {
             av->warp();
             g_pHyprRenderer->damageBox(&WLRBOXPREV);
             g_pHyprRenderer->damageWindow(PWINDOW);
+
+            // set size and pos if valid
+            if (g_pCompositor->windowValidMapped(PWINDOW))
+                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
             continue;
         }
 
@@ -120,6 +124,10 @@ void CAnimationManager::tick() {
         // damage the window
         g_pHyprRenderer->damageBox(&WLRBOXPREV);
         g_pHyprRenderer->damageWindow(PWINDOW);
+
+        // set size and pos if valid
+        if (g_pCompositor->windowValidMapped(PWINDOW))
+            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
     }
 }
 

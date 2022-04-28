@@ -37,13 +37,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
     if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
-        // update wlr workspaces when this happens
-        if (g_pCompositor->m_pLastMonitor)
-            wlr_ext_workspace_group_handle_v1_output_leave(g_pCompositor->m_pLastMonitor->pWLRWorkspaceGroupHandle, g_pCompositor->m_pLastMonitor->output);
-
         g_pCompositor->m_pLastMonitor = PMONITOR;
-
-        wlr_ext_workspace_group_handle_v1_output_enter(PMONITOR->pWLRWorkspaceGroupHandle, PMONITOR->output);
 
         // set active workspace and deactivate all other in wlr
         g_pCompositor->deactivateAllWLRWorkspaces(g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_pWlrHandle);

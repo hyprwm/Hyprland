@@ -625,7 +625,7 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
 void CCompositor::cleanupWindows() {
     for (auto& w : m_lWindowsFadingOut) {
 
-        bool valid = windowValidMapped(w);
+        bool valid = windowExists(w);
         
         if (!valid || !w->m_bFadingOut || w->m_fAlpha.fl() == 0.f) {
             if (valid && !w->m_bReadyToDelete)

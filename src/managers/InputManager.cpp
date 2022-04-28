@@ -43,7 +43,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         wlr_ext_workspace_group_handle_v1_output_enter(PMONITOR->pWLRWorkspaceGroupHandle, PMONITOR->output);
 
         // set active workspace and deactivate all other in wlr
-        g_pCompositor->deactivateAllWLRWorkspaces();
+        g_pCompositor->deactivateAllWLRWorkspaces(g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_pWlrHandle);
         wlr_ext_workspace_handle_v1_set_active(g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_pWlrHandle, true);
     }
 

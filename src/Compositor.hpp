@@ -108,7 +108,7 @@ public:
     void                    moveWindowToTop(CWindow*);
     void                    cleanupWindows();
     CWindow*                getWindowInDirection(CWindow*, char);
-    void                    deactivateAllWLRWorkspaces();
+    void                    deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude = nullptr);
     CWindow*                getNextWindowOnWorkspace(CWindow*);
     int                     getNextAvailableNamedWorkspace();
     bool                    isPointOnAnyMonitor(const Vector2D&);

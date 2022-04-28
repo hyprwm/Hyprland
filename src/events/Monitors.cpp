@@ -113,7 +113,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     PNEWMONITOR->scale = monitorRule.scale;
 
-    g_pCompositor->deactivateAllWLRWorkspaces();
+    g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
     wlr_ext_workspace_handle_v1_set_active(PNEWWORKSPACE->m_pWlrHandle, true);
 
     if (!pMostHzMonitor || monitorRule.refreshRate > pMostHzMonitor->refreshRate)

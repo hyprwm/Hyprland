@@ -214,7 +214,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(workspaceToChangeTo));
 
         // set active and deactivate all other in wlr
-        g_pCompositor->deactivateAllWLRWorkspaces();
+        g_pCompositor->deactivateAllWLRWorkspaces(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_pWlrHandle);
         wlr_ext_workspace_handle_v1_set_active(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_pWlrHandle, true);
 
         Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
@@ -247,7 +247,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACE);
 
     // set active and deactivate all other
-    g_pCompositor->deactivateAllWLRWorkspaces();
+    g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACE->m_pWlrHandle);
     wlr_ext_workspace_handle_v1_set_active(PWORKSPACE->m_pWlrHandle, true);
 
     // mark the monitor dirty

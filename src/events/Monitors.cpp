@@ -122,6 +122,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->m_pLastMonitor = PNEWMONITOR; 
+
+    // ready to process cuz we have a monitor
+    g_pCompositor->m_bReadyToProcess = true;
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {

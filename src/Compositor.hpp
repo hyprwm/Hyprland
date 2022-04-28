@@ -74,6 +74,8 @@ public:
     
     SSeat                   m_sSeat;
 
+    bool                    m_bReadyToProcess = false;
+
     // ------------------------------------------------- //
 
     SMonitor*               getMonitorFromID(const int&);

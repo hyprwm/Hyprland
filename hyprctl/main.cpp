@@ -122,6 +122,12 @@ void keywordRequest(int argc, char** argv) {
     request(rq);
 }
 
+void batchRequest(int argc, char** argv) {
+    std::string rq = "[[BATCH]]" + std::string(argv[2]);
+    
+    request(rq);
+}
+
 int main(int argc, char** argv) {
     int bflag = 0, sflag = 0, index, c;
 
@@ -138,6 +144,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "version")) request("version");
     else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
     else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);
+    else if (!strcmp(argv[1], "--batch")) batchRequest(argc, argv);
     else {
         printf(USAGE.c_str());
         return 1;

@@ -130,6 +130,63 @@ std::string dispatchKeyword(std::string in) {
     return retval;
 }
 
+std::string getReply(std::string);
+
+std::string dispatchBatch(std::string request) {
+    // split by ;
+
+    request = request.substr(9);
+    std::string curitem = "";
+    std::string reply = "";
+
+    auto nextItem = [&]() {
+        auto idx = request.find_first_of(';');
+
+        if (idx != std::string::npos) {
+            curitem = request.substr(0, idx);
+            request = request.substr(idx + 1);
+        } else {
+            curitem = request;
+            request = "";
+        }
+
+        curitem = removeBeginEndSpacesTabs(curitem);
+    };
+
+    nextItem();
+
+    while (curitem != "") {
+        reply += getReply(curitem);
+
+        nextItem();
+    }
+
+    return reply;
+}
+
+std::string getReply(std::string request) {
+    if (request == "monitors")
+        return monitorsRequest();
+    else if (request == "workspaces")
+        return workspacesRequest();
+    else if (request == "clients")
+        return clientsRequest();
+    else if (request == "activewindow")
+        return activeWindowRequest();
+    else if (request == "layers")
+        return layersRequest();
+    else if (request == "version")
+        return versionRequest();
+    else if (request.find("dispatch") == 0)
+        return dispatchRequest(request);
+    else if (request.find("keyword") == 0)
+        return dispatchKeyword(request);
+    else if (request.find("[[BATCH]]") == 0)
+        return dispatchBatch(request);
+
+    return "unknown request";
+}
+
 void HyprCtl::tickHyprCtl() {
     if (!requestMade)
         return;
@@ -137,22 +194,7 @@ void HyprCtl::tickHyprCtl() {
     std::string reply = "";
 
     try {
-        if (request == "monitors")
-            reply = monitorsRequest();
-        else if (request == "workspaces")
-            reply = workspacesRequest();
-        else if (request == "clients")
-            reply = clientsRequest();
-        else if (request == "activewindow")
-            reply = activeWindowRequest();
-        else if (request == "layers")
-            reply = layersRequest();
-        else if (request == "version")
-            reply = versionRequest();
-        else if (request.find("dispatch") == 0)
-            reply = dispatchRequest(request);
-        else if (request.find("keyword") == 0)
-            reply = dispatchKeyword(request);
+        reply = getReply(request);
     } catch (std::exception& e) {
         Debug::log(ERR, "Error in request: %s", e.what());
         reply = "Err: " + std::string(e.what());

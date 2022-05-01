@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
     int bflag = 0, sflag = 0, index, c;
 
     if (argc < 2) {
-        printf(USAGE.c_str());
+        printf("%s", USAGE.c_str());
         return 1;
     }
 
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);
     else if (!strcmp(argv[1], "--batch")) batchRequest(argc, argv);
     else {
-        printf(USAGE.c_str());
+        printf("%s", USAGE.c_str());
         return 1;
     }
 

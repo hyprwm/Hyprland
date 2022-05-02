@@ -480,8 +480,13 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         return;
     }
 
-    if (!pixman_region32_not_empty(m_RenderData.pDamage))
-        return;
+    // make a damage region for this window
+    pixman_region32_t damage;
+    pixman_region32_init(&damage);
+    pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height);  // clip it to the box
+
+    if (!pixman_region32_not_empty(&damage))
+        return; // if its empty, reject.
 
     // blur the main FB, it will be rendered onto the mirror
     const auto POUTFB = blurMainFramebufferWithDamage(a, pBox);
@@ -504,11 +509,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     glStencilFunc(GL_EQUAL, 1, -1);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    // make a damage region for this window
-    pixman_region32_t damage;
-    pixman_region32_init(&damage);
-    pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height);  // clip it to the box
 
     // stencil done. Render everything.
     wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};

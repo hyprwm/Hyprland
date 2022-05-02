@@ -386,8 +386,6 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 
     CFramebuffer* currentRenderToFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB;
 
-    Vector2D sample = m_RenderData.pMonitor->vecSize;
-
     // declare the draw func
     auto drawPass = [&](CShader* pShader, pixman_region32_t* pDamage) {
         if (currentRenderToFB == PMIRRORFB)
@@ -407,9 +405,9 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
         glUniform1f(glGetUniformLocation(pShader->program, "radius"), BLURSIZE * (a / 255.f));  // this makes the blursize change with a
         if (pShader == &m_shBLUR1)
-            glUniform2f(glGetUniformLocation(m_shBLUR1.program, "halfpixel"), 0.5f / (sample.x / 2.f), 0.5f / (sample.y / 2.f));
+            glUniform2f(glGetUniformLocation(m_shBLUR1.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecSize.y / 2.f));
         else
-            glUniform2f(glGetUniformLocation(m_shBLUR2.program, "halfpixel"), 0.5f / (sample.x * 2.f), 0.5f / (sample.y * 2.f));
+            glUniform2f(glGetUniformLocation(m_shBLUR2.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecSize.y * 2.f));
         glUniform1i(pShader->tex, 0);
 
         glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -453,15 +451,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 
     // and draw
     for (int i = 1; i < BLURPASSES; ++i) {
-        sample = m_RenderData.pMonitor->vecSize / (1 << i);
-
         wlr_region_scale(&tempDamage, &damage, 1.f / (1 << (i + 1)));
         drawPass(&m_shBLUR1, &tempDamage);  // down
     }
 
     for (int i = BLURPASSES - 1; i >= 0; --i) {
-        sample = m_RenderData.pMonitor->vecSize / (1 << i);
-
         wlr_region_scale(&tempDamage, &damage, 1.f / (1 << i)); // when upsampling we make the region twice as big
         drawPass(&m_shBLUR2, &tempDamage);  // up
     }

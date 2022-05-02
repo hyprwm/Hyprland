@@ -154,46 +154,49 @@ void main() {
 	gl_FragColor = vec4(texture2D(tex, v_texcoord).rgb, 1.0) * alpha;
 })#";
 
-// thanks to Loadus
-// https://www.shadertoy.com/view/Mtl3Rj
-// for this pseudo-gaussian blur!
 inline const std::string FRAGBLUR1 = R"#(
+#version 100
 precision mediump float;
-varying vec2 v_texcoord; // is in 0-1
+varying mediump vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
 uniform float radius;
-uniform vec2 resolution;
 uniform vec2 halfpixel;
 
 void main() {
-    vec4 sum = texture2D(tex, v_texcoord) * 4.0;
-    sum += texture2D(tex, v_texcoord - halfpixel.xy * radius);
-    sum += texture2D(tex, v_texcoord + halfpixel.xy * radius);
-    sum += texture2D(tex, v_texcoord + vec2(halfpixel.x, -halfpixel.y) * radius);
-    sum += texture2D(tex, v_texcoord - vec2(halfpixel.x, -halfpixel.y) * radius);
+	vec2 uv = v_texcoord * 2.0;
+
+    vec4 sum = texture2D(tex, uv) * 4.0;
+    sum += texture2D(tex, uv - halfpixel.xy * radius);
+    sum += texture2D(tex, uv + halfpixel.xy * radius);
+    sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
+    sum += texture2D(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
     gl_FragColor = sum / 8.0;
 }
 )#";
 
 inline const std::string FRAGBLUR2 = R"#(
+#version 100
 precision mediump float;
-varying vec2 v_texcoord; // is in 0-1
+varying mediump vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
 uniform float radius;
-uniform vec2 resolution;
 uniform vec2 halfpixel;
 
 void main() {
-    vec4 sum = texture2D(tex, v_texcoord + vec2(-halfpixel.x * 2.0, 0.0) * radius);
-    sum += texture2D(tex, v_texcoord + vec2(-halfpixel.x, halfpixel.y) * radius) * 2.0;
-    sum += texture2D(tex, v_texcoord + vec2(0.0, halfpixel.y * 2.0) * radius);
-    sum += texture2D(tex, v_texcoord + vec2(halfpixel.x, halfpixel.y) * radius) * 2.0;
-    sum += texture2D(tex, v_texcoord + vec2(halfpixel.x * 2.0, 0.0) * radius);
-    sum += texture2D(tex, v_texcoord + vec2(halfpixel.x, -halfpixel.y) * radius) * 2.0;
-    sum += texture2D(tex, v_texcoord + vec2(0.0, -halfpixel.y * 2.0) * radius);
-    sum += texture2D(tex, v_texcoord + vec2(-halfpixel.x, -halfpixel.y) * radius) * 2.0;
+	vec2 uv = v_texcoord / 2.0;
+
+    vec4 sum = texture2D(tex, uv + vec2(-halfpixel.x * 2.0, 0.0) * radius);
+    
+    sum += texture2D(tex, uv + vec2(-halfpixel.x, halfpixel.y) * radius) * 2.0;
+    sum += texture2D(tex, uv + vec2(0.0, halfpixel.y * 2.0) * radius);
+    sum += texture2D(tex, uv + vec2(halfpixel.x, halfpixel.y) * radius) * 2.0;
+    sum += texture2D(tex, uv + vec2(halfpixel.x * 2.0, 0.0) * radius);
+    sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius) * 2.0;
+    sum += texture2D(tex, uv + vec2(0.0, -halfpixel.y * 2.0) * radius);
+    sum += texture2D(tex, uv + vec2(-halfpixel.x, -halfpixel.y) * radius) * 2.0;
+
     gl_FragColor = sum / 12.0;
 }
 )#";

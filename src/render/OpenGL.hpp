@@ -23,6 +23,12 @@ inline const float fullVerts[] = {
     1, 1,  // bottom right
     0, 1,  // bottom left
 };
+inline const float fanVertsFull[] = {
+    -1.0f, -1.0f,
+    1.0f, -1.0f,
+    1.0f, 1.0f,
+    -1.0f, 1.0f
+};
 
 struct SCurrentRenderData {
     SMonitor*   pMonitor = nullptr;
@@ -34,6 +40,7 @@ struct SCurrentRenderData {
 struct SMonitorRenderData {
     CFramebuffer primaryFB;
     CFramebuffer mirrorFB;
+    CFramebuffer mirrorSwapFB;
 
     CTexture     stencilTex;
 };
@@ -59,6 +66,7 @@ public:
     void    clearWithTex();
     void    scissor(const wlr_box*);
     void    scissor(const pixman_box32*);
+    void    scissor(const int x, const int y, const int w, const int h);
 
     void    destroyMonitorResources(SMonitor*);
 
@@ -90,6 +98,9 @@ private:
     GLuint                  createProgram(const std::string&, const std::string&);
     GLuint                  compileShader(const GLuint&, std::string);
     void                    createBGTextureForMonitor(SMonitor*);
+
+    // returns the out FB, can be either Mirror or MirrorSwap
+    CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox);
 
     void                    renderTextureInternal(const CTexture&, wlr_box* pBox, float a, int round = 0, bool discardOpaque = false);
     void                    renderTextureWithBlurInternal(const CTexture&, wlr_box*, float a, int round = 0);

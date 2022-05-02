@@ -140,9 +140,11 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
 
         m_mMonitorRenderResources[pMonitor].primaryFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
         m_mMonitorRenderResources[pMonitor].mirrorFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
+        m_mMonitorRenderResources[pMonitor].mirrorSwapFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
 
         m_mMonitorRenderResources[pMonitor].primaryFB.alloc(pMonitor->vecSize.x * pMonitor->scale, pMonitor->vecSize.y * pMonitor->scale);
         m_mMonitorRenderResources[pMonitor].mirrorFB.alloc(pMonitor->vecSize.x * pMonitor->scale, pMonitor->vecSize.y * pMonitor->scale);
+        m_mMonitorRenderResources[pMonitor].mirrorSwapFB.alloc(pMonitor->vecSize.x * pMonitor->scale, pMonitor->vecSize.y * pMonitor->scale);
 
         createBGTextureForMonitor(pMonitor);
     }
@@ -210,6 +212,11 @@ void CHyprOpenGLImpl::scissor(const pixman_box32* pBox) {
 
     glScissor(pBox->x1, pBox->y1, pBox->x2 - pBox->x1, pBox->y2 - pBox->y1);
     glEnable(GL_SCISSOR_TEST);
+}
+
+void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h) {
+    wlr_box box = {x,y,w,h};
+    scissor(&box);
 }
 
 void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
@@ -344,6 +351,133 @@ void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, 
 // but it works... well, I guess?
 //
 // Dual (or more) kawase blur
+CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* pBox) {
+
+    glDisable(GL_BLEND);
+    glDisable(GL_STENCIL_TEST);
+
+    // get transforms for the full monitor
+    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
+    float matrix[9];
+    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    wlr_matrix_project_box(matrix, &MONITORBOX, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+    wlr_matrix_transpose(glMatrix, glMatrix);
+
+    // get the config settings
+    const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
+    const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
+
+    const auto BLURRADIUS = BLURSIZE * BLURPASSES;
+
+    // now, prep the damage, get the extended damage region
+    pixman_region32_t damage;
+    pixman_region32_init(&damage);
+    pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height); // clip it to the box
+    wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring
+    pixman_region32_intersect_rect(&damage, &damage, 0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y);  // clip it to the monitor
+
+    // helper
+    const auto PMIRRORFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB;
+    const auto PMIRRORSWAPFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorSwapFB;
+
+    CFramebuffer* currentRenderToFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB;
+
+    Vector2D sample = m_RenderData.pMonitor->vecSize;
+
+    // declare the draw func
+    auto drawPass = [&](CShader* pShader, pixman_region32_t* pDamage) {
+        if (currentRenderToFB == PMIRRORFB)
+            PMIRRORSWAPFB->bind();
+        else
+            PMIRRORFB->bind();
+
+        glActiveTexture(GL_TEXTURE0);
+
+        glBindTexture(currentRenderToFB->m_cTex.m_iTarget, currentRenderToFB->m_cTex.m_iTexID);
+
+        glTexParameteri(currentRenderToFB->m_cTex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        glUseProgram(pShader->program);
+
+        // prep two shaders
+        glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
+        glUniform1f(glGetUniformLocation(pShader->program, "radius"), BLURSIZE * (a / 255.f));  // this makes the blursize change with a
+        if (pShader == &m_shBLUR1)
+            glUniform2f(glGetUniformLocation(m_shBLUR1.program, "halfpixel"), 0.5f / (sample.x / 2.f), 0.5f / (sample.y / 2.f));
+        else
+            glUniform2f(glGetUniformLocation(m_shBLUR2.program, "halfpixel"), 0.5f / (sample.x * 2.f), 0.5f / (sample.y * 2.f));
+        glUniform1i(pShader->tex, 0);
+
+        glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+        glVertexAttribPointer(pShader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+        glEnableVertexAttribArray(pShader->posAttrib);
+        glEnableVertexAttribArray(pShader->texAttrib);
+
+        if (pixman_region32_not_empty(pDamage)) {
+            PIXMAN_DAMAGE_FOREACH(pDamage) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        glDisableVertexAttribArray(pShader->posAttrib);
+        glDisableVertexAttribArray(pShader->texAttrib);
+
+        if (currentRenderToFB != PMIRRORFB)
+            currentRenderToFB = PMIRRORFB;
+        else
+            currentRenderToFB = PMIRRORSWAPFB;
+    };
+
+    // draw the things.
+    // first draw is prim -> mirr
+    PMIRRORSWAPFB->bind();
+    clear(CColor(0, 0, 0, 0));
+    PMIRRORFB->bind();
+    clear(CColor(0, 0, 0, 0));
+    glBindTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTarget, m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTexID);
+
+    // damage region will be scaled, make a temp
+    pixman_region32_t tempDamage;
+    pixman_region32_init(&tempDamage);
+    wlr_region_scale(&tempDamage, &damage, 1.f / 2.f); // when DOWNscaling, we make the region twice as small because it's the TARGET
+
+    drawPass(&m_shBLUR1, &tempDamage);
+
+    // and draw
+    for (int i = 1; i < BLURPASSES; ++i) {
+        sample = m_RenderData.pMonitor->vecSize / (1 << i);
+
+        wlr_region_scale(&tempDamage, &damage, 1.f / (1 << (i + 1)));
+        drawPass(&m_shBLUR1, &tempDamage);  // down
+    }
+
+    for (int i = BLURPASSES - 1; i >= 0; --i) {
+        sample = m_RenderData.pMonitor->vecSize / (1 << i);
+
+        wlr_region_scale(&tempDamage, &damage, 1.f / (1 << i)); // when upsampling we make the region twice as big
+        drawPass(&m_shBLUR2, &tempDamage);  // up
+    }
+
+    // finish
+    pixman_region32_fini(&tempDamage);
+    pixman_region32_fini(&damage);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+    glBindTexture(PMIRRORFB->m_cTex.m_iTarget, 0);
+
+    return currentRenderToFB;
+}
+
 void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
@@ -352,82 +486,16 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         return;
     }
 
-    // TODO: only blur selected regions when damaged
-    // blur region + pad (blur size)
+    if (!pixman_region32_not_empty(m_RenderData.pDamage))
+        return;
 
-    // basics
-    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
-    float matrix[9];
-    wlr_matrix_project_box(matrix, pBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+    // blur the main FB, it will be rendered onto the mirror
+    const auto POUTFB = blurMainFramebufferWithDamage(a, pBox);
 
-    // blur the primary FB into the mirrored one
-    m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.bind();
-    clear(CColor(0, 0, 0, 0));
+    // bind primary
+    m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();
 
-    // matrix
-    float matrixFull[9];
-    wlr_box fullMonBox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
-    wlr_matrix_project_box(matrixFull, &fullMonBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
-
-    float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrixFull);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
-
-    wlr_matrix_transpose(glMatrix, glMatrix);
-
-    const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
-    const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
-
-    auto drawWithShader = [&](CShader* pShader, Vector2D halfpixel) {
-        glActiveTexture(GL_TEXTURE0);
-
-        glTexParameteri(tex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-        glUseProgram(pShader->program);
-
-       // glUniform2f(glGetUniformLocation(pShader->program, "resolution"), m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y);
-        glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
-        glUniform1i(pShader->tex, 0);
-        glUniform1f(glGetUniformLocation(pShader->program, "radius"), BLURSIZE * (a / 255.f) /* nice effect: less blur when less a */);
-        glUniform2f(glGetUniformLocation(pShader->program, "halfpixel"), halfpixel.x, halfpixel.y);
-
-        glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-        glVertexAttribPointer(pShader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-        glEnableVertexAttribArray(pShader->posAttrib);
-        glEnableVertexAttribArray(pShader->texAttrib);
-
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-        glDisableVertexAttribArray(pShader->posAttrib);
-        glDisableVertexAttribArray(pShader->texAttrib);
-    };
-
-    int sampleW = 0, sampleH = 0;
-
-    glBindTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTarget, m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTexID);
-
-    sampleW = m_RenderData.pMonitor->vecSize.x / 2.f;
-    sampleH = m_RenderData.pMonitor->vecSize.y / 2.f;
-
-    drawWithShader(&m_shBLUR1, Vector2D(0.5f / sampleW, 0.5f / sampleH));  // down
-
-    glBindTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex.m_iTarget, m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex.m_iTexID);
-
-    for (int i = 1; i < BLURPASSES; ++i) {
-        drawWithShader(&m_shBLUR1, Vector2D(0.5f / sampleW, 0.5f / sampleH));  // down
-    }
-
-    sampleW = m_RenderData.pMonitor->vecSize.x * 2.f;
-    sampleH = m_RenderData.pMonitor->vecSize.y * 2.f;
-
-    for (int i = BLURPASSES - 1; i >= 0; --i) {
-        drawWithShader(&m_shBLUR2, Vector2D(0.5f / sampleW, 0.5f / sampleH));  // up
-    }
-
-    glBindTexture(tex.m_iTarget, 0);
-
-    // ok, now we can make a stencil for our window to affect the draw of the copy
+    // make a stencil for rounded corners to work with blur
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
 
@@ -437,38 +505,48 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    renderTextureInternal(tex, pBox, a, round, true); // discard opaque
+    renderTextureInternal(tex, pBox, a, round, true);  // discard opaque
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_EQUAL, 1, -1);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    // Now we have a stencil and we need to scissor the updated regions
+    // make a damage region for this window
+    pixman_region32_t damage;
+    pixman_region32_init(&damage);
+    pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height);  // clip it to the box
 
-    // bind the primary fb again for final drawing
-    m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();
-    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-            const auto RECT = RECTSARR[i];
-            scissor(&RECT);
+    // stencil done. Render everything.
+    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    if (pixman_region32_not_empty(&damage)) {
+        {
+            PIXMAN_DAMAGE_FOREACH(&damage) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
 
-            // render our great blurred FB
-            renderTextureInternal(m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB.m_cTex, &fullMonBox, 255.f); // 255.f because we adjusted blur strength to a
+                // render our great blurred FB
+                renderTextureInternal(POUTFB->m_cTex, &MONITORBOX, 255.f);  // 255.f because we adjusted blur strength to a
+            }
+        }
+        
+        // render the window, but disable stencil for it
+        // because stencil has ignoreopaque
+        glDisable(GL_STENCIL_TEST);
 
-            // render the window, but disable stencil for it
-            // because stencil has ignoreopaque
-            glDisable(GL_STENCIL_TEST);
-            glEnable(GL_BLEND);
-            renderTextureInternal(tex, pBox, a, round);
-            glEnable(GL_STENCIL_TEST);
+        {
+            PIXMAN_DAMAGE_FOREACH(&damage) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                renderTextureInternal(tex, pBox, a, round);
+            }
         }
     }
 
-    // disable the stencil
+    // disable the stencil, finalize everything
     glStencilMask(-1);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glDisable(GL_STENCIL_TEST);
-
+    pixman_region32_fini(&damage);
     scissor((wlr_box*)nullptr);
 }
 

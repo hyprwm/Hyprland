@@ -556,9 +556,14 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
             // if it's not, fall back to the center placement
             pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
         } else {
-            // if it is, we respect where it wants to put itself.
+            // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups
-            pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
+
+            if (const auto POPENMON = g_pCompositor->getMonitorFromVector(middlePoint); POPENMON->ID != PMONITOR->ID) {
+                pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y) - POPENMON->vecPosition + PMONITOR->vecPosition;
+            } else {
+                pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
+            }
         }
     }
 

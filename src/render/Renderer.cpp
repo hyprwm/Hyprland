@@ -412,6 +412,10 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     PMONITOR->vecReservedTopLeft = PMONITOR->vecReservedTopLeft + Vector2D(ENTRY.left, ENTRY.top);
     PMONITOR->vecReservedBottomRight = PMONITOR->vecReservedBottomRight + Vector2D(ENTRY.right, ENTRY.bottom);
 
+    // damage the monitor if can
+    if (PMONITOR->damage)
+        damageMonitor(PMONITOR);
+
     Debug::log(LOG, "Monitor %s layers arranged: reserved: %f %f %f %f", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y, PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 

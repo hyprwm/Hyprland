@@ -631,7 +631,16 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, i
     glEnableVertexAttribArray(m_shQUAD.posAttrib);
 
     glLineWidth(thick);
-    glDrawArrays(GL_LINE_STRIP, 0, 41);
+    
+    // draw with damage
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+
+            glDrawArrays(GL_LINE_STRIP, 0, 41);
+        }
+    }
 
     glDisableVertexAttribArray(m_shQUAD.posAttrib);
 }

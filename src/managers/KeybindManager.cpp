@@ -367,6 +367,28 @@ void CKeybindManager::moveFocusTo(std::string args) {
 void CKeybindManager::moveActiveTo(std::string args) {
     char arg = args[0];
 
+    const auto LASTMONITOR = g_pCompositor->m_pLastMonitor;
+
+    if (args.find("mon:") == 0) {
+        // hack: save the active window
+        const auto PACTIVE = g_pCompositor->m_pLastWindow;
+
+        // monitor
+        focusMonitor(args.substr(4));
+
+        if (LASTMONITOR == g_pCompositor->m_pLastMonitor) {
+            Debug::log(ERR, "moveActiveTo: moving to an invalid mon");
+            return;
+        }
+
+        // restore the active
+        g_pCompositor->focusWindow(PACTIVE);
+
+        moveActiveToWorkspace(std::to_string(g_pCompositor->m_pLastMonitor->activeWorkspace));
+
+        return;
+    }
+
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move window in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return;

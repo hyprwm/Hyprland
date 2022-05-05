@@ -26,6 +26,7 @@ public:
     void                damageSurface(wlr_surface*, double, double);
     void                damageWindow(CWindow*);
     void                damageBox(wlr_box*);
+    void                damageBox(const int& x, const int& y, const int& w, const int& h);
     void                damageMonitor(SMonitor*);
     void                applyMonitorRule(SMonitor*, SMonitorRule*, bool force = false);
 

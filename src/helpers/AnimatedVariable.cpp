@@ -5,8 +5,9 @@ CAnimatedVariable::CAnimatedVariable() {
     ; // dummy var
 }
 
-void CAnimatedVariable::create(ANIMATEDVARTYPE type, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow) {
+void CAnimatedVariable::create(ANIMATEDVARTYPE type, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY policy) {
     m_eVarType = type;
+    m_eDamagePolicy = policy;
     m_pSpeed = speed;
     m_pEnabled = enabled;
     m_pWindow = pWindow;
@@ -17,8 +18,8 @@ void CAnimatedVariable::create(ANIMATEDVARTYPE type, float* speed, int64_t* enab
     m_bDummy = false;
 }
 
-void CAnimatedVariable::create(ANIMATEDVARTYPE type, std::any val, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow) {
-    create(type, speed, enabled, pBezier, pWindow);
+void CAnimatedVariable::create(ANIMATEDVARTYPE type, std::any val, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY policy) {
+    create(type, speed, enabled, pBezier, pWindow, policy);
 
     try {
         switch (type) {

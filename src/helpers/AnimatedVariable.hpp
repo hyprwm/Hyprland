@@ -10,14 +10,20 @@ enum ANIMATEDVARTYPE {
     AVARTYPE_COLOR
 };
 
+enum AVARDAMAGEPOLICY {
+    AVARDAMAGE_INVALID = -1,
+    AVARDAMAGE_ENTIRE = 0,
+    AVARDAMAGE_BORDER
+};
+
 class CAnimationManager;
 
 class CAnimatedVariable {
 public:
     CAnimatedVariable(); // dummy var
 
-    void create(ANIMATEDVARTYPE, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow);
-    void create(ANIMATEDVARTYPE, std::any val, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow);
+    void create(ANIMATEDVARTYPE, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY);
+    void create(ANIMATEDVARTYPE, std::any val, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY);
 
     ~CAnimatedVariable();
 
@@ -165,7 +171,8 @@ private:
 
     std::chrono::system_clock::time_point animationBegin;
 
-    ANIMATEDVARTYPE m_eVarType = AVARTYPE_INVALID;
+    ANIMATEDVARTYPE     m_eVarType      = AVARTYPE_INVALID;
+    AVARDAMAGEPOLICY    m_eDamagePolicy = AVARDAMAGE_INVALID;
 
     friend class CAnimationManager;
 };

@@ -223,6 +223,9 @@ void CKeybindManager::changeworkspace(std::string args) {
         // focus
         g_pInputManager->refocus();
 
+        // mark the monitor dirty
+        g_pHyprRenderer->damageMonitor(PMONITOR);
+
         return;
     }
 

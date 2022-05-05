@@ -31,6 +31,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:col.inactive_border"].intValue = 0xff444444;
 
     configValues["debug:int"].intValue = 0;
+    configValues["debug:log_damage"].intValue = 0;
 
     configValues["decoration:rounding"].intValue = 1;
     configValues["decoration:blur"].intValue = 1;

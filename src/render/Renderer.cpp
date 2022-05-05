@@ -455,6 +455,9 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
     }
 
     pixman_region32_fini(&damageBox);
+
+    if (g_pConfigManager->getInt("debug:log_damage"))
+        Debug::log(LOG, "Damage: Surface (extents): xy: %d, %d wh: %d, %d", damageBox.extents.x1, damageBox.extents.y1, damageBox.extents.x2 - damageBox.extents.x1, damageBox.extents.y2 - damageBox.extents.y1);
 }
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {
@@ -469,6 +472,9 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             fixedDamageBox.y -= m.vecPosition.y;
             wlr_output_damage_add_box(m.damage, &fixedDamageBox);
         }
+
+        if (g_pConfigManager->getInt("debug:log_damage"))
+            Debug::log(LOG, "Damage: Window floated (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
     } else {
         // damage by real size & pos + border size * 2 (JIC)
         const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
@@ -479,6 +485,9 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             fixedDamageBox.y -= m.vecPosition.y;
             wlr_output_damage_add_box(m.damage, &fixedDamageBox);
         }
+
+        if (g_pConfigManager->getInt("debug:log_damage"))
+            Debug::log(LOG, "Damage: Window tiled (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
     }
 }
 
@@ -486,6 +495,9 @@ void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
     wlr_box damageBox = {0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y};
     scaleBox(&damageBox, pMonitor->scale);
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
+
+    if (g_pConfigManager->getInt("debug:log_damage"))
+        Debug::log(LOG, "Damage: Monitor %s", pMonitor->szName.c_str());
 }
 
 void CHyprRenderer::damageBox(wlr_box* pBox) {
@@ -493,6 +505,9 @@ void CHyprRenderer::damageBox(wlr_box* pBox) {
         wlr_box damageBox = {pBox->x - m.vecPosition.x, pBox->y - m.vecPosition.y, pBox->width, pBox->height};
         wlr_output_damage_add_box(m.damage, &damageBox);
     }
+
+    if (g_pConfigManager->getInt("debug:log_damage"))
+        Debug::log(LOG, "Damage: Box: xy: %d, %d wh: %d, %d", pBox->x, pBox->y, pBox->width, pBox->height);
 }
 
 void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {

@@ -131,19 +131,20 @@ void CAnimationManager::tick() {
             case AVARDAMAGE_BORDER: {
                 // damage only the border.
                 const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size") + 1; // +1 for padding and shit
+                const auto ROUNDINGSIZE = g_pConfigManager->getInt("decoration:rounding") + 1;
 
                 // damage for old box
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width, BORDERSIZE);               // top
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE, WLRBOXPREV.height);              // left
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x + WLRBOXPREV.width, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE, WLRBOXPREV.height);        // right
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x, WLRBOXPREV.y + WLRBOXPREV.height, WLRBOXPREV.width, BORDERSIZE);                     // bottom
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width, BORDERSIZE + ROUNDINGSIZE);                              // top
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXPREV.height);                             // left
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x + WLRBOXPREV.width - ROUNDINGSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXPREV.height);        // right
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x, WLRBOXPREV.y + WLRBOXPREV.height - ROUNDINGSIZE, WLRBOXPREV.width, BORDERSIZE + ROUNDINGSIZE);                     // bottom
 
                 // damage for new box
                 const wlr_box WLRBOXNEW = {PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y};
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, WLRBOXNEW.width, BORDERSIZE);                  // top
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE, WLRBOXNEW.height);                 // left
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE, WLRBOXNEW.height);            // right
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x, WLRBOXNEW.y + WLRBOXNEW.height, WLRBOXNEW.width, BORDERSIZE);                         // bottom
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, WLRBOXNEW.width, BORDERSIZE + ROUNDINGSIZE);                                 // top
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height);                                // left
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width - ROUNDINGSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height);            // right
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x, WLRBOXNEW.y + WLRBOXNEW.height - ROUNDINGSIZE, WLRBOXNEW.width, BORDERSIZE + ROUNDINGSIZE);                         // bottom
 
                 break;
             }

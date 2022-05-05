@@ -43,6 +43,7 @@ private:
     static void         toggleGroup(std::string);
     static void         changeGroupActive(std::string);
     static void         alterSplitRatio(std::string);
+    static void         focusMonitor(std::string);
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

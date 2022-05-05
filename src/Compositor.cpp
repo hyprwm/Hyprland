@@ -793,3 +793,64 @@ CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
 
     return nullptr;
 }
+
+SMonitor* CCompositor::getMonitorInDirection(const char& dir) {
+    const auto POSA = m_pLastMonitor->vecPosition;
+    const auto SIZEA = m_pLastMonitor->vecSize;
+
+    auto longestIntersect = -1;
+    SMonitor* longestIntersectMonitor = nullptr;
+
+    for (auto& m : m_lMonitors) {
+        if (&m == m_pLastMonitor)
+            continue;
+
+        const auto POSB = m.vecPosition;
+        const auto SIZEB = m.vecSize;
+        switch (dir) {
+            case 'l':
+                if (STICKS(POSA.x, POSB.x + SIZEB.x)) {
+                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    if (INTERSECTLEN > longestIntersect) {
+                        longestIntersect = INTERSECTLEN;
+                        longestIntersectMonitor = &m;
+                    }
+                }
+                break;
+            case 'r':
+                if (STICKS(POSA.x + SIZEA.x, POSB.x)) {
+                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    if (INTERSECTLEN > longestIntersect) {
+                        longestIntersect = INTERSECTLEN;
+                        longestIntersectMonitor = &m;
+                    }
+                }
+                break;
+            case 't':
+            case 'u':
+                if (STICKS(POSA.y, POSB.y + SIZEB.y)) {
+                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    if (INTERSECTLEN > longestIntersect) {
+                        longestIntersect = INTERSECTLEN;
+                        longestIntersectMonitor = &m;
+                    }
+                }
+                break;
+            case 'b':
+            case 'd':
+                if (STICKS(POSA.y + SIZEA.y, POSB.y)) {
+                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    if (INTERSECTLEN > longestIntersect) {
+                        longestIntersect = INTERSECTLEN;
+                        longestIntersectMonitor = &m;
+                    }
+                }
+                break;
+        }
+    }
+
+    if (longestIntersect != -1)
+        return longestIntersectMonitor;
+
+    return nullptr;
+}

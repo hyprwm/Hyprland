@@ -15,6 +15,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglegroup"]       = toggleGroup;
     m_mDispatchers["changegroupactive"] = changeGroupActive;
     m_mDispatchers["splitratio"]        = alterSplitRatio;
+    m_mDispatchers["focusmonitor"]      = focusMonitor;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -328,7 +329,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 void CKeybindManager::moveFocusTo(std::string args) {
     char arg = args[0];
 
-    if (arg != 'l' && arg != 'r' && arg != 'u' && arg != 'd' && arg != 't' && arg != 'b') {
+    if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move focus in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return;
     }
@@ -366,7 +367,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 void CKeybindManager::moveActiveTo(std::string args) {
     char arg = args[0];
 
-    if (arg != 'l' && arg != 'r' && arg != 'u' && arg != 'd' && arg != 't' && arg != 'b') {
+    if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move window in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return;
     }
@@ -415,4 +416,41 @@ void CKeybindManager::alterSplitRatio(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->alterSplitRatioBy(PLASTWINDOW, splitratio);
+}
+
+void CKeybindManager::focusMonitor(std::string arg) {
+    if (isNumber(arg)) {
+        // change by ID
+        int monID = -1;
+        try {
+            monID = std::stoi(arg);
+        } catch (std::exception& e) {
+            // shouldn't happen but jic
+            Debug::log(ERR, "Error in focusMonitor: invalid num");
+        }
+
+        if (monID > -1 && monID < (int)g_pCompositor->m_lMonitors.size()) {
+            changeworkspace(std::to_string(g_pCompositor->getMonitorFromID(monID)->activeWorkspace));
+        } else {
+            Debug::log(ERR, "Error in focusMonitor: invalid arg 1");
+        }
+    } else {
+
+        if (isDirection(arg)) {
+            const auto PMONITOR = g_pCompositor->getMonitorInDirection(arg[0]);
+            if (PMONITOR) {
+                changeworkspace(std::to_string(PMONITOR->activeWorkspace));
+                return;
+            }
+        } else {
+            for (auto& m : g_pCompositor->m_lMonitors) {
+                if (m.szName == arg) {
+                    changeworkspace(std::to_string(m.activeWorkspace));
+                    return;
+                }
+            }
+        }        
+
+        Debug::log(ERR, "Error in focusMonitor: no such monitor");
+    }
 }

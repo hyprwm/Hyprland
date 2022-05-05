@@ -1,5 +1,6 @@
 #include "MiscFunctions.hpp"
 #include "../defines.hpp"
+#include <algorithm>
 
 void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
     ASSERT(pSignal);
@@ -111,4 +112,12 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
     }
 
     return result;
+}
+
+bool isNumber(const std::string& str) {
+    return std::ranges::all_of(str.begin(), str.end(), [](char c) { return isdigit(c) != 0; });
+}
+
+bool isDirection(const std::string& arg) {
+    return arg == "l" || arg == "r" || arg == "u" || arg == "d" || arg == "t" || arg == "b";
 }

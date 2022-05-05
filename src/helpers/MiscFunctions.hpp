@@ -7,5 +7,7 @@ void wlr_signal_emit_safe(struct wl_signal *signal, void *data);
 std::string getFormat(const char *fmt, ...); // Basically Debug::log to a string
 void scaleBox(wlr_box*, float);
 std::string removeBeginEndSpacesTabs(std::string);
+bool isNumber(const std::string&);
+bool isDirection(const std::string&);
 
 float getPlusMinusKeywordResult(std::string in, float relative);

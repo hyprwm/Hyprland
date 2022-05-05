@@ -115,6 +115,7 @@ public:
     int                     getNextAvailableNamedWorkspace();
     bool                    isPointOnAnyMonitor(const Vector2D&);
     CWindow*                getConstraintWindow(SMouse*);
+    SMonitor*               getMonitorInDirection(const char&);
 
 private:
     void                    initAllSignals();

@@ -180,7 +180,6 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
-    // i know i could reuse the last geomFixed box, but this way my stupid linter doesn't give me errors, and for some reason if i do = {...} it does, even though it compiles 
-    wlr_box geomFixedAfter = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
-    g_pHyprRenderer->damageBox(&geomFixedAfter);
+    // TODO: optimize this. This does NOT need to be here but it prevents some issues with full DT.
+    g_pHyprRenderer->damageMonitor(PMONITOR);
 }

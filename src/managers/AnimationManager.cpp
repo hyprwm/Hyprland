@@ -121,9 +121,38 @@ void CAnimationManager::tick() {
             }
         }
 
-        // damage the window
-        g_pHyprRenderer->damageBox(&WLRBOXPREV);
-        g_pHyprRenderer->damageWindow(PWINDOW);
+        // damage the window with the damage policy
+        switch (av->m_eDamagePolicy) {
+            case AVARDAMAGE_ENTIRE: {
+                g_pHyprRenderer->damageBox(&WLRBOXPREV);
+                g_pHyprRenderer->damageWindow(PWINDOW);
+                break;
+            }
+            case AVARDAMAGE_BORDER: {
+                // damage only the border.
+                const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size") + 1; // +1 for padding and shit
+
+                // damage for old box
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width, BORDERSIZE);               // top
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE, WLRBOXPREV.height);              // left
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x + WLRBOXPREV.width, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE, WLRBOXPREV.height);        // right
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x, WLRBOXPREV.y + WLRBOXPREV.height, WLRBOXPREV.width, BORDERSIZE);                     // bottom
+
+                // damage for new box
+                const wlr_box WLRBOXNEW = {PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y};
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, WLRBOXNEW.width, BORDERSIZE);                  // top
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE, WLRBOXNEW.height);                 // left
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE, WLRBOXNEW.height);            // right
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x, WLRBOXNEW.y + WLRBOXNEW.height, WLRBOXNEW.width, BORDERSIZE);                         // bottom
+
+                break;
+            }
+            default: {
+                Debug::log(ERR, "av has damage policy INVALID???");
+                break;
+            }
+        }
+        
 
         // set size and pos if valid
         if (g_pCompositor->windowValidMapped(PWINDOW))

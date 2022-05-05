@@ -495,6 +495,11 @@ void CHyprRenderer::damageBox(wlr_box* pBox) {
     }
 }
 
+void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {
+    wlr_box box = {x, y, w, h};
+    damageBox(&box);
+}
+
 void CHyprRenderer::renderDragIcon(SMonitor* pMonitor, timespec* time) {
     if (!(g_pInputManager->m_sDrag.dragIcon && g_pInputManager->m_sDrag.iconMapped && g_pInputManager->m_sDrag.dragIcon->surface))
         return;

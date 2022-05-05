@@ -154,8 +154,8 @@ void CAnimationManager::tick() {
         }
         
 
-        // set size and pos if valid
-        if (g_pCompositor->windowValidMapped(PWINDOW))
+        // set size and pos if valid, but only if damage policy entire (dont if border for example)
+        if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE)
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
     }
 }

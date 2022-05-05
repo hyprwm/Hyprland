@@ -41,8 +41,6 @@ This project is still in its early development, expect bugs.
 
 Once you get it working though, it's pretty stable.<br/>
 
-**Important:** Hyprland's full damage tracking is buggy. Pairing that with the fact that blur is heavy, expect high GPU usage. (up to really a lot!) Appropriate fixes and improvements are amongst the most important now on the bucket list, but they might take some time to arrive. ***You have been warned!***
-
 
 ### Help Wanted
 

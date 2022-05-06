@@ -64,6 +64,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:kb_model"].strValue = STRVAL_EMPTY;
     configValues["input:repeat_rate"].intValue = 25;
     configValues["input:repeat_delay"].intValue = 600;
+    configValues["input:natural_scroll"].intValue = 0;
     configValues["input:touchpad:disable_while_typing"].intValue = 1;
 
     configValues["input:follow_mouse"].intValue = 1;

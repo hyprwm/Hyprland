@@ -75,6 +75,8 @@ public:
     GLint  m_iCurrentOutputFb = 0;
     GLint  m_iWLROutputFb = 0;
 
+    pixman_region32_t m_rOriginalDamageRegion; // used for storing the pre-expanded region
+
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
     std::unordered_map<SMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
     std::unordered_map<SMonitor*, CTexture> m_mMonitorBGTextures;

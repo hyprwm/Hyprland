@@ -371,7 +371,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
     const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
 
-    const auto BLURRADIUS = BLURSIZE * BLURPASSES;
+    const auto BLURRADIUS = BLURSIZE * BLURPASSES * BLURPASSES;
 
     // now, prep the damage, get the extended damage region
     pixman_region32_t damage;

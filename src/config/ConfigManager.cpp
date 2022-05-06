@@ -58,10 +58,10 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:fadein"].intValue = 1;
 
     configValues["input:kb_layout"].strValue = "en";
-    configValues["input:kb_variant"].strValue = "";
-    configValues["input:kb_options"].strValue = "";
-    configValues["input:kb_rules"].strValue = "";
-    configValues["input:kb_model"].strValue = "";
+    configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
+    configValues["input:kb_options"].strValue = STRVAL_EMPTY;
+    configValues["input:kb_rules"].strValue = STRVAL_EMPTY;
+    configValues["input:kb_model"].strValue = STRVAL_EMPTY;
     configValues["input:repeat_rate"].intValue = 25;
     configValues["input:repeat_delay"].intValue = 600;
     configValues["input:touchpad:disable_while_typing"].intValue = 1;
@@ -579,7 +579,12 @@ float CConfigManager::getFloat(std::string v) {
 }
 
 std::string CConfigManager::getString(std::string v) {
-    return getConfigValueSafe(v).strValue;
+    const auto VAL = getConfigValueSafe(v).strValue;
+
+    if (VAL == STRVAL_EMPTY)
+        return "";
+
+    return VAL;
 }
 
 void CConfigManager::setInt(std::string v, int val) {

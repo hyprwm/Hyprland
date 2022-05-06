@@ -14,6 +14,8 @@
 
 #include "defaultConfig.hpp"
 
+#define STRVAL_EMPTY "[[EMPTY]]"
+
 struct SConfigValue {
     int64_t intValue = -1;
     float floatValue = -1;

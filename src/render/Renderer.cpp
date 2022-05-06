@@ -196,19 +196,30 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
     bool noError = true;
 
     wl_list_for_each(head, &config->heads, link) {
+
+        std::string commandForCfg = "";
         const auto OUTPUT = head->state.output;
 
-        wlr_output_enable(OUTPUT, head->state.enabled);
-        if (head->state.enabled) {
-            if (head->state.mode)
-                wlr_output_set_mode(OUTPUT, head->state.mode);
-            else
-                wlr_output_set_custom_mode(OUTPUT, head->state.custom_mode.width, head->state.custom_mode.height, head->state.custom_mode.refresh);
+        commandForCfg += std::string(OUTPUT->name) + ",";
 
-            wlr_output_layout_move(g_pCompositor->m_sWLROutputLayout, OUTPUT, head->state.x, head->state.y);
-            wlr_output_set_transform(OUTPUT, head->state.transform);
-            wlr_output_set_scale(OUTPUT, head->state.scale);
+        if (!head->state.enabled) {
+            commandForCfg += "disabled";
+            if (!test)
+                g_pConfigManager->parseKeyword("monitor", commandForCfg, true);
+            continue;
         }
+
+        wlr_output_enable(OUTPUT, head->state.enabled);
+
+        if (head->state.mode)
+            commandForCfg += std::to_string(head->state.mode->width) + "x" + std::to_string(head->state.mode->height) + "@" + std::to_string(head->state.mode->refresh / 1000.f) + ",";
+        else
+            commandForCfg += std::to_string(head->state.custom_mode.width) + "x" + std::to_string(head->state.custom_mode.height) + "@" + std::to_string(head->state.custom_mode.refresh / 1000.f) + ",";
+
+        commandForCfg += std::to_string(head->state.x) + "x" + std::to_string(head->state.y) + "," + std::to_string(head->state.scale);
+
+        if (!test)
+            g_pConfigManager->parseKeyword("monitor", commandForCfg, true);
 
         noError = wlr_output_test(OUTPUT);
 
@@ -216,12 +227,8 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
             break;
     }
 
-    wl_list_for_each(head, &config->heads, link) {
-        if (noError && !test)
-            wlr_output_commit(head->state.output);
-        else
-            wlr_output_rollback(head->state.output);
-    }
+    if (!test)
+        g_pConfigManager->m_bWantsMonitorReload = true;  // for monitor keywords
 
     if (noError)
         wlr_output_configuration_v1_send_succeeded(config);

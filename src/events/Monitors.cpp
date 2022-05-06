@@ -183,6 +183,23 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (DTMODE == DAMAGE_TRACKING_NONE || DTMODE == DAMAGE_TRACKING_MONITOR) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+
+        pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
+    } else {
+        // if we use blur we need to expand the damage for proper blurring
+        if (g_pConfigManager->getInt("decoration:blur") == 1) {
+            // TODO: can this be optimized?
+            const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
+            const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
+
+            const auto BLURRADIUS = BLURSIZE * BLURPASSES * 2; // is this 2? I don't know but 2 works.
+
+            pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
+
+            // now, prep the damage, get the extended damage region
+            wlr_region_expand(&damage, &damage, BLURRADIUS);                                                   // expand for proper blurring
+        }
+        
     }
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?

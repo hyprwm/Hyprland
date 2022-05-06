@@ -78,6 +78,10 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
     // End shaders
 
+    pixman_region32_init(&m_rOriginalDamageRegion);
+
+    // End
+
     RASSERT(eglMakeCurrent(g_pCompositor->m_sWLREGL->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
     // Done!
@@ -153,15 +157,14 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
     m_mMonitorRenderResources[pMonitor].primaryFB.bind();
 
     m_RenderData.pDamage = pDamage;
-
-    // clear
-    clear(CColor(11, 11, 11, 255));
 }
 
 void CHyprOpenGLImpl::end() {
     // end the render, copy the data to the WLR framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
     wlr_box windowBox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+
+    pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
 
     clear(CColor(11, 11, 11, 255));
 
@@ -293,6 +296,7 @@ void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, 
     CShader* shader = nullptr;
 
     glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     switch (tex.m_iType) {
         case TEXTURE_RGBA:
@@ -371,15 +375,6 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
     const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
 
-    const auto BLURRADIUS = BLURSIZE * BLURPASSES * BLURPASSES;
-
-    // now, prep the damage, get the extended damage region
-    pixman_region32_t damage;
-    pixman_region32_init(&damage);
-    pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height); // clip it to the box
-    wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring
-    pixman_region32_intersect_rect(&damage, &damage, 0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y);  // clip it to the monitor
-
     // helper
     const auto PMIRRORFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB;
     const auto PMIRRORSWAPFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorSwapFB;
@@ -436,33 +431,29 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 
     // draw the things.
     // first draw is prim -> mirr
-    PMIRRORSWAPFB->bind();
-    clear(CColor(0, 0, 0, 0));
     PMIRRORFB->bind();
-    clear(CColor(0, 0, 0, 0));
     glBindTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTarget, m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTexID);
 
     // damage region will be scaled, make a temp
     pixman_region32_t tempDamage;
     pixman_region32_init(&tempDamage);
-    wlr_region_scale(&tempDamage, &damage, 1.f / 2.f); // when DOWNscaling, we make the region twice as small because it's the TARGET
+    wlr_region_scale(&tempDamage, m_RenderData.pDamage, 1.f / 2.f); // when DOWNscaling, we make the region twice as small because it's the TARGET
 
     drawPass(&m_shBLUR1, &tempDamage);
 
     // and draw
     for (int i = 1; i < BLURPASSES; ++i) {
-        wlr_region_scale(&tempDamage, &damage, 1.f / (1 << (i + 1)));
+        wlr_region_scale(&tempDamage, m_RenderData.pDamage, 1.f / (1 << (i + 1)));
         drawPass(&m_shBLUR1, &tempDamage);  // down
     }
 
     for (int i = BLURPASSES - 1; i >= 0; --i) {
-        wlr_region_scale(&tempDamage, &damage, 1.f / (1 << i)); // when upsampling we make the region twice as big
+        wlr_region_scale(&tempDamage, m_RenderData.pDamage, 1.f / (1 << i));  // when upsampling we make the region twice as big
         drawPass(&m_shBLUR2, &tempDamage);  // up
     }
 
     // finish
     pixman_region32_fini(&tempDamage);
-    pixman_region32_fini(&damage);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -495,6 +486,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();
 
     // make a stencil for rounded corners to work with blur
+    scissor((wlr_box*)nullptr);  // allow the entire window and stencil to render
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
 

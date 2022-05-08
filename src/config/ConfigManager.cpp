@@ -555,9 +555,10 @@ void CConfigManager::tick() {
     }
 
     // check if we need to reload cfg
-    if (fileStat.st_mtime != lastModifyTime) {
+    if (fileStat.st_mtime != lastModifyTime || m_bForceReload) {
         lastModifyTime = fileStat.st_mtime;
-
+        m_bForceReload = false;
+        
         loadConfigLoadVars();
     }
 }

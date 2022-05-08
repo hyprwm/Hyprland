@@ -130,6 +130,12 @@ std::string dispatchKeyword(std::string in) {
     return retval;
 }
 
+std::string reloadRequest() {
+    g_pConfigManager->m_bForceReload = true;
+
+    return "ok";
+}
+
 std::string getReply(std::string);
 
 std::string dispatchBatch(std::string request) {
@@ -177,6 +183,8 @@ std::string getReply(std::string request) {
         return layersRequest();
     else if (request == "version")
         return versionRequest();
+    else if (request == "reload")
+        return reloadRequest();
     else if (request.find("dispatch") == 0)
         return dispatchRequest(request);
     else if (request.find("keyword") == 0)

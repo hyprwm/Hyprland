@@ -15,7 +15,7 @@
         version = "git";
       in rec {
         packages = {
-          hyprland = pkgs.callPackage ./nix-build {
+          hyprland = pkgs.callPackage self {
             inherit version;
             src = self;
             inherit (nixpkgs-wayland.packages.${system}) wlroots;

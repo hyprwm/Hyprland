@@ -214,19 +214,30 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     // if cursor over first child, make it first, etc
     const auto SIDEBYSIDE = NEWPARENT->size.x / NEWPARENT->size.y > 1.f;
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-    if ((SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y, NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y + NEWPARENT->size.y))
-       || (!SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y, NEWPARENT->position.x + NEWPARENT->size.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f))) {
 
-        // we are hovering over the first node, make PNODE first.
-        NEWPARENT->children[1] = OPENINGON;
-        NEWPARENT->children[0] = PNODE;
+    const auto FORCESPLIT = g_pConfigManager->getInt("dwindle:force_split");
+
+    if (FORCESPLIT == 0) {
+        if ((SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y, NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y + NEWPARENT->size.y))
+        || (!SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y, NEWPARENT->position.x + NEWPARENT->size.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f))) {
+            // we are hovering over the first node, make PNODE first.
+            NEWPARENT->children[1] = OPENINGON;
+            NEWPARENT->children[0] = PNODE;
+        } else {
+            // we are hovering over the second node, make PNODE second.
+            NEWPARENT->children[0] = OPENINGON;
+            NEWPARENT->children[1] = PNODE;
+        }
     } else {
-        // we are hovering over the second node, make PNODE second.
-        NEWPARENT->children[0] = OPENINGON;
-        NEWPARENT->children[1] = PNODE;
+        if (FORCESPLIT == 1) {
+            NEWPARENT->children[1] = OPENINGON;
+            NEWPARENT->children[0] = PNODE;
+        } else {
+            NEWPARENT->children[0] = OPENINGON;
+            NEWPARENT->children[1] = PNODE;
+        }
     }
     
-
     // and update the previous parent if it exists
     if (OPENINGON->pParent) {
         if (OPENINGON->pParent->children[0] == OPENINGON) {

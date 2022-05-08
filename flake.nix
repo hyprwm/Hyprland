@@ -10,13 +10,10 @@
 
   outputs = { self, nixpkgs, utils, nixpkgs-wayland }:
     utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        version = "git";
+      let pkgs = nixpkgs.legacyPackages.${system};
       in rec {
         packages = {
           hyprland = pkgs.callPackage self {
-            inherit version;
             src = self;
             inherit (nixpkgs-wayland.packages.${system}) wlroots;
           };

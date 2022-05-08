@@ -1,13 +1,13 @@
-{ lib, stdenv, fetchFromGitHub, src, version, pkg-config, cmake, ninja, libdrm
-, libinput, libxcb, libxkbcommon, mesa, mount, pango, wayland, wayland-protocols
-, wayland-scanner, wlroots, xcbutilwm, xwayland, xwaylandSupport ? true }:
+{ lib, stdenv, fetchFromGitHub, src, pkg-config, cmake, ninja, libdrm, libinput
+, libxcb, libxkbcommon, mesa, mount, pango, wayland, wayland-protocols
+, wayland-scanner, wlroots, xcbutilwm, xwayland, enableXWayland ? true }:
 
-stdenv.mkDerivation {
+stdenv.mkDerivation rec {
   pname = "hyprland";
-  inherit src version;
+  version = "git";
+  inherit src;
 
-  nativeBuildInputs = [ cmake ninja pkg-config wayland ]
-    ++ lib.optional xwaylandSupport xwayland;
+  nativeBuildInputs = [ cmake ninja pkg-config wayland xwayland ];
 
   buildInputs = [
     libdrm
@@ -19,14 +19,34 @@ stdenv.mkDerivation {
     wayland-protocols
     wayland-scanner
     wlroots
+    (wlroots.override { inherit enableXWayland; })
     xcbutilwm
   ];
 
-  dontBuild = true;
-  dontInstall = true;
+  cmakeFlags = [ "-DCMAKE_BUILD_TYPE=Release" ]
+    ++ lib.optional (!enableXWayland) "-DNO_XWAYLAND=true";
 
-  postPatch = ''
-    make install PREFIX=$out
+  prePatch = ''
+    make config
+  '';
+
+  postBuild = ''
+    pushd ../hyprctl
+    make all
+    popd
+  '';
+
+  installPhase = ''
+    cd ../
+    mkdir -p $out/share/wayland-sessions
+    cp ./example/hyprland.desktop $out/share/wayland-sessions/
+    mkdir -p $out/bin
+    cp ./build/Hyprland $out/bin
+    cp ./hyprctl/hyprctl $out/bin
+    mkdir -p $out/share/hyprland
+    cp ./assets/wall_2K.png $out/share/hyprland
+    cp ./assets/wall_4K.png $out/share/hyprland
+    cp ./assets/wall_8K.png $out/share/hyprland
   '';
 
   meta = with lib; {

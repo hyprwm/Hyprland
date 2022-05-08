@@ -7,7 +7,8 @@ stdenv.mkDerivation rec {
   version = "git";
   inherit src;
 
-  nativeBuildInputs = [ cmake ninja pkg-config wayland xwayland ];
+  nativeBuildInputs = [ cmake ninja pkg-config wayland ]
+    ++ lib.optional enableXWayland xwayland;
 
   buildInputs = [
     libdrm

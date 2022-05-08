@@ -25,10 +25,7 @@ stdenv.mkDerivation {
   dontBuild = true;
   dontInstall = true;
 
-  patches = [ ./fix-makefile.diff ];
-
   postPatch = ''
-    mkdir -p $out/bin
     make install PREFIX=$out
   '';
 

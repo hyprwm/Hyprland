@@ -99,6 +99,7 @@ install:
 	make all
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions/
+	mkdir -p ${PREFIX}/bin
 	cp ./build/Hyprland ${PREFIX}/bin
 	cp ./hyprctl/hyprctl ${PREFIX}/bin
 	mkdir -p ${PREFIX}/share/hyprland

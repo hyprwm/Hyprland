@@ -97,19 +97,20 @@ all:
 
 install:
 	make all
-	mkdir -p /usr/share/wayland-sessions
-	cp ./example/hyprland.desktop /usr/share/wayland-sessions/
-	cp ./build/Hyprland /usr/bin
-	cp ./hyprctl/hyprctl /usr/bin
-	mkdir -p /usr/share/hyprland
-	cp ./assets/wall_2K.png /usr/share/hyprland
-	cp ./assets/wall_4K.png /usr/share/hyprland
-	cp ./assets/wall_8K.png /usr/share/hyprland
+	mkdir -p ${PREFIX}/share/wayland-sessions
+	cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions/
+	mkdir -p ${PREFIX}/bin
+	cp ./build/Hyprland ${PREFIX}/bin
+	cp ./hyprctl/hyprctl ${PREFIX}/bin
+	mkdir -p ${PREFIX}/share/hyprland
+	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
+	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
+	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
 uninstall:
-	rm -f /usr/share/wayland-sessions/hyprland.desktop
-	rm -f /usr/bin/Hyprland
-	rm -f /usr/bin/hyprctl
-	rm -rf /usr/share/hyprland
+	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
+	rm -f ${PREFIX}/bin/Hyprland
+	rm -f ${PREFIX}/bin/hyprctl
+	rm -rf ${PREFIX}/share/hyprland
 
 config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o

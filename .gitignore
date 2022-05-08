@@ -10,6 +10,7 @@ CTestTestfile.cmake
 _deps
 
 build/
+result
 /.vscode/
 
 *.o

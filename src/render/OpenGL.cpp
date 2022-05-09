@@ -355,7 +355,7 @@ void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, 
 // but it works... well, I guess?
 //
 // Dual (or more) kawase blur
-CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* pBox) {
+CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* originalDamage) {
 
     glDisable(GL_BLEND);
     glDisable(GL_STENCIL_TEST);
@@ -374,6 +374,12 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     // get the config settings
     const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
     const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
+
+    // prep damage
+    pixman_region32_t damage;
+    pixman_region32_init(&damage);
+    pixman_region32_copy(&damage, originalDamage);
+    wlr_region_expand(&damage, &damage, BLURPASSES * BLURSIZE * 2);
 
     // helper
     const auto PMIRRORFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB;
@@ -437,23 +443,24 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     // damage region will be scaled, make a temp
     pixman_region32_t tempDamage;
     pixman_region32_init(&tempDamage);
-    wlr_region_scale(&tempDamage, m_RenderData.pDamage, 1.f / 2.f); // when DOWNscaling, we make the region twice as small because it's the TARGET
+    wlr_region_scale(&tempDamage, &damage, 1.f / 2.f); // when DOWNscaling, we make the region twice as small because it's the TARGET
 
     drawPass(&m_shBLUR1, &tempDamage);
 
     // and draw
     for (int i = 1; i < BLURPASSES; ++i) {
-        wlr_region_scale(&tempDamage, m_RenderData.pDamage, 1.f / (1 << (i + 1)));
+        wlr_region_scale(&tempDamage, &damage, 1.f / (1 << (i + 1)));
         drawPass(&m_shBLUR1, &tempDamage);  // down
     }
 
     for (int i = BLURPASSES - 1; i >= 0; --i) {
-        wlr_region_scale(&tempDamage, m_RenderData.pDamage, 1.f / (1 << i));  // when upsampling we make the region twice as big
+        wlr_region_scale(&tempDamage, &damage, 1.f / (1 << i));  // when upsampling we make the region twice as big
         drawPass(&m_shBLUR2, &tempDamage);  // up
     }
 
     // finish
     pixman_region32_fini(&tempDamage);
+    pixman_region32_fini(&damage);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -463,7 +470,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     return currentRenderToFB;
 }
 
-void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, int round) {
+void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     if (g_pConfigManager->getInt("decoration:blur") == 0) {
@@ -476,11 +483,19 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     pixman_region32_init(&damage);
     pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height);  // clip it to the box
 
+    // amazing hack: the surface has an opaque region!
+    pixman_region32_t inverseOpaque;
+    pixman_region32_init(&inverseOpaque);
+    pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    pixman_region32_inverse(&inverseOpaque, &pSurface->current.opaque, &monbox);
+    pixman_region32_intersect(&damage, &damage, &inverseOpaque);
+    pixman_region32_fini(&inverseOpaque);
+
     if (!pixman_region32_not_empty(&damage))
         return; // if its empty, reject.
 
     // blur the main FB, it will be rendered onto the mirror
-    const auto POUTFB = blurMainFramebufferWithDamage(a, pBox);
+    const auto POUTFB = blurMainFramebufferWithDamage(a, pBox, &damage);
 
     // bind primary
     m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();

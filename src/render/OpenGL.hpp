@@ -56,7 +56,7 @@ public:
     void    renderRect(wlr_box*, const CColor&);
     void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
     void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0);
-    void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, int round = 0);
+    void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0);
     void    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 
     void    makeWindowSnapshot(CWindow*);
@@ -102,7 +102,7 @@ private:
     void                    createBGTextureForMonitor(SMonitor*);
 
     // returns the out FB, can be either Mirror or MirrorSwap
-    CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox);
+    CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
 
     void                    renderTextureInternal(const CTexture&, wlr_box* pBox, float a, int round = 0, bool discardOpaque = false);
     void                    renderTextureWithBlurInternal(const CTexture&, wlr_box*, float a, int round = 0);

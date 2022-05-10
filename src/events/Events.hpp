@@ -102,4 +102,7 @@ namespace Events {
     // Inhibit
     LISTENER(InhibitActivate);
     LISTENER(InhibitDeactivate);
+
+    // Deco XDG
+    LISTENER(NewXDGDeco);
 };

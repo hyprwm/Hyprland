@@ -486,16 +486,23 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     // amazing hack: the surface has an opaque region!
     pixman_region32_t inverseOpaque;
     pixman_region32_init(&inverseOpaque);
-    pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
-    pixman_region32_inverse(&inverseOpaque, &pSurface->current.opaque, &monbox);
-    pixman_region32_intersect(&damage, &damage, &inverseOpaque);
-    pixman_region32_fini(&inverseOpaque);
+    if (a == 255.f) {
+        pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+        pixman_region32_copy(&inverseOpaque, &pSurface->current.opaque);
+        pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
+        pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &monbox);
+        pixman_region32_intersect(&inverseOpaque, &damage, &inverseOpaque);
+    } else {
+        pixman_region32_copy(&inverseOpaque, &damage);
+    }
 
     if (!pixman_region32_not_empty(&damage))
         return; // if its empty, reject.
 
     // blur the main FB, it will be rendered onto the mirror
-    const auto POUTFB = blurMainFramebufferWithDamage(a, pBox, &damage);
+    const auto POUTFB = blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
+
+    pixman_region32_fini(&inverseOpaque);
 
     // bind primary
     m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();

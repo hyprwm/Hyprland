@@ -53,6 +53,8 @@ public:
     wlr_linux_dmabuf_v1*             m_sWLRDmabuf;
     wlr_pointer_constraints_v1*      m_sWLRPointerConstraints;
     wlr_relative_pointer_manager_v1* m_sWLRRelPointerMgr;
+    wlr_server_decoration_manager*   m_sWLRServerDecoMgr;
+    wlr_xdg_decoration_manager_v1*   m_sWLRXDGDecoMgr;
     // ------------------------------------------------- //
 
 

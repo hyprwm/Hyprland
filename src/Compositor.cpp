@@ -83,8 +83,9 @@ CCompositor::CCompositor() {
 
     m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay);
 
-    wlr_server_decoration_manager_set_default_mode(wlr_server_decoration_manager_create(m_sWLDisplay), WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
-    wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
+    m_sWLRServerDecoMgr = wlr_server_decoration_manager_create(m_sWLDisplay);
+    m_sWLRXDGDecoMgr = wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
+    wlr_server_decoration_manager_set_default_mode(m_sWLRServerDecoMgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
 
     wlr_xdg_output_manager_v1_create(m_sWLDisplay, m_sWLROutputLayout);
     m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
@@ -130,6 +131,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRInhibitMgr->events.activate, &Events::listen_InhibitActivate, m_sWLRInhibitMgr, "InhibitMgr");
     addWLSignal(&m_sWLRInhibitMgr->events.deactivate, &Events::listen_InhibitDeactivate, m_sWLRInhibitMgr, "InhibitMgr");
     addWLSignal(&m_sWLRPointerConstraints->events.new_constraint, &Events::listen_newConstraint, m_sWLRPointerConstraints, "PointerConstraints");
+    addWLSignal(&m_sWLRXDGDecoMgr->events.new_toplevel_decoration, &Events::listen_NewXDGDeco, m_sWLRXDGDecoMgr, "XDGDecoMgr");
 
     signal(SIGINT, handleCritSignal);
     signal(SIGTERM, handleCritSignal);
@@ -363,7 +365,7 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     RASSERT(!pWindow->m_bIsX11, "Cannot call vectorWindowToSurface on an X11 window!");
 
     const auto PSURFACE = pWindow->m_uSurface.xdg;
-
+    
     double subx, suby;
 
     const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.vec().x, pos.y - pWindow->m_vRealPosition.vec().y, &subx, &suby);

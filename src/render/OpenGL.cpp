@@ -262,23 +262,15 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
     renderTexture(CTexture(tex), pBox, alpha, round);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    // TODO: optimize this, this is bad
-    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-            const auto RECT = RECTSARR[i];
-            scissor(&RECT);
-
-            renderTextureInternal(tex, pBox, alpha, round);
-        }
-    }
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardOpaque) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -343,7 +335,13 @@ void CHyprOpenGLImpl::renderTextureInternal(const CTexture& tex, wlr_box* pBox, 
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
 
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
 
     glDisableVertexAttribArray(shader->posAttrib);
     glDisableVertexAttribArray(shader->texAttrib);
@@ -518,7 +516,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    renderTextureInternal(tex, pBox, a, round, true);  // discard opaque
+    renderTexture(tex, pBox, a, round, true);  // discard opaque
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_EQUAL, 1, -1);
@@ -527,27 +525,14 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     // stencil done. Render everything.
     wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
     if (pixman_region32_not_empty(&damage)) {
-        {
-            PIXMAN_DAMAGE_FOREACH(&damage) {
-                const auto RECT = RECTSARR[i];
-                scissor(&RECT);
-
-                // render our great blurred FB
-                renderTextureInternal(POUTFB->m_cTex, &MONITORBOX, 255.f);  // 255.f because we adjusted blur strength to a
-            }
-        }
+        // render our great blurred FB
+        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, 255.f, &damage);  // 255.f because we adjusted blur strength to a
         
         // render the window, but disable stencil for it
         // because stencil has ignoreopaque
         glDisable(GL_STENCIL_TEST);
 
-        {
-            PIXMAN_DAMAGE_FOREACH(&damage) {
-                const auto RECT = RECTSARR[i];
-                scissor(&RECT);
-                renderTextureInternal(tex, pBox, a, round);
-            }
-        }
+        renderTextureInternalWithDamage(tex, pBox, a, &damage, round);
     }
 
     // disable the stencil, finalize everything
@@ -731,7 +716,12 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
-    renderTextureInternal(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), 0);
+    pixman_region32_t fakeDamage;
+    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+
+    renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), &fakeDamage, 0);
+
+    pixman_region32_fini(&fakeDamage);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {

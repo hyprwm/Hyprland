@@ -46,6 +46,9 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
         return;
 
     if (pWindow->m_bIsX11) {
+        if (pWindow->m_uSurface.xwayland->minimized)
+            wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
+
         wlr_xwayland_surface_activate(pWindow->m_uSurface.xwayland, activate);
         wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
     }

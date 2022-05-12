@@ -52,7 +52,7 @@ Try it out and report bugs / suggestions!
 - Easily expandable and readable codebase
 - Config reloaded instantly upon saving
 - Bezier-curve window animations
-- Custom bezier curves
+- Custom bezier curve based animations
 - Workspaces protocol support
 - Dual Kawase blur
 - Window fade in / out

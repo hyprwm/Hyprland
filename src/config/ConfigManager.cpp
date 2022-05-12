@@ -57,6 +57,9 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:fadein_curve"].strValue = "[[f]]";
     configValues["animations:fadein_speed"].floatValue = 0.f;
     configValues["animations:fadein"].intValue = 1;
+    configValues["animations:workspaces_curve"].strValue = "[[f]]";
+    configValues["animations:workspaces_speed"].floatValue = 0.f;
+    configValues["animations:workspaces"].intValue = 1;
 
     configValues["input:kb_layout"].strValue = "en";
     configValues["input:kb_variant"].strValue = STRVAL_EMPTY;

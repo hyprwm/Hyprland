@@ -202,6 +202,14 @@ void CKeybindManager::changeworkspace(std::string args) {
 
             // and fix on the new workspace
             g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
+
+            // here and only here begin anim. we don't want to anim visible workspaces on other monitors.
+            // start anim on old workspace
+            g_pCompositor->getWorkspaceByID(OLDWORKSPACEID)->m_vRenderOffset = Vector2D(-PMONITOR->vecSize.x, 0);
+
+            // start anim on new workspace
+            g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_vRenderOffset.setValueAndWarp(Vector2D(PMONITOR->vecSize.x, 0));
+            g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_vRenderOffset = Vector2D(0, 0);
         }
            
 
@@ -234,8 +242,15 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     const auto OLDWORKSPACE = PMONITOR->activeWorkspace;
 
+    // start anim on old workspace
+    g_pCompositor->getWorkspaceByID(OLDWORKSPACE)->m_vRenderOffset = Vector2D(-PMONITOR->vecSize.x, 0);
+
     g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID);
     const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
+
+    // start anim on new workspace
+    PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(PMONITOR->vecSize.x, 0));
+    PWORKSPACE->m_vRenderOffset = Vector2D(0, 0);
 
     // We are required to set the name here immediately
     wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, workspaceName.c_str());

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "AnimatedVariable.hpp"
 
 class CWorkspace {
 public:
@@ -17,4 +18,7 @@ public:
     wlr_ext_workspace_handle_v1* m_pWlrHandle = nullptr;
 
     wl_array        m_wlrCoordinateArr;
+
+    // for animations
+    CAnimatedVariable m_vRenderOffset;
 };

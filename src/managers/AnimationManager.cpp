@@ -40,17 +40,27 @@ void CAnimationManager::tick() {
 
         // window stuff
         const auto PWINDOW = (CWindow*)av->m_pWindow;
-        wlr_box WLRBOXPREV = {PWINDOW->m_vRealPosition.vec().x - BORDERSIZE - 1, PWINDOW->m_vRealPosition.vec().y - BORDERSIZE - 1, PWINDOW->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, PWINDOW->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
-
+        const auto PWORKSPACE = (CWorkspace*)av->m_pWorkspace;
+        wlr_box WLRBOXPREV = {0,0,0,0};
+        if (PWINDOW) {
+            WLRBOXPREV = {(int)PWINDOW->m_vRealPosition.vec().x - BORDERSIZE - 1, (int)PWINDOW->m_vRealPosition.vec().y - BORDERSIZE - 1, (int)PWINDOW->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, (int)PWINDOW->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
+        } else if (PWORKSPACE) {
+            const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+            WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};
+        }
+        
         // check if it's disabled, if so, warp
         if (av->m_pEnabled == 0 || animationsDisabled) {
             av->warp();
             g_pHyprRenderer->damageBox(&WLRBOXPREV);
-            g_pHyprRenderer->damageWindow(PWINDOW);
 
-            // set size and pos if valid
-            if (g_pCompositor->windowValidMapped(PWINDOW))
-                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
+            if (PWINDOW) {
+                g_pHyprRenderer->damageWindow(PWINDOW);
+                // set size and pos if valid
+                if (g_pCompositor->windowValidMapped(PWINDOW))
+                    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
+            }
+
             continue;
         }
 
@@ -125,10 +135,14 @@ void CAnimationManager::tick() {
         switch (av->m_eDamagePolicy) {
             case AVARDAMAGE_ENTIRE: {
                 g_pHyprRenderer->damageBox(&WLRBOXPREV);
-                g_pHyprRenderer->damageWindow(PWINDOW);
+
+                if (PWINDOW)
+                    g_pHyprRenderer->damageWindow(PWINDOW);
                 break;
             }
             case AVARDAMAGE_BORDER: {
+                RASSERT(PWINDOW, "Tried to AVARDAMAGE_BORDER a non-window AVAR!");
+                
                 // damage only the border.
                 const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size") + 1; // +1 for padding and shit
                 const auto ROUNDINGSIZE = g_pConfigManager->getInt("decoration:rounding") + 1;

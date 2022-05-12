@@ -39,8 +39,9 @@ bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
     if (pWindow->m_iWorkspaceID == pMonitor->activeWorkspace)
         return true;
 
-    // if not, check if it maybe is active on a different monitor.
-    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    // if not, check if it maybe is active on a different monitor.                    vvv might be animation in progress
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && PWORKSPACE->m_vRenderOffset.isBeingAnimated()))
         return true;
 
     return false;
@@ -88,8 +89,9 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         g_pHyprOpenGL->renderSnapshot(&pWindow);
         return;
     }
-
-    const auto REALPOS = pWindow->m_vRealPosition.vec();
+    
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    const auto REALPOS = pWindow->m_vRealPosition.vec() + PWORKSPACE->m_vRenderOffset.vec();
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
     renderdata.w = pWindow->m_vRealSize.vec().x;
@@ -105,7 +107,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
 
     // border
     if (decorate && !pWindow->m_bX11DoesntWantBorders)
-        drawBorderForWindow(pWindow, pMonitor, pWindow->m_fAlpha.fl() * renderdata.alpha);
+        drawBorderForWindow(pWindow, pMonitor, pWindow->m_fAlpha.fl() * renderdata.alpha, PWORKSPACE->m_vRenderOffset.vec());
 
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->surface) {
@@ -426,7 +428,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     Debug::log(LOG, "Monitor %s layers arranged: reserved: %f %f %f %f", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y, PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 
-void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor, float alpha) {
+void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor, float alpha, const Vector2D& offset) {
     const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
 
     if (BORDERSIZE < 1)
@@ -439,7 +441,7 @@ void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor, fl
     Vector2D correctSize = pWindow->m_vRealSize.vec();
 
     // top
-    wlr_box border = {correctPos.x - BORDERSIZE / 2.f, correctPos.y - BORDERSIZE / 2.f, pWindow->m_vRealSize.vec().x + BORDERSIZE, pWindow->m_vRealSize.vec().y + BORDERSIZE};
+    wlr_box border = {correctPos.x - BORDERSIZE / 2.f + offset.x, correctPos.y - BORDERSIZE / 2.f + offset.y, pWindow->m_vRealSize.vec().x + BORDERSIZE, pWindow->m_vRealSize.vec().y + BORDERSIZE};
     g_pHyprOpenGL->renderBorder(&border, BORDERCOL, BORDERSIZE, g_pConfigManager->getInt("decoration:rounding"));
 }
 

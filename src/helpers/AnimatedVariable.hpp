@@ -17,6 +17,7 @@ enum AVARDAMAGEPOLICY {
 };
 
 class CAnimationManager;
+class CWorkspace;
 
 class CAnimatedVariable {
 public:
@@ -26,6 +27,8 @@ public:
     void create(ANIMATEDVARTYPE, std::any val, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY);
 
     ~CAnimatedVariable();
+
+    void unregister();
 
     // gets the current vector value (real time)
     const Vector2D& vec() const {
@@ -129,6 +132,22 @@ public:
         warp();
     }
 
+    // checks if an animation is in progress
+    bool isBeingAnimated() {
+        switch (m_eVarType) {
+            case AVARTYPE_FLOAT:
+                return m_fValue != m_fGoal;
+            case AVARTYPE_VECTOR: 
+                return m_vValue != m_vGoal;
+            case AVARTYPE_COLOR:
+                return m_cValue != m_cGoal;
+            default:
+                return false;
+        }
+
+        return false; // unreachable
+    }
+
 private:
 
     void warp() {
@@ -165,6 +184,7 @@ private:
     float*          m_pSpeed = nullptr;
     int64_t*        m_pEnabled = nullptr;
     void*           m_pWindow = nullptr;
+    void*           m_pWorkspace = nullptr;
     std::string*    m_pBezier = nullptr;
 
     bool            m_bDummy = true;
@@ -175,4 +195,5 @@ private:
     AVARDAMAGEPOLICY    m_eDamagePolicy = AVARDAMAGE_INVALID;
 
     friend class CAnimationManager;
+    friend class CWorkspace;
 };

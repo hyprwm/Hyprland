@@ -52,5 +52,9 @@ void CAnimatedVariable::create(ANIMATEDVARTYPE type, std::any val, float* speed,
 }
 
 CAnimatedVariable::~CAnimatedVariable() {
+    unregister();
+}
+
+void CAnimatedVariable::unregister() {
     g_pAnimationManager->m_lAnimatedVariables.remove(this);
 }

@@ -20,9 +20,14 @@ CWorkspace::CWorkspace(int monitorID) {
     wlr_ext_workspace_handle_v1_set_coordinates(m_pWlrHandle, &m_wlrCoordinateArr);
     wlr_ext_workspace_handle_v1_set_hidden(m_pWlrHandle, false);
     wlr_ext_workspace_handle_v1_set_urgent(m_pWlrHandle, false);
+
+    m_vRenderOffset.m_pWorkspace = this;
+    m_vRenderOffset.create(AVARTYPE_VECTOR, &g_pConfigManager->getConfigValuePtr("animations:workspaces_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces")->intValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces_curve")->strValue, nullptr, AVARDAMAGE_ENTIRE);
 }
 
 CWorkspace::~CWorkspace() {
+    m_vRenderOffset.unregister();
+
     if (m_pWlrHandle) {
         wlr_ext_workspace_handle_v1_set_active(m_pWlrHandle, false);
         wlr_ext_workspace_handle_v1_destroy(m_pWlrHandle);

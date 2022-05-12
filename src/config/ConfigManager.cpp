@@ -284,6 +284,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     auto valueCopy = value;
 
     const auto MOD = g_pKeybindManager->stringToModMask(valueCopy.substr(0, valueCopy.find_first_of(",")));
+    const auto MODSTR = valueCopy.substr(0, valueCopy.find_first_of(","));
     valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
 
     const auto KEY = valueCopy.substr(0, valueCopy.find_first_of(","));
@@ -299,6 +300,12 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end()) {
         Debug::log(ERR, "Invalid dispatcher!");
         parseError = "Invalid dispatcher, requested \"" + HANDLER + "\" does not exist";
+        return;
+    }
+
+    if (MOD == 0 && MODSTR != "") {
+        Debug::log(ERR, "Invalid mod!");
+        parseError = "Invalid mod, requested mod \"" + MODSTR + "\" is not a valid mod.";
         return;
     }
 

@@ -69,7 +69,7 @@ std::string removeBeginEndSpacesTabs(std::string str) {
         str = str.substr(1);
     }
 
-    while (str[str.length() - 1] == ' ' || str[str.length() - 1] == '\t') {
+    while (str.length() != 0 && (str[str.length() - 1] == ' ' || str[str.length() - 1] == '\t')) {
         str = str.substr(0, str.length() - 1);
     }
 

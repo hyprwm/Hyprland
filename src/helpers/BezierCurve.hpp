@@ -23,5 +23,5 @@ private:
     // this INCLUDES the 0,0 and 1,1 points.
     std::deque<Vector2D>    m_dPoints;
 
-    std::array<float, BAKEDPOINTS>  m_aPointsBaked;
+    std::array<Vector2D, BAKEDPOINTS>  m_aPointsBaked;
 };

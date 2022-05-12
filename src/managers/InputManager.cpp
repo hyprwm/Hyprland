@@ -141,20 +141,25 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // constraints
     // All constraints TODO: multiple mice?
-    if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
+    if (g_pCompositor->m_sSeat.mouse->currentConstraint && pFoundWindow) {  // TODO: make this match the pFoundWindow in SOME way. We don't want to constrain the mouse on another window.
+                                                                            // XWayland windows sometimes issue constraints weirdly.
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
         if (!CONSTRAINTWINDOW) {
             g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
         } else {
-            const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
-            const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
+            // Native Wayland apps know how 2 constrain themselves.
+            // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
+            if (CONSTRAINTWINDOW->m_bIsX11 || pFoundWindow == CONSTRAINTWINDOW) {
+                const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
+                const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
 
-            if (VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
-                // todo: this is incorrect, but it will work in most cases for now
-                // i made this cuz i wanna play minecraft lol
-                Vector2D deltaToMiddle = CONSTRAINTPOS + CONSTRAINTSIZE / 2.f - mouseCoords;
-                wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToMiddle.x, deltaToMiddle.y);
+                if (VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
+                    // todo: this is incorrect, but it will work in most cases for now
+                    // i made this cuz i wanna play minecraft lol
+                    Vector2D deltaToMiddle = CONSTRAINTPOS + CONSTRAINTSIZE / 2.f - mouseCoords;
+                    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToMiddle.x, deltaToMiddle.y);
+                }
             }
         }
     }

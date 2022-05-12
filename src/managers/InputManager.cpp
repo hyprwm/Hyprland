@@ -26,6 +26,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (!g_pCompositor->m_bReadyToProcess)
         return;
 
+    if (!g_pCompositor->m_sSeat.mouse) {
+        Debug::log(ERR, "BUG THIS: Mouse move on mouse nullptr!");
+        return;
+    }
+
     // update stuff
     updateDragIcon();
 
@@ -139,14 +144,18 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
-        const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
-        const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
+        if (!CONSTRAINTWINDOW) {
+            g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
+        } else {
+            const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
+            const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
 
-        if (VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
-            // todo: this is incorrect, but it will work in most cases for now
-            // i made this cuz i wanna play minecraft lol
-            Vector2D deltaToMiddle = CONSTRAINTPOS + CONSTRAINTSIZE / 2.f - mouseCoords;
-            wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToMiddle.x, deltaToMiddle.y);
+            if (VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
+                // todo: this is incorrect, but it will work in most cases for now
+                // i made this cuz i wanna play minecraft lol
+                Vector2D deltaToMiddle = CONSTRAINTPOS + CONSTRAINTSIZE / 2.f - mouseCoords;
+                wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToMiddle.x, deltaToMiddle.y);
+            }
         }
     }
 }
@@ -283,6 +292,8 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
         }
     }
 
+    PMOUSE->hyprListener_destroyMouse.initCallback(&mouse->events.destroy, &Events::listener_destroyMouse, PMOUSE, "Mouse");
+
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
 
     g_pCompositor->m_sSeat.mouse = PMOUSE;
@@ -302,11 +313,13 @@ void CInputManager::destroyMouse(wlr_input_device* mouse) {
     for (auto& m : m_lMice) {
         if (m.mouse == mouse) {
             m_lMice.remove(m);
-            return;
+            break;
         }
     }
 
     g_pCompositor->m_sSeat.mouse = m_lMice.size() > 0 ? &m_lMice.front() : nullptr;
+
+    g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
 }
 
 void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {

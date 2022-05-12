@@ -100,6 +100,8 @@ CCompositor::CCompositor() {
     m_sWLRRelPointerMgr = wlr_relative_pointer_manager_v1_create(m_sWLDisplay);
 
     m_sWLRVKeyboardMgr = wlr_virtual_keyboard_manager_v1_create(m_sWLDisplay);
+
+    m_sWLRVirtPtrMgr = wlr_virtual_pointer_manager_v1_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {
@@ -132,6 +134,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRInhibitMgr->events.deactivate, &Events::listen_InhibitDeactivate, m_sWLRInhibitMgr, "InhibitMgr");
     addWLSignal(&m_sWLRPointerConstraints->events.new_constraint, &Events::listen_newConstraint, m_sWLRPointerConstraints, "PointerConstraints");
     addWLSignal(&m_sWLRXDGDecoMgr->events.new_toplevel_decoration, &Events::listen_NewXDGDeco, m_sWLRXDGDecoMgr, "XDGDecoMgr");
+    addWLSignal(&m_sWLRVirtPtrMgr->events.new_virtual_pointer, &Events::listen_newVirtPtr, m_sWLRVirtPtrMgr, "VirtPtrMgr");
 
     signal(SIGINT, handleCritSignal);
     signal(SIGTERM, handleCritSignal);

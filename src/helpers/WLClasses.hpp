@@ -71,6 +71,7 @@ struct SMouse {
     pixman_region32_t confinedTo;
 
     DYNLISTENER(commitConstraint);
+    DYNLISTENER(destroyMouse);
 
     bool operator==(const SMouse& b) {
         return mouse == b.mouse;

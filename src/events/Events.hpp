@@ -62,6 +62,10 @@ namespace Events {
     
     LISTENER(newInput);
 
+    // Virt Ptr
+    LISTENER(newVirtPtr);
+    DYNLISTENFUNC(destroyMouse);
+
     DYNLISTENFUNC(keyboardKey);
     DYNLISTENFUNC(keyboardMod);
     DYNLISTENFUNC(keyboardDestroy);

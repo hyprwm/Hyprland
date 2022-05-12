@@ -18,7 +18,7 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
     // bake BAKEDPOINTS points for faster lookups
     // T -> X ( / BAKEDPOINTS )
     for (int i = 0; i < BAKEDPOINTS; ++i) {
-        m_aPointsBaked[i] = getXForT((i + 1) / (float)BAKEDPOINTS);
+        m_aPointsBaked[i] = Vector2D(getXForT((i + 1) / (float)BAKEDPOINTS), getYForT((i + 1) / (float)BAKEDPOINTS));
     }
 
     const auto ELAPSEDUS = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - BEGIN).count() / 1000.f;
@@ -45,25 +45,28 @@ float CBezierCurve::getXForT(float t) {
 // Todo: this probably can be done better and faster
 float CBezierCurve::getYForPoint(float x) {
     // binary search for the range UPDOWN X
-    float upperX = 1;
-    float lowerX = 0;
+    float upperT = 1;
+    float lowerT = 0;
     float mid = 0.5;
 
-    while(std::abs(upperX - lowerX) > INVBAKEDPOINTS) {
-        if (m_aPointsBaked[((int)(mid * (float)BAKEDPOINTS))] > x) {
-            upperX = mid;
+    while(std::abs(upperT - lowerT) > INVBAKEDPOINTS) {
+        if (m_aPointsBaked[((int)(mid * (float)BAKEDPOINTS))].x > x) {
+            upperT = mid;
         } else {
-            lowerX = mid;
+            lowerT = mid;
         }
 
-        mid = (upperX + lowerX) / 2.f;
+        mid = (upperT + lowerT) / 2.f;
     }
 
     // in the name of performance i shall make a hack
-    const auto PERCINDELTA = (x - m_aPointsBaked[(int)((float)BAKEDPOINTS * lowerX)]) / (m_aPointsBaked[(int)((float)BAKEDPOINTS * upperX)] - m_aPointsBaked[(int)((float)BAKEDPOINTS * lowerX)]);
+    const auto LOWERPOINT = &m_aPointsBaked[(int)((float)BAKEDPOINTS * lowerT)];
+    const auto UPPERPOINT = &m_aPointsBaked[(int)((float)BAKEDPOINTS * upperT)];
+
+    const auto PERCINDELTA = (x - LOWERPOINT->x) / (UPPERPOINT->x - LOWERPOINT->x);
 
     if (std::isnan(PERCINDELTA) || std::isinf(PERCINDELTA))  // can sometimes happen for VERY small x
         return 0.f;
 
-    return getYForT(mid + PERCINDELTA * INVBAKEDPOINTS);
+    return LOWERPOINT->y + (UPPERPOINT->y - UPPERPOINT->y) * PERCINDELTA;
 }

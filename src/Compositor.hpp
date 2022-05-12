@@ -55,6 +55,7 @@ public:
     wlr_relative_pointer_manager_v1* m_sWLRRelPointerMgr;
     wlr_server_decoration_manager*   m_sWLRServerDecoMgr;
     wlr_xdg_decoration_manager_v1*   m_sWLRXDGDecoMgr;
+    wlr_virtual_pointer_manager_v1*  m_sWLRVirtPtrMgr;
     // ------------------------------------------------- //
 
 

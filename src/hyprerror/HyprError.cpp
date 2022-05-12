@@ -79,6 +79,8 @@ void CHyprError::createQueued() {
     m_bIsCreated = true;
     m_szQueued = "";
     m_cQueued = CColor();
+
+    g_pHyprRenderer->damageMonitor(PMONITOR);
 }
 
 void CHyprError::draw() {
@@ -93,6 +95,7 @@ void CHyprError::draw() {
         m_tTexture.destroyTexture();
         m_bIsCreated = false;
         m_szQueued = "";
+        g_pHyprRenderer->damageMonitor(&g_pCompositor->m_lMonitors.front());
         return;
     }
 
@@ -107,5 +110,6 @@ void CHyprError::draw() {
 }
 
 void CHyprError::destroy() {
-    m_bQueuedDestroy = true;
+    if (m_bIsCreated)
+        m_bQueuedDestroy = true;
 }

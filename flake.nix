@@ -28,7 +28,7 @@
         };
         defaultPackage = packages.hyprland;
         apps.hyprland = utils.lib.mkApp { drv = packages.hyprland; };
-        defaultApp = apps.hyprland;
+        defaultApp = apps.${system}.hyprland;
         apps.default =
           utils.lib.mkApp { drv = self.packages."${system}".hyprland; };
       });

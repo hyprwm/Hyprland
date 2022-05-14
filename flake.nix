@@ -9,9 +9,17 @@
   };
 
   outputs = { self, nixpkgs, utils, nixpkgs-wayland }:
-    utils.lib.eachDefaultSystem (system:
+    {
+      overlay = final: prev: {
+        hyprland = prev.callPackage self {
+          src = self;
+          inherit (nixpkgs-wayland.overlay.waylandPkgs) wlroots;
+        };
+      };
+    } // utils.lib.eachDefaultSystem (system:
       let pkgs = nixpkgs.legacyPackages.${system};
       in rec {
+        overlays = [ self.overlay ];
         packages = {
           hyprland = pkgs.callPackage self {
             src = self;

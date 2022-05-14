@@ -13,7 +13,7 @@
       overlay = final: prev: {
         hyprland = prev.callPackage self {
           src = self;
-          inherit (nixpkgs-wayland.overlay.waylandPkgs) wlroots;
+          wlroots = (nixpkgs-wayland.overlay final prev).wlroots;
         };
       };
     } // utils.lib.eachDefaultSystem (system:

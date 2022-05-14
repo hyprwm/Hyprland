@@ -30,6 +30,6 @@
         apps.hyprland = utils.lib.mkApp { drv = packages.hyprland; };
         defaultApp = apps.hyprland;
         apps.default =
-          utils.lib.mkApp { drv = self.packages."${system}".default; };
+          utils.lib.mkApp { drv = self.packages."${system}".hyprland; };
       });
 }

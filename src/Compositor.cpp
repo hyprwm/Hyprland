@@ -632,7 +632,7 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
     }
 }
 
-void CCompositor::cleanupWindows() {
+void CCompositor::cleanupFadingOut() {
     for (auto& w : m_lWindowsFadingOut) {
 
         bool valid = windowExists(w);

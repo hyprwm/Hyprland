@@ -665,6 +665,8 @@ void CCompositor::cleanupFadingOut() {
             m_lSurfacesFadingOut.remove(ls);
             delete ls;
 
+            Debug::log(LOG, "Cleanup: destroyed a layersurface");
+
             return;
         }
     }

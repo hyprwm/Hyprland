@@ -698,12 +698,57 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     wlr_output_rollback(PMONITOR->output);
 }
 
+void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
+    // we trust the window is valid.
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pLayer->monitorID);
+    wlr_output_attach_render(PMONITOR->output, nullptr);
+
+    // we need to "damage" the entire monitor
+    // so that we render the entire window
+    // this is temporary, doesnt mess with the actual wlr damage
+    pixman_region32_t fakeDamage;
+    pixman_region32_init(&fakeDamage);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+
+    begin(PMONITOR, &fakeDamage);
+
+    pixman_region32_fini(&fakeDamage);
+
+    const auto PFRAMEBUFFER = &m_mLayerFramebuffers[pLayer];
+
+    PFRAMEBUFFER->m_tTransform = pLayer->layerSurface->surface->current.transform;
+
+    PFRAMEBUFFER->alloc(PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+
+    PFRAMEBUFFER->bind();
+
+    clear(CColor(0, 0, 0, 0));  // JIC
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    // draw the layer
+    g_pHyprRenderer->renderLayer(pLayer, PMONITOR, &now);
+
+// restore original fb
+#ifndef GLES2
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);
+#else
+    glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
+#endif
+    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y);
+
+    end();
+
+    wlr_output_rollback(PMONITOR->output);
+}
+
 void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     RASSERT(m_RenderData.pMonitor, "Tried to render snapshot rect without begin()!");
     const auto PWINDOW = *pWindow;
 
     auto it = m_mWindowFramebuffers.begin();
-    for (;it != m_mWindowFramebuffers.end(); it++) {
+    for (; it != m_mWindowFramebuffers.end(); it++) {
         if (it->first == PWINDOW) {
             break;
         }
@@ -720,6 +765,32 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
 
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), &fakeDamage, 0);
+
+    pixman_region32_fini(&fakeDamage);
+}
+
+void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render snapshot rect without begin()!");
+    const auto PLAYER = *pLayer;
+
+    auto it = m_mLayerFramebuffers.begin();
+    for (; it != m_mLayerFramebuffers.end(); it++) {
+        if (it->first == PLAYER) {
+            break;
+        }
+    }
+
+    if (it == m_mLayerFramebuffers.end() || !it->second.m_cTex.m_iTexID)
+        return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PLAYER->monitorID);
+
+    wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+
+    pixman_region32_t fakeDamage;
+    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+
+    renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PLAYER->alpha.fl(), &fakeDamage, 0);
 
     pixman_region32_fini(&fakeDamage);
 }

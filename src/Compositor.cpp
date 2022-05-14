@@ -513,7 +513,7 @@ CWindow* CCompositor::getWindowForPopup(wlr_xdg_popup* popup) {
 
 wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::list<SLayerSurface*>* layerSurfaces, Vector2D* sCoords) {
     for (auto& l : *layerSurfaces) {
-        if (!l->layerSurface->mapped)
+        if (l->fadingOut || (l->layerSurface && !l->layerSurface->mapped))
             continue;
 
         const auto SURFACEAT = wlr_layer_surface_v1_surface_at(l->layerSurface, pos.x - l->geometry.x, pos.y - l->geometry.y, &sCoords->x, &sCoords->y);
@@ -647,6 +647,24 @@ void CCompositor::cleanupWindows() {
             m_lWindowsFadingOut.remove(w);
 
             Debug::log(LOG, "Cleanup: destroyed a window");
+            return;
+        }
+    }
+
+    for (auto& ls : m_lSurfacesFadingOut) {
+        if (ls->fadingOut && ls->readyToDelete && !ls->alpha.isBeingAnimated()) {
+            for (auto& m : m_lMonitors) {
+                for (auto& lsl : m.m_aLayerSurfaceLists) {
+                    lsl.remove(ls);
+                }
+            }
+
+            g_pHyprOpenGL->m_mLayerFramebuffers[ls].release();
+            g_pHyprOpenGL->m_mLayerFramebuffers.erase(ls);
+            
+            m_lSurfacesFadingOut.remove(ls);
+            delete ls;
+
             return;
         }
     }

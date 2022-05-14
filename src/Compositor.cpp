@@ -402,13 +402,13 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (pWindow->m_bNoFocus) {
-        Debug::log(LOG, "Ignoring focus to nofocus window!");
+    if (!pWindow || !windowValidMapped(pWindow)) {
+        wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
         return;
     }
 
-    if (!pWindow || !windowValidMapped(pWindow)) {
-        wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
+    if (pWindow->m_bNoFocus) {
+        Debug::log(LOG, "Ignoring focus to nofocus window!");
         return;
     }
 

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/BezierCurve.hpp"
+#include "../Window.hpp"
 
 class CAnimationManager {
 public:
@@ -14,6 +15,8 @@ public:
     void            tick();
     void            addBezierWithName(std::string, const Vector2D&, const Vector2D&);
     void            removeAllBeziers();
+
+    void            onWindowPostCreate(CWindow*);
 
     std::list<CAnimatedVariable*> m_lAnimatedVariables;
 

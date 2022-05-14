@@ -278,9 +278,6 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
         applyNodeDataToWindow(PNODE);
         applyNodeDataToWindow(OPENINGON);
     }
-
-    pWindow->m_vRealPosition.setValue(PNODE->position + PNODE->size / 2.f);
-    pWindow->m_vRealSize.setValue(Vector2D(5,5));
 }
 
 void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
@@ -341,10 +338,6 @@ void CHyprDwindleLayout::onWindowRemoved(CWindow* pWindow) {
 
     m_lDwindleNodesData.remove(*PPARENT);
     m_lDwindleNodesData.remove(*PNODE);
-
-    // jump back like it jumps in
-    //pWindow->m_vEffectivePosition = pWindow->m_vEffectivePosition + ((pWindow->m_vEffectiveSize - Vector2D(5, 5)) * 0.5f);
-   // pWindow->m_vEffectiveSize = Vector2D(5, 5);
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
@@ -473,10 +466,10 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
             // get some data about our window
             const auto PNODE            = getNodeFromWindow(DRAGGINGWINDOW);
             const auto PMONITOR         = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
-            const bool DISPLAYLEFT      = STICKS(DRAGGINGWINDOW->m_vPosition.x, PMONITOR->vecPosition.x);
-            const bool DISPLAYRIGHT     = STICKS(DRAGGINGWINDOW->m_vPosition.x + DRAGGINGWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x);
-            const bool DISPLAYTOP       = STICKS(DRAGGINGWINDOW->m_vPosition.y, PMONITOR->vecPosition.y);
-            const bool DISPLAYBOTTOM    = STICKS(DRAGGINGWINDOW->m_vPosition.y + DRAGGINGWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);
+            const bool DISPLAYLEFT      = STICKS(DRAGGINGWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
+            const bool DISPLAYRIGHT     = STICKS(DRAGGINGWINDOW->m_vPosition.x + DRAGGINGWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
+            const bool DISPLAYTOP       = STICKS(DRAGGINGWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
+            const bool DISPLAYBOTTOM    = STICKS(DRAGGINGWINDOW->m_vPosition.y + DRAGGINGWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
 
             // construct allowed movement
             Vector2D allowedMovement = TICKDELTA;
@@ -578,10 +571,7 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
     }
 
-    if (!pWindow->m_bX11DoesntWantBorders) {
-        pWindow->m_vRealPosition.setValue(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
-        pWindow->m_vRealSize.setValue(Vector2D(5, 5));
-    } else {
+    if (pWindow->m_bX11DoesntWantBorders) {
         pWindow->m_vRealPosition.setValue(pWindow->m_vRealPosition.goalv());
         pWindow->m_vRealSize.setValue(pWindow->m_vRealSize.goalv());
     }

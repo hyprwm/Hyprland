@@ -105,6 +105,7 @@ private:
     void                handleWindowRule(const std::string&, const std::string&);
     void                handleDefaultWorkspace(const std::string&, const std::string&);
     void                handleBezier(const std::string&, const std::string&);
+    void                handleAnimation(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

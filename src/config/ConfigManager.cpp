@@ -277,6 +277,53 @@ void CConfigManager::handleBezier(const std::string& command, const std::string&
     g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
 }
 
+void CConfigManager::handleAnimation(const std::string& command, const std::string& args) {
+    std::string curitem = "";
+
+    std::string argZ = args;
+
+    auto nextItem = [&]() {
+        auto idx = argZ.find_first_of(',');
+
+        if (idx != std::string::npos) {
+            curitem = argZ.substr(0, idx);
+            argZ = argZ.substr(idx + 1);
+        } else {
+            curitem = argZ;
+            argZ = "";
+        }
+    };
+
+    nextItem();
+
+    // Master on/off
+
+    // anim name
+    const auto ANIMNAME = curitem;
+    const auto ANIMMASTERSETTING = configValues.find("animations:" + ANIMNAME);
+
+    if (ANIMMASTERSETTING == configValues.end()) {
+        Debug::log(ERR, "Anim %s doesnt exist", ANIMNAME.c_str());
+        parseError = "Animation " + ANIMNAME + " does not exist";
+        return;
+    }
+
+    nextItem();
+
+    // on/off
+    configSetValueSafe("animations:" + ANIMNAME, curitem);
+
+    nextItem();
+
+    // Speed
+    configSetValueSafe("animations:" + ANIMNAME + "_speed", curitem);
+
+    nextItem();
+
+    // curve
+    configSetValueSafe("animations:" + ANIMNAME + "_curve", curitem);
+}
+
 void CConfigManager::handleBind(const std::string& command, const std::string& value) {
     // example:
     // bind=SUPER,G,exec,dmenu_run <args>
@@ -379,21 +426,16 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         if (isFirstLaunch) {
             firstExecRequests.push_back(VALUE);
         }
-    } else if (COMMAND == "monitor") {
-        handleMonitor(COMMAND, VALUE);
-    } else if (COMMAND == "bind") {
-        handleBind(COMMAND, VALUE);
-    } else if (COMMAND == "unbind") {
-        handleUnbind(COMMAND, VALUE);
-    } else if (COMMAND == "workspace") {
-        handleDefaultWorkspace(COMMAND, VALUE);
-    } else if (COMMAND == "windowrule") {
-        handleWindowRule(COMMAND, VALUE);
-    } else if (COMMAND == "bezier") {
-        handleBezier(COMMAND, VALUE);
-    } else {
-        configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
     }
+    else if (COMMAND == "monitor") handleMonitor(COMMAND, VALUE);
+    else if (COMMAND == "bind") handleBind(COMMAND, VALUE);
+    else if (COMMAND == "unbind") handleUnbind(COMMAND, VALUE);
+    else if (COMMAND == "workspace") handleDefaultWorkspace(COMMAND, VALUE);
+    else if (COMMAND == "windowrule") handleWindowRule(COMMAND, VALUE);
+    else if (COMMAND == "bezier") handleBezier(COMMAND, VALUE);
+    else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
+    else
+        configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 
     if (dynamic) {
         std::string retval = parseError;

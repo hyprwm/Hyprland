@@ -87,6 +87,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsFloating = false;
         } else if (r.szRule.find("pseudo") == 0) {
             PWINDOW->m_bIsPseudotiled = true;
+        } else if (r.szRule.find("nofocus") == 0) {
+            PWINDOW->m_bNoFocus = true;
         } else if (r.szRule.find("opacity") == 0) {
             try {
                 PWINDOW->m_sSpecialRenderData.alpha = std::stof(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -147,7 +149,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv() - Vector2D(10,10);
     }
 
-    g_pCompositor->focusWindow(PWINDOW);
+    if (!PWINDOW->m_bNoFocus)
+        g_pCompositor->focusWindow(PWINDOW);
 
     PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW);
 

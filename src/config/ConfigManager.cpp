@@ -48,15 +48,19 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;
     configValues["animations:curve"].strValue = "default";
+    configValues["animations:windows_style"].strValue = STRVAL_EMPTY;
     configValues["animations:windows_curve"].strValue = "[[f]]";
     configValues["animations:windows_speed"].floatValue = 0.f;
     configValues["animations:windows"].intValue = 1;
+    configValues["animations:borders_style"].strValue = STRVAL_EMPTY;
     configValues["animations:borders_curve"].strValue = "[[f]]";
     configValues["animations:borders_speed"].floatValue = 0.f;
     configValues["animations:borders"].intValue = 1;
+    configValues["animations:fadein_style"].strValue = STRVAL_EMPTY;
     configValues["animations:fadein_curve"].strValue = "[[f]]";
     configValues["animations:fadein_speed"].floatValue = 0.f;
     configValues["animations:fadein"].intValue = 1;
+    configValues["animations:workspaces_style"].strValue = STRVAL_EMPTY;
     configValues["animations:workspaces_curve"].strValue = "[[f]]";
     configValues["animations:workspaces_speed"].floatValue = 0.f;
     configValues["animations:workspaces"].intValue = 1;
@@ -322,6 +326,11 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
 
     // curve
     configSetValueSafe("animations:" + ANIMNAME + "_curve", curitem);
+
+    nextItem();
+
+    // style
+    configSetValueSafe("animations:" + ANIMNAME + "_style", curitem);
 }
 
 void CConfigManager::handleBind(const std::string& command, const std::string& value) {

@@ -13,6 +13,8 @@ public:
 
     /*
         Called when a window is created (mapped)
+        The layout HAS TO set the goal pos and size (anim mgr will use it)
+        If !animationinprogress, then the anim mgr will not apply an anim.
     */
     virtual void        onWindowCreated(CWindow*)           = 0;
     /*

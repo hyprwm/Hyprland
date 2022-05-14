@@ -41,12 +41,16 @@ void CAnimationManager::tick() {
         // window stuff
         const auto PWINDOW = (CWindow*)av->m_pWindow;
         const auto PWORKSPACE = (CWorkspace*)av->m_pWorkspace;
+        const auto PLAYER = (SLayerSurface*)av->m_pLayer;
+
         wlr_box WLRBOXPREV = {0,0,0,0};
         if (PWINDOW) {
             WLRBOXPREV = {(int)PWINDOW->m_vRealPosition.vec().x - BORDERSIZE - 1, (int)PWINDOW->m_vRealPosition.vec().y - BORDERSIZE - 1, (int)PWINDOW->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, (int)PWINDOW->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
         } else if (PWORKSPACE) {
             const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};
+        } else if (PLAYER) {
+            WLRBOXPREV = PLAYER->geometry;
         }
         
         // check if it's disabled, if so, warp

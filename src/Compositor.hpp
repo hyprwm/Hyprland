@@ -67,6 +67,7 @@ public:
     std::list<CWorkspace>   m_lWorkspaces;
     std::list<SSubsurface>  m_lSubsurfaces;
     std::list<CWindow*>     m_lWindowsFadingOut;
+    std::list<SLayerSurface*> m_lSurfacesFadingOut;
 
     void                    startCompositor(); 
     void                    cleanupExit();

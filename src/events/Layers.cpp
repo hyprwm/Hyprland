@@ -72,9 +72,6 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
-    // remove the layersurface as it's not used anymore
-    PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
-
     // rearrange to fix the reserved areas
     if (PMONITOR) {
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
@@ -85,7 +82,8 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
         g_pHyprRenderer->damageBox(&geomFixed);
     }
 
-    delete layersurface;
+    layersurface->readyToDelete = true;
+    layersurface->layerSurface = nullptr;
 }
 
 void Events::listener_mapLayerSurface(void* owner, void* data) {
@@ -121,12 +119,25 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
+
+    layersurface->alpha.setValue(0);
+    layersurface->alpha = 255.f;
+    layersurface->readyToDelete = false;
+    layersurface->fadingOut = false;
 }
 
 void Events::listener_unmapLayerSurface(void* owner, void* data) {
     SLayerSurface* layersurface = (SLayerSurface*)owner;
 
     Debug::log(LOG, "LayerSurface %x unmapped", layersurface->layerSurface);
+
+    // make a snapshot and start fade
+    g_pHyprOpenGL->makeLayerSnapshot(layersurface);
+    layersurface->alpha = 0.f;
+
+    layersurface->fadingOut = true;
+
+    g_pCompositor->m_lSurfacesFadingOut.push_back(layersurface);
 
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = false;

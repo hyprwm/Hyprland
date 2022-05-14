@@ -121,6 +121,17 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     } 
 }
 
+void CHyprRenderer::renderLayer(SLayerSurface* pLayer, SMonitor* pMonitor, timespec* time) {
+    if (pLayer->fadingOut) {
+        g_pHyprOpenGL->renderSnapshot(&pLayer);
+        return;
+    }
+
+    SRenderData renderdata = {pMonitor->output, time, pLayer->geometry.x, pLayer->geometry.y};
+    renderdata.fadeAlpha = pLayer->alpha.fl();
+    wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
+}
+
 void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(ID);
 
@@ -129,12 +140,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // Render layer surfaces below windows for monitor
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-        SRenderData renderdata = {PMONITOR->output, time, ls->geometry.x, ls->geometry.y};
-        wlr_surface_for_each_surface(ls->layerSurface->surface, renderSurface, &renderdata);
+        renderLayer(ls, PMONITOR, time);
     }
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-        SRenderData renderdata = {PMONITOR->output, time, ls->geometry.x, ls->geometry.y};
-        wlr_surface_for_each_surface(ls->layerSurface->surface, renderSurface, &renderdata);
+        renderLayer(ls, PMONITOR, time);
     }
 
     // if there is a fullscreen window, render it and then do not render anymore.
@@ -178,12 +187,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // Render surfaces above windows for monitor
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        SRenderData renderdata = {PMONITOR->output, time, ls->geometry.x, ls->geometry.y};
-        wlr_surface_for_each_surface(ls->layerSurface->surface, renderSurface, &renderdata);
+        renderLayer(ls, PMONITOR, time);
     }
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        SRenderData renderdata = {PMONITOR->output, time, ls->geometry.x, ls->geometry.y};
-        wlr_surface_for_each_surface(ls->layerSurface->surface, renderSurface, &renderdata);
+        renderLayer(ls, PMONITOR, time);
     }
 
     renderDragIcon(PMONITOR, time);
@@ -316,6 +323,9 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
     wlr_box full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto& ls : layerSurfaces) {
+        if (ls->fadingOut)
+            continue;
+
         const auto PLAYER = ls->layerSurface;
         const auto PSTATE = &PLAYER->current;
         if (exclusiveZone != (PSTATE->exclusive_zone > 0)) {

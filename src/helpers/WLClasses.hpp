@@ -5,8 +5,11 @@
 #include "../../wlr-layer-shell-unstable-v1-protocol.h"
 #include "../Window.hpp"
 #include "SubsurfaceTree.hpp"
+#include "AnimatedVariable.hpp"
 
 struct SLayerSurface {
+    SLayerSurface();
+
     wlr_layer_surface_v1*   layerSurface;
     wl_list                 link;
 
@@ -22,6 +25,9 @@ struct SLayerSurface {
 
     int                     monitorID = -1;
 
+    CAnimatedVariable       alpha;
+    bool                    fadingOut = false;
+    bool                    readyToDelete = false;
 
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) {

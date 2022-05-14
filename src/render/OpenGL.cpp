@@ -377,7 +377,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     pixman_region32_t damage;
     pixman_region32_init(&damage);
     pixman_region32_copy(&damage, originalDamage);
-    wlr_region_expand(&damage, &damage, BLURPASSES * BLURSIZE * 2);
+    wlr_region_expand(&damage, &damage, pow(2, BLURPASSES) * BLURSIZE);
 
     // helper
     const auto PMIRRORFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB;

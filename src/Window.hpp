@@ -63,6 +63,9 @@ public:
     DYNLISTENER(configureX11);
     //
 
+    // For nofocus
+    bool            m_bNoFocus = false;
+
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 
     // Animated border

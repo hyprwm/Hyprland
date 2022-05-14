@@ -135,7 +135,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (PMONITOR->ID == pMostHzMonitor->ID) {
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
-        g_pCompositor->cleanupWindows();
+        g_pCompositor->cleanupFadingOut();
 
         HyprCtl::tickHyprCtl(); // so that we dont get that race condition multithread bullshit
 

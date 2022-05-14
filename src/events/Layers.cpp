@@ -74,7 +74,6 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
 
     // remove the layersurface as it's not used anymore
     PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
-    delete layersurface;
 
     // rearrange to fix the reserved areas
     if (PMONITOR) {
@@ -85,6 +84,8 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
         wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
         g_pHyprRenderer->damageBox(&geomFixed);
     }
+
+    delete layersurface;
 }
 
 void Events::listener_mapLayerSurface(void* owner, void* data) {

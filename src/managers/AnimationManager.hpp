@@ -29,6 +29,10 @@ private:
     bool            deltazero(const float& a, const float& b);
 
     std::unordered_map<std::string, CBezierCurve> m_mBezierCurves;
+
+    // Anim stuff
+    void            animationPopin(CWindow*);
+    void            animationSlide(CWindow*, std::string force = "");
 };
 
 inline std::unique_ptr<CAnimationManager> g_pAnimationManager;

@@ -203,8 +203,64 @@ bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
     return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
 }
 
+//
+// Anims
+//
+//
 
-// animation on events
+void CAnimationManager::animationPopin(CWindow* pWindow) {
+    const auto GOALPOS = pWindow->m_vRealPosition.goalv();
+    const auto GOALSIZE = pWindow->m_vRealSize.goalv();
+
+    pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f);
+    pWindow->m_vRealSize.setValue(Vector2D(5, 5));
+}
+
+void CAnimationManager::animationSlide(CWindow* pWindow, std::string force) {
+    pWindow->m_vRealSize.warp();  // size we preserve in slide
+
+    const auto GOALPOS = pWindow->m_vRealPosition.goalv();
+    const auto GOALSIZE = pWindow->m_vRealSize.goalv();
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    if (force != "") {
+        if (force == "bottom") pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y));
+        else if (force == "left") pWindow->m_vRealPosition.setValue(GOALPOS - Vector2D(GOALSIZE.x, 0));
+        else if (force == "right") pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(GOALSIZE.x, 0));
+        else pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y));
+
+        return;
+    }
+
+    const auto MIDPOINT = GOALPOS + GOALSIZE / 2.f;
+
+    // check sides it touches
+    const bool DISPLAYLEFT = STICKS(pWindow->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
+    const bool DISPLAYRIGHT = STICKS(pWindow->m_vPosition.x + pWindow->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
+    const bool DISPLAYTOP = STICKS(pWindow->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
+    const bool DISPLAYBOTTOM = STICKS(pWindow->m_vPosition.y + pWindow->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
+
+    if (DISPLAYBOTTOM && DISPLAYTOP) {
+        if (DISPLAYLEFT && DISPLAYRIGHT) {
+            pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(0, GOALSIZE.y));
+        } else if (DISPLAYLEFT) {
+            pWindow->m_vRealPosition.setValue(GOALPOS - Vector2D(GOALSIZE.x, 0));
+        } else {
+            pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(GOALSIZE.x, 0));
+        }
+    } else if (DISPLAYTOP) {
+        pWindow->m_vRealPosition.setValue(GOALPOS - Vector2D(0, GOALSIZE.y));
+    } else if (DISPLAYBOTTOM) {
+        pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(0, GOALSIZE.y));
+    } else {
+        if (MIDPOINT.y > PMONITOR->vecPosition.y + PMONITOR->vecSize.y / 2.f)
+            pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y));
+        else
+            pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y));
+    }
+}
+
 void CAnimationManager::onWindowPostCreate(CWindow* pWindow) {
     auto ANIMSTYLE = g_pConfigManager->getString("animations:windows_style");
     transform(ANIMSTYLE.begin(), ANIMSTYLE.end(), ANIMSTYLE.begin(), ::tolower);
@@ -213,42 +269,25 @@ void CAnimationManager::onWindowPostCreate(CWindow* pWindow) {
     if (!pWindow->m_vRealPosition.isBeingAnimated() && !pWindow->m_vRealSize.isBeingAnimated())
         return;
 
-    const auto GOALPOS = pWindow->m_vRealPosition.goalv();
-    const auto GOALSIZE = pWindow->m_vRealSize.goalv();
-
-    if (ANIMSTYLE == "slide") {
-        pWindow->m_vRealSize.warp(); // size we preserve in slide
-
-        const auto MIDPOINT = GOALPOS + GOALSIZE / 2.f;
-
-        // check sides it touches
-        const auto PMONITOR         = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-        const bool DISPLAYLEFT      = STICKS(pWindow->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
-        const bool DISPLAYRIGHT     = STICKS(pWindow->m_vPosition.x + pWindow->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
-        const bool DISPLAYTOP       = STICKS(pWindow->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
-        const bool DISPLAYBOTTOM    = STICKS(pWindow->m_vPosition.y + pWindow->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
-
-        if (DISPLAYBOTTOM && DISPLAYTOP) {
-            if (DISPLAYLEFT && DISPLAYRIGHT) {
-                pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(0, GOALSIZE.y));
-            } else if (DISPLAYLEFT) {
-                pWindow->m_vRealPosition.setValue(GOALPOS - Vector2D(GOALSIZE.x, 0));
+    if (pWindow->m_sAdditionalConfigData.animationStyle != "") {
+        // the window has config'd special anim
+        if (pWindow->m_sAdditionalConfigData.animationStyle.find("slide") == 0) {
+            if (pWindow->m_sAdditionalConfigData.animationStyle.find(' ') != std::string::npos) {
+                // has a direction
+                animationSlide(pWindow, pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find(' ') + 1));
             } else {
-                pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(GOALSIZE.x, 0));
+                animationSlide(pWindow);
             }
-        } else if (DISPLAYTOP) {
-            pWindow->m_vRealPosition.setValue(GOALPOS - Vector2D(0, GOALSIZE.y));
-        } else if (DISPLAYBOTTOM) {
-            pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(0, GOALSIZE.y));
         } else {
-            if (MIDPOINT.y > PMONITOR->vecPosition.y + PMONITOR->vecSize.y / 2.f)
-                pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y));
-            else
-                pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y));
+            // anim popin, fallback
+            animationPopin(pWindow);
         }
     } else {
-        // anim popin, fallback
-        pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f);
-        pWindow->m_vRealSize.setValue(Vector2D(5, 5));
+        if (ANIMSTYLE == "slide") {
+            animationSlide(pWindow);
+        } else {
+            // anim popin, fallback
+            animationPopin(pWindow);
+        }
     }
 }

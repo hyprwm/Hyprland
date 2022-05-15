@@ -9,6 +9,10 @@ struct SWindowSpecialRenderData {
     float alpha = 1.f;
 };  
 
+struct SWindowAdditionalConfigData {
+    std::string animationStyle = "";
+};
+
 class CWindow {
 public:
     CWindow();
@@ -81,6 +85,7 @@ public:
 
     // Special render data, rules, etc
     SWindowSpecialRenderData m_sSpecialRenderData;
+    SWindowAdditionalConfigData m_sAdditionalConfigData;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

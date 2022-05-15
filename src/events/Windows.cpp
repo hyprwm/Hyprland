@@ -95,6 +95,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
             } catch(std::exception& e) {
                 Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
             }
+        } else if (r.szRule.find("animation") == 0) {
+            auto STYLE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+            PWINDOW->m_sAdditionalConfigData.animationStyle = STYLE;
         }
     }
 

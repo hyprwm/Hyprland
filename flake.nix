@@ -13,13 +13,13 @@
       overlay = final: prev: {
         hyprland = prev.callPackage self {
           src = self;
-          wlroots = (nixpkgs-wayland.overlay final prev).wlroots;
+          wlroots = (nixpkgs-wayland.overlays.default final prev).wlroots;
         };
       };
-    } // utils.lib.eachDefaultSystem (system:
+      overlays.default = self.overlay;
+    } // utils.lib.eachSystem [ "aarch64-linux" "x86_64-linux" ] (system:
       let pkgs = nixpkgs.legacyPackages.${system};
       in rec {
-        overlays = [ self.overlay ];
         packages = {
           hyprland = pkgs.callPackage self {
             src = self;
@@ -30,6 +30,6 @@
         apps.hyprland = utils.lib.mkApp { drv = packages.hyprland; };
         defaultApp = apps.hyprland;
         apps.default =
-          utils.lib.mkApp { drv = self.packages."${system}".hyprland; };
+          utils.lib.mkApp { drv = self.packages.${system}.hyprland; };
       });
 }

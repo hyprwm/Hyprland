@@ -3,17 +3,23 @@
   description =
     "Hyprland is a dynamic tiling Wayland compositor that doesn't sacrifice on its looks.";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.11";
     utils.url = "github:numtide/flake-utils";
     nixpkgs-wayland.url = "github:nix-community/nixpkgs-wayland";
+    wlroots-git = {
+      url = "gitlab:wlroots/wlroots?host=gitlab.freedesktop.org";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, utils, nixpkgs-wayland }:
+  outputs = { self, nixpkgs, utils, nixpkgs-wayland, wlroots-git }:
     {
       overlay = final: prev: {
         hyprland = prev.callPackage self {
           src = self;
-          wlroots = (nixpkgs-wayland.overlays.default final prev).wlroots;
+          wlroots = (nixpkgs-wayland.overlays.default final prev).wlroots.overrideAttrs (prev: rec {
+            src = wlroots-git;
+          });
         };
       };
       overlays.default = self.overlay;
@@ -23,7 +29,9 @@
         packages = {
           hyprland = pkgs.callPackage self {
             src = self;
-            inherit (nixpkgs-wayland.packages.${system}) wlroots;
+            wlroots = nixpkgs-wayland.packages.${system}.wlroots.overrideAttrs (prev: rec {
+            src = wlroots-git;
+          });
           };
         };
         defaultPackage = packages.hyprland;

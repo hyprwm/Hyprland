@@ -361,7 +361,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     // get transforms for the full monitor
     const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
     float matrix[9];
-    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
     wlr_matrix_project_box(matrix, &MONITORBOX, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
     float glMatrix[9];
@@ -404,9 +404,9 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
         glUniform1f(glGetUniformLocation(pShader->program, "radius"), BLURSIZE * (a / 255.f));  // this makes the blursize change with a
         if (pShader == &m_shBLUR1)
-            glUniform2f(glGetUniformLocation(m_shBLUR1.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecSize.y / 2.f));
+            glUniform2f(glGetUniformLocation(m_shBLUR1.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
         else
-            glUniform2f(glGetUniformLocation(m_shBLUR2.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecSize.y * 2.f));
+            glUniform2f(glGetUniformLocation(m_shBLUR2.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
         glUniform1i(pShader->tex, 0);
 
         glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -485,7 +485,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     pixman_region32_t inverseOpaque;
     pixman_region32_init(&inverseOpaque);
     if (a == 255.f) {
-        pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+        pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
         pixman_region32_copy(&inverseOpaque, &pSurface->current.opaque);
         pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
         pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &monbox);
@@ -523,7 +523,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // stencil done. Render everything.
-    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
         renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, 255.f, &damage);  // 255.f because we adjusted blur strength to a

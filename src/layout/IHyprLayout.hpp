@@ -8,6 +8,10 @@ struct SWindowRenderLayoutHints {
     CColor      borderColor;
 };
 
+struct SLayoutMessageHeader {
+    CWindow*    pWindow = nullptr;
+};
+
 interface IHyprLayout {
 public:
 
@@ -69,16 +73,10 @@ public:
     virtual void        fullscreenRequestForWindow(CWindow*)    = 0;
 
     /*
-        Called when the user requests a window to be made into a group,
-        or when they want the group to be released.
-        Everything else is free to interpret by the layout.
+        Called when a dispatcher requests a custom message
+        The layout is free to ignore.
     */
-    virtual void         toggleWindowGroup(CWindow*)         = 0;
-
-    /*
-        Called when the user requests a group window switch
-    */
-    virtual void         switchGroupWindow(CWindow*)         = 0;
+    virtual void         layoutMessage(SLayoutMessageHeader, std::string)  = 0;
 
     /* 
         Required to be handled, but may return just SWindowRenderLayoutHints()

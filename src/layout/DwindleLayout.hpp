@@ -50,8 +50,7 @@ public:
     virtual void        onMouseMove(const Vector2D&);
     virtual void        onWindowCreatedFloating(CWindow*);
     virtual void        fullscreenRequestForWindow(CWindow*);
-    virtual void        toggleWindowGroup(CWindow*);
-    virtual void        switchGroupWindow(CWindow*);
+    virtual void        layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
     virtual void        switchWindows(CWindow*, CWindow*);
     virtual void        alterSplitRatioBy(CWindow*, float);
@@ -70,6 +69,10 @@ public:
     SDwindleNodeData*   getNodeFromWindow(CWindow*);
     SDwindleNodeData*   getFirstNodeOnWorkspace(const int&);
     SDwindleNodeData*   getMasterNodeOnWorkspace(const int&);
+
+    void                toggleWindowGroup(CWindow*);
+    void                switchGroupWindow(CWindow*);
+    void                toggleSplit(CWindow*);
 
     friend struct SDwindleNodeData;
 };

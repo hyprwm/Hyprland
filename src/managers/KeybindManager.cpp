@@ -209,11 +209,10 @@ void CKeybindManager::changeworkspace(std::string args) {
             const auto ANIMTOLEFT = workspaceToChangeTo > OLDWORKSPACEID;
 
             // start anim on old workspace
-            g_pCompositor->getWorkspaceByID(OLDWORKSPACEID)->m_vRenderOffset = Vector2D(ANIMTOLEFT ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x, 0);
+            g_pCompositor->getWorkspaceByID(OLDWORKSPACEID)->startAnim(false, ANIMTOLEFT);
 
             // start anim on new workspace
-            g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_vRenderOffset.setValueAndWarp(Vector2D(ANIMTOLEFT ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x, 0));
-            g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_vRenderOffset = Vector2D(0, 0);
+            g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->startAnim(true, ANIMTOLEFT);
         }
            
 
@@ -250,14 +249,13 @@ void CKeybindManager::changeworkspace(std::string args) {
     const auto ANIMTOLEFT = workspaceToChangeTo > OLDWORKSPACE;
 
     // start anim on old workspace
-    g_pCompositor->getWorkspaceByID(OLDWORKSPACE)->m_vRenderOffset = Vector2D(ANIMTOLEFT ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x, 0);
+    g_pCompositor->getWorkspaceByID(OLDWORKSPACE)->startAnim(false, ANIMTOLEFT);
 
     g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID);
     const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
 
     // start anim on new workspace
-    PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(ANIMTOLEFT ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x, 0));
-    PWORKSPACE->m_vRenderOffset = Vector2D(0, 0);
+    PWORKSPACE->startAnim(true, ANIMTOLEFT);
 
     // We are required to set the name here immediately
     wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, workspaceName.c_str());

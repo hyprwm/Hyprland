@@ -41,7 +41,7 @@ bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     // if not, check if it maybe is active on a different monitor.                    vvv might be animation in progress
-    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && PWORKSPACE->m_vRenderOffset.isBeingAnimated()))
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated())))
         return true;
 
     return false;
@@ -96,7 +96,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.w = pWindow->m_vRealSize.vec().x;
     renderdata.h = pWindow->m_vRealSize.vec().y;
     renderdata.dontRound = pWindow->m_bIsFullscreen;
-    renderdata.fadeAlpha = pWindow->m_fAlpha.fl();
+    renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (PWORKSPACE->m_fAlpha.fl() / 255.f);
     renderdata.alpha = pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
 
     // apply window special data
@@ -106,7 +106,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
 
     // border
     if (decorate && !pWindow->m_bX11DoesntWantBorders)
-        drawBorderForWindow(pWindow, pMonitor, pWindow->m_fAlpha.fl() * renderdata.alpha, PWORKSPACE->m_vRenderOffset.vec());
+        drawBorderForWindow(pWindow, pMonitor, renderdata.alpha * renderdata.fadeAlpha, PWORKSPACE->m_vRenderOffset.vec());
 
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->surface) {

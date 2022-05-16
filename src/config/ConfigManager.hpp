@@ -76,6 +76,7 @@ public:
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
 
 private:
+    std::unordered_map<std::string, std::string>  configDynamicVars; // stores dynamic vars declared by the user
     std::unordered_map<std::string, SConfigValue> configValues;
     time_t lastModifyTime = 0;  // for reloading the config if changed
 
@@ -94,6 +95,7 @@ private:
     // internal methods
     void                setDefaultVars();
 
+    void                applyUserDefinedVars(std::string&, const size_t);
     void                loadConfigLoadVars();
     SConfigValue        getConfigValueSafe(std::string);
     void                parseLine(std::string&);

@@ -126,7 +126,7 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src) {
     return shader;
 }
 
-void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
+void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage, bool fake) {
     m_RenderData.pMonitor = pMonitor;
 
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
@@ -157,18 +157,22 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
     m_mMonitorRenderResources[pMonitor].primaryFB.bind();
 
     m_RenderData.pDamage = pDamage;
+
+    m_bFakeFrame = fake;
 }
 
 void CHyprOpenGLImpl::end() {
     // end the render, copy the data to the WLR framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
-    wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+    if (!m_bFakeFrame) {
+        glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
+        wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
 
-    pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
+        pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
 
-    clear(CColor(11, 11, 11, 255));
+        clear(CColor(11, 11, 11, 255));
 
-    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &monbox, 255.f, 0);
+        renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &monbox, 255.f, 0);
+    }
 
     // reset our data
     m_RenderData.pMonitor = nullptr;
@@ -656,13 +660,13 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     pixman_region32_init(&fakeDamage);
     pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
-    begin(PMONITOR, &fakeDamage);
+    begin(PMONITOR, &fakeDamage, true);
 
     pixman_region32_fini(&fakeDamage);
 
     const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
 
-    PFRAMEBUFFER->m_tTransform = g_pXWaylandManager->getWindowSurface(pWindow)->current.transform;
+    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
 
     PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
@@ -691,7 +695,6 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
     #endif
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
 
     end();
 
@@ -710,13 +713,13 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     pixman_region32_init(&fakeDamage);
     pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
-    begin(PMONITOR, &fakeDamage);
+    begin(PMONITOR, &fakeDamage, true);
 
     pixman_region32_fini(&fakeDamage);
 
     const auto PFRAMEBUFFER = &m_mLayerFramebuffers[pLayer];
 
-    PFRAMEBUFFER->m_tTransform = pLayer->layerSurface->surface->current.transform;
+    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
 
     PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
@@ -736,7 +739,6 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
 #endif
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
 
     end();
 
@@ -759,10 +761,10 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-    wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    wlr_box windowBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
 
     pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), &fakeDamage, 0);
 
@@ -785,10 +787,10 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PLAYER->monitorID);
 
-    wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    wlr_box windowBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
 
     pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PLAYER->alpha.fl(), &fakeDamage, 0);
 

@@ -12,6 +12,9 @@
 
 CConfigManager::CConfigManager() {
     setDefaultVars();
+    static const char* const ENVHOME = getenv("HOME");
+    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    configPaths.emplace_back(CONFIGPATH);
 }
 
 void CConfigManager::setDefaultVars() {
@@ -94,7 +97,7 @@ void CConfigManager::init() {
         Debug::log(WARN, "Error at statting config, error %i", errno);
     }
 
-    lastModifyTime = fileStat.st_mtime;
+    configModifyTimes[CONFIGPATH] = fileStat.st_mtime;
 
     isFirstLaunch = false;
 }
@@ -103,7 +106,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
     if (configValues.find(COMMAND) == configValues.end()) {
         if (COMMAND[0] == '$') {
             // register a dynamic var
-            Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND, VALUE);
+            Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
             configDynamicVars[COMMAND.substr(1)] = VALUE;
         } else {
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
@@ -429,6 +432,60 @@ void CConfigManager::handleDefaultWorkspace(const std::string& command, const st
     }
 }
 
+void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
+    static const char* const ENVHOME = getenv("HOME");
+
+    auto value = rawpath;
+
+    if (value[0] == '~') {
+        value.replace(0, 1, std::string(ENVHOME));
+    }
+
+    if (!std::filesystem::exists(value)) {
+        Debug::log(ERR, "source= file doesnt exist");
+        parseError = "source file " + value + " doesn't exist!";
+        return;
+    }
+
+    configPaths.push_back(value);
+
+    struct stat fileStat;
+    int err = stat(value.c_str(), &fileStat);
+    if (err != 0) {
+        Debug::log(WARN, "Error at ticking config at %s, error %i: %s", value.c_str(), err, strerror(err));
+        return;
+    }
+
+    configModifyTimes[value] = fileStat.st_mtime;
+
+    std::ifstream ifs;
+    ifs.open(value);
+    std::string line = "";
+    int linenum = 1;
+    if (ifs.is_open()) {
+        while (std::getline(ifs, line)) {
+            // Read line by line.
+            try {
+                configCurrentPath = value;
+                parseLine(line);
+            } catch (...) {
+                Debug::log(ERR, "Error reading line from config. Line:");
+                Debug::log(NONE, "%s", line.c_str());
+
+                parseError += "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): Line parsing error.";
+            }
+
+            if (parseError != "" && parseError.find("Config error at line") != 0) {
+                parseError = "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): " + parseError;
+            }
+
+            ++linenum;
+        }
+
+        ifs.close();
+    }
+}
+
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
     if (dynamic)
         parseError = "";
@@ -451,6 +508,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "windowrule") handleWindowRule(COMMAND, VALUE);
     else if (COMMAND == "bezier") handleBezier(COMMAND, VALUE);
     else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
+    else if (COMMAND == "source") handleSource(COMMAND, VALUE);
     else
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 
@@ -545,8 +603,13 @@ void CConfigManager::loadConfigLoadVars() {
     m_mAdditionalReservedAreas.clear();
     configDynamicVars.clear();
 
-    const char* const ENVHOME = getenv("HOME");
+    // paths
+    configPaths.clear();
+
+    static const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+
+    configPaths.push_back(CONFIGPATH);
 
     std::ifstream ifs;
     ifs.open(CONFIGPATH);
@@ -578,16 +641,17 @@ void CConfigManager::loadConfigLoadVars() {
         while (std::getline(ifs, line)) {
             // Read line by line.
             try {
+                configCurrentPath = "~/.config/hypr/hyprland.conf";
                 parseLine(line);
             } catch (...) {
                 Debug::log(ERR, "Error reading line from config. Line:");
                 Debug::log(NONE, "%s", line.c_str());
 
-                parseError += "Config error at line " + std::to_string(linenum) + ": Line parsing error.";
+                parseError += "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): Line parsing error.";
             }
 
             if (parseError != "" && parseError.find("Config error at line") != 0) {
-                parseError = "Config error at line " + std::to_string(linenum) + ": " + parseError;
+                parseError = "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): " + parseError;
             }
 
             ++linenum;
@@ -630,7 +694,7 @@ void CConfigManager::loadConfigLoadVars() {
 }
 
 void CConfigManager::tick() {
-    const char* const ENVHOME = getenv("HOME");
+    static const char* const ENVHOME = getenv("HOME");
 
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
 
@@ -639,18 +703,26 @@ void CConfigManager::tick() {
         return;
     }
 
-    struct stat fileStat;
-    int err = stat(CONFIGPATH.c_str(), &fileStat);
-    if (err != 0) {
-        Debug::log(WARN, "Error at ticking config at %s, error %i: %s", CONFIGPATH.c_str(), err, strerror(err));
-        return;
+    bool parse = false;
+
+    for (auto& cf : configPaths) {
+        struct stat fileStat;
+        int err = stat(cf.c_str(), &fileStat);
+        if (err != 0) {
+            Debug::log(WARN, "Error at ticking config at %s, error %i: %s", cf.c_str(), err, strerror(err));
+            return;
+        }
+
+        // check if we need to reload cfg
+        if (fileStat.st_mtime != configModifyTimes[cf] || m_bForceReload) {
+            parse = true;
+            configModifyTimes[cf] = fileStat.st_mtime;
+        }
     }
 
-    // check if we need to reload cfg
-    if (fileStat.st_mtime != lastModifyTime || m_bForceReload) {
-        lastModifyTime = fileStat.st_mtime;
+    if (parse) {
         m_bForceReload = false;
-        
+
         loadConfigLoadVars();
     }
 }

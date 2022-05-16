@@ -101,7 +101,14 @@ void CConfigManager::init() {
 
 void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::string& VALUE) {
     if (configValues.find(COMMAND) == configValues.end()) {
-        parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
+        if (COMMAND[0] == '$') {
+            // register a dynamic var
+            Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND, VALUE);
+            configDynamicVars[COMMAND.substr(1)] = VALUE;
+        } else {
+            parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
+        }
+
         return;
     }
 
@@ -456,6 +463,23 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     return parseError;
 }
 
+void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equalsPlace) {
+    auto dollarPlace = line.find_first_of('$', equalsPlace);
+
+    while (dollarPlace != std::string::npos) {
+
+        const auto STRAFTERDOLLAR = line.substr(dollarPlace + 1);
+        for (auto&[var, value] : configDynamicVars) {
+            if (STRAFTERDOLLAR.find(var) == 0) {
+                line.replace(dollarPlace, var.length() + 1, value);
+                break;
+            }
+        }
+
+        dollarPlace = line.find_first_of('$', dollarPlace + 1);
+    }
+}
+
 void CConfigManager::parseLine(std::string& line) {
     // first check if its not a comment
     const auto COMMENTSTART = line.find_first_of('#');
@@ -494,6 +518,9 @@ void CConfigManager::parseLine(std::string& line) {
     // check if command
     const auto EQUALSPLACE = line.find_first_of('=');
 
+    // apply vars
+    applyUserDefinedVars(line, EQUALSPLACE);
+
     if (EQUALSPLACE == std::string::npos)
         return;
 
@@ -516,6 +543,7 @@ void CConfigManager::loadConfigLoadVars() {
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
     m_mAdditionalReservedAreas.clear();
+    configDynamicVars.clear();
 
     const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");

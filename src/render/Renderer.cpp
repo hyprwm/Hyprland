@@ -23,7 +23,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
     else
         g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
-
+    
     wlr_surface_send_frame_done(surface, RDATA->when);
 
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
@@ -488,6 +488,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;
             fixedDamageBox.y -= m.vecPosition.y;
+            scaleBox(&fixedDamageBox, m.scale);
             wlr_output_damage_add_box(m.damage, &fixedDamageBox);
         }
 
@@ -501,6 +502,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;
             fixedDamageBox.y -= m.vecPosition.y;
+            scaleBox(&fixedDamageBox, m.scale);
             wlr_output_damage_add_box(m.damage, &fixedDamageBox);
         }
 
@@ -510,8 +512,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 }
 
 void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
-    wlr_box damageBox = {0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y};
-    scaleBox(&damageBox, pMonitor->scale);
+    wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
 
     if (g_pConfigManager->getInt("debug:log_damage"))
@@ -521,6 +522,7 @@ void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
 void CHyprRenderer::damageBox(wlr_box* pBox) {
     for (auto& m : g_pCompositor->m_lMonitors) {
         wlr_box damageBox = {pBox->x - m.vecPosition.x, pBox->y - m.vecPosition.y, pBox->width, pBox->height};
+        scaleBox(&damageBox, m.scale);
         wlr_output_damage_add_box(m.damage, &damageBox);
     }
 
@@ -620,7 +622,11 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
         }
     } else {
         wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (int)pMonitorRule->refreshRate * 1000);
+        pMonitor->vecSize = pMonitorRule->resolution;
     }
+
+    pMonitor->vecPixelSize = pMonitor->vecSize;
+    pMonitor->vecSize = (pMonitor->vecSize / pMonitor->scale).floor();
 
     // update renderer
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);

@@ -67,6 +67,7 @@ public:
     std::list<CWorkspace>   m_lWorkspaces;
     std::list<SSubsurface>  m_lSubsurfaces;
     std::list<CWindow*>     m_lWindowsFadingOut;
+    std::list<SLayerSurface*> m_lSurfacesFadingOut;
 
     void                    startCompositor(); 
     void                    cleanupExit();
@@ -111,7 +112,7 @@ public:
     bool                    doesSeatAcceptInput(wlr_surface*);
     bool                    isWindowActive(CWindow*);
     void                    moveWindowToTop(CWindow*);
-    void                    cleanupWindows();
+    void                    cleanupFadingOut();
     CWindow*                getWindowInDirection(CWindow*, char);
     void                    deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude = nullptr);
     CWindow*                getNextWindowOnWorkspace(CWindow*);

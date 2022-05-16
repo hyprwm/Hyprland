@@ -76,8 +76,12 @@ public:
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
 
 private:
+    std::deque<std::string>                       configPaths; // stores all the config paths
+    std::unordered_map<std::string, time_t>       configModifyTimes; // stores modify times
+    std::unordered_map<std::string, std::string>  configDynamicVars; // stores dynamic vars declared by the user
     std::unordered_map<std::string, SConfigValue> configValues;
-    time_t lastModifyTime = 0;  // for reloading the config if changed
+
+    std::string                                   configCurrentPath;
 
     std::string currentCategory = "";  // For storing the category of the current item
 
@@ -94,6 +98,7 @@ private:
     // internal methods
     void                setDefaultVars();
 
+    void                applyUserDefinedVars(std::string&, const size_t);
     void                loadConfigLoadVars();
     SConfigValue        getConfigValueSafe(std::string);
     void                parseLine(std::string&);
@@ -106,6 +111,7 @@ private:
     void                handleDefaultWorkspace(const std::string&, const std::string&);
     void                handleBezier(const std::string&, const std::string&);
     void                handleAnimation(const std::string&, const std::string&);
+    void                handleSource(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

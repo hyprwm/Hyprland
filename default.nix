@@ -40,7 +40,7 @@ stdenv.mkDerivation rec {
   installPhase = ''
     cd ../
     mkdir -p $out/share/wayland-sessions
-    cp ./example/hyprland.desktop $out/share/wayland-sessions/
+    cp ./example/hyprland.desktop $out/share/wayland-sessions
     mkdir -p $out/bin
     cp ./build/Hyprland $out/bin
     cp ./hyprctl/hyprctl $out/bin
@@ -49,6 +49,8 @@ stdenv.mkDerivation rec {
     cp ./assets/wall_4K.png $out/share/hyprland
     cp ./assets/wall_8K.png $out/share/hyprland
   '';
+
+  passthru.providedSessions = [ "hyprland" ];
 
   meta = with lib; {
     homepage = "https://github.com/vaxerski/Hyprland";

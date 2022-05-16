@@ -129,9 +129,9 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src) {
 void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
     m_RenderData.pMonitor = pMonitor;
 
-    glViewport(0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y);
+    glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
-    wlr_matrix_projection(m_RenderData.projection, pMonitor->vecSize.x, pMonitor->vecSize.y, WL_OUTPUT_TRANSFORM_NORMAL); // TODO: this is deprecated
+    wlr_matrix_projection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);  // TODO: this is deprecated
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -139,16 +139,16 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
     m_iWLROutputFb = m_iCurrentOutputFb;
 
     // ensure a framebuffer for the monitor exists
-    if (m_mMonitorRenderResources.find(pMonitor) == m_mMonitorRenderResources.end() || m_mMonitorRenderResources[pMonitor].primaryFB.m_Size != pMonitor->vecSize) {
+    if (m_mMonitorRenderResources.find(pMonitor) == m_mMonitorRenderResources.end() || m_mMonitorRenderResources[pMonitor].primaryFB.m_Size != pMonitor->vecPixelSize) {
         m_mMonitorRenderResources[pMonitor].stencilTex.allocate();
 
         m_mMonitorRenderResources[pMonitor].primaryFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
         m_mMonitorRenderResources[pMonitor].mirrorFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
         m_mMonitorRenderResources[pMonitor].mirrorSwapFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
 
-        m_mMonitorRenderResources[pMonitor].primaryFB.alloc(pMonitor->vecSize.x * pMonitor->scale, pMonitor->vecSize.y * pMonitor->scale);
-        m_mMonitorRenderResources[pMonitor].mirrorFB.alloc(pMonitor->vecSize.x * pMonitor->scale, pMonitor->vecSize.y * pMonitor->scale);
-        m_mMonitorRenderResources[pMonitor].mirrorSwapFB.alloc(pMonitor->vecSize.x * pMonitor->scale, pMonitor->vecSize.y * pMonitor->scale);
+        m_mMonitorRenderResources[pMonitor].primaryFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_mMonitorRenderResources[pMonitor].mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_mMonitorRenderResources[pMonitor].mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
         createBGTextureForMonitor(pMonitor);
     }
@@ -162,14 +162,13 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage) {
 void CHyprOpenGLImpl::end() {
     // end the render, copy the data to the WLR framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
-    wlr_box windowBox = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+    wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
 
     pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
 
     clear(CColor(11, 11, 11, 255));
 
-    scaleBox(&windowBox, m_RenderData.pMonitor->scale);
-    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &windowBox, 255.f, 0);
+    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &monbox, 255.f, 0);
 
     // reset our data
     m_RenderData.pMonitor = nullptr;
@@ -196,7 +195,7 @@ void CHyprOpenGLImpl::clear(const CColor& color) {
 void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
     RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
 
-    if (!pBox) {
+    if (!pBox || true) {
         glDisable(GL_SCISSOR_TEST);
         return;
     }
@@ -208,7 +207,7 @@ void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
 void CHyprOpenGLImpl::scissor(const pixman_box32* pBox) {
     RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
 
-    if (!pBox) {
+    if (!pBox || true) {
         glDisable(GL_SCISSOR_TEST);
         return;
     }
@@ -227,6 +226,7 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
     // TODO: respect damage
+    scissor((wlr_box*)nullptr);
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
@@ -654,7 +654,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     // this is temporary, doesnt mess with the actual wlr damage
     pixman_region32_t fakeDamage;
     pixman_region32_init(&fakeDamage);
-    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
     begin(PMONITOR, &fakeDamage);
 
@@ -664,7 +664,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     PFRAMEBUFFER->m_tTransform = g_pXWaylandManager->getWindowSurface(pWindow)->current.transform;
 
-    PFRAMEBUFFER->alloc(PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+    PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
     PFRAMEBUFFER->bind();
 
@@ -691,7 +691,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
     #endif
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y);
+    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
 
     end();
 
@@ -708,7 +708,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     // this is temporary, doesnt mess with the actual wlr damage
     pixman_region32_t fakeDamage;
     pixman_region32_init(&fakeDamage);
-    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
     begin(PMONITOR, &fakeDamage);
 
@@ -718,7 +718,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 
     PFRAMEBUFFER->m_tTransform = pLayer->layerSurface->surface->current.transform;
 
-    PFRAMEBUFFER->alloc(PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+    PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
     PFRAMEBUFFER->bind();
 
@@ -736,7 +736,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
 #endif
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y);
+    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
 
     end();
 
@@ -848,8 +848,8 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
-    
-    wlr_box box = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
+
+    wlr_box box = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
 
     renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
 }

@@ -28,8 +28,8 @@ void Events::listener_change(wl_listener* listener, void* data) {
         wlr_box BOX;
         wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m.output, &BOX);
 
-        m.vecSize.x = BOX.width;
-        m.vecSize.y = BOX.height;
+        //m.vecSize.x = BOX.width;
+       // m.vecSize.y = BOX.height;
         m.vecPosition.x = BOX.x;
         m.vecPosition.y = BOX.y;
 
@@ -38,7 +38,7 @@ void Events::listener_change(wl_listener* listener, void* data) {
         CONFIGHEAD->state.x = m.vecPosition.x;
         CONFIGHEAD->state.y = m.vecPosition.y;
 
-        wlr_output_set_custom_mode(m.output, m.vecSize.x, m.vecSize.y, (int)(round(m.refreshRate * 1000)));
+        wlr_output_set_custom_mode(m.output, m.vecPixelSize.x, m.vecPixelSize.y, (int)(round(m.refreshRate * 1000)));
     }
 
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
@@ -181,10 +181,11 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (DTMODE == DAMAGE_TRACKING_NONE || DTMODE == DAMAGE_TRACKING_MONITOR) {
-        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
     } else {
+
         // if we use blur we need to expand the damage for proper blurring
         if (g_pConfigManager->getInt("decoration:blur") == 1) {
             // TODO: can this be optimized?
@@ -205,12 +206,13 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     // potentially can save on resources.
 
     g_pHyprOpenGL->begin(PMONITOR, &damage);
-    g_pHyprOpenGL->clear(CColor(11, 11, 11, 255));
+    wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);  // beginning with wlr here magically fixes some issues with scaling...??
+                                                                                                            // what the actual fuck in the name of fuck
+
+    g_pHyprOpenGL->clear(CColor(100, 11, 11, 255));
     g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
     g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
-
-    wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
 
     wlr_output_render_software_cursors(PMONITOR->output, NULL);
 
@@ -223,7 +225,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     pixman_region32_init(&frameDamage);
 
     const auto TRANSFORM = wlr_output_transform_invert(PMONITOR->output->transform);
-    wlr_region_transform(&frameDamage, &PMONITOR->damage->current, TRANSFORM, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+    wlr_region_transform(&frameDamage, &PMONITOR->damage->current, TRANSFORM, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
+
+    if (DTMODE == DAMAGE_TRACKING_NONE || DTMODE == DAMAGE_TRACKING_MONITOR)
+        pixman_region32_union_rect(&frameDamage, &frameDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
     wlr_output_set_damage(PMONITOR->output, &frameDamage);
     pixman_region32_fini(&frameDamage);

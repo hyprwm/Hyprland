@@ -9,6 +9,7 @@
 struct SMonitor {
     Vector2D    vecPosition     = Vector2D(0,0);
     Vector2D    vecSize         = Vector2D(0,0);
+    Vector2D    vecPixelSize    = Vector2D(0,0);
 
     bool        primary         = false;
 

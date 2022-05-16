@@ -23,7 +23,12 @@ void SDwindleNodeData::recalcSizePosRecursive() {
 
         const auto REVERSESPLITRATIO = 2.f - splitRatio;
 
-        if (size.x > size.y) {
+        if (g_pConfigManager->getInt("dwindle:preserve_split") == 0)
+            splitTop = size.y > size.x;
+
+        const auto SPLITSIDE = !splitTop;
+
+        if (SPLITSIDE) {
             // split sidey
             children[0]->position = position;
             children[0]->size = Vector2D(size.x / 2.f * splitRatio, size.y);
@@ -213,6 +218,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
 
     // if cursor over first child, make it first, etc
     const auto SIDEBYSIDE = NEWPARENT->size.x / NEWPARENT->size.y > 1.f;
+    NEWPARENT->splitTop = !SIDEBYSIDE;
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     const auto FORCESPLIT = g_pConfigManager->getInt("dwindle:force_split");
@@ -485,10 +491,10 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
             if (!PPARENT)
                 return; // the only window on a workspace, ignore
 
-            const bool PARENTSIDEBYSIDE = PPARENT->size.x / PPARENT->size.y > 1.f;
+            const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
 
             // Get the parent's parent
-            const auto PPARENT2 = PPARENT->pParent;
+            auto PPARENT2 = PPARENT->pParent;
 
             // No parent means we have only 2 windows, and thus one axis of freedom
             if (!PPARENT2) {
@@ -505,7 +511,26 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
                 return;
             }
 
-            // If there is a parent 2, we have 2 axes of freedom
+            // Get first parent with other split
+            while(PPARENT2 && PPARENT2->splitTop == !PARENTSIDEBYSIDE)
+                PPARENT2 = PPARENT2->pParent;
+
+            // no parent, one axis of freedom
+            if (!PPARENT2) {
+                if (PARENTSIDEBYSIDE) {
+                    allowedMovement.x *= 2.f / PPARENT->size.x;
+                    PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
+                    PPARENT->recalcSizePosRecursive();
+                } else {
+                    allowedMovement.y *= 2.f / PPARENT->size.y;
+                    PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
+                    PPARENT->recalcSizePosRecursive();
+                }
+
+                return;
+            }
+
+            // 2 axes of freedom
             const auto SIDECONTAINER = PARENTSIDEBYSIDE ? PPARENT : PPARENT2;
             const auto TOPCONTAINER = PARENTSIDEBYSIDE ? PPARENT2 : PPARENT;
 

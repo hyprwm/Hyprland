@@ -60,7 +60,9 @@ public:
     void    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 
     void    makeWindowSnapshot(CWindow*);
+    void    makeLayerSnapshot(SLayerSurface*);
     void    renderSnapshot(CWindow**);
+    void    renderSnapshot(SLayerSurface**);
 
     void    clear(const CColor&);
     void    clearWithTex();
@@ -78,6 +80,7 @@ public:
     pixman_region32_t m_rOriginalDamageRegion; // used for storing the pre-expanded region
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
+    std::unordered_map<SLayerSurface*, CFramebuffer> m_mLayerFramebuffers;
     std::unordered_map<SMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
     std::unordered_map<SMonitor*, CTexture> m_mMonitorBGTextures;
 

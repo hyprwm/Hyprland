@@ -135,7 +135,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (PMONITOR->ID == pMostHzMonitor->ID) {
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
-        g_pCompositor->cleanupWindows();
+        g_pCompositor->cleanupFadingOut();
 
         HyprCtl::tickHyprCtl(); // so that we dont get that race condition multithread bullshit
 
@@ -191,7 +191,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
             const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
 
-            const auto BLURRADIUS = BLURSIZE * BLURPASSES * 2; // is this 2? I don't know but 2 works.
+            const auto BLURRADIUS = BLURSIZE * pow(2, BLURPASSES); // is this 2^pass? I don't know but it works... I think.
 
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
 

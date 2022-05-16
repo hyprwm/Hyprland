@@ -80,6 +80,10 @@ Try it out and report bugs / suggestions!
 ![Preview B]
 
 <br>
+
+![Preview C]
+
+<br>
 <br>
 
 # Stars Over Time
@@ -139,8 +143,9 @@ Try it out and report bugs / suggestions!
 <!----------------------------------{ Images }--------------------------------->
 
 [Stars Preview]: https://starchart.cc/vaxerski/Hyprland.svg
-[Preview A]: https://i.imgur.com/ZA4Fa8R.png
-[Preview B]: https://i.imgur.com/BpXxM8H.png
+[Preview A]: https://i.imgur.com/NbrTnZH.png
+[Preview B]: https://i.imgur.com/ZA4Fa8R.png
+[Preview C]: https://i.imgur.com/BpXxM8H.png
 [Banner]: https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png
 
 

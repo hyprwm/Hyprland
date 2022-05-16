@@ -18,6 +18,7 @@ enum AVARDAMAGEPOLICY {
 
 class CAnimationManager;
 class CWorkspace;
+struct SLayerSurface;
 
 class CAnimatedVariable {
 public:
@@ -183,8 +184,12 @@ private:
 
     float*          m_pSpeed = nullptr;
     int64_t*        m_pEnabled = nullptr;
+
+    // owners
     void*           m_pWindow = nullptr;
     void*           m_pWorkspace = nullptr;
+    void*           m_pLayer = nullptr;
+
     std::string*    m_pBezier = nullptr;
 
     bool            m_bDummy = true;
@@ -196,4 +201,5 @@ private:
 
     friend class CAnimationManager;
     friend class CWorkspace;
+    friend struct SLayerSurface;
 };

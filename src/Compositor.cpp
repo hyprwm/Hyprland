@@ -67,7 +67,7 @@ CCompositor::CCompositor() {
     m_sWLRScene = wlr_scene_create();
     wlr_scene_attach_output_layout(m_sWLRScene, m_sWLROutputLayout);
 
-    m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay);
+    m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 2);
 
     m_sWLRCursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(m_sWLRCursor, m_sWLROutputLayout);
@@ -402,13 +402,13 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (pWindow->m_bNoFocus) {
-        Debug::log(LOG, "Ignoring focus to nofocus window!");
+    if (!pWindow || !windowValidMapped(pWindow)) {
+        wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
         return;
     }
 
-    if (!pWindow || !windowValidMapped(pWindow)) {
-        wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
+    if (pWindow->m_bNoFocus) {
+        Debug::log(LOG, "Ignoring focus to nofocus window!");
         return;
     }
 
@@ -513,7 +513,7 @@ CWindow* CCompositor::getWindowForPopup(wlr_xdg_popup* popup) {
 
 wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::list<SLayerSurface*>* layerSurfaces, Vector2D* sCoords) {
     for (auto& l : *layerSurfaces) {
-        if (!l->layerSurface->mapped)
+        if (l->fadingOut || (l->layerSurface && !l->layerSurface->mapped))
             continue;
 
         const auto SURFACEAT = wlr_layer_surface_v1_surface_at(l->layerSurface, pos.x - l->geometry.x, pos.y - l->geometry.y, &sCoords->x, &sCoords->y);
@@ -632,7 +632,7 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
     }
 }
 
-void CCompositor::cleanupWindows() {
+void CCompositor::cleanupFadingOut() {
     for (auto& w : m_lWindowsFadingOut) {
 
         bool valid = windowExists(w);
@@ -647,6 +647,26 @@ void CCompositor::cleanupWindows() {
             m_lWindowsFadingOut.remove(w);
 
             Debug::log(LOG, "Cleanup: destroyed a window");
+            return;
+        }
+    }
+
+    for (auto& ls : m_lSurfacesFadingOut) {
+        if (ls->fadingOut && ls->readyToDelete && !ls->alpha.isBeingAnimated()) {
+            for (auto& m : m_lMonitors) {
+                for (auto& lsl : m.m_aLayerSurfaceLists) {
+                    lsl.remove(ls);
+                }
+            }
+
+            g_pHyprOpenGL->m_mLayerFramebuffers[ls].release();
+            g_pHyprOpenGL->m_mLayerFramebuffers.erase(ls);
+            
+            m_lSurfacesFadingOut.remove(ls);
+            delete ls;
+
+            Debug::log(LOG, "Cleanup: destroyed a layersurface");
+
             return;
         }
     }

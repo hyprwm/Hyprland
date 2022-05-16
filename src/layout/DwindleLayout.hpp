@@ -14,6 +14,8 @@ struct SDwindleNodeData {
 
     std::array<SDwindleNodeData*, 2> children = { nullptr, nullptr };
 
+    bool            splitTop = false; // for preserve_split
+
     bool            isGroup = false;
     int             groupMemberActive = 0;
     std::deque<SDwindleNodeData*> groupMembers;

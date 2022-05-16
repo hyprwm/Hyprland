@@ -14,6 +14,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["movewindow"]        = moveActiveTo;
     m_mDispatchers["togglegroup"]       = toggleGroup;
     m_mDispatchers["changegroupactive"] = changeGroupActive;
+    m_mDispatchers["togglesplit"]       = toggleSplit;
     m_mDispatchers["splitratio"]        = alterSplitRatio;
     m_mDispatchers["focusmonitor"]      = focusMonitor;
 }
@@ -432,11 +433,21 @@ void CKeybindManager::moveActiveTo(std::string args) {
 }
 
 void CKeybindManager::toggleGroup(std::string args) {
-    g_pLayoutManager->getCurrentLayout()->toggleWindowGroup(g_pCompositor->m_pLastWindow);
+    SLayoutMessageHeader header;
+    header.pWindow = g_pCompositor->m_pLastWindow;
+    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglegroup");
 }
 
 void CKeybindManager::changeGroupActive(std::string args) {
-    g_pLayoutManager->getCurrentLayout()->switchGroupWindow(g_pCompositor->m_pLastWindow);
+    SLayoutMessageHeader header;
+    header.pWindow = g_pCompositor->m_pLastWindow;
+    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "changegroupactive");
+}
+
+void CKeybindManager::toggleSplit(std::string args) {
+    SLayoutMessageHeader header;
+    header.pWindow = g_pCompositor->m_pLastWindow;
+    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglesplit");
 }
 
 void CKeybindManager::alterSplitRatio(std::string args) {

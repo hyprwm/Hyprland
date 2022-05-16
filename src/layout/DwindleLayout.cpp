@@ -834,3 +834,23 @@ void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
 
     PNODE->pParent->recalcSizePosRecursive();
 }
+
+void CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
+    if (message == "togglegroup")
+        toggleWindowGroup(header.pWindow);
+    else if (message == "changegroupactive")
+        switchGroupWindow(header.pWindow);
+    else if (message == "togglesplit")
+        toggleSplit(header.pWindow);
+}
+
+void CHyprDwindleLayout::toggleSplit(CWindow* pWindow) {
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE || !PNODE->pParent)
+        return;
+
+    PNODE->pParent->splitTop = !PNODE->pParent->splitTop;
+
+    PNODE->pParent->recalcSizePosRecursive();
+}

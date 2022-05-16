@@ -21,4 +21,7 @@ public:
 
     // for animations
     CAnimatedVariable m_vRenderOffset;
+    CAnimatedVariable m_fAlpha;
+
+    void            startAnim(bool in, bool left);
 };

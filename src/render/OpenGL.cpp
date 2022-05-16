@@ -565,10 +565,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, i
 
     wlr_matrix_transpose(glMatrix, glMatrix);
 
-    if (col.a == 255.f)
-        glDisable(GL_BLEND);
-    else
-        glEnable(GL_BLEND);
+    glEnable(GL_BLEND);
 
     glUseProgram(m_shQUAD.program);
 

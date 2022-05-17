@@ -701,7 +701,7 @@ void CConfigManager::tick() {
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
 
     if (!std::filesystem::exists(CONFIGPATH)) {
-        loadConfigLoadVars();
+        Debug::log(ERR, "Config doesn't exist??");
         return;
     }
 

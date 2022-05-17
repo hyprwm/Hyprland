@@ -54,6 +54,9 @@ struct SRenderData {
 
     // for alpha settings
     float alpha = 1.f;
+
+    // for decorations (border)
+    bool decorate = false;
 };
 
 struct SKeyboard {

@@ -7,6 +7,7 @@ struct SQuad {
     GLint proj;
     GLint color;
     GLint posAttrib;
+    GLint texAttrib;
 };
 
 class CShader {

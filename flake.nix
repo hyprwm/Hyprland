@@ -31,8 +31,15 @@
         inherit (self.packages.${system}) wlroots;
       };
     });
+
     formatter = genSystems (system: pkgsFor.${system}.alejandra);
-    # TODO Provide a nixos module for easy installation
+
+    # TODO Provide a nixos module for easy installation and configuration
     # nixosModules.default = import ./module.nix;
+
+    # Deprecated
+    overlay = _: prev: {
+      hyprland = self.packages.${prev.system}.default;
+    };
   };
 }

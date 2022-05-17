@@ -68,6 +68,7 @@ stdenv.mkDerivation {
     install -Dm755 ./build/Hyprland -t $out/bin
     install -Dm755 ./hyprctl/hyprctl -t $out/bin
     install -Dm644 ./assets/* -t $out/share/hyprland
+    install -Dm644 ./example/hyprland.conf -t $out/share/hyprland
     popd
   '';
 

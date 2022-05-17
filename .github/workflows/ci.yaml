@@ -1,6 +1,6 @@
 name: Build Hyprland
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 jobs:
   gcc:
     name: "Build Hyprland (Arch)"

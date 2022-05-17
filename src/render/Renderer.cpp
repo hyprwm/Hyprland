@@ -20,9 +20,9 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     scaleBox(&windowBox, RDATA->output->scale);
 
     if (RDATA->surface && surface == RDATA->surface)
-        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
+        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"), RDATA->decorate);
     else
-        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"));
+        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"), false, RDATA->decorate);
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
@@ -97,17 +97,15 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.h = pWindow->m_vRealSize.vec().y;
     renderdata.dontRound = pWindow->m_bIsFullscreen;
     renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (PWORKSPACE->m_fAlpha.fl() / 255.f);
-    renderdata.alpha = pWindow->m_bIsFullscreen ? g_pConfigManager->getFloat("decoration:fullscreen_opacity") :
-        pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
+    renderdata.alpha = pWindow->m_bIsFullscreen ? g_pConfigManager->getFloat("decoration:fullscreen_opacity") : pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
+    renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders;
 
     // apply window special data
     renderdata.alpha *= pWindow->m_sSpecialRenderData.alpha;
 
-    wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+    g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 
-    // border
-    if (decorate && !pWindow->m_bX11DoesntWantBorders)
-        drawBorderForWindow(pWindow, pMonitor, renderdata.alpha * renderdata.fadeAlpha, PWORKSPACE->m_vRenderOffset.vec());
+    wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->surface) {
@@ -118,7 +116,9 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         renderdata.dontRound = false; // restore dontround
         renderdata.pMonitor = pMonitor;
         wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
-    } 
+    }
+
+    g_pHyprOpenGL->m_pCurrentWindow = nullptr;
 }
 
 void CHyprRenderer::renderLayer(SLayerSurface* pLayer, SMonitor* pMonitor, timespec* time) {
@@ -436,23 +436,6 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
         damageMonitor(PMONITOR);
 
     Debug::log(LOG, "Monitor %s layers arranged: reserved: %f %f %f %f", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y, PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
-}
-
-void CHyprRenderer::drawBorderForWindow(CWindow* pWindow, SMonitor* pMonitor, float alpha, const Vector2D& offset) {
-    const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
-
-    if (BORDERSIZE < 1)
-        return;
-
-    auto BORDERCOL = pWindow->m_cRealBorderColor.col();
-    BORDERCOL.a *= (alpha / 255.f);
-
-    Vector2D correctPos = pWindow->m_vRealPosition.vec() - pMonitor->vecPosition;
-    Vector2D correctSize = pWindow->m_vRealSize.vec();
-
-    // top
-    wlr_box border = {correctPos.x - BORDERSIZE / 2.f + offset.x, correctPos.y - BORDERSIZE / 2.f + offset.y, pWindow->m_vRealSize.vec().x + BORDERSIZE, pWindow->m_vRealSize.vec().y + BORDERSIZE};
-    g_pHyprOpenGL->renderBorder(&border, BORDERCOL, BORDERSIZE, g_pConfigManager->getInt("decoration:rounding"));
 }
 
 void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {

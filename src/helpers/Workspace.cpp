@@ -23,6 +23,7 @@ CWorkspace::CWorkspace(int monitorID) {
 
     m_vRenderOffset.m_pWorkspace = this;
     m_vRenderOffset.create(AVARTYPE_VECTOR, &g_pConfigManager->getConfigValuePtr("animations:workspaces_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces")->intValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces_curve")->strValue, nullptr, AVARDAMAGE_ENTIRE);
+    m_fAlpha.m_pWorkspace = this;
     m_fAlpha.create(AVARTYPE_FLOAT, &g_pConfigManager->getConfigValuePtr("animations:workspaces_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces")->intValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces_curve")->strValue, nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(255.f);
 }

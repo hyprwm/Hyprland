@@ -544,7 +544,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecSize.x, m_RenderData.pMonitor->vecSize.y};
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
-        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, 255.f, &damage);  // 255.f because we adjusted blur strength to a
+        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, a, &damage);
         
         // render the window, but clear stencil
         glClearStencil(0);

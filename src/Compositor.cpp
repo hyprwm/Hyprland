@@ -662,8 +662,8 @@ void CCompositor::cleanupFadingOut() {
             g_pHyprOpenGL->m_mLayerFramebuffers[ls].release();
             g_pHyprOpenGL->m_mLayerFramebuffers.erase(ls);
             
-            m_lSurfacesFadingOut.remove(ls);
             delete ls;
+            m_lSurfacesFadingOut.remove(ls);
 
             Debug::log(LOG, "Cleanup: destroyed a layersurface");
 

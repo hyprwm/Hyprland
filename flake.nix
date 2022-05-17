@@ -23,6 +23,7 @@
   in {
     packages = genSystems (system: {
       wlroots = pkgsFor.${system}.wlroots.overrideAttrs (prev: {
+        version = inputs.wlroots.lastModifiedDate;
         src = inputs.wlroots;
       });
       default = pkgsFor.${system}.callPackage ./default.nix {
@@ -30,5 +31,8 @@
         inherit (self.packages.${system}) wlroots;
       };
     });
+    formatter = genSystems (system: pkgsFor.${system}.alejandra);
+    # TODO Provide a nixos module for easy installation
+    # nixosModules.default = import ./module.nix;
   };
 }

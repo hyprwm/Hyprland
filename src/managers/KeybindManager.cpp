@@ -175,6 +175,9 @@ void CKeybindManager::changeworkspace(std::string args) {
         return;
     }
 
+    // remove constraints 
+    g_pCompositor->m_sSeat.mouse->constraintActive = false;
+
     // if it exists, we warp to it
     if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_iMonitorID);
@@ -399,6 +402,9 @@ void CKeybindManager::moveFocusTo(std::string args) {
     }
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+
+    // remove constraints
+    g_pCompositor->m_sSeat.mouse->constraintActive = false;
 
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);

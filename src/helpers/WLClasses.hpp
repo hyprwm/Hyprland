@@ -76,6 +76,7 @@ struct SMouse {
     wlr_input_device* mouse = nullptr;
 
     wlr_pointer_constraint_v1* currentConstraint = nullptr;
+    bool                       constraintActive = false;
 
     pixman_region32_t confinedTo;
 

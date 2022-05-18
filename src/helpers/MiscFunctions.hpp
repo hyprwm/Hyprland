@@ -9,5 +9,6 @@ void scaleBox(wlr_box*, float);
 std::string removeBeginEndSpacesTabs(std::string);
 bool isNumber(const std::string&);
 bool isDirection(const std::string&);
+int getWorkspaceIDFromString(const std::string&, std::string&);
 
 float getPlusMinusKeywordResult(std::string in, float relative);

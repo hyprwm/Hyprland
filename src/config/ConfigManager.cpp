@@ -42,6 +42,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:blur_passes"].intValue = 1;
     configValues["decoration:active_opacity"].floatValue = 1;
     configValues["decoration:inactive_opacity"].floatValue = 1;
+    configValues["decoration:fullscreen_opacity"].floatValue = 1;
 
     configValues["dwindle:pseudotile"].intValue = 0;
     configValues["dwindle:col.group_border"].intValue = 0x66777700;
@@ -700,7 +701,7 @@ void CConfigManager::tick() {
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
 
     if (!std::filesystem::exists(CONFIGPATH)) {
-        loadConfigLoadVars();
+        Debug::log(ERR, "Config doesn't exist??");
         return;
     }
 

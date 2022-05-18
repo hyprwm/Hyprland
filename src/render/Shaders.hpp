@@ -21,8 +21,53 @@ precision mediump float;
 varying vec4 v_color;
 varying vec2 v_texcoord;
 
+uniform vec2 topLeft;
+uniform vec2 bottomRight;
+uniform vec2 fullSize;
+uniform float radius;
+
 void main() {
-    gl_FragColor = v_color;
+	if (radius == 0.0) {
+		gl_FragColor = v_color;
+		return;
+	}
+
+    vec2 pixCoord = fullSize * v_texcoord;
+
+	if (pixCoord[0] < topLeft[0]) {
+		// we're close left
+		if (pixCoord[1] < topLeft[1]) {
+			// top
+			if (distance(topLeft, pixCoord) > radius) {
+				discard;
+				return;
+			}
+		} else if (pixCoord[1] > bottomRight[1]) {
+			// bottom
+			if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord) > radius) {
+				discard;
+				return;
+			}
+		}
+	}
+	else if (pixCoord[0] > bottomRight[0]) {
+		// we're close right
+		if (pixCoord[1] < topLeft[1]) {
+			// top
+			if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord) > radius) {
+				discard;
+				return;
+			}
+		} else if (pixCoord[1] > bottomRight[1]) {
+			// bottom
+			if (distance(bottomRight, pixCoord) > radius) {
+				discard;
+				return;
+			}
+		}
+	}
+
+	gl_FragColor = v_color;
 })#";
 
 inline const std::string TEXVERTSRC = R"#(

@@ -176,7 +176,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
     // Populate the node with our window's data
-    PNODE->workspaceID = PMONITOR->activeWorkspace;
+    PNODE->workspaceID = pWindow->m_iWorkspaceID;
     PNODE->pWindow = pWindow;
     PNODE->isNode = false;
     PNODE->layout = this;
@@ -184,7 +184,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     SDwindleNodeData* OPENINGON;
     const auto MONFROMCURSOR = g_pCompositor->getMonitorFromCursor();
 
-    if (PMONITOR->ID == MONFROMCURSOR->ID)
+    if (PMONITOR->ID == MONFROMCURSOR->ID && PNODE->workspaceID == PMONITOR->activeWorkspace)
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
     else
         OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);

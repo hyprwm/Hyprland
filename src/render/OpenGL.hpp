@@ -53,11 +53,10 @@ public:
     void    begin(SMonitor*, pixman_region32_t*, bool fake = false);
     void    end();
 
-    void    renderRect(wlr_box*, const CColor&);
+    void    renderRect(wlr_box*, const CColor&, int round = 0);
     void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
-    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false);
-    void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0);
-    void    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
+    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool border = false);
+    void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool border = false);
 
     void    makeWindowSnapshot(CWindow*);
     void    makeLayerSnapshot(SLayerSurface*);
@@ -76,6 +75,8 @@ public:
 
     GLint  m_iCurrentOutputFb = 0;
     GLint  m_iWLROutputFb = 0;
+
+    CWindow* m_pCurrentWindow = nullptr; // hack to get the current rendered window
 
     pixman_region32_t m_rOriginalDamageRegion; // used for storing the pre-expanded region
 
@@ -109,9 +110,8 @@ private:
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
 
-    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false);
-    void                    renderTextureWithBlurInternal(const CTexture&, wlr_box*, float a, int round = 0);
-    
+    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool border = false);
+    void                    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

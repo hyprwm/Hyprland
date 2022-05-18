@@ -59,27 +59,10 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
     Debug::log(LOG, "LayerSurface %x destroyed", layersurface->layerSurface);
 
     if (!layersurface->fadingOut) {
-        if (layersurface->layerSurface->mapped) {
-            Debug::log(LOG, "LayerSurface wasn't unmapped, making a snapshot now!");
-
-            // make a snapshot and start fade
-            // layersurfaces aren't required to unmap before destroy
-            g_pHyprOpenGL->makeLayerSnapshot(layersurface);
-            layersurface->alpha = 0.f;
-
-            layersurface->fadingOut = true;
-        } else {
-            Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
-            layersurface->alpha.setValueAndWarp(0.f);
-            layersurface->fadingOut = true;
-        }
+        Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
+        layersurface->alpha.setValueAndWarp(0.f);
+        layersurface->fadingOut = true;
     }
-
-    if (layersurface->layerSurface->mapped)
-        layersurface->layerSurface->mapped = false;
-
-    if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
-        g_pCompositor->m_pLastFocus = nullptr;
 
     layersurface->hyprListener_commitLayerSurface.removeCallback();
     layersurface->hyprListener_destroyLayerSurface.removeCallback();

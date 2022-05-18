@@ -31,6 +31,50 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         return;
     }
 
+    Vector2D mouseCoords = getMouseCoordsInternal();
+    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+
+    // constraints
+    // All constraints TODO: multiple mice?
+    if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
+        // XWayland windows sometimes issue constraints weirdly.
+        // TODO: We probably should search their parent. wlr_xwayland_surface->parent
+        const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+
+        if (!CONSTRAINTWINDOW) {
+            g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
+        } else {
+            // Native Wayland apps know how 2 constrain themselves.
+            // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
+            const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
+            const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
+
+            if (!VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
+                if (g_pCompositor->m_sSeat.mouse->constraintActive) {
+                    Vector2D deltaToFit;
+
+                    if (mouseCoords.x < CONSTRAINTPOS.x)
+                        deltaToFit.x = CONSTRAINTPOS.x - mouseCoords.x;
+                    else if (mouseCoords.x > CONSTRAINTPOS.x + CONSTRAINTSIZE.x)
+                        deltaToFit.x = CONSTRAINTPOS.x + CONSTRAINTSIZE.x - mouseCoords.x;
+
+                    if (mouseCoords.y < CONSTRAINTPOS.y)
+                        deltaToFit.y = CONSTRAINTPOS.y - mouseCoords.y;
+                    else if (mouseCoords.y > CONSTRAINTPOS.y + CONSTRAINTSIZE.y)
+                        deltaToFit.y = CONSTRAINTPOS.y + CONSTRAINTSIZE.y - mouseCoords.y;
+
+                    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToFit.x, deltaToFit.y);
+
+                    mouseCoords = mouseCoords + deltaToFit;
+                }
+            } else {
+                if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
+                    g_pCompositor->m_sSeat.mouse->constraintActive = true;
+                }
+            }
+        }
+    }
+
     // update stuff
     updateDragIcon();
 
@@ -38,9 +82,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // focus
     wlr_surface* foundSurface = nullptr;
-    Vector2D mouseCoords = getMouseCoordsInternal();
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
     if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
         g_pCompositor->m_pLastMonitor = PMONITOR;
 
@@ -138,31 +180,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
-
-    // constraints
-    // All constraints TODO: multiple mice?
-    if (g_pCompositor->m_sSeat.mouse->currentConstraint && pFoundWindow) {  // TODO: make this match the pFoundWindow in SOME way. We don't want to constrain the mouse on another window.
-                                                                            // XWayland windows sometimes issue constraints weirdly.
-        const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
-
-        if (!CONSTRAINTWINDOW) {
-            g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
-        } else {
-            // Native Wayland apps know how 2 constrain themselves.
-            // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
-            if (CONSTRAINTWINDOW->m_bIsX11 || pFoundWindow == CONSTRAINTWINDOW) {
-                const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
-                const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
-
-                if (VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
-                    // todo: this is incorrect, but it will work in most cases for now
-                    // i made this cuz i wanna play minecraft lol
-                    Vector2D deltaToMiddle = CONSTRAINTPOS + CONSTRAINTSIZE / 2.f - mouseCoords;
-                    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToMiddle.x, deltaToMiddle.y);
-                }
-            }
-        }
-    }
 }
 
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
@@ -324,7 +341,8 @@ void CInputManager::destroyMouse(wlr_input_device* mouse) {
 
     g_pCompositor->m_sSeat.mouse = m_lMice.size() > 0 ? &m_lMice.front() : nullptr;
 
-    g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
+    if (g_pCompositor->m_sSeat.mouse)
+        g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
 }
 
 void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
@@ -430,6 +448,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     }
 
     pMouse->currentConstraint = constraint;
+    pMouse->constraintActive = true;
 
     if (pixman_region32_not_empty(&constraint->current.region)) {
         pixman_region32_intersect(&constraint->region, &constraint->surface->input_region, &constraint->current.region);

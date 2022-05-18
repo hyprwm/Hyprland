@@ -30,6 +30,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shQUAD.proj = glGetUniformLocation(prog, "proj");
     m_shQUAD.color = glGetUniformLocation(prog, "color");
     m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shQUAD.texAttrib = glGetAttribLocation(prog, "texcoord");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
     m_shRGBA.program = prog;
@@ -225,12 +226,9 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
     scissor(&box);
 }
 
-void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
+void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
-
-    // TODO: respect damage
-    scissor((wlr_box*)nullptr);
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
@@ -241,23 +239,42 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col) {
 
     wlr_matrix_transpose(glMatrix, glMatrix);
 
-    if (col.a == 255.f) 
-        glDisable(GL_BLEND);
-    else
-        glEnable(GL_BLEND);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUseProgram(m_shQUAD.program);
 
     glUniformMatrix3fv(m_shQUAD.proj, 1, GL_FALSE, glMatrix);
     glUniform4f(m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
+    const auto TOPLEFT = Vector2D(round, round);
+    const auto BOTTOMRIGHT = Vector2D(box->width - round, box->height - round);
+    const auto FULLSIZE = Vector2D(box->width, box->height);
+
+    // Rounded corners
+    glUniform2f(glGetUniformLocation(m_shQUAD.program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(glGetUniformLocation(m_shQUAD.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(glGetUniformLocation(m_shQUAD.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(glGetUniformLocation(m_shQUAD.program, "radius"), round);
+
     glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shQUAD.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
     glEnableVertexAttribArray(m_shQUAD.posAttrib);
+    glEnableVertexAttribArray(m_shQUAD.texAttrib);
 
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
 
     glDisableVertexAttribArray(m_shQUAD.posAttrib);
+    glDisableVertexAttribArray(m_shQUAD.texAttrib);
+
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha, int round) {
@@ -266,15 +283,15 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
     renderTexture(CTexture(tex), pBox, alpha, round);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool border) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, border);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool border) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -472,11 +489,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     return currentRenderToFB;
 }
 
-void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round) {
+void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round, bool border) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     if (g_pConfigManager->getInt("decoration:blur") == 0) {
-        renderTexture(tex, pBox, a, round);
+        renderTexture(tex, pBox, a, round, false, border);
         return;
     }
 
@@ -530,18 +547,33 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
-        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, 255.f, &damage);  // 255.f because we adjusted blur strength to a
+        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, a, &damage);
         
-        // render the window, but disable stencil for it
-        // because stencil has ignoreopaque
-        glDisable(GL_STENCIL_TEST);
+        // render the window, but clear stencil
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
+
+        // and write to it
+        glStencilFunc(GL_ALWAYS, 1, -1);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         renderTextureInternalWithDamage(tex, pBox, a, &damage, round);
+
+        // then stop
+        glStencilFunc(GL_EQUAL, 1, -1);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     }
 
-    // disable the stencil, finalize everything
-    glStencilMask(-1);
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    // disable the stencil (if no border), finalize everything
+    if (!border) {
+        glStencilMask(-1);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    } else {
+        auto BORDERCOL = m_pCurrentWindow->m_cRealBorderColor.col();
+        BORDERCOL.a *= a / 255.f;
+        renderBorder(pBox, BORDERCOL, g_pConfigManager->getInt("general:border_size"), round);
+    }
+    
     glDisable(GL_STENCIL_TEST);
     pixman_region32_fini(&damage);
     scissor((wlr_box*)nullptr);
@@ -554,98 +586,23 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
     counter++;
 }
 
-void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, int radius) {
+void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
-    scaleBox(box, m_RenderData.pMonitor->scale);
+    // this method assumes a set stencil and scaled box
+    box->x -= thick;
+    box->y -= thick;
+    box->width += 2 * thick;
+    box->height += 2 * thick;
 
-    float matrix[9];
-    wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
+    round += thick; // cuz yeah
 
-    float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+    // only draw on non-stencild.
+    glStencilFunc(GL_NOTEQUAL, 1, -1);
 
-    wlr_matrix_transpose(glMatrix, glMatrix);
-
-    if (col.a == 255.f)
-        glDisable(GL_BLEND);
-    else
-        glEnable(GL_BLEND);
-
-    glUseProgram(m_shQUAD.program);
-
-    glUniformMatrix3fv(m_shQUAD.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
-
-    // Sides are ONLY for corners meaning they have to be divisible by 4.
-    // 32 sides shouldn't be taxing at all on the performance.
-    const int SIDES = 32;  // sides
-    const int SIDES34 = 24; // 3/4th of the sides
-    float verts[(SIDES + 8 + 1) * 4]; // 8 for the connections and 1 because last is doubled (begin/end)
-    int vertNo = 0;
-
-    // start from 0,0 tex coord space
-    float x = 0, y = 0, w = box->width, h = box->height;
-
-    pushVert2D(x + radius, y + h, verts, vertNo, box);
-    pushVert2D(x + w - radius, y + h, verts, vertNo, box);
-
-    float x1 = x + w - radius;
-    float y1 = y + h - radius;
-
-    for (int i = 0; i <= SIDES / 4; i++) {
-        pushVert2D(x1 + (sin((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), y1 + (cos((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), verts, vertNo, box);
-    }
-
-    // Right Line
-    pushVert2D(x + w, y + radius, verts, vertNo, box);
-
-    x1 = x + w - radius;
-    y1 = y + radius;
-
-    for (int i = SIDES / 4; i <= SIDES / 2; i++) {
-        pushVert2D(x1 + (sin((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), y1 + (cos((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), verts, vertNo, box);
-    }
-
-    // Top Line
-    pushVert2D(x + radius, y, verts, vertNo, box);
-
-    x1 = x + radius;
-    y1 = y + radius;
-
-    for (int i = SIDES / 2; i <= SIDES34; i++) {
-        pushVert2D(x1 + (sin((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), y1 + (cos((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), verts, vertNo, box);
-    }
-
-    // Left Line
-    pushVert2D(x, y + h - radius, verts, vertNo, box);
-
-    x1 = x + radius;
-    y1 = y + h - radius;
-
-    for (int i = SIDES34; i <= SIDES; i++) {
-        pushVert2D(x1 + (sin((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), y1 + (cos((i * (360.f / (float)SIDES) * 3.141526f / 180)) * radius), verts, vertNo, box);
-    }
-
-    glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, verts);
-
-    glEnableVertexAttribArray(m_shQUAD.posAttrib);
-
-    glLineWidth(thick);
-    
-    // draw with damage
-    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-            const auto RECT = RECTSARR[i];
-            scissor(&RECT);
-
-            glDrawArrays(GL_LINE_STRIP, 0, 41);
-        }
-    }
-
-    glDisableVertexAttribArray(m_shQUAD.posAttrib);
+    // draw a rounded rect
+    renderRect(box, col, round);
 }
 
 void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {

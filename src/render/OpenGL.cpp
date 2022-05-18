@@ -200,7 +200,7 @@ void CHyprOpenGLImpl::clear(const CColor& color) {
 void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
     RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
 
-    if (!pBox || true) {
+    if (!pBox) {
         glDisable(GL_SCISSOR_TEST);
         return;
     }
@@ -212,7 +212,7 @@ void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
 void CHyprOpenGLImpl::scissor(const pixman_box32* pBox) {
     RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
 
-    if (!pBox || true) {
+    if (!pBox) {
         glDisable(GL_SCISSOR_TEST);
         return;
     }

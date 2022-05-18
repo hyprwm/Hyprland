@@ -42,6 +42,8 @@ void CWorkspace::startAnim(bool in, bool left) {
     const auto ANIMSTYLE = g_pConfigManager->getString("animations:workspaces_style");
 
     if (ANIMSTYLE == "fade") {
+        m_vRenderOffset.setValueAndWarp(Vector2D(0, 0)); // fix a bug, if switching from slide -> fade.
+
         if (in) {
             m_fAlpha.setValueAndWarp(0.f);
             m_fAlpha = 255.f;
@@ -52,7 +54,9 @@ void CWorkspace::startAnim(bool in, bool left) {
     } else {
         // fallback is slide
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        
+
+        m_fAlpha.setValueAndWarp(255.f); // fix a bug, if switching from fade -> slide.
+
         if (in) {
             m_vRenderOffset.setValueAndWarp(Vector2D(left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x, 0));
             m_vRenderOffset = Vector2D(0, 0);

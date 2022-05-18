@@ -1,6 +1,7 @@
 #include "MiscFunctions.hpp"
 #include "../defines.hpp"
 #include <algorithm>
+#include "../Compositor.hpp"
 
 void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
     ASSERT(pSignal);
@@ -120,4 +121,23 @@ bool isNumber(const std::string& str) {
 
 bool isDirection(const std::string& arg) {
     return arg == "l" || arg == "r" || arg == "u" || arg == "d" || arg == "t" || arg == "b";
+}
+
+int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
+    int result = INT_MAX;
+    if (in.find("name:") == 0) {
+        const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
+        const auto WORKSPACE = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
+        if (!WORKSPACE) {
+            result = g_pCompositor->getNextAvailableNamedWorkspace();
+        } else {
+            result = WORKSPACE->m_iID;
+        }
+        outName = WORKSPACENAME;
+    } else {
+        result = std::clamp((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
+        outName = std::to_string(result);
+    }
+
+    return result;
 }

@@ -3,20 +3,21 @@
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
 
-    m_mDispatchers["exec"]              = spawn;
-    m_mDispatchers["killactive"]        = killActive;
-    m_mDispatchers["togglefloating"]    = toggleActiveFloating;
-    m_mDispatchers["workspace"]         = changeworkspace;
-    m_mDispatchers["fullscreen"]        = fullscreenActive;
-    m_mDispatchers["movetoworkspace"]   = moveActiveToWorkspace;
-    m_mDispatchers["pseudo"]            = toggleActivePseudo;
-    m_mDispatchers["movefocus"]         = moveFocusTo;
-    m_mDispatchers["movewindow"]        = moveActiveTo;
-    m_mDispatchers["togglegroup"]       = toggleGroup;
-    m_mDispatchers["changegroupactive"] = changeGroupActive;
-    m_mDispatchers["togglesplit"]       = toggleSplit;
-    m_mDispatchers["splitratio"]        = alterSplitRatio;
-    m_mDispatchers["focusmonitor"]      = focusMonitor;
+    m_mDispatchers["exec"]                      = spawn;
+    m_mDispatchers["killactive"]                = killActive;
+    m_mDispatchers["togglefloating"]            = toggleActiveFloating;
+    m_mDispatchers["workspace"]                 = changeworkspace;
+    m_mDispatchers["fullscreen"]                = fullscreenActive;
+    m_mDispatchers["movetoworkspace"]           = moveActiveToWorkspace;
+    m_mDispatchers["movetoworkspacesilent"]     = moveActiveToWorkspaceSilent;
+    m_mDispatchers["pseudo"]                    = toggleActivePseudo;
+    m_mDispatchers["movefocus"]                 = moveFocusTo;
+    m_mDispatchers["movewindow"]                = moveActiveTo;
+    m_mDispatchers["togglegroup"]               = toggleGroup;
+    m_mDispatchers["changegroupactive"]         = changeGroupActive;
+    m_mDispatchers["togglesplit"]               = toggleSplit;
+    m_mDispatchers["splitratio"]                = alterSplitRatio;
+    m_mDispatchers["focusmonitor"]              = focusMonitor;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -167,19 +168,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     int workspaceToChangeTo = 0;
     std::string workspaceName = "";
 
-    if (args.find("name:") == 0) {
-        const auto WORKSPACENAME = args.substr(args.find_first_of(':') + 1);
-        const auto WORKSPACE = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
-        if (!WORKSPACE) {
-            workspaceToChangeTo = g_pCompositor->getNextAvailableNamedWorkspace();
-        } else {
-            workspaceToChangeTo = WORKSPACE->m_iID;
-        }
-        workspaceName = WORKSPACENAME;
-    } else {
-        workspaceToChangeTo = std::clamp((int)getPlusMinusKeywordResult(args, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
-        workspaceName = std::to_string(workspaceToChangeTo);
-    }
+    workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
 
     if (workspaceToChangeTo == INT_MAX) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
@@ -347,6 +336,58 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
     }
+}
+
+void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
+    // hacky, but works lol
+
+    int workspaceToMoveTo = 0;
+    std::string workspaceName = "";
+
+    workspaceToMoveTo = getWorkspaceIDFromString(args, workspaceName);
+
+    if (workspaceToMoveTo == INT_MAX) {
+        Debug::log(ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
+        return;
+    }
+
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+
+    if (workspaceToMoveTo == PMONITOR->activeWorkspace)
+        return;
+
+    // may be null until later!
+    auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
+
+    const auto PMONITORNEW = PWORKSPACE ? g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID) : PMONITOR;
+
+    const auto OLDWORKSPACEIDONMONITOR = PMONITORNEW->activeWorkspace;
+    const auto OLDWORKSPACEIDRETURN = PMONITOR->activeWorkspace;
+
+    const auto POLDWORKSPACEONMON = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDONMONITOR);
+    const auto POLDWORKSPACEIDRETURN = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDRETURN);
+
+    moveActiveToWorkspace(args);
+
+    PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
+
+    changeworkspace(std::to_string(OLDWORKSPACEIDONMONITOR));
+    changeworkspace(std::to_string(OLDWORKSPACEIDRETURN));
+
+    // revert animations
+    PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(0,0));
+    PWORKSPACE->m_fAlpha.setValueAndWarp(0.f);
+
+    POLDWORKSPACEIDRETURN->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
+    POLDWORKSPACEIDRETURN->m_fAlpha.setValueAndWarp(255.f);
+
+    POLDWORKSPACEONMON->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
+    POLDWORKSPACEONMON->m_fAlpha.setValueAndWarp(255.f);
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {

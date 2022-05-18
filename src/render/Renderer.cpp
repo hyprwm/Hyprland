@@ -452,6 +452,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
         double lx = 0, ly = 0;
         wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m.output, &lx, &ly);
         pixman_region32_translate(&damageBox, lx, ly);
+        wlr_region_scale(&damageBox, &damageBox, m.scale);
         wlr_output_damage_add(m.damage, &damageBox);
         pixman_region32_translate(&damageBox, -lx, -ly);
     }
@@ -472,6 +473,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;
             fixedDamageBox.y -= m.vecPosition.y;
+            scaleBox(&fixedDamageBox, m.scale);
             wlr_output_damage_add_box(m.damage, &fixedDamageBox);
         }
 
@@ -485,6 +487,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;
             fixedDamageBox.y -= m.vecPosition.y;
+            scaleBox(&fixedDamageBox, m.scale);
             wlr_output_damage_add_box(m.damage, &fixedDamageBox);
         }
 
@@ -494,8 +497,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 }
 
 void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
-    wlr_box damageBox = {0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y};
-    scaleBox(&damageBox, pMonitor->scale);
+    wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
 
     if (g_pConfigManager->getInt("debug:log_damage"))
@@ -505,6 +507,7 @@ void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
 void CHyprRenderer::damageBox(wlr_box* pBox) {
     for (auto& m : g_pCompositor->m_lMonitors) {
         wlr_box damageBox = {pBox->x - m.vecPosition.x, pBox->y - m.vecPosition.y, pBox->width, pBox->height};
+        scaleBox(&damageBox, m.scale);
         wlr_output_damage_add_box(m.damage, &damageBox);
     }
 
@@ -545,7 +548,7 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
     Debug::log(LOG, "Applying monitor rule for %s", pMonitor->szName.c_str());
 
     // Check if the rule isn't already applied
-    if (!force && DELTALESSTHAN(pMonitor->vecSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale) {
+    if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale) {
         Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());
         return;
     }
@@ -604,7 +607,11 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
         }
     } else {
         wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (int)pMonitorRule->refreshRate * 1000);
+        pMonitor->vecSize = pMonitorRule->resolution;
     }
+
+    pMonitor->vecPixelSize = pMonitor->vecSize;
+    pMonitor->vecSize = (pMonitor->vecSize / pMonitor->scale).floor();
 
     // update renderer
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);

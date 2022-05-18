@@ -63,7 +63,7 @@ void CFramebuffer::bind() {
     #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
     #endif
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y);
+    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
 }
 
 void CFramebuffer::release() {

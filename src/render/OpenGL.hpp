@@ -50,7 +50,7 @@ public:
 
     CHyprOpenGLImpl();
 
-    void    begin(SMonitor*, pixman_region32_t*);
+    void    begin(SMonitor*, pixman_region32_t*, bool fake = false);
     void    end();
 
     void    renderRect(wlr_box*, const CColor&, int round = 0);
@@ -91,6 +91,8 @@ private:
 
     int                     m_iDRMFD;
     std::string             m_szExtensions;
+
+    bool                    m_bFakeFrame = false;
 
     // Shaders
     SQuad                   m_shQUAD;

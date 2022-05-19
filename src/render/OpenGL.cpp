@@ -356,6 +356,17 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
 
+    // stencil for when we want a border
+    if (border) {
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
+
+        glEnable(GL_STENCIL_TEST);
+
+        glStencilFunc(GL_ALWAYS, 1, -1);
+        glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+    }
+
     if (pixman_region32_not_empty(m_RenderData.pDamage)) {
         PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
             const auto RECT = RECTSARR[i];
@@ -364,10 +375,27 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         }
     }
 
+    if (border) {
+        glStencilFunc(GL_EQUAL, 1, -1);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    }
+
     glDisableVertexAttribArray(shader->posAttrib);
     glDisableVertexAttribArray(shader->texAttrib);
 
     glBindTexture(tex.m_iTarget, 0);
+
+    // if border draw
+    // we dont disable stencil here if we havent touched it. 
+    // some other func might be using it.
+    if (border) {
+        auto BORDERCOL = m_pCurrentWindow->m_cRealBorderColor.col();
+        BORDERCOL.a *= alpha / 255.f;
+        renderBorder(pBox, BORDERCOL, g_pConfigManager->getInt("general:border_size"), round);
+        glStencilMask(-1);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glDisable(GL_STENCIL_TEST);
+    }
 }
 
 // This probably isn't the fastest
@@ -621,14 +649,6 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     pixman_region32_fini(&fakeDamage);
 
-    const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
-
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
-
-    PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
-
-    PFRAMEBUFFER->bind();
-
     clear(CColor(0,0,0,0)); // JIC
 
     timespec now;
@@ -645,6 +665,21 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders);
 
     g_pConfigManager->setInt("decoration:blur", BLURVAL);
+
+    // render onto the window fb
+    // we rendered onto the primary because it has a stencil, which we need for the borders etc
+    const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
+
+    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
+
+    PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+
+    PFRAMEBUFFER->bind();
+
+    clear(CColor(0, 0, 0, 0));  // JIC
+
+    wlr_box fullMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &fullMonBox, 255.f, 0);
 
     // restore original fb
     #ifndef GLES2
@@ -689,6 +724,9 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 
     // draw the layer
     g_pHyprRenderer->renderLayer(pLayer, PMONITOR, &now);
+
+    // TODO: WARN:
+    // revise if any stencil-requiring rendering is done to the layers.
 
 // restore original fb
 #ifndef GLES2

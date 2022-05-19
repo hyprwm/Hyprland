@@ -106,6 +106,23 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
 
     if (PCONSTRAINT->pMouse->currentConstraint == PCONSTRAINT->constraint) {
         PCONSTRAINT->pMouse->hyprListener_commitConstraint.removeCallback();
+
+        const auto PWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+
+        if (PWINDOW) {
+            if (PWINDOW->m_bIsX11) {
+                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
+                                PCONSTRAINT->constraint->current.cursor_hint.x + PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y + PCONSTRAINT->constraint->current.cursor_hint.y);
+
+                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->constraint->current.cursor_hint.x, PCONSTRAINT->constraint->current.cursor_hint.y);
+            } else {
+                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
+                                PCONSTRAINT->constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.vec().x, PCONSTRAINT->constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.vec().y);
+
+                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->constraint->current.cursor_hint.x, PCONSTRAINT->constraint->current.cursor_hint.y);
+            }
+        }
+
         PCONSTRAINT->pMouse->currentConstraint = nullptr;
     }
 

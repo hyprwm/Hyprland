@@ -2,11 +2,32 @@
 #include "debug/Log.hpp"
 #include "Compositor.hpp"
 #include "config/ConfigManager.hpp"
+#include "init/initHelpers.hpp"
+
+// I am a bad bad boy and have used some global vars here,
+// just for this file
+bool ignoreSudo = false;
 
 int main(int argc, char** argv) {
 
     if (!getenv("XDG_RUNTIME_DIR"))
         RIP("XDG_RUNTIME_DIR not set!");
+
+    // parse some args
+    for (int i = 1; i < argc; ++i) {
+        if (!strcmp(argv[i], "--i-am-really-stupid"))
+            ignoreSudo = true;
+    }
+
+    if (!ignoreSudo) {
+        if (Init::isSudo()) {
+            Debug::log(CRIT, "Hyprland shall not be run as the root user. If you really want to, use the --i-am-really-stupid flag.");
+    	    return 1;
+    	}
+    } else {
+        Debug::log(WARN, "Running with ignored root checks, I surely hope you know what you're doing.");
+        sleep(1);
+    }
 
     Debug::log(LOG, "Welcome to Hyprland!");
 

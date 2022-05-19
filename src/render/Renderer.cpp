@@ -22,7 +22,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     if (RDATA->surface && surface == RDATA->surface)
         g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"), RDATA->decorate);
     else
-        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"), false, RDATA->decorate);
+        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"), false, false);
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 

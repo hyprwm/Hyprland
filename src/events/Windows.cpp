@@ -282,7 +282,14 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
 void Events::listener_fullscreenWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+    if (!PWINDOW->m_bIsX11) {
+        const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
+
+        if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
+            g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+    } else {
+        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+    }
 
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
     

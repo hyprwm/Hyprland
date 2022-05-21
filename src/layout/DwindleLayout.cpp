@@ -198,9 +198,6 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
 
         applyNodeDataToWindow(PNODE);
 
-        pWindow->m_vRealPosition.setValue(PNODE->position + PNODE->size / 2.f);
-        pWindow->m_vRealSize.setValue(Vector2D(5, 5));
-
         return;
     }
     
@@ -387,6 +384,9 @@ void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         pWindow->m_vRealPosition.setValue(PSAVEDPOS);
         pWindow->m_vRealSize.setValue(PSAVEDSIZE);
+
+        // fix pseudo leaving artifacts
+        g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
     } else {
         onWindowRemoved(pWindow);
 

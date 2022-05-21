@@ -1,43 +1,55 @@
-# Based on fortuneteller2k's (https://github.com/fortuneteller2k/nixpkgs-f2k) package repo
 {
-  description =
-    "Hyprland is a dynamic tiling Wayland compositor that doesn't sacrifice on its looks.";
+  description = "Hyprland is a dynamic tiling Wayland compositor that doesn't sacrifice on its looks";
+
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.11";
-    utils.url = "github:numtide/flake-utils";
-    nixpkgs-wayland.url = "github:nix-community/nixpkgs-wayland";
-    wlroots-git = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    wlroots = {
       url = "gitlab:wlroots/wlroots?host=gitlab.freedesktop.org";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, utils, nixpkgs-wayland, wlroots-git }:
-    {
-      overlay = final: prev: {
-        hyprland = prev.callPackage self {
-          src = self;
-          wlroots = (nixpkgs-wayland.overlays.default final prev).wlroots.overrideAttrs (prev: rec {
-            src = wlroots-git;
-          });
-        };
-      };
-      overlays.default = self.overlay;
-    } // utils.lib.eachSystem [ "aarch64-linux" "x86_64-linux" ] (system:
-      let pkgs = nixpkgs.legacyPackages.${system};
-      in rec {
-        packages = {
-          hyprland = pkgs.callPackage self {
-            src = self;
-            wlroots = nixpkgs-wayland.packages.${system}.wlroots.overrideAttrs (prev: rec {
-            src = wlroots-git;
-          });
-          };
-        };
-        defaultPackage = packages.hyprland;
-        apps.hyprland = utils.lib.mkApp { drv = packages.hyprland; };
-        defaultApp = apps.hyprland;
-        apps.default =
-          utils.lib.mkApp { drv = self.packages.${system}.hyprland; };
+  outputs = inputs @ {
+    self,
+    nixpkgs,
+    ...
+  }: let
+    inherit (nixpkgs) lib;
+    genSystems = lib.genAttrs [
+      "x86_64-linux"
+    ];
+    pkgsFor = nixpkgs.legacyPackages;
+    # https://github.com/NixOS/rfcs/pull/107
+    mkVersion = longDate:
+      lib.concatStrings [
+        "0.pre"
+        "+date="
+        (lib.concatStringsSep "-" [
+          (__substring 0 4 longDate)
+          (__substring 4 2 longDate)
+          (__substring 6 2 longDate)
+        ])
+      ];
+  in {
+    packages = genSystems (system: {
+      wlroots = pkgsFor.${system}.wlroots.overrideAttrs (prev: {
+        version = mkVersion inputs.wlroots.lastModifiedDate;
+        src = inputs.wlroots;
       });
+      default = pkgsFor.${system}.callPackage ./default.nix {
+        version = mkVersion self.lastModifiedDate;
+        inherit (self.packages.${system}) wlroots;
+      };
+    });
+
+    formatter = genSystems (system: pkgsFor.${system}.alejandra);
+
+    nixosModules.default = import ./module.nix self;
+
+    # Deprecated
+    overlays.default = _: prev: {
+      hyprland = self.packages.${prev.system}.default;
+    };
+    overlay = self.overlays.default;
+  };
 }

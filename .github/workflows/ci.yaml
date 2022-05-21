@@ -1,6 +1,6 @@
 name: Build Hyprland
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 jobs:
   gcc:
     name: "Build Hyprland (Arch)"
@@ -32,7 +32,7 @@ jobs:
       - name: Fix permissions for git
         run: |
           git config --global --add safe.directory /__w/Hyprland/Hyprland
-        
+
       - name: Checkout Hyprland
         uses: actions/checkout@v3
 
@@ -44,4 +44,3 @@ jobs:
       - name: Build Hyprland with LEGACY_RENDERER
         run: |
           make legacyrenderer
-

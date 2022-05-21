@@ -14,32 +14,42 @@
     nixpkgs,
     ...
   }: let
-    supportedSystems = [
-      "aarch64-linux"
+    inherit (nixpkgs) lib;
+    genSystems = lib.genAttrs [
       "x86_64-linux"
     ];
-    genSystems = nixpkgs.lib.genAttrs supportedSystems;
     pkgsFor = nixpkgs.legacyPackages;
+    # https://github.com/NixOS/rfcs/pull/107
+    mkVersion = longDate:
+      lib.concatStrings [
+        "0.pre"
+        "+date="
+        (lib.concatStringsSep "-" [
+          (__substring 0 4 longDate)
+          (__substring 4 2 longDate)
+          (__substring 6 2 longDate)
+        ])
+      ];
   in {
     packages = genSystems (system: {
       wlroots = pkgsFor.${system}.wlroots.overrideAttrs (prev: {
-        version = inputs.wlroots.lastModifiedDate;
+        version = mkVersion inputs.wlroots.lastModifiedDate;
         src = inputs.wlroots;
       });
       default = pkgsFor.${system}.callPackage ./default.nix {
-        version = self.lastModifiedDate;
+        version = mkVersion self.lastModifiedDate;
         inherit (self.packages.${system}) wlroots;
       };
     });
 
     formatter = genSystems (system: pkgsFor.${system}.alejandra);
 
-    # TODO Provide a nixos module for easy installation and configuration
-    # nixosModules.default = import ./module.nix;
+    nixosModules.default = import ./module.nix self;
 
     # Deprecated
-    overlay = _: prev: {
+    overlays.default = _: prev: {
       hyprland = self.packages.${prev.system}.default;
     };
+    overlay = self.overlays.default;
   };
 }

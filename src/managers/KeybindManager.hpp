@@ -46,6 +46,7 @@ private:
     static void         alterSplitRatio(std::string);
     static void         focusMonitor(std::string);
     static void         toggleSplit(std::string);
+    static void         moveCursorToCorner(std::string);
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

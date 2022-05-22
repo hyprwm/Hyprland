@@ -18,6 +18,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglesplit"]               = toggleSplit;
     m_mDispatchers["splitratio"]                = alterSplitRatio;
     m_mDispatchers["focusmonitor"]              = focusMonitor;
+    m_mDispatchers["movecursortocorner"]        = moveCursorToCorner;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -554,5 +555,43 @@ void CKeybindManager::focusMonitor(std::string arg) {
         }        
 
         Debug::log(ERR, "Error in focusMonitor: no such monitor");
+    }
+}
+
+void CKeybindManager::moveCursorToCorner(std::string arg) {
+    if (!isNumber(arg)) {
+        Debug::log(ERR, "moveCursorToCorner, arg has to be a number.");
+        return;
+    }
+
+    const auto CORNER = std::stoi(arg);
+
+    if (CORNER < 0 || CORNER > 3) {
+        Debug::log(ERR, "moveCursorToCorner, corner not 0 - 3.");
+        return;
+    }
+
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    switch (CORNER) {
+        case 0:
+            // bottom left
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y + PWINDOW->m_vRealSize.vec().y);
+            break;
+        case 1:
+            // bottom right
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x + PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealPosition.vec().y + PWINDOW->m_vRealSize.vec().y);
+            break;
+        case 2:
+            // top right
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x + PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealPosition.vec().y);
+            break;
+        case 3:
+            // top left
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y);
+            break;
     }
 }

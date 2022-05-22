@@ -14,8 +14,8 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_box windowBox;
     if (RDATA->surface && surface == RDATA->surface) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
-    } else {
-        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, surface->current.width, surface->current.height};
+    } else {                                                                                                //  here we clamp to 2, these might be some tiny specks
+        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
     }
     scaleBox(&windowBox, RDATA->output->scale);
 
@@ -93,8 +93,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     const auto REALPOS = pWindow->m_vRealPosition.vec() + PWORKSPACE->m_vRenderOffset.vec();
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
-    renderdata.w = pWindow->m_vRealSize.vec().x;
-    renderdata.h = pWindow->m_vRealSize.vec().y;
+    renderdata.w = std::clamp(pWindow->m_vRealSize.vec().x, (double)5, (double)1337420); // clamp the size to min 5,
+    renderdata.h = std::clamp(pWindow->m_vRealSize.vec().y, (double)5, (double)1337420); // otherwise we'll have issues later with invalid boxes
     renderdata.dontRound = pWindow->m_bIsFullscreen;
     renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (PWORKSPACE->m_fAlpha.fl() / 255.f);
     renderdata.alpha = pWindow->m_bIsFullscreen ? g_pConfigManager->getFloat("decoration:fullscreen_opacity") : pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");

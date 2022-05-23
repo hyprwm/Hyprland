@@ -315,23 +315,34 @@ void Events::listener_configureX11(void* owner, void* data) {
         return;
 
     const auto E = (wlr_xwayland_surface_configure_event*)data;
+    g_pHyprRenderer->damageWindow(PWINDOW);
 
     if (!PWINDOW->m_bIsFloating) {
         g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.vec());
         g_pInputManager->refocus();
+        g_pHyprRenderer->damageWindow(PWINDOW);
         return;
     }
 
-    wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
-    wlr_xwayland_surface_restack(PWINDOW->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
+    if (!PWINDOW->m_uSurface.xwayland->mapped) {
+        wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
+        return;
+    }
+
     PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(E->x, E->y));
     PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(E->width, E->height));
-    PWINDOW->m_vPosition = PWINDOW->m_vPosition;
-    PWINDOW->m_vSize = PWINDOW->m_vSize;
+    PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
+    PWINDOW->m_vSize = PWINDOW->m_vRealSize.vec();
 
-    wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
+    wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
+
+    g_pCompositor->moveWindowToTop(PWINDOW);
+
+    PWINDOW->m_bCreatedOverFullscreen = true;
 
     g_pInputManager->refocus();
+
+    g_pHyprRenderer->damageWindow(PWINDOW);
 }
 
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {

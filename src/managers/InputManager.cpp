@@ -103,24 +103,23 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface) {
         pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+        surfacePos = pFoundWindow->m_vRealPosition.vec();
 
-        for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); ++w) {
+        // only check floating because tiled cant be over fullscreen
+        for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); w++) {
             wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-            if (w->m_iWorkspaceID == pFoundWindow->m_iWorkspaceID && w->m_bIsMapped && w->m_bCreatedOverFullscreen && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-                foundSurface = g_pXWaylandManager->getWindowSurface(&(*w));
-                if (foundSurface)
-                    surfacePos = w->m_vRealPosition.vec();
-                break;
-            }
-        }
-
-        if (pFoundWindow && !foundSurface) {
-            if (pFoundWindow->m_bIsX11) {
-                foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
-                if (foundSurface)
+            if (w->m_bIsFloating && w->m_bIsMapped && w->m_bCreatedOverFullscreen && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden) {
+                pFoundWindow = &(*w);
+                
+                if (!pFoundWindow->m_bIsX11) {
+                    foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+                } else {
+                    foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
                     surfacePos = pFoundWindow->m_vRealPosition.vec();
-            } else {
-                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+                }
+
+                break;
             }
         }
     }

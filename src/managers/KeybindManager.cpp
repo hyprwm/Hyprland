@@ -208,6 +208,10 @@ void CKeybindManager::changeworkspace(std::string args) {
 
             // start anim on new workspace
             PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
+
+            // Event ONLY if workspace is actually "changed" and we arent just focusing
+            if (!m_bSuppressWorkspaceChangeEvents)
+                g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
         }
            
 
@@ -231,10 +235,6 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         // mark the monitor dirty
         g_pHyprRenderer->damageMonitor(PMONITOR);
-
-        // Event
-        if (!m_bSuppressWorkspaceChangeEvents)
-            g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
 
         return;
     }

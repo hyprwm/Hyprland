@@ -91,7 +91,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         wlr_ext_workspace_handle_v1_set_active(g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_pWlrHandle, true);
 
         // event
-        g_pEventManager->postEvent(SHyprIPCEvent("workspace", g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_szName));
+        g_pEventManager->postEvent(SHyprIPCEvent("activemon", PMONITOR->szName + "," + g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_szName));
     }
 
     Vector2D surfaceCoords;

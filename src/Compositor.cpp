@@ -453,6 +453,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         pWindow->m_cRealBorderColor = RENDERDATA.borderColor;
     else
         pWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("general:col.active_border"));
+
+    // Send an event
+    g_pEventManager->postEvent(SHyprIPCEvent("activewindow", pWindow->m_szTitle));
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {

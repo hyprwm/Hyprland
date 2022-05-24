@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -238,28 +239,20 @@ std::string getRequestFromThread(std::string rq) {
 
 void HyprCtl::startHyprCtlSocket() {
     std::thread([&]() {
-        uint16_t connectPort = 9187;
-
-        const auto SOCKET = socket(AF_INET, SOCK_STREAM, 0);
+        const auto SOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
         if (SOCKET < 0) {
             Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
             return;
         }
 
-        sockaddr_in SERVERADDRESS = {.sin_family = AF_INET, .sin_port = connectPort, .sin_addr = (in_addr)INADDR_ANY};
+        unlink("/tmp/hypr/.socket.sock");
 
-        while(connectPort < 11000) {
-            if (bind(SOCKET, (sockaddr*)&SERVERADDRESS, sizeof(SERVERADDRESS)) < 0) {
-                Debug::log(LOG, "IPC: Port %d failed with an error: %s", connectPort, strerror(errno));
-            } else {
-                break;
-            }
+        sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
 
-            connectPort++;
-            SERVERADDRESS.sin_port = connectPort;
-        }
-        
+        strcpy(SERVERADDRESS.sun_path, "/tmp/hypr/.socket.sock");
+
+        bind(SOCKET, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS));
 
         // 10 max queued.
         listen(SOCKET, 10);
@@ -269,12 +262,7 @@ void HyprCtl::startHyprCtlSocket() {
 
         char readBuffer[1024] = {0};
 
-        Debug::log(LOG, "Hypr socket started on port %i", connectPort);
-
-        std::string cmd = "rm -f /tmp/hypr/.socket";
-        system(cmd.c_str()); // forgive me for using system() but it works and it doesnt matter here that much
-        cmd = "echo \"" + std::to_string(connectPort) + "\" > /tmp/hypr/.socket";
-        system(cmd.c_str());
+        Debug::log(LOG, "Hypr socket started.");
 
         while(1) {
             const auto ACCEPTEDCONNECTION = accept(SOCKET, (sockaddr*)&clientAddress, &clientSize);
@@ -285,7 +273,7 @@ void HyprCtl::startHyprCtlSocket() {
             }
 
             auto messageSize = read(ACCEPTEDCONNECTION, readBuffer, 1024);
-            readBuffer[messageSize == 1024 ? 1024 : messageSize] = '\0';
+            readBuffer[messageSize == 1024 ? 1023 : messageSize] = '\0';
 
             std::string request(readBuffer);
 

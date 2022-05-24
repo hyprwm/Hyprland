@@ -183,6 +183,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_iMonitorID);
 
+        const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+
         // if it's not visible, make it visible.
         if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo)) {
             const auto OLDWORKSPACEID = PMONITOR->activeWorkspace;
@@ -205,7 +207,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             g_pCompositor->getWorkspaceByID(OLDWORKSPACEID)->startAnim(false, ANIMTOLEFT);
 
             // start anim on new workspace
-            g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->startAnim(true, ANIMTOLEFT);
+            PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
         }
            
 
@@ -219,8 +221,8 @@ void CKeybindManager::changeworkspace(std::string args) {
         g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(workspaceToChangeTo));
 
         // set active and deactivate all other in wlr
-        g_pCompositor->deactivateAllWLRWorkspaces(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_pWlrHandle);
-        wlr_ext_workspace_handle_v1_set_active(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_pWlrHandle, true);
+        g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACETOCHANGETO->m_pWlrHandle);
+        wlr_ext_workspace_handle_v1_set_active(PWORKSPACETOCHANGETO->m_pWlrHandle, true);
 
         Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 
@@ -229,6 +231,10 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         // mark the monitor dirty
         g_pHyprRenderer->damageMonitor(PMONITOR);
+
+        // Event
+        if (!m_bSuppressWorkspaceChangeEvents)
+            g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
 
         return;
     }
@@ -272,6 +278,10 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // focus (clears the last)
     g_pInputManager->refocus();
+
+    // Event
+    if (!m_bSuppressWorkspaceChangeEvents)
+        g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACE->m_szName));
 
     Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }
@@ -376,6 +386,8 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     const auto POLDWORKSPACEONMON = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDONMONITOR);
     const auto POLDWORKSPACEIDRETURN = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDRETURN);
 
+    m_bSuppressWorkspaceChangeEvents = true;
+
     moveActiveToWorkspace(args);
 
     PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
@@ -392,6 +404,8 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     POLDWORKSPACEONMON->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
     POLDWORKSPACEONMON->m_fAlpha.setValueAndWarp(255.f);
+
+    m_bSuppressWorkspaceChangeEvents = false;
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {

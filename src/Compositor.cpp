@@ -188,6 +188,10 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the LayoutManager!");
     g_pLayoutManager = std::make_unique<CLayoutManager>();
+
+    Debug::log(LOG, "Creating the EventManager!");
+    g_pEventManager = std::make_unique<CEventManager>();
+    g_pEventManager->startThread();
     //
     //
 

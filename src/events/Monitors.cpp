@@ -108,6 +108,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, std::to_string(WORKSPACEID).c_str());
 
     PNEWWORKSPACE->m_iID = WORKSPACEID;
+    PNEWWORKSPACE->m_szName = std::to_string(WORKSPACEID);
 
     PNEWMONITOR->activeWorkspace = PNEWWORKSPACE->m_iID;
 

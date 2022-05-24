@@ -5,8 +5,6 @@
 #include <iostream>
 
 void Debug::log(LogLevel level, const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
 
     // log to a file
     const std::string DEBUGPATH = ISDEBUG ? "/tmp/hypr/hyprlandd.log" : "/tmp/hypr/hyprland.log";
@@ -31,15 +29,36 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
     }
 
     char buf[LOGMESSAGESIZE] = "";
+    char* outputStr;
+    int logLen;
 
-    vsprintf(buf, fmt, args);
+    va_list args;
+    va_start(args, fmt);
+    logLen = vsnprintf(buf, sizeof buf, fmt, args);
+    va_end(args);
 
-    ofs << buf << "\n";
+    if ((long unsigned int)logLen < sizeof buf) {
+        outputStr = strdup(buf);
+    } else {
+        outputStr = (char*)malloc(logLen + 1);
+
+        if (!outputStr) {
+            printf("CRITICAL: Cannot alloc size %d for log! (Out of memory?)", logLen + 1);
+            return;
+        }
+
+        va_start(args, fmt);
+        vsnprintf(outputStr, logLen + 1U, fmt, args);
+        va_end(args);
+    }
+
+    ofs << outputStr << "\n";
 
     ofs.close();
 
     // log it to the stdout too.
-    std::cout << buf << "\n";
+    std::cout << outputStr << "\n";
 
-    va_end(args);
+    // free the log
+    free(outputStr);
 }

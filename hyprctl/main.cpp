@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -29,7 +30,7 @@ usage: hyprctl [command] [(opt)args]
 )#";
 
 void request(std::string arg) {
-    const auto SERVERSOCKET = socket(AF_INET, SOCK_STREAM, 0);
+    const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (SERVERSOCKET < 0) {
         std::cout << "Couldn't open a socket (1)";
@@ -43,39 +44,12 @@ void request(std::string arg) {
         return;
     }
 
-    sockaddr_in serverAddress = {0};
-    serverAddress.sin_family = AF_INET;
-    bcopy((char*)SERVER->h_addr, (char*)&serverAddress.sin_addr.s_addr, SERVER->h_length);
+    sockaddr_un serverAddress = {0};
+    serverAddress.sun_family = AF_UNIX;
+    strcpy(serverAddress.sun_path, "/tmp/hypr/.socket.sock");
 
-    std::ifstream socketPortStream;
-    socketPortStream.open("/tmp/hypr/.socket");
-    
-    if (!socketPortStream.good()) {
-        std::cout << "No socket port file (2a)";
-        return;
-    }
-
-    std::string port = "";
-    std::getline(socketPortStream, port);
-    socketPortStream.close();
-
-    int portInt = 0;
-    try {
-        portInt = std::stoi(port.c_str());
-    } catch (...) {
-        std::cout << "Port not an int?! (2b)";
-        return;
-    }
-
-    if (portInt == 0) {
-        std::cout << "Port not an int?! (2c)";
-        return;
-    }
-    
-    serverAddress.sin_port = portInt;
-
-    if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
-        std::cout << "Couldn't connect to port " << port << " (3) Is Hyprland running?";
+    if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
+        std::cout << "Couldn't connect to /tmp/hypr/.socket.sock. (3) Is Hyprland running?";
         return;
     }
 

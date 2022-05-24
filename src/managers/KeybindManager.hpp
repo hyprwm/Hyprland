@@ -30,6 +30,8 @@ private:
 
     bool                handleInternalKeybinds(xkb_keysym_t);
 
+    inline static bool  m_bSuppressWorkspaceChangeEvents = false;
+
     // -------------- Dispatchers -------------- //
     static void         killActive(std::string);
     static void         spawn(std::string);

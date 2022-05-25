@@ -3,7 +3,6 @@
 #include "../defines.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Color.hpp"
-#include <wlr/render/egl.h>
 #include <list>
 #include <unordered_map>
 

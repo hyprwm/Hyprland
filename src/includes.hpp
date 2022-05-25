@@ -78,6 +78,7 @@ extern "C" {
 #include <wlr/util/region.h>
 #include <xkbcommon/xkbcommon.h>
 #include <X11/Xproto.h>
+#include <wlr/render/egl.h>
 #include <wlr/render/gles2.h>
 #include <wlr/render/wlr_texture.h>
 #include <wlr/types/wlr_pointer_constraints_v1.h>

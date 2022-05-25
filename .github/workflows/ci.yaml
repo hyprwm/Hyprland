@@ -22,7 +22,7 @@ jobs:
       - name: Build wlroots
         run: |
           su githubuser -c "cd ~ && git clone https://gitlab.freedesktop.org/wlroots/wlroots" 
-          su githubuser -c "cd ~/wlroots && meson build/ && ninja -C build/ && sudo ninja -C build/ install && cd .."
+          su githubuser -c "cd ~/wlroots && meson build/ --prefix=/usr && ninja -C build/ && sudo ninja -C build/ install && cd .."
 
       - name: Fix permissions for git
         run: |

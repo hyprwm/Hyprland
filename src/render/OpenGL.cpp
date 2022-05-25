@@ -3,7 +3,7 @@
 #include "../helpers/MiscFunctions.hpp"
 
 CHyprOpenGLImpl::CHyprOpenGLImpl() {
-    RASSERT(eglMakeCurrent(g_pCompositor->m_sWLREGL->display, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pCompositor->m_sWLREGL->context), "Couldn't make the EGL current!");
+    RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL)), "Couldn't unset current EGL!");
 
     auto *const EXTENSIONS = (const char*)glGetString(GL_EXTENSIONS);
 
@@ -83,7 +83,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
     // End
 
-    RASSERT(eglMakeCurrent(g_pCompositor->m_sWLREGL->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
+    RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
     // Done!
 }

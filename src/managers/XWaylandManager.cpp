@@ -216,4 +216,6 @@ void CHyprXWaylandManager::setWindowFullscreen(CWindow* pWindow, bool fullscreen
     } else {
         wlr_xdg_toplevel_set_fullscreen(pWindow->m_uSurface.xdg->toplevel, fullscreen);
     }
+
+    g_pEventManager->postEvent(SHyprIPCEvent("fullscreen", std::to_string((int)fullscreen)));
 }

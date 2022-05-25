@@ -87,11 +87,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         g_pCompositor->m_pLastMonitor = PMONITOR;
 
         // set active workspace and deactivate all other in wlr
-        g_pCompositor->deactivateAllWLRWorkspaces(g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_pWlrHandle);
-        wlr_ext_workspace_handle_v1_set_active(g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_pWlrHandle, true);
+        const auto ACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+        g_pCompositor->deactivateAllWLRWorkspaces(ACTIVEWORKSPACE->m_pWlrHandle);
+        ACTIVEWORKSPACE->setActive(true);
 
         // event
-        g_pEventManager->postEvent(SHyprIPCEvent("activemon", PMONITOR->szName + "," + g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->m_szName));
+        g_pEventManager->postEvent(SHyprIPCEvent("activemon", PMONITOR->szName + "," + ACTIVEWORKSPACE->m_szName));
     }
 
     Vector2D surfaceCoords;

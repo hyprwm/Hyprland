@@ -24,4 +24,5 @@ public:
     CAnimatedVariable m_fAlpha;
 
     void            startAnim(bool in, bool left);
+    void            setActive(bool on);
 };

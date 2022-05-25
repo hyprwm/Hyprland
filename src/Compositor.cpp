@@ -743,7 +743,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
 void CCompositor::deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude) {
     for (auto& w : m_lWorkspaces) {
         if (w.m_pWlrHandle && w.m_pWlrHandle != exclude)
-            wlr_ext_workspace_handle_v1_set_active(w.m_pWlrHandle, false);
+            w.setActive(false);
     }
 }
 

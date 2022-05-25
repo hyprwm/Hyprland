@@ -489,8 +489,10 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
 }
 
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
-    if (dynamic)
+    if (dynamic) {
         parseError = "";
+        currentCategory = "";
+    }
 
     if (COMMAND == "exec") {
         if (isFirstLaunch) {
@@ -517,6 +519,11 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     if (dynamic) {
         std::string retval = parseError;
         parseError = "";
+
+        // invalidate layouts jic
+        for (auto& m : g_pCompositor->m_lMonitors)
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
+            
         return retval;
     }
 

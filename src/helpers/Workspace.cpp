@@ -65,3 +65,9 @@ void CWorkspace::startAnim(bool in, bool left) {
         }
     }
 }
+
+void CWorkspace::setActive(bool on) {
+    if (m_pWlrHandle) {
+        wlr_ext_workspace_handle_v1_set_active(m_pWlrHandle, on);
+    }
+}

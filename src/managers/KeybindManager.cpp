@@ -226,7 +226,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         // set active and deactivate all other in wlr
         g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACETOCHANGETO->m_pWlrHandle);
-        wlr_ext_workspace_handle_v1_set_active(PWORKSPACETOCHANGETO->m_pWlrHandle, true);
+        PWORKSPACETOCHANGETO->setActive(true);
 
         Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 
@@ -271,7 +271,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // set active and deactivate all other
     g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACE->m_pWlrHandle);
-    wlr_ext_workspace_handle_v1_set_active(PWORKSPACE->m_pWlrHandle, true);
+    PWORKSPACE->setActive(true);
 
     // mark the monitor dirty
     g_pHyprRenderer->damageMonitor(PMONITOR);

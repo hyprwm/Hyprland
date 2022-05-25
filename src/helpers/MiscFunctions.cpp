@@ -141,3 +141,9 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
     return result;
 }
+
+float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2) {
+    const float DX = std::max((double)0, std::max(p1.x - vec.x, vec.x - p2.x));
+    const float DY = std::max((double)0, std::max(p1.y - vec.y, vec.y - p2.y));
+    return DX * DX + DY * DY;
+}

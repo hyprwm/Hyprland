@@ -48,7 +48,6 @@ void CEventManager::startThread() {
         fcntl(SOCKET, F_SETFL, flags | O_NONBLOCK);
 
         while (1) {
-            m_bCanWriteEventQueue = true;
 
             const auto ACCEPTEDCONNECTION = accept(SOCKET, (sockaddr*)&clientAddress, &clientSize);
 
@@ -78,15 +77,11 @@ void CEventManager::startThread() {
 
             // valid FDs, check the queue
             // don't do anything if main thread is writing to the eventqueue
-            while (!m_bCanReadEventQueue) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-
-            // if we got here, we'll be reading the queue, let's disallow writing
-            m_bCanWriteEventQueue = false;
+            eventQueueMutex.lock();
 
             if (m_dQueuedEvents.empty()){ // if queue empty, sleep and ignore
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                eventQueueMutex.unlock();
                 continue;
             }
 
@@ -100,7 +95,7 @@ void CEventManager::startThread() {
 
             m_dQueuedEvents.clear();
 
-            m_bCanWriteEventQueue = true;
+            eventQueueMutex.unlock();
 
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
@@ -110,20 +105,9 @@ void CEventManager::startThread() {
 }
 
 void CEventManager::postEvent(const SHyprIPCEvent event) {
-
-    m_bCanReadEventQueue = false;
-    if (!m_bCanWriteEventQueue) {
-        // if we can't write rn, make a thread to write whenever possible, don't block calling events.
-        std::thread([&](const SHyprIPCEvent ev) {
-            while(!m_bCanWriteEventQueue) {
-                std::this_thread::sleep_for(std::chrono::microseconds(200));
-            }
-
-            m_dQueuedEvents.push_back(ev);
-            m_bCanReadEventQueue = true;
-        }, event).detach();
-    } else {
-        m_dQueuedEvents.push_back(event);
-        m_bCanReadEventQueue = true;
-    }
+    std::thread([&](const SHyprIPCEvent ev) {
+        eventQueueMutex.lock();
+        m_dQueuedEvents.push_back(ev);
+        eventQueueMutex.unlock();
+    }, event).detach();
 }

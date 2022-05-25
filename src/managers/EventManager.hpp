@@ -1,6 +1,7 @@
 #pragma once
 #include <deque>
 #include <fstream>
+#include <mutex>
 
 #include "../defines.hpp"
 #include "../helpers/MiscFunctions.hpp"
@@ -20,8 +21,7 @@ public:
 
 private:
 
-    bool m_bCanReadEventQueue = true;
-    bool m_bCanWriteEventQueue = true;
+    std::mutex eventQueueMutex;
     std::deque<SHyprIPCEvent> m_dQueuedEvents;
 
     std::deque<int> m_dAcceptedSocketFDs;

@@ -184,9 +184,14 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     SDwindleNodeData* OPENINGON;
     const auto MONFROMCURSOR = g_pCompositor->getMonitorFromCursor();
 
-    if (PMONITOR->ID == MONFROMCURSOR->ID && PNODE->workspaceID == PMONITOR->activeWorkspace)
+    if (PMONITOR->ID == MONFROMCURSOR->ID && PNODE->workspaceID == PMONITOR->activeWorkspace) {
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
-    else
+
+        // happens on reserved area
+        if (!OPENINGON && g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID) > 0)
+            OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
+            
+    } else
         OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
 
     Debug::log(LOG, "OPENINGON: %x, Workspace: %i, Monitor: %i", OPENINGON, PNODE->workspaceID, PMONITOR->ID);
@@ -373,6 +378,10 @@ void CHyprDwindleLayout::changeWindowFloatingMode(CWindow* pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);
 
     if (!PNODE) {
+        const auto PNEWMON = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
+        pWindow->m_iMonitorID = PNEWMON->ID;
+        pWindow->m_iWorkspaceID = PNEWMON->activeWorkspace;
+
         // save real pos cuz the func applies the default 5,5 mid
         const auto PSAVEDPOS = pWindow->m_vRealPosition.vec();
         const auto PSAVEDSIZE = pWindow->m_vRealSize.vec();

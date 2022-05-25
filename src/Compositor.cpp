@@ -246,29 +246,32 @@ SMonitor* CCompositor::getMonitorFromID(const int& id) {
 
 SMonitor* CCompositor::getMonitorFromCursor() {
     const auto COORDS = Vector2D(m_sWLRCursor->x, m_sWLRCursor->y);
-    const auto OUTPUT = wlr_output_layout_output_at(m_sWLROutputLayout, COORDS.x, COORDS.y);
 
-    if (!OUTPUT) {
-        Debug::log(WARN, "getMonitorFromCursor: cursor outside monitors??");
-        return &m_lMonitors.front();
-    }
-
-    for (auto& m : m_lMonitors) {
-        if (m.output == OUTPUT)
-            return &m;
-    }
-
-    Debug::log(LOG, "Monitor not in list??");
-
-    return &m_lMonitors.front();
+    return getMonitorFromVector(COORDS);
 }
 
 SMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
     const auto OUTPUT = wlr_output_layout_output_at(m_sWLROutputLayout, point.x, point.y);
 
     if (!OUTPUT) {
-        Debug::log(WARN, "getMonitorFromVector: vector outside monitors? Returning front");
-        return &m_lMonitors.front();
+        float bestDistance = 0.f;
+        SMonitor* pBestMon = nullptr;
+
+        for (auto& m : m_lMonitors) {
+            float dist = vecToRectDistanceSquared(point, m.vecPosition, m.vecPosition + m.vecSize);
+
+            if (dist < bestDistance || !pBestMon) {
+                bestDistance = dist;
+                pBestMon = &m;
+            }
+        }
+
+        if (!pBestMon) { // ?????
+            Debug::log(WARN, "getMonitorFromVector no close mon???");
+            return &m_lMonitors.front();
+        }
+
+        return pBestMon;
     }
 
     return getMonitorFromOutput(OUTPUT);

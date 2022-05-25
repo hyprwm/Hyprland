@@ -199,8 +199,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
             // now, prep the damage, get the extended damage region
             wlr_region_expand(&damage, &damage, BLURRADIUS);                                                   // expand for proper blurring
+        } else {
+            pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
         }
-        
     }
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?

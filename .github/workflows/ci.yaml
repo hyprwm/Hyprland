@@ -19,15 +19,10 @@ jobs:
           useradd -m githubuser
           echo -e "root ALL=(ALL:ALL) ALL\ngithubuser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers
 
-      - name: Get yay
+      - name: Build wlroots
         run: |
-          su githubuser -c "cd ~ && mkdir yay && git clone https://aur.archlinux.org/yay.git"
-          chown -R githubuser /home/githubuser/yay
-          su githubuser -c "cd ~/yay && makepkg -si --noconfirm --noprogressbar"
-
-      - name: Get wlroots-git
-        run: |
-          su githubuser -c "yay -S --mflags --skipinteg --noprovides --answerclean All --answerdiff None --answeredit None --answerupgrade None wlroots-git"
+          su githubuser -c "cd ~ && git clone https://gitlab.freedesktop.org/wlroots/wlroots" 
+          su githubuser -c "cd ~/wlroots && meson build/ --prefix=/usr && ninja -C build/ && sudo ninja -C build/ install && cd .."
 
       - name: Fix permissions for git
         run: |

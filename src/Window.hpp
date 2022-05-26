@@ -54,6 +54,8 @@ public:
 
     bool            m_bIsMapped = false;
 
+    bool            m_bRequestsFloat = false;
+
     // This is for fullscreen apps
     bool            m_bCreatedOverFullscreen = false;
 

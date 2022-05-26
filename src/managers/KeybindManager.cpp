@@ -19,6 +19,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["splitratio"]                = alterSplitRatio;
     m_mDispatchers["focusmonitor"]              = focusMonitor;
     m_mDispatchers["movecursortocorner"]        = moveCursorToCorner;
+    m_mDispatchers["workspaceopt"]              = workspaceOpt;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -608,4 +609,60 @@ void CKeybindManager::moveCursorToCorner(std::string arg) {
             wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y);
             break;
     }
+}
+
+void CKeybindManager::workspaceOpt(std::string args) {
+    
+    // current workspace
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+    if (!PWORKSPACE)
+        return; // ????
+
+    if (args == "allpseudo") {
+        PWORKSPACE->m_bDefaultPseudo = !PWORKSPACE->m_bDefaultPseudo;
+
+        // apply
+        for (auto& w : g_pCompositor->m_lWindows) {
+            if (!w.m_bIsMapped || w.m_iWorkspaceID != PWORKSPACE->m_iID)
+                continue;
+
+            w.m_bIsPseudotiled = PWORKSPACE->m_bDefaultPseudo;
+        }
+    } else if (args == "allfloat") {
+        PWORKSPACE->m_bDefaultFloating = !PWORKSPACE->m_bDefaultFloating;
+        // apply
+
+        // we make a copy because changeWindowFloatingMode might invalidate the iterator
+        std::deque<CWindow*> ptrs;
+        for (auto& w : g_pCompositor->m_lWindows)
+            ptrs.push_back(&w);
+
+        for (auto& w : ptrs) {
+            if (!w->m_bIsMapped || w->m_iWorkspaceID != PWORKSPACE->m_iID)
+                continue;
+
+            if (!w->m_bRequestsFloat && w->m_bIsFloating != PWORKSPACE->m_bDefaultFloating) {
+                const auto SAVEDPOS = w->m_vRealPosition.vec();
+                const auto SAVEDSIZE = w->m_vRealSize.vec();
+
+                w->m_bIsFloating = PWORKSPACE->m_bDefaultFloating;
+                g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(w);
+
+                if (PWORKSPACE->m_bDefaultFloating) {
+                    w->m_vRealPosition.setValueAndWarp(SAVEDPOS);
+                    w->m_vRealSize.setValueAndWarp(SAVEDSIZE);
+                    g_pXWaylandManager->setWindowSize(w, SAVEDSIZE);
+                    w->m_vRealSize = w->m_vRealSize.vec() + Vector2D(4,4);
+                    w->m_vRealPosition = w->m_vRealPosition.vec() - Vector2D(2,2);
+                }
+            }
+        }
+    } else {
+        Debug::log(ERR, "Invalid arg in workspaceOpt, opt \"%s\" doesn't exist.", args.c_str());
+        return;
+    }
+
+    // recalc mon
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
 }

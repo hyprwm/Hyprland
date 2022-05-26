@@ -45,8 +45,20 @@ void Events::listener_mapWindow(void* owner, void* data) {
         return;
     }
 
-    if (g_pXWaylandManager->shouldBeFloated(PWINDOW))
+    if (g_pXWaylandManager->shouldBeFloated(PWINDOW)) {
         PWINDOW->m_bIsFloating = true;
+        PWINDOW->m_bRequestsFloat = true;
+    }
+
+    if (PWORKSPACE->m_bDefaultFloating)
+        PWINDOW->m_bIsFloating = true;
+
+    if (PWORKSPACE->m_bDefaultPseudo) {
+        PWINDOW->m_bIsPseudotiled = true;
+        wlr_box desiredGeometry = {0};
+        g_pXWaylandManager->getGeometryForWindow(PWINDOW, &desiredGeometry);
+        PWINDOW->m_vPseudoSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+    }
 
     if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
         const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);

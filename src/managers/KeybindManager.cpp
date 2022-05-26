@@ -133,6 +133,7 @@ void CKeybindManager::killActive(std::string args) {
         g_pXWaylandManager->sendCloseWindow(g_pCompositor->m_pLastWindow);
         g_pCompositor->m_pLastFocus = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
+        g_pEventManager->postEvent(SHyprIPCEvent("activewindow", ",")); // post an activewindow event to empty, as we are currently unfocused
     }
     
     g_pCompositor->focusWindow(g_pCompositor->windowFromCursor());

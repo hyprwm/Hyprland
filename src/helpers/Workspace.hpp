@@ -23,6 +23,10 @@ public:
     CAnimatedVariable m_vRenderOffset;
     CAnimatedVariable m_fAlpha;
 
+    // user-set
+    bool            m_bDefaultFloating = false;
+    bool            m_bDefaultPseudo = false;
+
     void            startAnim(bool in, bool left);
     void            setActive(bool on);
 };

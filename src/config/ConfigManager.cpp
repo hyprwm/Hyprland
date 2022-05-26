@@ -523,7 +523,10 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         // invalidate layouts jic
         for (auto& m : g_pCompositor->m_lMonitors)
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
-            
+
+        // Update window border colors
+        g_pCompositor->updateAllWindowsBorders();
+
         return retval;
     }
 
@@ -700,6 +703,9 @@ void CConfigManager::loadConfigLoadVars() {
     if (!isFirstLaunch) {
         m_bWantsMonitorReload = true;
     }
+
+    // Update window border colors
+    g_pCompositor->updateAllWindowsBorders();
 }
 
 void CConfigManager::tick() {

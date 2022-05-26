@@ -121,6 +121,8 @@ public:
     bool                    isPointOnAnyMonitor(const Vector2D&);
     CWindow*                getConstraintWindow(SMouse*);
     SMonitor*               getMonitorInDirection(const char&);
+    void                    updateAllWindowsBorders();
+    void                    updateWindowBorderColor(CWindow*);
 
 private:
     void                    initAllSignals();

@@ -427,11 +427,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
     if (windowValidMapped(PLASTWINDOW)) {
-        const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(PLASTWINDOW);
-        if (RENDERDATA.isBorderColor)
-            PLASTWINDOW->m_cRealBorderColor = RENDERDATA.borderColor;
-        else
-            PLASTWINDOW->m_cRealBorderColor = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
+        updateWindowBorderColor(PLASTWINDOW);
 
         if (PLASTWINDOW->m_bIsX11) {
             wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
@@ -451,11 +447,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.goalv();
     wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, POINTERLOCAL.x, POINTERLOCAL.y);
 
-    const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
-    if (RENDERDATA.isBorderColor)
-        pWindow->m_cRealBorderColor = RENDERDATA.borderColor;
-    else
-        pWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("general:col.active_border"));
+    updateWindowBorderColor(pWindow);
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent("activewindow", pWindow->m_szTitle));
@@ -893,4 +885,25 @@ SMonitor* CCompositor::getMonitorInDirection(const char& dir) {
         return longestIntersectMonitor;
 
     return nullptr;
+}
+
+void CCompositor::updateAllWindowsBorders() {
+    for (auto& w : m_lWindows) {
+        if (!w.m_bIsMapped)
+            continue;
+
+        updateWindowBorderColor(&w);
+    }
+}
+
+void CCompositor::updateWindowBorderColor(CWindow* pWindow) {
+    // optimization
+    static int64_t* ACTIVECOL = &g_pConfigManager->getConfigValuePtr("general:col.active_border")->intValue;
+    static int64_t* INACTIVECOL = &g_pConfigManager->getConfigValuePtr("general:col.inactive_border")->intValue;
+
+    const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
+    if (RENDERDATA.isBorderColor)
+        pWindow->m_cRealBorderColor = RENDERDATA.borderColor;
+    else
+        pWindow->m_cRealBorderColor = CColor(pWindow == m_pLastWindow ? *ACTIVECOL : *INACTIVECOL);
 }

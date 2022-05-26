@@ -450,7 +450,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     updateWindowBorderColor(pWindow);
 
     // Send an event
-    g_pEventManager->postEvent(SHyprIPCEvent("activewindow", pWindow->m_szTitle));
+    g_pEventManager->postEvent(SHyprIPCEvent("activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle));
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {

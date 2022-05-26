@@ -1,0 +1,25 @@
+name: "Nix: update lockfile"
+
+on:
+  schedule:
+    - cron: '0 0 */14 * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v3
+    - name: Install nix
+      uses: cachix/install-nix-action@v17
+      with:
+        install_url: https://releases.nixos.org/nix/nix-2.8.0/install
+        extra_nix_config: |
+          auto-optimise-store = true
+          experimental-features = nix-command flakes
+    - name: Update lockfile
+      run: nix flake update
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: "[gha] bump flake inputs"

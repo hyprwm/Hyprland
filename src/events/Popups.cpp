@@ -23,8 +23,8 @@ void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
 
     auto curPopup = PPOPUP;
     while (true) {
-        px += curPopup->popup->geometry.x;
-        py += curPopup->popup->geometry.y;
+        px += curPopup->popup->current.geometry.x;
+        py += curPopup->popup->current.geometry.y;
 
         if (curPopup->parentPopup) {
             curPopup = curPopup->parentPopup;

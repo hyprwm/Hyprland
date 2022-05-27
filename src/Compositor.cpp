@@ -67,7 +67,7 @@ CCompositor::CCompositor() {
     m_sWLRScene = wlr_scene_create();
     wlr_scene_attach_output_layout(m_sWLRScene, m_sWLROutputLayout);
 
-    m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 2);
+    m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 3);
 
     m_sWLRCursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(m_sWLRCursor, m_sWLROutputLayout);

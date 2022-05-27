@@ -121,8 +121,13 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
 void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size) {
     if (pWindow->m_bIsX11)
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, size.x, size.y);
-    else //                                                                   vvvvv I don't know if this is fucking correct, but the fucking idea of putting shadows into a window's surface is borderline criminal.
-        wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x - pWindow->m_uSurface.xdg->current.geometry.x * 2, size.y - pWindow->m_uSurface.xdg->current.geometry.y * 2);
+    else {
+        // I don't know if this is fucking correct, but the fucking idea of putting shadows into a window's surface is borderline criminal.
+        const auto XDELTA = pWindow->m_uSurface.xdg->surface->current.width - pWindow->m_uSurface.xdg->current.geometry.width;
+        const auto YDELTA = pWindow->m_uSurface.xdg->surface->current.height - pWindow->m_uSurface.xdg->current.geometry.height;
+        
+        wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x - XDELTA, size.y - YDELTA * 2);
+    }
 }
 
 void CHyprXWaylandManager::setWindowStyleTiled(CWindow* pWindow, uint32_t edgez) {

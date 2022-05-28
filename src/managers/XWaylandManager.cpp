@@ -126,7 +126,7 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size)
         const auto XDELTA = pWindow->m_uSurface.xdg->surface->current.width - pWindow->m_uSurface.xdg->current.geometry.width;
         const auto YDELTA = pWindow->m_uSurface.xdg->surface->current.height - pWindow->m_uSurface.xdg->current.geometry.height;
         
-        wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x - XDELTA, size.y - YDELTA * 2);
+        wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x - XDELTA, size.y - YDELTA);
     }
 }
 

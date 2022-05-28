@@ -11,6 +11,16 @@ void CHyprMonitorDebugOverlay::renderData(SMonitor* pMonitor, float µs) {
         m_pMonitor = pMonitor;
 }
 
+void CHyprMonitorDebugOverlay::renderDataNoOverlay(SMonitor* pMonitor, float µs) {
+    m_dLastRenderTimesNoOverlay.push_back(µs / 1000.f);
+
+    if (m_dLastRenderTimesNoOverlay.size() > (long unsigned int)pMonitor->refreshRate)
+        m_dLastRenderTimesNoOverlay.pop_front();
+
+    if (!m_pMonitor)
+        m_pMonitor = pMonitor;
+}
+
 void CHyprMonitorDebugOverlay::frameData(SMonitor* pMonitor) {
     m_dLastFrametimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - m_tpLastFrame).count() / 1000.f);
 
@@ -45,6 +55,12 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgRenderTime += rt;
     }
     avgRenderTime /= m_dLastRenderTimes.size() == 0 ? 1 : m_dLastRenderTimes.size();
+
+    float avgRenderTimeNoOverlay = 0;
+    for (auto& rt : m_dLastRenderTimesNoOverlay) {
+        avgRenderTimeNoOverlay += rt;
+    }
+    avgRenderTimeNoOverlay /= m_dLastRenderTimes.size() == 0 ? 1 : m_dLastRenderTimes.size();
 
     const float FPS = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
     const float idealFPS = m_dLastFrametimes.size();
@@ -95,6 +111,13 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     if (cairoExtents.width > maxX) maxX = cairoExtents.width;
 
     yOffset += 11;
+    cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
+    text = std::string("Avg Rendertime (no overlay): " + std::to_string((int)avgRenderTimeNoOverlay) + "." + std::to_string((int)(avgRenderTimeNoOverlay * 10.f) % 10) + "ms");
+    cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
+    cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
+    if (cairoExtents.width > maxX) maxX = cairoExtents.width;
+
+    yOffset += 11;
 
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
     m_wbLastDrawnBox = {(int)g_pCompositor->m_lMonitors.front().vecPosition.x, (int)g_pCompositor->m_lMonitors.front().vecPosition.y + offset - 1, (int)maxX + 2, yOffset - offset + 2};
@@ -105,6 +128,10 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
 void CHyprDebugOverlay::renderData(SMonitor* pMonitor, float µs) {
     m_mMonitorOverlays[pMonitor].renderData(pMonitor, µs);
+}
+
+void CHyprDebugOverlay::renderDataNoOverlay(SMonitor* pMonitor, float µs) {
+    m_mMonitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, µs);
 }
 
 void CHyprDebugOverlay::frameData(SMonitor* pMonitor) {

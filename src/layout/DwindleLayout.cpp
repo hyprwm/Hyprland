@@ -277,7 +277,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
         // means we opened on a group
 
         // add the group deco
-        pWindow->m_dWindowDecorations.emplace_back(new CHyprGroupBarDecoration(pWindow));
+        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
         PNODE->pGroupParent = OPENINGON->pGroupParent;
         PNODE->pGroupParent->groupMembers.push_back(PNODE);
@@ -733,7 +733,7 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
             c->pGroupParent = PPARENT;
             c->pWindow->m_cRealBorderColor = GROUPINACTIVEBORDERCOL;
 
-            c->pWindow->m_dWindowDecorations.push_back(new CHyprGroupBarDecoration(c->pWindow));
+            c->pWindow->m_dWindowDecorations.push_back(std::make_unique<CHyprGroupBarDecoration>(c->pWindow));
 
             if (c->pWindow == g_pCompositor->m_pLastWindow)
                 c->pWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("dwindle:col.group_border_active"));

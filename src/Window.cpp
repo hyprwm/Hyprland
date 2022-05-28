@@ -13,7 +13,4 @@ CWindow::~CWindow() {
         g_pCompositor->m_pLastFocus = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
     }
-
-    for (auto& wd : m_dWindowDecorations)
-        delete wd;
 }

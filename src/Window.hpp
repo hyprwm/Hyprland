@@ -91,7 +91,7 @@ public:
     bool            m_bHidden = false;
 
     // Window decorations
-    std::deque<IHyprWindowDecoration*> m_dWindowDecorations;
+    std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
 
     // Special render data, rules, etc
     SWindowSpecialRenderData m_sSpecialRenderData;

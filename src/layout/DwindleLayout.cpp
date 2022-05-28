@@ -735,7 +735,7 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
     }
 }
 
-void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow) {
+void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return; // reject
 
@@ -747,7 +747,13 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow) {
     if (!PNODE->pGroupParent)
         return; // reject
 
-    PNODE->pGroupParent->groupMemberActive++;
+    if (forward)
+        PNODE->pGroupParent->groupMemberActive++;
+    else
+        PNODE->pGroupParent->groupMemberActive--;
+
+    if (PNODE->pGroupParent->groupMemberActive < 0)
+        PNODE->pGroupParent->groupMemberActive = PNODE->pGroupParent->groupMembers.size() - 1;
 
     if ((long unsigned int)PNODE->pGroupParent->groupMemberActive >= PNODE->pGroupParent->groupMembers.size())
         PNODE->pGroupParent->groupMemberActive = 0;
@@ -847,8 +853,10 @@ void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
 void CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
     if (message == "togglegroup")
         toggleWindowGroup(header.pWindow);
-    else if (message == "changegroupactive")
-        switchGroupWindow(header.pWindow);
+    else if (message == "changegroupactivef")
+        switchGroupWindow(header.pWindow, true);
+    else if (message == "changegroupactiveb")
+        switchGroupWindow(header.pWindow, false);
     else if (message == "togglesplit")
         toggleSplit(header.pWindow);
 }

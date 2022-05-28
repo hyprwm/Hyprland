@@ -71,7 +71,7 @@ public:
     SDwindleNodeData*   getMasterNodeOnWorkspace(const int&);
 
     void                toggleWindowGroup(CWindow*);
-    void                switchGroupWindow(CWindow*);
+    void                switchGroupWindow(CWindow*, bool forward);
     void                toggleSplit(CWindow*);
 
     friend struct SDwindleNodeData;

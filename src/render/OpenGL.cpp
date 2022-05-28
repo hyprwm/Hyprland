@@ -756,7 +756,14 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-    wlr_box windowBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    wlr_box windowBox;
+    // some mafs to figure out the correct box
+    Vector2D scaleXY = Vector2D((PWINDOW->m_vRealSize.vec().x / PWINDOW->m_vOriginalClosedSize.x), (PWINDOW->m_vRealSize.vec().y / PWINDOW->m_vOriginalClosedSize.y));
+
+    windowBox.width = PMONITOR->vecPixelSize.x * scaleXY.x;
+    windowBox.height = PMONITOR->vecPixelSize.y * scaleXY.y;
+    windowBox.x = PWINDOW->m_vRealPosition.vec().x - (PWINDOW->m_vOriginalClosedPos.x * scaleXY.x);
+    windowBox.y = PWINDOW->m_vRealPosition.vec().y - (PWINDOW->m_vOriginalClosedPos.y * scaleXY.y);
 
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);

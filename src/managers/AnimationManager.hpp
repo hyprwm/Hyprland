@@ -16,7 +16,7 @@ public:
     void            addBezierWithName(std::string, const Vector2D&, const Vector2D&);
     void            removeAllBeziers();
 
-    void            onWindowPostCreate(CWindow*);
+    void            onWindowPostCreateClose(CWindow*, bool close = false);
 
     std::list<CAnimatedVariable*> m_lAnimatedVariables;
 
@@ -31,8 +31,8 @@ private:
     std::unordered_map<std::string, CBezierCurve> m_mBezierCurves;
 
     // Anim stuff
-    void            animationPopin(CWindow*);
-    void            animationSlide(CWindow*, std::string force = "");
+    void            animationPopin(CWindow*, bool close = false);
+    void            animationSlide(CWindow*, std::string force = "", bool close = false);
 };
 
 inline std::unique_ptr<CAnimationManager> g_pAnimationManager;

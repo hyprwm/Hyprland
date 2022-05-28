@@ -82,6 +82,8 @@ public:
     CAnimatedVariable m_fAlpha;
     bool            m_bFadingOut = false;
     bool            m_bReadyToDelete = false;
+    Vector2D        m_vOriginalClosedPos; // these will be used for calculations later on in
+    Vector2D        m_vOriginalClosedSize; // drawing the closing animations
 
     // For hidden windows and stuff
     bool            m_bHidden = false;

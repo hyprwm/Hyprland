@@ -558,7 +558,12 @@ void CKeybindManager::focusMonitor(std::string arg) {
         if (isDirection(arg)) {
             const auto PMONITOR = g_pCompositor->getMonitorInDirection(arg[0]);
             if (PMONITOR) {
-                changeworkspace(std::to_string(PMONITOR->activeWorkspace));
+                if (PMONITOR->activeWorkspace < 0) {
+                    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+                    changeworkspace("name:" + PWORKSPACE->m_szName);
+                }
+                else
+                    changeworkspace(std::to_string(PMONITOR->activeWorkspace));
                 return;
             }
         } else {

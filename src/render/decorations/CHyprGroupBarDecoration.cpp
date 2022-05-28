@@ -21,8 +21,6 @@ eDecorationType CHyprGroupBarDecoration::getDecorationType() {
 void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
     damageEntire();
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-
     if (pWindow->m_vRealPosition.vec() != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
         // we draw 3px above the window's border with 3px
         const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");

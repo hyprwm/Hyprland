@@ -144,6 +144,9 @@ void CCompositor::cleanupExit() {
     if (!m_sWLDisplay)
         return;
 
+    m_pLastFocus = nullptr;
+    m_pLastWindow = nullptr;
+
     m_lWorkspaces.clear();
     m_lWindows.clear();
 
@@ -620,6 +623,9 @@ bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
 }
 
 bool CCompositor::isWindowActive(CWindow* pWindow) {
+    if (!m_pLastWindow && !m_pLastFocus)
+        return false;
+
     if (!windowValidMapped(pWindow))
         return false;
 

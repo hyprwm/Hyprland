@@ -12,11 +12,13 @@ public:
     int draw(int offset);
 
     void renderData(SMonitor* pMonitor, float µs);
+    void renderDataNoOverlay(SMonitor* pMonitor, float µs);
     void frameData(SMonitor* pMonitor);
 
 private:
     std::deque<float> m_dLastFrametimes;
     std::deque<float> m_dLastRenderTimes;
+    std::deque<float> m_dLastRenderTimesNoOverlay;
     std::chrono::high_resolution_clock::time_point m_tpLastFrame;
     SMonitor* m_pMonitor = nullptr;
     wlr_box m_wbLastDrawnBox;
@@ -27,6 +29,7 @@ public:
 
     void draw();
     void renderData(SMonitor*, float µs);
+    void renderDataNoOverlay(SMonitor*, float µs);
     void frameData(SMonitor*);
 
 private:

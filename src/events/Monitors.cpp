@@ -132,6 +132,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     SMonitor* const PMONITOR = (SMonitor*)owner;
 
     static std::chrono::high_resolution_clock::time_point startRender = std::chrono::high_resolution_clock::now();
+    static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
+    static std::chrono::high_resolution_clock::time_point endRenderOverlay = std::chrono::high_resolution_clock::now();
 
     if (g_pConfigManager->getInt("debug:overlay") == 1) {
         startRender = std::chrono::high_resolution_clock::now();
@@ -225,8 +227,11 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pHyprError->draw();
 
     // for drawing the debug overlay
-    if (PMONITOR->ID == 0 && g_pConfigManager->getInt("debug:overlay") == 1)
+    if (PMONITOR->ID == 0 && g_pConfigManager->getInt("debug:overlay") == 1) {
+        startRenderOverlay = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->draw();
+        endRenderOverlay = std::chrono::high_resolution_clock::now();
+    }
 
     wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
@@ -254,8 +259,16 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     wlr_output_schedule_frame(PMONITOR->output);
 
-    if (g_pConfigManager->getInt("debug:overlay") == 1)
-        g_pDebugOverlay->renderData(PMONITOR, std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f);
+    if (g_pConfigManager->getInt("debug:overlay") == 1) {
+        const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;
+        g_pDebugOverlay->renderData(PMONITOR, µs);
+        if (PMONITOR->ID == 0) {
+            const float µsNoOverlay = µs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - startRenderOverlay).count() / 1000.f;
+            g_pDebugOverlay->renderDataNoOverlay(PMONITOR, µsNoOverlay);
+        } else {
+            g_pDebugOverlay->renderDataNoOverlay(PMONITOR, µs);
+        }
+    }
 }
 
 void Events::listener_monitorDestroy(void* owner, void* data) {

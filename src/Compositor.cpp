@@ -144,6 +144,9 @@ void CCompositor::cleanupExit() {
     if (!m_sWLDisplay)
         return;
 
+    m_lWorkspaces.clear();
+    m_lWindows.clear();
+
     if (g_pXWaylandManager->m_sWLRXWayland) {
         wlr_xwayland_destroy(g_pXWaylandManager->m_sWLRXWayland);
         g_pXWaylandManager->m_sWLRXWayland = nullptr;

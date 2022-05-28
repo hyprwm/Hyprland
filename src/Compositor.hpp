@@ -15,6 +15,7 @@
 #include "managers/KeybindManager.hpp"
 #include "managers/AnimationManager.hpp"
 #include "managers/EventManager.hpp"
+#include "debug/HyprDebugOverlay.hpp"
 #include "helpers/Monitor.hpp"
 #include "helpers/Workspace.hpp"
 #include "Window.hpp"

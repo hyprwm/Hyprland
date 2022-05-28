@@ -19,3 +19,6 @@ result
 .ccls-cache
 
 hyprctl/hyprctl
+
+gmon.out
+*.out

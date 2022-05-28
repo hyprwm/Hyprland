@@ -503,7 +503,10 @@ void CKeybindManager::toggleGroup(std::string args) {
 void CKeybindManager::changeGroupActive(std::string args) {
     SLayoutMessageHeader header;
     header.pWindow = g_pCompositor->m_pLastWindow;
-    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "changegroupactive");
+    if (args == "b")
+        g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "changegroupactiveb");
+    else
+        g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "changegroupactivef");
 }
 
 void CKeybindManager::toggleSplit(std::string args) {

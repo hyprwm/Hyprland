@@ -4,6 +4,8 @@
 #include "events/Events.hpp"
 #include "helpers/SubsurfaceTree.hpp"
 #include "helpers/AnimatedVariable.hpp"
+#include "render/decorations/IHyprWindowDecoration.hpp"
+#include <deque>
 
 struct SWindowSpecialRenderData {
     float alpha = 1.f;
@@ -87,6 +89,9 @@ public:
 
     // For hidden windows and stuff
     bool            m_bHidden = false;
+
+    // Window decorations
+    std::deque<IHyprWindowDecoration*> m_dWindowDecorations;
 
     // Special render data, rules, etc
     SWindowSpecialRenderData m_sSpecialRenderData;

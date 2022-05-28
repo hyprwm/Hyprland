@@ -57,6 +57,9 @@ struct SRenderData {
 
     // for decorations (border)
     bool decorate = false;
+
+    // for custom round values
+    int rounding = -1; // -1 means not set
 };
 
 struct SKeyboard {

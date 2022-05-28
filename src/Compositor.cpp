@@ -192,6 +192,9 @@ void CCompositor::startCompositor() {
     Debug::log(LOG, "Creating the EventManager!");
     g_pEventManager = std::make_unique<CEventManager>();
     g_pEventManager->startThread();
+
+    Debug::log(LOG, "Creating the HyprDebugOverlay!");
+    g_pDebugOverlay = std::make_unique<CHyprDebugOverlay>();
     //
     //
 

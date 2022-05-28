@@ -131,6 +131,13 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 void Events::listener_monitorFrame(void* owner, void* data) {
     SMonitor* const PMONITOR = (SMonitor*)owner;
 
+    static std::chrono::high_resolution_clock::time_point startRender = std::chrono::high_resolution_clock::now();
+
+    if (g_pConfigManager->getInt("debug:overlay") == 1) {
+        startRender = std::chrono::high_resolution_clock::now();
+        g_pDebugOverlay->frameData(PMONITOR);
+    }
+
     // Hack: only check when monitor with top hz refreshes, saves a bit of resources.
     // This is for stuff that should be run every frame
     if (PMONITOR->ID == pMostHzMonitor->ID) {
@@ -213,6 +220,14 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
 
+    // if correct monitor draw hyprerror
+    if (PMONITOR->ID == 0)
+        g_pHyprError->draw();
+
+    // for drawing the debug overlay
+    if (PMONITOR->ID == 0 && g_pConfigManager->getInt("debug:overlay") == 1)
+        g_pDebugOverlay->draw();
+
     wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
     wlr_output_render_software_cursors(PMONITOR->output, NULL);
@@ -238,6 +253,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     wlr_output_commit(PMONITOR->output);
 
     wlr_output_schedule_frame(PMONITOR->output);
+
+    if (g_pConfigManager->getInt("debug:overlay") == 1)
+        g_pDebugOverlay->renderData(PMONITOR, std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f);
 }
 
 void Events::listener_monitorDestroy(void* owner, void* data) {

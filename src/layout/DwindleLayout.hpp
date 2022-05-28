@@ -3,6 +3,7 @@
 #include "IHyprLayout.hpp"
 #include <list>
 #include <deque>
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 
 class CHyprDwindleLayout;
 
@@ -50,10 +51,11 @@ public:
     virtual void        onMouseMove(const Vector2D&);
     virtual void        onWindowCreatedFloating(CWindow*);
     virtual void        fullscreenRequestForWindow(CWindow*);
-    virtual void        layoutMessage(SLayoutMessageHeader, std::string);
+    virtual std::any    layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
     virtual void        switchWindows(CWindow*, CWindow*);
     virtual void        alterSplitRatioBy(CWindow*, float);
+    virtual std::string getLayoutName();
 
    private:
 
@@ -73,6 +75,7 @@ public:
     void                toggleWindowGroup(CWindow*);
     void                switchGroupWindow(CWindow*, bool forward);
     void                toggleSplit(CWindow*);
+    std::deque<CWindow*> getGroupMembers(CWindow*);
 
     friend struct SDwindleNodeData;
 };

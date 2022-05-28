@@ -74,9 +74,10 @@ public:
 
     /*
         Called when a dispatcher requests a custom message
-        The layout is free to ignore.
+        The layout is free to ignore. 
+        std::any is the reply. Can be empty.
     */
-    virtual void         layoutMessage(SLayoutMessageHeader, std::string)  = 0;
+    virtual std::any    layoutMessage(SLayoutMessageHeader, std::string)  = 0;
 
     /* 
         Required to be handled, but may return just SWindowRenderLayoutHints()
@@ -96,4 +97,9 @@ public:
         on a window
     */
     virtual void         alterSplitRatioBy(CWindow*, float)     = 0;
+
+    /*
+        Called when something wants the current layout's name
+    */
+    virtual std::string  getLayoutName() = 0;
 };

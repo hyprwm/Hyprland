@@ -275,6 +275,10 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
 
     if (OPENINGON->pGroupParent) {
         // means we opened on a group
+
+        // add the group deco
+        pWindow->m_dWindowDecorations.emplace_back(new CHyprGroupBarDecoration(pWindow));
+
         PNODE->pGroupParent = OPENINGON->pGroupParent;
         PNODE->pGroupParent->groupMembers.push_back(PNODE);
         PNODE->pGroupParent->groupMemberActive = PNODE->pGroupParent->groupMembers.size() - 1;
@@ -693,6 +697,10 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
         for (auto& node : PGROUPPARENT->groupMembers) {
             node->pGroupParent = nullptr;
             node->pWindow->m_cRealBorderColor.setValueAndWarp(INACTIVEBORDERCOL); // no anim here because they pop in
+
+            for (auto& wd : node->pWindow->m_dWindowDecorations) {
+                wd->updateWindow(node->pWindow);
+            }
         }   
         
         PGROUPPARENT->groupMembers.clear();
@@ -725,6 +733,8 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
             c->pGroupParent = PPARENT;
             c->pWindow->m_cRealBorderColor = GROUPINACTIVEBORDERCOL;
 
+            c->pWindow->m_dWindowDecorations.push_back(new CHyprGroupBarDecoration(c->pWindow));
+
             if (c->pWindow == g_pCompositor->m_pLastWindow)
                 c->pWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("dwindle:col.group_border_active"));
         }
@@ -733,6 +743,31 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
         PPARENT->recalcSizePosRecursive();
     }
+}
+
+std::deque<CWindow*> CHyprDwindleLayout::getGroupMembers(CWindow* pWindow) {
+    
+    std::deque<CWindow*> result;
+
+    if (!g_pCompositor->windowExists(pWindow))
+        return result; // reject with empty
+
+    // get the node
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE)
+        return result;  // reject with empty
+
+    const auto PGROUPPARENT = PNODE->pGroupParent;
+
+    if (!PGROUPPARENT)
+        return result;  // reject with empty
+
+    for (auto& node : PGROUPPARENT->groupMembers) {
+        result.push_back(node->pWindow);
+    }
+
+    return result;
 }
 
 void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
@@ -759,6 +794,12 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
         PNODE->pGroupParent->groupMemberActive = 0;
 
     PNODE->pGroupParent->recalcSizePosRecursive();
+
+    for (auto& gm : PNODE->pGroupParent->groupMembers) {
+        for (auto& deco : gm->pWindow->m_dWindowDecorations) {
+            deco->updateWindow(gm->pWindow);
+        }
+    }
 
     // focus
     g_pCompositor->focusWindow(PNODE->pGroupParent->groupMembers[PNODE->pGroupParent->groupMemberActive]->pWindow);
@@ -850,7 +891,7 @@ void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
     PNODE->pParent->recalcSizePosRecursive();
 }
 
-void CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
+std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
     if (message == "togglegroup")
         toggleWindowGroup(header.pWindow);
     else if (message == "changegroupactivef")
@@ -859,6 +900,12 @@ void CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string 
         switchGroupWindow(header.pWindow, false);
     else if (message == "togglesplit")
         toggleSplit(header.pWindow);
+    else if (message == "groupinfo") {
+        auto res = getGroupMembers(g_pCompositor->m_pLastWindow);
+        return res;
+    }
+    
+    return "";
 }
 
 void CHyprDwindleLayout::toggleSplit(CWindow* pWindow) {
@@ -870,4 +917,8 @@ void CHyprDwindleLayout::toggleSplit(CWindow* pWindow) {
     PNODE->pParent->splitTop = !PNODE->pParent->splitTop;
 
     PNODE->pParent->recalcSizePosRecursive();
+}
+
+std::string CHyprDwindleLayout::getLayoutName() {
+    return "dwindle";
 }

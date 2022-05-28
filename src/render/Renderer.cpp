@@ -109,6 +109,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
 
     g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 
+    // render window decorations first
+    for (auto& wd : pWindow->m_dWindowDecorations)
+        wd->draw(pMonitor);
+
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 
     if (pWindow->m_bIsX11) {

@@ -140,8 +140,12 @@ void CAnimationManager::tick() {
             case AVARDAMAGE_ENTIRE: {
                 g_pHyprRenderer->damageBox(&WLRBOXPREV);
 
-                if (PWINDOW)
+                if (PWINDOW) {
                     g_pHyprRenderer->damageWindow(PWINDOW);
+                    for (auto& wd : PWINDOW->m_dWindowDecorations) {
+                        wd->updateWindow(PWINDOW);
+                    }
+                }
                 break;
             }
             case AVARDAMAGE_BORDER: {

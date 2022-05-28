@@ -50,6 +50,7 @@ private:
     static void         toggleSplit(std::string);
     static void         moveCursorToCorner(std::string);
     static void         workspaceOpt(std::string);
+    static void         exitHyprland(std::string);
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

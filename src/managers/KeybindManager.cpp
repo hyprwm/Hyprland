@@ -20,6 +20,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focusmonitor"]              = focusMonitor;
     m_mDispatchers["movecursortocorner"]        = moveCursorToCorner;
     m_mDispatchers["workspaceopt"]              = workspaceOpt;
+    m_mDispatchers["exit"]                      = exitHyprland;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -674,4 +675,9 @@ void CKeybindManager::workspaceOpt(std::string args) {
 
     // recalc mon
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+}
+
+void CKeybindManager::exitHyprland(std::string argz) {
+    g_pCompositor->cleanupExit();
+    exit(0);
 }

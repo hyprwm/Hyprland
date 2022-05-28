@@ -19,10 +19,12 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     }
     scaleBox(&windowBox, RDATA->output->scale);
 
+    float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? g_pConfigManager->getInt("decoration:rounding") : RDATA->rounding;
+
     if (RDATA->surface && surface == RDATA->surface)
-        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"), RDATA->decorate);
+        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, RDATA->decorate);
     else
-        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, RDATA->dontRound ? 0 : g_pConfigManager->getInt("decoration:rounding"), false, false);
+        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, false, false);
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
@@ -99,6 +101,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (PWORKSPACE->m_fAlpha.fl() / 255.f);
     renderdata.alpha = pWindow->m_bIsFullscreen ? g_pConfigManager->getFloat("decoration:fullscreen_opacity") : pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders;
+    renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;
 
     // apply window special data
     renderdata.alpha *= pWindow->m_sSpecialRenderData.alpha;

@@ -101,6 +101,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsPseudotiled = true;
         } else if (r.szRule.find("nofocus") == 0) {
             PWINDOW->m_bNoFocus = true;
+        } else if (r.szRule.find("rounding") == 0) {
+            try {
+                PWINDOW->m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+            } catch (std::exception& e) {
+                Debug::log(ERR, "Rounding rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
+            }
         } else if (r.szRule.find("opacity") == 0) {
             try {
                 PWINDOW->m_sSpecialRenderData.alpha = std::stof(r.szRule.substr(r.szRule.find_first_of(' ') + 1));

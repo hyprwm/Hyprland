@@ -412,6 +412,7 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         && RULE.find("monitor") != 0
         && RULE.find("nofocus") != 0
         && RULE.find("animation") != 0
+        && RULE.find("rounding") != 0
         && RULE.find("workspace") != 0) {
             Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
             parseError = "Invalid rule found: " + RULE;

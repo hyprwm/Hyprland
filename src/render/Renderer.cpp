@@ -87,7 +87,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         return;
 
     if (pWindow->m_bFadingOut) {
-        g_pHyprOpenGL->renderSnapshot(&pWindow);
+        if (pMonitor->ID == pWindow->m_iMonitorID) // TODO: fix this
+            g_pHyprOpenGL->renderSnapshot(&pWindow);
         return;
     }
     

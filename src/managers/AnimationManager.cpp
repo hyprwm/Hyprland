@@ -208,15 +208,20 @@ bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
 //
 //
 
-void CAnimationManager::animationPopin(CWindow* pWindow) {
+void CAnimationManager::animationPopin(CWindow* pWindow, bool close) {
     const auto GOALPOS = pWindow->m_vRealPosition.goalv();
     const auto GOALSIZE = pWindow->m_vRealSize.goalv();
 
-    pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f);
-    pWindow->m_vRealSize.setValue(Vector2D(5, 5));
+    if (!close) {
+        pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f);
+        pWindow->m_vRealSize.setValue(Vector2D(5, 5));
+    } else {
+        pWindow->m_vRealPosition = GOALPOS + GOALSIZE / 2.f;
+        pWindow->m_vRealSize = Vector2D(5, 5);
+    }
 }
 
-void CAnimationManager::animationSlide(CWindow* pWindow, std::string force) {
+void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool close) {
     pWindow->m_vRealSize.warp();  // size we preserve in slide
 
     const auto GOALPOS = pWindow->m_vRealPosition.goalv();
@@ -224,11 +229,18 @@ void CAnimationManager::animationSlide(CWindow* pWindow, std::string force) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
+    Vector2D posOffset;
+
     if (force != "") {
-        if (force == "bottom") pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y));
-        else if (force == "left") pWindow->m_vRealPosition.setValue(GOALPOS - Vector2D(GOALSIZE.x, 0));
-        else if (force == "right") pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(GOALSIZE.x, 0));
-        else pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y));
+        if (force == "bottom") posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);
+        else if (force == "left") posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0);
+        else if (force == "right") posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0);
+        else posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
+
+        if (!close)
+            pWindow->m_vRealPosition.setValue(posOffset);
+        else
+            pWindow->m_vRealPosition = posOffset;
 
         return;
     }
@@ -243,25 +255,30 @@ void CAnimationManager::animationSlide(CWindow* pWindow, std::string force) {
 
     if (DISPLAYBOTTOM && DISPLAYTOP) {
         if (DISPLAYLEFT && DISPLAYRIGHT) {
-            pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(0, GOALSIZE.y));
+            posOffset = GOALPOS + Vector2D(0, GOALSIZE.y);
         } else if (DISPLAYLEFT) {
-            pWindow->m_vRealPosition.setValue(GOALPOS - Vector2D(GOALSIZE.x, 0));
+            posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0);
         } else {
-            pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(GOALSIZE.x, 0));
+            posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0);
         }
     } else if (DISPLAYTOP) {
-        pWindow->m_vRealPosition.setValue(GOALPOS - Vector2D(0, GOALSIZE.y));
+        posOffset = GOALPOS - Vector2D(0, GOALSIZE.y);
     } else if (DISPLAYBOTTOM) {
-        pWindow->m_vRealPosition.setValue(GOALPOS + Vector2D(0, GOALSIZE.y));
+        posOffset = GOALPOS + Vector2D(0, GOALSIZE.y);
     } else {
         if (MIDPOINT.y > PMONITOR->vecPosition.y + PMONITOR->vecSize.y / 2.f)
-            pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y));
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);
         else
-            pWindow->m_vRealPosition.setValue(Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y));
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
     }
+
+    if (!close)
+        pWindow->m_vRealPosition.setValue(posOffset);
+    else
+        pWindow->m_vRealPosition = posOffset;
 }
 
-void CAnimationManager::onWindowPostCreate(CWindow* pWindow) {
+void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
     auto ANIMSTYLE = g_pConfigManager->getString("animations:windows_style");
     transform(ANIMSTYLE.begin(), ANIMSTYLE.end(), ANIMSTYLE.begin(), ::tolower);
 
@@ -274,20 +291,20 @@ void CAnimationManager::onWindowPostCreate(CWindow* pWindow) {
         if (pWindow->m_sAdditionalConfigData.animationStyle.find("slide") == 0) {
             if (pWindow->m_sAdditionalConfigData.animationStyle.find(' ') != std::string::npos) {
                 // has a direction
-                animationSlide(pWindow, pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find(' ') + 1));
+                animationSlide(pWindow, pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find(' ') + 1), close);
             } else {
-                animationSlide(pWindow);
+                animationSlide(pWindow, "", close);
             }
         } else {
             // anim popin, fallback
-            animationPopin(pWindow);
+            animationPopin(pWindow, close);
         }
     } else {
         if (ANIMSTYLE == "slide") {
-            animationSlide(pWindow);
+            animationSlide(pWindow, "", close);
         } else {
             // anim popin, fallback
-            animationPopin(pWindow);
+            animationPopin(pWindow, close);
         }
     }
 }

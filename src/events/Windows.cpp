@@ -190,7 +190,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     // do the animation thing
-    g_pAnimationManager->onWindowPostCreate(PWINDOW);
+    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
 }
@@ -250,6 +250,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pCompositor->m_lWindowsFadingOut.push_back(PWINDOW);
 
     g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
+
+    // do the animation thing
+    PWINDOW->m_vOriginalClosedPos = PWINDOW->m_vRealPosition.vec();
+    PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
+    PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.vec() + Vector2D(0.01f, 0.01f);  // it has to be animated, otherwise onWindowPostCreateClose will ignore it
+    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {

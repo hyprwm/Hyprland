@@ -3,6 +3,11 @@
 #include "../defines.hpp"
 #include "AnimatedVariable.hpp"
 
+enum eFullscreenMode : uint8_t {
+    FULLSCREEN_FULL = 0,
+    FULLSCREEN_MAXIMIZED
+};
+
 class CWorkspace {
 public:
     CWorkspace(int monitorID);
@@ -14,6 +19,7 @@ public:
     std::string     m_szName = "";
     uint64_t        m_iMonitorID = -1;
     bool            m_bHasFullscreenWindow = false;
+    eFullscreenMode m_efFullscreenMode = FULLSCREEN_FULL;
 
     wlr_ext_workspace_handle_v1* m_pWlrHandle = nullptr;
 

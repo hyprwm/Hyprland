@@ -86,6 +86,7 @@ public:
     // ------------------------------------------------- //
 
     SMonitor*               getMonitorFromID(const int&);
+    SMonitor*               getMonitorFromName(const std::string&);
     SMonitor*               getMonitorFromCursor();
     SMonitor*               getMonitorFromVector(const Vector2D&);
     void                    removeWindowFromVectorSafe(CWindow*);

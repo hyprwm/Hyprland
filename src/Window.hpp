@@ -90,6 +90,9 @@ public:
     // For hidden windows and stuff
     bool            m_bHidden = false;
 
+    // Foreign Toplevel proto
+    wlr_foreign_toplevel_handle_v1* m_phForeignToplevel = nullptr;
+
     // Window decorations
     std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
 

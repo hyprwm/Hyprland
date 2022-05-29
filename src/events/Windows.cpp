@@ -35,6 +35,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
     PWINDOW->m_fAlpha = 255.f;
 
+    // Foreign Toplevel
+    PWINDOW->m_phForeignToplevel = wlr_foreign_toplevel_handle_v1_create(g_pCompositor->m_sWLRToplevelMgr);
+    // TODO: handle foreign events (requests)
+    wlr_foreign_toplevel_handle_v1_set_app_id(PWINDOW->m_phForeignToplevel, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
+
     // checks if the window wants borders and sets the appriopriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
 
@@ -256,6 +261,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
     PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.vec() + Vector2D(0.01f, 0.01f);  // it has to be animated, otherwise onWindowPostCreateClose will ignore it
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
+
+    // Destroy Foreign Toplevel
+    wlr_foreign_toplevel_handle_v1_destroy(PWINDOW->m_phForeignToplevel);
+    PWINDOW->m_phForeignToplevel = nullptr;
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {
@@ -302,6 +311,9 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) // if it's the active, let's post an event to update others
         g_pEventManager->postEvent(SHyprIPCEvent("activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle));
+
+    if (PWINDOW->m_phForeignToplevel)
+        wlr_foreign_toplevel_handle_v1_set_title(PWINDOW->m_phForeignToplevel, PWINDOW->m_szTitle.c_str());
 
     Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());
 }

@@ -67,7 +67,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
         const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PFULLWINDOW);
+        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PFULLWINDOW, FULLSCREEN_FULL);
         g_pXWaylandManager->setWindowFullscreen(PFULLWINDOW, PFULLWINDOW->m_bIsFullscreen);
     }
 
@@ -325,9 +325,9 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 
         if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
-            g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+            g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL);
     } else {
-        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL);
     }
 
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);

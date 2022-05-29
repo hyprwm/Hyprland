@@ -534,7 +534,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     pixman_region32_t inverseOpaque;
     pixman_region32_init(&inverseOpaque);
     if (a == 255.f) {
-        pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+        pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
         pixman_region32_copy(&inverseOpaque, &pSurface->current.opaque);
         pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
         pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &monbox);
@@ -572,7 +572,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // stencil done. Render everything.
-    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
         renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, g_pConfigManager->getInt("decoration:blur_ignore_opacity") ? 255.f : a, &damage);

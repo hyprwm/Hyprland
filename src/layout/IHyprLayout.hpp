@@ -12,6 +12,8 @@ struct SLayoutMessageHeader {
     CWindow*    pWindow = nullptr;
 };
 
+enum eFullscreenMode : uint8_t;
+
 interface IHyprLayout {
 public:
 
@@ -66,11 +68,11 @@ public:
     virtual void        onWindowCreatedFloating(CWindow*)   = 0;
 
     /*
-        Called when a window requests to toggle its' fullscreen state.
+        Called when a window / the user requests to toggle the fullscreen state of a window
         The layout sets all the fullscreen flags.
         It can either accept or ignore.
     */
-    virtual void        fullscreenRequestForWindow(CWindow*)    = 0;
+    virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode)    = 0;
 
     /*
         Called when a dispatcher requests a custom message

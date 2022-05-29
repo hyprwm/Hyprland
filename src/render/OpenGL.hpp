@@ -92,6 +92,7 @@ private:
     std::string             m_szExtensions;
 
     bool                    m_bFakeFrame = false;
+    bool                    m_bEndFrame = false;
 
     // Shaders
     SQuad                   m_shQUAD;

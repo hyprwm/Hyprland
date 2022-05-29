@@ -186,10 +186,24 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
     nextItem();
 
-    if (curitem == "disable" || curitem == "disabled" || curitem == "addreserved") {
+    if (curitem == "disable" || curitem == "disabled" || curitem == "addreserved" || curitem == "transform") {
         if (curitem == "disable" || curitem == "disabled")
             newrule.disabled = true;
-        else if (curitem == "addreserved") {
+        else if (curitem == "transform") {
+            nextItem();
+
+            wl_output_transform transform = (wl_output_transform)std::stoi(curitem);
+
+            // overwrite if exists
+            for (auto& r : m_dMonitorRules) {
+                if (r.name == newrule.name) {
+                    r.transform = transform;
+                    return;
+                }
+            }
+
+            return;
+        } else if (curitem == "addreserved") {
             nextItem();
 
             int top = std::stoi(curitem);

@@ -191,7 +191,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (DTMODE == DAMAGE_TRACKING_NONE || DTMODE == DAMAGE_TRACKING_MONITOR) {
-        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
+        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
     } else {
@@ -246,10 +246,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     pixman_region32_init(&frameDamage);
 
     const auto TRANSFORM = wlr_output_transform_invert(PMONITOR->output->transform);
-    wlr_region_transform(&frameDamage, &PMONITOR->damage->current, TRANSFORM, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
+    wlr_region_transform(&frameDamage, &PMONITOR->damage->current, TRANSFORM, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
     if (DTMODE == DAMAGE_TRACKING_NONE || DTMODE == DAMAGE_TRACKING_MONITOR)
-        pixman_region32_union_rect(&frameDamage, &frameDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
+        pixman_region32_union_rect(&frameDamage, &frameDamage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
     wlr_output_set_damage(PMONITOR->output, &frameDamage);
     pixman_region32_fini(&frameDamage);

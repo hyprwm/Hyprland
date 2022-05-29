@@ -30,6 +30,7 @@ struct SMonitorRule {
     float       refreshRate = 60;
     int         defaultWorkspaceID = -1;
     bool        disabled = false;
+    wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
 };
 
 struct SMonitorAdditionalReservedArea {

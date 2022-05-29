@@ -559,7 +559,7 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
     Debug::log(LOG, "Applying monitor rule for %s", pMonitor->szName.c_str());
 
     // Check if the rule isn't already applied
-    if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale && DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1)) {
+    if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale && DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1) && pMonitor->transform == pMonitorRule->transform) {
         Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());
         return;
     }
@@ -623,8 +623,10 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecSize = pMonitorRule->resolution;
     }
 
+    wlr_output_set_transform(pMonitor->output, pMonitorRule->transform);
+    pMonitor->transform = pMonitorRule->transform;
+
     pMonitor->vecPixelSize = pMonitor->vecSize;
-    pMonitor->vecSize = (pMonitor->vecSize / pMonitor->scale).floor();
 
     // update renderer
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
@@ -633,6 +635,11 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
         Debug::log(ERR, "Couldn't commit output named %s", pMonitor->output->name);
         return;
     }
+
+    int x, y;
+    wlr_output_transformed_resolution(pMonitor->output, &x, &y);
+    pMonitor->vecSize = (Vector2D(x, y) / pMonitor->scale).floor();
+    pMonitor->vecTransformedSize = Vector2D(x,y);
 
     wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitorRule->offset.x, (int)pMonitorRule->offset.y);
 

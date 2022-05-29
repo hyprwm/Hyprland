@@ -166,13 +166,17 @@ void CHyprOpenGLImpl::end() {
     // end the render, copy the data to the WLR framebuffer
     if (!m_bFakeFrame) {
         glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
-        wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+        wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
         pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
 
         clear(CColor(11, 11, 11, 255));
 
+        m_bEndFrame = true;
+
         renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &monbox, 255.f, 0);
+
+        m_bEndFrame = false;
     }
 
     // reset our data
@@ -205,7 +209,15 @@ void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
         return;
     }
 
-    glScissor(pBox->x, pBox->y, pBox->width, pBox->height);
+    wlr_box newBox = *pBox;
+
+    int w, h;
+    wlr_output_transformed_resolution(m_RenderData.pMonitor->output, &w, &h);
+
+    const auto TR = wlr_output_transform_invert(m_RenderData.pMonitor->transform);
+    wlr_box_transform(&newBox, &newBox, TR, w, h);
+
+    glScissor(newBox.x, newBox.y, newBox.width, newBox.height);
     glEnable(GL_SCISSOR_TEST);
 }
 
@@ -217,8 +229,9 @@ void CHyprOpenGLImpl::scissor(const pixman_box32* pBox) {
         return;
     }
 
-    glScissor(pBox->x1, pBox->y1, pBox->x2 - pBox->x1, pBox->y2 - pBox->y1);
-    glEnable(GL_SCISSOR_TEST);
+    wlr_box newBox = {pBox->x1, pBox->y1, pBox->x2 - pBox->x1, pBox->y2 - pBox->y1};
+
+    scissor(&newBox);
 }
 
 void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h) {
@@ -231,7 +244,7 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
     float matrix[9];
-    wlr_matrix_project_box(matrix, box, WL_OUTPUT_TRANSFORM_NORMAL, 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
+    wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -296,7 +309,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
     // get transform
-    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
+    const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float matrix[9];
     wlr_matrix_project_box(matrix, pBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
@@ -817,10 +830,10 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
     // get the adequate tex
     std::string texPath = "/usr/share/hyprland/wall_";
     Vector2D textureSize;
-    if (pMonitor->vecSize.x > 7000) {
+    if (pMonitor->vecTransformedSize.x > 7000) {
         textureSize = Vector2D(7680, 4320);
         texPath += "8K.png";
-    } else if (pMonitor->vecSize.x > 3000) {
+    } else if (pMonitor->vecTransformedSize.x > 3000) {
         textureSize = Vector2D(3840, 2160);
         texPath += "4K.png";
     } else {
@@ -853,7 +866,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
 
-    wlr_box box = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+    wlr_box box = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
     renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
 }

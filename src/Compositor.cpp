@@ -102,6 +102,8 @@ CCompositor::CCompositor() {
     m_sWLRVKeyboardMgr = wlr_virtual_keyboard_manager_v1_create(m_sWLDisplay);
 
     m_sWLRVirtPtrMgr = wlr_virtual_pointer_manager_v1_create(m_sWLDisplay);
+
+    m_sWLRToplevelMgr = wlr_foreign_toplevel_manager_v1_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {
@@ -442,6 +444,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
             wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
             wlr_seat_pointer_clear_focus(m_sSeat.seat);
         }
+
+        if (PLASTWINDOW->m_phForeignToplevel)
+            wlr_foreign_toplevel_handle_v1_set_activated(PLASTWINDOW->m_phForeignToplevel, false);
     }
 
     m_pLastWindow = PLASTWINDOW;
@@ -460,6 +465,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent("activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle));
+
+    if (pWindow->m_phForeignToplevel)
+        wlr_foreign_toplevel_handle_v1_set_activated(pWindow->m_phForeignToplevel, true);
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {

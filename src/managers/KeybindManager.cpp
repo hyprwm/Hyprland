@@ -295,7 +295,7 @@ void CKeybindManager::fullscreenActive(std::string args) {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;
 
-    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW);
+    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, args == "1" ? eFullscreenMode::FULLSCREEN_MAXIMIZED : eFullscreenMode::FULLSCREEN_FULL);
 
     g_pXWaylandManager->setWindowFullscreen(PWINDOW, PWINDOW->m_bIsFullscreen);
 

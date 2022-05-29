@@ -48,6 +48,16 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // new monitor added, let's accomodate for that.
     const auto OUTPUT = (wlr_output*)data;
 
+    if (!OUTPUT->name) {
+        Debug::log(ERR, "New monitor has no name?? Ignoring");
+        return;
+    }
+
+    if (g_pCompositor->getMonitorFromName(std::string(OUTPUT->name))) {
+        Debug::log(WARN, "Monitor with name %s already exists, not adding as new!", OUTPUT->name);
+        return;
+    }
+
     // get monitor rule that matches
     SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(OUTPUT->name);
 

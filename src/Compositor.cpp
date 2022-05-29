@@ -255,6 +255,16 @@ SMonitor* CCompositor::getMonitorFromID(const int& id) {
     return nullptr;
 }
 
+SMonitor* CCompositor::getMonitorFromName(const std::string& name) {
+    for (auto& m : m_lMonitors) {
+        if (m.szName == name) {
+            return &m;
+        }
+    }
+
+    return nullptr;
+}
+
 SMonitor* CCompositor::getMonitorFromCursor() {
     const auto COORDS = Vector2D(m_sWLRCursor->x, m_sWLRCursor->y);
 

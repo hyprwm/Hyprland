@@ -57,7 +57,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
             continue;
 
         // found it!
-        renderWindow(&w, pMonitor, time, false);
+        renderWindow(&w, pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL);
 
         pWorkspaceWindow = &w;
     }
@@ -71,6 +71,13 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
     }
 
     // and the overlay layers
+    if (pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL) {
+        // on non-full we draw the bar and shit
+        for (auto& ls : pMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            renderLayer(ls, pMonitor, time);
+        }
+    }
+
     for (auto& ls : pMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
         renderLayer(ls, pMonitor, time);
     }
@@ -98,7 +105,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
     renderdata.w = std::clamp(pWindow->m_vRealSize.vec().x, (double)5, (double)1337420); // clamp the size to min 5,
     renderdata.h = std::clamp(pWindow->m_vRealSize.vec().y, (double)5, (double)1337420); // otherwise we'll have issues later with invalid boxes
-    renderdata.dontRound = pWindow->m_bIsFullscreen;
+    renderdata.dontRound = pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
     renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (PWORKSPACE->m_fAlpha.fl() / 255.f);
     renderdata.alpha = pWindow->m_bIsFullscreen ? g_pConfigManager->getFloat("decoration:fullscreen_opacity") : pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders;

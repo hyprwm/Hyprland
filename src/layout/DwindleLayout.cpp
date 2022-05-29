@@ -620,7 +620,7 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
     g_pCompositor->moveWindowToTop(pWindow);
 }
 
-void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
+void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
 
@@ -650,6 +650,8 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
     } else {
         // if it now got fullscreen, make it fullscreen
 
+        PWORKSPACE->m_efFullscreenMode = fullscreenMode;
+
         // save position and size if floating
         if (pWindow->m_bIsFloating) {
             pWindow->m_vPosition = pWindow->m_vRealPosition.vec();
@@ -657,8 +659,22 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow) {
         }
 
         // apply new pos and size being monitors' box
-        pWindow->m_vRealPosition = PMONITOR->vecPosition;
-        pWindow->m_vRealSize = PMONITOR->vecSize;
+        if (fullscreenMode == FULLSCREEN_FULL) {
+            pWindow->m_vRealPosition = PMONITOR->vecPosition;
+            pWindow->m_vRealSize = PMONITOR->vecSize;
+        } else {
+            // This is a massive hack.
+            // We make a fake "only" node and apply
+            // To keep consistent with the settings without C+P code
+
+            SDwindleNodeData fakeNode;
+            fakeNode.pWindow = pWindow;
+            fakeNode.position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID = pWindow->m_iWorkspaceID;
+
+            applyNodeDataToWindow(&fakeNode);
+        }
     }
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());

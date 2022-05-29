@@ -6,6 +6,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 
 class CHyprDwindleLayout;
+enum eFullscreenMode : uint8_t;
 
 struct SDwindleNodeData {
     SDwindleNodeData* pParent = nullptr;
@@ -50,7 +51,7 @@ public:
     virtual void        onEndDragWindow();
     virtual void        onMouseMove(const Vector2D&);
     virtual void        onWindowCreatedFloating(CWindow*);
-    virtual void        fullscreenRequestForWindow(CWindow*);
+    virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode);
     virtual std::any    layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
     virtual void        switchWindows(CWindow*, CWindow*);

@@ -259,7 +259,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // do the animation thing
     PWINDOW->m_vOriginalClosedPos = PWINDOW->m_vRealPosition.vec();
     PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
-    PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.vec() + Vector2D(0.01f, 0.01f);  // it has to be animated, otherwise onWindowPostCreateClose will ignore it
+
+    if (!PWINDOW->m_bX11DoesntWantBorders)   // don't animate out if they weren't animated in.
+        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.vec() + Vector2D(0.01f, 0.01f);  // it has to be animated, otherwise onWindowPostCreateClose will ignore it
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
 
     // Destroy Foreign Toplevel

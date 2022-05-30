@@ -35,4 +35,6 @@ public:
 
     void            startAnim(bool in, bool left, bool instant = false);
     void            setActive(bool on);
+
+    void            moveToMonitor(const int&);
 };

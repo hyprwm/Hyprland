@@ -937,3 +937,20 @@ void CCompositor::updateWindowBorderColor(CWindow* pWindow) {
     else
         pWindow->m_cRealBorderColor = CColor(pWindow == m_pLastWindow ? *ACTIVECOL : *INACTIVECOL);
 }
+
+void CCompositor::moveWindowToWorkspace(CWindow* pWindow, const std::string& work) {
+    m_pLastWindow = pWindow;
+    g_pKeybindManager->moveActiveToWorkspace(work);
+
+    g_pInputManager->refocus();
+}
+
+int CCompositor::getNextAvailableMonitorID() {
+    int64_t topID = -1;
+    for (auto& m : m_lMonitors) {
+        if ((int64_t)m.ID > topID)
+            topID = m.ID;
+    }
+
+    return topID + 1;
+}

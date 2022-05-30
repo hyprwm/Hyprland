@@ -820,8 +820,8 @@ CWorkspace* CCompositor::getWorkspaceByString(const std::string& str) {
     }
 
     try {
-        int id = std::stoi(str);
-        return getWorkspaceByID(id);
+        std::string name = "";
+        return getWorkspaceByID(getWorkspaceIDFromString(str, name));
     } catch (std::exception& e) {
         Debug::log(ERR, "Error in getWorkspaceByString, invalid id");
     }

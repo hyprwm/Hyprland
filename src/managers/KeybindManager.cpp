@@ -318,12 +318,20 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     const auto OLDWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
     // hack
+    std::string unusedName;
+    const auto WORKSPACEID = getWorkspaceIDFromString(args, unusedName);
+
     g_pKeybindManager->changeworkspace(args);
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByString(args);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
     if (PWORKSPACE == OLDWORKSPACE) {
         Debug::log(LOG, "Not moving to workspace because it didn't change.");
+        return;
+    }
+
+    if (!PWORKSPACE) {
+        Debug::log(ERR, "Workspace null in moveActiveToWorkspace?");
         return;
     }
 

@@ -89,6 +89,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
             Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
         } else {
             // call the dispatcher
+            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %s)", modmask, KBKEYUPPER);
             DISPATCHER->second(k.arg);
         }
 

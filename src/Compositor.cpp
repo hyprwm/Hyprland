@@ -997,6 +997,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, SMonitor* pMoni
     // move the workspace
 
     pWorkspace->m_iMonitorID = pMonitor->ID;
+    pWorkspace->moveToMonitor(pMonitor->ID);
 
     for (auto& w : m_lWindows) {
         if (w.m_iWorkspaceID == pWorkspace->m_iID)

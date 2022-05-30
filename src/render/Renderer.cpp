@@ -32,7 +32,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 }
 
 bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
-    wlr_box geometry = {pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, pWindow->m_vRealSize.vec().x, pWindow->m_vRealSize.vec().y};
+    wlr_box geometry = pWindow->getFullWindowBoundingBox();
 
     if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
         return false;

@@ -622,6 +622,9 @@ void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
 
+    if (!PWORKSPACE)
+        return;
+
     for (auto& w : m_lWindows) {
         if (w.m_iWorkspaceID == id) {
 
@@ -953,4 +956,68 @@ int CCompositor::getNextAvailableMonitorID() {
     }
 
     return topID + 1;
+}
+
+void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, SMonitor* pMonitor) {
+
+    // We trust the workspace and monitor to be correct.
+
+    if (pWorkspace->m_iMonitorID == pMonitor->ID)
+        return;
+
+    Debug::log(LOG, "moveWorkspaceToMonitor: Moving %d to monitor %d", pWorkspace->m_iID, pMonitor->ID);
+
+    const auto POLDMON = getMonitorFromID(pWorkspace->m_iMonitorID);
+
+    const bool SWITCHINGISACTIVE = POLDMON->activeWorkspace == pWorkspace->m_iID;
+
+    // fix old mon
+    int nextWorkspaceOnMonitorID = -1;
+    for (auto& w : m_lWorkspaces) {
+        if (w.m_iMonitorID == POLDMON->ID && w.m_iID != pWorkspace->m_iID) {
+            nextWorkspaceOnMonitorID = w.m_iID;
+            break;
+        }
+    }
+
+    if (nextWorkspaceOnMonitorID == -1) {
+        nextWorkspaceOnMonitorID = 1;
+
+        while (getWorkspaceByID(nextWorkspaceOnMonitorID))
+            nextWorkspaceOnMonitorID++;
+
+        Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new %d", nextWorkspaceOnMonitorID);
+    }
+
+    Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing %d", nextWorkspaceOnMonitorID);
+
+    g_pKeybindManager->focusMonitor(std::to_string(POLDMON->ID));
+    g_pKeybindManager->changeworkspace(std::to_string(nextWorkspaceOnMonitorID));
+
+    // move the workspace
+
+    pWorkspace->m_iMonitorID = pMonitor->ID;
+
+    for (auto& w : m_lWindows) {
+        if (w.m_iWorkspaceID == pWorkspace->m_iID)
+            w.m_iMonitorID = pMonitor->ID;
+    }
+
+    if (SWITCHINGISACTIVE) { // if it was active, preserve its' status. If it wasn't, don't.
+        Debug::log(LOG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active %d -> %d", pMonitor->activeWorkspace, pWorkspace->m_iID);
+        
+        getWorkspaceByID(pMonitor->activeWorkspace)->startAnim(false, false);
+
+        pMonitor->activeWorkspace = pWorkspace->m_iID;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
+
+        pWorkspace->startAnim(true, true, true);
+
+        wlr_cursor_warp(m_sWLRCursor, m_sSeat.mouse->mouse, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
+    }
+
+    // finalize
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+
+    g_pInputManager->refocus();
 }

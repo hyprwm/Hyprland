@@ -309,14 +309,26 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     // snap cursor
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f, BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
 
-    // move windows
-    for (auto& w : g_pCompositor->m_lWindows) {
+    // move workspaces
+    std::deque<CWorkspace*> wspToMove;
+    for (auto& w : g_pCompositor->m_lWorkspaces) {
         if (w.m_iMonitorID == pMonitor->ID) {
-            g_pCompositor->moveWindowToWorkspace(&w, BACKUPWORKSPACE);
+            wspToMove.push_back(&w);
         }
     }
 
-    g_pCompositor->sanityCheckWorkspaces();
+    for (auto& w : wspToMove) {
+        g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
+        w->startAnim(true, true, true);
+    }
+
+    pMonitor->activeWorkspace = -1;
+
+    for (auto it = g_pCompositor->m_lWorkspaces.begin(); it != g_pCompositor->m_lWorkspaces.end(); ++it) {
+        if (it->m_iMonitorID == pMonitor->ID) {
+            it = g_pCompositor->m_lWorkspaces.erase(it);
+        }
+    }
 
     Debug::log(LOG, "Removed monitor %s!", pMonitor->szName.c_str());
 

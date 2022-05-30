@@ -357,7 +357,7 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
     // Ignore any recalc events if we have a fullscreen window.
-    if (PWORKSPACE->m_bHasFullscreenWindow)
+    if (!PWORKSPACE || PWORKSPACE->m_bHasFullscreenWindow)
         return;
 
     const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->activeWorkspace);

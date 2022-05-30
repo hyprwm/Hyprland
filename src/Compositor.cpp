@@ -592,7 +592,7 @@ CWorkspace* CCompositor::getWorkspaceByID(const int& id) {
 
 void CCompositor::sanityCheckWorkspaces() {
     for (auto it = m_lWorkspaces.begin(); it != m_lWorkspaces.end(); ++it) {
-        if (getWindowsOnWorkspace(it->m_iID) == 0 && !isWorkspaceVisible(it->m_iID)) {
+        if ((getWindowsOnWorkspace(it->m_iID) == 0 && !isWorkspaceVisible(it->m_iID))) {
             it = m_lWorkspaces.erase(it);
         }
     }

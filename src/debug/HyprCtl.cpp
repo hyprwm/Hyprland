@@ -26,8 +26,8 @@ std::string monitorsRequest() {
 std::string clientsRequest() {
     std::string result = "";
     for (auto& w : g_pCompositor->m_lWindows) {
-        result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i (%s)\n\tfloating: %i\n\n",
-                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.vec().x, (int)w.m_vRealPosition.vec().y, (int)w.m_vRealSize.vec().x, (int)w.m_vRealSize.vec().y, w.m_iWorkspaceID, (w.m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID)->m_szName.c_str()), (int)w.m_bIsFloating);
+        result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\n",
+                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.vec().x, (int)w.m_vRealPosition.vec().y, (int)w.m_vRealSize.vec().x, (int)w.m_vRealSize.vec().y, w.m_iWorkspaceID, (w.m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID)->m_szName.c_str()), (int)w.m_bIsFloating, w.m_iMonitorID);
     }
     return result;
 }
@@ -47,8 +47,8 @@ std::string activeWindowRequest() {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return "Invalid";
 
-    return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i (%s)\n\tfloating: %i\n\n",
-                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating);
+    return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i, %i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\n",
+                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating, (int)PWINDOW->m_iMonitorID);
 }
 
 std::string layersRequest() {

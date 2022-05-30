@@ -58,7 +58,12 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
 
     Debug::log(LOG, "LayerSurface %x destroyed", layersurface->layerSurface);
 
-    if (!layersurface->fadingOut) {
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
+
+    if (!g_pCompositor->getMonitorFromID(layersurface->monitorID))
+        Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
+
+    if (!layersurface->fadingOut && PMONITOR) {
         Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
         layersurface->alpha.setValueAndWarp(0.f);
         layersurface->fadingOut = true;
@@ -69,8 +74,6 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
     layersurface->hyprListener_mapLayerSurface.removeCallback();
     layersurface->hyprListener_unmapLayerSurface.removeCallback();
     layersurface->hyprListener_newPopup.removeCallback();
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
     // rearrange to fix the reserved areas
     if (PMONITOR) {
@@ -130,6 +133,11 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     SLayerSurface* layersurface = (SLayerSurface*)owner;
 
     Debug::log(LOG, "LayerSurface %x unmapped", layersurface->layerSurface);
+
+    if (!g_pCompositor->getMonitorFromID(layersurface->monitorID)) {
+        Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
+        return;
+    }
 
     // make a snapshot and start fade
     g_pHyprOpenGL->makeLayerSnapshot(layersurface);

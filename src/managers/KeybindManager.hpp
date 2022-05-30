@@ -51,6 +51,8 @@ private:
     static void         moveCursorToCorner(std::string);
     static void         workspaceOpt(std::string);
     static void         exitHyprland(std::string);
+
+    friend class CCompositor;
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

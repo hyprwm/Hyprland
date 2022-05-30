@@ -70,7 +70,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     SMonitor newMonitor;
     newMonitor.output = OUTPUT;
-    newMonitor.ID = g_pCompositor->m_lMonitors.size();
+    newMonitor.ID = g_pCompositor->getNextAvailableMonitorID();
     newMonitor.szName = OUTPUT->name;
 
     wlr_output_init_render(OUTPUT, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
@@ -296,7 +296,44 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     if (!pMonitor)
         return;
 
+    // Cleanup everything. Move windows back, snap cursor, shit.
+    const auto BACKUPMON = &g_pCompositor->m_lMonitors.front();
+    const auto BACKUPWORKSPACE = BACKUPMON->activeWorkspace > 0 ? std::to_string(BACKUPMON->activeWorkspace) : "name:" + g_pCompositor->getWorkspaceByID(BACKUPMON->activeWorkspace)->m_szName;
+
+    if (!BACKUPMON) {
+        Debug::log(CRIT, "No monitors! Unplugged last! Exiting.");
+        g_pCompositor->cleanupExit();
+        return;
+    }
+
+    // snap cursor
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f, BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
+
+    // move windows
+    for (auto& w : g_pCompositor->m_lWindows) {
+        if (w.m_iMonitorID == pMonitor->ID) {
+            g_pCompositor->moveWindowToWorkspace(&w, BACKUPWORKSPACE);
+        }
+    }
+
+    g_pCompositor->sanityCheckWorkspaces();
+
+    Debug::log(LOG, "Removed monitor %s!", pMonitor->szName.c_str());
+
     g_pCompositor->m_lMonitors.remove(*pMonitor);
 
-    // TODO: cleanup windows
+    // update the pMostHzMonitor
+    if (pMostHzMonitor == pMonitor) {
+        int mostHz = 0;
+        SMonitor* pMonitorMostHz = nullptr;
+
+        for (auto& m : g_pCompositor->m_lMonitors) {
+            if (m.refreshRate > mostHz) {
+                pMonitorMostHz = &m;
+                mostHz = m.refreshRate;
+            }
+        }
+
+        pMostHzMonitor = pMonitorMostHz;
+    }
 }

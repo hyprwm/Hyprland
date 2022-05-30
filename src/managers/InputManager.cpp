@@ -221,7 +221,6 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     // notify app if we didnt handle it
     if (g_pCompositor->doesSeatAcceptInput(g_pCompositor->m_pLastFocus)) {
         wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, e->time_msec, e->button, e->state);
-        Debug::log(LOG, "Seat notified of button %i (state %i) on surface %x", e->button, e->state, g_pCompositor->m_pLastFocus);
     }
         
 }
@@ -360,8 +359,6 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-        Debug::log(LOG, "Pressed key %i, with the MODMASK being %i", e->keycode, MODS);
-
         for (int i = 0; i < syms; ++i)
             found = g_pKeybindManager->handleKeybinds(MODS, keysyms[i]) || found;
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {

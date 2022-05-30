@@ -21,6 +21,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["movecursortocorner"]        = moveCursorToCorner;
     m_mDispatchers["workspaceopt"]              = workspaceOpt;
     m_mDispatchers["exit"]                      = exitHyprland;
+    m_mDispatchers["movecurrentworkspacetomonitor"] = moveCurrentWorkspaceToMonitor;
+    m_mDispatchers["moveworkspacetomonitor"]    = moveWorkspaceToMonitor;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -232,6 +234,9 @@ void CKeybindManager::changeworkspace(std::string args) {
         g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACETOCHANGETO->m_pWlrHandle);
         PWORKSPACETOCHANGETO->setActive(true);
 
+        // recalc layout
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWORKSPACETOCHANGETO->m_iMonitorID);
+
         Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 
         // focus
@@ -252,7 +257,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     const auto ANIMTOLEFT = workspaceToChangeTo > OLDWORKSPACE;
 
     // start anim on old workspace
-    g_pCompositor->getWorkspaceByID(OLDWORKSPACE)->startAnim(false, ANIMTOLEFT);
+    if (const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(OLDWORKSPACE); POLDWORKSPACE)
+        POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
 
     g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID);
     const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
@@ -689,4 +695,56 @@ void CKeybindManager::workspaceOpt(std::string args) {
 void CKeybindManager::exitHyprland(std::string argz) {
     g_pCompositor->cleanupExit();
     exit(0);
+}
+
+void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
+    if (!isNumber(args) && !isDirection(args)) {
+        Debug::log(ERR, "moveCurrentWorkspaceToMonitor arg not a number or direction!");
+        return;
+    }
+
+    const auto PMONITOR = isDirection(args) ? g_pCompositor->getMonitorInDirection(args[0]) : g_pCompositor->getMonitorFromID(std::stoi(args));
+
+    if (!PMONITOR) {
+        Debug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist");
+        return;
+    }
+
+    // get the current workspace
+    const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+    if (!PCURRENTWORKSPACE)
+        return;
+
+    g_pCompositor->moveWorkspaceToMonitor(PCURRENTWORKSPACE, PMONITOR);
+}
+
+void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
+
+    std::string workspace = args.substr(0, args.find_first_of(' '));
+    std::string monitor = args.substr(args.find_first_of(' ') + 1);
+
+    if (!isNumber(monitor) && !isDirection(monitor)) {
+        Debug::log(ERR, "moveWorkspaceToMonitor monitor arg not a number or direction!");
+        return;
+    }
+
+    const auto PMONITOR = isDirection(monitor) ? g_pCompositor->getMonitorInDirection(monitor[0]) : g_pCompositor->getMonitorFromID(std::stoi(monitor));
+
+    if (!PMONITOR){
+        Debug::log(ERR, "Ignoring moveWorkspaceToMonitor: monitor doesnt exist");
+        return;
+    }
+
+    std::string workspaceName;
+    const int WORKSPACEID = getWorkspaceIDFromString(workspace, workspaceName);
+
+    if (WORKSPACEID == INT_MAX) {
+        Debug::log(ERR, "moveWorkspaceToMonitor invalid workspace!");
+        return;
+    }
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+
+    g_pCompositor->moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
 }

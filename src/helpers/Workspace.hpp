@@ -33,6 +33,6 @@ public:
     bool            m_bDefaultFloating = false;
     bool            m_bDefaultPseudo = false;
 
-    void            startAnim(bool in, bool left);
+    void            startAnim(bool in, bool left, bool instant = false);
     void            setActive(bool on);
 };

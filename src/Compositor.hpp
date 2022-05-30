@@ -128,6 +128,7 @@ public:
     void                    updateWindowBorderColor(CWindow*);
     void                    moveWindowToWorkspace(CWindow*, const std::string&);
     int                     getNextAvailableMonitorID();
+    void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);
 
 private:
     void                    initAllSignals();

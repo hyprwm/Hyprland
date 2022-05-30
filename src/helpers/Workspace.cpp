@@ -31,6 +31,8 @@ CWorkspace::CWorkspace(int monitorID) {
 CWorkspace::~CWorkspace() {
     m_vRenderOffset.unregister();
 
+    Debug::log(LOG, "Destroying workspace ID %d", m_iID);
+
     if (m_pWlrHandle) {
         wlr_ext_workspace_handle_v1_set_active(m_pWlrHandle, false);
         wlr_ext_workspace_handle_v1_destroy(m_pWlrHandle);
@@ -38,7 +40,7 @@ CWorkspace::~CWorkspace() {
     }
 }
 
-void CWorkspace::startAnim(bool in, bool left) {
+void CWorkspace::startAnim(bool in, bool left, bool instant) {
     const auto ANIMSTYLE = g_pConfigManager->getString("animations:workspaces_style");
 
     if (ANIMSTYLE == "fade") {
@@ -63,6 +65,11 @@ void CWorkspace::startAnim(bool in, bool left) {
         } else {
             m_vRenderOffset = Vector2D(left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x, 0);
         }
+    }
+
+    if (instant) {
+        m_vRenderOffset.warp();
+        m_fAlpha.warp();
     }
 }
 

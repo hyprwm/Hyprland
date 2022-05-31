@@ -129,6 +129,7 @@ public:
     void                    moveWindowToWorkspace(CWindow*, const std::string&);
     int                     getNextAvailableMonitorID();
     void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);
+    bool                    workspaceIDOutOfBounds(const int&);
 
 private:
     void                    initAllSignals();

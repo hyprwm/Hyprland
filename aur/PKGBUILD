@@ -3,13 +3,50 @@
 _pkgname="hyprland"
 pkgname="${_pkgname}"
 pkgver="0.2.2beta"
-pkgrel=2
+pkgrel=3
 pkgdesc="Hyprland is a dynamic tiling Wayland compositor based on wlroots that doesn't sacrifice on its looks."
 arch=(any)
 url="https://github.com/vaxerski/Hyprland"
 license=('BSD')
-depends=(libxcb xcb-proto xcb-util xcb-util-keysyms libxfixes libx11 libxcomposite xorg-xinput libxrender pixman wayland-protocols cairo pango polkit)
-makedepends=(git cmake ninja gcc gdb)
+depends=(
+	libxcb
+	xcb-proto
+	xcb-util
+	xcb-util-keysyms
+	libxfixes
+	libx11
+	libxcomposite
+	xorg-xinput
+	libxrender
+	pixman
+	wayland-protocols
+	cairo
+	pango
+	polkit
+	glslang
+	libinput
+	libxcb
+	libxkbcommon
+	opengl-driver
+	pixman
+	wayland
+	xcb-util-errors
+	xcb-util-renderutil
+	xcb-util-wm
+	seatd
+	vulkan-icd-loader
+	vulkan-validation-layers
+	xorg-xwayland)
+makedepends=(
+	git
+	cmake
+	ninja
+	gcc
+	gdb
+	meson
+	vulkan-headers
+	wayland-protocols
+	xorgproto)
 source=("${pkgname}-${pkgver}.tar.gz::https://github.com/vaxerski/hyprland/archive/v${pkgver}.tar.gz")
 sha256sums=('SKIP')
 conflicts=("${_pkgname}-git" "${_pkgname}" "${_pkgname}-bin")

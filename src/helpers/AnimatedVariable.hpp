@@ -149,8 +149,6 @@ public:
         return false; // unreachable
     }
 
-private:
-
     void warp() {
         switch (m_eVarType) {
             case AVARTYPE_FLOAT: {
@@ -169,6 +167,8 @@ private:
                 break;
         }
     }
+
+private:
 
     Vector2D        m_vValue = Vector2D(0,0);
     float           m_fValue = 0;

@@ -314,6 +314,15 @@ bool CCompositor::windowExists(CWindow* pWindow) {
 
 CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
+
+    if (PMONITOR->specialWorkspaceOpen) {
+        for (auto& w : m_lWindows) {
+            wlr_box box = {w.m_vRealPosition.vec().x, w.m_vRealPosition.vec().y, w.m_vRealSize.vec().x, w.m_vRealSize.vec().y};
+            if (w.m_iWorkspaceID == SPECIAL_WORKSPACE_ID && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_bIsMapped && !w.m_bIsFloating && !w.m_bHidden)
+                return &w;
+        }
+    }
+
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
         wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
@@ -332,6 +341,15 @@ CWindow* CCompositor::vectorToWindow(const Vector2D& pos) {
 
 CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
+
+    if (PMONITOR->specialWorkspaceOpen) {
+        for (auto& w : m_lWindows) {
+            wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
+            if (w.m_iWorkspaceID == SPECIAL_WORKSPACE_ID && wlr_box_contains_point(&box, pos.x, pos.y) && !w.m_bIsFloating && !w.m_bHidden)
+                return &w;
+        }
+    }
+
     for (auto& w : m_lWindows) {
         wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
         if (w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w.m_iWorkspaceID == PMONITOR->activeWorkspace && !w.m_bIsFloating && !w.m_bHidden)
@@ -343,6 +361,16 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
 
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
+
+    // special workspace
+    if (PMONITOR->specialWorkspaceOpen) {
+        for (auto& w : m_lWindows) {
+            wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
+            if (w.m_iWorkspaceID == SPECIAL_WORKSPACE_ID && w.m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && !w.m_bHidden)
+                return &w;
+        }
+    }
+
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
         wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
@@ -361,6 +389,14 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
 CWindow* CCompositor::windowFromCursor() {
     const auto PMONITOR = getMonitorFromCursor();
+
+    if (PMONITOR->specialWorkspaceOpen) {
+        for (auto& w : m_lWindows) {
+            wlr_box box = {w.m_vPosition.x, w.m_vPosition.y, w.m_vSize.x, w.m_vSize.y};
+            if (w.m_iWorkspaceID == SPECIAL_WORKSPACE_ID && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w.m_bIsMapped)
+                return &w;
+        }
+    }
 
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_lWindows.rbegin(); w != m_lWindows.rend(); w++) {
@@ -576,6 +612,9 @@ bool CCompositor::isWorkspaceVisible(const int& w) {
     for (auto& m : m_lMonitors) {
         if (m.activeWorkspace == w)
             return true;
+        
+        if (m.specialWorkspaceOpen && w == SPECIAL_WORKSPACE_ID)
+            return true;
     }
 
     return false;
@@ -593,6 +632,14 @@ CWorkspace* CCompositor::getWorkspaceByID(const int& id) {
 void CCompositor::sanityCheckWorkspaces() {
     for (auto it = m_lWorkspaces.begin(); it != m_lWorkspaces.end(); ++it) {
         if ((getWindowsOnWorkspace(it->m_iID) == 0 && !isWorkspaceVisible(it->m_iID))) {
+            it = m_lWorkspaces.erase(it);
+        }
+
+        if (it->m_iID == SPECIAL_WORKSPACE_ID && getWindowsOnWorkspace(it->m_iID) == 0) {
+            for (auto& m : m_lMonitors) {
+                m.specialWorkspaceOpen = false;
+            }
+
             it = m_lWorkspaces.erase(it);
         }
     }

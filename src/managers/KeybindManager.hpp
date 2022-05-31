@@ -53,6 +53,7 @@ private:
     static void         exitHyprland(std::string);
     static void         moveCurrentWorkspaceToMonitor(std::string);
     static void         moveWorkspaceToMonitor(std::string);
+    static void         toggleSpecialWorkspace(std::string);
 
     friend class CCompositor;
 };

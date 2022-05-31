@@ -25,10 +25,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    const auto PWORKSPACE = PMONITOR->specialWorkspaceOpen ? g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
-    PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
+    PWINDOW->m_iWorkspaceID = PMONITOR->specialWorkspaceOpen ? SPECIAL_WORKSPACE_ID : PMONITOR->activeWorkspace;
     PWINDOW->m_bIsMapped = true;
     PWINDOW->m_bReadyToDelete = false;
     PWINDOW->m_bFadingOut = false;

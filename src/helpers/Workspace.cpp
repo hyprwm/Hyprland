@@ -1,7 +1,7 @@
 #include "Workspace.hpp"
 #include "../Compositor.hpp"
 
-CWorkspace::CWorkspace(int monitorID) {
+CWorkspace::CWorkspace(int monitorID, bool special) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
     if (!PMONITOR) {
@@ -10,16 +10,20 @@ CWorkspace::CWorkspace(int monitorID) {
     }
 
     m_iMonitorID = monitorID;
-    
-    m_pWlrHandle = wlr_ext_workspace_handle_v1_create(PMONITOR->pWLRWorkspaceGroupHandle);
 
-    // set geometry here cuz we can
-    wl_array_init(&m_wlrCoordinateArr);
-    *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.x;
-    *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.y;
-    wlr_ext_workspace_handle_v1_set_coordinates(m_pWlrHandle, &m_wlrCoordinateArr);
-    wlr_ext_workspace_handle_v1_set_hidden(m_pWlrHandle, false);
-    wlr_ext_workspace_handle_v1_set_urgent(m_pWlrHandle, false);
+    m_bIsSpecialWorkspace = special;
+    
+    if (!special) {
+        m_pWlrHandle = wlr_ext_workspace_handle_v1_create(PMONITOR->pWLRWorkspaceGroupHandle);
+
+        // set geometry here cuz we can
+        wl_array_init(&m_wlrCoordinateArr);
+        *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.x;
+        *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.y;
+        wlr_ext_workspace_handle_v1_set_coordinates(m_pWlrHandle, &m_wlrCoordinateArr);
+        wlr_ext_workspace_handle_v1_set_hidden(m_pWlrHandle, false);
+        wlr_ext_workspace_handle_v1_set_urgent(m_pWlrHandle, false);
+    }
 
     m_vRenderOffset.m_pWorkspace = this;
     m_vRenderOffset.create(AVARTYPE_VECTOR, &g_pConfigManager->getConfigValuePtr("animations:workspaces_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces")->intValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces_curve")->strValue, nullptr, AVARDAMAGE_ENTIRE);
@@ -82,7 +86,7 @@ void CWorkspace::setActive(bool on) {
 void CWorkspace::moveToMonitor(const int& id) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(id);
 
-    if (!PMONITOR)
+    if (!PMONITOR || m_bIsSpecialWorkspace)
         return;
 
     wlr_ext_workspace_handle_v1_set_active(m_pWlrHandle, false);

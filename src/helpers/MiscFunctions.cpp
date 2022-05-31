@@ -125,7 +125,10 @@ bool isDirection(const std::string& arg) {
 
 int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     int result = INT_MAX;
-    if (in.find("name:") == 0) {
+    if (in.find("special") == 0) {
+        outName = "special";
+        return SPECIAL_WORKSPACE_ID;
+    } else if (in.find("name:") == 0) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
         const auto WORKSPACE = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
         if (!WORKSPACE) {

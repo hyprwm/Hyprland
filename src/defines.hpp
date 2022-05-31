@@ -65,3 +65,5 @@
 #ifndef GIT_DIRTY
 #define GIT_DIRTY "?"
 #endif
+
+#define SPECIAL_WORKSPACE_ID -99

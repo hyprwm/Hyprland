@@ -30,6 +30,8 @@ jobs:
 
       - name: Checkout Hyprland
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Build Hyprland With default settings
         run: |

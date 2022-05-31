@@ -89,6 +89,7 @@ clear:
 	rm -rf build
 	rm -f *.o *-protocol.h *-protocol.c
 	rm -f ./hyprctl/hyprctl
+	rm -rf ./wlroots/build
 
 all:
 	make config
@@ -113,4 +114,16 @@ uninstall:
 	rm -f ${PREFIX}/bin/hyprctl
 	rm -rf ${PREFIX}/share/hyprland
 
-config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o
+protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o
+
+config:
+	make protocols
+
+	sed -i -E 's/(soversion = 11)([^032]|$$)/soversion = 11032/g' ./wlroots/meson.build
+
+	rm -rf ./wlroots/build
+
+	cd wlroots && meson ./build --prefix=/usr --buildtype=release
+	cd wlroots && ninja -C build/
+
+	cd wlroots && sudo cp ./build/libwlroots.so.11032 /usr/lib/

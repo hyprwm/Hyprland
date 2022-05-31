@@ -141,7 +141,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     //
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
-        g_pCompositor->m_pLastMonitor = PNEWMONITOR; 
+        g_pCompositor->m_pLastMonitor = PNEWMONITOR;
+
+    g_pEventManager->postEvent(SHyprIPCEvent("monitoradded", PNEWMONITOR->szName));
 
     // ready to process cuz we have a monitor
     g_pCompositor->m_bReadyToProcess = true;
@@ -340,6 +342,8 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     }
 
     Debug::log(LOG, "Removed monitor %s!", pMonitor->szName.c_str());
+
+    g_pEventManager->postEvent(SHyprIPCEvent("monitorremoved", pMonitor->szName));
 
     g_pCompositor->m_lMonitors.remove(*pMonitor);
 

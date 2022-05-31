@@ -1053,8 +1053,9 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, SMonitor* pMoni
 
     if (SWITCHINGISACTIVE) { // if it was active, preserve its' status. If it wasn't, don't.
         Debug::log(LOG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active %d -> %d", pMonitor->activeWorkspace, pWorkspace->m_iID);
-        
-        getWorkspaceByID(pMonitor->activeWorkspace)->startAnim(false, false);
+
+        if (const auto PWORKSPACE = getWorkspaceByID(pMonitor->activeWorkspace); PWORKSPACE)
+            getWorkspaceByID(pMonitor->activeWorkspace)->startAnim(false, false);
 
         pMonitor->activeWorkspace = pWorkspace->m_iID;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);

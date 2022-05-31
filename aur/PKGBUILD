@@ -2,8 +2,8 @@
 
 _pkgname="hyprland"
 pkgname="${_pkgname}"
-pkgver="0.2.1beta"
-pkgrel=2
+pkgver="0.2.2beta"
+pkgrel=1
 pkgdesc="Hyprland is a dynamic tiling Wayland compositor based on wlroots that doesn't sacrifice on its looks."
 arch=(any)
 url="https://github.com/vaxerski/Hyprland"

@@ -1,0 +1,139 @@
+diff --git a/Makefile b/Makefile
+index 55088a7..b185eb9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -89,7 +89,6 @@ clear:
+ 	rm -rf build
+ 	rm -f *.o *-protocol.h *-protocol.c
+ 	rm -f ./hyprctl/hyprctl
+-	rm -rf ./wlroots/build
+ 
+ all:
+ 	make config
+@@ -114,16 +113,4 @@ uninstall:
+ 	rm -f ${PREFIX}/bin/hyprctl
+ 	rm -rf ${PREFIX}/share/hyprland
+ 
+-protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o
+-
+-config:
+-	make protocols
+-
+-	sed -i -E 's/(soversion = 11)([^032]|$$)/soversion = 11032/g' ./wlroots/meson.build
+-
+-	rm -rf ./wlroots/build
+-
+-	cd wlroots && meson ./build --prefix=/usr --buildtype=release
+-	cd wlroots && ninja -C build/
+-
+-	cd wlroots && sudo ninja -C build/ install
++config: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o
+diff --git a/src/includes.hpp b/src/includes.hpp
+index 5c216b7..65f2d0f 100644
+--- a/src/includes.hpp
++++ b/src/includes.hpp
+@@ -34,56 +34,56 @@
+ #define static
+ 
+ extern "C" {
+-#include "../wlroots/include/wlr/backend.h"
+-#include "../wlroots/include/wlr/backend/libinput.h"
+-#include "../wlroots/include/wlr/render/allocator.h"
+-#include "../wlroots/include/wlr/render/wlr_renderer.h"
+-#include "../wlroots/include/wlr/types/wlr_compositor.h"
+-#include "../wlroots/include/wlr/types/wlr_cursor.h"
+-#include "../wlroots/include/wlr/types/wlr_data_control_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_data_device.h"
+-#include "../wlroots/include/wlr/types/wlr_export_dmabuf_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_linux_dmabuf_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_gamma_control_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_idle.h"
+-#include "../wlroots/include/wlr/types/wlr_input_device.h"
+-#include "../wlroots/include/wlr/types/wlr_keyboard.h"
+-#include "../wlroots/include/wlr/types/wlr_layer_shell_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_matrix.h"
+-#include "../wlroots/include/wlr/types/wlr_output.h"
+-#include "../wlroots/include/wlr/types/wlr_output_layout.h"
+-#include "../wlroots/include/wlr/types/wlr_output_management_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_pointer.h"
+-#include "../wlroots/include/wlr/types/wlr_presentation_time.h"
+-#include "../wlroots/include/wlr/types/wlr_primary_selection.h"
+-#include "../wlroots/include/wlr/types/wlr_primary_selection_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_screencopy_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_seat.h"
+-#include "../wlroots/include/wlr/types/wlr_server_decoration.h"
+-#include "../wlroots/include/wlr/types/wlr_viewporter.h"
+-#include "../wlroots/include/wlr/types/wlr_virtual_keyboard_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_xcursor_manager.h"
+-#include "../wlroots/include/wlr/types/wlr_xdg_activation_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_xdg_decoration_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_xdg_output_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_xdg_shell.h"
+-#include "../wlroots/include/wlr/types/wlr_subcompositor.h"
+-#include "../wlroots/include/wlr/types/wlr_scene.h"
+-#include "../wlroots/include/wlr/types/wlr_output_damage.h"
+-#include "../wlroots/include/wlr/types/wlr_input_inhibitor.h"
+-#include "../wlroots/include/wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_virtual_pointer_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_foreign_toplevel_management_v1.h"
+-#include "../wlroots/include/wlr/util/log.h"
+-#include "../wlroots/include/wlr/xwayland.h"
+-#include "../wlroots/include/wlr/util/region.h"
++#include <wlr/backend.h>
++#include <wlr/backend/libinput.h>
++#include <wlr/render/allocator.h>
++#include <wlr/render/wlr_renderer.h>
++#include <wlr/types/wlr_compositor.h>
++#include <wlr/types/wlr_cursor.h>
++#include <wlr/types/wlr_data_control_v1.h>
++#include <wlr/types/wlr_data_device.h>
++#include <wlr/types/wlr_export_dmabuf_v1.h>
++#include <wlr/types/wlr_linux_dmabuf_v1.h>
++#include <wlr/types/wlr_gamma_control_v1.h>
++#include <wlr/types/wlr_idle.h>
++#include <wlr/types/wlr_input_device.h>
++#include <wlr/types/wlr_keyboard.h>
++#include <wlr/types/wlr_layer_shell_v1.h>
++#include <wlr/types/wlr_matrix.h>
++#include <wlr/types/wlr_output.h>
++#include <wlr/types/wlr_output_layout.h>
++#include <wlr/types/wlr_output_management_v1.h>
++#include <wlr/types/wlr_pointer.h>
++#include <wlr/types/wlr_presentation_time.h>
++#include <wlr/types/wlr_primary_selection.h>
++#include <wlr/types/wlr_primary_selection_v1.h>
++#include <wlr/types/wlr_screencopy_v1.h>
++#include <wlr/types/wlr_seat.h>
++#include <wlr/types/wlr_server_decoration.h>
++#include <wlr/types/wlr_viewporter.h>
++#include <wlr/types/wlr_virtual_keyboard_v1.h>
++#include <wlr/types/wlr_xcursor_manager.h>
++#include <wlr/types/wlr_xdg_activation_v1.h>
++#include <wlr/types/wlr_xdg_decoration_v1.h>
++#include <wlr/types/wlr_xdg_output_v1.h>
++#include <wlr/types/wlr_xdg_shell.h>
++#include <wlr/types/wlr_subcompositor.h>
++#include <wlr/types/wlr_scene.h>
++#include <wlr/types/wlr_output_damage.h>
++#include <wlr/types/wlr_input_inhibitor.h>
++#include <wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h>
++#include <wlr/types/wlr_virtual_pointer_v1.h>
++#include <wlr/types/wlr_foreign_toplevel_management_v1.h>
++#include <wlr/util/log.h>
++#include <wlr/xwayland.h>
++#include <wlr/util/region.h>
+ #include <xkbcommon/xkbcommon.h>
+ #include <X11/Xproto.h>
+-#include "../wlroots/include/wlr/render/egl.h"
+-#include "../wlroots/include/wlr/render/gles2.h"
+-#include "../wlroots/include/wlr/render/wlr_texture.h"
+-#include "../wlroots/include/wlr/types/wlr_pointer_constraints_v1.h"
+-#include "../wlroots/include/wlr/types/wlr_relative_pointer_v1.h"
++#include <wlr/render/egl.h>
++#include <wlr/render/gles2.h>
++#include <wlr/render/wlr_texture.h>
++#include <wlr/types/wlr_pointer_constraints_v1.h>
++#include <wlr/types/wlr_relative_pointer_v1.h>
+ }
+ 
+ #undef class

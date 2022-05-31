@@ -24,7 +24,7 @@
 stdenv.mkDerivation {
   pname = "hyprland";
   inherit version;
-  src = ./.;
+  src = ../.;
 
   nativeBuildInputs = [
     cmake
@@ -52,7 +52,9 @@ stdenv.mkDerivation {
     ["-DCMAKE_BUILD_TYPE=Release"]
     ++ lib.optional (!enableXWayland) "-DNO_XWAYLAND=true";
 
-  prePatch = ''
+  # enables building with nix-supplied wlroots instead of submodule
+  patches = [ ./wlroots.patch ];
+  postPatch = ''
     make config
   '';
 

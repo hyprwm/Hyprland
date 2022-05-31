@@ -186,7 +186,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (!PWINDOW->m_bNoFocus)
         g_pCompositor->focusWindow(PWINDOW);
 
-    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW);
+    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);
 
     Debug::log(LOG, "Window got assigned a surfaceTreeNode %x", PWINDOW->m_pSurfaceTree);
 

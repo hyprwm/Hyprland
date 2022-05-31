@@ -4,6 +4,7 @@
 #include <list>
 
 struct SSubsurface;
+class CWindow;
 
 typedef void (*applyGlobalOffsetFn)(void *, int *, int *);
 
@@ -21,6 +22,7 @@ struct SSurfaceTreeNode {
 
     applyGlobalOffsetFn offsetfn;
     void *globalOffsetData;
+    CWindow*            pWindowOwner = nullptr;
 
     bool operator==(const SSurfaceTreeNode& rhs) {
         return pSurface == rhs.pSurface;
@@ -37,13 +39,15 @@ struct SSubsurface {
     DYNLISTENER(unmap);
     DYNLISTENER(destroy);
 
+    CWindow*            pWindowOwner = nullptr;
+
     bool operator==(const SSubsurface& rhs) {
         return pSubsurface == rhs.pSubsurface;
     }
 };
 
 namespace SubsurfaceTree {
-    SSurfaceTreeNode* createTreeRoot(wlr_surface*, applyGlobalOffsetFn, void*);
+    SSurfaceTreeNode* createTreeRoot(wlr_surface*, applyGlobalOffsetFn, void*, CWindow* pWindow = nullptr);
     void destroySurfaceTree(SSurfaceTreeNode*);
 
     inline std::list<SSurfaceTreeNode> surfaceTreeNodes;

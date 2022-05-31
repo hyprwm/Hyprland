@@ -110,18 +110,27 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     wlr_ext_workspace_group_handle_v1_output_enter(PNEWMONITOR->pWLRWorkspaceGroupHandle, PNEWMONITOR->output);
 
     // Workspace
-    const auto WORKSPACEID = monitorRule.defaultWorkspaceID == -1 && !g_pCompositor->getWorkspaceByID(monitorRule.defaultWorkspaceID) ? g_pCompositor->m_lWorkspaces.size() + 1 /* Cuz workspaces doesnt have the new one yet and we start with 1 */ : monitorRule.defaultWorkspaceID;
-    g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID);
-    const auto PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
+    const auto WORKSPACEID = monitorRule.defaultWorkspaceID == -1 ? g_pCompositor->m_lWorkspaces.size() + 1 /* Cuz workspaces doesnt have the new one yet and we start with 1 */ : monitorRule.defaultWorkspaceID;
+    
+    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
-    // We are required to set the name here immediately
-    wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, std::to_string(WORKSPACEID).c_str());
+    Debug::log(LOG, "New monitor: WORKSPACEID %d, exists: %d", WORKSPACEID, (int)(PNEWWORKSPACE != nullptr));
+    
+    if (PNEWWORKSPACE) {
+        // workspace exists, move it to the newly connected monitor
+        g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, PNEWMONITOR);
+    } else {
+        g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID);
+        PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
 
-    PNEWWORKSPACE->m_iID = WORKSPACEID;
-    PNEWWORKSPACE->m_szName = std::to_string(WORKSPACEID);
+        // We are required to set the name here immediately
+        wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, std::to_string(WORKSPACEID).c_str());
+
+        PNEWWORKSPACE->m_iID = WORKSPACEID;
+        PNEWWORKSPACE->m_szName = std::to_string(WORKSPACEID);
+    }
 
     PNEWMONITOR->activeWorkspace = PNEWWORKSPACE->m_iID;
-
     PNEWMONITOR->scale = monitorRule.scale;
 
     g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);

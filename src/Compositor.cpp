@@ -1022,3 +1022,18 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, SMonitor* pMoni
 
     g_pInputManager->refocus();
 }
+
+bool CCompositor::workspaceIDOutOfBounds(const int& id) {
+    int lowestID = 99999;
+    int highestID = -99999;
+
+    for (auto& w : m_lWorkspaces) {
+        if (w.m_iID < lowestID)
+            lowestID = w.m_iID;
+        
+        if (w.m_iID > highestID)
+            highestID = w.m_iID;
+    }
+
+    return std::clamp(id, lowestID, highestID) != id;
+}

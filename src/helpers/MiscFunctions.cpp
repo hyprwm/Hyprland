@@ -135,8 +135,59 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         }
         outName = WORKSPACENAME;
     } else {
-        result = std::clamp((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
-        outName = std::to_string(result);
+        if (in[0] == 'm') {
+            // monitor relative
+            result = (int)getPlusMinusKeywordResult(in.substr(1), 0);
+
+            // result now has +/- what we should move on mon
+            int remains = (int)result;
+            int currentID = g_pCompositor->m_pLastMonitor->activeWorkspace;
+            int searchID = currentID;
+
+            while (remains != 0) {
+                if (remains < 0)
+                    searchID--;
+                else 
+                    searchID++;
+                
+                if (g_pCompositor->workspaceIDOutOfBounds(searchID)){
+                    // means we need to wrap around
+                    int lowestID = 99999;
+                    int highestID = -99999;
+
+                    for (auto& w : g_pCompositor->m_lWorkspaces) {
+                        if (w.m_iID < lowestID)
+                            lowestID = w.m_iID;
+
+                        if (w.m_iID > highestID)
+                            highestID = w.m_iID;
+                    }
+
+                    if (remains < 0)
+                        searchID = highestID;
+                    else 
+                        searchID = lowestID;
+                }
+
+                if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(searchID); PWORKSPACE) {
+                    if (PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
+                        currentID = PWORKSPACE->m_iID;
+
+                        if (remains < 0)
+                            remains++;
+                        else
+                            remains--;
+                    }
+                }
+            }
+
+            result = currentID;
+            outName = g_pCompositor->getWorkspaceByID(currentID)->m_szName;
+
+        } else {
+            result = std::clamp((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
+            outName = std::to_string(result);
+        }        
     }
 
     return result;

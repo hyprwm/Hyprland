@@ -46,6 +46,9 @@ bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
     if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated())))
         return true;
 
+    if (pMonitor->specialWorkspaceOpen && pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+        return true;
+
     return false;
 }
 
@@ -176,7 +179,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
             continue;
 
         if (w.m_bIsFloating)
-            continue;  // floating are in second pass
+            continue;  // floating are in the second pass
+
+        if (w.m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+            continue; // special are in the third pass
 
         if (!shouldRenderWindow(&w, PMONITOR))
             continue;
@@ -191,6 +197,24 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
             continue;
 
         if (!w.m_bIsFloating)
+            continue;
+
+        if (w.m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+            continue;
+
+        if (!shouldRenderWindow(&w, PMONITOR))
+            continue;
+
+        // render the bad boy
+        renderWindow(&w, PMONITOR, time, true);
+    }
+
+    // and then special
+    for (auto& w : g_pCompositor->m_lWindows) {
+        if (!g_pCompositor->windowValidMapped(&w) && !w.m_bFadingOut)
+            continue;
+            
+        if (w.m_iWorkspaceID != SPECIAL_WORKSPACE_ID)
             continue;
 
         if (!shouldRenderWindow(&w, PMONITOR))

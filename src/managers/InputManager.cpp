@@ -105,7 +105,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // then, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-    if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface) {
+    if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
         pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
         foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
         surfacePos = pFoundWindow->m_vRealPosition.vec();
@@ -113,7 +113,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         // only check floating because tiled cant be over fullscreen
         for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); w++) {
             wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-            if (w->m_bIsFloating && w->m_bIsMapped && w->m_bCreatedOverFullscreen && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden) {
+            if (((w->m_bIsFloating && w->m_bIsMapped && w->m_bCreatedOverFullscreen) || (w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden) {
                 pFoundWindow = &(*w);
                 
                 if (!pFoundWindow->m_bIsX11) {

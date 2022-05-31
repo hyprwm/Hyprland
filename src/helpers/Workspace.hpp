@@ -10,7 +10,7 @@ enum eFullscreenMode : uint8_t {
 
 class CWorkspace {
 public:
-    CWorkspace(int monitorID);
+    CWorkspace(int monitorID, bool special = false);
     ~CWorkspace();
 
     // Workspaces ID-based have IDs > 0
@@ -28,6 +28,9 @@ public:
     // for animations
     CAnimatedVariable m_vRenderOffset;
     CAnimatedVariable m_fAlpha;
+
+    // "scratchpad"
+    bool            m_bIsSpecialWorkspace = false;
 
     // user-set
     bool            m_bDefaultFloating = false;

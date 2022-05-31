@@ -29,6 +29,9 @@ struct SMonitor {
     wlr_output_damage* damage   = nullptr;
     bool        needsFrameSkip  = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
+
+    // for the special workspace
+    bool        specialWorkspaceOpen = false;
     
     // Double-linked list because we need to have constant mem addresses for signals
     // We have to store pointers and use raw new/delete because they might be moved between them

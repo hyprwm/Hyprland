@@ -23,6 +23,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["exit"]                      = exitHyprland;
     m_mDispatchers["movecurrentworkspacetomonitor"] = moveCurrentWorkspaceToMonitor;
     m_mDispatchers["moveworkspacetomonitor"]    = moveWorkspaceToMonitor;
+    m_mDispatchers["togglespecialworkspace"]    = toggleSpecialWorkspace;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -153,6 +154,10 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
     if (g_pCompositor->windowValidMapped(ACTIVEWINDOW)) {
         ACTIVEWINDOW->m_bIsFloating = !ACTIVEWINDOW->m_bIsFloating;
 
+        if (ACTIVEWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID) {
+            moveActiveToWorkspace(std::to_string(g_pCompositor->getMonitorFromID(ACTIVEWINDOW->m_iMonitorID)->activeWorkspace));
+        }
+
         ACTIVEWINDOW->m_vRealPosition.setValue(ACTIVEWINDOW->m_vRealPosition.vec() + Vector2D(5, 5));
         ACTIVEWINDOW->m_vSize = ACTIVEWINDOW->m_vRealPosition.vec() - Vector2D(10, 10);
 
@@ -191,12 +196,20 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
 
+        if (workspaceToChangeTo == SPECIAL_WORKSPACE_ID)
+            PWORKSPACETOCHANGETO->m_iMonitorID = PMONITOR->ID;
+
         // if it's not visible, make it visible.
         if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo)) {
             const auto OLDWORKSPACEID = PMONITOR->activeWorkspace;
 
             // change it
-            PMONITOR->activeWorkspace = workspaceToChangeTo;
+            PMONITOR->specialWorkspaceOpen = false;
+
+            if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
+                PMONITOR->activeWorkspace = workspaceToChangeTo;
+            else
+                PMONITOR->specialWorkspaceOpen = true;
 
             // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
             // and that'd be annoying as hell
@@ -219,7 +232,6 @@ void CKeybindManager::changeworkspace(std::string args) {
             if (!m_bSuppressWorkspaceChangeEvents)
                 g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
         }
-           
 
         // If the monitor is not the one our cursor's at, warp to it.
         if (PMONITOR != g_pCompositor->getMonitorFromCursor()) {
@@ -260,20 +272,26 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(OLDWORKSPACE); POLDWORKSPACE)
         POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
 
-    g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID);
+    g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID, workspaceToChangeTo == SPECIAL_WORKSPACE_ID);
     const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
 
     // start anim on new workspace
     PWORKSPACE->startAnim(true, ANIMTOLEFT);
 
     // We are required to set the name here immediately
-    wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, workspaceName.c_str());
+    if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
+        wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, workspaceName.c_str());
 
     PWORKSPACE->m_iID = workspaceToChangeTo;
     PWORKSPACE->m_iMonitorID = PMONITOR->ID;
     PWORKSPACE->m_szName = workspaceName;
-    
-    PMONITOR->activeWorkspace = workspaceToChangeTo;
+
+    PMONITOR->specialWorkspaceOpen = false;
+
+    if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
+        PMONITOR->activeWorkspace = workspaceToChangeTo;
+    else
+        PMONITOR->specialWorkspaceOpen = true;
 
     // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
     // and that'd be annoying as hell
@@ -367,6 +385,17 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition);
         PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
+    }
+
+    // undo the damage if we are moving to the special workspace
+    if (WORKSPACEID == SPECIAL_WORKSPACE_ID) {
+        changeworkspace(std::to_string(OLDWORKSPACE->m_iID));
+        OLDWORKSPACE->startAnim(true, true, true);
+        toggleSpecialWorkspace("");
+        g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false, true);
+
+        for (auto& m : g_pCompositor->m_lMonitors)
+            m.specialWorkspaceOpen = false;
     }
 }
 
@@ -747,4 +776,44 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
     g_pCompositor->moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
+}
+
+void CKeybindManager::toggleSpecialWorkspace(std::string args) {
+
+    if (g_pCompositor->getWindowsOnWorkspace(SPECIAL_WORKSPACE_ID) == 0) {
+        Debug::log(LOG, "Can't open empty special workspace!");
+        return;
+    }
+
+    bool open = false;
+
+    for (auto& m : g_pCompositor->m_lMonitors) {
+        if (m.specialWorkspaceOpen) {
+            open = true;
+            break;
+        }
+    }
+
+    if (open)
+        Debug::log(LOG, "Toggling special workspace to closed");
+    else
+        Debug::log(LOG, "Toggling special workspace to open");
+
+    if (open) {
+        for (auto& m : g_pCompositor->m_lMonitors) {
+            if (m.specialWorkspaceOpen != !open) {
+                m.specialWorkspaceOpen = !open;
+                g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
+
+                g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false);
+            }
+        }
+    } else {
+        g_pCompositor->m_pLastMonitor->specialWorkspaceOpen = true;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+
+        g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(true, true);
+    }
+
+    g_pInputManager->refocus();
 }

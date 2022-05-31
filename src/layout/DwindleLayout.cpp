@@ -160,10 +160,20 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
         }
     }
 
-    PWINDOW->m_vRealSize = calcSize;
-    PWINDOW->m_vRealPosition = calcPos;
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
-    g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
+    if (PWORKSPACE->m_bIsSpecialWorkspace) {
+        // if special, we adjust the coords a bit
+        PWINDOW->m_vRealPosition = calcPos + (calcSize - calcSize * 0.8f) / 2.f;
+        PWINDOW->m_vRealSize = calcSize * 0.8f;
+
+        g_pXWaylandManager->setWindowSize(PWINDOW, calcSize * 0.8f);
+    } else {
+        PWINDOW->m_vRealSize = calcSize;
+        PWINDOW->m_vRealPosition = calcPos;
+
+        g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
+    }
 }
 
 void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
@@ -184,7 +194,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     SDwindleNodeData* OPENINGON;
     const auto MONFROMCURSOR = g_pCompositor->getMonitorFromCursor();
 
-    if (PMONITOR->ID == MONFROMCURSOR->ID && PNODE->workspaceID == PMONITOR->activeWorkspace) {
+    if (PMONITOR->ID == MONFROMCURSOR->ID && (PNODE->workspaceID == PMONITOR->activeWorkspace || (PNODE->workspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen))) {
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
 
         // happens on reserved area
@@ -195,6 +205,11 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
         OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
 
     Debug::log(LOG, "OPENINGON: %x, Workspace: %i, Monitor: %i", OPENINGON, PNODE->workspaceID, PMONITOR->ID);
+
+    if (OPENINGON->workspaceID != PNODE->workspaceID) {
+        // special workspace handling
+        OPENINGON = getFirstNodeOnWorkspace(PNODE->workspaceID);
+    }
 
     // if it's the first, it's easy. Make it fullscreen.
     if (!OPENINGON || OPENINGON->pWindow == pWindow) {
@@ -356,8 +371,21 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
+    if (!PWORKSPACE)
+        return;
+
+    if (PMONITOR->specialWorkspaceOpen) {
+        const auto TOPNODE = getMasterNodeOnWorkspace(SPECIAL_WORKSPACE_ID);
+
+        if (TOPNODE && PMONITOR) {
+            TOPNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            TOPNODE->size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            TOPNODE->recalcSizePosRecursive();
+        }
+    }
+
     // Ignore any recalc events if we have a fullscreen window.
-    if (!PWORKSPACE || PWORKSPACE->m_bHasFullscreenWindow)
+    if (PWORKSPACE->m_bHasFullscreenWindow)
         return;
 
     const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->activeWorkspace);

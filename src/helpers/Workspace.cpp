@@ -57,6 +57,18 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
             m_fAlpha.setValueAndWarp(255.f);
             m_fAlpha = 0.f;
         }
+    } else if ("slidevert") {
+        // fallback is slide
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+
+        m_fAlpha.setValueAndWarp(255.f);  // fix a bug, if switching from fade -> slide.
+
+        if (in) {
+            m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y));
+            m_vRenderOffset = Vector2D(0, 0);
+        } else {
+            m_vRenderOffset = Vector2D(0, left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y);
+        }
     } else {
         // fallback is slide
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);

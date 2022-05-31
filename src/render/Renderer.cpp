@@ -73,6 +73,21 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
         renderWindow(&w, pMonitor, time, true);
     }
 
+    // and then special windows
+    for (auto& w : g_pCompositor->m_lWindows) {
+        if (!g_pCompositor->windowValidMapped(&w) && !w.m_bFadingOut)
+            continue;
+
+        if (w.m_iWorkspaceID != SPECIAL_WORKSPACE_ID)
+            continue;
+
+        if (!shouldRenderWindow(&w, pMonitor))
+            continue;
+
+        // render the bad boy
+        renderWindow(&w, pMonitor, time, true);
+    }
+
     // and the overlay layers
     if (pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL) {
         // on non-full we draw the bar and shit

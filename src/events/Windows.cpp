@@ -114,7 +114,15 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
         } else if (r.szRule.find("opacity") == 0) {
             try {
-                PWINDOW->m_sSpecialRenderData.alpha = std::stof(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+                std::string alphaPart = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+
+                if (alphaPart.find_first_of(' ') != std::string::npos) {
+                    // we have a comma, 2 values
+                    PWINDOW->m_sSpecialRenderData.alpha = std::stof(alphaPart.substr(0, alphaPart.find_first_of(' ')));
+                    PWINDOW->m_sSpecialRenderData.alphaInactive = std::stof(alphaPart.substr(alphaPart.find_first_of(' ') + 1));
+                } else {
+                    PWINDOW->m_sSpecialRenderData.alpha = std::stof(alphaPart);
+                }
             } catch(std::exception& e) {
                 Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
             }

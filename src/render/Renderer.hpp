@@ -29,6 +29,8 @@ public:
     void                damageBox(const int& x, const int& y, const int& w, const int& h);
     void                damageMonitor(SMonitor*);
     void                applyMonitorRule(SMonitor*, SMonitorRule*, bool force = false);
+    bool                shouldRenderWindow(CWindow*, SMonitor*);
+    bool                shouldRenderWindow(CWindow*);
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 

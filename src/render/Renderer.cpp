@@ -31,7 +31,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
 }
 
-bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
+bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
     wlr_box geometry = pWindow->getFullWindowBoundingBox();
 
     if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
@@ -48,6 +48,27 @@ bool shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
 
     if (pMonitor->specialWorkspaceOpen && pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
         return true;
+
+    return false;
+}
+
+bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
+
+    if (!g_pCompositor->windowValidMapped(pWindow))
+        return false;
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
+        return true;
+
+    for (auto& m : g_pCompositor->m_lMonitors) {
+        if (PWORKSPACE && PWORKSPACE->m_iMonitorID == m.ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated()))
+            return true;
+
+        if (m.specialWorkspaceOpen && pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+            return true;
+    }
 
     return false;
 }

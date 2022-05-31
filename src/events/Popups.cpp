@@ -134,7 +134,7 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
 
     Debug::log(LOG, "New XDG Popup mapped at %d %d", (int)PPOPUP->lx, (int)PPOPUP->ly);
 
-    PPOPUP->pSurfaceTree = SubsurfaceTree::createTreeRoot(PPOPUP->popup->base->surface, addPopupGlobalCoords, PPOPUP);
+    PPOPUP->pSurfaceTree = SubsurfaceTree::createTreeRoot(PPOPUP->popup->base->surface, addPopupGlobalCoords, PPOPUP, PPOPUP->parentWindow);
 
     Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode %x", PPOPUP->pSurfaceTree);
 }

@@ -9,6 +9,7 @@
 
 struct SWindowSpecialRenderData {
     float alpha = 1.f;
+    float alphaInactive = -1.f; // -1 means unset
 };  
 
 struct SWindowAdditionalConfigData {

@@ -130,7 +130,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;
 
     // apply window special data
-    renderdata.alpha *= pWindow->m_sSpecialRenderData.alpha;
+    if (pWindow->m_sSpecialRenderData.alphaInactive == -1)
+        renderdata.alpha *= pWindow->m_sSpecialRenderData.alpha;
+    else
+        renderdata.alpha *= pWindow == g_pCompositor->m_pLastWindow ? pWindow->m_sSpecialRenderData.alpha : pWindow->m_sSpecialRenderData.alphaInactive;
 
     g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 

@@ -206,7 +206,7 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
 
     Debug::log(LOG, "OPENINGON: %x, Workspace: %i, Monitor: %i", OPENINGON, PNODE->workspaceID, PMONITOR->ID);
 
-    if (OPENINGON->workspaceID != PNODE->workspaceID) {
+    if (OPENINGON && OPENINGON->workspaceID != PNODE->workspaceID) {
         // special workspace handling
         OPENINGON = getFirstNodeOnWorkspace(PNODE->workspaceID);
     }

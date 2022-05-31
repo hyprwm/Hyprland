@@ -637,7 +637,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, i
     box->width += 2 * thick;
     box->height += 2 * thick;
 
-    round += thick; // cuz yeah
+    round += thick * m_RenderData.pMonitor->scale; // cuz yeah
 
     // only draw on non-stencild.
     glStencilFunc(GL_NOTEQUAL, 1, -1);

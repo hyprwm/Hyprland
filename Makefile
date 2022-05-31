@@ -126,4 +126,4 @@ config:
 	cd wlroots && meson ./build --prefix=/usr --buildtype=release
 	cd wlroots && ninja -C build/
 
-	cd wlroots && sudo cp ./build/libwlroots.so.11032 /usr/lib/
+	cd wlroots && sudo ninja -C build/ install

@@ -51,17 +51,18 @@ Try it out and report bugs / suggestions!
 
 - Easily expandable and readable codebase
 - Config reloaded instantly upon saving
-- Bezier-curve window animations
 - Custom bezier curve based animations
-- Workspaces protocol support
+- wlr_ext workspaces protocol support
 - Dual Kawase blur
-- Window fade in / out
+- Fully dynamic workspaces
+- Window / layer fade in / out
 - Tiling / floating / fullscreen windows
+- Special Workspace (Scratchpad)
 - Window / monitor rules
 - Socket-based IPC
+- Event System for bash scripts
 - Rounded corners
-- Damage tracking ( *Experimental* )
-- Moving / resizing
+- Full Damage tracking
 - Docks support
 
 <br>

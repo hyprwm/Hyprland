@@ -1,0 +1,3 @@
+[submodule "wlroots"]
+	path = wlroots
+	url = https://gitlab.freedesktop.org/wlroots/wlroots

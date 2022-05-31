@@ -775,6 +775,11 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
+    if (!PWORKSPACE) {
+        Debug::log(ERR, "moveWorkspaceToMonitor workspace doesn't exist!");
+        return;
+    }
+
     g_pCompositor->moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
 }
 

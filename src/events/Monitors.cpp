@@ -65,6 +65,10 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     if (monitorRule.disabled) {
         wlr_output_enable(OUTPUT, 0);
         wlr_output_commit(OUTPUT);
+
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromName(std::string(OUTPUT->name)); PMONITOR) {
+            listener_monitorDestroy(nullptr, PMONITOR->output);
+        }
         return;
     }
 

@@ -37,10 +37,9 @@ For Hyprland without the `land` part, see [Hypr], the Xorg window manager.
  
 # Notice
 
-This project is still in its early development, expect bugs.
+Hyprland is still in pretty early development compared to some other Wayland compositors.
 
-Once you get it working though, it's pretty stable.<br/>
-
+Although Hyprland is pretty stable, it may have some bugs.
 
 ### Help Wanted
 
@@ -55,6 +54,8 @@ Try it out and report bugs / suggestions!
 - wlr_ext workspaces protocol support
 - Dual Kawase blur
 - Fully dynamic workspaces
+- Closely follows wlroots-git
+- Bundled wlroots
 - Window / layer fade in / out
 - Tiling / floating / fullscreen windows
 - Special Workspace (Scratchpad)

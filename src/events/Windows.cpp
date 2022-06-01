@@ -73,16 +73,23 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // window rules
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(PWINDOW);
+    std::string requestedWorkspace = "";
+    bool workspaceSilent = false;
 
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {
             try {
-                const long int MONITOR = std::stoi(r.szRule.substr(r.szRule.find(" ")));
+                const auto MONITORSTR = r.szRule.substr(r.szRule.find(" "));
 
-                if (MONITOR >= (long int)g_pCompositor->m_lMonitors.size() || MONITOR < (long int)0)
-                    PWINDOW->m_iMonitorID = 0;
-                else
-                    PWINDOW->m_iMonitorID = MONITOR;
+                if (MONITORSTR == "unset") {
+                    PWINDOW->m_iMonitorID = PMONITOR->ID;
+                } else {
+                    const long int MONITOR = std::stoi(MONITORSTR);
+                    if (MONITOR >= (long int)g_pCompositor->m_lMonitors.size() || MONITOR < (long int)0)
+                        PWINDOW->m_iMonitorID = 0;
+                    else
+                        PWINDOW->m_iMonitorID = MONITOR;
+                }
 
                 PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
 
@@ -91,11 +98,14 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 Debug::log(ERR, "Rule monitor failed, rule: %s -> %s | err: %s", r.szRule.c_str(), r.szValue.c_str(), e.what());
             }
         } else if (r.szRule.find("workspace") == 0) {
-            // switch to workspace
-            g_pKeybindManager->m_mDispatchers["workspace"](r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+            // check if it isnt unset
+            const auto WORKSPACERQ = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
-            PWINDOW->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
-            PWINDOW->m_iWorkspaceID = g_pCompositor->m_pLastMonitor->activeWorkspace;
+            if (WORKSPACERQ == "unset") {
+                requestedWorkspace = "";
+            } else {
+                requestedWorkspace = WORKSPACERQ;
+            }
 
             Debug::log(LOG, "Rule workspace matched by window %x, %s applied.", PWINDOW, r.szValue.c_str());
         } else if (r.szRule.find("float") == 0) {
@@ -129,6 +139,25 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else if (r.szRule.find("animation") == 0) {
             auto STYLE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
             PWINDOW->m_sAdditionalConfigData.animationStyle = STYLE;
+        }
+    }
+
+    if (requestedWorkspace != "") {
+        // process requested workspace
+        if (requestedWorkspace.find_first_of(' ') != std::string::npos) {
+            // check for silent
+            if (requestedWorkspace.find("silent") != std::string::npos) {
+                workspaceSilent = true;
+            }
+
+            requestedWorkspace = requestedWorkspace.substr(0, requestedWorkspace.find_first_of(' '));
+        }
+
+        if (!workspaceSilent) {
+            g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspace);
+
+            PWINDOW->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
+            PWINDOW->m_iWorkspaceID = g_pCompositor->m_pLastMonitor->activeWorkspace;
         }
     }
 
@@ -204,6 +233,15 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // do the animation thing
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
+
+    if (workspaceSilent) {
+        // move the window
+        if (g_pCompositor->m_pLastWindow == PWINDOW) {
+            g_pKeybindManager->m_mDispatchers["movetoworkspacesilent"](requestedWorkspace);
+        } else {
+            Debug::log(ERR, "Tried to set workspace silent rule to a nofocus window!");
+        }
+    }
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
 }

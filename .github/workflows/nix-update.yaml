@@ -1,9 +1,6 @@
 name: "Nix: update lockfile"
 
-on:
-  schedule:
-    - cron: '0 0 */14 * *'
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   update:

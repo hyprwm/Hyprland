@@ -53,9 +53,11 @@ stdenv.mkDerivation {
     ++ lib.optional (!enableXWayland) "-DNO_XWAYLAND=true";
 
   # enables building with nix-supplied wlroots instead of submodule
-  patches = [ ./wlroots.patch ];
+  prePatch = ''
+    sed -Ei 's/"\.\.\/wlroots\/include\/([a-zA-Z0-9./_-]+)"/<\1>/g' src/includes.hpp
+  '';
   postPatch = ''
-    make config
+    make protocols
   '';
 
   postBuild = ''

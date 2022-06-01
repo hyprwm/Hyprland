@@ -57,7 +57,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
             m_fAlpha.setValueAndWarp(255.f);
             m_fAlpha = 0.f;
         }
-    } else if ("slidevert") {
+    } else if (ANIMSTYLE == "slidevert") {
         // fallback is slide
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 

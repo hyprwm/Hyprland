@@ -452,6 +452,13 @@ void CHyprDwindleLayout::onBeginDragWindow() {
 	    return;
     }
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(DRAGGINGWINDOW->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        Debug::log(LOG, "Rejecting drag on a fullscreen workspace.");
+        return;
+    }
+
     DRAGGINGWINDOW->m_bDraggingTiled = false;
 
     if (!DRAGGINGWINDOW->m_bIsFloating) {

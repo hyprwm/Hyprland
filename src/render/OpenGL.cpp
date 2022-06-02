@@ -269,6 +269,7 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
     glUniform2f(glGetUniformLocation(m_shQUAD.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
     glUniform2f(glGetUniformLocation(m_shQUAD.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
     glUniform1f(glGetUniformLocation(m_shQUAD.program, "radius"), round);
+    glUniform1i(glGetUniformLocation(m_shQUAD.program, "primitiveMultisample"), (int)(g_pConfigManager->getInt("decoration:multisample_edges") == 1 && round != 0));
 
     glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shQUAD.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -304,7 +305,7 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float al
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool border) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool border, bool noAA) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -362,6 +363,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glUniform2f(glGetUniformLocation(shader->program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
     glUniform2f(glGetUniformLocation(shader->program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
     glUniform1f(glGetUniformLocation(shader->program, "radius"), round);
+    glUniform1i(glGetUniformLocation(shader->program, "primitiveMultisample"), (int)(g_pConfigManager->getInt("decoration:multisample_edges") == 1 && round != 0 && !border && !noAA));
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -598,7 +600,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         glStencilFunc(GL_ALWAYS, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-        renderTextureInternalWithDamage(tex, pBox, a, &damage, round);
+        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true);
 
         // then stop
         glStencilFunc(GL_EQUAL, 1, -1);

@@ -285,23 +285,30 @@ void CInputManager::setKeyboardLayout() {
         return;
     }
 
+    const auto PLASTKEEB = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
+
     // TODO: configure devices one by one
-    for (auto& k : m_lKeyboards)
+    for (auto& k : m_lKeyboards) {
         wlr_keyboard_set_keymap(k.keyboard->keyboard, KEYMAP);
 
-    wlr_keyboard_modifiers wlrMods = {0};
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, k.keyboard->keyboard);
+        
+        wlr_keyboard_modifiers wlrMods = {0};
 
-    if (g_pConfigManager->getInt("input:numlock_by_default") == 1) {
-        // lock numlock
-        const auto IDX = xkb_map_mod_get_index(KEYMAP, XKB_MOD_NAME_NUM);
+        if (g_pConfigManager->getInt("input:numlock_by_default") == 1) {
+            // lock numlock
+            const auto IDX = xkb_map_mod_get_index(KEYMAP, XKB_MOD_NAME_NUM);
 
-        if (IDX != XKB_MOD_INVALID)
-            wlrMods.locked |= (uint32_t)1 << IDX;
+            if (IDX != XKB_MOD_INVALID)
+                wlrMods.locked |= (uint32_t)1 << IDX;
+        }
+
+        if (wlrMods.locked != 0) {
+            wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlrMods);
+        }
     }
-
-    if (wlrMods.locked != 0) {
-        wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlrMods);
-    }
+        
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, PLASTKEEB);    
 
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);

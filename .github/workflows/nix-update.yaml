@@ -1,9 +1,6 @@
 name: "Nix: update lockfile"
 
-on:
-  schedule:
-    - cron: '0 0 */14 * *'
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   update:
@@ -19,7 +16,7 @@ jobs:
           auto-optimise-store = true
           experimental-features = nix-command flakes
     - name: Update lockfile
-      run: nix flake update
+      run: nix/update-inputs.sh
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: "[gha] bump flake inputs"

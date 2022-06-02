@@ -36,7 +36,7 @@
         version = mkVersion inputs.wlroots.lastModifiedDate;
         src = inputs.wlroots;
       });
-      default = pkgsFor.${system}.callPackage ./default.nix {
+      default = pkgsFor.${system}.callPackage ./nix/default.nix {
         version = mkVersion self.lastModifiedDate;
         inherit (self.packages.${system}) wlroots;
       };
@@ -44,7 +44,7 @@
 
     formatter = genSystems (system: pkgsFor.${system}.alejandra);
 
-    nixosModules.default = import ./module.nix self;
+    nixosModules.default = import ./nix/module.nix self;
 
     # Deprecated
     overlays.default = _: prev: {

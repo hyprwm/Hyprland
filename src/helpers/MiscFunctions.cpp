@@ -46,16 +46,35 @@ void wlr_signal_emit_safe(struct wl_signal *signal, void *data) {
 }
 
 std::string getFormat(const char *fmt, ...) {
-    char buf[2048] = "";
+    char buf[LOGMESSAGESIZE] = "";
+    char* outputStr;
+    int logLen;
 
     va_list args;
     va_start(args, fmt);
-
-    vsprintf(buf, fmt, args);
-
+    logLen = vsnprintf(buf, sizeof buf, fmt, args);
     va_end(args);
 
-    return std::string(buf);
+    if ((long unsigned int)logLen < sizeof buf) {
+        outputStr = strdup(buf);
+    } else {
+        outputStr = (char*)malloc(logLen + 1);
+
+        if (!outputStr) {
+            printf("CRITICAL: Cannot alloc size %d for log! (Out of memory?)", logLen + 1);
+            return "";
+        }
+
+        va_start(args, fmt);
+        vsnprintf(outputStr, logLen + 1U, fmt, args);
+        va_end(args);
+    }
+
+    std::string output = std::string(outputStr);
+
+    free(outputStr);
+
+    return output;
 }
 
 void scaleBox(wlr_box* box, float scale) {

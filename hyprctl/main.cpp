@@ -23,6 +23,7 @@ usage: hyprctl [command] [(opt)args]
     clients
     activewindow
     layers
+    devices
     dispatch
     keyword
     version
@@ -117,6 +118,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "activewindow")) request("activewindow");
     else if (!strcmp(argv[1], "layers")) request("layers");
     else if (!strcmp(argv[1], "version")) request("version");
+    else if (!strcmp(argv[1], "devices")) request("devices");
     else if (!strcmp(argv[1], "reload")) request("reload");
     else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
     else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);

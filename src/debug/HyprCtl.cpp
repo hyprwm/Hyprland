@@ -72,6 +72,24 @@ std::string layersRequest() {
     return result;
 }
 
+std::string devicesRequest() {
+    std::string result = "";
+
+    result += "mice:\n";
+
+    for (auto& m : g_pInputManager->m_lMice) {
+        result += getFormat("\tMouse at %x:\n\t\t%s\n", &m, m.mouse->name);
+    }
+
+    result += "\n\nKeyboards:\n";
+
+    for (auto& k : g_pInputManager->m_lKeyboards) {
+        result += getFormat("\tKeyboard at %x:\n\t\t%s\n", &k, k.keyboard->name);
+    }
+
+    return result;
+}
+
 std::string versionRequest() {
     std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + GIT_DIRTY + " (" + GIT_COMMIT_MESSAGE + ").\nflags: (if any)\n";
 
@@ -186,6 +204,8 @@ std::string getReply(std::string request) {
         return versionRequest();
     else if (request == "reload")
         return reloadRequest();
+    else if (request == "devices")
+        return devicesRequest();
     else if (request.find("dispatch") == 0)
         return dispatchRequest(request);
     else if (request.find("keyword") == 0)

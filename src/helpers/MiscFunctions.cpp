@@ -191,7 +191,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                         searchID = lowestID;
                 }
 
-                if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(searchID); PWORKSPACE) {
+                if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(searchID); PWORKSPACE && PWORKSPACE->m_iID != SPECIAL_WORKSPACE_ID) {
                     if (PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
                         currentID = PWORKSPACE->m_iID;
 

@@ -110,7 +110,7 @@ private:
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
 
-    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool border = false);
+    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool border = false, bool noAA = false);
     void                    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 };
 

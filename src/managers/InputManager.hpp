@@ -36,12 +36,11 @@ public:
 
     SDrag           m_sDrag;
 
-    std::list<SConstraint> m_lConstraints;
+    std::list<SConstraint>  m_lConstraints;
+    std::list<SKeyboard>    m_lKeyboards;
+    std::list<SMouse>       m_lMice;
 
-private:
-
-    std::list<SKeyboard> m_lKeyboards;
-    std::list<SMouse>    m_lMice;
+   private:
 
     void            mouseMoveUnified(uint32_t, bool refocus = false);
 };

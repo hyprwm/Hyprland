@@ -253,6 +253,10 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&keyboard->keyboard->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
     PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
 
+    if (m_pActiveKeyboard)
+        m_pActiveKeyboard->active = false;
+    m_pActiveKeyboard = PNEWKEYBOARD;
+
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard->keyboard);
 
     Debug::log(LOG, "New keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
@@ -287,28 +291,29 @@ void CInputManager::setKeyboardLayout() {
 
     const auto PLASTKEEB = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
 
-    // TODO: configure devices one by one
-    for (auto& k : m_lKeyboards) {
-        wlr_keyboard_set_keymap(k.keyboard->keyboard, KEYMAP);
+    if (!PLASTKEEB) {
+        xkb_keymap_unref(KEYMAP);
+        xkb_context_unref(CONTEXT);
 
-        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, k.keyboard->keyboard);
-        
-        wlr_keyboard_modifiers wlrMods = {0};
-
-        if (g_pConfigManager->getInt("input:numlock_by_default") == 1) {
-            // lock numlock
-            const auto IDX = xkb_map_mod_get_index(KEYMAP, XKB_MOD_NAME_NUM);
-
-            if (IDX != XKB_MOD_INVALID)
-                wlrMods.locked |= (uint32_t)1 << IDX;
-        }
-
-        if (wlrMods.locked != 0) {
-            wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlrMods);
-        }
+        Debug::log(ERR, "No Seat Keyboard???");
+        return;
     }
-        
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, PLASTKEEB);    
+
+    wlr_keyboard_set_keymap(PLASTKEEB, KEYMAP);
+
+    wlr_keyboard_modifiers wlrMods = {0};
+
+    if (g_pConfigManager->getInt("input:numlock_by_default") == 1) {
+        // lock numlock
+        const auto IDX = xkb_map_mod_get_index(KEYMAP, XKB_MOD_NAME_NUM);
+
+        if (IDX != XKB_MOD_INVALID)
+            wlrMods.locked |= (uint32_t)1 << IDX;
+    }
+
+    if (wlrMods.locked != 0) {
+        wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlrMods);
+    }
 
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
@@ -350,6 +355,17 @@ void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
     pKeyboard->hyprListener_keyboardDestroy.removeCallback();
     pKeyboard->hyprListener_keyboardMod.removeCallback();
     pKeyboard->hyprListener_keyboardKey.removeCallback();
+
+    if (pKeyboard->active) {
+        m_lKeyboards.remove(*pKeyboard);
+
+        if (m_lKeyboards.size() > 0) {
+            m_pActiveKeyboard = &m_lKeyboards.back();
+            m_pActiveKeyboard->active = true;
+        } else {
+            m_pActiveKeyboard = nullptr;
+        }
+    }
 
     m_lKeyboards.remove(*pKeyboard);
 }

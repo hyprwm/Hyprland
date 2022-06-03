@@ -164,10 +164,12 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
 
     if (PWORKSPACE->m_bIsSpecialWorkspace) {
         // if special, we adjust the coords a bit
-        PWINDOW->m_vRealPosition = calcPos + (calcSize - calcSize * 0.8f) / 2.f;
-        PWINDOW->m_vRealSize = calcSize * 0.8f;
+        static auto *const PSCALEFACTOR = &g_pConfigManager->getConfigValuePtr("dwindle:special_scale_factor")->floatValue;
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, calcSize * 0.8f);
+        PWINDOW->m_vRealPosition = calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f;
+        PWINDOW->m_vRealSize = calcSize * *PSCALEFACTOR;
+
+        g_pXWaylandManager->setWindowSize(PWINDOW, calcSize * *PSCALEFACTOR);
     } else {
         PWINDOW->m_vRealSize = calcSize;
         PWINDOW->m_vRealPosition = calcPos;

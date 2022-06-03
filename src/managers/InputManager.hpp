@@ -40,6 +40,8 @@ public:
     std::list<SKeyboard>    m_lKeyboards;
     std::list<SMouse>       m_lMice;
 
+    SKeyboard*      m_pActiveKeyboard = nullptr;
+
    private:
 
     void            mouseMoveUnified(uint32_t, bool refocus = false);

@@ -52,6 +52,7 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:col.group_border_active"].intValue = 0x66ffff00;
     configValues["dwindle:force_split"].intValue = 0;
     configValues["dwindle:preserve_split"].intValue = 0;
+    configValues["dwindle:special_scale_factor"].floatValue = 0.8f;
 
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;

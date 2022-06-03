@@ -1,4 +1,5 @@
 #include "EventManager.hpp"
+#include "../Compositor.hpp"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -26,10 +27,9 @@ void CEventManager::startThread() {
             return;
         }
 
-        unlink("/tmp/hypr/.socket2.sock");
-
         sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
-        strcpy(SERVERADDRESS.sun_path, "/tmp/hypr/.socket2.sock");
+        std::string socketPath = "/tmp/hypr/" + g_pCompositor->m_szInstanceSignature + "/.socket2.sock";
+        strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
 
         bind(SOCKET, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS));
 
@@ -41,7 +41,7 @@ void CEventManager::startThread() {
         sockaddr_in clientAddress;
         socklen_t clientSize = sizeof(clientAddress);
 
-        Debug::log(LOG, "Hypr socket 2 started.");
+        Debug::log(LOG, "Hypr socket 2 started at %s", socketPath.c_str());
 
         // set the socket nonblock
         int flags = fcntl(SOCKET, F_GETFL, 0);

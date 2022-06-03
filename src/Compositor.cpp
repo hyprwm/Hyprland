@@ -1,11 +1,14 @@
 #include "Compositor.hpp"
 
 CCompositor::CCompositor() {
-    unlink("/tmp/hypr/hyprland.log");
-    unlink("/tmp/hypr/hyprlandd.log");
-    unlink("/tmp/hypr/.hyprlandrq");
+    m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
 
-    system("mkdir -p /tmp/hypr");
+    Debug::log(LOG, "Instance Signature: %s", m_szInstanceSignature.c_str());
+
+    setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
+
+    const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;
+    mkdir(INSTANCEPATH.c_str(), S_IRWXU | S_IRWXG);
 
     m_sWLDisplay = wl_display_create();
 

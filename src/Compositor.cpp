@@ -3,6 +3,8 @@
 CCompositor::CCompositor() {
     m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
 
+    Debug::init(m_szInstanceSignature);
+
     Debug::log(LOG, "Instance Signature: %s", m_szInstanceSignature.c_str());
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);

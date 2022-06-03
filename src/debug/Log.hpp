@@ -12,7 +12,7 @@ enum LogLevel {
 };
 
 namespace Debug {
-    void init();
+    void init(std::string IS);
     void log(LogLevel level, const char* fmt, ...);
 
     inline std::string logFile;

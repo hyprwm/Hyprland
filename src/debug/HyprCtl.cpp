@@ -266,11 +266,11 @@ void HyprCtl::startHyprCtlSocket() {
             return;
         }
 
-        unlink("/tmp/hypr/.socket.sock");
-
         sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
 
-        strcpy(SERVERADDRESS.sun_path, "/tmp/hypr/.socket.sock");
+        std::string socketPath = "/tmp/hypr/" + g_pCompositor->m_szInstanceSignature + "/.socket.sock";
+
+        strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
 
         bind(SOCKET, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS));
 
@@ -282,7 +282,7 @@ void HyprCtl::startHyprCtlSocket() {
 
         char readBuffer[1024] = {0};
 
-        Debug::log(LOG, "Hypr socket started.");
+        Debug::log(LOG, "Hypr socket started at %s", socketPath.c_str());
 
         while(1) {
             const auto ACCEPTEDCONNECTION = accept(SOCKET, (sockaddr*)&clientAddress, &clientSize);

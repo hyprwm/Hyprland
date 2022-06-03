@@ -45,12 +45,25 @@ void request(std::string arg) {
         return;
     }
 
+    // get the instance signature
+    auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+
+    if (!instanceSig) {
+        std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
+        return;
+    }
+
+    std::string instanceSigStr = std::string(instanceSig);
+
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family = AF_UNIX;
-    strcpy(serverAddress.sun_path, "/tmp/hypr/.socket.sock");
+
+    std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.socket.sock";
+
+    strcpy(serverAddress.sun_path, socketPath.c_str());
 
     if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
-        std::cout << "Couldn't connect to /tmp/hypr/.socket.sock. (3) Is Hyprland running?";
+        std::cout << "Couldn't connect to " << socketPath << ". (3)";
         return;
     }
 

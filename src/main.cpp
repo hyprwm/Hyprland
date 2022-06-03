@@ -19,6 +19,10 @@ int main(int argc, char** argv) {
             ignoreSudo = true;
     }
 
+    system("mkdir -p /tmp/hypr");
+
+    Debug::init();
+
     if (!ignoreSudo) {
         if (Init::isSudo()) {
             Debug::log(CRIT, "Hyprland shall not be run as the root user. If you really want to, use the --i-am-really-stupid flag.");

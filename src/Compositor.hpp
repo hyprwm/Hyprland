@@ -63,6 +63,7 @@ public:
 
 
     const char*             m_szWLDisplaySocket;
+    std::string             m_szInstanceSignature = "";
 
     std::list<SMonitor>     m_lMonitors;
     std::list<CWindow>      m_lWindows;

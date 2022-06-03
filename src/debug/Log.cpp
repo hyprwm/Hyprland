@@ -4,12 +4,18 @@
 #include <fstream>
 #include <iostream>
 
+void Debug::init() {
+    if (ISDEBUG)
+        logFile = "/tmp/hypr/hyprlandd-" + std::to_string(time(NULL)) + ".log";
+    else
+        logFile = "/tmp/hypr/hyprland-" + std::to_string(time(NULL)) + ".log";
+}
+
 void Debug::log(LogLevel level, const char* fmt, ...) {
 
     // log to a file
-    const std::string DEBUGPATH = ISDEBUG ? "/tmp/hypr/hyprlandd.log" : "/tmp/hypr/hyprland.log";
     std::ofstream ofs;
-    ofs.open(DEBUGPATH, std::ios::out | std::ios::app);
+    ofs.open(logFile, std::ios::out | std::ios::app);
 
     switch (level) {
         case LOG:

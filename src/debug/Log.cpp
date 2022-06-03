@@ -1,14 +1,15 @@
 #include "Log.hpp"
 #include "../defines.hpp"
+#include "../Compositor.hpp"
 
 #include <fstream>
 #include <iostream>
 
-void Debug::init() {
+void Debug::init(std::string IS) {
     if (ISDEBUG)
-        logFile = "/tmp/hypr/hyprlandd-" + std::to_string(time(NULL)) + ".log";
+        logFile = "/tmp/hypr/" + IS + "/hyprlandd.log";
     else
-        logFile = "/tmp/hypr/hyprland-" + std::to_string(time(NULL)) + ".log";
+        logFile = "/tmp/hypr/" + IS + "/hyprland.log";
 }
 
 void Debug::log(LogLevel level, const char* fmt, ...) {

@@ -3,6 +3,7 @@
 #include "Compositor.hpp"
 #include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
+#include <iostream>
 
 // I am a bad bad boy and have used some global vars here,
 // just for this file
@@ -21,19 +22,17 @@ int main(int argc, char** argv) {
 
     system("mkdir -p /tmp/hypr");
 
-    Debug::init();
-
     if (!ignoreSudo) {
         if (Init::isSudo()) {
-            Debug::log(CRIT, "Hyprland shall not be run as the root user. If you really want to, use the --i-am-really-stupid flag.");
-    	    return 1;
+            std::cout << "Hyprland shall not be run as the root user. If you really want to, use the --i-am-really-stupid flag.\n";
+            return 1;
     	}
     } else {
-        Debug::log(WARN, "Running with ignored root checks, I surely hope you know what you're doing.");
+        std::cout << "Running with ignored root checks, I surely hope you know what you're doing.\n";
         sleep(1);
     }
 
-    Debug::log(LOG, "Welcome to Hyprland!");
+    std::cout << "Welcome to Hyprland!\n";
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.

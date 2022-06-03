@@ -337,13 +337,18 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
-
     const auto OLDWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
     // hack
     std::string unusedName;
     const auto WORKSPACEID = getWorkspaceIDFromString(args, unusedName);
+
+    if (WORKSPACEID == PWINDOW->m_iWorkspaceID) {
+        Debug::log(LOG, "Not moving to workspace because it didn't change.");
+        return;
+    }
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     g_pKeybindManager->changeworkspace(args);
 

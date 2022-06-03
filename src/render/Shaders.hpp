@@ -2,6 +2,147 @@
 
 #include <string>
 
+inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVarName) -> std::string {
+    return R"#(
+		if (pixCoord[0] < topLeft[0]) {
+		// we're close left
+		if (pixCoord[1] < topLeft[1]) {
+			// top
+
+			if (ignoreCorners == 1) {
+				discard;
+				return;
+			}
+
+			float topLeftDistance = distance(topLeft, pixCoord);
+
+			if (topLeftDistance > radius - 1.0) {
+				if (primitiveMultisample == 0 && topLeftDistance > radius) {
+					discard;
+					return;
+				} else if (primitiveMultisample == 1) {
+					float distances = 0.0;
+					if (distance(topLeft, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
+					if (distance(topLeft, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
+					if (distance(topLeft, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
+					if (distance(topLeft, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
+
+					if (distances == 0.0) {
+						discard;
+						return;
+					}
+
+					distances = distances / 4.0;
+
+					gl_FragColor = )#" + colorVarName + R"#( * distances;
+					return;
+				}
+			}
+		} else if (pixCoord[1] > bottomRight[1]) {
+			// bottom
+
+			if (ignoreCorners == 1) {
+				discard;
+				return;
+			}
+
+			float topLeftDistance = distance(vec2(topLeft[0], bottomRight[1]), pixCoord);
+
+			if (topLeftDistance > radius - 1.0) {
+				if (primitiveMultisample == 0 && topLeftDistance > radius) {
+					discard;
+					return;
+				} else if (primitiveMultisample == 1) {
+					float distances = 0.0;
+					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
+					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
+					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
+					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
+
+					if (distances == 0.0) {
+						discard;
+						return;
+					}
+
+					distances = distances / 4.0;
+
+					gl_FragColor = )#" + colorVarName + R"#( * distances;
+					return;
+				}
+			}
+		}
+	}
+	else if (pixCoord[0] > bottomRight[0]) {
+		// we're close right
+		if (pixCoord[1] < topLeft[1]) {
+			// top
+
+			if (ignoreCorners == 1) {
+				discard;
+				return;
+			}
+
+			float topLeftDistance = distance(vec2(bottomRight[0], topLeft[1]), pixCoord);
+
+			if (topLeftDistance > radius - 1.0) {
+				if (primitiveMultisample == 0 && topLeftDistance > radius) {
+					discard;
+					return;
+				} else if (primitiveMultisample == 1) {
+					float distances = 0.0;
+					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
+					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
+					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
+					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
+
+					if (distances == 0.0) {
+						discard;
+						return;
+					}
+
+					distances = distances / 4.0;
+
+					gl_FragColor = )#" + colorVarName + R"#( * distances;
+					return;
+				}
+			}
+		} else if (pixCoord[1] > bottomRight[1]) {
+			// bottom
+
+			if (ignoreCorners == 1) {
+				discard;
+				return;
+			}
+
+			float topLeftDistance = distance(bottomRight, pixCoord);
+
+			if (topLeftDistance > radius - 1.0) {
+				if (primitiveMultisample == 0 && topLeftDistance > radius) {
+					discard;
+					return;
+				} else if (primitiveMultisample == 1) {
+					float distances = 0.0;
+					if (distance(bottomRight, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
+					if (distance(bottomRight, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
+					if (distance(bottomRight, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
+					if (distance(bottomRight, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
+
+					if (distances == 0.0) {
+						discard;
+						return;
+					}
+
+					distances = distances / 4.0;
+
+					gl_FragColor = )#" + colorVarName + R"#( * distances;
+					return;
+				}
+			}
+		}
+	}
+	)#";
+};
+
 inline const std::string QUADVERTSRC = R"#(
 uniform mat3 proj;
 uniform vec4 color;
@@ -27,6 +168,7 @@ uniform vec2 fullSize;
 uniform float radius;
 
 uniform int primitiveMultisample;
+uniform int ignoreCorners;
 
 void main() {
 	if (radius == 0.0) {
@@ -36,122 +178,7 @@ void main() {
 
     vec2 pixCoord = fullSize * v_texcoord;
 
-	if (pixCoord[0] < topLeft[0]) {
-		// we're close left
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			float topLeftDistance = distance(topLeft, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = v_color * distances;
-					return;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			float topLeftDistance = distance(vec2(topLeft[0], bottomRight[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = v_color * distances;
-					return;
-				}
-			}
-		}
-	}
-	else if (pixCoord[0] > bottomRight[0]) {
-		// we're close right
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			float topLeftDistance = distance(vec2(bottomRight[0], topLeft[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = v_color * distances;
-					return;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			float topLeftDistance = distance(bottomRight, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = v_color * distances;
-					return;
-				}
-			}
-		}
-	}
+	)#" + ROUNDED_SHADER_FUNC("v_color") + R"#(
 
 	gl_FragColor = v_color;
 })#";
@@ -181,6 +208,7 @@ uniform float radius;
 uniform int discardOpaque;
 
 uniform int primitiveMultisample;
+uniform int ignoreCorners;
 
 void main() {
 
@@ -193,122 +221,8 @@ void main() {
 
 	vec2 pixCoord = fullSize * v_texcoord;
 
-	if (pixCoord[0] < topLeft[0]) {
-		// we're close left
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			float topLeftDistance = distance(topLeft, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			float topLeftDistance = distance(vec2(topLeft[0], bottomRight[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		}
-	}
-	else if (pixCoord[0] > bottomRight[0]) {
-		// we're close right
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			float topLeftDistance = distance(vec2(bottomRight[0], topLeft[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			float topLeftDistance = distance(bottomRight, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		}
-	}
+	)#" + ROUNDED_SHADER_FUNC("pixColor") +
+                                          R"#(
 
 	gl_FragColor = pixColor * alpha;
 })#";
@@ -327,6 +241,7 @@ uniform float radius;
 uniform int discardOpaque;
 
 uniform int primitiveMultisample;
+uniform int ignoreCorners;
 
 void main() {
 
@@ -339,122 +254,7 @@ void main() {
 	
 	vec2 pixCoord = fullSize * v_texcoord;
 
-	if (pixCoord[0] < topLeft[0]) {
-		// we're close left
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			float topLeftDistance = distance(topLeft, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			float topLeftDistance = distance(vec2(topLeft[0], bottomRight[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		}
-	}
-	else if (pixCoord[0] > bottomRight[0]) {
-		// we're close right
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			float topLeftDistance = distance(vec2(bottomRight[0], topLeft[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			float topLeftDistance = distance(bottomRight, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		}
-	}
+	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
 	gl_FragColor = pixColor * alpha;
 })#";
@@ -522,6 +322,7 @@ uniform float radius;
 uniform int discardOpaque;
 
 uniform int primitiveMultisample;
+uniform int ignoreCorners;
 
 void main() {
 
@@ -534,122 +335,7 @@ void main() {
 
 	vec2 pixCoord = fullSize * v_texcoord;
 
-	if (pixCoord[0] < topLeft[0]) {
-		// we're close left
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			float topLeftDistance = distance(topLeft, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			float topLeftDistance = distance(vec2(topLeft[0], bottomRight[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		}
-	}
-	else if (pixCoord[0] > bottomRight[0]) {
-		// we're close right
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			float topLeftDistance = distance(vec2(bottomRight[0], topLeft[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			float topLeftDistance = distance(bottomRight, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					gl_FragColor = pixColor * distances;
-					return;
-				}
-			}
-		}
-	}
+	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
 	gl_FragColor = pixColor * alpha;
 })#";

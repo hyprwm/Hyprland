@@ -89,6 +89,20 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
     pNode->hyprListener_destroy.removeCallback();
     pNode->hyprListener_newSubsurface.removeCallback();
 
+    // damage
+    if (pNode->pSurface) {
+        wlr_box extents = {};
+        wlr_surface_get_extends(pNode->pSurface, &extents);
+
+        int lx = 0, ly = 0;
+        addSurfaceGlobalOffset(pNode, &lx, &ly);
+
+        extents.x += lx;
+        extents.y += ly;
+
+        g_pHyprRenderer->damageBox(&extents);
+    }
+
     surfaceTreeNodes.remove(*pNode);
 
     Debug::log(LOG, "SurfaceTree Node removed");
@@ -161,6 +175,8 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
 
         extents.x += lx;
         extents.y += ly;
+
+        g_pHyprRenderer->damageBox(&extents);
 
         SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
         subsurface->pChild = nullptr;

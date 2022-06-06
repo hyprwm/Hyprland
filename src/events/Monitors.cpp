@@ -180,9 +180,14 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             g_pConfigManager->performMonitorReload();
     }
 
-    if (PMONITOR->needsFrameSkip) {
-        PMONITOR->needsFrameSkip = false;
-        wlr_output_schedule_frame(PMONITOR->output);
+    if (PMONITOR->framesToSkip > 0) {
+        PMONITOR->framesToSkip -= 1;
+
+        if (!PMONITOR->noFrameSchedule)
+            wlr_output_schedule_frame(PMONITOR->output);
+        else {
+            Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
+        }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
         return;
     }

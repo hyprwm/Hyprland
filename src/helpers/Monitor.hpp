@@ -27,7 +27,8 @@ struct SMonitor {
     wlr_output* output          = nullptr;
     float       refreshRate     = 60;
     wlr_output_damage* damage   = nullptr;
-    bool        needsFrameSkip  = false;
+    int         framesToSkip    = 0;
+    bool        noFrameSchedule = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
 
     // for the special workspace

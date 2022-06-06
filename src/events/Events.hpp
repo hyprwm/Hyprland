@@ -109,4 +109,7 @@ namespace Events {
 
     // Deco XDG
     LISTENER(NewXDGDeco);
+
+    // Renderer destroy
+    LISTENER(RendererDestroy);
 };

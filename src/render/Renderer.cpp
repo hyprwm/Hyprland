@@ -717,5 +717,5 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
     arrangeLayersForMonitor(pMonitor->ID);
 
     // frame skip
-    pMonitor->needsFrameSkip = true;
+    pMonitor->framesToSkip = 1;
 }

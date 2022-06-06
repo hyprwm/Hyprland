@@ -24,6 +24,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["movecurrentworkspacetomonitor"] = moveCurrentWorkspaceToMonitor;
     m_mDispatchers["moveworkspacetomonitor"]    = moveWorkspaceToMonitor;
     m_mDispatchers["togglespecialworkspace"]    = toggleSpecialWorkspace;
+    m_mDispatchers["forcerendererreload"]       = forceRendererReload;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -109,8 +110,17 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 
     const auto PSESSION = wlr_backend_get_session(g_pCompositor->m_sWLRBackend);
     if (PSESSION) {
-        const auto TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
+        const int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
         wlr_session_change_vt(PSESSION, TTY);
+
+        for (auto& m : g_pCompositor->m_lMonitors) {
+            g_pHyprOpenGL->destroyMonitorResources(&m); // mark resources as unusable anymore
+            m.noFrameSchedule = true;
+            m.framesToSkip = 2;
+        }
+
+        Debug::log(LOG, "Switched to VT %i, destroyed all render data, frames to skip for each: 2", TTY);
+        
         return true;
     }
 
@@ -826,4 +836,11 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     }
 
     g_pInputManager->refocus();
+}
+
+void CKeybindManager::forceRendererReload(std::string args) {
+    for (auto& m : g_pCompositor->m_lMonitors) {
+        auto rule = g_pConfigManager->getMonitorRuleFor(m.szName);
+        g_pHyprRenderer->applyMonitorRule(&m, &rule, true);
+    }
 }

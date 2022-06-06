@@ -27,7 +27,7 @@ std::string clientsRequest() {
     std::string result = "";
     for (auto& w : g_pCompositor->m_lWindows) {
         result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\n",
-                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.vec().x, (int)w.m_vRealPosition.vec().y, (int)w.m_vRealSize.vec().x, (int)w.m_vRealSize.vec().y, w.m_iWorkspaceID, (w.m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID)->m_szName.c_str()), (int)w.m_bIsFloating, w.m_iMonitorID, g_pXWaylandManager->getAppIDClass(&w).c_str());
+                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.vec().x, (int)w.m_vRealPosition.vec().y, (int)w.m_vRealSize.vec().x, (int)w.m_vRealSize.vec().y, w.m_iWorkspaceID, (w.m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w.m_iWorkspaceID)).c_str()), (int)w.m_bIsFloating, w.m_iMonitorID, g_pXWaylandManager->getAppIDClass(&w).c_str());
     }
     return result;
 }

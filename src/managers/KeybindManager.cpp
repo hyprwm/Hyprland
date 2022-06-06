@@ -25,6 +25,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["moveworkspacetomonitor"]    = moveWorkspaceToMonitor;
     m_mDispatchers["togglespecialworkspace"]    = toggleSpecialWorkspace;
     m_mDispatchers["forcerendererreload"]       = forceRendererReload;
+    m_mDispatchers["resizeactive"]              = resizeActive;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -764,6 +765,8 @@ void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
 }
 
 void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
+    if (args.find_first_of(' ') == std::string::npos)
+        return;
 
     std::string workspace = args.substr(0, args.find_first_of(' '));
     std::string monitor = args.substr(args.find_first_of(' ') + 1);
@@ -843,4 +846,22 @@ void CKeybindManager::forceRendererReload(std::string args) {
         auto rule = g_pConfigManager->getMonitorRuleFor(m.szName);
         g_pHyprRenderer->applyMonitorRule(&m, &rule, true);
     }
+}
+
+void CKeybindManager::resizeActive(std::string args) {
+    if (args.find_first_of(' ') == std::string::npos)
+        return;
+
+    std::string x = args.substr(0, args.find_first_of(' '));
+    std::string y = args.substr(args.find_first_of(' ') + 1);
+
+    if (!isNumber(x) || !isNumber(y)) {
+        Debug::log(ERR, "resizeTiledWindow: args not numbers");
+        return;
+    }
+
+    const int X = std::stoi(x);
+    const int Y = std::stoi(y);
+
+    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(X, Y));
 }

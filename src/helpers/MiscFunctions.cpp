@@ -135,7 +135,7 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
 }
 
 bool isNumber(const std::string& str) {
-    return std::ranges::all_of(str.begin(), str.end(), [](char c) { return isdigit(c) != 0; });
+    return std::ranges::all_of(str.begin(), str.end(), [](char c) { return isdigit(c) != 0 || c == '-'; });
 }
 
 bool isDirection(const std::string& arg) {

@@ -517,80 +517,7 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
         } else {
-            // we need to adjust the splitratio
-
-            // get some data about our window
-            const auto PNODE            = getNodeFromWindow(DRAGGINGWINDOW);
-            const auto PMONITOR         = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
-            const bool DISPLAYLEFT      = STICKS(DRAGGINGWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
-            const bool DISPLAYRIGHT     = STICKS(DRAGGINGWINDOW->m_vPosition.x + DRAGGINGWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
-            const bool DISPLAYTOP       = STICKS(DRAGGINGWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
-            const bool DISPLAYBOTTOM    = STICKS(DRAGGINGWINDOW->m_vPosition.y + DRAGGINGWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
-
-            // construct allowed movement
-            Vector2D allowedMovement = TICKDELTA;
-            if (DISPLAYLEFT && DISPLAYRIGHT)
-                allowedMovement.x = 0;
-
-            if (DISPLAYBOTTOM && DISPLAYTOP)
-                allowedMovement.y = 0;
-
-            // get the correct containers to apply splitratio to
-            const auto PPARENT = PNODE->pParent;
-
-            if (!PPARENT)
-                return; // the only window on a workspace, ignore
-
-            const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
-
-            // Get the parent's parent
-            auto PPARENT2 = PPARENT->pParent;
-
-            // No parent means we have only 2 windows, and thus one axis of freedom
-            if (!PPARENT2) {
-                if (PARENTSIDEBYSIDE) {
-                    allowedMovement.x *= 2.f / PPARENT->size.x;
-                    PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
-                    PPARENT->recalcSizePosRecursive();
-                } else {
-                    allowedMovement.y *= 2.f / PPARENT->size.y;
-                    PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-                    PPARENT->recalcSizePosRecursive();
-                }
-
-                return;
-            }
-
-            // Get first parent with other split
-            while(PPARENT2 && PPARENT2->splitTop == !PARENTSIDEBYSIDE)
-                PPARENT2 = PPARENT2->pParent;
-
-            // no parent, one axis of freedom
-            if (!PPARENT2) {
-                if (PARENTSIDEBYSIDE) {
-                    allowedMovement.x *= 2.f / PPARENT->size.x;
-                    PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
-                    PPARENT->recalcSizePosRecursive();
-                } else {
-                    allowedMovement.y *= 2.f / PPARENT->size.y;
-                    PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-                    PPARENT->recalcSizePosRecursive();
-                }
-
-                return;
-            }
-
-            // 2 axes of freedom
-            const auto SIDECONTAINER = PARENTSIDEBYSIDE ? PPARENT : PPARENT2;
-            const auto TOPCONTAINER = PARENTSIDEBYSIDE ? PPARENT2 : PPARENT;
-
-            allowedMovement.x *= 2.f / SIDECONTAINER->size.x;
-            allowedMovement.y *= 2.f / TOPCONTAINER->size.y;
-
-            SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
-            TOPCONTAINER->splitRatio = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-            SIDECONTAINER->recalcSizePosRecursive();
-            TOPCONTAINER->recalcSizePosRecursive();
+            resizeActiveWindow(TICKDELTA, DRAGGINGWINDOW);
         }
     }
 
@@ -606,6 +533,97 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
+}
+
+void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* pWindow) {
+
+    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    const auto PNODE = getNodeFromWindow(PWINDOW);
+
+    if (!PNODE) {
+        PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() + pixResize);
+        PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(PWINDOW->m_vRealSize.vec().x, (double)20, (double)999999), std::clamp(PWINDOW->m_vRealSize.vec().y, (double)20, (double)999999)));
+
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
+
+        return;
+    }
+
+    // get some data about our window
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const bool DISPLAYLEFT = STICKS(PWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
+    const bool DISPLAYRIGHT = STICKS(PWINDOW->m_vPosition.x + PWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
+    const bool DISPLAYTOP = STICKS(PWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
+    const bool DISPLAYBOTTOM = STICKS(PWINDOW->m_vPosition.y + PWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
+
+    // construct allowed movement
+    Vector2D allowedMovement = pixResize;
+    if (DISPLAYLEFT && DISPLAYRIGHT)
+        allowedMovement.x = 0;
+
+    if (DISPLAYBOTTOM && DISPLAYTOP)
+        allowedMovement.y = 0;
+
+    // get the correct containers to apply splitratio to
+    const auto PPARENT = PNODE->pParent;
+
+    if (!PPARENT)
+        return;  // the only window on a workspace, ignore
+
+    const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
+
+    // Get the parent's parent
+    auto PPARENT2 = PPARENT->pParent;
+
+    // No parent means we have only 2 windows, and thus one axis of freedom
+    if (!PPARENT2) {
+        if (PARENTSIDEBYSIDE) {
+            allowedMovement.x *= 2.f / PPARENT->size.x;
+            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
+            PPARENT->recalcSizePosRecursive();
+        } else {
+            allowedMovement.y *= 2.f / PPARENT->size.y;
+            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
+            PPARENT->recalcSizePosRecursive();
+        }
+
+        return;
+    }
+
+    // Get first parent with other split
+    while (PPARENT2 && PPARENT2->splitTop == !PARENTSIDEBYSIDE)
+        PPARENT2 = PPARENT2->pParent;
+
+    // no parent, one axis of freedom
+    if (!PPARENT2) {
+        if (PARENTSIDEBYSIDE) {
+            allowedMovement.x *= 2.f / PPARENT->size.x;
+            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
+            PPARENT->recalcSizePosRecursive();
+        } else {
+            allowedMovement.y *= 2.f / PPARENT->size.y;
+            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
+            PPARENT->recalcSizePosRecursive();
+        }
+
+        return;
+    }
+
+    // 2 axes of freedom
+    const auto SIDECONTAINER = PARENTSIDEBYSIDE ? PPARENT : PPARENT2;
+    const auto TOPCONTAINER = PARENTSIDEBYSIDE ? PPARENT2 : PPARENT;
+
+    allowedMovement.x *= 2.f / SIDECONTAINER->size.x;
+    allowedMovement.y *= 2.f / TOPCONTAINER->size.y;
+
+    SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
+    TOPCONTAINER->splitRatio = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
+    SIDECONTAINER->recalcSizePosRecursive();
+    TOPCONTAINER->recalcSizePosRecursive();
 }
 
 void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {

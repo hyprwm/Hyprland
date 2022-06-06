@@ -7,4 +7,6 @@ assignees: ''
 
 ---
 
-**Describe in detail your idea.**
+Please consult the issue guidelines at
+https://github.com/vaxerski/Hyprland/blob/main/docs/ISSUE_GUIDELINES.md
+BEFORE submitting.

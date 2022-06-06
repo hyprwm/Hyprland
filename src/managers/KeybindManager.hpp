@@ -54,6 +54,7 @@ private:
     static void         moveCurrentWorkspaceToMonitor(std::string);
     static void         moveWorkspaceToMonitor(std::string);
     static void         toggleSpecialWorkspace(std::string);
+    static void         forceRendererReload(std::string);
 
     friend class CCompositor;
 };

@@ -154,3 +154,7 @@ void Events::listener_InhibitDeactivate(wl_listener* listener, void* data) {
     g_pCompositor->m_sSeat.exclusiveClient = nullptr;
     g_pInputManager->refocus();
 }
+
+void Events::listener_RendererDestroy(wl_listener* listener, void* data) {
+    Debug::log(LOG, "!!Renderer destroyed!!");
+}

@@ -33,11 +33,11 @@
   in {
     packages = genSystems (system: {
       wlroots = pkgsFor.${system}.wlroots.overrideAttrs (prev: {
-        version = mkVersion inputs.wlroots.lastModifiedDate;
+        version = mkVersion (toString (inputs.wlroots.lastModifiedDate or inputs.wlroots.lastModified or "19700101"));
         src = inputs.wlroots;
       });
       default = pkgsFor.${system}.callPackage ./nix/default.nix {
-        version = mkVersion self.lastModifiedDate;
+        version = mkVersion (toString (self.lastModifiedDate or self.lastModified or "19700101"));
         inherit (self.packages.${system}) wlroots;
       };
     });

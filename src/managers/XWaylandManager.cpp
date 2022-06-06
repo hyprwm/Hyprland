@@ -126,9 +126,10 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size)
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, size.x, size.y);
     else {
         // I don't know if this is fucking correct, but the fucking idea of putting shadows into a window's surface is borderline criminal.
-        const auto XDELTA = pWindow->m_uSurface.xdg->surface->current.width - pWindow->m_uSurface.xdg->current.geometry.width;
-        const auto YDELTA = pWindow->m_uSurface.xdg->surface->current.height - pWindow->m_uSurface.xdg->current.geometry.height;
-        
+
+        const auto XDELTA = pWindow->m_uSurface.xdg->current.geometry.width && pWindow->m_uSurface.xdg->current.geometry.height ? pWindow->m_uSurface.xdg->surface->current.width - pWindow->m_uSurface.xdg->current.geometry.width : 0;
+        const auto YDELTA = pWindow->m_uSurface.xdg->current.geometry.width && pWindow->m_uSurface.xdg->current.geometry.height ? pWindow->m_uSurface.xdg->surface->current.height - pWindow->m_uSurface.xdg->current.geometry.height : 0;
+
         wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x - XDELTA, size.y - YDELTA);
     }
 }

@@ -35,6 +35,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
     PWINDOW->m_fAlpha = 255.f;
 
+    // Set all windows tiled regardless of anything
+    g_pXWaylandManager->setWindowStyleTiled(PWINDOW, WLR_EDGE_LEFT | WLR_EDGE_RIGHT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM);
+
     // Foreign Toplevel
     PWINDOW->m_phForeignToplevel = wlr_foreign_toplevel_handle_v1_create(g_pCompositor->m_sWLRToplevelMgr);
     // TODO: handle foreign events (requests)

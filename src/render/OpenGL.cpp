@@ -558,8 +558,10 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         pixman_region32_copy(&inverseOpaque, &damage);
     }
 
-    if (!pixman_region32_not_empty(&damage))
-        return; // if its empty, reject.
+    if (!pixman_region32_not_empty(&inverseOpaque)) {
+        renderTexture(tex, pBox, a, round, false, border); // reject blurring a fully opaque window
+        return;
+    }
 
     // blur the main FB, it will be rendered onto the mirror
     const auto POUTFB = blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);

@@ -27,6 +27,8 @@ If your bug crashes Hyprland, append additionally:
 - The Hyprland log
 - Coredump / Coredump analysis (with a stacktrace)
 
+**Important**: Please do NOT use any package for reporting bugs! Clone and compile from source.
+
 ## Obtaining the Hyprland log
 If you are in a TTY, and the hyprland session that crashed was the last one you launched, the log will be printed with
 ```

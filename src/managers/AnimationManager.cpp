@@ -28,7 +28,6 @@ void CAnimationManager::tick() {
     if (!*PANIMENABLED)
         animationsDisabled = true;
 
-
     static auto *const  PANIMSPEED        = &g_pConfigManager->getConfigValuePtr("animations:speed")->floatValue;
     static auto *const  PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto *const  BEZIERSTR         = &g_pConfigManager->getConfigValuePtr("animations:curve")->strValue;
@@ -55,21 +54,6 @@ void CAnimationManager::tick() {
         } else if (PLAYER) {
             WLRBOXPREV = PLAYER->geometry;
         }
-        
-        // check if it's disabled, if so, warp
-        if (av->m_pEnabled == 0 || animationsDisabled) {
-            av->warp();
-            g_pHyprRenderer->damageBox(&WLRBOXPREV);
-
-            if (PWINDOW) {
-                g_pHyprRenderer->damageWindow(PWINDOW);
-                // set size and pos if valid
-                if (g_pCompositor->windowValidMapped(PWINDOW))
-                    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
-            }
-
-            continue;
-        }
 
         // beziers are with a switch unforto
         // TODO: maybe do something cleaner
@@ -81,6 +65,13 @@ void CAnimationManager::tick() {
         switch (av->m_eVarType) {
             case AVARTYPE_FLOAT: {
                 if (!deltazero(av->m_fValue, av->m_fGoal)) {
+
+                    // for disabled anims just warp
+                    if (av->m_pEnabled == 0 || animationsDisabled) {
+                        av->warp();
+                        break;
+                    }
+
                     const auto DELTA = av->m_fGoal - av->m_fBegun;
                     const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
 
@@ -99,6 +90,13 @@ void CAnimationManager::tick() {
             }
             case AVARTYPE_VECTOR: {
                 if (!deltazero(av->m_vValue, av->m_vGoal)) {
+
+                    // for disabled anims just warp
+                    if (av->m_pEnabled == 0 || animationsDisabled) {
+                        av->warp();
+                        break;
+                    }
+
                     const auto DELTA = av->m_vGoal - av->m_vBegun;
                     const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
 
@@ -117,6 +115,13 @@ void CAnimationManager::tick() {
             }
             case AVARTYPE_COLOR: {
                 if (!deltazero(av->m_cValue, av->m_cGoal)) {
+
+                    // for disabled anims just warp
+                    if (av->m_pEnabled == 0 || animationsDisabled) {
+                        av->warp();
+                        break;
+                    }
+
                     const auto DELTA = av->m_cGoal - av->m_cBegun;
                     const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
 

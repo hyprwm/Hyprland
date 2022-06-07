@@ -160,7 +160,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay = std::chrono::high_resolution_clock::now();
 
-    if (g_pConfigManager->getInt("debug:overlay") == 1) {
+    static auto *const PDEBUGOVERLAY = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
+    static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("general:damage_tracking_internal")->intValue;
+
+    if (*PDEBUGOVERLAY == 1) {
         startRender = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->frameData(PMONITOR);
     }
@@ -200,9 +203,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     bool hasChanged;
     pixman_region32_init(&damage);
 
-    const auto DTMODE = g_pConfigManager->getInt("general:damage_tracking_internal");
-
-    if (DTMODE == -1) {
+    if (*PDAMAGETRACKINGMODE == -1) {
         Debug::log(CRIT, "Damage tracking mode -1 ????");
         return;
     }
@@ -212,7 +213,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
     }
 
-    if (!hasChanged && DTMODE != DAMAGE_TRACKING_NONE) {
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
         wlr_output_schedule_frame(PMONITOR->output); // we update shit at the monitor's Hz so we need to schedule frames because rollback wont
@@ -220,19 +221,19 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (DTMODE == DAMAGE_TRACKING_NONE || DTMODE == DAMAGE_TRACKING_MONITOR) {
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
     } else {
+        static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
         // if we use blur we need to expand the damage for proper blurring
-        if (g_pConfigManager->getInt("decoration:blur") == 1) {
+        if (*PBLURENABLED == 1) {
             // TODO: can this be optimized?
-            const auto BLURSIZE = g_pConfigManager->getInt("decoration:blur_size");
-            const auto BLURPASSES = g_pConfigManager->getInt("decoration:blur_passes");
-
-            const auto BLURRADIUS = BLURSIZE * pow(2, BLURPASSES); // is this 2^pass? I don't know but it works... I think.
+            static auto* const PBLURSIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
+            static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
+            const auto BLURRADIUS = *PBLURSIZE * pow(2, *PBLURPASSES);  // is this 2^pass? I don't know but it works... I think.
 
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
 
@@ -257,7 +258,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pHyprError->draw();
 
     // for drawing the debug overlay
-    if (PMONITOR->ID == 0 && g_pConfigManager->getInt("debug:overlay") == 1) {
+    if (PMONITOR->ID == 0 && *PDEBUGOVERLAY == 1) {
         startRenderOverlay = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->draw();
         endRenderOverlay = std::chrono::high_resolution_clock::now();
@@ -278,7 +279,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     const auto TRANSFORM = wlr_output_transform_invert(PMONITOR->output->transform);
     wlr_region_transform(&frameDamage, &PMONITOR->damage->current, TRANSFORM, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
-    if (DTMODE == DAMAGE_TRACKING_NONE || DTMODE == DAMAGE_TRACKING_MONITOR)
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
         pixman_region32_union_rect(&frameDamage, &frameDamage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
     wlr_output_set_damage(PMONITOR->output, &frameDamage);
@@ -289,7 +290,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     wlr_output_schedule_frame(PMONITOR->output);
 
-    if (g_pConfigManager->getInt("debug:overlay") == 1) {
+    if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;
         g_pDebugOverlay->renderData(PMONITOR, µs);
         if (PMONITOR->ID == 0) {

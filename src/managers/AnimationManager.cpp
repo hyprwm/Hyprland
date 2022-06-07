@@ -23,20 +23,23 @@ void CAnimationManager::tick() {
 
     bool animationsDisabled = false;
 
-    if (!g_pConfigManager->getInt("animations:enabled"))
+    static auto *const PANIMENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
+
+    if (!*PANIMENABLED)
         animationsDisabled = true;
 
-    const float ANIMSPEED       = g_pConfigManager->getFloat("animations:speed");
-    const auto BORDERSIZE       = g_pConfigManager->getInt("general:border_size");
-    const auto BEZIERSTR        = g_pConfigManager->getString("animations:curve");
 
-    auto DEFAULTBEZIER = m_mBezierCurves.find(BEZIERSTR);
+    static auto *const  PANIMSPEED        = &g_pConfigManager->getConfigValuePtr("animations:speed")->floatValue;
+    static auto *const  PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto *const  BEZIERSTR         = &g_pConfigManager->getConfigValuePtr("animations:curve")->strValue;
+
+    auto DEFAULTBEZIER = m_mBezierCurves.find(*BEZIERSTR);
     if (DEFAULTBEZIER == m_mBezierCurves.end())
         DEFAULTBEZIER = m_mBezierCurves.find("default");
 
     for (auto& av : m_lAnimatedVariables) {
         // get speed
-        const auto SPEED = *av->m_pSpeed == 0 ? ANIMSPEED : *av->m_pSpeed;
+        const auto SPEED = *av->m_pSpeed == 0 ? *PANIMSPEED : *av->m_pSpeed;
 
         // window stuff
         const auto PWINDOW = (CWindow*)av->m_pWindow;
@@ -45,7 +48,7 @@ void CAnimationManager::tick() {
 
         wlr_box WLRBOXPREV = {0,0,0,0};
         if (PWINDOW) {
-            WLRBOXPREV = {(int)PWINDOW->m_vRealPosition.vec().x - BORDERSIZE - 1, (int)PWINDOW->m_vRealPosition.vec().y - BORDERSIZE - 1, (int)PWINDOW->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, (int)PWINDOW->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
+            WLRBOXPREV = {(int)PWINDOW->m_vRealPosition.vec().x - (int)*PBORDERSIZE - 1, (int)PWINDOW->m_vRealPosition.vec().y - (int)*PBORDERSIZE - 1, (int)PWINDOW->m_vRealSize.vec().x + 2 * (int)*PBORDERSIZE + 2, (int)PWINDOW->m_vRealSize.vec().y + 2 * (int)*PBORDERSIZE + 2};
         } else if (PWORKSPACE) {
             const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};
@@ -152,8 +155,9 @@ void CAnimationManager::tick() {
                 RASSERT(PWINDOW, "Tried to AVARDAMAGE_BORDER a non-window AVAR!");
                 
                 // damage only the border.
-                const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size") + 1; // +1 for padding and shit
-                const auto ROUNDINGSIZE = g_pConfigManager->getInt("decoration:rounding") + 1;
+                static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+                const auto ROUNDINGSIZE = *PROUNDING + 1;
+                const auto BORDERSIZE = *PBORDERSIZE;
 
                 // damage for old box
                 g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);                              // top

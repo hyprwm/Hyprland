@@ -19,7 +19,9 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     }
     scaleBox(&windowBox, RDATA->output->scale);
 
-    float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? g_pConfigManager->getInt("decoration:rounding") : RDATA->rounding;
+    static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+
+    float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
 
     if (RDATA->surface && surface == RDATA->surface)
         g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, RDATA->decorate);
@@ -533,7 +535,9 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 
     pixman_region32_fini(&damageBox);
 
-    if (g_pConfigManager->getInt("debug:log_damage"))
+    static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+
+    if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Surface (extents): xy: %d, %d wh: %d, %d", damageBox.extents.x1, damageBox.extents.y1, damageBox.extents.x2 - damageBox.extents.x1, damageBox.extents.y2 - damageBox.extents.y1);
 }
 
@@ -551,12 +555,14 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             wlr_output_damage_add_box(m.damage, &fixedDamageBox);
         }
 
-        if (g_pConfigManager->getInt("debug:log_damage"))
+        static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+
+        if (*PLOGDAMAGE)
             Debug::log(LOG, "Damage: Window floated (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
     } else {
         // damage by real size & pos + border size * 2 (JIC)
-        const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
-        wlr_box damageBox = { pWindow->m_vRealPosition.vec().x - BORDERSIZE - 1, pWindow->m_vRealPosition.vec().y - BORDERSIZE - 1, pWindow->m_vRealSize.vec().x + 2 * BORDERSIZE + 2, pWindow->m_vRealSize.vec().y + 2 * BORDERSIZE + 2};
+        static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+        wlr_box damageBox = { pWindow->m_vRealPosition.vec().x - *PBORDERSIZE - 1, pWindow->m_vRealPosition.vec().y - *PBORDERSIZE - 1, pWindow->m_vRealSize.vec().x + 2 * *PBORDERSIZE + 2, pWindow->m_vRealSize.vec().y + 2 * *PBORDERSIZE + 2};
         for (auto& m : g_pCompositor->m_lMonitors) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;
@@ -565,7 +571,9 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             wlr_output_damage_add_box(m.damage, &fixedDamageBox);
         }
 
-        if (g_pConfigManager->getInt("debug:log_damage"))
+        static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+
+        if (*PLOGDAMAGE)
             Debug::log(LOG, "Damage: Window tiled (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
     }
 }
@@ -574,7 +582,9 @@ void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
     wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
 
-    if (g_pConfigManager->getInt("debug:log_damage"))
+    static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+
+    if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Monitor %s", pMonitor->szName.c_str());
 }
 
@@ -585,7 +595,9 @@ void CHyprRenderer::damageBox(wlr_box* pBox) {
         wlr_output_damage_add_box(m.damage, &damageBox);
     }
 
-    if (g_pConfigManager->getInt("debug:log_damage"))
+    static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+
+    if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Box: xy: %d, %d wh: %d, %d", pBox->x, pBox->y, pBox->width, pBox->height);
 }
 

@@ -79,6 +79,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, DEVICE);
             break;
         default:
+            Debug::log(WARN, "Unrecognized input device plugged in: %s", DEVICE->name);
             break;
     }
 

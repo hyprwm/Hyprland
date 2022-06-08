@@ -59,6 +59,7 @@ public:
     wlr_xdg_decoration_manager_v1*   m_sWLRXDGDecoMgr;
     wlr_virtual_pointer_manager_v1*  m_sWLRVirtPtrMgr;
     wlr_foreign_toplevel_manager_v1* m_sWLRToplevelMgr;
+    wlr_tablet_manager_v2*           m_sWLRTabletManager;
     // ------------------------------------------------- //
 
 

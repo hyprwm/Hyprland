@@ -59,6 +59,16 @@ pointer-constraints-unstable-v1-protocol.c:
 
 pointer-constraints-unstable-v1-protocol.o: pointer-constraints-unstable-v1-protocol.h
 
+tablet-unstable-v2-protocol.h:
+	$(WAYLAND_SCANNER) server-header \
+		protocols/tablet-unstable-v2.xml $@
+
+tablet-unstable-v2-protocol.c:
+	$(WAYLAND_SCANNER) private-code \
+		protocols/tablet-unstable-v2.xml $@
+
+tablet-unstable-v2-protocol.o: tablet-unstable-v2-protocol.h
+
 idle-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		protocols/idle.xml $@
@@ -114,7 +124,7 @@ uninstall:
 	rm -f ${PREFIX}/bin/hyprctl
 	rm -rf ${PREFIX}/share/hyprland
 
-protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o
+protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o
 
 config:
 	make protocols

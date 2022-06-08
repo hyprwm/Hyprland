@@ -77,6 +77,9 @@ extern "C" {
 #include "../wlroots/include/wlr/util/log.h"
 #include "../wlroots/include/wlr/xwayland.h"
 #include "../wlroots/include/wlr/util/region.h"
+#include "../wlroots/include/wlr/types/wlr_tablet_pad.h"
+#include "../wlroots/include/wlr/types/wlr_tablet_tool.h"
+#include "../wlroots/include/wlr/types/wlr_tablet_v2.h"
 #include <xkbcommon/xkbcommon.h>
 #include <X11/Xproto.h>
 #include "../wlroots/include/wlr/render/egl.h"

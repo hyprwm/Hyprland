@@ -58,7 +58,7 @@ Try it out and report bugs / suggestions!
 - Bundled wlroots
 - Window / layer fade in / out
 - Tiling / floating / fullscreen windows
-- Special Workspace (Scratchpad)
+- Special workspace (Scratchpad)
 - Window / monitor rules
 - Socket-based IPC
 - Event system for bash scripts

@@ -413,6 +413,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         for (auto& m : g_pCompositor->m_lMonitors)
             m.specialWorkspaceOpen = false;
     }
+
+    g_pInputManager->refocus();
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
@@ -469,6 +471,8 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     POLDWORKSPACEONMON->m_fAlpha.setValueAndWarp(255.f);
 
     m_bSuppressWorkspaceChangeEvents = false;
+
+    g_pInputManager->refocus();
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {

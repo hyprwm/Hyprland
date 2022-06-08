@@ -109,6 +109,8 @@ CCompositor::CCompositor() {
     m_sWLRVirtPtrMgr = wlr_virtual_pointer_manager_v1_create(m_sWLDisplay);
 
     m_sWLRToplevelMgr = wlr_foreign_toplevel_manager_v1_create(m_sWLDisplay);
+
+    m_sWLRTabletManager = wlr_tablet_v2_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {

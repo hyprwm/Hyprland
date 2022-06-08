@@ -73,6 +73,11 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             Debug::log(LOG, "Attached a mouse with name %s", DEVICE->name);
             g_pInputManager->newMouse(DEVICE);
             break;
+        case WLR_INPUT_DEVICE_TOUCH:
+            Debug::log(LOG, "Attached a touch device with name %s", DEVICE->name);
+            Debug::log(WARN, "!!!! Hyprland does not directly support touchscreens, bugs may occur !!!!");
+            wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, DEVICE);
+            break;
         default:
             break;
     }

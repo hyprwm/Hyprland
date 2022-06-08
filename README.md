@@ -61,10 +61,11 @@ Try it out and report bugs / suggestions!
 - Special Workspace (Scratchpad)
 - Window / monitor rules
 - Socket-based IPC
-- Event System for bash scripts
+- Event system for bash scripts
 - Rounded corners
 - Full Damage tracking
 - Docks support
+- Drawing tablet uspport
 
 <br>
 <br>

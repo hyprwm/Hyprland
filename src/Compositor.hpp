@@ -10,7 +10,7 @@
 #include "config/ConfigManager.hpp"
 #include "managers/ThreadManager.hpp"
 #include "managers/XWaylandManager.hpp"
-#include "managers/InputManager.hpp"
+#include "managers/input/InputManager.hpp"
 #include "managers/LayoutManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/AnimationManager.hpp"

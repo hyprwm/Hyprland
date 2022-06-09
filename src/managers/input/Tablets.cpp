@@ -44,8 +44,17 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
 
         // TODO: this might be wrong
-        if (PTOOL->active)
+        if (PTOOL->active) {
             g_pInputManager->refocus();
+
+            if (const auto PWINDOW = g_pCompositor->m_pLastWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
+                const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
+
+                const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
+
+                wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
+            }
+        }
 
         if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE)
             wlr_tablet_v2_tablet_tool_notify_pressure(PTOOL->wlrTabletToolV2, EVENT->pressure);
@@ -116,6 +125,14 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             PTOOL->active = true;
             Debug::log(LOG, "Tool active -> true");
             g_pInputManager->refocus();
+            
+            if (const auto PWINDOW = g_pCompositor->m_pLastWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
+                const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
+
+                const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
+
+                wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
+            }
         }
             
     }, PNEWTABLET, "Tablet");

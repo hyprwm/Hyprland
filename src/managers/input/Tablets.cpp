@@ -39,7 +39,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                 break;
         }
 
-        const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
+        const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
 
         // TODO: this might be wrong
         if (PTOOL->active) {
@@ -78,7 +78,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto EVENT = (wlr_tablet_tool_tip_event*)data;
         const auto PTAB = (STablet*)owner;
 
-        const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
+        const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
 
         // TODO: this might be wrong
         if (EVENT->state == WLR_TABLET_TOOL_TIP_DOWN) {
@@ -96,7 +96,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto EVENT = (wlr_tablet_tool_button_event*)data;
         const auto PTAB = (STablet*)owner;
 
-        const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
+        const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
 
         wlr_tablet_v2_tablet_tool_notify_button(PTOOL->wlrTabletToolV2, (zwp_tablet_pad_v2_button_state)EVENT->button, (zwp_tablet_pad_v2_button_state)EVENT->state);
             
@@ -106,7 +106,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto EVENT = (wlr_tablet_tool_proximity_event*)data;
         const auto PTAB = (STablet*)owner;
 
-        const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
+        const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
 
         if (EVENT->state == WLR_TABLET_TOOL_PROXIMITY_OUT) {
             PTOOL->active = false;
@@ -119,7 +119,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     }, PNEWTABLET, "Tablet");
 }
 
-STabletTool* CInputManager::ensureTabletToolPresent(STablet* pTablet, wlr_tablet_tool* pTool) {
+STabletTool* CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
     if (pTool->data == nullptr) {
         const auto PTOOL = &m_lTabletTools.emplace_back();
 
@@ -200,7 +200,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 }
 
 void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool motion) {
-    const auto PTOOL = g_pInputManager->ensureTabletToolPresent(pTab, pTool);
+    const auto PTOOL = g_pInputManager->ensureTabletToolPresent(pTool);
 
     if (const auto PWINDOW = g_pCompositor->m_pLastWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
         const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
@@ -215,5 +215,16 @@ void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool moti
 
         if (motion)
             wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
+    } else {
+        wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
+    }
+}
+
+void CInputManager::unfocusAllTablets() {
+    for (auto& tt : m_lTabletTools) {
+        if (!tt.wlrTabletTool->data)
+            continue;
+
+        wlr_tablet_v2_tablet_tool_notify_proximity_out(((STabletTool*)tt.wlrTabletTool->data)->wlrTabletToolV2);
     }
 }

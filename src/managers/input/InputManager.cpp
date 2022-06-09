@@ -2,6 +2,7 @@
 #include "../../Compositor.hpp"
 
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
+    unfocusAllTablets();
 
     float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
@@ -18,6 +19,8 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
 }
 
 void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
+    unfocusAllTablets();
+
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->x, e->y);
 
     mouseMoveUnified(e->time_msec);

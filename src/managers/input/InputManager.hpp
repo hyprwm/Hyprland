@@ -58,7 +58,9 @@ public:
 
     void            mouseMoveUnified(uint32_t, bool refocus = false);
 
-    STabletTool*    ensureTabletToolPresent(STablet*, wlr_tablet_tool*);
+    STabletTool*    ensureTabletToolPresent(wlr_tablet_tool*);
+
+    void            unfocusAllTablets();
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

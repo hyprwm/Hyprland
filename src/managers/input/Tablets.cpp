@@ -213,24 +213,27 @@ void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool moti
 
         const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
 
-        if (PTOOL->wlrTabletToolV2->focused_surface != g_pCompositor->m_pLastFocus)
+        if (PTOOL->pSurface != g_pCompositor->m_pLastFocus)
             wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
 
-        if (g_pCompositor->m_pLastFocus)
+        if (g_pCompositor->m_pLastFocus) {
+            PTOOL->pSurface = g_pCompositor->m_pLastFocus;
             wlr_tablet_v2_tablet_tool_notify_proximity_in(PTOOL->wlrTabletToolV2, pTab->wlrTabletV2, g_pCompositor->m_pLastFocus);
+        }
 
         if (motion)
             wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
     } else {
-        wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
+        if (PTOOL->pSurface)
+            wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
     }
 }
 
 void CInputManager::unfocusAllTablets() {
     for (auto& tt : m_lTabletTools) {
-        if (!tt.wlrTabletTool->data)
+        if (!tt.wlrTabletToolV2 || !tt.pSurface || !tt.active)
             continue;
 
-        wlr_tablet_v2_tablet_tool_notify_proximity_out(((STabletTool*)tt.wlrTabletTool->data)->wlrTabletToolV2);
+        wlr_tablet_v2_tablet_tool_notify_proximity_out(tt.wlrTabletToolV2);
     }
 }

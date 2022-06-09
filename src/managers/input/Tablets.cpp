@@ -112,6 +112,12 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
         if (EVENT->state == WLR_TABLET_TOOL_PROXIMITY_OUT) {
             PTOOL->active = false;
+
+            if (PTOOL->pSurface) {
+                wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
+                PTOOL->pSurface = nullptr;
+            }
+            
         } else {
             PTOOL->active = true;
             g_pInputManager->refocus();

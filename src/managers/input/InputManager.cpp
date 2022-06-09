@@ -2,8 +2,6 @@
 #include "../../Compositor.hpp"
 
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
-    unfocusAllTablets();
-
     float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
     const auto DELTA = g_pConfigManager->getInt("input:force_no_accel") == 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
@@ -19,8 +17,6 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
 }
 
 void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
-    unfocusAllTablets();
-
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->x, e->y);
 
     mouseMoveUnified(e->time_msec);

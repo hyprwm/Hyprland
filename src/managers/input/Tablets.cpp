@@ -16,8 +16,6 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     PNEWTABLET->hyprListener_Destroy.initCallback(&pDevice->events.destroy, [](void* owner, void* data) {
         const auto PTAB = (STablet*)owner;
 
-        g_pInputManager->unfocusAllTablets();
-
         g_pInputManager->m_lTablets.remove(*PTAB);
 
         Debug::log(LOG, "Removed a tablet");
@@ -96,7 +94,6 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
     PNEWTABLET->hyprListener_Button.initCallback(&pDevice->tablet->events.button, [](void* owner, void* data) {
         const auto EVENT = (wlr_tablet_tool_button_event*)data;
-        const auto PTAB = (STablet*)owner;
 
         const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
 
@@ -140,8 +137,6 @@ STabletTool* CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
 
         PTOOL->hyprListener_TabletToolDestroy.initCallback(&pTool->events.destroy, [](void* owner, void* data) {
             const auto PTOOL = (STabletTool*)owner;
-
-            g_pInputManager->unfocusAllTablets();
 
             PTOOL->wlrTabletTool->data = nullptr;
             g_pInputManager->m_lTabletTools.remove(*PTOOL);
@@ -202,8 +197,6 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 
         const auto PPAD = (STabletPad*)owner;
 
-        g_pInputManager->unfocusAllTablets();
-
         g_pInputManager->m_lTabletPads.remove(*PPAD);
 
         Debug::log(LOG, "Removed a tablet pad");
@@ -232,14 +225,5 @@ void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool moti
     } else {
         if (PTOOL->pSurface)
             wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
-    }
-}
-
-void CInputManager::unfocusAllTablets() {
-    for (auto& tt : m_lTabletTools) {
-        if (!tt.wlrTabletToolV2 || !tt.pSurface || !tt.active)
-            continue;
-
-        wlr_tablet_v2_tablet_tool_notify_proximity_out(tt.wlrTabletToolV2);
     }
 }

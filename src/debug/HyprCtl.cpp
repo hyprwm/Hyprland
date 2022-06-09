@@ -88,6 +88,20 @@ std::string devicesRequest() {
         result += getFormat("\tKeyboard at %x:\n\t\t%s\n", &k, k.keyboard->name);
     }
 
+    result += "\n\nTablets:\n";
+
+    for (auto& d : g_pInputManager->m_lTabletPads) {
+        result += getFormat("\tTablet Pad at %x (belongs to %x -> %s)\n", &d, d.pTabletParent, d.pTabletParent ? d.pTabletParent->wlrDevice ? d.pTabletParent->wlrDevice->name : "" : "");
+    }
+
+    for (auto& d : g_pInputManager->m_lTablets) {
+        result += getFormat("\tTablet at %x:\n\t\t%s\n", &d, d.wlrDevice ? d.wlrDevice->name : "");
+    }
+
+    for (auto& d : g_pInputManager->m_lTabletTools) {
+        result += getFormat("\tTablet Tool at %x (belongs to %x)\n", &d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
+    }
+
     return result;
 }
 

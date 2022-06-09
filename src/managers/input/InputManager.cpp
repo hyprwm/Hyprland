@@ -1,5 +1,5 @@
 #include "InputManager.hpp"
-#include "../Compositor.hpp"
+#include "../../Compositor.hpp"
 
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
 
@@ -499,4 +499,24 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
 
 void Events::listener_commitConstraint(void* owner, void* data) {
     //g_pInputManager->recheckConstraint((SMouse*)owner);
+}
+
+void CInputManager::updateCapabilities(wlr_input_device* pDev) {
+    // TODO: this is dumb
+
+    switch (pDev->type) {
+        case WLR_INPUT_DEVICE_KEYBOARD:
+            m_uiCapabilities |= WL_SEAT_CAPABILITY_KEYBOARD;
+            break;
+        case WLR_INPUT_DEVICE_POINTER:
+            m_uiCapabilities |= WL_SEAT_CAPABILITY_POINTER;
+            break;
+        case WLR_INPUT_DEVICE_TOUCH:
+            m_uiCapabilities |= WL_SEAT_CAPABILITY_TOUCH;
+            break;
+        default:
+            break;
+    }
+
+    wlr_seat_set_capabilities(g_pCompositor->m_sSeat.seat, m_uiCapabilities);
 }

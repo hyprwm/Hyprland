@@ -2,7 +2,7 @@
 
 #include "../Compositor.hpp"
 #include "../helpers/WLClasses.hpp"
-#include "../managers/InputManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
 
 // --------------------------------------------- //

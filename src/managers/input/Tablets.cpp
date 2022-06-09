@@ -47,15 +47,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         if (PTOOL->active) {
             g_pInputManager->refocus();
 
-            if (const auto PWINDOW = g_pCompositor->m_pLastWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
-                const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
-
-                const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
-
-                Debug::log(LOG, "Tablet Tool focus to %s", PWINDOW->m_szTitle.c_str());
-
-                wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
-            }
+            g_pInputManager->focusTablet(PTAB, EVENT->tool, true);
         }
 
         if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE) {
@@ -107,6 +99,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         if (EVENT->state == WLR_TABLET_TOOL_TIP_DOWN) {
             Debug::log(LOG, "Tip down");
             g_pInputManager->refocus();
+            g_pInputManager->focusTablet(PTAB, EVENT->tool);
             wlr_send_tablet_v2_tablet_tool_down(PTOOL->wlrTabletToolV2);
         }
         else {
@@ -143,16 +136,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             PTOOL->active = true;
             Debug::log(LOG, "Tool active -> true");
             g_pInputManager->refocus();
-
-            if (const auto PWINDOW = g_pCompositor->m_pLastWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
-                const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
-
-                const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
-
-                Debug::log(LOG, "Tablet Tool focus to %s", PWINDOW->m_szTitle.c_str());
-
-                wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
-            }
+            g_pInputManager->focusTablet(PTAB, EVENT->tool);
         }
             
     }, PNEWTABLET, "Tablet");
@@ -246,4 +230,25 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
         Debug::log(LOG, "Removed a tablet pad");
 
     }, PNEWPAD, "Tablet Pad");
+}
+
+void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool motion) {
+    const auto PTOOL = g_pInputManager->ensureTabletToolPresent(pTab, pTool);
+
+    if (const auto PWINDOW = g_pCompositor->m_pLastWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
+        const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
+
+        const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
+
+        Debug::log(LOG, "Tablet Tool focus to %s", PWINDOW->m_szTitle.c_str());
+
+        if (PTOOL->wlrTabletToolV2->focused_surface != g_pCompositor->m_pLastFocus)
+            wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
+
+        if (g_pCompositor->m_pLastFocus)
+            wlr_tablet_v2_tablet_tool_notify_proximity_in(PTOOL->wlrTabletToolV2, pTab->wlrTabletV2, g_pCompositor->m_pLastFocus);
+
+        if (motion)
+            wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
+    }
 }

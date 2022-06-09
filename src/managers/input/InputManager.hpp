@@ -48,6 +48,7 @@ public:
 
     void            newTabletTool(wlr_input_device*);
     void            newTabletPad(wlr_input_device*);
+    void            focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
 
     SKeyboard*      m_pActiveKeyboard = nullptr;
 

@@ -2,7 +2,7 @@
 
 #include "../Compositor.hpp"
 #include "../helpers/WLClasses.hpp"
-#include "../managers/InputManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
 
 // ---------------------------------------------------- //
@@ -78,14 +78,20 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             Debug::log(WARN, "!!!! Hyprland does not directly support touchscreens, bugs may occur !!!!");
             wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, DEVICE);
             break;
+        case WLR_INPUT_DEVICE_TABLET_TOOL:
+            Debug::log(LOG, "Attached a tablet tool with name %s", DEVICE->name);
+            g_pInputManager->newTabletTool(DEVICE);
+            break;
+        case WLR_INPUT_DEVICE_TABLET_PAD:
+            Debug::log(LOG, "Attached a tablet pad with name %s", DEVICE->name);
+            g_pInputManager->newTabletPad(DEVICE);
+            break;
         default:
             Debug::log(WARN, "Unrecognized input device plugged in: %s", DEVICE->name);
             break;
     }
 
-    uint32_t capabilities = WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_KEYBOARD;
-
-    wlr_seat_set_capabilities(g_pCompositor->m_sSeat.seat, capabilities);
+    g_pInputManager->updateCapabilities(DEVICE);
 }
 
 void Events::listener_newConstraint(wl_listener* listener, void* data) {

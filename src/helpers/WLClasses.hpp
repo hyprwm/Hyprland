@@ -154,3 +154,55 @@ struct SDrag {
     DYNLISTENER(unmapIcon);
     DYNLISTENER(commitIcon);
 };
+
+struct STablet {
+    DYNLISTENER(Tip);
+    DYNLISTENER(Axis);
+    DYNLISTENER(Button);
+    DYNLISTENER(Proximity);
+    DYNLISTENER(Destroy);
+
+    wlr_tablet* wlrTablet = nullptr;
+    wlr_tablet_v2_tablet* wlrTabletV2 = nullptr;
+    wlr_input_device* wlrDevice = nullptr;
+
+    bool operator==(const STablet& b) {
+        return wlrDevice == b.wlrDevice;
+    }
+};
+
+struct STabletTool {
+    wlr_tablet_tool* wlrTabletTool = nullptr;
+    wlr_tablet_v2_tablet_tool* wlrTabletToolV2 = nullptr;
+
+    wlr_tablet_v2_tablet* wlrTabletOwnerV2 = nullptr;
+
+    wlr_surface* pSurface = nullptr;
+
+    double tiltX = 0;
+    double tiltY = 0;
+
+    bool active = true;
+
+    DYNLISTENER(TabletToolDestroy);
+    DYNLISTENER(TabletToolSetCursor);
+
+    bool operator==(const STabletTool& b) {
+        return wlrTabletTool == b.wlrTabletTool;
+    }
+};
+
+struct STabletPad {
+    wlr_tablet_v2_tablet_pad* wlrTabletPadV2 = nullptr;
+    STablet* pTabletParent = nullptr;
+
+    DYNLISTENER(Attach);
+    DYNLISTENER(Button);
+    DYNLISTENER(Strip);
+    DYNLISTENER(Ring);
+    DYNLISTENER(Destroy);
+
+    bool operator==(const STabletPad& b) {
+        return wlrTabletPadV2 == b.wlrTabletPadV2;
+    }
+};

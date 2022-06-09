@@ -52,24 +52,36 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
                 const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
 
+                Debug::log(LOG, "Tablet Tool focus to %s", PWINDOW->m_szTitle.c_str());
+
                 wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
             }
         }
 
-        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE)
+        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE) {
+            Debug::log(LOG, "Updated pressure to %f", EVENT->pressure);
             wlr_tablet_v2_tablet_tool_notify_pressure(PTOOL->wlrTabletToolV2, EVENT->pressure);
+        }
 
-        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_DISTANCE)
+        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_DISTANCE) {
+            Debug::log(LOG, "Updated distance to %f", EVENT->distance);
             wlr_tablet_v2_tablet_tool_notify_distance(PTOOL->wlrTabletToolV2, EVENT->distance);
+        }
 
-        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_ROTATION)
+        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_ROTATION) {
+            Debug::log(LOG, "Updated rotation to %f", EVENT->rotation);
             wlr_tablet_v2_tablet_tool_notify_rotation(PTOOL->wlrTabletToolV2, EVENT->rotation);
+        }
 
-        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER)
+        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER) {
+            Debug::log(LOG, "Updated slider to %f", EVENT->slider);
             wlr_tablet_v2_tablet_tool_notify_slider(PTOOL->wlrTabletToolV2, EVENT->slider);
+        }
 
-        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL)
+        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL) {
+            Debug::log(LOG, "Updated wheel delta to %f", EVENT->wheel_delta);
             wlr_tablet_v2_tablet_tool_notify_wheel(PTOOL->wlrTabletToolV2, EVENT->wheel_delta, 0);
+        }
 
         if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_X)
             PTOOL->tiltX = EVENT->tilt_x;
@@ -77,9 +89,10 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_Y)
             PTOOL->tiltY = EVENT->tilt_y;
 
-        if (EVENT->updated_axes & (WLR_TABLET_TOOL_AXIS_TILT_X | WLR_TABLET_TOOL_AXIS_TILT_Y))
+        if (EVENT->updated_axes & (WLR_TABLET_TOOL_AXIS_TILT_X | WLR_TABLET_TOOL_AXIS_TILT_Y)){
+            Debug::log(LOG, "Updated tilt to %f, %f", EVENT->tilt_x, EVENT->tilt_y);
             wlr_tablet_v2_tablet_tool_notify_tilt(PTOOL->wlrTabletToolV2, PTOOL->tiltX, PTOOL->tiltY);
-
+        }
     }, PNEWTABLET, "Tablet");
 
     PNEWTABLET->hyprListener_Tip.initCallback(&pDevice->tablet->events.tip, [](void* owner, void* data) {
@@ -91,10 +104,15 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
 
         // TODO: this might be wrong
-        if (EVENT->state == WLR_TABLET_TOOL_TIP_DOWN)
+        if (EVENT->state == WLR_TABLET_TOOL_TIP_DOWN) {
+            Debug::log(LOG, "Tip down");
+            g_pInputManager->refocus();
             wlr_send_tablet_v2_tablet_tool_down(PTOOL->wlrTabletToolV2);
-        else
+        }
+        else {
+            Debug::log(LOG, "Tip up");
             wlr_send_tablet_v2_tablet_tool_up(PTOOL->wlrTabletToolV2);
+        }
             
     }, PNEWTABLET, "Tablet");
 
@@ -125,11 +143,13 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             PTOOL->active = true;
             Debug::log(LOG, "Tool active -> true");
             g_pInputManager->refocus();
-            
+
             if (const auto PWINDOW = g_pCompositor->m_pLastWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
                 const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
 
                 const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
+
+                Debug::log(LOG, "Tablet Tool focus to %s", PWINDOW->m_szTitle.c_str());
 
                 wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
             }

@@ -156,8 +156,18 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
 
 void CConfigManager::handleRawExec(const std::string& command, const std::string& args) {
     // Exec in the background dont wait for it.
+
+    std::string toExec = args;
+
+    if (g_pXWaylandManager->m_sWLRXWayland)
+        toExec = std::string("WAYLAND_DISPLAY=") + std::string(g_pCompositor->m_szWLDisplaySocket) + " DISPLAY=" + std::string(g_pXWaylandManager->m_sWLRXWayland->display_name) + " " + toExec;
+    else
+        toExec = std::string("WAYLAND_DISPLAY=") + std::string(g_pCompositor->m_szWLDisplaySocket) + " " + toExec;
+
+    Debug::log(LOG, "Config executing %s", toExec.c_str());
+
     if (fork() == 0) {
-        execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
+        execl("/bin/sh", "/bin/sh", "-c", toExec.c_str(), nullptr);
 
         _exit(0);
     }

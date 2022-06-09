@@ -1,6 +1,6 @@
 #include "../Compositor.hpp"
 #include "../helpers/WLClasses.hpp"
-#include "../managers/InputManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
 #include "Events.hpp"
 
@@ -26,7 +26,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
             return;
         }
 
-        Debug::log(LOG, "New LayerSurface has no preferred monitor. Assigning Monitor %s", PMONITOR->szName);
+        Debug::log(LOG, "New LayerSurface has no preferred monitor. Assigning Monitor %s", PMONITOR->szName.c_str());
 
         WLRLAYERSURFACE->output = PMONITOR->output;
     }

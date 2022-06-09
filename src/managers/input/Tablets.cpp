@@ -9,6 +9,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     PNEWTABLET->wlrTabletV2 = wlr_tablet_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pDevice);
     PNEWTABLET->wlrTablet->data = PNEWTABLET;
 
+    Debug::log(LOG, "Attaching tablet to cursor!");
+
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
 
     PNEWTABLET->hyprListener_Destroy.initCallback(&pDevice->events.destroy, [](void* owner, void* data) {
@@ -20,6 +22,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     }, PNEWTABLET, "Tablet");
 
     PNEWTABLET->hyprListener_Axis.initCallback(&pDevice->tablet->events.axis, [](void* owner, void* data) {
+
+        Debug::log(LOG, "Tablet axis");
 
         const auto EVENT = (wlr_tablet_tool_axis_event*)data;
         const auto PTAB = (STablet*)owner;
@@ -73,6 +77,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto EVENT = (wlr_tablet_tool_tip_event*)data;
         const auto PTAB = (STablet*)owner;
 
+        Debug::log(LOG, "Tablet tip");
+
         const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
 
         // TODO: this might be wrong
@@ -87,6 +93,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto EVENT = (wlr_tablet_tool_button_event*)data;
         const auto PTAB = (STablet*)owner;
 
+        Debug::log(LOG, "Tablet button");
+
         const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
 
         wlr_tablet_v2_tablet_tool_notify_button(PTOOL->wlrTabletToolV2, (zwp_tablet_pad_v2_button_state)EVENT->button, (zwp_tablet_pad_v2_button_state)EVENT->state);
@@ -97,12 +105,16 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto EVENT = (wlr_tablet_tool_proximity_event*)data;
         const auto PTAB = (STablet*)owner;
 
+        Debug::log(LOG, "Tablet proxim");
+
         const auto PTOOL = g_pInputManager->ensureTabletToolPresent(PTAB, EVENT->tool);
 
         if (EVENT->state == WLR_TABLET_TOOL_PROXIMITY_OUT) {
             PTOOL->active = false;
+            Debug::log(LOG, "Tool active -> false");
         } else {
             PTOOL->active = true;
+            Debug::log(LOG, "Tool active -> true");
             g_pInputManager->refocus();
         }
             
@@ -112,6 +124,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 STabletTool* CInputManager::ensureTabletToolPresent(STablet* pTablet, wlr_tablet_tool* pTool) {
     if (pTool->data == nullptr) {
         const auto PTOOL = &m_lTabletTools.emplace_back();
+
+        Debug::log(LOG, "Creating tablet tool v2 for %x", pTool);
 
         PTOOL->wlrTabletTool = pTool;
         pTool->data = PTOOL;
@@ -138,6 +152,8 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 
     PNEWPAD->hyprListener_Button.initCallback(&pDevice->tablet_pad->events.button, [](void* owner, void* data) {
 
+        Debug::log(LOG, "TabletPad button");
+
         const auto EVENT = (wlr_tablet_pad_button_event*)data;
         const auto PPAD = (STabletPad*)owner;
 
@@ -151,6 +167,8 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
         const auto EVENT = (wlr_tablet_pad_strip_event*)data;
         const auto PPAD = (STabletPad*)owner;
 
+        Debug::log(LOG, "TabletPad strip");
+
         wlr_tablet_v2_tablet_pad_notify_strip(PPAD->wlrTabletPadV2, EVENT->strip, EVENT->position, EVENT->source == WLR_TABLET_PAD_STRIP_SOURCE_FINGER, EVENT->time_msec);
 
     }, PNEWPAD, "Tablet Pad");
@@ -160,6 +178,8 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
         const auto EVENT = (wlr_tablet_pad_ring_event*)data;
         const auto PPAD = (STabletPad*)owner;
 
+        Debug::log(LOG, "TabletPad ring");
+
         wlr_tablet_v2_tablet_pad_notify_ring(PPAD->wlrTabletPadV2, EVENT->ring, EVENT->position, EVENT->source == WLR_TABLET_PAD_RING_SOURCE_FINGER, EVENT->time_msec);
 
     }, PNEWPAD, "Tablet Pad");
@@ -168,6 +188,8 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 
         const auto TABLET = (wlr_tablet_tool*)data;
         const auto PPAD = (STabletPad*)owner;
+
+        Debug::log(LOG, "TabletPad attach");
 
         PPAD->pTabletParent = (STablet*)TABLET->data;
 
@@ -179,6 +201,8 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
     PNEWPAD->hyprListener_Destroy.initCallback(&pDevice->events.destroy, [](void* owner, void* data) {
 
         const auto PPAD = (STabletPad*)owner;
+
+        Debug::log(LOG, "TabletPad destroy");
 
         g_pInputManager->m_lTabletPads.remove(*PPAD);
 

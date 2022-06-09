@@ -51,21 +51,22 @@ Try it out and report bugs / suggestions!
 - Easily expandable and readable codebase
 - Config reloaded instantly upon saving
 - Custom bezier curve based animations
-- wlr_ext workspaces protocol support
+- `wlr_ext` workspaces protocol support
 - Dual Kawase blur
 - Fully dynamic workspaces
-- Closely follows wlroots-git
+- Closely follows `wlroots-git`
 - Bundled wlroots
-- Window / layer fade in / out
-- Tiling / floating / fullscreen windows
-- Special workspace (Scratchpad)
-- Window / monitor rules
+- Window/layer fade in/out
+- Tiling/pseudotiling/floating/fullscreen windows
+- Switching workspaces between window modes on the fly
+- Special workspace (scratchpad)
+- Window/monitor rules
 - Socket-based IPC
 - Event system for bash scripts
 - Rounded corners
-- Full Damage tracking
+- Full damage tracking
 - Docks support
-- Drawing tablet uspport
+- Drawing tablet support
 
 <br>
 <br>

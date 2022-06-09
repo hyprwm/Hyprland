@@ -16,6 +16,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     PNEWTABLET->hyprListener_Destroy.initCallback(&pDevice->events.destroy, [](void* owner, void* data) {
         const auto PTAB = (STablet*)owner;
 
+        g_pInputManager->unfocusAllTablets();
+
         g_pInputManager->m_lTablets.remove(*PTAB);
 
         Debug::log(LOG, "Removed a tablet");
@@ -133,6 +135,8 @@ STabletTool* CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
         PTOOL->hyprListener_TabletToolDestroy.initCallback(&pTool->events.destroy, [](void* owner, void* data) {
             const auto PTOOL = (STabletTool*)owner;
 
+            g_pInputManager->unfocusAllTablets();
+
             PTOOL->wlrTabletTool->data = nullptr;
             g_pInputManager->m_lTabletTools.remove(*PTOOL);
         }, PTOOL, "Tablet Tool V1");
@@ -191,6 +195,8 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
     PNEWPAD->hyprListener_Destroy.initCallback(&pDevice->events.destroy, [](void* owner, void* data) {
 
         const auto PPAD = (STabletPad*)owner;
+
+        g_pInputManager->unfocusAllTablets();
 
         g_pInputManager->m_lTabletPads.remove(*PPAD);
 

@@ -177,6 +177,8 @@ struct STabletTool {
 
     wlr_tablet_v2_tablet* wlrTabletOwnerV2 = nullptr;
 
+    wlr_surface* pSurface = nullptr;
+
     double tiltX = 0;
     double tiltY = 0;
 

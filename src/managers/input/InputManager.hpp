@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../defines.hpp"
+#include "../../defines.hpp"
 #include <list>
-#include "../helpers/WLClasses.hpp"
-#include "../Window.hpp"
+#include "../../helpers/WLClasses.hpp"
+#include "../../Window.hpp"
 
 class CInputManager {
 public:
@@ -28,6 +28,7 @@ public:
     void            setKeyboardLayout();
 
     void            updateDragIcon();
+    void            updateCapabilities(wlr_input_device*);
 
 
     // for dragging floating windows
@@ -40,11 +41,26 @@ public:
     std::list<SKeyboard>    m_lKeyboards;
     std::list<SMouse>       m_lMice;
 
+    // tablets
+    std::list<STablet>      m_lTablets;
+    std::list<STabletTool>  m_lTabletTools;
+    std::list<STabletPad>   m_lTabletPads;
+
+    void            newTabletTool(wlr_input_device*);
+    void            newTabletPad(wlr_input_device*);
+    void            focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
+
     SKeyboard*      m_pActiveKeyboard = nullptr;
 
    private:
 
+    uint32_t        m_uiCapabilities = 0;
+
     void            mouseMoveUnified(uint32_t, bool refocus = false);
+
+    STabletTool*    ensureTabletToolPresent(wlr_tablet_tool*);
+
+    void            unfocusAllTablets();
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

@@ -26,6 +26,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglespecialworkspace"]    = toggleSpecialWorkspace;
     m_mDispatchers["forcerendererreload"]       = forceRendererReload;
     m_mDispatchers["resizeactive"]              = resizeActive;
+    m_mDispatchers["circlenext"]                = circleNext;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -868,4 +869,15 @@ void CKeybindManager::resizeActive(std::string args) {
     const int Y = std::stoi(y);
 
     g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(X, Y));
+}
+
+void CKeybindManager::circleNext(std::string) {
+    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+        return;
+
+    g_pCompositor->focusWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow));
+
+    const auto MIDPOINT = g_pCompositor->m_pLastWindow->m_vRealPosition.goalv() + g_pCompositor->m_pLastWindow->m_vRealSize.goalv() / 2.f;
+
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
 }

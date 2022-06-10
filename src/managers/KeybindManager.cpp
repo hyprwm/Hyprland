@@ -26,7 +26,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglespecialworkspace"]    = toggleSpecialWorkspace;
     m_mDispatchers["forcerendererreload"]       = forceRendererReload;
     m_mDispatchers["resizeactive"]              = resizeActive;
-    m_mDispatchers["circlenext"]                = circleNext;
+    m_mDispatchers["cyclenext"]                 = circleNext;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {

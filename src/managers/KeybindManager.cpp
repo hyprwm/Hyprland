@@ -1,5 +1,7 @@
 #include "KeybindManager.hpp"
 
+#include <regex>
+
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
 
@@ -27,6 +29,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["forcerendererreload"]       = forceRendererReload;
     m_mDispatchers["resizeactive"]              = resizeActive;
     m_mDispatchers["cyclenext"]                 = circleNext;
+    m_mDispatchers["focuswindowbyclass"]        = focusWindowByClass;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -880,4 +883,27 @@ void CKeybindManager::circleNext(std::string) {
     const auto MIDPOINT = g_pCompositor->m_pLastWindow->m_vRealPosition.goalv() + g_pCompositor->m_pLastWindow->m_vRealSize.goalv() / 2.f;
 
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
+}
+
+void CKeybindManager::focusWindowByClass(std::string clazz) {
+    std::regex classCheck(clazz);
+
+    for (auto& w : g_pCompositor->m_lWindows) {
+        const auto windowClass = g_pXWaylandManager->getAppIDClass(&w);
+
+        if (!std::regex_search(windowClass, classCheck))
+            continue;
+
+        Debug::log(LOG, "Focusing to window name: %s", w.m_szTitle.c_str());
+
+        changeworkspace(std::to_string(w.m_iWorkspaceID));
+
+        g_pCompositor->focusWindow(&w);
+
+        const auto MIDPOINT = w.m_vRealPosition.goalv() + w.m_vRealSize.goalv() / 2.f;
+
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
+
+        break;
+    }
 }

@@ -585,11 +585,11 @@ CWindow* CCompositor::getWindowForPopup(wlr_xdg_popup* popup) {
 }
 
 wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::list<SLayerSurface*>* layerSurfaces, Vector2D* sCoords) {
-    for (auto& l : *layerSurfaces) {
-        if (l->fadingOut || (l->layerSurface && !l->layerSurface->mapped))
+    for (auto it = layerSurfaces->rbegin(); it != layerSurfaces->rend(); it++) {
+        if ((*it)->fadingOut || !(*it)->layerSurface || ((*it)->layerSurface && !(*it)->layerSurface->mapped))
             continue;
 
-        const auto SURFACEAT = wlr_layer_surface_v1_surface_at(l->layerSurface, pos.x - l->geometry.x, pos.y - l->geometry.y, &sCoords->x, &sCoords->y);
+        const auto SURFACEAT = wlr_layer_surface_v1_surface_at((*it)->layerSurface, pos.x - (*it)->geometry.x, pos.y - (*it)->geometry.y, &sCoords->x, &sCoords->y);
 
         if (SURFACEAT)
             return SURFACEAT;

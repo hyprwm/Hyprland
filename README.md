@@ -19,6 +19,7 @@ Hyprland is a dynamic tiling Wayland compositor based on wlroots that doesn't sa
 
 For Hyprland without the `land` part, see [Hypr], the Xorg window manager.
 
+Please note, especially for folks moving from Hypr, that Hyprland and Hypr share a very different feature set and are not 1:1 experiences.
 <br>
 <br>
 

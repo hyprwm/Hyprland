@@ -326,8 +326,14 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
         if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV))  // this is for tapping (like on a laptop)
             libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
 
-        if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV))
-            libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, g_pConfigManager->getInt("input:natural_scroll"));
+        if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {
+            double w = 0, h = 0;
+
+            if (libinput_device_has_capability(LIBINPUTDEV, LIBINPUT_DEVICE_CAP_POINTER) && libinput_device_get_size(LIBINPUTDEV, &w, &h) == 0) // pointer with size is a touchpad
+                libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, g_pConfigManager->getInt("input:touchpad:natural_scroll"));
+            else
+                libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, g_pConfigManager->getInt("input:natural_scroll"));
+        }
         
         if (libinput_device_config_dwt_is_available(LIBINPUTDEV)) {
             const auto DWT = static_cast<enum libinput_config_dwt_state>(g_pConfigManager->getInt("input:touchpad:disable_while_typing") != 0);

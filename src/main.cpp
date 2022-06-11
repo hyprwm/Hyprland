@@ -15,16 +15,26 @@ int main(int argc, char** argv) {
         RIP("XDG_RUNTIME_DIR not set!");
 
     // parse some args
-    for (int i = 1; i < argc; ++i) {
-        if (!strcmp(argv[i], "--i-am-really-stupid"))
-            ignoreSudo = true;
-    }
+    if (!strcmp(argv[1], "i-am-really-stupid"))
+        ignoreSudo = true;
+    else if (!strcmp(argv[1], "help"))
+        std::cout << "Available commands:\n";
+        std::cout << "  help                 - show this help text\n";
+        std::cout << "  version              - show version\n";
+        std::cout << "  --i-am-really-stupid - ignore sudo run check\n";
+        return 0;
+    else if (!strcmp(argv[1], "vesrsion"))
+        std::cout << "V5.0\n";
+        return 0;
+    else
+        std::cout << "That argument does not exist\n";
+        return 1;
 
     system("mkdir -p /tmp/hypr");
 
     if (!ignoreSudo) {
         if (Init::isSudo()) {
-            std::cout << "Hyprland shall not be run as the root user. If you really want to, use the --i-am-really-stupid flag.\n";
+            std::cout << "Hyprland shall not be run as the root user. If you really want to, use the i-am-really-stupid flag.\n";
             return 1;
     	}
     } else {

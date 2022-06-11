@@ -84,6 +84,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:natural_scroll"].intValue = 0;
     configValues["input:numlock_by_default"].intValue = 0;
     configValues["input:force_no_accel"].intValue = 0;
+    configValues["input:touchpad:natural_scroll"].intValue = 0;
     configValues["input:touchpad:disable_while_typing"].intValue = 1;
 
     configValues["input:follow_mouse"].intValue = 1;

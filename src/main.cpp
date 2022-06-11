@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
         return 0;
     else
         std::cout << "That argument does not exist\n";
+        std::cout << "For a list of available arguments run hyprland help\n";
         return 1;
 
     system("mkdir -p /tmp/hypr");

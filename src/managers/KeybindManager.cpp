@@ -15,6 +15,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pseudo"]                    = toggleActivePseudo;
     m_mDispatchers["movefocus"]                 = moveFocusTo;
     m_mDispatchers["movewindow"]                = moveActiveTo;
+    m_mDispatchers["movewindowinv"]             = moveInactiveTo;
     m_mDispatchers["togglegroup"]               = toggleGroup;
     m_mDispatchers["changegroupactive"]         = changeGroupActive;
     m_mDispatchers["togglesplit"]               = toggleSplit;
@@ -345,17 +346,11 @@ void CKeybindManager::fullscreenActive(std::string args) {
     }
 }
 
-void CKeybindManager::moveActiveToWorkspace(std::string args) {
-    const auto PWINDOW = g_pCompositor->m_pLastWindow;
-
+void CKeybindManager::moveWindowToWorkspace(CWindow* PWINDOW, int WORKSPACEID) {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;
 
     const auto OLDWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-
-    // hack
-    std::string unusedName;
-    const auto WORKSPACEID = getWorkspaceIDFromString(args, unusedName);
 
     if (WORKSPACEID == PWINDOW->m_iWorkspaceID) {
         Debug::log(LOG, "Not moving to workspace because it didn't change.");
@@ -364,7 +359,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
-    g_pKeybindManager->changeworkspace(args);
+    g_pKeybindManager->changeworkspace(std::to_string(WORKSPACEID));
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
@@ -374,7 +369,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     }
 
     if (!PWORKSPACE) {
-        Debug::log(ERR, "Workspace null in moveActiveToWorkspace?");
+        Debug::log(ERR, "Workspace null in moveWindowToWorkspace?");
         return;
     }
 
@@ -418,6 +413,25 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     }
 
     g_pInputManager->refocus();
+    g_pCompositor->focusWindow(PWINDOW);
+}
+
+void CKeybindManager::moveActiveToWorkspace(std::string args) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    // hack
+    std::string unusedName;
+    const auto WORKSPACEID = getWorkspaceIDFromString(args, unusedName);
+
+    if (WORKSPACEID == PWINDOW->m_iWorkspaceID) {
+        Debug::log(LOG, "Not moving to workspace because it didn't change.");
+        return;
+    }
+
+    moveWindowToWorkspace(PWINDOW, WORKSPACEID);
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
@@ -560,6 +574,27 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+}
+
+void CKeybindManager::moveInactiveTo(std::string args) {
+    const auto LASTMONITOR = g_pCompositor->m_pLastMonitor;
+    const auto PACTIVE = g_pCompositor->m_pLastWindow;
+
+    focusMonitor(args);
+
+    if (LASTMONITOR == g_pCompositor->m_pLastMonitor) {
+        Debug::log(ERR, "moveInactiveTo: moving to an invalid mon");
+        return;
+    }
+
+    for (auto& window : g_pCompositor->m_lWindows) {
+        if (window == *PACTIVE || window.m_iWorkspaceID != PACTIVE->m_iWorkspaceID) {
+            continue;
+        }
+        moveWindowToWorkspace(&window, g_pCompositor->m_pLastMonitor->activeWorkspace);
+    }
+
+    g_pCompositor->focusWindow(PACTIVE);
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

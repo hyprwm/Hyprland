@@ -29,6 +29,7 @@ private:
     std::list<SKeybind> m_lKeybinds;
 
     bool                handleInternalKeybinds(xkb_keysym_t);
+    static void         moveWindowToWorkspace(CWindow*, int);
 
     inline static bool  m_bSuppressWorkspaceChangeEvents = false;
 
@@ -43,6 +44,7 @@ private:
     static void         moveActiveToWorkspaceSilent(std::string);
     static void         moveFocusTo(std::string);
     static void         moveActiveTo(std::string);
+    static void         moveInactiveTo(std::string);
     static void         toggleGroup(std::string);
     static void         changeGroupActive(std::string);
     static void         alterSplitRatio(std::string);

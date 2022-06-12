@@ -323,8 +323,21 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
     if (wlr_input_device_is_libinput(mouse)) {
         const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(mouse);
 
+        if (g_pConfigManager->getInt("input:touchpad:clickfinger_behavior")==0) // toggle software buttons or clickfinger
+            libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
+        else
+            libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+        
+        if (libinput_device_config_middle_emulation_is_available(LIBINPUTDEV)) { // middleclick on r+l mouse button pressed
+            if (g_pConfigManager->getInt("input:touchpad:middle_button_emulation")==1)
+                libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);
+            else
+                libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
+        }
+
         if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV))  // this is for tapping (like on a laptop)
-            libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
+            if (g_pConfigManager->getInt("input:touchpad:tap-to-click")==1)
+                libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
 
         if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {
             double w = 0, h = 0;

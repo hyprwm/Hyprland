@@ -579,6 +579,7 @@ void CKeybindManager::moveActiveTo(std::string args) {
 void CKeybindManager::moveInactiveTo(std::string args) {
     const auto LASTMONITOR = g_pCompositor->m_pLastMonitor;
     const auto PACTIVE = g_pCompositor->m_pLastWindow;
+    const auto CURSOR_COORDS = Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y);
 
     focusMonitor(args);
 
@@ -595,6 +596,8 @@ void CKeybindManager::moveInactiveTo(std::string args) {
     }
 
     g_pCompositor->focusWindow(PACTIVE);
+    changeworkspace(std::to_string(PACTIVE->m_iWorkspaceID));
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CURSOR_COORDS.x, CURSOR_COORDS.y);
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

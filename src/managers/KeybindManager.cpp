@@ -596,7 +596,6 @@ void CKeybindManager::moveInactiveTo(std::string args) {
     }
 
     g_pCompositor->focusWindow(PACTIVE);
-    changeworkspace(std::to_string(PACTIVE->m_iWorkspaceID));
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CURSOR_COORDS.x, CURSOR_COORDS.y);
 }
 

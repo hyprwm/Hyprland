@@ -8,6 +8,7 @@
 // I am a bad bad boy and have used some global vars here,
 // just for this file
 bool ignoreSudo = false;
+bool ignoreSudoWarnMessage = false;
 
 int main(int argc, char** argv) {
 
@@ -15,30 +16,34 @@ int main(int argc, char** argv) {
         RIP("XDG_RUNTIME_DIR not set!");
 
     // parse some args
-    if (!strcmp(argv[1], "i-am-really-stupid"))
+    std::string arg1 = argv[1];
+
+    if (arg1 == "--i-am-really-stupid")
         ignoreSudo = true;
-    else if (!strcmp(argv[1], "help"))
+        if (!strcmp(argv[2], "no-warn-message"))
+            ignoreSudoWarnMessage = true;
+    else if (arg1 == "version") {
+        std::cout << "v0.5.0beta\n";
+        return 0;
+    }
+    else {
         std::cout << "Available commands:\n";
         std::cout << "  help                 - show this help text\n";
         std::cout << "  version              - show version\n";
         std::cout << "  --i-am-really-stupid - ignore sudo run check\n";
+        std::cout << "When using --i-am-really-stupid you can ignore the warning message and startup delay with additional argument no-warn-message\n";
         return 0;
-    else if (!strcmp(argv[1], "vesrsion"))
-        std::cout << "V5.0\n";
-        return 0;
-    else
-        std::cout << "That argument does not exist\n";
-        std::cout << "For a list of available arguments run hyprland help\n";
-        return 1;
+     }
 
     system("mkdir -p /tmp/hypr");
 
     if (!ignoreSudo) {
         if (Init::isSudo()) {
-            std::cout << "Hyprland shall not be run as the root user. If you really want to, use the i-am-really-stupid flag.\n";
+            std::cout << "Hyprland shall not be run as the root user. If you really want to, use the --i-am-really-stupid flag.\n";
             return 1;
     	}
-    } else {
+    }
+    else if (!ignoreSudoWarnMessage) {
         std::cout << "Running with ignored root checks, I surely hope you know what you're doing.\n";
         sleep(1);
     }

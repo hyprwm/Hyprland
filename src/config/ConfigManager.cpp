@@ -86,6 +86,9 @@ void CConfigManager::setDefaultVars() {
     configValues["input:force_no_accel"].intValue = 0;
     configValues["input:touchpad:natural_scroll"].intValue = 0;
     configValues["input:touchpad:disable_while_typing"].intValue = 1;
+    configValues["input:touchpad:clickfinger_behavior"].intValue = 0;
+    configValues["input:touchpad:middle_button_emulation"].intValue = 0;
+    configValues["input:touchpad:tap-to-click"].intValue = 1;
 
     configValues["input:follow_mouse"].intValue = 1;
 

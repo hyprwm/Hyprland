@@ -22,15 +22,11 @@ int main(int argc, char** argv) {
         ignoreSudo = true;
         if (!strcmp(argv[2], "no-warn-message"))
             ignoreSudoWarnMessage = true;
-    else if (arg1 == "version") {
-        std::cout << "v0.5.0beta\n";
-        return 0;
-    }
     else {
         std::cout << "Available commands:\n";
         std::cout << "  help                 - show this help text\n";
-        std::cout << "  version              - show version\n";
         std::cout << "  --i-am-really-stupid - ignore sudo run check\n";
+        std::cout << "More commands can be found by running hyprctrl\n";
         std::cout << "When using --i-am-really-stupid you can ignore the warning message and startup delay with additional argument no-warn-message\n";
         return 0;
      }

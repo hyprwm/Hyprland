@@ -1,46 +1,5 @@
-src = [
-  'config/ConfigManager.cpp',
-  'debug/HyprCtl.cpp',
-  'debug/HyprDebugOverlay.cpp',
-  'debug/Log.cpp',
-  'events/Devices.cpp',
-  'events/Layers.cpp',
-  'events/Misc.cpp',
-  'events/Monitors.cpp',
-  'events/Popups.cpp',
-  'events/Windows.cpp',
-  'helpers/Color.cpp',
-  'helpers/Vector2D.cpp',
-  'helpers/WLListener.cpp',
-  'helpers/AnimatedVariable.cpp',
-  'helpers/BezierCurve.cpp',
-  'helpers/MiscFunctions.cpp',
-  'helpers/SubsurfaceTree.cpp',
-  'helpers/WLClasses.cpp',
-  'helpers/Workspace.cpp',
-  'hyprerror/HyprError.cpp',
-  'layout/DwindleLayout.cpp',
-  'managers/LayoutManager.cpp',
-  'managers/ThreadManager.cpp',
-  'managers/AnimationManager.cpp',
-  'managers/EventManager.cpp',
-  'managers/KeybindManager.cpp',
-  'managers/XWaylandManager.cpp',
-  'managers/input/InputManager.cpp',
-  'managers/input/Tablets.cpp',
-  'render/Shader.cpp',
-  'render/Texture.cpp',
-  'render/Framebuffer.cpp',
-  'render/OpenGL.cpp',
-  'render/Renderer.cpp',
-  'render/decorations/CHyprGroupBarDecoration.cpp',
-  'render/decorations/IHyprWindowDecoration.cpp',
-  'wlrunstable/wlr_ext_workspace_v1.cpp',
-  'Compositor.cpp',
-  'Window.cpp',
-  'init/initHelpers.cpp',
-  'main.cpp'
-]
+globber = run_command('find', '-name', '*.cpp', check: true)
+src = globber.stdout().strip().split('\n')
 
 wlroots = subproject('wlroots', default_options: ['examples=false'])
 have_xwlr = wlroots.get_variable('features').get('xwayland')

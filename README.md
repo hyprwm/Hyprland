@@ -130,7 +130,7 @@ Try it out and report bugs / suggestions!
 [Issues]: https://github.com/vaxerski/Hyprland/issues
 [Todo]: https://github.com/vaxerski/Hyprland/projects?type=beta
 
-[Contribute]: docs/Contribute.md
+[Contribute]: https://github.com/vaxerski/Hyprland/wiki/Contributing-&-Debugging
 [Install]: https://github.com/vaxerski/Hyprland/wiki/Installation
 [Quick Start]: https://github.com/vaxerski/Hyprland/wiki/Quick-start
 [License]: LICENSE

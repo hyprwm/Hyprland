@@ -29,7 +29,6 @@ private:
     std::list<SKeybind> m_lKeybinds;
 
     bool                handleInternalKeybinds(xkb_keysym_t);
-    static void         moveWindowToWorkspace(CWindow*, int);
 
     inline static bool  m_bSuppressWorkspaceChangeEvents = false;
 

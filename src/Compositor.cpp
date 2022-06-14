@@ -996,11 +996,75 @@ void CCompositor::updateWindowBorderColor(CWindow* pWindow) {
         pWindow->m_cRealBorderColor = CColor(pWindow == m_pLastWindow ? *ACTIVECOL : *INACTIVECOL);
 }
 
-void CCompositor::moveWindowToWorkspace(CWindow* pWindow, const std::string& work) {
-    m_pLastWindow = pWindow;
-    g_pKeybindManager->moveActiveToWorkspace(work);
+void CCompositor::moveWindowToWorkspace(CWindow* pWindow, const int pWorkspaceID) {
+
+    if (!g_pCompositor->windowValidMapped(pWindow))
+        return;
+
+    const auto OLDWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (pWorkspaceID == pWindow->m_iWorkspaceID) {
+        Debug::log(LOG, "Not moving to workspace because it didn't change.");
+        return;
+    }
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+
+    g_pKeybindManager->changeworkspace(std::to_string(pWorkspaceID));
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWorkspaceID);
+
+    if (PWORKSPACE == OLDWORKSPACE) {
+        Debug::log(LOG, "Not moving to workspace because it didn't change.");
+        return;
+    }
+
+    if (!PWORKSPACE) {
+        Debug::log(ERR, "Workspace null in moveWindowToWorkspace?");
+        return;
+    }
+
+    OLDWORKSPACE->m_bHasFullscreenWindow = false;
+
+    pWindow->m_iWorkspaceID = PWORKSPACE->m_iID;
+    pWindow->m_iMonitorID = PWORKSPACE->m_iMonitorID;
+    pWindow->m_bIsFullscreen = false;
+
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID)->m_bIsFullscreen = false;
+        PWORKSPACE->m_bHasFullscreenWindow = false;
+    }
+
+    // Hack: So that the layout doesnt find our window at the cursor
+    pWindow->m_vPosition = Vector2D(-42069, -42069);
+    
+    // Save the real position and size because the layout might set its own
+    const auto PSAVEDSIZE = pWindow->m_vRealSize.vec();
+    const auto PSAVEDPOS = pWindow->m_vRealPosition.vec();
+    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+    // and restore it
+    pWindow->m_vRealPosition.setValue(PSAVEDPOS);
+    pWindow->m_vRealSize.setValue(PSAVEDSIZE);
+
+    if (pWindow->m_bIsFloating) {
+        pWindow->m_vRealPosition.setValue(pWindow->m_vRealPosition.vec() - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition);
+        pWindow->m_vRealPosition.setValue(pWindow->m_vRealPosition.vec() + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
+        pWindow->m_vPosition = pWindow->m_vRealPosition.vec();
+    }
+
+    // undo the damage if we are moving to the special workspace
+    if (pWorkspaceID == SPECIAL_WORKSPACE_ID) {
+        g_pKeybindManager->changeworkspace(std::to_string(OLDWORKSPACE->m_iID));
+        OLDWORKSPACE->startAnim(true, true, true);
+        g_pKeybindManager->toggleSpecialWorkspace("");
+        g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false, true);
+
+        for (auto& m : g_pCompositor->m_lMonitors)
+            m.specialWorkspaceOpen = false;
+    }
 
     g_pInputManager->refocus();
+    g_pCompositor->focusWindow(pWindow);
 }
 
 int CCompositor::getNextAvailableMonitorID() {

@@ -18,4 +18,5 @@ endif
 subdir('protocols')
 subdir('src')
 subdir('hyprctl')
+subdir('assets')
 subdir('example')

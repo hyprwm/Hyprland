@@ -654,7 +654,8 @@ void CConfigManager::loadConfigLoadVars() {
     configPaths.clear();
 
     static const char* const ENVHOME = getenv("HOME");
-    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    const std::string CONFIGPARENTPATH = ENVHOME + (std::string) "/.config/hypr/";
+    const std::string CONFIGPATH = CONFIGPARENTPATH + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
 
     configPaths.push_back(CONFIGPATH);
 
@@ -666,6 +667,15 @@ void CConfigManager::loadConfigLoadVars() {
         try {
             std::filesystem::rename(CONFIGPATH, CONFIGPATH + ".backup");
         } catch(...) { /* Probably doesn't exist */}
+
+        try {
+            if (!std::filesystem::is_directory(CONFIGPARENTPATH))
+                std::filesystem::create_directories(CONFIGPARENTPATH);
+        }
+        catch (...) {
+            parseError = "Broken config file! (Could not create directory)";
+            return;
+        }
 
         std::ofstream ofs;
         ofs.open(CONFIGPATH, std::ios::trunc);

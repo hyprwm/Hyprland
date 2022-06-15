@@ -5,6 +5,8 @@ executable('Hyprland', src,
   cpp_args: ['-DWLR_USE_UNSTABLE'],
   dependencies: [
     server_protos,
+    dependency('wayland-server'),
+    dependency('wayland-client'),
     wlroots.get_variable('wlroots'),
     dependency('cairo'),
     dependency('pango'),

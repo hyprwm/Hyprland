@@ -169,24 +169,24 @@ void CConfigManager::handleRawExec(const std::string& command, const std::string
         toExec = std::string("WAYLAND_DISPLAY=") + std::string(g_pCompositor->m_szWLDisplaySocket) + " " + toExec;
 
     Debug::log(LOG, "Config executing %s", toExec.c_str());
-    
-    int socket[2];
-	if (pipe(socket) != 0) {
-		Debug::log(LOG, "Unable to create pipe for fork");
-	}
 
-    pid_t child ,grandchild;
+    int socket[2];
+    if (pipe(socket) != 0) {
+        Debug::log(LOG, "Unable to create pipe for fork");
+    }
+
+    pid_t child, grandchild;
     child = fork();
-    if (child<0){
+    if (child < 0) {
         close(socket[0]);
         close(socket[1]);
         Debug::log(LOG, "Fail to create the first fork");
         return;
     }
-    if (child == 0){
+    if (child == 0) {
         // run in child
         grandchild = fork();
-        if (grandchild==0){
+        if (grandchild == 0) {
             // run in grandchild
             close(socket[0]);
             close(socket[1]);
@@ -195,22 +195,22 @@ void CConfigManager::handleRawExec(const std::string& command, const std::string
             _exit(0);
         }
         close(socket[0]);
-        (void) write(socket[1], &grandchild, sizeof(grandchild));
+        write(socket[1], &grandchild, sizeof(grandchild));
         close(socket[1]);
         // exit child
         _exit(0);
     }
     // run in parent
     close(socket[1]);
-    (void) read(socket[0], &grandchild,sizeof(grandchild));
+    read(socket[0], &grandchild, sizeof(grandchild));
     close(socket[0]);
     // clear child and leave child to init
     waitpid(child, NULL, 0);
-    if (child<0){
+    if (child < 0) {
         Debug::log(LOG, "Fail to create the second fork");
         return;
     }
-    Debug::log(LOG, "Process created with pid %d",grandchild);
+    Debug::log(LOG, "Process created with pid %d", grandchild);
 }
 
 void CConfigManager::handleMonitor(const std::string& command, const std::string& args) {

@@ -309,7 +309,7 @@ void CInputManager::setKeyboardLayout() {
     }
 
     if (wlrMods.locked != 0) {
-        wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlrMods);
+        wlr_keyboard_notify_modifiers(g_pInputManager->m_pActiveKeyboard->keyboard->keyboard, 0, 0, wlrMods.locked, 0);
     }
 
     xkb_keymap_unref(KEYMAP);

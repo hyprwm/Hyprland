@@ -141,11 +141,48 @@ void CKeybindManager::spawn(std::string args) {
         args = "WAYLAND_DISPLAY=" + std::string(g_pCompositor->m_szWLDisplaySocket) + " " + args;
 
     Debug::log(LOG, "Executing %s", args.c_str());
-    if (fork() == 0) {
-        execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
 
+    int socket[2];
+    if (pipe(socket) != 0) {
+        Debug::log(LOG, "Unable to create pipe for fork");
+    }
+
+    pid_t child, grandchild;
+    child = fork();
+    if (child < 0) {
+        close(socket[0]);
+        close(socket[1]);
+        Debug::log(LOG, "Fail to create the first fork");
+        return;
+    }
+    if (child == 0) {
+        // run in child
+        grandchild = fork();
+        if (grandchild == 0) {
+            // run in grandchild
+            close(socket[0]);
+            close(socket[1]);
+            execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
+            // exit grandchild
+            _exit(0);
+        }
+        close(socket[0]);
+        write(socket[1], &grandchild, sizeof(grandchild));
+        close(socket[1]);
+        // exit child
         _exit(0);
     }
+    // run in parent
+    close(socket[1]);
+    read(socket[0], &grandchild, sizeof(grandchild));
+    close(socket[0]);
+    // clear child and leave child to init
+    waitpid(child, NULL, 0);
+    if (child < 0) {
+        Debug::log(LOG, "Fail to create the second fork");
+        return;
+    }
+    Debug::log(LOG, "Process Created with pid %d", grandchild);
 }
 
 void CKeybindManager::killActive(std::string args) {

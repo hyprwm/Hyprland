@@ -15,23 +15,21 @@
 //                                                           //
 // --------------------------------------------------------- //
 
-SMonitor *pMostHzMonitor = nullptr;
+SMonitor* pMostHzMonitor = nullptr;
 
-void Events::listener_change(wl_listener *listener, void *data)
-{
+void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
 
-    for (auto &m : g_pCompositor->m_lMonitors)
-    {
+    for (auto& m : g_pCompositor->m_lMonitors) {
         const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m.output);
 
         // TODO: clients off of disabled
         wlr_box BOX;
         wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m.output, &BOX);
 
-        // m.vecSize.x = BOX.width;
-        // m.vecSize.y = BOX.height;
+        //m.vecSize.x = BOX.width;
+       // m.vecSize.y = BOX.height;
         m.vecPosition.x = BOX.x;
         m.vecPosition.y = BOX.y;
 
@@ -46,19 +44,16 @@ void Events::listener_change(wl_listener *listener, void *data)
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
 }
 
-void Events::listener_newOutput(wl_listener *listener, void *data)
-{
+void Events::listener_newOutput(wl_listener* listener, void* data) {
     // new monitor added, let's accomodate for that.
-    const auto OUTPUT = (wlr_output *)data;
+    const auto OUTPUT = (wlr_output*)data;
 
-    if (!OUTPUT->name)
-    {
+    if (!OUTPUT->name) {
         Debug::log(ERR, "New monitor has no name?? Ignoring");
         return;
     }
 
-    if (g_pCompositor->getMonitorFromName(std::string(OUTPUT->name)))
-    {
+    if (g_pCompositor->getMonitorFromName(std::string(OUTPUT->name))) {
         Debug::log(WARN, "Monitor with name %s already exists, not adding as new!", OUTPUT->name);
         return;
     }
@@ -67,13 +62,11 @@ void Events::listener_newOutput(wl_listener *listener, void *data)
     SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(OUTPUT->name);
 
     // if it's disabled, disable and ignore
-    if (monitorRule.disabled)
-    {
+    if (monitorRule.disabled) {
         wlr_output_enable(OUTPUT, 0);
         wlr_output_commit(OUTPUT);
 
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromName(std::string(OUTPUT->name)); PMONITOR)
-        {
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromName(std::string(OUTPUT->name)); PMONITOR) {
             listener_monitorDestroy(nullptr, PMONITOR->output);
         }
         return;
@@ -88,7 +81,7 @@ void Events::listener_newOutput(wl_listener *listener, void *data)
 
     wlr_output_set_scale(OUTPUT, monitorRule.scale);
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, monitorRule.scale);
-    wlr_output_set_transform(OUTPUT, WL_OUTPUT_TRANSFORM_NORMAL); // TODO: support other transforms
+    wlr_output_set_transform(OUTPUT, WL_OUTPUT_TRANSFORM_NORMAL);  // TODO: support other transforms
 
     wlr_output_enable_adaptive_sync(OUTPUT, 1);
 
@@ -127,16 +120,13 @@ void Events::listener_newOutput(wl_listener *listener, void *data)
 
     Debug::log(LOG, "New monitor: WORKSPACEID %d, exists: %d", WORKSPACEID, (int)(PNEWWORKSPACE != nullptr));
 
-    if (PNEWWORKSPACE)
-    {
+    if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
         g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, PNEWMONITOR);
         PNEWMONITOR->activeWorkspace = PNEWWORKSPACE->m_iID;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PNEWMONITOR->ID);
         PNEWWORKSPACE->startAnim(true,true,true);
-    }
-    else
-    {
+    } else {
         g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID);
         PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
 
@@ -166,9 +156,8 @@ void Events::listener_newOutput(wl_listener *listener, void *data)
     g_pCompositor->m_bReadyToProcess = true;
 }
 
-void Events::listener_monitorFrame(void *owner, void *data)
-{
-    SMonitor *const PMONITOR = (SMonitor *)owner;
+void Events::listener_monitorFrame(void* owner, void* data) {
+    SMonitor* const PMONITOR = (SMonitor*)owner;
 
     static std::chrono::high_resolution_clock::time_point startRender = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
@@ -177,16 +166,14 @@ void Events::listener_monitorFrame(void *owner, void *data)
     static auto *const PDEBUGOVERLAY = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
     static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("general:damage_tracking_internal")->intValue;
 
-    if (*PDEBUGOVERLAY == 1)
-    {
+    if (*PDEBUGOVERLAY == 1) {
         startRender = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->frameData(PMONITOR);
     }
 
     // Hack: only check when monitor with top hz refreshes, saves a bit of resources.
     // This is for stuff that should be run every frame
-    if (PMONITOR->ID == pMostHzMonitor->ID)
-    {
+    if (PMONITOR->ID == pMostHzMonitor->ID) {
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
         g_pCompositor->cleanupFadingOut();
@@ -199,14 +186,12 @@ void Events::listener_monitorFrame(void *owner, void *data)
             g_pConfigManager->performMonitorReload();
     }
 
-    if (PMONITOR->framesToSkip > 0)
-    {
+    if (PMONITOR->framesToSkip > 0) {
         PMONITOR->framesToSkip -= 1;
 
         if (!PMONITOR->noFrameSchedule)
             wlr_output_schedule_frame(PMONITOR->output);
-        else
-        {
+        else {
             Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
         }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
@@ -221,20 +206,17 @@ void Events::listener_monitorFrame(void *owner, void *data)
     bool hasChanged;
     pixman_region32_init(&damage);
 
-    if (*PDAMAGETRACKINGMODE == -1)
-    {
+    if (*PDAMAGETRACKINGMODE == -1) {
         Debug::log(CRIT, "Damage tracking mode -1 ????");
         return;
     }
 
-    if (!wlr_output_damage_attach_render(PMONITOR->damage, &hasChanged, &damage))
-    {
+    if (!wlr_output_damage_attach_render(PMONITOR->damage, &hasChanged, &damage)){
         Debug::log(ERR, "Couldn't attach render to display %s ???", PMONITOR->szName.c_str());
         return;
     }
 
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE)
-    {
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
         wlr_output_schedule_frame(PMONITOR->output); // we update shit at the monitor's Hz so we need to schedule frames because rollback wont
@@ -242,31 +224,25 @@ void Events::listener_monitorFrame(void *owner, void *data)
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
-    {
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
-    }
-    else
-    {
-        static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
+    } else {
+        static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
         // if we use blur we need to expand the damage for proper blurring
-        if (*PBLURENABLED == 1)
-        {
+        if (*PBLURENABLED == 1) {
             // TODO: can this be optimized?
-            static auto *const PBLURSIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
-            static auto *const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
-            const auto BLURRADIUS = *PBLURSIZE * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
+            static auto* const PBLURSIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
+            static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
+            const auto BLURRADIUS = *PBLURSIZE * pow(2, *PBLURPASSES);  // is this 2^pass? I don't know but it works... I think.
 
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
 
             // now, prep the damage, get the extended damage region
-            wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring
-        }
-        else
-        {
+            wlr_region_expand(&damage, &damage, BLURRADIUS);                                                   // expand for proper blurring
+        } else {
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
         }
     }
@@ -285,8 +261,7 @@ void Events::listener_monitorFrame(void *owner, void *data)
         g_pHyprError->draw();
 
     // for drawing the debug overlay
-    if (PMONITOR->ID == 0 && *PDEBUGOVERLAY == 1)
-    {
+    if (PMONITOR->ID == 0 && *PDEBUGOVERLAY == 1) {
         startRenderOverlay = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->draw();
         endRenderOverlay = std::chrono::high_resolution_clock::now();
@@ -318,32 +293,25 @@ void Events::listener_monitorFrame(void *owner, void *data)
 
     wlr_output_schedule_frame(PMONITOR->output);
 
-    if (*PDEBUGOVERLAY == 1)
-    {
+    if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;
         g_pDebugOverlay->renderData(PMONITOR, µs);
-        if (PMONITOR->ID == 0)
-        {
+        if (PMONITOR->ID == 0) {
             const float µsNoOverlay = µs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - startRenderOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(PMONITOR, µsNoOverlay);
-        }
-        else
-        {
+        } else {
             g_pDebugOverlay->renderDataNoOverlay(PMONITOR, µs);
         }
     }
 }
 
-void Events::listener_monitorDestroy(void *owner, void *data)
-{
-    const auto OUTPUT = (wlr_output *)data;
+void Events::listener_monitorDestroy(void* owner, void* data) {
+    const auto OUTPUT = (wlr_output*)data;
 
-    SMonitor *pMonitor = nullptr;
+    SMonitor* pMonitor = nullptr;
 
-    for (auto &m : g_pCompositor->m_lMonitors)
-    {
-        if (m.szName == OUTPUT->name)
-        {
+    for (auto& m : g_pCompositor->m_lMonitors) {
+        if (m.szName == OUTPUT->name) {
             pMonitor = &m;
             break;
         }
@@ -355,8 +323,7 @@ void Events::listener_monitorDestroy(void *owner, void *data)
     // Cleanup everything. Move windows back, snap cursor, shit.
     const auto BACKUPMON = &g_pCompositor->m_lMonitors.front();
 
-    if (!BACKUPMON)
-    {
+    if (!BACKUPMON) {
         Debug::log(CRIT, "No monitors! Unplugged last! Exiting.");
         g_pCompositor->cleanupExit();
         exit(1);
@@ -369,27 +336,22 @@ void Events::listener_monitorDestroy(void *owner, void *data)
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f, BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
 
     // move workspaces
-    std::deque<CWorkspace *> wspToMove;
-    for (auto &w : g_pCompositor->m_lWorkspaces)
-    {
-        if (w.m_iMonitorID == pMonitor->ID)
-        {
+    std::deque<CWorkspace*> wspToMove;
+    for (auto& w : g_pCompositor->m_lWorkspaces) {
+        if (w.m_iMonitorID == pMonitor->ID) {
             wspToMove.push_back(&w);
         }
     }
 
-    for (auto &w : wspToMove)
-    {
+    for (auto& w : wspToMove) {
         g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
         w->startAnim(true, true, true);
     }
 
     pMonitor->activeWorkspace = -1;
 
-    for (auto it = g_pCompositor->m_lWorkspaces.begin(); it != g_pCompositor->m_lWorkspaces.end(); ++it)
-    {
-        if (it->m_iMonitorID == pMonitor->ID)
-        {
+    for (auto it = g_pCompositor->m_lWorkspaces.begin(); it != g_pCompositor->m_lWorkspaces.end(); ++it) {
+        if (it->m_iMonitorID == pMonitor->ID) {
             it = g_pCompositor->m_lWorkspaces.erase(it);
         }
     }
@@ -401,15 +363,12 @@ void Events::listener_monitorDestroy(void *owner, void *data)
     g_pCompositor->m_lMonitors.remove(*pMonitor);
 
     // update the pMostHzMonitor
-    if (pMostHzMonitor == pMonitor)
-    {
+    if (pMostHzMonitor == pMonitor) {
         int mostHz = 0;
-        SMonitor *pMonitorMostHz = nullptr;
+        SMonitor* pMonitorMostHz = nullptr;
 
-        for (auto &m : g_pCompositor->m_lMonitors)
-        {
-            if (m.refreshRate > mostHz)
-            {
+        for (auto& m : g_pCompositor->m_lMonitors) {
+            if (m.refreshRate > mostHz) {
                 pMonitorMostHz = &m;
                 mostHz = m.refreshRate;
             }

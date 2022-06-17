@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
     else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);
     else if (!strcmp(argv[1], "--batch")) batchRequest(argc, argv);
-    else if (!strcmp(argv[1], "--help")) printf(USAGE.c_str());
+    else if (!strcmp(argv[1], "--help")) printf("%s", USAGE.c_str());
     else {
         printf("%s\n", USAGE.c_str());
         return 1;

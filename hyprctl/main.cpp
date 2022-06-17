@@ -136,10 +136,12 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
     else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);
     else if (!strcmp(argv[1], "--batch")) batchRequest(argc, argv);
+    else if (!strcmp(argv[1], "--help")) {printf("%s", USAGE.c_str()); return 0;}
     else {
         printf("%s", USAGE.c_str());
         return 1;
     }
-
+    
+    printf("\n");
     return 0;
 }

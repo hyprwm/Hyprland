@@ -7,7 +7,11 @@
 #include "wlrunstable/wlr_ext_workspace_v1.hpp"
 
 #ifndef NDEBUG
+#ifdef HYPRLAND_DEBUG
 #define ISDEBUG true
+#else
+#define ISDEBUG false
+#endif
 #else
 #define ISDEBUG false
 #endif

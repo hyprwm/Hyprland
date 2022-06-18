@@ -15,6 +15,10 @@ if not have_xwayland
 add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
 endif
 
+if get_option('buildtype') == 'debug'
+  add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
+endif
+
 subdir('protocols')
 subdir('src')
 subdir('hyprctl')

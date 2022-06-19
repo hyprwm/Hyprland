@@ -49,7 +49,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
             
             const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
-            const auto CONSTRAINTPOS = Vector2D((CONSTRAINTWINDOW->m_uSurface.xwayland->x + CONSTRAINTSIZE.x) / 2.0, (CONSTRAINTWINDOW->m_uSurface.xwayland->y + CONSTRAINTSIZE.y));
+            const auto CONSTRAINTPOS = Vector2D((CONSTRAINTWINDOW->m_uSurface.xwayland->x + CONSTRAINTSIZE.x) / 2.0, (CONSTRAINTWINDOW->m_uSurface.xwayland->y + CONSTRAINTSIZE.y) / 2.0);
 	    
 
 	    // I'm a worm and I added some code to override some annoying stuff :)

@@ -4,7 +4,7 @@
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
-    const auto DELTA = g_pConfigManager->getInt("input:force_no_accel") == 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
+    const auto DELTA = g_pConfigManager->getInt("input:force_no_accel") != 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
 
     if (g_pConfigManager->getInt("general:apply_sens_to_raw") == 1)
         wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * sensitivity, DELTA.y * sensitivity, e->unaccel_dx * sensitivity, e->unaccel_dy * sensitivity);
@@ -32,6 +32,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         return;
     }
 
+    // Update stuff
+    //updateDragIcon();
+
+    //g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
+
+
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
@@ -47,24 +53,28 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         } else {
             // Native Wayland apps know how 2 constrain themselves.
             // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
-            const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
-            const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
+            
+	    const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
+	    const auto CONSTRAINTPOS = Vector2D((CONSTRAINTWINDOW->m_uSurface.xwayland->x + CONSTRAINTSIZE.x) / 2.0, (CONSTRAINTWINDOW->m_uSurface.xwayland->y + CONSTRAINTSIZE.y));
+	    
 
-            if (!VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
+	    // I'm a worm and I added some code to override some annoying stuff :)
+            // CONSTRAINTSIZE = Vector2D(0.0, 0.0);
+
+            if (!VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x/* + CONSTRAINTSIZE.x*/, CONSTRAINTPOS.y/* + CONSTRAINTSIZE.y*/)) {
                 if (g_pCompositor->m_sSeat.mouse->constraintActive) {
                     Vector2D deltaToFit;
 
-                    if (mouseCoords.x < CONSTRAINTPOS.x)
-                        deltaToFit.x = CONSTRAINTPOS.x - mouseCoords.x;
-                    else if (mouseCoords.x > CONSTRAINTPOS.x + CONSTRAINTSIZE.x)
-                        deltaToFit.x = CONSTRAINTPOS.x + CONSTRAINTSIZE.x - mouseCoords.x;
+                
+                    deltaToFit.x = CONSTRAINTPOS.x - mouseCoords.x;
 
-                    if (mouseCoords.y < CONSTRAINTPOS.y)
-                        deltaToFit.y = CONSTRAINTPOS.y - mouseCoords.y;
-                    else if (mouseCoords.y > CONSTRAINTPOS.y + CONSTRAINTSIZE.y)
-                        deltaToFit.y = CONSTRAINTPOS.y + CONSTRAINTSIZE.y - mouseCoords.y;
-
-                    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToFit.x, deltaToFit.y);
+                    
+		    deltaToFit.y = CONSTRAINTPOS.y - mouseCoords.y;
+	 	    
+		    // Deadzone... necessary ig
+                    if (deltaToFit.x * deltaToFit.x > 2 && deltaToFit.y * deltaToFit.y > 2) {
+		    	wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x, CONSTRAINTPOS.y);
+		    }
 
                     mouseCoords = mouseCoords + deltaToFit;
                 }

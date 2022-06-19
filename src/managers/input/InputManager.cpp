@@ -4,7 +4,7 @@
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
 
-    const auto DELTA = g_pConfigManager->getInt("input:force_no_accel") != 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
+    const auto DELTA = g_pConfigManager->getInt("input:force_no_accel") == 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
 
     if (g_pConfigManager->getInt("general:apply_sens_to_raw") == 1)
         wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * sensitivity, DELTA.y * sensitivity, e->unaccel_dx * sensitivity, e->unaccel_dy * sensitivity);
@@ -29,14 +29,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (!g_pCompositor->m_sSeat.mouse) {
         Debug::log(ERR, "BUG THIS: Mouse move on mouse nullptr!");
-        return;
+	return;
     }
-
-    // Update stuff
-    //updateDragIcon();
-
-    //g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
-
 
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
@@ -65,16 +59,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 if (g_pCompositor->m_sSeat.mouse->constraintActive) {
                     Vector2D deltaToFit;
 
-                
-                    deltaToFit.x = CONSTRAINTPOS.x - mouseCoords.x;
-
-                    
+        	    
+		    // Instead of constraining the cursor to the entire window, like in the previous version, this keeps the cursor to the center of the window.
+		    // This allows for maximum mouse movement to be captured by the application, while the mouse can still be freed and move around when it is supposed to be
+                    deltaToFit.x = CONSTRAINTPOS.x - mouseCoords.x;                    
 		    deltaToFit.y = CONSTRAINTPOS.y - mouseCoords.y;
 	 	    
-		    // Deadzone... necessary ig
-                    if (deltaToFit.x * deltaToFit.x > 2 && deltaToFit.y * deltaToFit.y > 2) {
-		    	wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x, CONSTRAINTPOS.y);
-		    }
+		    
+		    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToFit.x, deltaToFit.y);
 
                     mouseCoords = mouseCoords + deltaToFit;
                 }

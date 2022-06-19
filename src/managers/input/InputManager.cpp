@@ -29,7 +29,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (!g_pCompositor->m_sSeat.mouse) {
         Debug::log(ERR, "BUG THIS: Mouse move on mouse nullptr!");
-	return;
+        return;
     }
 
     Vector2D mouseCoords = getMouseCoordsInternal();
@@ -48,8 +48,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             // Native Wayland apps know how 2 constrain themselves.
             // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
             
-	    const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
-	    const auto CONSTRAINTPOS = Vector2D((CONSTRAINTWINDOW->m_uSurface.xwayland->x + CONSTRAINTSIZE.x) / 2.0, (CONSTRAINTWINDOW->m_uSurface.xwayland->y + CONSTRAINTSIZE.y));
+            const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
+            const auto CONSTRAINTPOS = Vector2D((CONSTRAINTWINDOW->m_uSurface.xwayland->x + CONSTRAINTSIZE.x) / 2.0, (CONSTRAINTWINDOW->m_uSurface.xwayland->y + CONSTRAINTSIZE.y));
 	    
 
 	    // I'm a worm and I added some code to override some annoying stuff :)
@@ -63,10 +63,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 		    // Instead of constraining the cursor to the entire window, like in the previous version, this keeps the cursor to the center of the window.
 		    // This allows for maximum mouse movement to be captured by the application, while the mouse can still be freed and move around when it is supposed to be
                     deltaToFit.x = CONSTRAINTPOS.x - mouseCoords.x;                    
-		    deltaToFit.y = CONSTRAINTPOS.y - mouseCoords.y;
+                    deltaToFit.y = CONSTRAINTPOS.y - mouseCoords.y;
 	 	    
 		    
-		    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToFit.x, deltaToFit.y);
+                    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToFit.x, deltaToFit.y);
 
                     mouseCoords = mouseCoords + deltaToFit;
                 }

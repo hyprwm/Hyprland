@@ -31,13 +31,13 @@ void SDwindleNodeData::recalcSizePosRecursive() {
         const auto SPLITSIDE = !splitTop;
 
         if (SPLITSIDE) {
-            // split sidey
+            // split left/right
             children[0]->position = position;
             children[0]->size = Vector2D(size.x / 2.f * splitRatio, size.y);
             children[1]->position = Vector2D(position.x + size.x / 2.f * splitRatio, position.y);
             children[1]->size = Vector2D(size.x / 2.f * REVERSESPLITRATIO, size.y);
         } else {
-            // split toppy bottomy
+            // split top/bottom
             children[0]->position = position;
             children[0]->size = Vector2D(size.x, size.y / 2.f * splitRatio);
             children[1]->position = Vector2D(position.x, position.y + size.y / 2.f * splitRatio);
@@ -237,16 +237,19 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     NEWPARENT->pParent = OPENINGON->pParent;
     NEWPARENT->isNode = true; // it is a node
 
+    const auto WIDTHMULTIPLIER = g_pConfigManager->getFloat("dwindle:split_width_multiplier");
+
     // if cursor over first child, make it first, etc
-    const auto SIDEBYSIDE = NEWPARENT->size.x / NEWPARENT->size.y > 1.f;
+    const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * WIDTHMULTIPLIER;
     NEWPARENT->splitTop = !SIDEBYSIDE;
+
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     const auto FORCESPLIT = g_pConfigManager->getInt("dwindle:force_split");
 
     if (FORCESPLIT == 0) {
-        if ((SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y, NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y + NEWPARENT->size.y))
-        || (!SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y, NEWPARENT->position.x + NEWPARENT->size.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f))) {
+        if ((SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / WIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y + NEWPARENT->size.y))
+        || (!SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / WIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f))) {
             // we are hovering over the first node, make PNODE first.
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;
@@ -275,14 +278,16 @@ void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
     }
 
     // Update the children
-    if (NEWPARENT->size.x > NEWPARENT->size.y) {
-        // split sidey
+    
+
+    if (NEWPARENT->size.x * WIDTHMULTIPLIER > NEWPARENT->size.y) {
+        // split left/right
         OPENINGON->position = NEWPARENT->position;
         OPENINGON->size = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
         PNODE->position = Vector2D(NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y);
         PNODE->size = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
     } else {
-        // split toppy bottomy
+        // split top/bottom
         OPENINGON->position = NEWPARENT->position;
         OPENINGON->size = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
         PNODE->position = Vector2D(NEWPARENT->position.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f);

@@ -23,8 +23,10 @@ void SDwindleNodeData::recalcSizePosRecursive() {
 
         const auto REVERSESPLITRATIO = 2.f - splitRatio;
 
-        if (g_pConfigManager->getInt("dwindle:preserve_split") == 0)
-            splitTop = size.y > size.x;
+        if (g_pConfigManager->getInt("dwindle:preserve_split") == 0) {
+            const auto WIDTHMULTIPLIER = g_pConfigManager->getFloat("dwindle:split_width_multiplier");
+            splitTop = size.y * WIDTHMULTIPLIER > size.x;
+        }
 
         const auto SPLITSIDE = !splitTop;
 

@@ -2,7 +2,7 @@
 
 #include "../events/Events.hpp"
 #include "../defines.hpp"
-#include "../../wlr-layer-shell-unstable-v1-protocol.h"
+#include "wlr-layer-shell-unstable-v1-protocol.h"
 #include "../Window.hpp"
 #include "SubsurfaceTree.hpp"
 #include "AnimatedVariable.hpp"

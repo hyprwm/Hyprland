@@ -16,40 +16,37 @@
   }: let
     inherit (nixpkgs) lib;
     genSystems = lib.genAttrs [
+      # Add more systems if they are supported
       "x86_64-linux"
     ];
     pkgsFor = nixpkgs.legacyPackages;
-    # https://github.com/NixOS/rfcs/pull/107
-    mkVersion = longDate:
-      lib.concatStrings [
-        "0.pre"
-        "+date="
-        (lib.concatStringsSep "-" [
-          (__substring 0 4 longDate)
-          (__substring 4 2 longDate)
-          (__substring 6 2 longDate)
-        ])
-      ];
-  in {
-    packages = genSystems (system: {
-      wlroots = pkgsFor.${system}.wlroots.overrideAttrs (prev: {
-        version = mkVersion (toString (inputs.wlroots.lastModifiedDate or inputs.wlroots.lastModified or "19700101"));
+    mkDate = longDate: (lib.concatStringsSep "-" [
+      (__substring 0 4 longDate)
+      (__substring 4 2 longDate)
+      (__substring 6 2 longDate)
+    ]);
+    pseudo-overlay = prev: rec {
+      wlroots-hyprland = prev.wlroots.overrideAttrs (_: {
+        version = mkDate (inputs.wlroots.lastModifiedDate or "19700101");
         src = inputs.wlroots;
       });
-      default = pkgsFor.${system}.callPackage ./nix/default.nix {
-        version = mkVersion (toString (self.lastModifiedDate or self.lastModified or "19700101"));
-        inherit (self.packages.${system}) wlroots;
+      hyprland = prev.callPackage ./nix/default.nix {
+        version = "0.pre" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
+        wlroots = wlroots-hyprland;
       };
-    });
+    };
+  in {
+    packages = genSystems (system:
+      (pseudo-overlay pkgsFor.${system})
+      // {
+        default = self.packages.${system}.hyprland;
+      });
 
     formatter = genSystems (system: pkgsFor.${system}.alejandra);
 
     nixosModules.default = import ./nix/module.nix self;
 
-    # Deprecated
-    overlays.default = _: prev: {
-      hyprland = self.packages.${prev.system}.default;
-    };
-    overlay = self.overlays.default;
+    overlays.default = final: pseudo-overlay;
+    overlay = throw "Hyprland: .overlay output is deprecated, please use the .overlays.default output";
   };
 }

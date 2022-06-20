@@ -25,8 +25,9 @@
       (__substring 4 2 longDate)
       (__substring 6 2 longDate)
     ]);
-    pseudo-overlay = prev: rec {
-      wlroots-hyprland = prev.wlroots.overrideAttrs (_: {
+  in {
+    overlays.default = _: prev: rec {
+      wlroots-hyprland = prev.wlroots.overrideAttrs (__: {
         version = mkDate (inputs.wlroots.lastModifiedDate or "19700101");
         src = inputs.wlroots;
       });
@@ -35,9 +36,9 @@
         wlroots = wlroots-hyprland;
       };
     };
-  in {
+
     packages = genSystems (system:
-      (pseudo-overlay pkgsFor.${system})
+      (self.overlays.default null pkgsFor.${system})
       // {
         default = self.packages.${system}.hyprland;
       });
@@ -46,7 +47,6 @@
 
     nixosModules.default = import ./nix/module.nix self;
 
-    overlays.default = final: pseudo-overlay;
     overlay = throw "Hyprland: .overlay output is deprecated, please use the .overlays.default output";
   };
 }

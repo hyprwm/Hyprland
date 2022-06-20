@@ -230,6 +230,24 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
         
 }
 
+void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
+    const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
+
+    if (wlr_keyboard_get_modifiers(PKEYBOARD) == (uint32_t)g_pConfigManager->getInt("general:main_mod_internal") && 
+        e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
+            
+        if (e->delta > 0) { 
+            g_pKeybindManager->m_mDispatchers["workspace"]("-1");
+        } else {
+            g_pKeybindManager->m_mDispatchers["workspace"]("+1");
+        }
+
+        return;
+    }
+
+    wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, e->delta, e->delta_discrete, e->source);
+}
+
 Vector2D CInputManager::getMouseCoordsInternal() {
     return Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y);
 }

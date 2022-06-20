@@ -35,7 +35,7 @@ execute_process(
 #
 #
 
-include_directories(.)
+include_directories(. PRIVATE "subprojects/wlroots/include/")
 add_compile_options(-std=c++20 -DWLR_USE_UNSTABLE )
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing)
 find_package(Threads REQUIRED)

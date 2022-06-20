@@ -129,11 +129,11 @@ protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-scree
 config:
 	make protocols
 
-	sed -i -E 's/(soversion = 11)([^032]|$$)/soversion = 11032/g' ./wlroots/meson.build
+	sed -i -E 's/(soversion = 11)([^032]|$$)/soversion = 11032/g' subprojects/wlroots/meson.build
 
-	rm -rf ./wlroots/build
+	rm -rf ./subprojects/wlroots/build
 
-	cd wlroots && meson ./build --prefix=/usr --buildtype=release
-	cd wlroots && ninja -C build/
+	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release
+	cd subprojects/wlroots && ninja -C build/
 
-	cd wlroots && sudo ninja -C build/ install
+	cd subprojects/wlroots && sudo ninja -C build/ install

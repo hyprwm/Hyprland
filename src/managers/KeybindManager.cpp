@@ -280,9 +280,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             // start anim on new workspace
             PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
 
-            // Event ONLY if workspace is actually "changed" and we arent just focusing
-            if (!m_bSuppressWorkspaceChangeEvents)
-                g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
+            g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
         }
 
         // If the monitor is not the one our cursor's at, warp to it.
@@ -290,9 +288,6 @@ void CKeybindManager::changeworkspace(std::string args) {
             Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
             wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
         }
-
-        // focus the first window
-        g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(workspaceToChangeTo));
 
         // set active and deactivate all other in wlr
         g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACETOCHANGETO->m_pWlrHandle);
@@ -360,8 +355,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pInputManager->refocus();
 
     // Event
-    if (!m_bSuppressWorkspaceChangeEvents)
-        g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACE->m_szName));
+    g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACE->m_szName));
 
     Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }
@@ -491,7 +485,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     const auto POLDWORKSPACEONMON = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDONMONITOR);
     const auto POLDWORKSPACEIDRETURN = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDRETURN);
 
-    m_bSuppressWorkspaceChangeEvents = true;
+    g_pEventManager->m_bIgnoreEvents = true;
 
     moveActiveToWorkspace(args);
 
@@ -510,7 +504,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     POLDWORKSPACEONMON->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
     POLDWORKSPACEONMON->m_fAlpha.setValueAndWarp(255.f);
 
-    m_bSuppressWorkspaceChangeEvents = false;
+    g_pEventManager->m_bIgnoreEvents = false;
 
     g_pInputManager->refocus();
 }

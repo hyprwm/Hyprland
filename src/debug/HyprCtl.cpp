@@ -114,6 +114,9 @@ std::string versionRequest() {
 #ifndef NDEBUG
     result += "debug\n";
 #endif
+#ifdef HYPRLAND_DEBUG
+	result += "debug\n";
+#endif
 #ifdef NO_XWAYLAND
     result += "no xwayland\n";
 #endif

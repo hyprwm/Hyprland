@@ -105,6 +105,12 @@ void CEventManager::startThread() {
 }
 
 void CEventManager::postEvent(const SHyprIPCEvent event) {
+
+    if (m_bIgnoreEvents) {
+        Debug::log(WARN, "Suppressed (ignoreevents true) event of type %s, content: %s");
+        return;
+    }
+
     std::thread([&](const SHyprIPCEvent ev) {
         eventQueueMutex.lock();
         m_dQueuedEvents.push_back(ev);

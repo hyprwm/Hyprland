@@ -140,6 +140,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     PNEWMONITOR->activeWorkspace = PNEWWORKSPACE->m_iID;
     PNEWMONITOR->scale = monitorRule.scale;
 
+    PNEWMONITOR->forceFullFrames = 3; // force 3 full frames to make sure there is no blinking due to double-buffering.
+
     g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
     PNEWWORKSPACE->setActive(true);
 
@@ -216,7 +218,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
     }
 
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE) {
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && PMONITOR->forceFullFrames == 0) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
         wlr_output_schedule_frame(PMONITOR->output); // we update shit at the monitor's Hz so we need to schedule frames because rollback wont
@@ -224,7 +226,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR) {
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
@@ -246,6 +248,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
         }
     }
+
+    if (PMONITOR->forceFullFrames > 0)
+        PMONITOR->forceFullFrames -= 1;
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.

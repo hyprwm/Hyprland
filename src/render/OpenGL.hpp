@@ -53,6 +53,7 @@ public:
     void    end();
 
     void    renderRect(wlr_box*, const CColor&, int round = 0);
+    void    renderRectWithDamage(wlr_box*, const CColor&, pixman_region32_t* damage, int round = 0);
     void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
     void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool border = false);
     void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool border = false);

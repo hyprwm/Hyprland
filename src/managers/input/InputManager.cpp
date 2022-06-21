@@ -35,6 +35,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
+    bool didConstraintOnCursor = false;
+
     // constraints
     // All constraints TODO: multiple mice?
     if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
@@ -50,23 +52,25 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
             const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
 
-            if (!VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
+            if (!VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x - 1.0, CONSTRAINTPOS.y + CONSTRAINTSIZE.y - 1.0)) {
                 if (g_pCompositor->m_sSeat.mouse->constraintActive) {
-                    Vector2D deltaToFit;
+                    Vector2D newConstrainedCoords = mouseCoords;
 
                     if (mouseCoords.x < CONSTRAINTPOS.x)
-                        deltaToFit.x = CONSTRAINTPOS.x - mouseCoords.x;
-                    else if (mouseCoords.x > CONSTRAINTPOS.x + CONSTRAINTSIZE.x)
-                        deltaToFit.x = CONSTRAINTPOS.x + CONSTRAINTSIZE.x - mouseCoords.x;
+                        newConstrainedCoords.x = CONSTRAINTPOS.x;
+                    else if (mouseCoords.x >= CONSTRAINTPOS.x + CONSTRAINTSIZE.x)
+                        newConstrainedCoords.x = CONSTRAINTPOS.x + CONSTRAINTSIZE.x - 1.0;
 
                     if (mouseCoords.y < CONSTRAINTPOS.y)
-                        deltaToFit.y = CONSTRAINTPOS.y - mouseCoords.y;
-                    else if (mouseCoords.y > CONSTRAINTPOS.y + CONSTRAINTSIZE.y)
-                        deltaToFit.y = CONSTRAINTPOS.y + CONSTRAINTSIZE.y - mouseCoords.y;
+                        newConstrainedCoords.y = CONSTRAINTPOS.y;
+                    else if (mouseCoords.y >= CONSTRAINTPOS.y + CONSTRAINTSIZE.y)
+                        newConstrainedCoords.y = CONSTRAINTPOS.y + CONSTRAINTSIZE.y - 1.0;
 
-                    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToFit.x, deltaToFit.y);
+                    wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, newConstrainedCoords.x, newConstrainedCoords.y);
 
-                    mouseCoords = mouseCoords + deltaToFit;
+                    mouseCoords = newConstrainedCoords;
+
+                    didConstraintOnCursor = true;
                 }
             } else {
                 if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
@@ -83,6 +87,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // focus
     wlr_surface* foundSurface = nullptr;
+
+    if (didConstraintOnCursor)
+        return; // don't process when cursor constrained
 
     if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
         g_pCompositor->m_pLastMonitor = PMONITOR;
@@ -116,7 +123,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
             if (((w->m_bIsFloating && w->m_bIsMapped && w->m_bCreatedOverFullscreen) || (w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden) {
                 pFoundWindow = &(*w);
-                
+
                 if (!pFoundWindow->m_bIsX11) {
                     foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
                 } else {
@@ -152,7 +159,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords);
 
-
     if (!foundSurface) {
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
 
@@ -173,17 +179,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 // enter if change floating style
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
-            }
-            else if (*PFOLLOWMOUSE == 2) {
+            } else if (*PFOLLOWMOUSE == 2) {
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
             wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
-            return; // don't enter any new surfaces
+            return;  // don't enter any new surfaces
         } else {
             g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
-    }
-    else
+    } else
         g_pCompositor->focusSurface(foundSurface);
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);

@@ -35,6 +35,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
+    bool didConstraintOnCursor = false;
+
     // constraints
     // All constraints TODO: multiple mice?
     if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
@@ -67,6 +69,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                     wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, newConstrainedCoords.x, newConstrainedCoords.y);
 
                     mouseCoords = newConstrainedCoords;
+
+                    didConstraintOnCursor = true;
                 }
             } else {
                 if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
@@ -84,110 +88,112 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     // focus
     wlr_surface* foundSurface = nullptr;
 
-    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
-        g_pCompositor->m_pLastMonitor = PMONITOR;
+    if (!didConstraintOnCursor) {
+        if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
+            g_pCompositor->m_pLastMonitor = PMONITOR;
 
-        // set active workspace and deactivate all other in wlr
-        const auto ACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-        g_pCompositor->deactivateAllWLRWorkspaces(ACTIVEWORKSPACE->m_pWlrHandle);
-        ACTIVEWORKSPACE->setActive(true);
+            // set active workspace and deactivate all other in wlr
+            const auto ACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+            g_pCompositor->deactivateAllWLRWorkspaces(ACTIVEWORKSPACE->m_pWlrHandle);
+            ACTIVEWORKSPACE->setActive(true);
 
-        // event
-        g_pEventManager->postEvent(SHyprIPCEvent("activemon", PMONITOR->szName + "," + ACTIVEWORKSPACE->m_szName));
-    }
+            // event
+            g_pEventManager->postEvent(SHyprIPCEvent("activemon", PMONITOR->szName + "," + ACTIVEWORKSPACE->m_szName));
+        }
 
-    Vector2D surfaceCoords;
-    Vector2D surfacePos = Vector2D(-1337, -1337);
-    CWindow* pFoundWindow = nullptr;
+        Vector2D surfaceCoords;
+        Vector2D surfacePos = Vector2D(-1337, -1337);
+        CWindow* pFoundWindow = nullptr;
 
-    // overlay is above fullscreen
-    if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords);
+        // overlay is above fullscreen
+        if (!foundSurface)
+            foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords);
 
-    // then, we check if the workspace doesnt have a fullscreen window
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-    if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
-        pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
-        surfacePos = pFoundWindow->m_vRealPosition.vec();
+        // then, we check if the workspace doesnt have a fullscreen window
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+        if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
+            pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+            foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+            surfacePos = pFoundWindow->m_vRealPosition.vec();
 
-        // only check floating because tiled cant be over fullscreen
-        for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); w++) {
-            wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-            if (((w->m_bIsFloating && w->m_bIsMapped && w->m_bCreatedOverFullscreen) || (w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden) {
-                pFoundWindow = &(*w);
-                
+            // only check floating because tiled cant be over fullscreen
+            for (auto w = g_pCompositor->m_lWindows.rbegin(); w != g_pCompositor->m_lWindows.rend(); w++) {
+                wlr_box box = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+                if (((w->m_bIsFloating && w->m_bIsMapped && w->m_bCreatedOverFullscreen) || (w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID) && !w->m_bHidden) {
+                    pFoundWindow = &(*w);
+                    
+                    if (!pFoundWindow->m_bIsX11) {
+                        foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+                    } else {
+                        foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+                        surfacePos = pFoundWindow->m_vRealPosition.vec();
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        if (!foundSurface)
+            foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords);
+
+        // then windows
+        if (!foundSurface) {
+            pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+            if (pFoundWindow) {
                 if (!pFoundWindow->m_bIsX11) {
                     foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
                 } else {
                     foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
                     surfacePos = pFoundWindow->m_vRealPosition.vec();
                 }
-
-                break;
             }
         }
-    }
 
-    if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords);
+        // then surfaces below
+        if (!foundSurface)
+            foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords);
 
-    // then windows
-    if (!foundSurface) {
-        pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+        if (!foundSurface)
+            foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords);
+
+
+        if (!foundSurface) {
+            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+
+            wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
+
+            return;
+        }
+
+        if (time)
+            wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
+
+        Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
+
         if (pFoundWindow) {
-            if (!pFoundWindow->m_bIsX11) {
-                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+            static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+            if (*PFOLLOWMOUSE != 1 && !refocus) {
+                if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating)) {
+                    // enter if change floating style
+                    g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+                    wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+                }
+                else if (*PFOLLOWMOUSE == 2) {
+                    wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+                }
+                wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
+                return; // don't enter any new surfaces
             } else {
-                foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
-                surfacePos = pFoundWindow->m_vRealPosition.vec();
-            }
-        }
-    }
-
-    // then surfaces below
-    if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords);
-
-    if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords);
-
-
-    if (!foundSurface) {
-        wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
-
-        wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
-
-        return;
-    }
-
-    if (time)
-        wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
-
-    Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
-
-    if (pFoundWindow) {
-        static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
-        if (*PFOLLOWMOUSE != 1 && !refocus) {
-            if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating)) {
-                // enter if change floating style
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
-                wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
-            else if (*PFOLLOWMOUSE == 2) {
-                wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
-            }
-            wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
-            return; // don't enter any new surfaces
-        } else {
-            g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
-    }
-    else
-        g_pCompositor->focusSurface(foundSurface);
+        else
+            g_pCompositor->focusSurface(foundSurface);
 
-    wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
-    wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
+        wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+        wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
+    }
 }
 
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {

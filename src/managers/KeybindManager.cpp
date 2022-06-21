@@ -72,13 +72,11 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
     if (handleInternalKeybinds(key))
         return true;
 
-    if (g_pCompositor->m_sSeat.exclusiveClient){
-        Debug::log(LOG, "Not handling keybinds due to there being an exclusive inhibited client.");
-        return false;
-    }
+    if (g_pCompositor->m_sSeat.exclusiveClient)
+        Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask) 
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked))
             continue;
 
         // oMg such performance hit!!11!

@@ -415,7 +415,7 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
     configSetValueSafe("animations:" + ANIMNAME + "_style", curitem);
 }
 
-void CConfigManager::handleBind(const std::string& command, const std::string& value) {
+void CConfigManager::handleBind(const std::string& command, const std::string& value, bool locked) {
     // example:
     // bind=SUPER,G,exec,dmenu_run <args>
 
@@ -448,7 +448,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     }
 
     if (KEY != "")
-        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND});
+        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND, locked});
 }
 
 void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {
@@ -578,6 +578,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     }
     else if (COMMAND == "monitor") handleMonitor(COMMAND, VALUE);
     else if (COMMAND == "bind") handleBind(COMMAND, VALUE);
+    else if (COMMAND == "bindl") handleBind(COMMAND, VALUE, true);
     else if (COMMAND == "unbind") handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace") handleDefaultWorkspace(COMMAND, VALUE);
     else if (COMMAND == "windowrule") handleWindowRule(COMMAND, VALUE);

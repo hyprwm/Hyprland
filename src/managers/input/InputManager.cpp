@@ -47,28 +47,26 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         } else {
             // Native Wayland apps know how 2 constrain themselves.
             // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
-            
+            const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
             const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
-            const auto CONSTRAINTPOS = Vector2D((CONSTRAINTWINDOW->m_uSurface.xwayland->x + CONSTRAINTSIZE.x) / 2.0, (CONSTRAINTWINDOW->m_uSurface.xwayland->y + CONSTRAINTSIZE.y) / 2.0);
-	    
 
-	    // I'm a worm and I added some code to override some annoying stuff :)
-            // CONSTRAINTSIZE = Vector2D(0.0, 0.0);
-
-            if (!VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x/* + CONSTRAINTSIZE.x*/, CONSTRAINTPOS.y/* + CONSTRAINTSIZE.y*/)) {
+            if (!VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x, CONSTRAINTPOS.y + CONSTRAINTSIZE.y)) {
                 if (g_pCompositor->m_sSeat.mouse->constraintActive) {
-                    Vector2D deltaToFit;
+                    Vector2D newConstrainedCoords = mouseCoords;
 
-        	    
-		    // Instead of constraining the cursor to the entire window, like in the previous version, this keeps the cursor to the center of the window.
-		    // This allows for maximum mouse movement to be captured by the application, while the mouse can still be freed and move around when it is supposed to be
-                    deltaToFit.x = CONSTRAINTPOS.x - mouseCoords.x;                    
-                    deltaToFit.y = CONSTRAINTPOS.y - mouseCoords.y;
-	 	    
-		    
-                    wlr_cursor_move(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, deltaToFit.x, deltaToFit.y);
+                    if (mouseCoords.x < CONSTRAINTPOS.x)
+                        newConstrainedCoords.x = CONSTRAINTPOS.x;
+                    else if (mouseCoords.x >= CONSTRAINTPOS.x + CONSTRAINTSIZE.x)
+                        newConstrainedCoords.x = CONSTRAINTPOS.x + CONSTRAINTSIZE.x - 1.0;
 
-                    mouseCoords = mouseCoords + deltaToFit;
+                    if (mouseCoords.y < CONSTRAINTPOS.y)
+                        newConstrainedCoords.y = CONSTRAINTPOS.y;
+                    else if (mouseCoords.y >= CONSTRAINTPOS.y + CONSTRAINTSIZE.y)
+                        newConstrainedCoords.y = CONSTRAINTPOS.y + CONSTRAINTSIZE.y - 1.0;
+
+                    wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, newConstrainedCoords.x, newConstrainedCoords.y);
+
+                    mouseCoords = newConstrainedCoords;
                 }
             } else {
                 if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {

@@ -142,6 +142,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     const auto REALPOS = pWindow->m_vRealPosition.vec() + PWORKSPACE->m_vRenderOffset.vec();
+    static const auto PNOFLOATINGBORDERS = &g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue;
+
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
     renderdata.w = std::clamp(pWindow->m_vRealSize.vec().x, (double)5, (double)1337420); // clamp the size to min 5,
@@ -149,7 +151,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.dontRound = pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
     renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (PWORKSPACE->m_fAlpha.fl() / 255.f);
     renderdata.alpha = pWindow->m_bIsFullscreen ? g_pConfigManager->getFloat("decoration:fullscreen_opacity") : pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
-    renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders;
+    renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true);
     renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;
 
     // apply window special data

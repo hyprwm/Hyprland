@@ -28,6 +28,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_NONE;
 
     configValues["general:border_size"].intValue = 1;
+    configValues["general:no_border_on_floating"].intValue = 0;
     configValues["general:gaps_in"].intValue = 5;
     configValues["general:gaps_out"].intValue = 20;
     configValues["general:col.active_border"].intValue = 0xffffffff;

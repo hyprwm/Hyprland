@@ -11,6 +11,7 @@ struct SKeybind {
     uint32_t          modmask = 0;
     std::string       handler = "";
     std::string       arg = "";
+    bool              locked = false;
 };
 
 class CKeybindManager {

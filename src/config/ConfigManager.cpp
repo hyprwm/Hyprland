@@ -495,11 +495,11 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
 
     const auto DISPLAY = value.substr(0, value.find_first_of(','));
-    const auto WORKSPACEID = stoi(value.substr(value.find_first_of(',') + 1));
+    const auto WORKSPACE = value.substr(value.find_first_of(',') + 1);
 
     for (auto& mr : m_dMonitorRules) {
         if (mr.name == DISPLAY) {
-            mr.defaultWorkspaceID = WORKSPACEID;
+            mr.defaultWorkspace = WORKSPACE;
             break;
         }
     }

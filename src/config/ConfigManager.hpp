@@ -28,7 +28,7 @@ struct SMonitorRule {
     Vector2D    offset = Vector2D(0,0);
     float       scale = 1;
     float       refreshRate = 60;
-    int         defaultWorkspaceID = -1;
+    std::string defaultWorkspace = "";
     bool        disabled = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
 };

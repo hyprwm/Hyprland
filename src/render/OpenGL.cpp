@@ -240,6 +240,10 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
 }
 
 void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
+    renderRectWithDamage(box, col, m_RenderData.pDamage, round);
+}
+
+void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixman_region32_t* damage, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
@@ -279,8 +283,8 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
     glEnableVertexAttribArray(m_shQUAD.posAttrib);
     glEnableVertexAttribArray(m_shQUAD.texAttrib);
 
-    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+    if (pixman_region32_not_empty(damage)) {
+        PIXMAN_DAMAGE_FOREACH(damage) {
             const auto RECT = RECTSARR[i];
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -341,6 +345,21 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
             RASSERT(false, "tex.m_iTarget unsupported!");
     }
 
+    // stencil for when we want a border
+    if (border) {
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
+
+        glEnable(GL_STENCIL_TEST);
+
+        glStencilFunc(GL_ALWAYS, 1, -1);
+        glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+
+        // hacky fix to fix broken borders.
+        // TODO: this is kinda slow... question mark?
+        renderRect(pBox, CColor(0, 0, 0, 0), round);
+    }
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex.m_iTarget, tex.m_iTexID);
 
@@ -373,17 +392,6 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
-
-    // stencil for when we want a border
-    if (border) {
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
-
-        glEnable(GL_STENCIL_TEST);
-
-        glStencilFunc(GL_ALWAYS, 1, -1);
-        glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-    }
 
     if (pixman_region32_not_empty(m_RenderData.pDamage)) {
         PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
@@ -608,6 +616,12 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         // and write to it
         glStencilFunc(GL_ALWAYS, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+        if (border) {
+            // hacky fix to fix broken borders.
+            // TODO: this is kinda slow... question mark?
+            renderRectWithDamage(pBox, CColor(0,0,0,0), &damage, round);
+        }
 
         renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true);
 

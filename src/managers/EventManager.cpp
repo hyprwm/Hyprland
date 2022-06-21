@@ -107,7 +107,7 @@ void CEventManager::startThread() {
 void CEventManager::postEvent(const SHyprIPCEvent event) {
 
     if (m_bIgnoreEvents) {
-        Debug::log(WARN, "Suppressed (ignoreevents true) event of type %s, content: %s");
+        Debug::log(WARN, "Suppressed (ignoreevents true) event of type %s, content: %s",event.event.c_str(), event.data.c_str());
         return;
     }
 

@@ -2,11 +2,11 @@
   "nodes": {
     "nixpkgs": {
       "locked": {
-        "lastModified": 1655221618,
-        "narHash": "sha256-ht8HRFthDKzYt+il+sGgkBwrv+Ex2l8jdGVpsrPfFME=",
+        "lastModified": 1655807518,
+        "narHash": "sha256-5YV29Ry/DpAJc/0Hc/+ISVBAjwHpJvAkeKkcUG5lWsc=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "6616de389ed55fba6eeba60377fc04732d5a207c",
+        "rev": "a72d7811be1162dd6804c4e36e5402d76fb6e921",
         "type": "github"
       },
       "original": {
@@ -25,17 +25,19 @@
     "wlroots": {
       "flake": false,
       "locked": {
+        "host": "gitlab.freedesktop.org",
         "lastModified": 1654618691,
         "narHash": "sha256-8y3u8CoigjoZOVbA2wCWBHlDNEakv0AVxU46/cOC00s=",
-        "owner": "ThatOneCalculator",
-        "repo": "wlroots-mirror",
+        "owner": "wlroots",
+        "repo": "wlroots",
         "rev": "b89ed9015c3fbe8d339e9d65cf70fdca6e5645bc",
-        "type": "github"
+        "type": "gitlab"
       },
       "original": {
-        "owner": "ThatOneCalculator",
-        "repo": "wlroots-mirror",
-        "type": "github"
+        "host": "gitlab.freedesktop.org",
+        "owner": "wlroots",
+        "repo": "wlroots",
+        "type": "gitlab"
       }
     }
   },

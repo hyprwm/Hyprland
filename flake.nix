@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     wlroots = {
-      url = "github:ThatOneCalculator/wlroots-mirror";
+      url = "gitlab:wlroots/wlroots?host=gitlab.freedesktop.org";
       flake = false;
     };
   };

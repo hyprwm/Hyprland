@@ -26,7 +26,7 @@
                 transform: translateY(-50%);
                 z-index=2;
                 text-align: center;
-                text-shadow: 0 0 1rem #22222277;
+                text-shadow: 0 0 1rem #222222ff;
                 z-index: 2;
             }
 
@@ -40,7 +40,7 @@
                 transform: translateY(-50%);
                 z-index=2;
                 text-align: center;
-                text-shadow: 0 0 1rem #22222277;
+                text-shadow: 0 0 0.5rem #222222ff;
                 z-index: 1;
             }
 

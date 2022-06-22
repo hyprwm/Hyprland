@@ -10,7 +10,7 @@ if [ $SUB_REV != $CRT_REV ]; then
   nix flake lock --update-input nixpkgs
 
   # update wlroots to submodule revision
-  nix flake lock --override-input wlroots "github:ThatOneCalculator/wlroots-mirror/$SUB_REV"
+  nix flake lock --override-input wlroots "gitlab:wlroots/wlroots/$SUB_REV?host=gitlab.freedesktop.org"
 
   # remove "dirty" mark from lockfile
   jq < flake.lock 'del(.nodes.wlroots.original.rev)' | sponge flake.lock

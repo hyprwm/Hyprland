@@ -1,6 +1,6 @@
 <div align = center>
 
-![Banner]
+<img src="https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/header.svg" width="1000" height="500" alt="banner">
 
 <br>
 
@@ -151,7 +151,6 @@ Try it out and report bugs / suggestions!
 [Preview A]: https://i.imgur.com/NbrTnZH.png
 [Preview B]: https://i.imgur.com/ZA4Fa8R.png
 [Preview C]: https://i.imgur.com/BpXxM8H.png
-[Banner]: https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/hyprland.png
 
 
 <!----------------------------------{ Badges }--------------------------------->

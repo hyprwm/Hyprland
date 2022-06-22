@@ -172,6 +172,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
+    if (pFoundWindow && !pFoundWindow->m_bIsX11 && surfacePos != Vector2D(-1337, -1337)) {
+        // calc for oversized windows... fucking bullshit.
+        wlr_box geom;
+        wlr_xdg_surface_get_geometry(pFoundWindow->m_uSurface.xdg, &geom);
+
+        surfaceLocal = mouseCoords - surfacePos + Vector2D(geom.x, geom.y);
+    }
+
     if (pFoundWindow) {
         static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
         if (*PFOLLOWMOUSE != 1 && !refocus) {

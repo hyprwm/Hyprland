@@ -3,7 +3,7 @@
   stdenv,
   fetchFromGitHub,
   pkg-config,
-  cmake,
+  meson,
   ninja,
   libdrm,
   libinput,
@@ -27,7 +27,7 @@ stdenv.mkDerivation {
   src = ../.;
 
   nativeBuildInputs = [
-    cmake
+    meson
     ninja
     pkg-config
   ];
@@ -48,33 +48,14 @@ stdenv.mkDerivation {
     ]
     ++ lib.optional enableXWayland xwayland;
 
-  cmakeFlags =
-    ["-DCMAKE_BUILD_TYPE=Release"]
-    ++ lib.optional (!enableXWayland) "-DNO_XWAYLAND=true";
+  mesonBuildType = "release";
 
-  # enables building with nix-supplied wlroots instead of submodule
-  prePatch = ''
-    sed -Ei 's/"\.\.\/wlroots\/include\/([a-zA-Z0-9./_-]+)"/<\1>/g' src/includes.hpp
-  '';
-  postPatch = ''
-    make protocols
-  '';
+  mesonFlags = lib.optional (!enableXWayland) "-DNO_XWAYLAND=true";
 
-  postBuild = ''
-    pushd ../hyprctl
-    make all
-    popd
-  '';
-
-  installPhase = ''
-    pushd ..
-    install -Dm644 ./example/hyprland.desktop -t $out/share/wayland-sessions
-    install -Dm755 ./build/Hyprland -t $out/bin
-    install -Dm755 ./hyprctl/hyprctl -t $out/bin
-    install -Dm644 ./assets/* -t $out/share/hyprland
-    install -Dm644 ./example/hyprland.conf -t $out/share/hyprland
-    popd
-  '';
+  patches = [
+    # make meson use the provided wlroots instead of the git submodule
+    ./meson-build.patch
+  ];
 
   passthru.providedSessions = ["hyprland"];
 

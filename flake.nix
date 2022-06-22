@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     wlroots = {
-      url = "gitlab:wlroots/wlroots?host=gitlab.freedesktop.org";
+      url = "github:ThatOneCalculator/wlroots-mirror";
       flake = false;
     };
   };
@@ -32,7 +32,7 @@
         src = inputs.wlroots;
       });
       hyprland = prev.callPackage ./nix/default.nix {
-        version = "0.pre" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
+        version = "0.5.0beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
         wlroots = wlroots-hyprland;
       };
     };

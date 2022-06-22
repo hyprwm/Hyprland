@@ -12,6 +12,7 @@ struct SKeybind {
     std::string       handler = "";
     std::string       arg = "";
     bool              locked = false;
+    std::string       submap = "";
 };
 
 class CKeybindManager {
@@ -28,6 +29,8 @@ public:
 
 private:
     std::list<SKeybind> m_lKeybinds;
+
+    inline static std::string m_szCurrentSelectedSubmap = "";
 
     bool                handleInternalKeybinds(xkb_keysym_t);
 
@@ -57,6 +60,7 @@ private:
     static void         resizeActive(std::string);
     static void         circleNext(std::string);
     static void         focusWindowByClass(std::string);
+    static void         setSubmap(std::string);
 
     friend class CCompositor;
 };

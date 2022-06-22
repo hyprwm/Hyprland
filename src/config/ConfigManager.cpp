@@ -450,7 +450,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     }
 
     if (KEY != "")
-        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND, locked});
+        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
 }
 
 void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {
@@ -505,6 +505,13 @@ void CConfigManager::handleDefaultWorkspace(const std::string& command, const st
             break;
         }
     }
+}
+
+void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
+    if (submap == "reset") 
+        m_szCurrentSubmap = "";
+    else
+        m_szCurrentSubmap = submap;
 }
 
 void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
@@ -587,6 +594,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "bezier") handleBezier(COMMAND, VALUE);
     else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
     else if (COMMAND == "source") handleSource(COMMAND, VALUE);
+    else if (COMMAND == "submap") handleSubmap(COMMAND, VALUE);
     else
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 

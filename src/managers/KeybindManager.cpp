@@ -30,6 +30,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["resizeactive"]              = resizeActive;
     m_mDispatchers["cyclenext"]                 = circleNext;
     m_mDispatchers["focuswindowbyclass"]        = focusWindowByClass;
+    m_mDispatchers["submap"]                    = setSubmap;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -76,7 +77,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked))
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap)
             continue;
 
         // oMg such performance hit!!11!
@@ -934,4 +935,22 @@ void CKeybindManager::focusWindowByClass(std::string clazz) {
 
         break;
     }
+}
+
+void CKeybindManager::setSubmap(std::string submap) {
+    if (submap == "reset" || submap == "") {
+        m_szCurrentSelectedSubmap = "";
+        Debug::log(LOG, "Reset active submap to the default one.");
+        return;
+    }
+
+    for (auto& k : g_pKeybindManager->m_lKeybinds) {
+        if (k.submap == submap) {
+            m_szCurrentSelectedSubmap = submap;
+            Debug::log(LOG, "Changed keybind submap to %s", submap.c_str());
+            return;
+        }
+    }
+
+    Debug::log(ERR, "Cannot set submap %s, submap doesn't exist (wasn't registered!)", submap.c_str());
 }

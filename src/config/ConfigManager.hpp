@@ -88,6 +88,8 @@ private:
 
     std::string parseError = "";  // For storing a parse error to display later
 
+    std::string m_szCurrentSubmap = ""; // For storing the current keybind submap
+
     bool isFirstLaunch = true;  // For exec-once
 
     std::deque<SMonitorRule> m_dMonitorRules;
@@ -113,6 +115,7 @@ private:
     void                handleBezier(const std::string&, const std::string&);
     void                handleAnimation(const std::string&, const std::string&);
     void                handleSource(const std::string&, const std::string&);
+    void                handleSubmap(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

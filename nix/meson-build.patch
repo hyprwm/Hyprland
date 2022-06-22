@@ -1,0 +1,36 @@
+diff --git a/meson.build b/meson.build
+index 22ee4bf..5528613 100644
+--- a/meson.build
++++ b/meson.build
+@@ -2,16 +2,10 @@ project('Hyprland', 'cpp', 'c',
+   version : '0.1',
+   default_options : ['warning_level=3', 'cpp_std=c++20', 'default_library=static'])
+
+-wlroots = subproject('wlroots', default_options: ['examples=false'])
+-have_xwlr = wlroots.get_variable('features').get('xwayland')
++wlroots = dependency('wlroots', version: '>=0.16.0')
+ xcb_dep = dependency('xcb', required: get_option('xwayland'))
+
+-if get_option('xwayland').enabled() and not have_xwlr
+-	error('Cannot enable Xwayland in Hyprland: wlroots has been built without Xwayland support')
+-endif
+-have_xwayland = xcb_dep.found() and have_xwlr
+-
+-if not have_xwayland
++if not xcb_dep.found()
+ add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
+ endif
+
+diff --git a/src/meson.build b/src/meson.build
+index 5d64188..a676333 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -7,7 +7,7 @@ executable('Hyprland', src,
+     server_protos,
+     dependency('wayland-server'),
+     dependency('wayland-client'),
+-    wlroots.get_variable('wlroots'),
++    wlroots,
+     dependency('cairo'),
+     dependency('pango'),
+     dependency('pangocairo'),

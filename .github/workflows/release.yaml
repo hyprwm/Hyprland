@@ -7,7 +7,7 @@ on:
 
 jobs:
   meson-rl:
-    name: "Build and release Hyprland with Meson (Arch)"
+    name: "Release Hyprland with Meson (Arch)"
     runs-on: ubuntu-latest
     container:
       image: archlinux
@@ -27,10 +27,6 @@ jobs:
             -Ddefault_library=static
       - name: Compile
         run: ninja -C obj-x86_64-pc-linux-gnu
-      - name: Build wlroots
-        run: |
-          sed -i '$ d' ./Makefile
-          make config
       - name: Compress and package artifacts
         run: |
           mkdir x86_64-pc-linux-gnu
@@ -39,11 +35,10 @@ jobs:
           mkdir release-files/assets
           DESTDIR=$PWD/x86_64-pc-linux-gnu meson install -C obj-x86_64-pc-linux-gnu --tags runtime
           cp ./LICENSE release-files/
-          cp subprojects/wlroots/build/libwlroots.so.11032 release-files/
           cp x86_64-pc-linux-gnu/usr/local/bin/* release-files/
           cp -r example/ release-files/
           cp -r assets/ release-files/
-          tar -cvf Hyprland.tar.xz -C release-files
+          tar -cvf Hyprland.tar.xz release-files
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')

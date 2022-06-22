@@ -39,8 +39,13 @@ jobs:
           cp -r example/ release-files/
           cp -r assets/ release-files/
           tar -cvf Hyprland.tar.xz release-files
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload release archive
+        uses: actions/upload-artifact@v3
         with:
-          files: Hyprland.tar.xz
+          name: Release archive (x86_64-pc-linux-gnu)
+          path: Hyprland.tar.xz
+      # - name: Release
+      #   uses: softprops/action-gh-release@v1
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   with:
+      #     files: Hyprland.tar.xz

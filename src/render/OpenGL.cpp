@@ -303,15 +303,15 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
     renderTexture(CTexture(tex), pBox, alpha, round);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool border) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool border, bool allowPrimary) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, border);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, border, false, allowPrimary);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool border, bool noAA) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool border, bool noAA, bool allowPrimary) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -358,6 +358,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         // hacky fix to fix broken borders.
         // TODO: this is kinda slow... question mark?
         renderRect(pBox, CColor(0, 0, 0, 0), round);
+
+        glDisable(GL_STENCIL_TEST);
     }
 
     glActiveTexture(GL_TEXTURE0);
@@ -388,7 +390,19 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glUniform1i(glGetUniformLocation(shader->program, "primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !border && !noAA));
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+    if (allowPrimary && m_RenderData.renderingPrimarySurface && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
+        const float verts[] = {
+            m_RenderData.primarySurfaceUVBottomRight.x, m_RenderData.primarySurfaceUVTopLeft.y,      // top right
+            m_RenderData.primarySurfaceUVTopLeft.x, m_RenderData.primarySurfaceUVTopLeft.y,          // top left
+            m_RenderData.primarySurfaceUVBottomRight.x, m_RenderData.primarySurfaceUVBottomRight.y,  // bottom right
+            m_RenderData.primarySurfaceUVTopLeft.x, m_RenderData.primarySurfaceUVBottomRight.y,      // bottom left
+        };
+
+        glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, verts);
+    } else {
+        glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    }
 
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
@@ -402,6 +416,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     }
 
     if (border) {
+        glEnable(GL_STENCIL_TEST);
+
         glStencilFunc(GL_EQUAL, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     }
@@ -548,9 +564,10 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
+    static auto* const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
 
-    if (*PBLURENABLED == 0) {
-        renderTexture(tex, pBox, a, round, false, border);
+    if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1))) {
+        renderTexture(tex, pBox, a, round, false, border, true);
         return;
     }
 
@@ -607,13 +624,18 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
         static auto *const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
-        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage);
+        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, false, true);
 
         // render the window, but clear stencil
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
 
-        // and write to it
+        // draw window
+        glDisable(GL_STENCIL_TEST);
+        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true, true);
+        glEnable(GL_STENCIL_TEST);
+
+        // prep stencil for border
         glStencilFunc(GL_ALWAYS, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
@@ -622,8 +644,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
             // TODO: this is kinda slow... question mark?
             renderRectWithDamage(pBox, CColor(0,0,0,0), &damage, round);
         }
-
-        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true);
 
         // then stop
         glStencilFunc(GL_EQUAL, 1, -1);

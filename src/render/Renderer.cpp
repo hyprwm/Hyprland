@@ -23,8 +23,12 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
     float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
 
-    if (RDATA->surface && surface == RDATA->surface)
+    g_pHyprOpenGL->m_RenderData.renderingPrimarySurface = false;
+
+    if (RDATA->surface && surface == RDATA->surface) {
+        g_pHyprOpenGL->m_RenderData.renderingPrimarySurface = true;
         g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, RDATA->decorate);
+    }
     else
         g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, false, false);
 
@@ -166,7 +170,29 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     for (auto& wd : pWindow->m_dWindowDecorations)
         wd->draw(pMonitor);
 
+    if (!pWindow->m_bIsX11) {
+
+        // To everyone who makes apps with improperly aligned surfaces,
+        // For example chromium, or GTK devs who allow shadows on windows,
+        // a sincere FUCK YOU.
+
+        wlr_box geom;
+        wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
+
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D((double)geom.x / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)geom.y / (double)pWindow->m_uSurface.xdg->surface->current.height);
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D((double)(geom.width + geom.x) / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)(geom.y + geom.height) / (double)pWindow->m_uSurface.xdg->surface->current.height);
+
+        if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
+            // No special UV mods needed
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        }
+    }
+
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+
+    g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
+    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->surface) {

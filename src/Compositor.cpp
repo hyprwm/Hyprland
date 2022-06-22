@@ -443,7 +443,11 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     
     double subx, suby;
 
-    const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.vec().x, pos.y - pWindow->m_vRealPosition.vec().y, &subx, &suby);
+    // calc for oversized windows... fucking bullshit, again.
+    wlr_box geom;
+    wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
+
+    const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.vec().x + geom.x, pos.y - pWindow->m_vRealPosition.vec().y + geom.y, &subx, &suby);
 
     if (PFOUND) {
         sl.x = subx;
@@ -453,6 +457,9 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
 
     sl.x = pos.x - pWindow->m_vRealPosition.vec().x;
     sl.y = pos.y - pWindow->m_vRealPosition.vec().y;
+
+    sl.x += geom.x;
+    sl.y += geom.y;
 
     return PSURFACE->surface;
 }

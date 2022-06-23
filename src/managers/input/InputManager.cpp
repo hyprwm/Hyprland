@@ -274,20 +274,26 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
 }
 
 void CInputManager::setKeyboardLayout() {
+    for (auto& k : m_lKeyboards)
+        applyConfigToKeyboard(&k);
+}
 
-    const auto RULES    = g_pConfigManager->getString("input:kb_rules");
-    const auto MODEL    = g_pConfigManager->getString("input:kb_model");
-    const auto LAYOUT   = g_pConfigManager->getString("input:kb_layout");
-    const auto VARIANT  = g_pConfigManager->getString("input:kb_variant");
-    const auto OPTIONS  = g_pConfigManager->getString("input:kb_options");
+void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
+
+    ASSERT(pKeyboard);
+
+    const auto RULES = g_pConfigManager->getString("input:kb_rules");
+    const auto MODEL = g_pConfigManager->getString("input:kb_model");
+    const auto LAYOUT = g_pConfigManager->getString("input:kb_layout");
+    const auto VARIANT = g_pConfigManager->getString("input:kb_variant");
+    const auto OPTIONS = g_pConfigManager->getString("input:kb_options");
 
     xkb_rule_names rules = {
         .rules = RULES.c_str(),
         .model = MODEL.c_str(),
         .layout = LAYOUT.c_str(),
         .variant = VARIANT.c_str(),
-        .options = OPTIONS.c_str()
-    };
+        .options = OPTIONS.c_str()};
 
     const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     const auto KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -298,17 +304,7 @@ void CInputManager::setKeyboardLayout() {
         return;
     }
 
-    const auto PLASTKEEB = m_pActiveKeyboard->keyboard->keyboard;
-
-    if (!PLASTKEEB) {
-        xkb_keymap_unref(KEYMAP);
-        xkb_context_unref(CONTEXT);
-
-        Debug::log(ERR, "No Seat Keyboard???");
-        return;
-    }
-
-    wlr_keyboard_set_keymap(PLASTKEEB, KEYMAP);
+    wlr_keyboard_set_keymap(pKeyboard->keyboard->keyboard, KEYMAP);
 
     wlr_keyboard_modifiers wlrMods = {0};
 
@@ -321,14 +317,14 @@ void CInputManager::setKeyboardLayout() {
     }
 
     if (wlrMods.locked != 0) {
-        wlr_keyboard_notify_modifiers(g_pInputManager->m_pActiveKeyboard->keyboard->keyboard, 0, 0, wlrMods.locked, 0);
+        wlr_keyboard_notify_modifiers(pKeyboard->keyboard->keyboard, 0, 0, wlrMods.locked, 0);
     }
 
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
 
-    Debug::log(LOG, "Set the keyboard layout to %s and variant to %s", rules.layout, rules.variant);
-}
+    Debug::log(LOG, "Set the keyboard layout to %s and variant to %s for keyboard \"%s\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
+} 
 
 void CInputManager::newMouse(wlr_input_device* mouse) {
     m_lMice.emplace_back();

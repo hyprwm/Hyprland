@@ -296,6 +296,12 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         .options = OPTIONS.c_str()};
 
     const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+
+    if (!CONTEXT) {
+        Debug::log(ERR, "applyConfigToKeyboard: CONTEXT null??");
+        return;
+    }
+
     const auto KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
     if (!KEYMAP) {

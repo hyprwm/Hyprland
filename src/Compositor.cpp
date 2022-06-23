@@ -777,7 +777,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
     CWindow* longestIntersectWindow = nullptr;
 
     for (auto& w : m_lWindows) {
-        if (&w == pWindow || !windowValidMapped(&w) || w.m_bIsFloating || w.m_iWorkspaceID != pWindow->m_iWorkspaceID)
+        if (&w == pWindow || !windowValidMapped(&w) || w.m_bIsFloating || !isWorkspaceVisible(w.m_iWorkspaceID))
             continue;
 
         const auto POSB = w.m_vPosition;

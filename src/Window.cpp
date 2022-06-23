@@ -44,3 +44,28 @@ wlr_box CWindow::getFullWindowBoundingBox() {
     
     return finalBox;
 }
+
+wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+
+    auto POS = m_vPosition;
+    auto SIZE = m_vSize;
+
+    if (DELTALESSTHAN(POS.y - PMONITOR->vecPosition.y, PMONITOR->vecReservedTopLeft.y, 1)) {
+        POS.y = PMONITOR->vecPosition.y;
+        SIZE.y += PMONITOR->vecReservedTopLeft.y;
+    }
+    if (DELTALESSTHAN(POS.x - PMONITOR->vecPosition.x, PMONITOR->vecReservedTopLeft.x, 1)) {
+        POS.x = PMONITOR->vecPosition.x;
+        SIZE.x += PMONITOR->vecReservedTopLeft.x;
+    }
+    if (DELTALESSTHAN(POS.x + SIZE.x - PMONITOR->vecPosition.x, PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x, 1)) {
+        SIZE.x += PMONITOR->vecReservedBottomRight.x;
+    }
+    if (DELTALESSTHAN(POS.y + SIZE.y - PMONITOR->vecPosition.y, PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y, 1)) {
+        SIZE.y += PMONITOR->vecReservedBottomRight.y;
+    }
+
+    return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
+}

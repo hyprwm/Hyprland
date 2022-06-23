@@ -770,8 +770,11 @@ void CCompositor::cleanupFadingOut() {
 }
 
 CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
-    const auto POSA = pWindow->m_vPosition;
-    const auto SIZEA = pWindow->m_vSize;
+
+    const auto WINDOWIDEALBB = pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+
+    const auto POSA = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
+    const auto SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
 
     auto longestIntersect = -1;
     CWindow* longestIntersectWindow = nullptr;
@@ -780,8 +783,11 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
         if (&w == pWindow || !windowValidMapped(&w) || w.m_bIsFloating || !isWorkspaceVisible(w.m_iWorkspaceID))
             continue;
 
-        const auto POSB = w.m_vPosition;
-        const auto SIZEB = w.m_vSize;
+        const auto BWINDOWIDEALBB = w.getWindowIdealBoundingBoxIgnoreReserved();
+
+        const auto POSB = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
+        const auto SIZEB = Vector2D(BWINDOWIDEALBB.width, BWINDOWIDEALBB.height);
+
         switch (dir) {
             case 'l':
                 if (STICKS(POSA.x, POSB.x + SIZEB.x)) {

@@ -902,6 +902,11 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     if (!PNODE2 || !PNODE)
         return;
 
+    if (PNODE->workspaceID != PNODE2->workspaceID) {
+        Debug::log(ERR, "Dwindle: Rejecting a swap between workspaces");
+        return;
+    }
+
     // we will not delete the nodes, just fix the tree
     if (PNODE2->pParent == PNODE->pParent) {
         const auto PPARENT = PNODE->pParent;

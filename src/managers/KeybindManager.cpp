@@ -28,6 +28,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglespecialworkspace"]    = toggleSpecialWorkspace;
     m_mDispatchers["forcerendererreload"]       = forceRendererReload;
     m_mDispatchers["resizeactive"]              = resizeActive;
+    m_mDispatchers["moveactive"]                = moveActive;
     m_mDispatchers["cyclenext"]                 = circleNext;
     m_mDispatchers["focuswindowbyclass"]        = focusWindowByClass;
     m_mDispatchers["submap"]                    = setSubmap;
@@ -892,6 +893,37 @@ void CKeybindManager::resizeActive(std::string args) {
     std::string x = args.substr(0, args.find_first_of(' '));
     std::string y = args.substr(args.find_first_of(' ') + 1);
 
+    if (x == "exact") {
+        std::string newX = y.substr(0, y.find_first_of(' '));
+        std::string newY = y.substr(y.find_first_of(' ') + 1);
+
+        if (!isNumber(newX) || !isNumber(newY)) {
+            Debug::log(ERR, "resizeTiledWindow: exact args not numbers");
+            return;
+        }
+
+        const int X = std::stoi(newX);
+        const int Y = std::stoi(newY);
+
+        if (X < 10 || Y < 10) {
+            Debug::log(ERR, "resizeTiledWindow: exact args cannot be < 10");
+            return;
+        }
+
+        // calc the delta
+        if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+            return; // ignore
+
+        const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+        const int DX = X - PWINDOW->m_vRealSize.goalv().x;
+        const int DY = Y - PWINDOW->m_vRealSize.goalv().y;
+
+        g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(DX, DY));
+
+        return;
+    }
+
     if (!isNumber(x) || !isNumber(y)) {
         Debug::log(ERR, "resizeTiledWindow: args not numbers");
         return;
@@ -901,6 +933,55 @@ void CKeybindManager::resizeActive(std::string args) {
     const int Y = std::stoi(y);
 
     g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(X, Y));
+}
+
+void CKeybindManager::moveActive(std::string args) {
+    if (args.find_first_of(' ') == std::string::npos)
+        return;
+
+    std::string x = args.substr(0, args.find_first_of(' '));
+    std::string y = args.substr(args.find_first_of(' ') + 1);
+
+    if (x == "exact") {
+        std::string newX = y.substr(0, y.find_first_of(' '));
+        std::string newY = y.substr(y.find_first_of(' ') + 1);
+
+        if (!isNumber(newX) || !isNumber(newY)) {
+            Debug::log(ERR, "moveActive: exact args not numbers");
+            return;
+        }
+
+        const int X = std::stoi(newX);
+        const int Y = std::stoi(newY);
+
+        if (X < 10 || Y < 10) {
+            Debug::log(ERR, "moveActive: exact args cannot be < 10");
+            return;
+        }
+
+        // calc the delta
+        if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+            return;  // ignore
+
+        const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+        const int DX = X - PWINDOW->m_vRealPosition.goalv().x;
+        const int DY = Y - PWINDOW->m_vRealPosition.goalv().y;
+
+        g_pLayoutManager->getCurrentLayout()->moveActiveWindow(Vector2D(DX, DY));
+
+        return;
+    }
+
+    if (!isNumber(x) || !isNumber(y)) {
+        Debug::log(ERR, "moveActive: args not numbers");
+        return;
+    }
+
+    const int X = std::stoi(x);
+    const int Y = std::stoi(y);
+
+    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(Vector2D(X, Y));
 }
 
 void CKeybindManager::circleNext(std::string) {

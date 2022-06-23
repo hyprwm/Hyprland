@@ -545,11 +545,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     const auto PNODE = getNodeFromWindow(PWINDOW);
 
     if (!PNODE) {
-        PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() + pixResize);
-        PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(PWINDOW->m_vRealSize.vec().x, (double)20, (double)999999), std::clamp(PWINDOW->m_vRealSize.vec().y, (double)20, (double)999999)));
-
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
-
+        PWINDOW->m_vRealSize = Vector2D(std::clamp((PWINDOW->m_vRealSize.goalv() + pixResize).x, (double)20, (double)999999), std::clamp((PWINDOW->m_vRealSize.goalv() + pixResize).y, (double)20, (double)999999));
         return;
     }
 
@@ -992,4 +988,20 @@ void CHyprDwindleLayout::toggleSplit(CWindow* pWindow) {
 
 std::string CHyprDwindleLayout::getLayoutName() {
     return "dwindle";
+}
+
+void CHyprDwindleLayout::moveActiveWindow(const Vector2D& delta, CWindow* pWindow) {
+    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    if (!PWINDOW->m_bIsFloating) {
+        Debug::log(LOG, "Dwindle cannot move a tiled window in moveActiveWindow!");
+        return;
+    }
+
+    PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goalv() + delta;
+
+    g_pHyprRenderer->damageWindow(PWINDOW);
 }

@@ -58,6 +58,7 @@ private:
     static void         toggleSpecialWorkspace(std::string);
     static void         forceRendererReload(std::string);
     static void         resizeActive(std::string);
+    static void         moveActive(std::string);
     static void         circleNext(std::string);
     static void         focusWindowByClass(std::string);
     static void         setSubmap(std::string);

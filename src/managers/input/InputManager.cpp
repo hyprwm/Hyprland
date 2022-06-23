@@ -207,6 +207,11 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 
     const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
 
+    if (!PKEYBOARD) { // ???
+        Debug::log(ERR, "No active keyboard in onMouseButton??");
+        return;
+    }
+
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
             if (!g_pCompositor->m_sSeat.mouse->currentConstraint)

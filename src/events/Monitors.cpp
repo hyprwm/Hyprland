@@ -193,6 +193,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
         if (g_pConfigManager->m_bWantsMonitorReload)
             g_pConfigManager->performMonitorReload();
+
+        g_pHyprRenderer->ensureCursorRenderingMode(); // so that the cursor gets hidden/shown if the user requested timeouts
     }
 
     if (PMONITOR->framesToSkip > 0) {

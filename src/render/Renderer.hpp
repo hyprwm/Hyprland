@@ -31,6 +31,7 @@ public:
     void                applyMonitorRule(SMonitor*, SMonitorRule*, bool force = false);
     bool                shouldRenderWindow(CWindow*, SMonitor*);
     bool                shouldRenderWindow(CWindow*);
+    void                ensureCursorRenderingMode();
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 
@@ -40,6 +41,8 @@ private:
     void                renderWindow(CWindow*, SMonitor*, timespec*, bool);
     void                renderLayer(SLayerSurface*, SMonitor*, timespec*);
     void                renderDragIcon(SMonitor*, timespec*);
+
+    bool                m_bHasARenderedCursor = true;
 
 
     friend class CHyprOpenGLImpl;

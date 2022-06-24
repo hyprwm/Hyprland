@@ -14,12 +14,16 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, DELTA.x * sensitivity, DELTA.y * sensitivity);
 
     mouseMoveUnified(e->time_msec);
+
+    m_tmrLastCursorMovement.reset();
 }
 
 void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->x, e->y);
 
     mouseMoveUnified(e->time_msec);
+
+    m_tmrLastCursorMovement.reset();
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
@@ -205,6 +209,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
+    m_tmrLastCursorMovement.reset();
+
     const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
 
     if (!PKEYBOARD) { // ???
@@ -382,6 +388,8 @@ void CInputManager::newMouse(wlr_input_device* mouse) {
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
 
     g_pCompositor->m_sSeat.mouse = PMOUSE;
+
+    m_tmrLastCursorMovement.reset();
 
     Debug::log(LOG, "New mouse created, pointer WLR: %x", mouse);
 }

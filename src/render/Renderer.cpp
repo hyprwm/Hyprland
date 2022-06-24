@@ -754,3 +754,33 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
     // frame skip
     pMonitor->framesToSkip = 1;
 }
+
+void CHyprRenderer::ensureCursorRenderingMode() {
+    static auto *const PCURSORTIMEOUT = &g_pConfigManager->getConfigValuePtr("general:cursor_inactive_timeout")->intValue;
+
+    const auto PASSEDCURSORSECONDS = g_pInputManager->m_tmrLastCursorMovement.getSeconds();
+
+    if (*PCURSORTIMEOUT > 0) {
+        if (*PCURSORTIMEOUT < PASSEDCURSORSECONDS && m_bHasARenderedCursor) {
+            m_bHasARenderedCursor = false;
+
+            wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, nullptr, 0, 0); // hide
+
+            Debug::log(LOG, "Hiding the cursor (timeout)");
+
+            for (auto& m : g_pCompositor->m_lMonitors)
+                g_pHyprRenderer->damageMonitor(&m);  // TODO: maybe just damage the cursor area?
+        } else if (*PCURSORTIMEOUT > PASSEDCURSORSECONDS && !m_bHasARenderedCursor) {
+            m_bHasARenderedCursor = true;
+
+            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+
+            Debug::log(LOG, "Showing the cursor (timeout)");
+
+            for (auto& m : g_pCompositor->m_lMonitors)
+                g_pHyprRenderer->damageMonitor(&m);  // TODO: maybe just damage the cursor area?
+        }
+    } else {
+        m_bHasARenderedCursor = true;
+    }
+}

@@ -911,15 +911,26 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
     std::string title = g_pXWaylandManager->getTitle(pWindow);
     std::string appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
 
+    Debug::log(LOG, "Searching for matching rules for %s (title: %s)", appidclass.c_str(), title.c_str());
+
     for (auto& rule : m_dWindowRules) {
         // check if we have a matching rule
         try {
-            std::regex classCheck(rule.szValue);
+            if (rule.szValue.find("title:") == 0) {
+                // we have a title rule.
+                std::regex RULECHECK(rule.szValue.substr(6));
 
-            if (!std::regex_search(title, classCheck) && !std::regex_search(appidclass, classCheck))
-                continue;
+                if (!std::regex_search(title, RULECHECK))
+                    continue;
+            } else {
+                std::regex classCheck(rule.szValue);
+
+                if (!std::regex_search(appidclass, classCheck))
+                    continue;
+            }
         } catch (...) {
             Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
+            continue;
         }
 
         // applies. Read the rule and behave accordingly

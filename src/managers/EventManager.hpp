@@ -19,6 +19,8 @@ public:
 
     void startThread();
 
+    bool m_bIgnoreEvents = false;
+
 private:
 
     std::mutex eventQueueMutex;

@@ -34,6 +34,10 @@ struct SCurrentRenderData {
     float       projection[9];
 
     pixman_region32_t* pDamage = nullptr;
+
+    bool        renderingPrimarySurface = false;
+    Vector2D    primarySurfaceUVTopLeft = Vector2D(-1, -1);
+    Vector2D    primarySurfaceUVBottomRight = Vector2D(-1, -1);
 };
 
 struct SMonitorRenderData {
@@ -53,8 +57,9 @@ public:
     void    end();
 
     void    renderRect(wlr_box*, const CColor&, int round = 0);
+    void    renderRectWithDamage(wlr_box*, const CColor&, pixman_region32_t* damage, int round = 0);
     void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
-    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool border = false);
+    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool border = false, bool allowPrimary = false);
     void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool border = false);
 
     void    makeWindowSnapshot(CWindow*);
@@ -110,7 +115,7 @@ private:
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
 
-    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool border = false, bool noAA = false);
+    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool border = false, bool noAA = false, bool allowPrimary = false);
     void                    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
 };
 

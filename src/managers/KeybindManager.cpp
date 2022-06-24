@@ -28,8 +28,10 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglespecialworkspace"]    = toggleSpecialWorkspace;
     m_mDispatchers["forcerendererreload"]       = forceRendererReload;
     m_mDispatchers["resizeactive"]              = resizeActive;
+    m_mDispatchers["moveactive"]                = moveActive;
     m_mDispatchers["cyclenext"]                 = circleNext;
     m_mDispatchers["focuswindowbyclass"]        = focusWindowByClass;
+    m_mDispatchers["submap"]                    = setSubmap;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -72,13 +74,11 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
     if (handleInternalKeybinds(key))
         return true;
 
-    if (g_pCompositor->m_sSeat.exclusiveClient){
-        Debug::log(LOG, "Not handling keybinds due to there being an exclusive inhibited client.");
-        return false;
-    }
+    if (g_pCompositor->m_sSeat.exclusiveClient)
+        Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask) 
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap)
             continue;
 
         // oMg such performance hit!!11!
@@ -280,9 +280,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             // start anim on new workspace
             PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
 
-            // Event ONLY if workspace is actually "changed" and we arent just focusing
-            if (!m_bSuppressWorkspaceChangeEvents)
-                g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
+            g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
         }
 
         // If the monitor is not the one our cursor's at, warp to it.
@@ -290,9 +288,6 @@ void CKeybindManager::changeworkspace(std::string args) {
             Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
             wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
         }
-
-        // focus the first window
-        g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(workspaceToChangeTo));
 
         // set active and deactivate all other in wlr
         g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACETOCHANGETO->m_pWlrHandle);
@@ -360,8 +355,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pInputManager->refocus();
 
     // Event
-    if (!m_bSuppressWorkspaceChangeEvents)
-        g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACE->m_szName));
+    g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACE->m_szName));
 
     Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }
@@ -491,7 +485,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     const auto POLDWORKSPACEONMON = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDONMONITOR);
     const auto POLDWORKSPACEIDRETURN = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDRETURN);
 
-    m_bSuppressWorkspaceChangeEvents = true;
+    g_pEventManager->m_bIgnoreEvents = true;
 
     moveActiveToWorkspace(args);
 
@@ -510,7 +504,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     POLDWORKSPACEONMON->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
     POLDWORKSPACEONMON->m_fAlpha.setValueAndWarp(255.f);
 
-    m_bSuppressWorkspaceChangeEvents = false;
+    g_pEventManager->m_bIgnoreEvents = false;
 
     g_pInputManager->refocus();
 }
@@ -899,6 +893,37 @@ void CKeybindManager::resizeActive(std::string args) {
     std::string x = args.substr(0, args.find_first_of(' '));
     std::string y = args.substr(args.find_first_of(' ') + 1);
 
+    if (x == "exact") {
+        std::string newX = y.substr(0, y.find_first_of(' '));
+        std::string newY = y.substr(y.find_first_of(' ') + 1);
+
+        if (!isNumber(newX) || !isNumber(newY)) {
+            Debug::log(ERR, "resizeTiledWindow: exact args not numbers");
+            return;
+        }
+
+        const int X = std::stoi(newX);
+        const int Y = std::stoi(newY);
+
+        if (X < 10 || Y < 10) {
+            Debug::log(ERR, "resizeTiledWindow: exact args cannot be < 10");
+            return;
+        }
+
+        // calc the delta
+        if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+            return; // ignore
+
+        const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+        const int DX = X - PWINDOW->m_vRealSize.goalv().x;
+        const int DY = Y - PWINDOW->m_vRealSize.goalv().y;
+
+        g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(DX, DY));
+
+        return;
+    }
+
     if (!isNumber(x) || !isNumber(y)) {
         Debug::log(ERR, "resizeTiledWindow: args not numbers");
         return;
@@ -908,6 +933,55 @@ void CKeybindManager::resizeActive(std::string args) {
     const int Y = std::stoi(y);
 
     g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(X, Y));
+}
+
+void CKeybindManager::moveActive(std::string args) {
+    if (args.find_first_of(' ') == std::string::npos)
+        return;
+
+    std::string x = args.substr(0, args.find_first_of(' '));
+    std::string y = args.substr(args.find_first_of(' ') + 1);
+
+    if (x == "exact") {
+        std::string newX = y.substr(0, y.find_first_of(' '));
+        std::string newY = y.substr(y.find_first_of(' ') + 1);
+
+        if (!isNumber(newX) || !isNumber(newY)) {
+            Debug::log(ERR, "moveActive: exact args not numbers");
+            return;
+        }
+
+        const int X = std::stoi(newX);
+        const int Y = std::stoi(newY);
+
+        if (X < 10 || Y < 10) {
+            Debug::log(ERR, "moveActive: exact args cannot be < 10");
+            return;
+        }
+
+        // calc the delta
+        if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+            return;  // ignore
+
+        const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+        const int DX = X - PWINDOW->m_vRealPosition.goalv().x;
+        const int DY = Y - PWINDOW->m_vRealPosition.goalv().y;
+
+        g_pLayoutManager->getCurrentLayout()->moveActiveWindow(Vector2D(DX, DY));
+
+        return;
+    }
+
+    if (!isNumber(x) || !isNumber(y)) {
+        Debug::log(ERR, "moveActive: args not numbers");
+        return;
+    }
+
+    const int X = std::stoi(x);
+    const int Y = std::stoi(y);
+
+    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(Vector2D(X, Y));
 }
 
 void CKeybindManager::circleNext(std::string) {
@@ -942,4 +1016,22 @@ void CKeybindManager::focusWindowByClass(std::string clazz) {
 
         break;
     }
+}
+
+void CKeybindManager::setSubmap(std::string submap) {
+    if (submap == "reset" || submap == "") {
+        m_szCurrentSelectedSubmap = "";
+        Debug::log(LOG, "Reset active submap to the default one.");
+        return;
+    }
+
+    for (auto& k : g_pKeybindManager->m_lKeybinds) {
+        if (k.submap == submap) {
+            m_szCurrentSelectedSubmap = submap;
+            Debug::log(LOG, "Changed keybind submap to %s", submap.c_str());
+            return;
+        }
+    }
+
+    Debug::log(ERR, "Cannot set submap %s, submap doesn't exist (wasn't registered!)", submap.c_str());
 }

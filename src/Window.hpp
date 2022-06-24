@@ -108,5 +108,6 @@ public:
 
     // methods
     wlr_box         getFullWindowBoundingBox();
+    wlr_box         getWindowIdealBoundingBoxIgnoreReserved();
 
 };

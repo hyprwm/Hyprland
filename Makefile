@@ -136,4 +136,4 @@ config:
 	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release
 	cd subprojects/wlroots && ninja -C build/
 
-	cd subprojects/wlroots && sudo ninja -C build/ install
+	cd subprojects/wlroots && ninja -C build/ install

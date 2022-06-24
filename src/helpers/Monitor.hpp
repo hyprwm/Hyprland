@@ -28,6 +28,7 @@ struct SMonitor {
     float       refreshRate     = 60;
     wlr_output_damage* damage   = nullptr;
     int         framesToSkip    = 0;
+    int         forceFullFrames = 0;
     bool        noFrameSchedule = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
 

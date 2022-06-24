@@ -53,13 +53,15 @@ public:
 
     SKeyboard*      m_pActiveKeyboard = nullptr;
 
-   private:
+private:
 
     uint32_t        m_uiCapabilities = 0;
 
     void            mouseMoveUnified(uint32_t, bool refocus = false);
 
     STabletTool*    ensureTabletToolPresent(wlr_tablet_tool*);
+
+    void            applyConfigToKeyboard(SKeyboard*);
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

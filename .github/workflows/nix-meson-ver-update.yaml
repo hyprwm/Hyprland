@@ -1,6 +1,6 @@
 name: "Nix & Meson: update version"
 
-on: [push, workflow_dispatch]
+on: [workflow_dispatch]
 
 jobs:
   update:

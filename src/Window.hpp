@@ -15,6 +15,7 @@ struct SWindowSpecialRenderData {
 struct SWindowAdditionalConfigData {
     std::string animationStyle = "";
     int rounding = -1; // -1 means no
+    bool forceNoBlur = false;
 };
 
 class CWindow {

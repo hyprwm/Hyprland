@@ -443,7 +443,11 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     
     double subx, suby;
 
-    const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.vec().x, pos.y - pWindow->m_vRealPosition.vec().y, &subx, &suby);
+    // calc for oversized windows... fucking bullshit, again.
+    wlr_box geom;
+    wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
+
+    const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.vec().x + geom.x, pos.y - pWindow->m_vRealPosition.vec().y + geom.y, &subx, &suby);
 
     if (PFOUND) {
         sl.x = subx;
@@ -453,6 +457,9 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
 
     sl.x = pos.x - pWindow->m_vRealPosition.vec().x;
     sl.y = pos.y - pWindow->m_vRealPosition.vec().y;
+
+    sl.x += geom.x;
+    sl.y += geom.y;
 
     return PSURFACE->surface;
 }
@@ -763,18 +770,24 @@ void CCompositor::cleanupFadingOut() {
 }
 
 CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
-    const auto POSA = pWindow->m_vPosition;
-    const auto SIZEA = pWindow->m_vSize;
+
+    const auto WINDOWIDEALBB = pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+
+    const auto POSA = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
+    const auto SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
 
     auto longestIntersect = -1;
     CWindow* longestIntersectWindow = nullptr;
 
     for (auto& w : m_lWindows) {
-        if (&w == pWindow || !windowValidMapped(&w) || w.m_bIsFloating || w.m_iWorkspaceID != pWindow->m_iWorkspaceID)
+        if (&w == pWindow || !windowValidMapped(&w) || w.m_bIsFloating || !isWorkspaceVisible(w.m_iWorkspaceID))
             continue;
 
-        const auto POSB = w.m_vPosition;
-        const auto SIZEB = w.m_vSize;
+        const auto BWINDOWIDEALBB = w.getWindowIdealBoundingBoxIgnoreReserved();
+
+        const auto POSB = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
+        const auto SIZEB = Vector2D(BWINDOWIDEALBB.width, BWINDOWIDEALBB.height);
+
         switch (dir) {
             case 'l':
                 if (STICKS(POSA.x, POSB.x + SIZEB.x)) {

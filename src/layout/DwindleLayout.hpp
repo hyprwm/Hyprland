@@ -49,6 +49,7 @@ public:
     virtual void        changeWindowFloatingMode(CWindow*);
     virtual void        onBeginDragWindow();
     virtual void        resizeActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
+    virtual void        moveActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
     virtual void        onEndDragWindow();
     virtual void        onMouseMove(const Vector2D&);
     virtual void        onWindowCreatedFloating(CWindow*);

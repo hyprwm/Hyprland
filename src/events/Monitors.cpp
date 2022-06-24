@@ -114,7 +114,15 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     wlr_ext_workspace_group_handle_v1_output_enter(PNEWMONITOR->pWLRWorkspaceGroupHandle, PNEWMONITOR->output);
 
     // Workspace
-    const auto WORKSPACEID = monitorRule.defaultWorkspaceID == -1 ? g_pCompositor->m_lWorkspaces.size() + 1 /* Cuz workspaces doesnt have the new one yet and we start with 1 */ : monitorRule.defaultWorkspaceID;
+    std::string newDefaultWorkspaceName = "";
+    auto WORKSPACEID = monitorRule.defaultWorkspace == "" ? g_pCompositor->m_lWorkspaces.size() + 1 : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
+    
+    if (WORKSPACEID == INT_MAX || WORKSPACEID == (long unsigned int)SPECIAL_WORKSPACE_ID) {
+        WORKSPACEID = g_pCompositor->m_lWorkspaces.size() + 1;
+        newDefaultWorkspaceName = std::to_string(WORKSPACEID);
+
+        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", monitorRule.defaultWorkspace);
+    }
 
     auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
@@ -127,18 +135,19 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PNEWMONITOR->ID);
         PNEWWORKSPACE->startAnim(true,true,true);
     } else {
-        g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID);
-        PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
+        PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID);
 
         // We are required to set the name here immediately
-        wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, std::to_string(WORKSPACEID).c_str());
+        wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, newDefaultWorkspaceName.c_str());
 
         PNEWWORKSPACE->m_iID = WORKSPACEID;
-        PNEWWORKSPACE->m_szName = std::to_string(WORKSPACEID);
+        PNEWWORKSPACE->m_szName = newDefaultWorkspaceName;
     }
 
     PNEWMONITOR->activeWorkspace = PNEWWORKSPACE->m_iID;
     PNEWMONITOR->scale = monitorRule.scale;
+
+    PNEWMONITOR->forceFullFrames = 3; // force 3 full frames to make sure there is no blinking due to double-buffering.
 
     g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
     PNEWWORKSPACE->setActive(true);
@@ -216,7 +225,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
     }
 
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE) {
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && PMONITOR->forceFullFrames == 0) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
         wlr_output_schedule_frame(PMONITOR->output); // we update shit at the monitor's Hz so we need to schedule frames because rollback wont
@@ -224,7 +233,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR) {
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
@@ -246,6 +255,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
         }
     }
+
+    if (PMONITOR->forceFullFrames > 0)
+        PMONITOR->forceFullFrames -= 1;
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.

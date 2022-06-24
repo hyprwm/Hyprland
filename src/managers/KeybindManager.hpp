@@ -11,6 +11,8 @@ struct SKeybind {
     uint32_t          modmask = 0;
     std::string       handler = "";
     std::string       arg = "";
+    bool              locked = false;
+    std::string       submap = "";
 };
 
 class CKeybindManager {
@@ -28,9 +30,9 @@ public:
 private:
     std::list<SKeybind> m_lKeybinds;
 
-    bool                handleInternalKeybinds(xkb_keysym_t);
+    inline static std::string m_szCurrentSelectedSubmap = "";
 
-    inline static bool  m_bSuppressWorkspaceChangeEvents = false;
+    bool                handleInternalKeybinds(xkb_keysym_t);
 
     // -------------- Dispatchers -------------- //
     static void         killActive(std::string);
@@ -56,8 +58,10 @@ private:
     static void         toggleSpecialWorkspace(std::string);
     static void         forceRendererReload(std::string);
     static void         resizeActive(std::string);
+    static void         moveActive(std::string);
     static void         circleNext(std::string);
     static void         focusWindowByClass(std::string);
+    static void         setSubmap(std::string);
 
     friend class CCompositor;
 };

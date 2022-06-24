@@ -28,7 +28,7 @@ struct SMonitorRule {
     Vector2D    offset = Vector2D(0,0);
     float       scale = 1;
     float       refreshRate = 60;
-    int         defaultWorkspaceID = -1;
+    std::string defaultWorkspace = "";
     bool        disabled = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
 };
@@ -88,6 +88,8 @@ private:
 
     std::string parseError = "";  // For storing a parse error to display later
 
+    std::string m_szCurrentSubmap = ""; // For storing the current keybind submap
+
     bool isFirstLaunch = true;  // For exec-once
 
     std::deque<SMonitorRule> m_dMonitorRules;
@@ -106,13 +108,14 @@ private:
     void                configSetValueSafe(const std::string&, const std::string&);
     void                handleRawExec(const std::string&, const std::string&);
     void                handleMonitor(const std::string&, const std::string&);
-    void                handleBind(const std::string&, const std::string&);
+    void                handleBind(const std::string&, const std::string&, bool locked = false);
     void                handleUnbind(const std::string&, const std::string&);
     void                handleWindowRule(const std::string&, const std::string&);
     void                handleDefaultWorkspace(const std::string&, const std::string&);
     void                handleBezier(const std::string&, const std::string&);
     void                handleAnimation(const std::string&, const std::string&);
     void                handleSource(const std::string&, const std::string&);
+    void                handleSubmap(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

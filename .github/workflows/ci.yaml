@@ -13,34 +13,44 @@ jobs:
            sed -i 's/SigLevel    = Required DatabaseOptional/SigLevel    = Optional TrustAll/' /etc/pacman.conf
            pacman --noconfirm --noprogressbar -Syyu
            pacman --noconfirm --noprogressbar -Sy glslang libepoxy libfontenc libxcvt libxfont2 libxkbfile vulkan-headers vulkan-validation-layers xcb-util-errors xcb-util-renderutil xcb-util-wm xorg-fonts-encodings xorg-server-common xorg-setxkbmap xorg-xkbcomp xorg-xwayland git cmake go clang lld libc++ pkgconf meson ninja wayland wayland-protocols libinput libxkbcommon pixman glm libdrm libglvnd cairo pango systemd scdoc base-devel seatd
-
       - name: Set up user
         run: |
           useradd -m githubuser
           echo -e "root ALL=(ALL:ALL) ALL\ngithubuser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers
-
       - name: Build wlroots
         run: |
           su githubuser -c "cd ~ && git clone https://gitlab.freedesktop.org/wlroots/wlroots" 
           su githubuser -c "cd ~/wlroots && meson build/ --prefix=/usr && ninja -C build/ && sudo ninja -C build/ install && cd .."
-
       - name: Fix permissions for git
         run: |
           git config --global --add safe.directory /__w/Hyprland/Hyprland
-
       - name: Checkout Hyprland
         uses: actions/checkout@v3
         with:
           submodules: recursive
-
-      - name: Build Hyprland With default settings
+      - name: Build Hyprland
         run: |
           git submodule sync --recursive && git submodule update --init --force --recursive
           make all
-
-      - name: Build Hyprland with LEGACY_RENDERER
+      - name: Compress and package artifacts
         run: |
-          make legacyrenderer
+          mkdir x86_64-pc-linux-gnu
+          mkdir hyprland
+          mkdir hyprland/example
+          mkdir hyprland/assets
+          cp ./LICENSE hyprland/
+          cp build/Hyprland hyprland/
+          cp hyprctl/hyprctl hyprland/
+          cp subprojects/wlroots/build/libwlroots.so.11032 hyprland/
+          cp build/Hyprland hyprland/
+          cp -r example/ hyprland/
+          cp -r assets/ hyprland/
+          tar -cvf Hyprland.tar.xz hyprland
+      - name: Release
+        uses: actions/upload-artifact@v3
+        with:
+          name: Build archive
+          path: Hyprland.tar.xz
 
   meson:
     name: "Build Hyprland with Meson (Arch)"
@@ -63,13 +73,13 @@ jobs:
             -Ddefault_library=static
       - name: Compile
         run: ninja -C obj-x86_64-pc-linux-gnu
-      - name: Compress artifacts
-        run: |
-          mkdir x86_64-pc-linux-gnu
-          DESTDIR=$PWD/x86_64-pc-linux-gnu meson install -C obj-x86_64-pc-linux-gnu --tags runtime
-          tar -cvf x86_64-pc-linux-gnu.tar.xz x86_64-pc-linux-gnu
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: Build artifacts (x86_64-pc-linux-gnu)
-          path: x86_64-pc-linux-gnu.tar.xz
+#       - name: Compress artifacts
+#         run: |
+#           mkdir x86_64-pc-linux-gnu
+#           DESTDIR=$PWD/x86_64-pc-linux-gnu meson install -C obj-x86_64-pc-linux-gnu --tags runtime
+#           tar -cvf x86_64-pc-linux-gnu.tar.xz x86_64-pc-linux-gnu
+#       - name: Upload artifacts
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: Build artifacts (x86_64-pc-linux-gnu)
+#           path: x86_64-pc-linux-gnu.tar.xz

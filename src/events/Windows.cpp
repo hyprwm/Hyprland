@@ -19,6 +19,14 @@ void addViewCoords(void* pWindow, int* x, int* y) {
     const auto PWINDOW = (CWindow*)pWindow;
     *x += PWINDOW->m_vRealPosition.goalv().x;
     *y += PWINDOW->m_vRealPosition.goalv().y;
+
+    if (!PWINDOW->m_bIsX11) {
+        wlr_box geom;
+        wlr_xdg_surface_get_geometry(PWINDOW->m_uSurface.xdg, &geom);
+
+        *x -= geom.x;
+        *y -= geom.y;
+    }
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {

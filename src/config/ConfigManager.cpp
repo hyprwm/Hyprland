@@ -20,7 +20,7 @@ CConfigManager::CConfigManager() {
 void CConfigManager::setDefaultVars() {
     configValues["general:max_fps"].intValue = 240;
     configValues["general:sensitivity"].floatValue = 0.25f;
-    configValues["general:apply_sens_to_raw"].intValue = 1;
+    configValues["general:apply_sens_to_raw"].intValue = 0;
     configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
 
@@ -28,6 +28,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_NONE;
 
     configValues["general:border_size"].intValue = 1;
+    configValues["general:no_border_on_floating"].intValue = 0;
     configValues["general:gaps_in"].intValue = 5;
     configValues["general:gaps_out"].intValue = 20;
     configValues["general:col.active_border"].intValue = 0xffffffff;
@@ -46,6 +47,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:inactive_opacity"].floatValue = 1;
     configValues["decoration:fullscreen_opacity"].floatValue = 1;
     configValues["decoration:multisample_edges"].intValue = 0;
+    configValues["decoration:no_blur_on_oversized"].intValue = 1;
 
     configValues["dwindle:pseudotile"].intValue = 0;
     configValues["dwindle:col.group_border"].intValue = 0x66777700;
@@ -415,7 +417,7 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
     configSetValueSafe("animations:" + ANIMNAME + "_style", curitem);
 }
 
-void CConfigManager::handleBind(const std::string& command, const std::string& value) {
+void CConfigManager::handleBind(const std::string& command, const std::string& value, bool locked) {
     // example:
     // bind=SUPER,G,exec,dmenu_run <args>
 
@@ -448,7 +450,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     }
 
     if (KEY != "")
-        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND});
+        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
 }
 
 void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {
@@ -495,14 +497,21 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
 
     const auto DISPLAY = value.substr(0, value.find_first_of(','));
-    const auto WORKSPACEID = stoi(value.substr(value.find_first_of(',') + 1));
+    const auto WORKSPACE = value.substr(value.find_first_of(',') + 1);
 
     for (auto& mr : m_dMonitorRules) {
         if (mr.name == DISPLAY) {
-            mr.defaultWorkspaceID = WORKSPACEID;
+            mr.defaultWorkspace = WORKSPACE;
             break;
         }
     }
+}
+
+void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
+    if (submap == "reset") 
+        m_szCurrentSubmap = "";
+    else
+        m_szCurrentSubmap = submap;
 }
 
 void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
@@ -578,12 +587,14 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     }
     else if (COMMAND == "monitor") handleMonitor(COMMAND, VALUE);
     else if (COMMAND == "bind") handleBind(COMMAND, VALUE);
+    else if (COMMAND == "bindl") handleBind(COMMAND, VALUE, true);
     else if (COMMAND == "unbind") handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace") handleDefaultWorkspace(COMMAND, VALUE);
     else if (COMMAND == "windowrule") handleWindowRule(COMMAND, VALUE);
     else if (COMMAND == "bezier") handleBezier(COMMAND, VALUE);
     else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
     else if (COMMAND == "source") handleSource(COMMAND, VALUE);
+    else if (COMMAND == "submap") handleSubmap(COMMAND, VALUE);
     else
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 
@@ -900,15 +911,26 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
     std::string title = g_pXWaylandManager->getTitle(pWindow);
     std::string appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
 
+    Debug::log(LOG, "Searching for matching rules for %s (title: %s)", appidclass.c_str(), title.c_str());
+
     for (auto& rule : m_dWindowRules) {
         // check if we have a matching rule
         try {
-            std::regex classCheck(rule.szValue);
+            if (rule.szValue.find("title:") == 0) {
+                // we have a title rule.
+                std::regex RULECHECK(rule.szValue.substr(6));
 
-            if (!std::regex_search(title, classCheck) && !std::regex_search(appidclass, classCheck))
-                continue;
+                if (!std::regex_search(title, RULECHECK))
+                    continue;
+            } else {
+                std::regex classCheck(rule.szValue);
+
+                if (!std::regex_search(appidclass, classCheck))
+                    continue;
+            }
         } catch (...) {
             Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
+            continue;
         }
 
         // applies. Read the rule and behave accordingly

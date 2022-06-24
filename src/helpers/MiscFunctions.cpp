@@ -158,6 +158,12 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         outName = WORKSPACENAME;
     } else {
         if (in[0] == 'm') {
+            if (!g_pCompositor->m_pLastMonitor) {
+                Debug::log(ERR, "Relative monitor workspace on monitor null!");
+                result = INT_MAX;
+                return result;
+            }
+
             // monitor relative
             result = (int)getPlusMinusKeywordResult(in.substr(1), 0);
 
@@ -207,7 +213,14 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             outName = g_pCompositor->getWorkspaceByID(currentID)->m_szName;
 
         } else {
-            result = std::clamp((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
+            if (g_pCompositor->m_pLastMonitor)
+                result = std::clamp((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
+            else if (isNumber(in))
+                result = std::clamp(std::stoi(in), 1, INT_MAX);
+            else {
+                Debug::log(ERR, "Relative workspace on no mon!");
+                result = INT_MAX;
+            }
             outName = std::to_string(result);
         }        
     }

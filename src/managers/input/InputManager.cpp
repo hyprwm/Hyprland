@@ -236,7 +236,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
     if (wlr_keyboard_get_modifiers(PKEYBOARD) == (uint32_t)g_pConfigManager->getInt("general:main_mod_internal") && 
         e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
             
-        if (e->delta > 0) { 
+        if (e->delta < 0) { 
             g_pKeybindManager->m_mDispatchers["workspace"]("-1");
         } else {
             g_pKeybindManager->m_mDispatchers["workspace"]("+1");

@@ -482,6 +482,9 @@ void CHyprDwindleLayout::onBeginDragWindow() {
 void CHyprDwindleLayout::onEndDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
+    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW))
+        return;
+
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;
         changeWindowFloatingMode(DRAGGINGWINDOW);
@@ -494,8 +497,10 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
-    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D())
+    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D()) {
+        g_pInputManager->currentlyDraggedWindow = nullptr;
         return;
+    }
         
     const auto DELTA = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
     const auto TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);

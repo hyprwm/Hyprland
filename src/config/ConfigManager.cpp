@@ -33,6 +33,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:gaps_out"].intValue = 20;
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
+    configValues["general:cursor_inactive_timeout"].intValue = 0;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

@@ -194,12 +194,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-    if (pWindow->m_bIsX11) {
-        if (pWindow->m_uSurface.xwayland->surface) {
-            wlr_surface_for_each_surface(pWindow->m_uSurface.xwayland->surface, renderSurface, &renderdata);
-        }
-    }
-    else {
+    if (!pWindow->m_bIsX11) {
         renderdata.dontRound = false; // restore dontround
         renderdata.pMonitor = pMonitor;
         wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);

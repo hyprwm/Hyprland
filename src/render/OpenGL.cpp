@@ -378,8 +378,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     // so we need to do some maf
 
     const auto TOPLEFT = Vector2D(round, round);
-    const auto BOTTOMRIGHT = Vector2D(tex.m_vSize.x - round, tex.m_vSize.y - round);
-    const auto FULLSIZE = tex.m_vSize;
+    const auto BOTTOMRIGHT = Vector2D(pBox->width - round, pBox->height - round);
+    const auto FULLSIZE = Vector2D(pBox->width, pBox->height);
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners

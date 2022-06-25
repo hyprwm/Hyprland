@@ -999,6 +999,9 @@ void CKeybindManager::focusWindowByClass(std::string clazz) {
     std::regex classCheck(clazz);
 
     for (auto& w : g_pCompositor->m_lWindows) {
+        if (!w.m_bIsMapped || w.m_bHidden)
+            continue;
+
         const auto windowClass = g_pXWaylandManager->getAppIDClass(&w);
 
         if (!std::regex_search(windowClass, classCheck))

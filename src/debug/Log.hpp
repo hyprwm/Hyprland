@@ -8,7 +8,8 @@ enum LogLevel {
     LOG = 0,
     WARN,
     ERR,
-    CRIT
+    CRIT,
+    INFO
 };
 
 namespace Debug {

@@ -18,14 +18,14 @@ CConfigManager::CConfigManager() {
 }
 
 void CConfigManager::setDefaultVars() {
-    configValues["general:max_fps"].intValue = 240;
-    configValues["general:sensitivity"].floatValue = 0.25f;
+    configValues["general:max_fps"].intValue = 60;
+    configValues["general:sensitivity"].floatValue = 1.0f;
     configValues["general:apply_sens_to_raw"].intValue = 0;
     configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
 
-    configValues["general:damage_tracking"].strValue = "none";
-    configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_NONE;
+    configValues["general:damage_tracking"].strValue = "full";
+    configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_FULL;
 
     configValues["general:border_size"].intValue = 1;
     configValues["general:no_border_on_floating"].intValue = 0;
@@ -82,7 +82,7 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:workspaces_speed"].floatValue = 0.f;
     configValues["animations:workspaces"].intValue = 1;
 
-    configValues["input:kb_layout"].strValue = "en";
+    configValues["input:kb_layout"].strValue = "us";
     configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
     configValues["input:kb_options"].strValue = STRVAL_EMPTY;
     configValues["input:kb_rules"].strValue = STRVAL_EMPTY;

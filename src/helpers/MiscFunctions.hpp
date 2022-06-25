@@ -11,5 +11,7 @@ bool isNumber(const std::string&);
 bool isDirection(const std::string&);
 int getWorkspaceIDFromString(const std::string&, std::string&);
 float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);
+void logSystemInfo();
+std::string execAndGet(const char*);
 
 float getPlusMinusKeywordResult(std::string in, float relative);

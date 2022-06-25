@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include <sys/utsname.h>
 
 void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
     ASSERT(pSignal);
@@ -232,4 +233,35 @@ float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Ve
     const float DX = std::max((double)0, std::max(p1.x - vec.x, vec.x - p2.x));
     const float DY = std::max((double)0, std::max(p1.y - vec.y, vec.y - p2.y));
     return DX * DX + DY * DY;
+}
+
+// Execute a shell command and get the output
+std::string execAndGet(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    const std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        Debug::log(ERR, "execAndGet: failed in pipe");
+        return "";
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+void logSystemInfo() {
+    struct utsname unameInfo;
+
+    uname(&unameInfo);
+
+    Debug::log(LOG, "System name: %s", unameInfo.sysname);
+    Debug::log(LOG, "Node name: %s", unameInfo.nodename);
+    Debug::log(LOG, "Release: %s", unameInfo.release);
+    Debug::log(LOG, "Version: %s", unameInfo.version);
+
+    // log etc
+    Debug::log(LOG, "os-release:");
+
+    Debug::log(NONE, "%s", execAndGet("cat /etc/os-release").c_str());
 }

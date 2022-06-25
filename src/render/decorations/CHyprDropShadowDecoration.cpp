@@ -37,7 +37,7 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
     damageEntire();
 }
 
-void CHyprDropShadowDecoration::draw(SMonitor* pMonitor) {
+void CHyprDropShadowDecoration::draw(SMonitor* pMonitor, float a) {
 
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;
@@ -62,5 +62,5 @@ void CHyprDropShadowDecoration::draw(SMonitor* pMonitor) {
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
     
-    g_pHyprOpenGL->renderRoundedShadow(&fullBox, *PROUNDING, *PSHADOWSIZE);
+    g_pHyprOpenGL->renderRoundedShadow(&fullBox, *PROUNDING, *PSHADOWSIZE, a);
 }

@@ -22,7 +22,7 @@ public:
 
     virtual SWindowDecorationExtents getWindowDecorationExtents() = 0;
 
-    virtual void draw(SMonitor*) = 0;
+    virtual void draw(SMonitor*, float a) = 0;
 
     virtual eDecorationType getDecorationType() = 0;
 

@@ -277,7 +277,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
         m_pActiveKeyboard->active = false;
     m_pActiveKeyboard = PNEWKEYBOARD;
 
-    setKeyboardLayout();
+    applyConfigToKeyboard(PNEWKEYBOARD);
 
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard->keyboard);
 
@@ -299,12 +299,19 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     const auto VARIANT = g_pConfigManager->getString("input:kb_variant");
     const auto OPTIONS = g_pConfigManager->getString("input:kb_options");
 
+    if (RULES != "" && RULES == pKeyboard->currentRules.rules && MODEL == pKeyboard->currentRules.model && LAYOUT == pKeyboard->currentRules.layout && VARIANT == pKeyboard->currentRules.variant && OPTIONS == pKeyboard->currentRules.options) {
+        Debug::log(LOG, "Not applying config to keyboard, it did not change.");
+        return;
+    }
+
     xkb_rule_names rules = {
         .rules = RULES.c_str(),
         .model = MODEL.c_str(),
         .layout = LAYOUT.c_str(),
         .variant = VARIANT.c_str(),
         .options = OPTIONS.c_str()};
+
+    pKeyboard->currentRules = rules;
 
     const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
@@ -313,12 +320,17 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         return;
     }
 
-    const auto KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    Debug::log(LOG, "Attempting to create a keymap for layout %s with variant %s (rules: %s, model: %s, options: %s)", rules.layout, rules.variant, rules.rules, rules.model, rules.options);
+
+    auto KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
     if (!KEYMAP) {
         Debug::log(ERR, "Keyboard layout %s with variant %s (rules: %s, model: %s, options: %s) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model, rules.options);
-        xkb_context_unref(CONTEXT);
-        return;
+        memset(&rules, 0, sizeof(rules));
+
+        pKeyboard->currentRules = rules;
+
+        KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
     wlr_keyboard_set_keymap(pKeyboard->keyboard->keyboard, KEYMAP);

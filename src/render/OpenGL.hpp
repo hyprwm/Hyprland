@@ -61,6 +61,7 @@ public:
     void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
     void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool border = false, bool allowPrimary = false);
     void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool border = false);
+    void    renderRoundedShadow(wlr_box*, int round, int range);
 
     void    makeWindowSnapshot(CWindow*);
     void    makeLayerSnapshot(SLayerSurface*);
@@ -106,6 +107,7 @@ private:
     CShader                 m_shEXT;
     CShader                 m_shBLUR1;
     CShader                 m_shBLUR2;
+    CShader                 m_shSHADOW;
     //
 
     GLuint                  createProgram(const std::string&, const std::string&);

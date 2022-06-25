@@ -954,8 +954,8 @@ void CKeybindManager::moveActive(std::string args) {
         const int X = std::stoi(newX);
         const int Y = std::stoi(newY);
 
-        if (X < 10 || Y < 10) {
-            Debug::log(ERR, "moveActive: exact args cannot be < 10");
+        if (X < 0 || Y < 0) {
+            Debug::log(ERR, "moveActive: exact args cannot be < 0");
             return;
         }
 

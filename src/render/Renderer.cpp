@@ -569,7 +569,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
         // damage by size & pos
         // TODO TEMP: revise when added shadows/etc
 
-        wlr_box damageBox = {pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, pWindow->m_vRealSize.vec().x, pWindow->m_vRealSize.vec().y};
+        wlr_box damageBox = pWindow->getFullWindowBoundingBox();
         for (auto& m : g_pCompositor->m_lMonitors) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;
@@ -584,8 +584,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             Debug::log(LOG, "Damage: Window floated (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
     } else {
         // damage by real size & pos + border size * 2 (JIC)
-        static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-        wlr_box damageBox = { pWindow->m_vRealPosition.vec().x - *PBORDERSIZE - 1, pWindow->m_vRealPosition.vec().y - *PBORDERSIZE - 1, pWindow->m_vRealSize.vec().x + 2 * *PBORDERSIZE + 2, pWindow->m_vRealSize.vec().y + 2 * *PBORDERSIZE + 2};
+        wlr_box damageBox = pWindow->getFullWindowBoundingBox();
         for (auto& m : g_pCompositor->m_lMonitors) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;

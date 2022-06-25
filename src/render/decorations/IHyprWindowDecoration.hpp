@@ -4,7 +4,8 @@
 
 enum eDecorationType {
     DECORATION_NONE = -1,
-    DECORATION_GROUPBAR
+    DECORATION_GROUPBAR,
+    DECORATION_SHADOW
 };
 
 struct SWindowDecorationExtents {

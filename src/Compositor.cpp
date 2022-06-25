@@ -7,6 +7,12 @@ CCompositor::CCompositor() {
 
     Debug::log(LOG, "Instance Signature: %s", m_szInstanceSignature.c_str());
 
+    Debug::log(LOG, "===== SYSTEM INFO: =====");
+
+    logSystemInfo();
+
+    Debug::log(LOG, "========================");
+
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
 
     const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;

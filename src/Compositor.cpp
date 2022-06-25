@@ -13,6 +13,10 @@ CCompositor::CCompositor() {
 
     Debug::log(LOG, "========================");
 
+    Debug::log(NONE, "\n\n"); // pad
+
+    Debug::log(INFO, "If you are crashing, or encounter any bugs, please consult https://github.com/hyprwm/Hyprland/wiki/Crashing-and-bugs\n\n");
+
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
 
     const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;

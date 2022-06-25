@@ -168,7 +168,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
 
     // render window decorations first
     for (auto& wd : pWindow->m_dWindowDecorations)
-        wd->draw(pMonitor);
+        wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f);
 
     if (!pWindow->m_bIsX11) {
 

@@ -61,7 +61,7 @@ public:
     void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
     void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool border = false, bool allowPrimary = false);
     void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool border = false);
-    void    renderRoundedShadow(wlr_box*, int round, int range);
+    void    renderRoundedShadow(wlr_box*, int round, int range, float a = 1.0);
 
     void    makeWindowSnapshot(CWindow*);
     void    makeLayerSnapshot(SLayerSurface*);

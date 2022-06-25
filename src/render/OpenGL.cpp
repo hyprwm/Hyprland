@@ -864,7 +864,7 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     pixman_region32_fini(&fakeDamage);
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range) {
+void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, float a) {
     RASSERT(m_RenderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box->width > 0 && box->height > 0), "Tried to render shadow with width/height < 0!");
 
@@ -891,7 +891,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range) {
     glUseProgram(m_shSHADOW.program);
 
     glUniformMatrix3fv(m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(glGetUniformLocation(m_shSHADOW.program, "color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
+    glUniform4f(glGetUniformLocation(m_shSHADOW.program, "color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
 
     const auto TOPLEFT = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(box->width - (range + round), box->height - (range + round));

@@ -176,6 +176,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
 
         g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
     }
+
+    PWINDOW->updateWindowDecos();
 }
 
 void CHyprDwindleLayout::onWindowCreated(CWindow* pWindow) {
@@ -514,11 +516,16 @@ void CHyprDwindleLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (g_pInputManager->dragButton == BTN_LEFT) {
         DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
+
+        DRAGGINGWINDOW->updateWindowDecos();
+
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
     } else {
         if (DRAGGINGWINDOW->m_bIsFloating) {
             DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
             DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().x, (double)20, (double)999999), std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().y, (double)20, (double)999999)));
+
+            DRAGGINGWINDOW->updateWindowDecos();
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
         } else {
@@ -551,6 +558,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
 
     if (!PNODE) {
         PWINDOW->m_vRealSize = Vector2D(std::clamp((PWINDOW->m_vRealSize.goalv() + pixResize).x, (double)20, (double)999999), std::clamp((PWINDOW->m_vRealSize.goalv() + pixResize).y, (double)20, (double)999999));
+        PWINDOW->updateWindowDecos();
         return;
     }
 

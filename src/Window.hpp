@@ -76,6 +76,7 @@ public:
 
     // For nofocus
     bool            m_bNoFocus = false;
+    bool            m_bNoInitialFocus = false;
 
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 

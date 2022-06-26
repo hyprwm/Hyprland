@@ -807,6 +807,10 @@ void CConfigManager::loadConfigLoadVars() {
 
     // Update window border colors
     g_pCompositor->updateAllWindowsBorders();
+
+    // Force the compositor to fully re-render all monitors
+    for (auto& m : g_pCompositor->m_lMonitors)
+        m.forceFullFrames = 2;
 }
 
 void CConfigManager::tick() {

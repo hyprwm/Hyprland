@@ -24,8 +24,7 @@ input {
 }
 
 general {
-    max_fps=60 # deprecated, unused
-    sensitivity=0.25
+    sensitivity=1.0 # for mouse cursor
     main_mod=SUPER
 
     gaps_in=5
@@ -34,7 +33,7 @@ general {
     col.active_border=0x66ee1111
     col.inactive_border=0x66333333
 
-    apply_sens_to_raw=0 # do not apply the sensitivity to raw input (e.g. used by games where you aim)
+    apply_sens_to_raw=0 # whether to apply the sensitivity to raw input (e.g. used by games where you aim using your mouse)
 
     damage_tracking=full # leave it on full unless you hate your GPU and want to make it suffer
 }

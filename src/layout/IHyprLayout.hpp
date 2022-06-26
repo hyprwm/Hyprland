@@ -84,7 +84,7 @@ public:
         The layout sets all the fullscreen flags.
         It can either accept or ignore.
     */
-    virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode)    = 0;
+    virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode, bool)    = 0;
 
     /*
         Called when a dispatcher requests a custom message

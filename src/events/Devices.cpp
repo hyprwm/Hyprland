@@ -50,7 +50,6 @@ void Events::listener_mouseButton(wl_listener* listener, void* data) {
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
     g_pInputManager->onMouseWheel((wlr_pointer_axis_event*)data);
-    
 }
 
 void Events::listener_requestMouse(wl_listener* listener, void* data) {

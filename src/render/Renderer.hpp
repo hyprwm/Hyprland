@@ -32,6 +32,9 @@ public:
     bool                shouldRenderWindow(CWindow*, SMonitor*);
     bool                shouldRenderWindow(CWindow*);
     void                ensureCursorRenderingMode();
+    bool                shouldRenderCursor();
+
+    bool                m_bWindowRequestedCursorHide = false;
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 

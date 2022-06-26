@@ -13,7 +13,6 @@ uniform vec2 fullSize;
 uniform float radius;
 uniform float range;
 uniform float shadowPower;
-uniform int ignoreWindow;
 
 float pixAlphaRoundedDistance(float distanceToCorner) {
      if (distanceToCorner > radius) {
@@ -75,7 +74,7 @@ void main() {
         }
     }
 
-    if (pixColor[3] == 0.0 || (ignoreWindow == 1 && pixColor[3] == originalAlpha)) {
+    if (pixColor[3] == 0.0) {
         discard; return;
     }
 

@@ -47,7 +47,7 @@ void CAnimationManager::tick() {
 
         wlr_box WLRBOXPREV = {0,0,0,0};
         if (PWINDOW) {
-            WLRBOXPREV = {(int)PWINDOW->m_vRealPosition.vec().x - (int)*PBORDERSIZE - 1, (int)PWINDOW->m_vRealPosition.vec().y - (int)*PBORDERSIZE - 1, (int)PWINDOW->m_vRealSize.vec().x + 2 * (int)*PBORDERSIZE + 2, (int)PWINDOW->m_vRealSize.vec().y + 2 * (int)*PBORDERSIZE + 2};
+            WLRBOXPREV = PWINDOW->getFullWindowBoundingBox();
         } else if (PWORKSPACE) {
             const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};

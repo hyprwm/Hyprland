@@ -53,6 +53,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:shadow_range"].intValue = 4;
     configValues["decoration:shadow_render_power"].intValue = 3;
     configValues["decoration:shadow_ignore_window"].intValue = 1;
+    configValues["decoration:shadow_offset"].strValue = "0 0";
     configValues["decoration:col.shadow"].intValue = 0xee1a1a1a;
 
     configValues["dwindle:pseudotile"].intValue = 0;

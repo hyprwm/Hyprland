@@ -4,6 +4,7 @@
 #include <list>
 #include "../../helpers/WLClasses.hpp"
 #include "../../Window.hpp"
+#include "../../helpers/Timer.hpp"
 
 class CInputManager {
 public:
@@ -52,6 +53,8 @@ public:
     void            focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
 
     SKeyboard*      m_pActiveKeyboard = nullptr;
+
+    CTimer          m_tmrLastCursorMovement;
 
 private:
 

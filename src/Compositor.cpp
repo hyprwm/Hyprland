@@ -7,6 +7,16 @@ CCompositor::CCompositor() {
 
     Debug::log(LOG, "Instance Signature: %s", m_szInstanceSignature.c_str());
 
+    Debug::log(LOG, "===== SYSTEM INFO: =====");
+
+    logSystemInfo();
+
+    Debug::log(LOG, "========================");
+
+    Debug::log(NONE, "\n\n"); // pad
+
+    Debug::log(INFO, "If you are crashing, or encounter any bugs, please consult https://github.com/hyprwm/Hyprland/wiki/Crashing-and-bugs\n\n");
+
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
 
     const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;
@@ -1105,4 +1115,18 @@ bool CCompositor::workspaceIDOutOfBounds(const int& id) {
     }
 
     return std::clamp(id, lowestID, highestID) != id;
+}
+
+void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode mode) {
+    if (!windowValidMapped(pWindow))
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
+
+    g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
+    // make all windows on the same workspace under the fullscreen window
+    for (auto& w : g_pCompositor->m_lWindows) {
+        if (w.m_iWorkspaceID == pWindow->m_iWorkspaceID)
+            w.m_bCreatedOverFullscreen = false;
+    }
 }

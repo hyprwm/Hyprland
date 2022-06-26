@@ -4,7 +4,8 @@
 
 enum eDecorationType {
     DECORATION_NONE = -1,
-    DECORATION_GROUPBAR
+    DECORATION_GROUPBAR,
+    DECORATION_SHADOW
 };
 
 struct SWindowDecorationExtents {
@@ -21,7 +22,7 @@ public:
 
     virtual SWindowDecorationExtents getWindowDecorationExtents() = 0;
 
-    virtual void draw(SMonitor*) = 0;
+    virtual void draw(SMonitor*, float a) = 0;
 
     virtual eDecorationType getDecorationType() = 0;
 

@@ -54,6 +54,7 @@ Try it out and report bugs / suggestions!
 - Custom bezier curve based animations
 - `wlr_ext` workspaces protocol support
 - Dual Kawase blur
+- Drop shadows
 - Fully dynamic workspaces
 - Closely follows `wlroots-git`
 - Bundled wlroots

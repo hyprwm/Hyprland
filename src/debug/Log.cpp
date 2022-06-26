@@ -31,6 +31,9 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
         case CRIT:
             ofs << "[CRITICAL] ";
             break;
+        case INFO:
+            ofs << "[INFO] ";
+            break;
         default:
             break;
     }

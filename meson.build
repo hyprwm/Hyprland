@@ -1,5 +1,5 @@
 project('Hyprland', 'cpp', 'c',
-  version : '0.5.0beta',
+  version : '0.6.0beta',
   default_options : ['warning_level=3', 'cpp_std=c++20', 'default_library=static'])
 
 wlroots = subproject('wlroots', default_options: ['examples=false'])

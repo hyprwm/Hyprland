@@ -18,14 +18,14 @@ CConfigManager::CConfigManager() {
 }
 
 void CConfigManager::setDefaultVars() {
-    configValues["general:max_fps"].intValue = 240;
-    configValues["general:sensitivity"].floatValue = 0.25f;
+    configValues["general:max_fps"].intValue = 60;
+    configValues["general:sensitivity"].floatValue = 1.0f;
     configValues["general:apply_sens_to_raw"].intValue = 0;
     configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
 
-    configValues["general:damage_tracking"].strValue = "none";
-    configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_NONE;
+    configValues["general:damage_tracking"].strValue = "full";
+    configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_FULL;
 
     configValues["general:border_size"].intValue = 1;
     configValues["general:no_border_on_floating"].intValue = 0;
@@ -33,6 +33,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:gaps_out"].intValue = 20;
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
+    configValues["general:cursor_inactive_timeout"].intValue = 0;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;
@@ -48,6 +49,11 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:fullscreen_opacity"].floatValue = 1;
     configValues["decoration:multisample_edges"].intValue = 0;
     configValues["decoration:no_blur_on_oversized"].intValue = 1;
+    configValues["decoration:drop_shadow"].intValue = 1;
+    configValues["decoration:shadow_range"].intValue = 4;
+    configValues["decoration:shadow_render_power"].intValue = 3;
+    configValues["decoration:shadow_ignore_window"].intValue = 1;
+    configValues["decoration:col.shadow"].intValue = 0xee1a1a1a;
 
     configValues["dwindle:pseudotile"].intValue = 0;
     configValues["dwindle:col.group_border"].intValue = 0x66777700;
@@ -76,7 +82,7 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:workspaces_speed"].floatValue = 0.f;
     configValues["animations:workspaces"].intValue = 1;
 
-    configValues["input:kb_layout"].strValue = "en";
+    configValues["input:kb_layout"].strValue = "us";
     configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
     configValues["input:kb_options"].strValue = STRVAL_EMPTY;
     configValues["input:kb_rules"].strValue = STRVAL_EMPTY;
@@ -481,7 +487,9 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         && RULE.find("size") != 0
         && RULE.find("pseudo") != 0
         && RULE.find("monitor") != 0
-        && RULE.find("nofocus") != 0
+        && RULE != "nofocus"
+        && RULE != "noblur"
+        && RULE != "fullscreen"
         && RULE.find("animation") != 0
         && RULE.find("rounding") != 0
         && RULE.find("workspace") != 0) {

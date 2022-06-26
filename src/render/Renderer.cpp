@@ -27,7 +27,13 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
     if (RDATA->surface && surface == RDATA->surface) {
         g_pHyprOpenGL->m_RenderData.renderingPrimarySurface = true;
-        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, RDATA->decorate);
+        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
+
+        if (RDATA->decorate) {
+            auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
+            col.a *= RDATA->fadeAlpha * RDATA->alpha / 255.f;
+            g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
+        }
     }
     else
         g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, false, false);

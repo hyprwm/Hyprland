@@ -772,7 +772,8 @@ void CHyprRenderer::ensureCursorRenderingMode() {
         } else if (*PCURSORTIMEOUT > PASSEDCURSORSECONDS && !m_bHasARenderedCursor) {
             m_bHasARenderedCursor = true;
 
-            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+            if (!m_bWindowRequestedCursorHide)
+                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
 
             Debug::log(LOG, "Showing the cursor (timeout)");
 
@@ -782,4 +783,8 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     } else {
         m_bHasARenderedCursor = true;
     }
+}
+
+bool CHyprRenderer::shouldRenderCursor() {
+    return m_bHasARenderedCursor;
 }

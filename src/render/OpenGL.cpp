@@ -858,7 +858,6 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
 
     static auto *const PSHADOWCOL = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow")->intValue;
     static auto *const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->intValue;
-    static auto *const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
 
     const auto SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
 
@@ -892,7 +891,6 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glUniform1f(glGetUniformLocation(m_shSHADOW.program, "radius"), range + round);
     glUniform1f(glGetUniformLocation(m_shSHADOW.program, "range"), range);
     glUniform1f(glGetUniformLocation(m_shSHADOW.program, "shadowPower"), SHADOWPOWER);
-    glUniform1i(glGetUniformLocation(m_shSHADOW.program, "ignoreWindow"), *PSHADOWIGNOREWINDOW);
 
     glVertexAttribPointer(m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);

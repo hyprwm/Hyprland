@@ -366,14 +366,7 @@ void CKeybindManager::fullscreenActive(std::string args) {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;
 
-    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, args == "1" ? eFullscreenMode::FULLSCREEN_MAXIMIZED : eFullscreenMode::FULLSCREEN_FULL);
-
-    g_pXWaylandManager->setWindowFullscreen(PWINDOW, PWINDOW->m_bIsFullscreen && (args == "0" || args == ""));
-    // make all windows on the same workspace under the fullscreen window
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (w.m_iWorkspaceID == PWINDOW->m_iWorkspaceID)
-            w.m_bCreatedOverFullscreen = false;
-    }
+    g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, args == "1" ? FULLSCREEN_MAXIMIZED : FULLSCREEN_FULL);
 }
 
 void CKeybindManager::moveActiveToWorkspace(std::string args) {

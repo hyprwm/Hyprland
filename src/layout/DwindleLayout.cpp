@@ -676,21 +676,24 @@ void CHyprDwindleLayout::onWindowCreatedFloating(CWindow* pWindow) {
     g_pCompositor->moveWindowToTop(pWindow);
 }
 
-void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode) {
+void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode, bool on) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
+
+    if (on == pWindow->m_bIsFullscreen)
+        return; // ignore
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
-    if (PWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen) {
+    if (PWORKSPACE->m_bHasFullscreenWindow && on) {
         // if the window wants to be fullscreen but there already is one,
         // ignore the request.
         return;
     }
 
     // otherwise, accept it.
-    pWindow->m_bIsFullscreen = !pWindow->m_bIsFullscreen;
+    pWindow->m_bIsFullscreen = on;
     PWORKSPACE->m_bHasFullscreenWindow = !PWORKSPACE->m_bHasFullscreenWindow;
 
     if (!pWindow->m_bIsFullscreen) {

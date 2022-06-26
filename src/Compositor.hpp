@@ -132,6 +132,7 @@ public:
     int                     getNextAvailableMonitorID();
     void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);
     bool                    workspaceIDOutOfBounds(const int&);
+    void                    setWindowFullscreen(CWindow*, bool, eFullscreenMode);
 
 private:
     void                    initAllSignals();

@@ -78,7 +78,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
         const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PFULLWINDOW, FULLSCREEN_FULL);
+        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PFULLWINDOW, FULLSCREEN_FULL, false);
         g_pXWaylandManager->setWindowFullscreen(PFULLWINDOW, PFULLWINDOW->m_bIsFullscreen);
     }
 
@@ -86,6 +86,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(PWINDOW);
     std::string requestedWorkspace = "";
     bool workspaceSilent = false;
+    bool requestsFullscreen = false;
 
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {
@@ -129,6 +130,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bNoFocus = true;
         } else if (r.szRule == "noblur") {
             PWINDOW->m_sAdditionalConfigData.forceNoBlur = true;
+        } else if (r.szRule == "fullscreen") {
+            requestsFullscreen = true;
         } else if (r.szRule.find("rounding") == 0) {
             try {
                 PWINDOW->m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -254,6 +257,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else {
             Debug::log(ERR, "Tried to set workspace silent rule to a nofocus window!");
         }
+    }
+
+    if (requestsFullscreen) {
+        g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
     }
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
@@ -386,9 +393,9 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 
         if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
-            g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL);
+            g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, true);
     } else {
-        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL);
+        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, true);
     }
 
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);

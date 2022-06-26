@@ -1116,3 +1116,17 @@ bool CCompositor::workspaceIDOutOfBounds(const int& id) {
 
     return std::clamp(id, lowestID, highestID) != id;
 }
+
+void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode mode) {
+    if (!windowValidMapped(pWindow))
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
+
+    g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
+    // make all windows on the same workspace under the fullscreen window
+    for (auto& w : g_pCompositor->m_lWindows) {
+        if (w.m_iWorkspaceID == pWindow->m_iWorkspaceID)
+            w.m_bCreatedOverFullscreen = false;
+    }
+}

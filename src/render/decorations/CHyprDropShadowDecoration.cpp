@@ -35,6 +35,15 @@ void CHyprDropShadowDecoration::damageEntire() {
 
 void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
     damageEntire();
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (pWindow->m_vRealPosition.vec() + PWORKSPACE->m_vRenderOffset.vec() != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
+        m_vLastWindowPos = pWindow->m_vRealPosition.vec() + PWORKSPACE->m_vRenderOffset.vec();
+        m_vLastWindowSize = pWindow->m_vRealSize.vec();
+
+        damageEntire();
+    }
 }
 
 void CHyprDropShadowDecoration::draw(SMonitor* pMonitor, float a) {
@@ -68,9 +77,6 @@ void CHyprDropShadowDecoration::draw(SMonitor* pMonitor, float a) {
 
     // update the extents
     m_seExtents = {{*PSHADOWSIZE + 2 - offset.x, *PSHADOWSIZE + 2 - offset.y}, {*PSHADOWSIZE + 2 + offset.x, *PSHADOWSIZE + 2 + offset.y}};
-
-    m_vLastWindowPos = m_pWindow->m_vRealPosition.vec();
-    m_vLastWindowSize = m_pWindow->m_vRealSize.vec();
 
     // draw the shadow
     wlr_box fullBox = {m_vLastWindowPos.x - m_seExtents.topLeft.x + 2, m_vLastWindowPos.y - m_seExtents.topLeft.y + 2, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x - 4, m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y - 4};

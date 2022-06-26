@@ -150,8 +150,16 @@ void CAnimationManager::tick() {
 
                 if (PWINDOW) {
                     g_pHyprRenderer->damageWindow(PWINDOW);
-                    for (auto& wd : PWINDOW->m_dWindowDecorations) {
-                        wd->updateWindow(PWINDOW);
+                    PWINDOW->updateWindowDecos();
+                } else if (PWORKSPACE) {
+                    for (auto& w : g_pCompositor->m_lWindows) {
+                        if (!w.m_bIsMapped || w.m_bHidden)
+                            continue;
+
+                        if (w.m_iWorkspaceID != PWORKSPACE->m_iID)
+                            continue;
+
+                        w.updateWindowDecos();
                     }
                 }
                 break;

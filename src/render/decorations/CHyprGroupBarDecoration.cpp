@@ -21,14 +21,16 @@ eDecorationType CHyprGroupBarDecoration::getDecorationType() {
 void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
     damageEntire();
 
-    if (pWindow->m_vRealPosition.vec() != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (pWindow->m_vRealPosition.vec() + PWORKSPACE->m_vRenderOffset.vec() != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
         // we draw 3px above the window's border with 3px
         const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
 
         m_seExtents.topLeft = Vector2D(0, BORDERSIZE + 3 + 3);
         m_seExtents.bottomRight = Vector2D();
 
-        m_vLastWindowPos = pWindow->m_vRealPosition.vec();
+        m_vLastWindowPos = pWindow->m_vRealPosition.vec() + PWORKSPACE->m_vRenderOffset.vec();
         m_vLastWindowSize = pWindow->m_vRealSize.vec();
     }
 

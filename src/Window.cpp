@@ -73,3 +73,8 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 
     return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
 }
+
+void CWindow::updateWindowDecos() {
+    for (auto& wd : m_dWindowDecorations)
+        wd->updateWindow(this);
+}

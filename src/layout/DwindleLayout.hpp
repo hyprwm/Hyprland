@@ -53,7 +53,7 @@ public:
     virtual void        onEndDragWindow();
     virtual void        onMouseMove(const Vector2D&);
     virtual void        onWindowCreatedFloating(CWindow*);
-    virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode);
+    virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode, bool);
     virtual std::any    layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
     virtual void        switchWindows(CWindow*, CWindow*);

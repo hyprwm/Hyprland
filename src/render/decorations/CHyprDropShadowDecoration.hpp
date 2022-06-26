@@ -1,12 +1,11 @@
 #pragma once
 
 #include "IHyprWindowDecoration.hpp"
-#include <deque>
 
-class CHyprGroupBarDecoration : public IHyprWindowDecoration {
+class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 public:
-    CHyprGroupBarDecoration(CWindow*);
-    virtual ~CHyprGroupBarDecoration();
+    CHyprDropShadowDecoration(CWindow*);
+    virtual ~CHyprDropShadowDecoration();
 
     virtual SWindowDecorationExtents getWindowDecorationExtents();
 
@@ -25,6 +24,4 @@ private:
 
     Vector2D                    m_vLastWindowPos;
     Vector2D                    m_vLastWindowSize;
-
-    std::deque<CWindow*>        m_dwGroupMembers;
 };

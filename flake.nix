@@ -32,7 +32,7 @@
         src = inputs.wlroots;
       });
       hyprland = prev.callPackage ./nix/default.nix {
-        version = "0.5.0beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
+        version = "0.6.0beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
         wlroots = wlroots-hyprland;
       };
     };

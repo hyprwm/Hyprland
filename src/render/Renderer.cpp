@@ -168,7 +168,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
 
     // render window decorations first
     for (auto& wd : pWindow->m_dWindowDecorations)
-        wd->draw(pMonitor);
+        wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f);
 
     if (!pWindow->m_bIsX11) {
 
@@ -194,12 +194,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-    if (pWindow->m_bIsX11) {
-        if (pWindow->m_uSurface.xwayland->surface) {
-            wlr_surface_for_each_surface(pWindow->m_uSurface.xwayland->surface, renderSurface, &renderdata);
-        }
-    }
-    else {
+    if (!pWindow->m_bIsX11) {
         renderdata.dontRound = false; // restore dontround
         renderdata.pMonitor = pMonitor;
         wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
@@ -574,7 +569,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
         // damage by size & pos
         // TODO TEMP: revise when added shadows/etc
 
-        wlr_box damageBox = {pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, pWindow->m_vRealSize.vec().x, pWindow->m_vRealSize.vec().y};
+        wlr_box damageBox = pWindow->getFullWindowBoundingBox();
         for (auto& m : g_pCompositor->m_lMonitors) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;
@@ -589,8 +584,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
             Debug::log(LOG, "Damage: Window floated (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
     } else {
         // damage by real size & pos + border size * 2 (JIC)
-        static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-        wlr_box damageBox = { pWindow->m_vRealPosition.vec().x - *PBORDERSIZE - 1, pWindow->m_vRealPosition.vec().y - *PBORDERSIZE - 1, pWindow->m_vRealSize.vec().x + 2 * *PBORDERSIZE + 2, pWindow->m_vRealSize.vec().y + 2 * *PBORDERSIZE + 2};
+        wlr_box damageBox = pWindow->getFullWindowBoundingBox();
         for (auto& m : g_pCompositor->m_lMonitors) {
             wlr_box fixedDamageBox = damageBox;
             fixedDamageBox.x -= m.vecPosition.x;
@@ -758,4 +752,39 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
 
     // frame skip
     pMonitor->framesToSkip = 1;
+}
+
+void CHyprRenderer::ensureCursorRenderingMode() {
+    static auto *const PCURSORTIMEOUT = &g_pConfigManager->getConfigValuePtr("general:cursor_inactive_timeout")->intValue;
+
+    const auto PASSEDCURSORSECONDS = g_pInputManager->m_tmrLastCursorMovement.getSeconds();
+
+    if (*PCURSORTIMEOUT > 0) {
+        if (*PCURSORTIMEOUT < PASSEDCURSORSECONDS && m_bHasARenderedCursor) {
+            m_bHasARenderedCursor = false;
+
+            wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, nullptr, 0, 0); // hide
+
+            Debug::log(LOG, "Hiding the cursor (timeout)");
+
+            for (auto& m : g_pCompositor->m_lMonitors)
+                g_pHyprRenderer->damageMonitor(&m);  // TODO: maybe just damage the cursor area?
+        } else if (*PCURSORTIMEOUT > PASSEDCURSORSECONDS && !m_bHasARenderedCursor) {
+            m_bHasARenderedCursor = true;
+
+            if (!m_bWindowRequestedCursorHide)
+                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+
+            Debug::log(LOG, "Showing the cursor (timeout)");
+
+            for (auto& m : g_pCompositor->m_lMonitors)
+                g_pHyprRenderer->damageMonitor(&m);  // TODO: maybe just damage the cursor area?
+        }
+    } else {
+        m_bHasARenderedCursor = true;
+    }
+}
+
+bool CHyprRenderer::shouldRenderCursor() {
+    return m_bHasARenderedCursor;
 }

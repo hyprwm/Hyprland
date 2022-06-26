@@ -68,7 +68,7 @@ void CHyprGroupBarDecoration::damageEntire() {
     g_pHyprRenderer->damageBox(&dm);
 }
 
-void CHyprGroupBarDecoration::draw(SMonitor* pMonitor) {
+void CHyprGroupBarDecoration::draw(SMonitor* pMonitor, float a) {
     // get how many bars we will draw
     int barsToDraw = m_dwGroupMembers.size();
 
@@ -88,6 +88,7 @@ void CHyprGroupBarDecoration::draw(SMonitor* pMonitor) {
             break;
 
         CColor color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? CColor(g_pConfigManager->getInt("dwindle:col.group_border_active")) : CColor(g_pConfigManager->getInt("dwindle:col.group_border"));
+        color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 
         xoff += PAD + BARW;

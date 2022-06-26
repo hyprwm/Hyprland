@@ -75,6 +75,12 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shBLUR2.posAttrib = glGetAttribLocation(prog, "pos");
     m_shBLUR2.texAttrib = glGetAttribLocation(prog, "texcoord");
 
+    prog = createProgram(QUADVERTSRC, FRAGSHADOW);
+    m_shSHADOW.program = prog;
+    m_shSHADOW.proj = glGetUniformLocation(prog, "proj");
+    m_shSHADOW.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shSHADOW.texAttrib = glGetAttribLocation(prog, "texcoord");
+
     Debug::log(LOG, "Shaders initialized successfully.");
 
     // End shaders
@@ -566,7 +572,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
     static auto* const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
 
-    if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1))) {
+    if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
         renderTexture(tex, pBox, a, round, false, border, true);
         return;
     }
@@ -856,6 +862,68 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PLAYER->alpha.fl(), &fakeDamage, 0);
 
     pixman_region32_fini(&fakeDamage);
+}
+
+void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, float a) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render shadow without begin()!");
+    RASSERT((box->width > 0 && box->height > 0), "Tried to render shadow with width/height < 0!");
+
+    static auto *const PSHADOWCOL = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow")->intValue;
+    static auto *const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->intValue;
+    static auto *const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
+
+    const auto SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
+
+    const auto col = CColor(*PSHADOWCOL);
+
+    float matrix[9];
+    wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+
+    wlr_matrix_transpose(glMatrix, glMatrix);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUseProgram(m_shSHADOW.program);
+
+    glUniformMatrix3fv(m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
+    glUniform4f(glGetUniformLocation(m_shSHADOW.program, "color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
+
+    const auto TOPLEFT = Vector2D(range + round, range + round);
+    const auto BOTTOMRIGHT = Vector2D(box->width - (range + round), box->height - (range + round));
+    const auto FULLSIZE = Vector2D(box->width, box->height);
+
+    // Rounded corners
+    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "radius"), range + round);
+    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "range"), range);
+    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "shadowPower"), SHADOWPOWER);
+    glUniform1i(glGetUniformLocation(m_shSHADOW.program, "ignoreWindow"), *PSHADOWIGNOREWINDOW);
+
+    glVertexAttribPointer(m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+    glEnableVertexAttribArray(m_shSHADOW.posAttrib);
+    glEnableVertexAttribArray(m_shSHADOW.texAttrib);
+
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
+
+    glDisableVertexAttribArray(m_shSHADOW.posAttrib);
+    glDisableVertexAttribArray(m_shSHADOW.texAttrib);
+
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {

@@ -81,6 +81,12 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shSHADOW.posAttrib = glGetAttribLocation(prog, "pos");
     m_shSHADOW.texAttrib = glGetAttribLocation(prog, "texcoord");
 
+    prog = createProgram(QUADVERTSRC, FRAGBORDER1);
+    m_shBORDER1.program = prog;
+    m_shBORDER1.proj = glGetUniformLocation(prog, "proj");
+    m_shBORDER1.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shBORDER1.texAttrib = glGetAttribLocation(prog, "texcoord");
+
     Debug::log(LOG, "Shaders initialized successfully.");
 
     // End shaders
@@ -309,15 +315,15 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
     renderTexture(CTexture(tex), pBox, alpha, round);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool border, bool allowPrimary) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowPrimary) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, border, false, allowPrimary);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowPrimary);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool border, bool noAA, bool allowPrimary) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowPrimary) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -351,23 +357,6 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
             RASSERT(false, "tex.m_iTarget unsupported!");
     }
 
-    // stencil for when we want a border
-    if (border) {
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
-
-        glEnable(GL_STENCIL_TEST);
-
-        glStencilFunc(GL_ALWAYS, 1, -1);
-        glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-
-        // hacky fix to fix broken borders.
-        // TODO: this is kinda slow... question mark?
-        renderRect(pBox, CColor(0, 0, 0, 0), round);
-
-        glDisable(GL_STENCIL_TEST);
-    }
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex.m_iTarget, tex.m_iTexID);
 
@@ -393,7 +382,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glUniform2f(glGetUniformLocation(shader->program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
     glUniform2f(glGetUniformLocation(shader->program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
     glUniform1f(glGetUniformLocation(shader->program, "radius"), round);
-    glUniform1i(glGetUniformLocation(shader->program, "primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !border && !noAA));
+    glUniform1i(glGetUniformLocation(shader->program, "primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
@@ -421,30 +410,10 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         }
     }
 
-    if (border) {
-        glEnable(GL_STENCIL_TEST);
-
-        glStencilFunc(GL_EQUAL, 1, -1);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-    }
-
     glDisableVertexAttribArray(shader->posAttrib);
     glDisableVertexAttribArray(shader->texAttrib);
 
     glBindTexture(tex.m_iTarget, 0);
-
-    // if border draw
-    // we dont disable stencil here if we havent touched it. 
-    // some other func might be using it.
-    if (border) {
-        auto BORDERCOL = m_pCurrentWindow->m_cRealBorderColor.col();
-        static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-        BORDERCOL.a *= alpha / 255.f;
-        renderBorder(pBox, BORDERCOL, *PBORDERSIZE, round);
-        glStencilMask(-1);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glDisable(GL_STENCIL_TEST);
-    }
 }
 
 // This probably isn't the fastest
@@ -566,14 +535,14 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     return currentRenderToFB;
 }
 
-void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round, bool border) {
+void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
     static auto* const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
 
     if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
-        renderTexture(tex, pBox, a, round, false, border, true);
+        renderTexture(tex, pBox, a, round, false, true);
         return;
     }
 
@@ -596,7 +565,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     }
 
     if (!pixman_region32_not_empty(&inverseOpaque)) {
-        renderTexture(tex, pBox, a, round, false, border); // reject blurring a fully opaque window
+        renderTexture(tex, pBox, a, round, false); // reject blurring a fully opaque window
         return;
     }
 
@@ -630,7 +599,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
         static auto *const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
-        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, false, true);
+        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, true);
 
         // render the window, but clear stencil
         glClearStencil(0);
@@ -638,36 +607,11 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
         // draw window
         glDisable(GL_STENCIL_TEST);
-        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true, true);
-        glEnable(GL_STENCIL_TEST);
-
-        // prep stencil for border
-        glStencilFunc(GL_ALWAYS, 1, -1);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-        if (border) {
-            // hacky fix to fix broken borders.
-            // TODO: this is kinda slow... question mark?
-            renderRectWithDamage(pBox, CColor(0,0,0,0), &damage, round);
-        }
-
-        // then stop
-        glStencilFunc(GL_EQUAL, 1, -1);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true);
     }
 
-    // disable the stencil (if no border), finalize everything
-    if (!border) {
-        glStencilMask(-1);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    } else {
-        auto BORDERCOL = m_pCurrentWindow->m_cRealBorderColor.col();
-        BORDERCOL.a *= a / 255.f;
-        static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-        renderBorder(pBox, BORDERCOL, *PBORDERSIZE, round);
-    }
-    
-    glDisable(GL_STENCIL_TEST);
+    glStencilMask(-1);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
     pixman_region32_fini(&damage);
     scissor((wlr_box*)nullptr);
 }
@@ -679,23 +623,67 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
     counter++;
 }
 
-void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, int round) {
+void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
-    // this method assumes a set stencil and scaled box
-    box->x -= thick;
-    box->y -= thick;
-    box->width += 2 * thick;
-    box->height += 2 * thick;
+    static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto *const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
-    round += thick; // cuz yeah
+    // adjust box
+    box->x -= *PBORDERSIZE;
+    box->y -= *PBORDERSIZE;
+    box->width += 2 * *PBORDERSIZE;
+    box->height += 2 * *PBORDERSIZE;
 
-    // only draw on non-stencild.
-    glStencilFunc(GL_NOTEQUAL, 1, -1);
+    round += *PBORDERSIZE;
 
-    // draw a rounded rect
-    renderRect(box, col, round);
+    float matrix[9];
+    wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+
+    wlr_matrix_transpose(glMatrix, glMatrix);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUseProgram(m_shBORDER1.program);
+
+    glUniformMatrix3fv(m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
+    glUniform4f(glGetUniformLocation(m_shBORDER1.program, "color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
+
+    const auto TOPLEFT = Vector2D(round, round);
+    const auto BOTTOMRIGHT = Vector2D(box->width - round, box->height - round);
+    const auto FULLSIZE = Vector2D(box->width, box->height);
+
+    glUniform2f(glGetUniformLocation(m_shBORDER1.program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(glGetUniformLocation(m_shBORDER1.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(glGetUniformLocation(m_shBORDER1.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(glGetUniformLocation(m_shBORDER1.program, "radius"), round);
+    glUniform1f(glGetUniformLocation(m_shBORDER1.program, "thick"), *PBORDERSIZE);
+    glUniform1i(glGetUniformLocation(m_shBORDER1.program, "primitiveMultisample"), *PMULTISAMPLE);
+
+    glVertexAttribPointer(m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+    glEnableVertexAttribArray(m_shBORDER1.posAttrib);
+    glEnableVertexAttribArray(m_shBORDER1.texAttrib);
+
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
+
+    glDisableVertexAttribArray(m_shBORDER1.posAttrib);
+    glDisableVertexAttribArray(m_shBORDER1.texAttrib);
+
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {

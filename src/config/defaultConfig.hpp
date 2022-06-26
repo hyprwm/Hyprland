@@ -71,6 +71,7 @@ dwindle {
 
 # example binds
 bind=SUPER,Q,exec,kitty
+bind=SUPER,RETURN,exec,alacritty
 bind=SUPER,C,killactive,
 bind=SUPER,M,exit,
 bind=SUPER,E,exec,dolphin

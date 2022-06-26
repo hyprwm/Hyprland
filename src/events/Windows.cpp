@@ -228,7 +228,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv() - Vector2D(10,10);
     }
 
-    if (!PWINDOW->m_bNoFocus)
+    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus)
         g_pCompositor->focusWindow(PWINDOW);
 
     PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);

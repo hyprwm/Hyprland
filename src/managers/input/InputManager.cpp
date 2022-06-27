@@ -164,7 +164,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords);
 
     if (!foundSurface) {
-        wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+        if (m_ecbClickBehavior == CLICKMODE_KILL)
+            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
+        else
+            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
 
         wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
 
@@ -211,10 +214,70 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 
     m_tmrLastCursorMovement.reset();
 
+    switch (m_ecbClickBehavior) {
+        case CLICKMODE_DEFAULT:
+            processMouseDownNormal(e);
+            break;
+        case CLICKMODE_KILL:
+            processMouseDownKill(e);
+            break;
+        default:
+            break;
+    }
+}
+
+void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e) {
+    if (!g_pHyprRenderer->shouldRenderCursor())
+        return;
+
+    if (!e->surface) {
+        g_pHyprRenderer->m_bWindowRequestedCursorHide = true;
+    } else {
+        g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
+    }
+
+    if (m_ecbClickBehavior == CLICKMODE_KILL) {
+        wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
+        return;
+    }
+
+    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
+        wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, e->surface, e->hotspot_x, e->hotspot_y);
+}
+
+eClickBehaviorMode CInputManager::getClickMode() {
+    return m_ecbClickBehavior;
+}
+
+void CInputManager::setClickMode(eClickBehaviorMode mode) {
+    switch (mode) {
+        case CLICKMODE_DEFAULT:
+            Debug::log(LOG, "SetClickMode: DEFAULT");
+            m_ecbClickBehavior = CLICKMODE_DEFAULT;
+            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+            break;
+
+        case CLICKMODE_KILL:
+            Debug::log(LOG, "SetClickMode: KILL");
+            m_ecbClickBehavior = CLICKMODE_KILL;
+
+            // remove constraints
+            g_pCompositor->m_sSeat.mouse->constraintActive = false;
+            refocus();
+
+            // set cursor
+            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
+            break;
+        default:
+            break;
+    } 
+}
+
+void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
 
-    if (!PKEYBOARD) { // ???
-        Debug::log(ERR, "No active keyboard in onMouseButton??");
+    if (!PKEYBOARD) {  // ???
+        Debug::log(ERR, "No active keyboard in processMouseDownNormal??");
         return;
     }
 
@@ -242,7 +305,7 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
                 currentlyDraggedWindow = nullptr;
                 dragButton = -1;
             }
-            
+
             break;
     }
 
@@ -250,7 +313,30 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     if (g_pCompositor->doesSeatAcceptInput(g_pCompositor->m_pLastFocus)) {
         wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, e->time_msec, e->button, e->state);
     }
-        
+}
+
+void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
+    switch (e->state) {
+        case WLR_BUTTON_PRESSED: {
+            const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+            if (!g_pCompositor->windowValidMapped(PWINDOW)){
+                Debug::log(ERR, "Cannot kill invalid window!");
+                break;
+            }
+
+            // kill the mf
+            kill(PWINDOW->getPID(), SIGKILL);
+            break;
+        }
+        case WLR_BUTTON_RELEASED:
+            break;
+        default:
+            break;
+    }
+
+    // reset click behavior mode
+    m_ecbClickBehavior = CLICKMODE_DEFAULT;
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

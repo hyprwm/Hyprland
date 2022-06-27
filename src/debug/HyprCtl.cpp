@@ -27,16 +27,8 @@ std::string clientsRequest() {
     std::string result = "";
     for (auto& w : g_pCompositor->m_lWindows) {
         if (w.m_bIsMapped) {
-            pid_t PID = -1;
-            if (!w.m_bIsX11) {
-                const auto CLIENT = wl_resource_get_client(w.m_uSurface.xdg->resource);
-                wl_client_get_credentials(CLIENT, &PID, nullptr, nullptr);
-            } else {
-                PID = w.m_uSurface.xwayland->pid;
-            }
-
             result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
-                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.vec().x, (int)w.m_vRealPosition.vec().y, (int)w.m_vRealSize.vec().x, (int)w.m_vRealSize.vec().y, w.m_iWorkspaceID, (w.m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w.m_iWorkspaceID)).c_str()), (int)w.m_bIsFloating, w.m_iMonitorID, g_pXWaylandManager->getAppIDClass(&w).c_str(), g_pXWaylandManager->getTitle(&w).c_str(), PID);
+                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.vec().x, (int)w.m_vRealPosition.vec().y, (int)w.m_vRealSize.vec().x, (int)w.m_vRealSize.vec().y, w.m_iWorkspaceID, (w.m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w.m_iWorkspaceID)).c_str()), (int)w.m_bIsFloating, w.m_iMonitorID, g_pXWaylandManager->getAppIDClass(&w).c_str(), g_pXWaylandManager->getTitle(&w).c_str(), w.getPID());
     
         }
     }
@@ -58,16 +50,8 @@ std::string activeWindowRequest() {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return "Invalid";
 
-    pid_t PID = -1;
-    if (!PWINDOW->m_bIsX11) {
-        const auto CLIENT = wl_resource_get_client(PWINDOW->m_uSurface.xdg->resource);
-        wl_client_get_credentials(CLIENT, &PID, nullptr, nullptr);
-    } else {
-        PID = PWINDOW->m_uSurface.xwayland->pid;
-    }
-
     return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
-                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating, (int)PWINDOW->m_iMonitorID, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), g_pXWaylandManager->getTitle(PWINDOW).c_str(), PID);
+                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating, (int)PWINDOW->m_iMonitorID, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), g_pXWaylandManager->getTitle(PWINDOW).c_str(), PWINDOW->getPID());
 }
 
 std::string layersRequest() {
@@ -191,6 +175,12 @@ std::string reloadRequest() {
     return "ok";
 }
 
+std::string killRequest() {
+    g_pInputManager->setClickMode(CLICKMODE_KILL);
+
+    return "ok";
+}
+
 std::string getReply(std::string);
 
 std::string dispatchBatch(std::string request) {
@@ -232,6 +222,8 @@ std::string getReply(std::string request) {
         return workspacesRequest();
     else if (request == "clients")
         return clientsRequest();
+    else if (request == "kill")
+        return killRequest();
     else if (request == "activewindow")
         return activeWindowRequest();
     else if (request == "layers")

@@ -292,6 +292,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
     }
 
+    if (PWINDOW->m_bIsFullscreen) {
+        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, false);
+        g_pXWaylandManager->setWindowFullscreen(PWINDOW, PWINDOW->m_bIsFullscreen);
+    }
+
     // Allow the renderer to catch the last frame.
     g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
 

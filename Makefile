@@ -123,6 +123,8 @@ install:
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
 	rm -rf /usr/include/wlr
+	rm -f /usr/lib/libwlroots.so
+	rm -f /usr/lib/pkgconfig/wlroots.pc
 	[ ! -d /usr/include/wlrBackup ] || mv /usr/include/wlrBackup /usr/include/wlr
 	[ ! -f /usr/lib/libwlroots.so.backup ] || mv -f /usr/lib/libwlroots.so.backup /usr/lib/libwlroots.so
 	[ ! -f /usr/lib/pkgconfig/wlroots.pc.backup ] || mv -f /usr/lib/pkgconfig/wlroots.pc.backup /usr/lib/pkgconfig/wlroots.pc

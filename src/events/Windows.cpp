@@ -260,6 +260,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     if (requestsFullscreen) {
+        // fix fullscreen on requested (basically do a switcheroo)
+        if (PWORKSPACE->m_bHasFullscreenWindow) {
+            const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+            g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PFULLWINDOW, FULLSCREEN_FULL, false);
+            g_pXWaylandManager->setWindowFullscreen(PFULLWINDOW, PFULLWINDOW->m_bIsFullscreen);
+        }
+
         g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
     }
 

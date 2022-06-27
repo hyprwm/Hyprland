@@ -883,7 +883,10 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         g_pCompositor->m_pLastMonitor->specialWorkspaceOpen = true;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
 
-        g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(true, true);
+        const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID);
+
+        PSPECIALWORKSPACE->startAnim(true, true);
+        PSPECIALWORKSPACE->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
     }
 
     g_pInputManager->refocus();

@@ -84,6 +84,9 @@ void CHyprDropShadowDecoration::draw(SMonitor* pMonitor, float a) {
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
 
+    if (fullBox.width < 1 || fullBox.height < 1)
+        return; // don't draw invisible shadows
+
     if (*PSHADOWIGNOREWINDOW) {
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);

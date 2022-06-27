@@ -97,6 +97,12 @@ void CHyprDropShadowDecoration::draw(SMonitor* pMonitor, float a) {
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         wlr_box windowBox = {m_vLastWindowPos.x - pMonitor->vecPosition.x, m_vLastWindowPos.y - pMonitor->vecPosition.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
+        
+        if (windowBox.width < 1 || windowBox.height < 1) {
+		    glDisable(GL_STENCIL_TEST);
+		    return; // prevent assert failed
+        }
+	
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0,0,0,0), *PROUNDING);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);

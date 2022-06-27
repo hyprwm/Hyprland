@@ -8,7 +8,7 @@ public:
     CHyprGroupBarDecoration(CWindow*);
     virtual ~CHyprGroupBarDecoration();
 
-    virtual SWindowDecorationExtents getWindowDecorationExtents();
+   // virtual SWindowDecorationExtents getWindowDecorationExtents();
 
     virtual void draw(SMonitor*, float a);
 

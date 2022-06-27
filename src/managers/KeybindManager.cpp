@@ -108,7 +108,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
     return found;
 }
 
-bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
+bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     // Handles the CTRL+ALT+FX TTY keybinds
     if (!(keysym >= XKB_KEY_XF86Switch_VT_1 && keysym <= XKB_KEY_XF86Switch_VT_12))
         return false;
@@ -119,14 +119,31 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
         wlr_session_change_vt(PSESSION, TTY);
 
         for (auto& m : g_pCompositor->m_lMonitors) {
-            g_pHyprOpenGL->destroyMonitorResources(&m); // mark resources as unusable anymore
+            g_pHyprOpenGL->destroyMonitorResources(&m);  // mark resources as unusable anymore
             m.noFrameSchedule = true;
             m.framesToSkip = 2;
         }
 
         Debug::log(LOG, "Switched to VT %i, destroyed all render data, frames to skip for each: 2", TTY);
-        
+
         return true;
+    }
+
+    return false;
+}
+
+bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
+    if (handleVT(keysym))
+        return true;
+
+    // handle ESC while in kill mode
+    if (g_pInputManager->getClickMode() == CLICKMODE_KILL) {
+        const auto KBKEY = xkb_keysym_from_name("ESCAPE", XKB_KEYSYM_CASE_INSENSITIVE);
+
+        if (keysym == KBKEY) {
+            g_pInputManager->setClickMode(CLICKMODE_DEFAULT);
+            return true;
+        }
     }
 
     return false;

@@ -112,5 +112,6 @@ public:
     wlr_box         getFullWindowBoundingBox();
     wlr_box         getWindowIdealBoundingBoxIgnoreReserved();
     void            updateWindowDecos();
+    pid_t           getPID();
 
 };

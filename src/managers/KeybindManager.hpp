@@ -33,6 +33,7 @@ private:
     inline static std::string m_szCurrentSelectedSubmap = "";
 
     bool                handleInternalKeybinds(xkb_keysym_t);
+    bool                handleVT(xkb_keysym_t);
 
     // -------------- Dispatchers -------------- //
     static void         killActive(std::string);

@@ -109,6 +109,7 @@ all:
 install:
 	[ ! -d /usr/include/wlr ] || mv /usr/include/wlr /usr/include/wlrBackup
 	[ ! -f /usr/lib/libwlroots.so ] || mv /usr/lib/libwlroots.so /usr/lib/libwlroots.so.backup
+	[ ! -f /usr/lib/pkgconfig/wlroots.pc ] || mv /usr/lib/pkgconfig/wlroots.pc /usr/lib/pkgconfig/wlroots.pc.backup
 
 	make all
 	mkdir -p ${PREFIX}/share/wayland-sessions
@@ -124,6 +125,7 @@ install:
 	rm -rf /usr/include/wlr
 	[ ! -d /usr/include/wlrBackup ] || mv /usr/include/wlrBackup /usr/include/wlr
 	[ ! -f /usr/lib/libwlroots.so.backup ] || mv -f /usr/lib/libwlroots.so.backup /usr/lib/libwlroots.so
+	[ ! -f /usr/lib/pkgconfig/wlroots.pc.backup ] || mv -f /usr/lib/pkgconfig/wlroots.pc.backup /usr/lib/pkgconfig/wlroots.pc
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop

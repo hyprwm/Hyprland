@@ -42,9 +42,6 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
 }
 
 void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
-    if (pWindow == g_pCompositor->m_pLastWindow)
-        return;
-
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->minimized)
             wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);

@@ -124,8 +124,8 @@ install:
 
 	mkdir -p ${PREFIX}/share/bash-completion/completions
 	mkdir -p ${PREFIX}/usr/share/fish/vendor_completions.d
-	cp .completions/bash/hyprctl.bash ${PREFIX}/share/bash-completion/completions
-	cp .completions/fish/hyprctl.fish ${PREFIX}/usr/share/fish/vendor_completions.d
+	cp ./completions/bash/hyprctl ${PREFIX}/share/bash-completion/completions
+	cp ./completions/fish/hyprctl.fish ${PREFIX}/share/fish/vendor_completions.d
 
 	rm -rf /usr/include/wlr
 	rm -f /usr/lib/libwlroots.so
@@ -140,7 +140,7 @@ uninstall:
 	rm -f ${PREFIX}/bin/hyprctl
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/bash-completion/completions/hyprctl
-	rm -f ${PREFIX}/usr/share/fish/vendor_completions.d/hyprctl.fish
+	rm -f ${PREFIX}/share/fish/vendor_completions.d/hyprctl.fish
 
 
 

@@ -135,13 +135,12 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PNEWMONITOR->ID);
         PNEWWORKSPACE->startAnim(true,true,true);
     } else {
-        PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID);
+        PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID, newDefaultWorkspaceName);
 
         // We are required to set the name here immediately
         wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, newDefaultWorkspaceName.c_str());
 
         PNEWWORKSPACE->m_iID = WORKSPACEID;
-        PNEWWORKSPACE->m_szName = newDefaultWorkspaceName;
     }
 
     PNEWMONITOR->activeWorkspace = PNEWWORKSPACE->m_iID;

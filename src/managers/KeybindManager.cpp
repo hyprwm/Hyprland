@@ -336,7 +336,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(OLDWORKSPACE); POLDWORKSPACE)
         POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
 
-    g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID, workspaceToChangeTo == SPECIAL_WORKSPACE_ID);
+    g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID, workspaceName, workspaceToChangeTo == SPECIAL_WORKSPACE_ID);
     const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
 
     // start anim on new workspace
@@ -348,7 +348,6 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     PWORKSPACE->m_iID = workspaceToChangeTo;
     PWORKSPACE->m_iMonitorID = PMONITOR->ID;
-    PWORKSPACE->m_szName = workspaceName;
 
     PMONITOR->specialWorkspaceOpen = false;
 

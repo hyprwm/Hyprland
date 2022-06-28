@@ -1,7 +1,7 @@
 #include "Workspace.hpp"
 #include "../Compositor.hpp"
 
-CWorkspace::CWorkspace(int monitorID, bool special) {
+CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
     if (!PMONITOR) {
@@ -10,7 +10,7 @@ CWorkspace::CWorkspace(int monitorID, bool special) {
     }
 
     m_iMonitorID = monitorID;
-
+    m_szName = name;
     m_bIsSpecialWorkspace = special;
     
     if (!special) {
@@ -30,6 +30,8 @@ CWorkspace::CWorkspace(int monitorID, bool special) {
     m_fAlpha.m_pWorkspace = this;
     m_fAlpha.create(AVARTYPE_FLOAT, &g_pConfigManager->getConfigValuePtr("animations:workspaces_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces")->intValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces_curve")->strValue, nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(255.f);
+
+    g_pEventManager->postEvent({"createworkspace", m_szName});
 }
 
 CWorkspace::~CWorkspace() {
@@ -42,6 +44,8 @@ CWorkspace::~CWorkspace() {
         wlr_ext_workspace_handle_v1_destroy(m_pWlrHandle);
         m_pWlrHandle = nullptr;
     }
+
+    g_pEventManager->postEvent({"destroyworkspace", m_szName});
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {

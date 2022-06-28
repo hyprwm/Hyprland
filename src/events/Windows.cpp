@@ -471,6 +471,8 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     const auto XWSURFACE = (wlr_xwayland_surface*)data;
 
     Debug::log(LOG, "New XWayland Surface created (class %s).", XWSURFACE->_class);
+    if (XWSURFACE->parent)
+        Debug::log(LOG, "Window parent data: %s at %x", XWSURFACE->parent->_class, XWSURFACE->parent);
 
     g_pCompositor->m_lWindows.emplace_back();
     const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();

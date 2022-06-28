@@ -276,7 +276,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 void Events::listener_unmapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    Debug::log(LOG, "Window %x unmapped", PWINDOW);
+    Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
     if (!PWINDOW->m_bIsX11) {
         Debug::log(LOG, "Unregistered late callbacks XDG: %x %x %x %x", &PWINDOW->hyprListener_commitWindow.m_sListener.link, &PWINDOW->hyprListener_setTitleWindow.m_sListener.link, &PWINDOW->hyprListener_fullscreenWindow.m_sListener.link, &PWINDOW->hyprListener_newPopupXDG.m_sListener.link);
@@ -467,7 +467,7 @@ void Events::listener_configureX11(void* owner, void* data) {
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     const auto XWSURFACE = (wlr_xwayland_surface*)data;
 
-    Debug::log(LOG, "New XWayland Surface created.");
+    Debug::log(LOG, "New XWayland Surface created (class %s).", XWSURFACE->_class);
 
     g_pCompositor->m_lWindows.emplace_back();
     const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
@@ -485,7 +485,7 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     // A window got opened
     const auto XDGSURFACE = (wlr_xdg_surface*)data;
 
-    Debug::log(LOG, "New XDG Surface created. (%ix%i at %i %i)", XDGSURFACE->current.geometry.width, XDGSURFACE->current.geometry.height, XDGSURFACE->current.geometry.x, XDGSURFACE->current.geometry.y);
+    Debug::log(LOG, "New XDG Surface created. (class: %s)", XDGSURFACE->toplevel->app_id);
 
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return;  // TODO: handle?

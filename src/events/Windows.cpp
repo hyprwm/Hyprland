@@ -268,8 +268,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
     }
 
-    if (!PWINDOW->m_bIsX11)
-        PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);
+    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
 }

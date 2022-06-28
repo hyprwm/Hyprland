@@ -71,7 +71,7 @@ struct SKeyboard {
 
     bool active = false;
 
-    xkb_rule_names currentRules;
+    xkb_rule_names currentRules = {0};
 
     // For the list lookup
     bool operator==(const SKeyboard& rhs) {

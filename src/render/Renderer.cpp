@@ -551,6 +551,11 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
     pixman_region32_init(&damageBox);
     wlr_surface_get_effective_damage(pSurface, &damageBox);
 
+    if (!pixman_region32_not_empty(&damageBox)) {
+        pixman_region32_fini(&damageBox);
+        return;
+    }
+
     pixman_region32_translate(&damageBox, x, y);
 
     for (auto& m : g_pCompositor->m_lMonitors) {

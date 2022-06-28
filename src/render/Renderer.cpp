@@ -172,8 +172,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
 
     g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 
-    // render window decorations first
-    for (auto& wd : pWindow->m_dWindowDecorations)
+    // render window decorations first, if not fullscreen full
+    if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) for (auto& wd : pWindow->m_dWindowDecorations)
         wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f);
 
     if (!pWindow->m_bIsX11) {

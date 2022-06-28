@@ -344,9 +344,7 @@ Vector2D CInputManager::getMouseCoordsInternal() {
 }
 
 void CInputManager::newKeyboard(wlr_input_device* keyboard) {
-    m_lKeyboards.push_back(SKeyboard());
-
-    const auto PNEWKEYBOARD = &m_lKeyboards.back();
+    const auto PNEWKEYBOARD = &m_lKeyboards.emplace_back();
 
     PNEWKEYBOARD->keyboard = keyboard;
 
@@ -385,9 +383,14 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     const auto VARIANT = g_pConfigManager->getString("input:kb_variant");
     const auto OPTIONS = g_pConfigManager->getString("input:kb_options");
 
-    if (RULES != "" && RULES == pKeyboard->currentRules.rules && MODEL == pKeyboard->currentRules.model && LAYOUT == pKeyboard->currentRules.layout && VARIANT == pKeyboard->currentRules.variant && OPTIONS == pKeyboard->currentRules.options) {
-        Debug::log(LOG, "Not applying config to keyboard, it did not change.");
-        return;
+    try {
+        if (RULES != "" && RULES == std::string(pKeyboard->currentRules.rules) && MODEL == std::string(pKeyboard->currentRules.model) && LAYOUT == std::string(pKeyboard->currentRules.layout) && VARIANT == std::string(pKeyboard->currentRules.variant) && OPTIONS == std::string(pKeyboard->currentRules.options)) {
+            Debug::log(LOG, "Not applying config to keyboard, it did not change.");
+            return;
+        }
+    } catch (std::exception& e) {
+        // can be libc errors for null std::string
+        // we can ignore those and just apply
     }
 
     xkb_rule_names rules = {

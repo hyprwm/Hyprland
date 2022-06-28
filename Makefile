@@ -139,6 +139,10 @@ uninstall:
 	rm -f ${PREFIX}/bin/Hyprland
 	rm -f ${PREFIX}/bin/hyprctl
 	rm -rf ${PREFIX}/share/hyprland
+	rm -f ${PREFIX}/share/bash-completion/completions/hyprctl
+	rm -f ${PREFIX}/usr/share/fish/vendor_completions.d/hyprctl.fish
+
+
 
 protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o
 

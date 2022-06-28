@@ -122,6 +122,11 @@ install:
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
+	mkdir -p ${PREFIX}/share/bash-completion/completions
+	mkdir -p ${PREFIX}/usr/share/fish/vendor_completions.d
+	cp .completions/bash/hyprctl.bash ${PREFIX}/share/bash-completion/completions
+	cp .completions/fish/hyprctl.fish ${PREFIX}/usr/share/fish/vendor_completions.d
+
 	rm -rf /usr/include/wlr
 	rm -f /usr/lib/libwlroots.so
 	rm -f /usr/lib/pkgconfig/wlroots.pc

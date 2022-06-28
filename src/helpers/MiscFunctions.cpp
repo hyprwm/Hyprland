@@ -4,6 +4,41 @@
 #include "../Compositor.hpp"
 #include <sys/utsname.h>
 
+static const float transforms[][9] = {{
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		0.0f, 1.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		-1.0f, 0.0f, 0.0f,
+		0.0f, -1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		0.0f, -1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		-1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		0.0f, 1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		1.0f, 0.0f, 0.0f,
+		0.0f, -1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		0.0f, -1.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},
+};
+
 void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
     ASSERT(pSignal);
     ASSERT(pListener);
@@ -264,4 +299,25 @@ void logSystemInfo() {
     Debug::log(LOG, "os-release:");
 
     Debug::log(NONE, "%s", execAndGet("cat /etc/os-release").c_str());
+}
+
+void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
+    memset(mat, 0, sizeof(*mat) * 9);
+
+    const float* t = transforms[tr];
+    float x = 2.0f / w;
+    float y = 2.0f / h;
+
+    // Rotation + reflection
+    mat[0] = x * t[0];
+    mat[1] = x * t[1];
+    mat[3] = y * -t[3];
+    mat[4] = y * -t[4];
+
+    // Translation
+    mat[2] = -copysign(1.0f, mat[0] + mat[1]);
+    mat[5] = -copysign(1.0f, mat[3] + mat[4]);
+
+    // Identity
+    mat[8] = 1.0f;
 }

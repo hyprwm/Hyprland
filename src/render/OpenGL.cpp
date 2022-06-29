@@ -146,28 +146,30 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage, bool
 
     matrixProjection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);
 
+    m_RenderData.pCurrentMonData = &m_mMonitorRenderResources[pMonitor];
+
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &m_iCurrentOutputFb);
     m_iWLROutputFb = m_iCurrentOutputFb;
 
     // ensure a framebuffer for the monitor exists
-    if (m_mMonitorRenderResources.find(pMonitor) == m_mMonitorRenderResources.end() || m_mMonitorRenderResources[pMonitor].primaryFB.m_Size != pMonitor->vecPixelSize) {
-        m_mMonitorRenderResources[pMonitor].stencilTex.allocate();
+    if (m_mMonitorRenderResources.find(pMonitor) == m_mMonitorRenderResources.end() || m_RenderData.pCurrentMonData->primaryFB.m_Size != pMonitor->vecPixelSize) {
+        m_RenderData.pCurrentMonData->stencilTex.allocate();
 
-        m_mMonitorRenderResources[pMonitor].primaryFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
-        m_mMonitorRenderResources[pMonitor].mirrorFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
-        m_mMonitorRenderResources[pMonitor].mirrorSwapFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
+        m_RenderData.pCurrentMonData->primaryFB.m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
+        m_RenderData.pCurrentMonData->mirrorFB.m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
+        m_RenderData.pCurrentMonData->mirrorSwapFB.m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
 
-        m_mMonitorRenderResources[pMonitor].primaryFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
-        m_mMonitorRenderResources[pMonitor].mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
-        m_mMonitorRenderResources[pMonitor].mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_RenderData.pCurrentMonData->primaryFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_RenderData.pCurrentMonData->mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_RenderData.pCurrentMonData->mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
         createBGTextureForMonitor(pMonitor);
     }
 
     // bind the primary Hypr Framebuffer
-    m_mMonitorRenderResources[pMonitor].primaryFB.bind();
+    m_RenderData.pCurrentMonData->primaryFB.bind();
 
     m_RenderData.pDamage = pDamage;
 
@@ -186,7 +188,7 @@ void CHyprOpenGLImpl::end() {
 
         m_bEndFrame = true;
 
-        renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &monbox, 255.f, 0);
+        renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 255.f, 0);
 
         m_bEndFrame = false;
     }
@@ -447,10 +449,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     wlr_region_expand(&damage, &damage, pow(2, *PBLURPASSES) * *PBLURSIZE);
 
     // helper
-    const auto PMIRRORFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB;
-    const auto PMIRRORSWAPFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorSwapFB;
+    const auto PMIRRORFB = &m_RenderData.pCurrentMonData->mirrorFB;
+    const auto PMIRRORSWAPFB = &m_RenderData.pCurrentMonData->mirrorSwapFB;
 
-    CFramebuffer* currentRenderToFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB;
+    CFramebuffer* currentRenderToFB = &m_RenderData.pCurrentMonData->primaryFB;
 
     // declare the draw func
     auto drawPass = [&](CShader* pShader, pixman_region32_t* pDamage) {
@@ -503,7 +505,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     // draw the things.
     // first draw is prim -> mirr
     PMIRRORFB->bind();
-    glBindTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTarget, m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTexID);
+    glBindTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex.m_iTarget, m_RenderData.pCurrentMonData->primaryFB.m_cTex.m_iTexID);
 
     // damage region will be scaled, make a temp
     pixman_region32_t tempDamage;
@@ -575,7 +577,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     pixman_region32_fini(&inverseOpaque);
 
     // bind primary
-    m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();
+    m_RenderData.pCurrentMonData->primaryFB.bind();
 
     // make a stencil for rounded corners to work with blur
     scissor((wlr_box*)nullptr);  // allow the entire window and stencil to render
@@ -732,7 +734,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     clear(CColor(0, 0, 0, 0));  // JIC
 
     wlr_box fullMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
-    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &fullMonBox, 255.f, 0);
+    renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &fullMonBox, 255.f, 0);
 
     // restore original fb
     #ifndef GLES2

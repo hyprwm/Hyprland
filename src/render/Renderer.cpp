@@ -13,14 +13,11 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
     wlr_box windowBox;
     if (RDATA->surface && surface == RDATA->surface) {
-        windowBox = {(int)RDATA->x + x, (int)RDATA->y + y, RDATA->w, RDATA->h};
+        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
     } else {                                                                                                //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)RDATA->x + x, (int)RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
+        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
     }
     scaleBox(&windowBox, RDATA->output->scale);
-
-    windowBox.x += outputX;
-    windowBox.y += outputY;
 
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
 

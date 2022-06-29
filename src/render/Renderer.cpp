@@ -576,39 +576,19 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 }
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {
-    if (!pWindow->m_bIsFloating) {
-        // damage by size & pos
-        // TODO TEMP: revise when added shadows/etc
-
-        wlr_box damageBox = pWindow->getFullWindowBoundingBox();
-        for (auto& m : g_pCompositor->m_lMonitors) {
-            wlr_box fixedDamageBox = damageBox;
-            fixedDamageBox.x -= m.vecPosition.x;
-            fixedDamageBox.y -= m.vecPosition.y;
-            scaleBox(&fixedDamageBox, m.scale);
-            wlr_output_damage_add_box(m.damage, &fixedDamageBox);
-        }
-
-        static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
-
-        if (*PLOGDAMAGE)
-            Debug::log(LOG, "Damage: Window floated (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
-    } else {
-        // damage by real size & pos + border size * 2 (JIC)
-        wlr_box damageBox = pWindow->getFullWindowBoundingBox();
-        for (auto& m : g_pCompositor->m_lMonitors) {
-            wlr_box fixedDamageBox = damageBox;
-            fixedDamageBox.x -= m.vecPosition.x;
-            fixedDamageBox.y -= m.vecPosition.y;
-            scaleBox(&fixedDamageBox, m.scale);
-            wlr_output_damage_add_box(m.damage, &fixedDamageBox);
-        }
-
-        static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
-
-        if (*PLOGDAMAGE)
-            Debug::log(LOG, "Damage: Window tiled (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
+    wlr_box damageBox = pWindow->getFullWindowBoundingBox();
+    for (auto& m : g_pCompositor->m_lMonitors) {
+        wlr_box fixedDamageBox = damageBox;
+        fixedDamageBox.x -= m.vecPosition.x;
+        fixedDamageBox.y -= m.vecPosition.y;
+        scaleBox(&fixedDamageBox, m.scale);
+        wlr_output_damage_add_box(m.damage, &fixedDamageBox);
     }
+
+    static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+
+    if (*PLOGDAMAGE)
+        Debug::log(LOG, "Damage: Window (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
 }
 
 void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {

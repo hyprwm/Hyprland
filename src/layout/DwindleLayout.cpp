@@ -739,6 +739,8 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
             fakeNode.position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
             fakeNode.size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
             fakeNode.workspaceID = pWindow->m_iWorkspaceID;
+            pWindow->m_vPosition = fakeNode.position;
+            pWindow->m_vSize = fakeNode.size;
 
             applyNodeDataToWindow(&fakeNode);
         }

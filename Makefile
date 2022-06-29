@@ -137,12 +137,15 @@ uninstall:
 
 protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o
 
-config:
-	make protocols
-
+fixwlr:
 	sed -i -E 's/(soversion = 11)([^032]|$$)/soversion = 11032/g' subprojects/wlroots/meson.build
 
 	rm -rf ./subprojects/wlroots/build
+
+config:
+	make protocols
+
+	make fixwlr
 
 	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release
 	cd subprojects/wlroots && ninja -C build/

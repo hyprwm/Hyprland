@@ -15,7 +15,7 @@ class CEventManager {
 public:
     CEventManager();
 
-    void postEvent(const SHyprIPCEvent event);
+    void postEvent(const SHyprIPCEvent event, bool force = false);
 
     void startThread();
 

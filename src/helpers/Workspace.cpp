@@ -31,7 +31,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     m_fAlpha.create(AVARTYPE_FLOAT, &g_pConfigManager->getConfigValuePtr("animations:workspaces_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces")->intValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces_curve")->strValue, nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(255.f);
 
-    g_pEventManager->postEvent({"createworkspace", m_szName});
+    g_pEventManager->postEvent({"createworkspace", m_szName}, true);
 }
 
 CWorkspace::~CWorkspace() {
@@ -45,7 +45,7 @@ CWorkspace::~CWorkspace() {
         m_pWlrHandle = nullptr;
     }
 
-    g_pEventManager->postEvent({"destroyworkspace", m_szName});
+    g_pEventManager->postEvent({"destroyworkspace", m_szName}, true);
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {

@@ -123,9 +123,11 @@ install:
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
 	mkdir -p ${PREFIX}/share/bash-completion/completions
-	mkdir -p ${PREFIX}/usr/share/fish/vendor_completions.d
+	mkdir -p ${PREFIX}/share/fish/vendor_completions.d
+	mkdir -p ${PREFIX}/share/zsh/site-functions/
 	cp ./completions/bash/hyprctl ${PREFIX}/share/bash-completion/completions
 	cp ./completions/fish/hyprctl.fish ${PREFIX}/share/fish/vendor_completions.d
+	cp ./completions/zsh/_hyprctl ${PREFIX}/share/zsh/site-functions
 
 	rm -rf /usr/include/wlr
 	rm -f /usr/lib/libwlroots.so
@@ -141,6 +143,7 @@ uninstall:
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/bash-completion/completions/hyprctl
 	rm -f ${PREFIX}/share/fish/vendor_completions.d/hyprctl.fish
+	rm -f ${PREFIX}/share/zsh/site-functions/_hyprctl
 
 
 

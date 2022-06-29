@@ -820,6 +820,11 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     windowBox.x = (PWINDOW->m_vRealPosition.vec().x * PMONITOR->scale - PMONITOR->vecPosition.x) - ((PWINDOW->m_vOriginalClosedPos.x - PMONITOR->vecPosition.x) * scaleXY.x);
     windowBox.y = (PWINDOW->m_vRealPosition.vec().y * PMONITOR->scale - PMONITOR->vecPosition.y) - ((PWINDOW->m_vOriginalClosedPos.y - PMONITOR->vecPosition.y) * scaleXY.y);
 
+    if (scaleXY != Vector2D(1, 1) && PMONITOR->scale != 1) { // TODO: this is completely wrong but I suck at math.
+        windowBox.width /= PMONITOR->scale;
+        windowBox.height /= PMONITOR->scale;
+    }
+
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 

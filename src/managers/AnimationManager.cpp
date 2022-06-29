@@ -67,7 +67,7 @@ void CAnimationManager::tick() {
                 if (!deltazero(av->m_fValue, av->m_fGoal)) {
 
                     // for disabled anims just warp
-                    if (av->m_pEnabled == 0 || animationsDisabled) {
+                    if (*av->m_pEnabled == 0 || animationsDisabled) {
                         av->warp();
                         break;
                     }
@@ -92,7 +92,7 @@ void CAnimationManager::tick() {
                 if (!deltazero(av->m_vValue, av->m_vGoal)) {
 
                     // for disabled anims just warp
-                    if (av->m_pEnabled == 0 || animationsDisabled) {
+                    if (*av->m_pEnabled == 0 || animationsDisabled) {
                         av->warp();
                         break;
                     }
@@ -117,7 +117,7 @@ void CAnimationManager::tick() {
                 if (!deltazero(av->m_cValue, av->m_cGoal)) {
 
                     // for disabled anims just warp
-                    if (av->m_pEnabled == 0 || animationsDisabled) {
+                    if (*av->m_pEnabled == 0 || animationsDisabled) {
                         av->warp();
                         break;
                     }

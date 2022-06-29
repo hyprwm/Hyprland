@@ -99,7 +99,7 @@ clear:
 	rm -rf build
 	rm -f *.o *-protocol.h *-protocol.c
 	rm -f ./hyprctl/hyprctl
-	rm -rf ./wlroots/build
+	rm -rf ./subprojects/wlroots/build
 
 all:
 	make config

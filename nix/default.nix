@@ -20,9 +20,10 @@
   xwayland,
   enableXWayland ? true,
   version ? "git",
+  debug ? false,
 }:
 stdenv.mkDerivation {
-  pname = "hyprland";
+  pname = "hyprland" + lib.optionalString debug "-debug";
   inherit version;
   src = ../.;
 
@@ -48,7 +49,10 @@ stdenv.mkDerivation {
     ]
     ++ lib.optional enableXWayland xwayland;
 
-  mesonBuildType = "release";
+  mesonBuildType =
+    if debug
+    then "debug"
+    else "release";
 
   mesonFlags = lib.optional (!enableXWayland) "-DNO_XWAYLAND=true";
 

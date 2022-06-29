@@ -1,3 +1,5 @@
+#compdef hyprctl
+
 _hyprctl() {
 	local -a hyprctl_commands=(
 	"monitors" "workspaces" "clients" "activewindow" "layers" "devices" "dispatch" "keyword" "version" "kill" "reload"
@@ -15,7 +17,3 @@ _hyprctl() {
 		compadd $hyprctl_commands
 	fi
 }
-
-compdef _hyprctl hyprctl
-
-# vim:ft=zsh

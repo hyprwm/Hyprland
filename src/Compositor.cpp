@@ -322,7 +322,7 @@ void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
 }
 
 bool CCompositor::windowExists(CWindow* pWindow) {
-    for (auto& w : m_lWindows) {
+    for (auto& w : m_lWindows) { // TODO: get rid of unmanaged X11?
         if (&w == pWindow)
             return true;
     }
@@ -584,9 +584,6 @@ bool CCompositor::windowValidMapped(CWindow* pWindow) {
         return false;
 
     if (pWindow->m_bHidden)
-        return false;
-
-    if (!g_pXWaylandManager->getWindowSurface(pWindow))
         return false;
 
     return true;

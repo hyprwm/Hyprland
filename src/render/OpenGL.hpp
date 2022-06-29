@@ -29,23 +29,25 @@ inline const float fanVertsFull[] = {
     -1.0f, 1.0f
 };
 
-struct SCurrentRenderData {
-    SMonitor*   pMonitor = nullptr;
-    float       projection[9];
-
-    pixman_region32_t* pDamage = nullptr;
-
-    bool        renderingPrimarySurface = false;
-    Vector2D    primarySurfaceUVTopLeft = Vector2D(-1, -1);
-    Vector2D    primarySurfaceUVBottomRight = Vector2D(-1, -1);
-};
-
 struct SMonitorRenderData {
     CFramebuffer primaryFB;
     CFramebuffer mirrorFB;
     CFramebuffer mirrorSwapFB;
 
     CTexture     stencilTex;
+};
+
+struct SCurrentRenderData {
+    SMonitor*   pMonitor = nullptr;
+    float       projection[9];
+
+    SMonitorRenderData* pCurrentMonData = nullptr;
+
+    pixman_region32_t* pDamage = nullptr;
+
+    bool        renderingPrimarySurface = false;
+    Vector2D    primarySurfaceUVTopLeft = Vector2D(-1, -1);
+    Vector2D    primarySurfaceUVBottomRight = Vector2D(-1, -1);
 };
 
 class CHyprOpenGLImpl {

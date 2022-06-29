@@ -13,11 +13,14 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
     wlr_box windowBox;
     if (RDATA->surface && surface == RDATA->surface) {
-        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
+        windowBox = {(int)RDATA->x + x, (int)RDATA->y + y, RDATA->w, RDATA->h};
     } else {                                                                                                //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
+        windowBox = {(int)RDATA->x + x, (int)RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
     }
     scaleBox(&windowBox, RDATA->output->scale);
+
+    windowBox.x += outputX;
+    windowBox.y += outputY;
 
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
 
@@ -578,9 +581,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 void CHyprRenderer::damageWindow(CWindow* pWindow) {
     wlr_box damageBox = pWindow->getFullWindowBoundingBox();
     for (auto& m : g_pCompositor->m_lMonitors) {
-        wlr_box fixedDamageBox = damageBox;
-        fixedDamageBox.x -= m.vecPosition.x;
-        fixedDamageBox.y -= m.vecPosition.y;
+        wlr_box fixedDamageBox = {damageBox.x - m.vecPosition.x, damageBox.y - m.vecPosition.y, damageBox.width, damageBox.height};
         scaleBox(&fixedDamageBox, m.scale);
         wlr_output_damage_add_box(m.damage, &fixedDamageBox);
     }

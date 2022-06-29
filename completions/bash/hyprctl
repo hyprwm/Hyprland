@@ -1,16 +1,17 @@
 _hyprctl_completions() {
-	if [ "${#COMP_WORDS[@]}" != "2" ]; then
-		dispatch="dispatch"
-		word=${COMP_WORDS[1]}
-		if [[ "$word" == "$dispatch" ]]; then
+	hyprctl_commands="monitors workspaces clients activewindow layers devices dispatch keyword version kill reload"
 
-			COMPREPLY=($(compgen -W "exec killactive workspace movetoworkspace movetoworkspacesilent togglefloating fullscreen pseudo movefocus movewindow resizeactive moveactive cyclenext focuswindowbyclass focusmonitor splitratio movecursortocorner workspaceopt exit forcerendererreload movecurrentworkspacetomonitor moveworkspacetomonitor togglespecialworkspace" "${COMP_WORDS[2]}"))
-		else
-			return
+	dispatch_commands="exec killactive workspace movetoworkspace movetoworkspacesilent togglefloating fullscreen pseudo movefocus movewindow resizeactive moveactive cyclenext focuswindowbyclass focusmonitor splitratio movecursortocorner workspaceopt exit forcerendererreload movecurrentworkspacetomonitor moveworkspacetomonitor togglespecialworkspace"
+
+	if [[ "${#COMP_WORDS[@]}" == 3 ]]; then
+		if [[ ${COMP_WORDS[1]} == "dispatch" ]]; then
+			COMPREPLY=($(compgen -W "${dispatch_commands}" "${COMP_WORDS[2]}"))
 		fi
-	else
-		COMPREPLY=($(compgen -W "monitors workspaces clients activewindow layers devices dispatch keyword version kill reload" "${COMP_WORDS[1]}"))
+	elif [[ "${#COMP_WORDS[@]}" == 2 ]]; then
+		COMPREPLY=($(compgen -W "${hyprctl_commands}" "${COMP_WORDS[1]}"))
 	fi
 }
 
 complete -F _hyprctl_completions hyprctl
+
+# vim:ft=bash

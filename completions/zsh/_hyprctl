@@ -7,9 +7,11 @@ _hyprctl() {
 	"exec" "killactive" "workspace" "movetoworkspace" "movetoworkspacesilent" "togglefloating" "fullscreen" "pseudo" "movefocus" "movewindow" "resizeactive" "moveactive" "cyclenext" "focuswindowbyclass" "focusmonitor" "splitratio" "movecursortocorner" "workspaceopt" "exit" "forcerendererreload" "movecurrentworkspacetomonitor" "moveworkspacetomonitor" "togglespecialworkspace"
 	)
 
-	if [[ $words[2] == "dispatch" ]]; then
-		compadd $dispatch_commands
-	else
+	if [[ "${#words[@]}" == 3 ]]; then
+		if [[ $words[2] == "dispatch" ]]; then
+			compadd $dispatch_commands
+		fi
+	elif [[ "${#words[@]}" == 2 ]]; then
 		compadd $hyprctl_commands
 	fi
 }

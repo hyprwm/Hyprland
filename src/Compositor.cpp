@@ -121,6 +121,11 @@ CCompositor::CCompositor() {
     m_sWLRToplevelMgr = wlr_foreign_toplevel_manager_v1_create(m_sWLDisplay);
 
     m_sWLRTabletManager = wlr_tablet_v2_create(m_sWLDisplay);
+
+    m_sWLRForeignRegistry = wlr_xdg_foreign_registry_create(m_sWLDisplay);
+
+    wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
+    wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 }
 
 CCompositor::~CCompositor() {

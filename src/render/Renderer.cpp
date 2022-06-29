@@ -627,6 +627,9 @@ void CHyprRenderer::renderDragIcon(SMonitor* pMonitor, timespec* time) {
     renderdata.h = g_pInputManager->m_sDrag.dragIcon->surface->current.height;
 
     wlr_surface_for_each_surface(g_pInputManager->m_sDrag.dragIcon->surface, renderSurface, &renderdata);
+
+    wlr_box box = {g_pInputManager->m_sDrag.pos.x - 2, g_pInputManager->m_sDrag.pos.y - 2, g_pInputManager->m_sDrag.dragIcon->surface->current.width + 4, g_pInputManager->m_sDrag.dragIcon->surface->current.height + 4};
+    g_pHyprRenderer->damageBox(&box);
 }
 
 DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& mode) {

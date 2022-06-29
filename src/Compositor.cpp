@@ -3,6 +3,11 @@
 CCompositor::CCompositor() {
     m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
 
+    setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
+
+    const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;
+    mkdir(INSTANCEPATH.c_str(), S_IRWXU | S_IRWXG);
+
     Debug::init(m_szInstanceSignature);
 
     Debug::log(LOG, "Instance Signature: %s", m_szInstanceSignature.c_str());
@@ -16,11 +21,6 @@ CCompositor::CCompositor() {
     Debug::log(NONE, "\n\n"); // pad
 
     Debug::log(INFO, "If you are crashing, or encounter any bugs, please consult https://github.com/hyprwm/Hyprland/wiki/Crashing-and-bugs\n\n");
-
-    setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
-
-    const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;
-    mkdir(INSTANCEPATH.c_str(), S_IRWXU | S_IRWXG);
 
     m_sWLDisplay = wl_display_create();
 

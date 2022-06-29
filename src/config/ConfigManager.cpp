@@ -38,6 +38,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;
     configValues["debug:overlay"].intValue = 0;
+    configValues["debug:damage_blink"].intValue = 0;
 
     configValues["decoration:rounding"].intValue = 1;
     configValues["decoration:blur"].intValue = 1;

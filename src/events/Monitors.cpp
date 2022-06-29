@@ -173,6 +173,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     static auto *const PDEBUGOVERLAY = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
     static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("general:damage_tracking_internal")->intValue;
+    static auto *const PDAMAGEBLINK = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
+
+    static int damageBlinkCleanup = 0; // because double-buffered
 
     if (*PDEBUGOVERLAY == 1) {
         startRender = std::chrono::high_resolution_clock::now();
@@ -226,7 +229,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
     }
 
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && PMONITOR->forceFullFrames == 0) {
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && PMONITOR->forceFullFrames == 0 && damageBlinkCleanup == 0) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
         wlr_output_schedule_frame(PMONITOR->output); // we update shit at the monitor's Hz so we need to schedule frames because rollback wont
@@ -234,7 +237,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0) {
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0 || damageBlinkCleanup > 0) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
@@ -280,6 +283,16 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         endRenderOverlay = std::chrono::high_resolution_clock::now();
     }
 
+    if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
+        wlr_box monrect = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+        g_pHyprOpenGL->renderRect(&monrect, CColor(255,0,255,100), 0);
+        damageBlinkCleanup = 1;
+    } else if (*PDAMAGEBLINK) {
+        damageBlinkCleanup++;
+        if (damageBlinkCleanup > 3)
+            damageBlinkCleanup = 0;
+    }
+
     wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
     wlr_output_render_software_cursors(PMONITOR->output, NULL);
@@ -297,6 +310,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
         pixman_region32_union_rect(&frameDamage, &frameDamage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
+
+    if (*PDAMAGEBLINK)
+        pixman_region32_union(&frameDamage, &frameDamage, &damage);
 
     wlr_output_set_damage(PMONITOR->output, &frameDamage);
     pixman_region32_fini(&frameDamage);

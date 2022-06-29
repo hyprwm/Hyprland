@@ -46,6 +46,7 @@ private:
     static void         moveActiveToWorkspaceSilent(std::string);
     static void         moveFocusTo(std::string);
     static void         moveActiveTo(std::string);
+    static void         moveInactiveTo(std::string);
     static void         toggleGroup(std::string);
     static void         changeGroupActive(std::string);
     static void         alterSplitRatio(std::string);

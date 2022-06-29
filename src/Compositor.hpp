@@ -128,7 +128,7 @@ public:
     SMonitor*               getMonitorInDirection(const char&);
     void                    updateAllWindowsBorders();
     void                    updateWindowBorderColor(CWindow*);
-    void                    moveWindowToWorkspace(CWindow*, const std::string&);
+    void                    moveWindowToWorkspace(CWindow*, const int);
     int                     getNextAvailableMonitorID();
     void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);
     bool                    workspaceIDOutOfBounds(const int&);

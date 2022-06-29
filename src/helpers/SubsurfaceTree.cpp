@@ -193,11 +193,21 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
             Debug::log(LOG, "Refusing to commit damage from %x because it's invisible.", pNode->pWindowOwner);
         return;
     }
-        
 
     int lx = 0, ly = 0;
 
     addSurfaceGlobalOffset(pNode, &lx, &ly);
+
+    // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
+    // What this does is that basically, if the pNode is a child of some other node, on commit,
+    // it will also damage (check & damage if needed) all its siblings.
+    if (pNode->pParent) for (auto& cs : pNode->pParent->childSubsurfaces) {
+        const auto NODECOORDS = pNode->pSubsurface ? Vector2D(pNode->pSubsurface->pSubsurface->current.x, pNode->pSubsurface->pSubsurface->current.y) : Vector2D();
+
+        if (&cs != pNode->pSubsurface && cs.pSubsurface) {
+            g_pHyprRenderer->damageSurface(cs.pSubsurface->surface, lx - NODECOORDS.x + cs.pSubsurface->current.x, ly - NODECOORDS.y + cs.pSubsurface->current.y);
+        }
+    }
 
     g_pHyprRenderer->damageSurface(pNode->pSurface, lx, ly);
 }

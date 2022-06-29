@@ -568,9 +568,12 @@ void CInputManager::updateDragIcon() {
     switch (g_pInputManager->m_sDrag.dragIcon->drag->grab_type) {
         case WLR_DRAG_GRAB_KEYBOARD:
             break;
-        case WLR_DRAG_GRAB_KEYBOARD_POINTER:
+        case WLR_DRAG_GRAB_KEYBOARD_POINTER: {
+            wlr_box box = {g_pInputManager->m_sDrag.pos.x - 2, g_pInputManager->m_sDrag.pos.y - 2, g_pInputManager->m_sDrag.dragIcon->surface->current.width + 4, g_pInputManager->m_sDrag.dragIcon->surface->current.height + 4};
+            g_pHyprRenderer->damageBox(&box);
             g_pInputManager->m_sDrag.pos = g_pInputManager->getMouseCoordsInternal();
             break;
+        }
         default:
             break;
     }

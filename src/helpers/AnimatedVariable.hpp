@@ -33,56 +33,47 @@ public:
 
     // gets the current vector value (real time)
     const Vector2D& vec() const {
-        RASSERT(m_eVarType == AVARTYPE_VECTOR, "Tried to access vec() of AVARTYPE %i!", m_eVarType);
         return m_vValue;
     }
 
     // gets the current float value (real time)
     const float& fl() const {
-        RASSERT(m_eVarType == AVARTYPE_FLOAT, "Tried to access fl() of AVARTYPE %i!", m_eVarType);
         return m_fValue;
     }
 
     // gets the current color value (real time)
     const CColor& col() const {
-        RASSERT(m_eVarType == AVARTYPE_COLOR, "Tried to access col() of AVARTYPE %i!", m_eVarType);
         return m_cValue;
     }
 
     // gets the goal vector value
     const Vector2D& goalv() const {
-        RASSERT(m_eVarType == AVARTYPE_VECTOR, "Tried to access goalv() of AVARTYPE %i!", m_eVarType);
         return m_vGoal;
     }
 
     // gets the goal float value
     const float& goalf() const {
-        RASSERT(m_eVarType == AVARTYPE_FLOAT, "Tried to access goalf() of AVARTYPE %i!", m_eVarType);
         return m_fGoal;
     }
 
     // gets the goal color value
     const CColor& goalc() const {
-        RASSERT(m_eVarType == AVARTYPE_COLOR, "Tried to access goalc() of AVARTYPE %i!", m_eVarType);
         return m_cGoal;
     }
 
     void operator=(const Vector2D& v) {
-        RASSERT(m_eVarType == AVARTYPE_VECTOR, "Tried to access =v of AVARTYPE %i!", m_eVarType);
         m_vGoal = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun = m_vValue;
     }
 
     void operator=(const float& v) {
-        RASSERT(m_eVarType == AVARTYPE_FLOAT, "Tried to access =f of AVARTYPE %i!", m_eVarType);
         m_fGoal = v;
         animationBegin = std::chrono::system_clock::now();
         m_fBegun = m_fValue;
     }
 
     void operator=(const CColor& v) {
-        RASSERT(m_eVarType == AVARTYPE_COLOR, "Tried to access =c of AVARTYPE %i!", m_eVarType);
         m_cGoal = v;
         animationBegin = std::chrono::system_clock::now();
         m_cBegun = m_cValue;
@@ -90,7 +81,6 @@ public:
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const Vector2D& v) {
-        RASSERT(m_eVarType == AVARTYPE_VECTOR, "Tried to access setValue(v) of AVARTYPE %i!", m_eVarType);
         m_vValue = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun = m_vValue;
@@ -98,7 +88,6 @@ public:
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const float& v) {
-        RASSERT(m_eVarType == AVARTYPE_FLOAT, "Tried to access setValue(f) of AVARTYPE %i!", m_eVarType);
         m_fValue = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun = m_vValue;
@@ -106,7 +95,6 @@ public:
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const CColor& v) {
-        RASSERT(m_eVarType == AVARTYPE_COLOR, "Tried to access setValue(c) of AVARTYPE %i!", m_eVarType);
         m_cValue = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun = m_vValue;
@@ -114,21 +102,18 @@ public:
 
     // Sets the actual value and goal
     void setValueAndWarp(const Vector2D& v) {
-        RASSERT(m_eVarType == AVARTYPE_VECTOR, "Tried to access setValueAndWarp(v) of AVARTYPE %i!", m_eVarType);
         m_vGoal = v;
         warp();
     }
 
     // Sets the actual value and goal
     void setValueAndWarp(const float& v) {
-        RASSERT(m_eVarType == AVARTYPE_FLOAT, "Tried to access setValueAndWarp(f) of AVARTYPE %i!", m_eVarType);
         m_fGoal = v;
         warp();
     }
 
     // Sets the actual value and goal
     void setValueAndWarp(const CColor& v) {
-        RASSERT(m_eVarType == AVARTYPE_COLOR, "Tried to access setValueAndWarp(c) of AVARTYPE %i!", m_eVarType);
         m_cGoal = v;
         warp();
     }

@@ -120,7 +120,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     yOffset += 11;
 
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
-    m_wbLastDrawnBox = {(int)g_pCompositor->m_lMonitors.front().vecPosition.x, (int)g_pCompositor->m_lMonitors.front().vecPosition.y + offset - 1, (int)maxX + 2, yOffset - offset + 2};
+    m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset - 1, (int)maxX + 2, yOffset - offset + 2};
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
 
     return yOffset - offset;
@@ -140,7 +140,7 @@ void CHyprDebugOverlay::frameData(SMonitor* pMonitor) {
 
 void CHyprDebugOverlay::draw() {
 
-    const auto PMONITOR = &g_pCompositor->m_lMonitors.front();
+    const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
 
     if (!m_pCairoSurface || !m_pCairo) {
         m_pCairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
@@ -155,8 +155,8 @@ void CHyprDebugOverlay::draw() {
 
     // draw the things
     int offsetY = 0;
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        offsetY += m_mMonitorOverlays[&m].draw(offsetY);
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        offsetY += m_mMonitorOverlays[m.get()].draw(offsetY);
         offsetY += 5; // for padding between mons
     }
 

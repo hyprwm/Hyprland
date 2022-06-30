@@ -76,8 +76,7 @@ void Events::listener_newPopup(void* owner, void* data) {
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
-    g_pCompositor->m_lXDGPopups.push_back(SXDGPopup());
-    const auto PNEWPOPUP = &g_pCompositor->m_lXDGPopups.back();
+    const auto PNEWPOPUP = g_pCompositor->m_vXDGPopups.emplace_back(std::make_unique<SXDGPopup>()).get();
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
@@ -97,8 +96,7 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
-    g_pCompositor->m_lXDGPopups.push_back(SXDGPopup());
-    const auto PNEWPOPUP = &g_pCompositor->m_lXDGPopups.back();
+    const auto PNEWPOPUP = g_pCompositor->m_vXDGPopups.emplace_back(std::make_unique<SXDGPopup>()).get();
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
@@ -122,8 +120,7 @@ void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
-    g_pCompositor->m_lXDGPopups.push_back(SXDGPopup());
-    const auto PNEWPOPUP = &g_pCompositor->m_lXDGPopups.back();
+    const auto PNEWPOPUP = g_pCompositor->m_vXDGPopups.emplace_back(std::make_unique<SXDGPopup>()).get();
 
     PNEWPOPUP->popup = WLRPOPUP;
     PNEWPOPUP->parentPopup = PPOPUP;
@@ -170,5 +167,5 @@ void Events::listener_destroyPopupXDG(void* owner, void* data) {
         PPOPUP->pSurfaceTree = nullptr;
     }
 
-    g_pCompositor->m_lXDGPopups.remove(*PPOPUP);
+    g_pCompositor->m_vXDGPopups.erase(std::remove_if(g_pCompositor->m_vXDGPopups.begin(), g_pCompositor->m_vXDGPopups.end(), [&](std::unique_ptr<SXDGPopup>& el) { return el.get() == PPOPUP; }));
 }

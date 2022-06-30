@@ -206,6 +206,5 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
-    // TODO: optimize this. This does NOT need to be here but it prevents some issues with full DT.
-    g_pHyprRenderer->damageMonitor(PMONITOR);
+    g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 }

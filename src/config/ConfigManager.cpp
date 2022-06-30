@@ -180,6 +180,8 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         CONFIGENTRY = &configValues.at(COMMAND);
     }
 
+    CONFIGENTRY->set = true;
+
     if (CONFIGENTRY->intValue != -1) {
         try {
             if (VALUE.find("0x") == 0) {
@@ -909,6 +911,15 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
     }
 
     SConfigValue copy = it->second[val];
+
+    // fallback if not set explicitly
+    if (!copy.set) {
+        for (auto& cv : configValues) {
+            if (cv.first.find(val) == cv.first.length() - val.length()) {
+                copy = cv.second;
+            }
+        }
+    }
 
     return copy;
 }

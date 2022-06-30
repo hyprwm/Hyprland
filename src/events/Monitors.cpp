@@ -21,24 +21,24 @@ void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
 
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m.output);
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m->output);
 
         // TODO: clients off of disabled
         wlr_box BOX;
-        wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m.output, &BOX);
+        wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m->output, &BOX);
 
-        //m.vecSize.x = BOX.width;
-       // m.vecSize.y = BOX.height;
-        m.vecPosition.x = BOX.x;
-        m.vecPosition.y = BOX.y;
+        //m->vecSize.x = BOX.width;
+       // m->vecSize.y = BOX.height;
+        m->vecPosition.x = BOX.x;
+        m->vecPosition.y = BOX.y;
 
-        CONFIGHEAD->state.enabled = m.output->enabled;
-        CONFIGHEAD->state.mode = m.output->current_mode;
-        CONFIGHEAD->state.x = m.vecPosition.x;
-        CONFIGHEAD->state.y = m.vecPosition.y;
+        CONFIGHEAD->state.enabled = m->output->enabled;
+        CONFIGHEAD->state.mode = m->output->current_mode;
+        CONFIGHEAD->state.x = m->vecPosition.x;
+        CONFIGHEAD->state.y = m->vecPosition.y;
 
-        wlr_output_set_custom_mode(m.output, m.vecPixelSize.x, m.vecPixelSize.y, (int)(round(m.refreshRate * 1000)));
+        wlr_output_set_custom_mode(m->output, m->vecPixelSize.x, m->vecPixelSize.y, (int)(round(m->refreshRate * 1000)));
     }
 
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
@@ -90,8 +90,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     newMonitor.vecSize = monitorRule.resolution;
     newMonitor.refreshRate = monitorRule.refreshRate;
 
-    g_pCompositor->m_lMonitors.push_back(newMonitor);
-    const auto PNEWMONITOR = &g_pCompositor->m_lMonitors.back();
+    const auto PNEWMONITOR = g_pCompositor->m_vMonitors.emplace_back(std::make_unique<SMonitor>(newMonitor)).get();
 
     PNEWMONITOR->hyprListener_monitorFrame.initCallback(&OUTPUT->events.frame, &Events::listener_monitorFrame, PNEWMONITOR);
     PNEWMONITOR->hyprListener_monitorDestroy.initCallback(&OUTPUT->events.destroy, &Events::listener_monitorDestroy, PNEWMONITOR);
@@ -115,10 +114,10 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     // Workspace
     std::string newDefaultWorkspaceName = "";
-    auto WORKSPACEID = monitorRule.defaultWorkspace == "" ? g_pCompositor->m_lWorkspaces.size() + 1 : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
+    auto WORKSPACEID = monitorRule.defaultWorkspace == "" ? g_pCompositor->m_vWorkspaces.size() + 1 : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
     
     if (WORKSPACEID == INT_MAX || WORKSPACEID == (long unsigned int)SPECIAL_WORKSPACE_ID) {
-        WORKSPACEID = g_pCompositor->m_lWorkspaces.size() + 1;
+        WORKSPACEID = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 
         Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", monitorRule.defaultWorkspace);
@@ -135,7 +134,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PNEWMONITOR->ID);
         PNEWWORKSPACE->startAnim(true,true,true);
     } else {
-        PNEWWORKSPACE = &g_pCompositor->m_lWorkspaces.emplace_back(newMonitor.ID, newDefaultWorkspaceName);
+        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(newMonitor.ID, newDefaultWorkspaceName)).get();
 
         // We are required to set the name here immediately
         wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, newDefaultWorkspaceName.c_str());
@@ -339,9 +338,9 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     SMonitor* pMonitor = nullptr;
 
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        if (m.szName == OUTPUT->name) {
-            pMonitor = &m;
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        if (m->szName == OUTPUT->name) {
+            pMonitor = m.get();
             break;
         }
     }
@@ -350,7 +349,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
         return;
 
     // Cleanup everything. Move windows back, snap cursor, shit.
-    const auto BACKUPMON = &g_pCompositor->m_lMonitors.front();
+    const auto BACKUPMON = g_pCompositor->m_vMonitors.front().get();
 
     if (!BACKUPMON) {
         Debug::log(CRIT, "No monitors! Unplugged last! Exiting.");
@@ -366,9 +365,9 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     // move workspaces
     std::deque<CWorkspace*> wspToMove;
-    for (auto& w : g_pCompositor->m_lWorkspaces) {
-        if (w.m_iMonitorID == pMonitor->ID) {
-            wspToMove.push_back(&w);
+    for (auto& w : g_pCompositor->m_vWorkspaces) {
+        if (w->m_iMonitorID == pMonitor->ID) {
+            wspToMove.push_back(w.get());
         }
     }
 
@@ -379,27 +378,23 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     pMonitor->activeWorkspace = -1;
 
-    for (auto it = g_pCompositor->m_lWorkspaces.begin(); it != g_pCompositor->m_lWorkspaces.end(); ++it) {
-        if (it->m_iMonitorID == pMonitor->ID) {
-            it = g_pCompositor->m_lWorkspaces.erase(it);
-        }
-    }
+    g_pCompositor->m_vWorkspaces.erase(std::remove_if(g_pCompositor->m_vWorkspaces.begin(), g_pCompositor->m_vWorkspaces.end(), [&](std::unique_ptr<CWorkspace>& el) { return el->m_iMonitorID == pMonitor->ID; }));
 
     Debug::log(LOG, "Removed monitor %s!", pMonitor->szName.c_str());
 
     g_pEventManager->postEvent(SHyprIPCEvent("monitorremoved", pMonitor->szName));
 
-    g_pCompositor->m_lMonitors.remove(*pMonitor);
+    g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](std::unique_ptr<SMonitor>& el) { return el.get() == pMonitor; }));
 
     // update the pMostHzMonitor
     if (pMostHzMonitor == pMonitor) {
         int mostHz = 0;
         SMonitor* pMonitorMostHz = nullptr;
 
-        for (auto& m : g_pCompositor->m_lMonitors) {
-            if (m.refreshRate > mostHz) {
-                pMonitorMostHz = &m;
-                mostHz = m.refreshRate;
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m->refreshRate > mostHz) {
+                pMonitorMostHz = m.get();
+                mostHz = m->refreshRate;
             }
         }
 

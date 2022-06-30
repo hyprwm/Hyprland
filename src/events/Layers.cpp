@@ -36,7 +36,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
 
     if (!WLRLAYERSURFACE->output) {
-        WLRLAYERSURFACE->output = g_pCompositor->m_lMonitors.front().output;  // TODO: current mon
+        WLRLAYERSURFACE->output = g_pCompositor->m_vMonitors.front()->output;  // TODO: current mon
     }
 
     layerSurface->hyprListener_commitLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.commit, &Events::listener_commitLayerSurface, layerSurface, "layerSurface");
@@ -145,7 +145,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     layersurface->fadingOut = true;
 
-    g_pCompositor->m_lSurfacesFadingOut.push_back(layersurface);
+    g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
 
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = false;

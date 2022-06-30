@@ -613,8 +613,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         parseError = "";
 
         // invalidate layouts jic
-        for (auto& m : g_pCompositor->m_lMonitors)
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
+        for (auto& m : g_pCompositor->m_vMonitors)
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
         // Update window border colors
         g_pCompositor->updateAllWindowsBorders();
@@ -774,8 +774,8 @@ void CConfigManager::loadConfigLoadVars() {
         ifs.close();
     }
 
-    for (auto& m : g_pCompositor->m_lMonitors)
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
+    for (auto& m : g_pCompositor->m_vMonitors)
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
     if (!isFirstLaunch)
@@ -810,8 +810,8 @@ void CConfigManager::loadConfigLoadVars() {
     g_pCompositor->updateAllWindowsBorders();
 
     // Force the compositor to fully re-render all monitors
-    for (auto& m : g_pCompositor->m_lMonitors)
-        m.forceFullFrames = 2;
+    for (auto& m : g_pCompositor->m_vMonitors)
+        m->forceFullFrames = 2;
 }
 
 void CConfigManager::tick() {
@@ -970,9 +970,9 @@ void CConfigManager::dispatchExecOnce() {
 }
 
 void CConfigManager::performMonitorReload() {
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        auto rule = getMonitorRuleFor(m.szName);
-        g_pHyprRenderer->applyMonitorRule(&m, &rule);
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        auto rule = getMonitorRuleFor(m->szName);
+        g_pHyprRenderer->applyMonitorRule(m.get(), &rule);
     }
 
     m_bWantsMonitorReload = false;

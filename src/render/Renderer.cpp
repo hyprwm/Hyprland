@@ -647,6 +647,15 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
 
     Debug::log(LOG, "Applying monitor rule for %s", pMonitor->szName.c_str());
 
+    // if it's disabled, disable and ignore
+    if (pMonitorRule->disabled) {
+        wlr_output_enable(pMonitor->output, 0);
+        wlr_output_commit(pMonitor->output);
+
+        Events::listener_monitorDestroy(nullptr, pMonitor->output);
+        return;
+    }
+
     // Check if the rule isn't already applied
     if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale && DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1) && pMonitor->transform == pMonitorRule->transform) {
         Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());

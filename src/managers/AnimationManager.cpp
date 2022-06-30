@@ -40,6 +40,16 @@ void CAnimationManager::tick() {
         // get speed
         const auto SPEED = *av->m_pSpeed == 0 ? *PANIMSPEED : *av->m_pSpeed;
 
+        // get the spent % (0 - 1)
+        const auto DURATIONPASSED = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - av->animationBegin).count();
+        const float SPENT = std::clamp((DURATIONPASSED / 100.f) / SPEED, 0.f, 1.f);
+
+        // first of all, check if we need to update it at all
+        if (SPENT >= 1.f) {
+            av->warp();
+            continue;
+        }
+
         // window stuff
         const auto PWINDOW = (CWindow*)av->m_pWindow;
         const auto PWORKSPACE = (CWorkspace*)av->m_pWorkspace;
@@ -58,84 +68,53 @@ void CAnimationManager::tick() {
         // beziers are with a switch unforto
         // TODO: maybe do something cleaner
 
-        // get the spent % (0 - 1)
-        const auto DURATIONPASSED = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - av->animationBegin).count();
-        const float SPENT = std::clamp((DURATIONPASSED / 100.f) / SPEED, 0.f, 1.f);
-
         switch (av->m_eVarType) {
             case AVARTYPE_FLOAT: {
-                if (!deltazero(av->m_fValue, av->m_fGoal)) {
-
-                    // for disabled anims just warp
-                    if (*av->m_pEnabled == 0 || animationsDisabled) {
-                        av->warp();
-                        break;
-                    }
-
-                    const auto DELTA = av->m_fGoal - av->m_fBegun;
-                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
-
-                    if (BEZIER != m_mBezierCurves.end())
-                        av->m_fValue = av->m_fBegun + BEZIER->second.getYForPoint(SPENT) * DELTA;
-                    else
-                        av->m_fValue = av->m_fBegun + DEFAULTBEZIER->second.getYForPoint(SPENT) * DELTA;
-
-                    if (SPENT >= 1.f) {
-                        av->warp();
-                    }
-                } else {
-                    continue; // dont process
+                // for disabled anims just warp
+                if (*av->m_pEnabled == 0 || animationsDisabled) {
+                    av->warp();
+                    break;
                 }
+
+                const auto DELTA = av->m_fGoal - av->m_fBegun;
+                const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+
+                if (BEZIER != m_mBezierCurves.end())
+                    av->m_fValue = av->m_fBegun + BEZIER->second.getYForPoint(SPENT) * DELTA;
+                else
+                    av->m_fValue = av->m_fBegun + DEFAULTBEZIER->second.getYForPoint(SPENT) * DELTA;
                 break;
             }
             case AVARTYPE_VECTOR: {
-                if (!deltazero(av->m_vValue, av->m_vGoal)) {
-
-                    // for disabled anims just warp
-                    if (*av->m_pEnabled == 0 || animationsDisabled) {
-                        av->warp();
-                        break;
-                    }
-
-                    const auto DELTA = av->m_vGoal - av->m_vBegun;
-                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
-
-                    if (BEZIER != m_mBezierCurves.end())
-                        av->m_vValue = av->m_vBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
-                    else
-                        av->m_vValue = av->m_vBegun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
-
-                    if (SPENT >= 1.f) {
-                        av->warp();
-                    }
-                } else {
-                    continue;  // dont process
+                // for disabled anims just warp
+                if (*av->m_pEnabled == 0 || animationsDisabled) {
+                    av->warp();
+                    break;
                 }
+
+                const auto DELTA = av->m_vGoal - av->m_vBegun;
+                const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+
+                if (BEZIER != m_mBezierCurves.end())
+                    av->m_vValue = av->m_vBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
+                else
+                    av->m_vValue = av->m_vBegun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
                 break;
             }
             case AVARTYPE_COLOR: {
-                if (!deltazero(av->m_cValue, av->m_cGoal)) {
-
-                    // for disabled anims just warp
-                    if (*av->m_pEnabled == 0 || animationsDisabled) {
-                        av->warp();
-                        break;
-                    }
-
-                    const auto DELTA = av->m_cGoal - av->m_cBegun;
-                    const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
-
-                    if (BEZIER != m_mBezierCurves.end())
-                        av->m_cValue = av->m_cBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
-                    else
-                        av->m_cValue = av->m_cBegun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
-
-                    if (SPENT >= 1.f) {
-                        av->warp();
-                    }
-                } else {
-                    continue;  // dont process
+                // for disabled anims just warp
+                if (*av->m_pEnabled == 0 || animationsDisabled) {
+                    av->warp();
+                    break;
                 }
+
+                const auto DELTA = av->m_cGoal - av->m_cBegun;
+                const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+
+                if (BEZIER != m_mBezierCurves.end())
+                    av->m_cValue = av->m_cBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
+                else
+                    av->m_cValue = av->m_cBegun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
                 break;
             }
             default: {

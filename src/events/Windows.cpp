@@ -337,8 +337,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
 
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+
     // do the animation thing
-    PWINDOW->m_vOriginalClosedPos = PWINDOW->m_vRealPosition.vec();
+    PWINDOW->m_vOriginalClosedPos = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
     PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
 
     if (!PWINDOW->m_bX11DoesntWantBorders)   // don't animate out if they weren't animated in.

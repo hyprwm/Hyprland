@@ -114,8 +114,8 @@ std::string getFormat(const char *fmt, ...) {
 }
 
 void scaleBox(wlr_box* box, float scale) {
-    box->width = std::round((box->x + box->width) * scale) - std::round(box->x * scale);
-    box->height = std::round((box->y + box->height) * scale) - std::round(box->y * scale);
+    box->width = std::round(box->width * scale);
+    box->height = std::round(box->height * scale);
     box->x = std::round(box->x * scale);
     box->y = std::round(box->y * scale);
 }

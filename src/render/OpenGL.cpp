@@ -813,12 +813,13 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     wlr_box windowBox;
     // some mafs to figure out the correct box
-    Vector2D scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.vec().x / PWINDOW->m_vOriginalClosedSize.x), (PMONITOR->scale * PWINDOW->m_vRealSize.vec().y / PWINDOW->m_vOriginalClosedSize.y));
+    // the originalClosedPos is relative to the monitor's pos
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.vec().x / (PWINDOW->m_vOriginalClosedSize.x * PMONITOR->scale)), (PMONITOR->scale * PWINDOW->m_vRealSize.vec().y / (PWINDOW->m_vOriginalClosedSize.y * PMONITOR->scale)));
 
     windowBox.width = PMONITOR->vecPixelSize.x * scaleXY.x;
     windowBox.height = PMONITOR->vecPixelSize.y * scaleXY.y;
-    windowBox.x = (PWINDOW->m_vRealPosition.vec().x * PMONITOR->scale - PMONITOR->vecPosition.x) - ((PWINDOW->m_vOriginalClosedPos.x - PMONITOR->vecPosition.x) * scaleXY.x);
-    windowBox.y = (PWINDOW->m_vRealPosition.vec().y * PMONITOR->scale - PMONITOR->vecPosition.y) - ((PWINDOW->m_vOriginalClosedPos.y - PMONITOR->vecPosition.y) * scaleXY.y);
+    windowBox.x = ((PWINDOW->m_vRealPosition.vec().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.x * PMONITOR->scale) * scaleXY.x);
+    windowBox.y = ((PWINDOW->m_vRealPosition.vec().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.y * PMONITOR->scale) * scaleXY.y);
 
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);

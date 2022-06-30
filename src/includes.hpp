@@ -117,3 +117,5 @@ extern "C" {
 #include "helpers/Vector2D.hpp"
 
 #include "ext-workspace-unstable-v1-protocol.h"
+
+#include <algorithm>

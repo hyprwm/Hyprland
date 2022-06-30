@@ -74,11 +74,11 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
     if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
         return true;
 
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        if (PWORKSPACE && PWORKSPACE->m_iMonitorID == m.ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated()))
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        if (PWORKSPACE && PWORKSPACE->m_iMonitorID == m->ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated()))
             return true;
 
-        if (m.specialWorkspaceOpen && pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+        if (m->specialWorkspaceOpen && pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
             return true;
     }
 
@@ -88,37 +88,37 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
 void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
     CWindow* pWorkspaceWindow = nullptr;
 
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (w.m_iWorkspaceID != pWorkspace->m_iID || !w.m_bIsFullscreen)
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID != pWorkspace->m_iID || !w->m_bIsFullscreen)
             continue;
 
         // found it!
-        renderWindow(&w, pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL);
+        renderWindow(w.get(), pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL);
 
-        pWorkspaceWindow = &w;
+        pWorkspaceWindow = w.get();
     }
 
     // then render windows over fullscreen
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (w.m_iWorkspaceID != pWorkspaceWindow->m_iWorkspaceID || !w.m_bCreatedOverFullscreen || !w.m_bIsMapped)
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID != pWorkspaceWindow->m_iWorkspaceID || !w->m_bCreatedOverFullscreen || !w->m_bIsMapped)
             continue;
 
-        renderWindow(&w, pMonitor, time, true);
+        renderWindow(w.get(), pMonitor, time, true);
     }
 
     // and then special windows
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (!g_pCompositor->windowValidMapped(&w) && !w.m_bFadingOut)
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (!g_pCompositor->windowValidMapped(w.get()) && !w->m_bFadingOut)
             continue;
 
-        if (w.m_iWorkspaceID != SPECIAL_WORKSPACE_ID)
+        if (w->m_iWorkspaceID != SPECIAL_WORKSPACE_ID)
             continue;
 
-        if (!shouldRenderWindow(&w, pMonitor))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         // render the bad boy
-        renderWindow(&w, pMonitor, time, true);
+        renderWindow(w.get(), pMonitor, time, true);
     }
 
     // and the overlay layers
@@ -136,7 +136,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
     renderDragIcon(pMonitor, time);
 
     // if correct monitor draw hyprerror
-    if (pMonitor == &g_pCompositor->m_lMonitors.front())
+    if (pMonitor == g_pCompositor->m_vMonitors.front().get())
         g_pHyprError->draw();
 }
 
@@ -244,54 +244,54 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     }
 
     // Non-floating
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (!g_pCompositor->windowValidMapped(&w) && !w.m_bFadingOut)
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
 
-        if (w.m_bIsFloating)
+        if (w->m_bIsFloating)
             continue;  // floating are in the second pass
 
-        if (w.m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+        if (w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
             continue; // special are in the third pass
 
-        if (!shouldRenderWindow(&w, PMONITOR))
+        if (!shouldRenderWindow(w.get(), PMONITOR))
             continue;
 
         // render the bad boy
-        renderWindow(&w, PMONITOR, time, true);
+        renderWindow(w.get(), PMONITOR, time, true);
     }
 
     // floating on top
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (!g_pCompositor->windowValidMapped(&w) && !w.m_bFadingOut)
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
 
-        if (!w.m_bIsFloating)
+        if (!w->m_bIsFloating)
             continue;
 
-        if (w.m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+        if (w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
             continue;
 
-        if (!shouldRenderWindow(&w, PMONITOR))
+        if (!shouldRenderWindow(w.get(), PMONITOR))
             continue;
 
         // render the bad boy
-        renderWindow(&w, PMONITOR, time, true);
+        renderWindow(w.get(), PMONITOR, time, true);
     }
 
     // and then special
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (!g_pCompositor->windowValidMapped(&w) && !w.m_bFadingOut)
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
             
-        if (w.m_iWorkspaceID != SPECIAL_WORKSPACE_ID)
+        if (w->m_iWorkspaceID != SPECIAL_WORKSPACE_ID)
             continue;
 
-        if (!shouldRenderWindow(&w, PMONITOR))
+        if (!shouldRenderWindow(w.get(), PMONITOR))
             continue;
 
         // render the bad boy
-        renderWindow(&w, PMONITOR, time, true);
+        renderWindow(w.get(), PMONITOR, time, true);
     }
 
     // Render surfaces above windows for monitor
@@ -558,12 +558,12 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 
     pixman_region32_translate(&damageBox, x, y);
 
-    for (auto& m : g_pCompositor->m_lMonitors) {
+    for (auto& m : g_pCompositor->m_vMonitors) {
         double lx = 0, ly = 0;
-        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m.output, &lx, &ly);
+        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m->output, &lx, &ly);
         pixman_region32_translate(&damageBox, lx, ly);
-        wlr_region_scale(&damageBox, &damageBox, m.scale);
-        wlr_output_damage_add(m.damage, &damageBox);
+        wlr_region_scale(&damageBox, &damageBox, m->scale);
+        wlr_output_damage_add(m->damage, &damageBox);
         pixman_region32_translate(&damageBox, -lx, -ly);
     }
 
@@ -577,10 +577,10 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {
     wlr_box damageBox = pWindow->getFullWindowBoundingBox();
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        wlr_box fixedDamageBox = {damageBox.x - m.vecPosition.x, damageBox.y - m.vecPosition.y, damageBox.width, damageBox.height};
-        scaleBox(&fixedDamageBox, m.scale);
-        wlr_output_damage_add_box(m.damage, &fixedDamageBox);
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        wlr_box fixedDamageBox = {damageBox.x - m->vecPosition.x, damageBox.y - m->vecPosition.y, damageBox.width, damageBox.height};
+        scaleBox(&fixedDamageBox, m->scale);
+        wlr_output_damage_add_box(m->damage, &fixedDamageBox);
     }
 
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
@@ -600,10 +600,10 @@ void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
 }
 
 void CHyprRenderer::damageBox(wlr_box* pBox) {
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        wlr_box damageBox = {pBox->x - m.vecPosition.x, pBox->y - m.vecPosition.y, pBox->width, pBox->height};
-        scaleBox(&damageBox, m.scale);
-        wlr_output_damage_add_box(m.damage, &damageBox);
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        wlr_box damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
+        scaleBox(&damageBox, m->scale);
+        wlr_output_damage_add_box(m->damage, &damageBox);
     }
 
     static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
@@ -768,8 +768,8 @@ void CHyprRenderer::ensureCursorRenderingMode() {
 
             Debug::log(LOG, "Hiding the cursor (timeout)");
 
-            for (auto& m : g_pCompositor->m_lMonitors)
-                g_pHyprRenderer->damageMonitor(&m);  // TODO: maybe just damage the cursor area?
+            for (auto& m : g_pCompositor->m_vMonitors)
+                g_pHyprRenderer->damageMonitor(m.get());  // TODO: maybe just damage the cursor area?
         } else if (*PCURSORTIMEOUT > PASSEDCURSORSECONDS && !m_bHasARenderedCursor) {
             m_bHasARenderedCursor = true;
 
@@ -778,8 +778,8 @@ void CHyprRenderer::ensureCursorRenderingMode() {
 
             Debug::log(LOG, "Showing the cursor (timeout)");
 
-            for (auto& m : g_pCompositor->m_lMonitors)
-                g_pHyprRenderer->damageMonitor(&m);  // TODO: maybe just damage the cursor area?
+            for (auto& m : g_pCompositor->m_vMonitors)
+                g_pHyprRenderer->damageMonitor(m.get());  // TODO: maybe just damage the cursor area?
         }
     } else {
         m_bHasARenderedCursor = true;

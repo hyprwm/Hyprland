@@ -219,12 +219,12 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                     int lowestID = 99999;
                     int highestID = -99999;
 
-                    for (auto& w : g_pCompositor->m_lWorkspaces) {
-                        if (w.m_iID < lowestID)
-                            lowestID = w.m_iID;
+                    for (auto& w : g_pCompositor->m_vWorkspaces) {
+                        if (w->m_iID < lowestID)
+                            lowestID = w->m_iID;
 
-                        if (w.m_iID > highestID)
-                            highestID = w.m_iID;
+                        if (w->m_iID > highestID)
+                            highestID = w->m_iID;
                     }
 
                     if (remains < 0)

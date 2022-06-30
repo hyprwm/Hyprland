@@ -43,6 +43,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
     PWINDOW->m_fAlpha = 255.f;
 
+    if (PWINDOW->m_iX11Type == 2)
+        g_pCompositor->moveUnmanagedX11ToWindows(PWINDOW);
+
     // Set all windows tiled regardless of anything
     g_pXWaylandManager->setWindowStyleTiled(PWINDOW, WLR_EDGE_LEFT | WLR_EDGE_RIGHT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM);
 
@@ -57,7 +60,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(PWINDOW);
 
     if (!PWINDOWSURFACE) {
-        g_pCompositor->m_lWindows.remove(*PWINDOW);
+        g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
         return;
     }
 
@@ -97,7 +100,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->m_iMonitorID = PMONITOR->ID;
                 } else {
                     const long int MONITOR = std::stoi(MONITORSTR);
-                    if (MONITOR >= (long int)g_pCompositor->m_lMonitors.size() || MONITOR < (long int)0)
+                    if (MONITOR >= (long int)g_pCompositor->m_vMonitors.size() || MONITOR < (long int)0)
                         PWINDOW->m_iMonitorID = 0;
                     else
                         PWINDOW->m_iMonitorID = MONITOR;
@@ -330,7 +333,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     PWINDOW->m_bFadingOut = true;
 
-    g_pCompositor->m_lWindowsFadingOut.push_back(PWINDOW);
+    g_pCompositor->m_vWindowsFadingOut.emplace_back(PWINDOW);
 
     g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
 
@@ -474,12 +477,13 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     if (XWSURFACE->parent)
         Debug::log(LOG, "Window parent data: %s at %x", XWSURFACE->parent->_class, XWSURFACE->parent);
 
-    g_pCompositor->m_lWindows.emplace_back();
-    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
+    const auto PNEWWINDOW = XWSURFACE->override_redirect ? g_pCompositor->m_dUnmanagedX11Windows.emplace_back(std::make_unique<CWindow>()).get() : g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
 
     PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
     PNEWWINDOW->m_iX11Type = XWSURFACE->override_redirect ? 2 : 1;
     PNEWWINDOW->m_bIsX11 = true;
+
+    PNEWWINDOW->m_pX11Parent = g_pCompositor->getX11Parent(PNEWWINDOW);
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XWSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XWSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XWayland Window");
@@ -495,8 +499,7 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return;  // TODO: handle?
 
-    g_pCompositor->m_lWindows.emplace_back();
-    const auto PNEWWINDOW = &g_pCompositor->m_lWindows.back();
+    const auto PNEWWINDOW = g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");

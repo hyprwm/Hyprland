@@ -67,13 +67,14 @@ public:
     const char*             m_szWLDisplaySocket;
     std::string             m_szInstanceSignature = "";
 
-    std::list<SMonitor>     m_lMonitors;
-    std::list<CWindow>      m_lWindows;
-    std::list<SXDGPopup>    m_lXDGPopups;
-    std::list<CWorkspace>   m_lWorkspaces;
-    std::list<SSubsurface>  m_lSubsurfaces;
-    std::list<CWindow*>     m_lWindowsFadingOut;
-    std::list<SLayerSurface*> m_lSurfacesFadingOut;
+    std::vector<std::unique_ptr<SMonitor>>      m_vMonitors;
+    std::vector<std::unique_ptr<CWindow>>       m_vWindows;
+    std::deque<std::unique_ptr<CWindow>>        m_dUnmanagedX11Windows;
+    std::vector<std::unique_ptr<SXDGPopup>>     m_vXDGPopups;
+    std::vector<std::unique_ptr<CWorkspace>>    m_vWorkspaces;
+    std::vector<std::unique_ptr<SSubsurface>>   m_vSubsurfaces;
+    std::vector<CWindow*>                       m_vWindowsFadingOut;
+    std::vector<SLayerSurface*>                 m_vSurfacesFadingOut;
 
     void                    startCompositor(); 
     void                    cleanupExit();
@@ -134,6 +135,8 @@ public:
     void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);
     bool                    workspaceIDOutOfBounds(const int&);
     void                    setWindowFullscreen(CWindow*, bool, eFullscreenMode);
+    void                    moveUnmanagedX11ToWindows(CWindow*);
+    CWindow*                getX11Parent(CWindow*);
 
 private:
     void                    initAllSignals();

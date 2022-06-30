@@ -894,10 +894,18 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 }
 
 void CKeybindManager::forceRendererReload(std::string args) {
+    bool overAgain = false;
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         auto rule = g_pConfigManager->getMonitorRuleFor(m->szName);
-        g_pHyprRenderer->applyMonitorRule(m.get(), &rule, true);
+        if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule, true)) {
+            overAgain = true;
+            break;
+        }
     }
+
+    if (overAgain)
+        forceRendererReload(args);
 }
 
 void CKeybindManager::resizeActive(std::string args) {

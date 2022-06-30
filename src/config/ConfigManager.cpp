@@ -1054,10 +1054,19 @@ void CConfigManager::dispatchExecOnce() {
 }
 
 void CConfigManager::performMonitorReload() {
+
+    bool overAgain = false;
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         auto rule = getMonitorRuleFor(m->szName);
-        g_pHyprRenderer->applyMonitorRule(m.get(), &rule);
+        if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
+            overAgain = true;
+            break;
+        }
     }
+
+    if (overAgain)
+        performMonitorReload();
 
     m_bWantsMonitorReload = false;
 }

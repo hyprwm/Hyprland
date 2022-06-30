@@ -643,7 +643,7 @@ DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& 
     return DAMAGE_TRACKING_INVALID;
 }
 
-void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
+bool CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
 
     Debug::log(LOG, "Applying monitor rule for %s", pMonitor->szName.c_str());
 
@@ -653,13 +653,13 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
         wlr_output_commit(pMonitor->output);
 
         Events::listener_monitorDestroy(nullptr, pMonitor->output);
-        return;
+        return false;
     }
 
     // Check if the rule isn't already applied
     if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale && DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1) && pMonitor->transform == pMonitorRule->transform) {
         Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());
-        return;
+        return true;
     }
 
     wlr_output_set_scale(pMonitor->output, pMonitorRule->scale);
@@ -709,7 +709,7 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
                 if (!PREFERREDMODE) {
                     Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f",
                                (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
-                    return;
+                    return true;
                 }
 
                 // Preferred is valid
@@ -740,7 +740,7 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
 
     if (!wlr_output_commit(pMonitor->output)) {
         Debug::log(ERR, "Couldn't commit output named %s", pMonitor->output->name);
-        return;
+        return true;
     }
 
     int x, y;
@@ -762,6 +762,8 @@ void CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorR
 
     // frame skip
     pMonitor->framesToSkip = 1;
+
+    return true;
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {

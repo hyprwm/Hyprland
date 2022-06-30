@@ -52,12 +52,17 @@ public:
     void                tick();
     void                init();
 
-    int                 getInt(std::string);
-    float               getFloat(std::string);
-    std::string         getString(std::string);
+    int                 getInt(const std::string&);
+    float               getFloat(const std::string&);
+    std::string         getString(const std::string&);
     void                setFloat(std::string, float);
     void                setInt(std::string, int);
     void                setString(std::string, std::string);
+
+    int                 getDeviceInt(const std::string&, const std::string&);
+    float               getDeviceFloat(const std::string&, const std::string&);
+    std::string         getDeviceString(const std::string&, const std::string&);
+    bool                deviceConfigExists(const std::string&);
 
     SConfigValue*       getConfigValuePtr(std::string);
 
@@ -81,6 +86,7 @@ private:
     std::unordered_map<std::string, time_t>       configModifyTimes; // stores modify times
     std::unordered_map<std::string, std::string>  configDynamicVars; // stores dynamic vars declared by the user
     std::unordered_map<std::string, SConfigValue> configValues;
+    std::unordered_map<std::string, std::unordered_map<std::string, SConfigValue>> deviceConfigs; // stores device configs
 
     std::string                                   configCurrentPath;
 
@@ -100,12 +106,15 @@ private:
 
     // internal methods
     void                setDefaultVars();
+    void                setDeviceDefaultVars(const std::string&);
 
     void                applyUserDefinedVars(std::string&, const size_t);
     void                loadConfigLoadVars();
-    SConfigValue        getConfigValueSafe(std::string);
+    SConfigValue        getConfigValueSafe(const std::string&);
+    SConfigValue        getConfigValueSafeDevice(const std::string&, const std::string&);
     void                parseLine(std::string&);
     void                configSetValueSafe(const std::string&, const std::string&);
+    void                handleDeviceConfig(const std::string&, const std::string&);
     void                handleRawExec(const std::string&, const std::string&);
     void                handleMonitor(const std::string&, const std::string&);
     void                handleBind(const std::string&, const std::string&, bool locked = false);

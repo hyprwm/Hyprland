@@ -20,6 +20,8 @@ struct SConfigValue {
     int64_t intValue = -1;
     float floatValue = -1;
     std::string strValue = "";
+
+    bool set = false; // used for device configs
 };
 
 struct SMonitorRule {

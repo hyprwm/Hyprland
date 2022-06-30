@@ -221,6 +221,9 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
     const auto ACTIVEWINDOW = g_pCompositor->m_pLastWindow;
 
     if (g_pCompositor->windowValidMapped(ACTIVEWINDOW)) {
+        // remove drag status
+        g_pInputManager->currentlyDraggedWindow = nullptr;
+
         ACTIVEWINDOW->m_bIsFloating = !ACTIVEWINDOW->m_bIsFloating;
 
         if (ACTIVEWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID) {

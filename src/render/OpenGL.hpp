@@ -104,7 +104,7 @@ private:
     bool                    m_bEndFrame = false;
 
     // Shaders
-    SQuad                   m_shQUAD;
+    CShader                 m_shQUAD;
     CShader                 m_shRGBA;
     CShader                 m_shRGBX;
     CShader                 m_shEXT;

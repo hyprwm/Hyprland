@@ -285,11 +285,11 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
-    glUniform2f(glGetUniformLocation(m_shQUAD.program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(glGetUniformLocation(m_shQUAD.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(glGetUniformLocation(m_shQUAD.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(glGetUniformLocation(m_shQUAD.program, "radius"), round);
-    glUniform1i(glGetUniformLocation(m_shQUAD.program, "primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
+    glUniform2f(m_shQUAD.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shQUAD.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shQUAD.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shQUAD.getUniformLocation("radius"), round);
+    glUniform1i(m_shQUAD.getUniformLocation("primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
 
     glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shQUAD.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -380,11 +380,11 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
-    glUniform2f(glGetUniformLocation(shader->program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(glGetUniformLocation(shader->program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(glGetUniformLocation(shader->program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(glGetUniformLocation(shader->program, "radius"), round);
-    glUniform1i(glGetUniformLocation(shader->program, "primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
+    glUniform2f(shader->getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(shader->getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(shader->getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(shader->getUniformLocation("radius"), round);
+    glUniform1i(shader->getUniformLocation("primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
@@ -471,11 +471,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 
         // prep two shaders
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
-        glUniform1f(glGetUniformLocation(pShader->program, "radius"), *PBLURSIZE * (a / 255.f));  // this makes the blursize change with a
+        glUniform1f(pShader->getUniformLocation("radius"), *PBLURSIZE * (a / 255.f));  // this makes the blursize change with a
         if (pShader == &m_shBLUR1)
-            glUniform2f(glGetUniformLocation(m_shBLUR1.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
+            glUniform2f(m_shBLUR1.getUniformLocation("halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
         else
-            glUniform2f(glGetUniformLocation(m_shBLUR2.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
+            glUniform2f(m_shBLUR2.getUniformLocation("halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
         glUniform1i(pShader->tex, 0);
 
         glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -655,18 +655,18 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     glUseProgram(m_shBORDER1.program);
 
     glUniformMatrix3fv(m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(glGetUniformLocation(m_shBORDER1.program, "color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
+    glUniform4f(m_shBORDER1.getUniformLocation("color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
     const auto TOPLEFT = Vector2D(round, round);
     const auto BOTTOMRIGHT = Vector2D(box->width - round, box->height - round);
     const auto FULLSIZE = Vector2D(box->width, box->height);
 
-    glUniform2f(glGetUniformLocation(m_shBORDER1.program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(glGetUniformLocation(m_shBORDER1.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(glGetUniformLocation(m_shBORDER1.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(glGetUniformLocation(m_shBORDER1.program, "radius"), round);
-    glUniform1f(glGetUniformLocation(m_shBORDER1.program, "thick"), *PBORDERSIZE);
-    glUniform1i(glGetUniformLocation(m_shBORDER1.program, "primitiveMultisample"), *PMULTISAMPLE);
+    glUniform2f(m_shBORDER1.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shBORDER1.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shBORDER1.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shBORDER1.getUniformLocation("radius"), round);
+    glUniform1f(m_shBORDER1.getUniformLocation("thick"), *PBORDERSIZE);
+    glUniform1i(m_shBORDER1.getUniformLocation("primitiveMultisample"), *PMULTISAMPLE);
 
     glVertexAttribPointer(m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -880,19 +880,19 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glUseProgram(m_shSHADOW.program);
 
     glUniformMatrix3fv(m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(glGetUniformLocation(m_shSHADOW.program, "color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
+    glUniform4f(m_shSHADOW.getUniformLocation("color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
 
     const auto TOPLEFT = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(box->width - (range + round), box->height - (range + round));
     const auto FULLSIZE = Vector2D(box->width, box->height);
 
     // Rounded corners
-    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "radius"), range + round);
-    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "range"), range);
-    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "shadowPower"), SHADOWPOWER);
+    glUniform2f(m_shSHADOW.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shSHADOW.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shSHADOW.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shSHADOW.getUniformLocation("radius"), range + round);
+    glUniform1f(m_shSHADOW.getUniformLocation("range"), range);
+    glUniform1f(m_shSHADOW.getUniformLocation("shadowPower"), SHADOWPOWER);
 
     glVertexAttribPointer(m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);

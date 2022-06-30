@@ -71,7 +71,12 @@ struct SKeyboard {
 
     bool active = false;
 
+    std::string name = "";
+
     xkb_rule_names currentRules = {0};
+    int repeatRate = 0;
+    int repeatDelay = 0;
+    int numlockOn = -1;
 
     // For the list lookup
     bool operator==(const SKeyboard& rhs) {
@@ -86,6 +91,8 @@ struct SMouse {
     bool                       constraintActive = false;
 
     pixman_region32_t confinedTo;
+
+    std::string name = "";
 
     DYNLISTENER(commitConstraint);
     DYNLISTENER(destroyMouse);
@@ -168,6 +175,8 @@ struct STablet {
     wlr_tablet_v2_tablet* wlrTabletV2 = nullptr;
     wlr_input_device* wlrDevice = nullptr;
 
+    std::string name = "";
+
     bool operator==(const STablet& b) {
         return wlrDevice == b.wlrDevice;
     }
@@ -186,6 +195,8 @@ struct STabletTool {
 
     bool active = true;
 
+    std::string name = "";
+
     DYNLISTENER(TabletToolDestroy);
     DYNLISTENER(TabletToolSetCursor);
 
@@ -197,6 +208,8 @@ struct STabletTool {
 struct STabletPad {
     wlr_tablet_v2_tablet_pad* wlrTabletPadV2 = nullptr;
     STablet* pTabletParent = nullptr;
+
+    std::string name = "";
 
     DYNLISTENER(Attach);
     DYNLISTENER(Button);

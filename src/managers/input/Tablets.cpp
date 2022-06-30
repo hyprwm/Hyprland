@@ -4,6 +4,12 @@
 void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     const auto PNEWTABLET = &m_lTablets.emplace_back();
 
+    try {
+        PNEWTABLET->name = std::string(pDevice->name);
+    } catch (std::exception& e) {
+        Debug::log(ERR, "Tablet had no name???");  // logic error
+    }
+
     PNEWTABLET->wlrTablet = pDevice->tablet;
     PNEWTABLET->wlrDevice = pDevice;
     PNEWTABLET->wlrTabletV2 = wlr_tablet_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pDevice);
@@ -150,6 +156,12 @@ STabletTool* CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
 
 void CInputManager::newTabletPad(wlr_input_device* pDevice) {
     const auto PNEWPAD = &m_lTabletPads.emplace_back();
+
+    try {
+        PNEWPAD->name = std::string(pDevice->name);
+    } catch (std::exception& e) {
+        Debug::log(ERR, "Pad had no name???");  // logic error
+    }
 
     PNEWPAD->wlrTabletPadV2 = wlr_tablet_pad_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pDevice);
 

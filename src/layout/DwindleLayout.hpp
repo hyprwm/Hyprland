@@ -42,17 +42,12 @@ struct SDwindleNodeData {
 
 class CHyprDwindleLayout : public IHyprLayout {
 public:
-    virtual void        onWindowCreated(CWindow*);
-    virtual void        onWindowRemoved(CWindow*);
+    virtual void        onWindowCreatedTiling(CWindow*);
+    virtual void        onWindowRemovedTiling(CWindow*);
+    virtual bool        isWindowTiled(CWindow*);
     virtual void        recalculateMonitor(const int&);
     virtual void        recalculateWindow(CWindow*);
-    virtual void        changeWindowFloatingMode(CWindow*);
-    virtual void        onBeginDragWindow();
     virtual void        resizeActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
-    virtual void        moveActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
-    virtual void        onEndDragWindow();
-    virtual void        onMouseMove(const Vector2D&);
-    virtual void        onWindowCreatedFloating(CWindow*);
     virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode, bool);
     virtual std::any    layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
@@ -60,14 +55,9 @@ public:
     virtual void        alterSplitRatioBy(CWindow*, float);
     virtual std::string getLayoutName();
 
-   private:
+private:
 
     std::list<SDwindleNodeData>     m_lDwindleNodesData;
-
-    Vector2D                        m_vBeginDragXY;
-    Vector2D                        m_vLastDragXY;
-    Vector2D                        m_vBeginDragPositionXY;
-    Vector2D                        m_vBeginDragSizeXY;
 
     int                 getNodesOnWorkspace(const int&);
     void                applyNodeDataToWindow(SDwindleNodeData*);

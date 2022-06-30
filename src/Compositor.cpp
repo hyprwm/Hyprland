@@ -680,9 +680,15 @@ CWorkspace* CCompositor::getWorkspaceByID(const int& id) {
 
 void CCompositor::sanityCheckWorkspaces() {
     for (auto it = m_vWorkspaces.begin(); it != m_vWorkspaces.end(); ++it) {
+        if (!it->get())
+            return; // why does this occur when switching from an empty workspace to an open one?
+
         if ((getWindowsOnWorkspace((*it)->m_iID) == 0 && !isWorkspaceVisible((*it)->m_iID))) {
             it = m_vWorkspaces.erase(it);
         }
+
+        if (it == m_vWorkspaces.end())
+            continue;
 
         if ((*it)->m_iID == SPECIAL_WORKSPACE_ID && getWindowsOnWorkspace((*it)->m_iID) == 0) {
             for (auto& m : m_vMonitors) {

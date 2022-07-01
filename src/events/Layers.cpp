@@ -179,7 +179,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     if (!PMONITOR)
         return;
 
-    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+    wlr_box geomFixed = {layersurface->geometry.x, layersurface->geometry.y, layersurface->geometry.width, layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
     // fix if it changed its mon

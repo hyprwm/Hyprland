@@ -15,6 +15,8 @@ CConfigManager::CConfigManager() {
     static const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
     configPaths.emplace_back(CONFIGPATH);
+
+    Debug::disableLogs = &configValues["debug:disable_logs"].intValue;
 }
 
 void CConfigManager::setDefaultVars() {
@@ -39,6 +41,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:log_damage"].intValue = 0;
     configValues["debug:overlay"].intValue = 0;
     configValues["debug:damage_blink"].intValue = 0;
+    configValues["debug:disable_logs"].intValue = 0;
 
     configValues["decoration:rounding"].intValue = 1;
     configValues["decoration:blur"].intValue = 1;

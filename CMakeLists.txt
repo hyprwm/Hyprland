@@ -62,7 +62,7 @@ IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake!")
     add_definitions( -DHYPRLAND_DEBUG )
 ELSE()
-    # add_compile_options(-O3) # may crash for some
+    add_compile_options( -O3 )
     message(STATUS "Configuring Hyprland in Release with CMake!")
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
 

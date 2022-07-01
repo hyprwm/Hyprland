@@ -30,7 +30,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["resizeactive"]              = resizeActive;
     m_mDispatchers["moveactive"]                = moveActive;
     m_mDispatchers["cyclenext"]                 = circleNext;
-    m_mDispatchers["focuswindowbyclass"]        = focusWindowByClass;
+    m_mDispatchers["focuswindowbyclass"]        = focusWindow;
+    m_mDispatchers["focuswindow"]               = focusWindow;
     m_mDispatchers["submap"]                    = setSubmap;
 }
 
@@ -1017,17 +1018,28 @@ void CKeybindManager::circleNext(std::string) {
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
 }
 
-void CKeybindManager::focusWindowByClass(std::string clazz) {
-    std::regex classCheck(clazz);
+void CKeybindManager::focusWindow(std::string regexp) {
+    bool titleRegex = false;
+    std::regex regexCheck(regexp);
+    if (regexp.find("title:") == 0) {
+        titleRegex = true;
+        regexCheck = std::regex(regexp.substr(6));
+    }
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->m_bHidden)
             continue;
 
-        const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
-
-        if (!std::regex_search(windowClass, classCheck))
-            continue;
+        if (titleRegex) {
+            const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
+            if (!std::regex_search(windowTitle, regexCheck))
+                continue;
+        }
+        else {
+            const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
+            if (!std::regex_search(windowClass, regexCheck))
+                continue;
+        }
 
         Debug::log(LOG, "Focusing to window name: %s", w->m_szTitle.c_str());
 

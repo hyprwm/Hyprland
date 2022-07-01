@@ -89,7 +89,7 @@ void CEventManager::startThread() {
             for (auto& ev : m_dQueuedEvents) {
                 std::string eventString = ev.event + ">>" + ev.data + "\n";
                 for (auto& fd : m_dAcceptedSocketFDs) {
-                    write(fd, eventString.c_str(), eventString.length());
+                    write(fd, eventString.substr(0, 1023).c_str(), eventString.length());
                 }
             }
 

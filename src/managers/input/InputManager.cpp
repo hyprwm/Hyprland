@@ -37,6 +37,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     Vector2D mouseCoords = getMouseCoordsInternal();
+    const auto MOUSECOORDSFLOORED = mouseCoords.floor();
+
+    if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored)
+        return;
+
+    m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
+
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
     bool didConstraintOnCursor = false;

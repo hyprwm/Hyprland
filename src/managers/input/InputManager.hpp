@@ -68,6 +68,7 @@ private:
 
     // for click behavior override
     eClickBehaviorMode m_ecbClickBehavior = CLICKMODE_DEFAULT;
+    Vector2D        m_vLastCursorPosFloored = Vector2D();
 
     void            processMouseDownNormal(wlr_pointer_button_event* e);
     void            processMouseDownKill(wlr_pointer_button_event* e);

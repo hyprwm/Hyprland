@@ -1,6 +1,15 @@
 project('Hyprland', 'cpp', 'c',
   version : '0.6.2beta',
-  default_options : ['warning_level=3', 'cpp_std=c++20', 'default_library=static'])
+  default_options : ['warning_level=2', 'cpp_std=c++20', 'default_library=static', 'optimization=3'])
+
+add_project_arguments(
+  [
+    '-Wno-unused-parameter',
+    '-Wno-unused-value',
+    '-Wno-missing-field-initializers',
+    '-Wno-narrowing',
+  ],
+  language: 'cpp')
 
 wlroots = subproject('wlroots', default_options: ['examples=false'])
 have_xwlr = wlroots.get_variable('features').get('xwayland')

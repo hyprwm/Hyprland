@@ -60,19 +60,21 @@ public:
     wlr_virtual_pointer_manager_v1*  m_sWLRVirtPtrMgr;
     wlr_foreign_toplevel_manager_v1* m_sWLRToplevelMgr;
     wlr_tablet_manager_v2*           m_sWLRTabletManager;
+    wlr_xdg_foreign_registry*        m_sWLRForeignRegistry;
     // ------------------------------------------------- //
 
 
     const char*             m_szWLDisplaySocket;
     std::string             m_szInstanceSignature = "";
 
-    std::list<SMonitor>     m_lMonitors;
-    std::list<CWindow>      m_lWindows;
-    std::list<SXDGPopup>    m_lXDGPopups;
-    std::list<CWorkspace>   m_lWorkspaces;
-    std::list<SSubsurface>  m_lSubsurfaces;
-    std::list<CWindow*>     m_lWindowsFadingOut;
-    std::list<SLayerSurface*> m_lSurfacesFadingOut;
+    std::vector<std::unique_ptr<SMonitor>>      m_vMonitors;
+    std::vector<std::unique_ptr<CWindow>>       m_vWindows;
+    std::deque<std::unique_ptr<CWindow>>        m_dUnmanagedX11Windows;
+    std::vector<std::unique_ptr<SXDGPopup>>     m_vXDGPopups;
+    std::vector<std::unique_ptr<CWorkspace>>    m_vWorkspaces;
+    std::vector<std::unique_ptr<SSubsurface>>   m_vSubsurfaces;
+    std::vector<CWindow*>                       m_vWindowsFadingOut;
+    std::vector<SLayerSurface*>                 m_vSurfacesFadingOut;
 
     void                    startCompositor(); 
     void                    cleanupExit();
@@ -99,7 +101,7 @@ public:
     CWindow*                vectorToWindow(const Vector2D&);
     CWindow*                vectorToWindowIdeal(const Vector2D&);
     CWindow*                vectorToWindowTiled(const Vector2D&);
-    wlr_surface*            vectorToLayerSurface(const Vector2D&, std::list<SLayerSurface*>*, Vector2D*);
+    wlr_surface*            vectorToLayerSurface(const Vector2D&, std::list<SLayerSurface*>*, Vector2D*, SLayerSurface**);
     wlr_surface*            vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
     CWindow*                windowFromCursor();
     CWindow*                windowFloatingFromCursor();
@@ -133,6 +135,8 @@ public:
     void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);
     bool                    workspaceIDOutOfBounds(const int&);
     void                    setWindowFullscreen(CWindow*, bool, eFullscreenMode);
+    void                    moveUnmanagedX11ToWindows(CWindow*);
+    CWindow*                getX11Parent(CWindow*);
 
 private:
     void                    initAllSignals();

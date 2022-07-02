@@ -6,6 +6,11 @@
 #include "../../Window.hpp"
 #include "../../helpers/Timer.hpp"
 
+enum eClickBehaviorMode {
+    CLICKMODE_DEFAULT = 0,
+    CLICKMODE_KILL
+};
+
 class CInputManager {
 public:
 
@@ -32,6 +37,10 @@ public:
     void            updateDragIcon();
     void            updateCapabilities(wlr_input_device*);
 
+    void            setClickMode(eClickBehaviorMode);
+    eClickBehaviorMode getClickMode();
+    void            processMouseRequest(wlr_seat_pointer_request_set_cursor_event*);
+
 
     // for dragging floating windows
     CWindow*        currentlyDraggedWindow = nullptr;
@@ -57,6 +66,13 @@ public:
     CTimer          m_tmrLastCursorMovement;
 
 private:
+
+    // for click behavior override
+    eClickBehaviorMode m_ecbClickBehavior = CLICKMODE_DEFAULT;
+    Vector2D        m_vLastCursorPosFloored = Vector2D();
+
+    void            processMouseDownNormal(wlr_pointer_button_event* e);
+    void            processMouseDownKill(wlr_pointer_button_event* e);
 
     uint32_t        m_uiCapabilities = 0;
 

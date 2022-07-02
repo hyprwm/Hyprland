@@ -73,3 +73,20 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 
     return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
 }
+
+void CWindow::updateWindowDecos() {
+    for (auto& wd : m_dWindowDecorations)
+        wd->updateWindow(this);
+}
+
+pid_t CWindow::getPID() {
+    pid_t PID = -1;
+    if (!m_bIsX11) {
+        const auto CLIENT = wl_resource_get_client(m_uSurface.xdg->resource);
+        wl_client_get_credentials(CLIENT, &PID, nullptr, nullptr);
+    } else {
+        PID = m_uSurface.xwayland->pid;
+    }
+
+    return PID;
+}

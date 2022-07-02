@@ -36,7 +36,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
 
     if (!WLRLAYERSURFACE->output) {
-        WLRLAYERSURFACE->output = g_pCompositor->m_lMonitors.front().output;  // TODO: current mon
+        WLRLAYERSURFACE->output = g_pCompositor->m_vMonitors.front()->output;  // TODO: current mon
     }
 
     layerSurface->hyprListener_commitLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.commit, &Events::listener_commitLayerSurface, layerSurface, "layerSurface");
@@ -145,7 +145,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     layersurface->fadingOut = true;
 
-    g_pCompositor->m_lSurfacesFadingOut.push_back(layersurface);
+    g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
 
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = false;
@@ -179,7 +179,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     if (!PMONITOR)
         return;
 
-    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+    wlr_box geomFixed = {layersurface->geometry.x, layersurface->geometry.y, layersurface->geometry.width, layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
     // fix if it changed its mon
@@ -206,6 +206,5 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
-    // TODO: optimize this. This does NOT need to be here but it prevents some issues with full DT.
-    g_pHyprRenderer->damageMonitor(PMONITOR);
+    g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 }

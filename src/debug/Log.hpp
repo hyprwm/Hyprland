@@ -17,4 +17,5 @@ namespace Debug {
     void log(LogLevel level, const char* fmt, ...);
 
     inline std::string logFile;
+    inline int64_t* disableLogs = nullptr;
 };

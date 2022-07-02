@@ -32,9 +32,13 @@
         src = inputs.wlroots;
       });
       hyprland = prev.callPackage ./nix/default.nix {
-        version = "0.6.0beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
+        version = "0.6.2beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
         wlroots = wlroots-hyprland;
       };
+      hyprland-debug = hyprland.override {debug = true;};
+      waybar-hyprland = prev.waybar.overrideAttrs (oldAttrs: {
+        mesonFlags = oldAttrs.mesonFlags ++ ["-Dexperimental=true"];
+      });
     };
 
     packages = genSystems (system:

@@ -12,7 +12,7 @@ void CHyprError::createQueued() {
         m_tTexture.destroyTexture();
     }
 
-    const auto PMONITOR = &g_pCompositor->m_lMonitors.front();
+    const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
 
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
 
@@ -95,11 +95,11 @@ void CHyprError::draw() {
         m_tTexture.destroyTexture();
         m_bIsCreated = false;
         m_szQueued = "";
-        g_pHyprRenderer->damageMonitor(&g_pCompositor->m_lMonitors.front());
+        g_pHyprRenderer->damageMonitor(g_pCompositor->m_vMonitors.front().get());
         return;
     }
 
-    const auto PMONITOR = &g_pCompositor->m_lMonitors.front();
+    const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
 
     if (g_pHyprOpenGL->m_RenderData.pMonitor != PMONITOR)
         return; // wrong mon

@@ -14,6 +14,9 @@ void Debug::init(std::string IS) {
 
 void Debug::log(LogLevel level, const char* fmt, ...) {
 
+    if (disableLogs && *disableLogs)
+        return;
+
     // log to a file
     std::ofstream ofs;
     ofs.open(logFile, std::ios::out | std::ios::app);

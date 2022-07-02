@@ -42,9 +42,6 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
 }
 
 void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
-    if (pWindow == g_pCompositor->m_pLastWindow)
-        return;
-
     if (pWindow->m_bIsX11) {
         if (pWindow->m_uSurface.xwayland->minimized)
             wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
@@ -146,8 +143,10 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
             if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLBAR"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_UTILITY"] ||
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
-                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"])
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"])
                     {
+                pWindow->m_bNoInitialFocus = true;
                 return true;
                     }
 

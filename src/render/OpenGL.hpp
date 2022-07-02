@@ -29,23 +29,25 @@ inline const float fanVertsFull[] = {
     -1.0f, 1.0f
 };
 
-struct SCurrentRenderData {
-    SMonitor*   pMonitor = nullptr;
-    float       projection[9];
-
-    pixman_region32_t* pDamage = nullptr;
-
-    bool        renderingPrimarySurface = false;
-    Vector2D    primarySurfaceUVTopLeft = Vector2D(-1, -1);
-    Vector2D    primarySurfaceUVBottomRight = Vector2D(-1, -1);
-};
-
 struct SMonitorRenderData {
     CFramebuffer primaryFB;
     CFramebuffer mirrorFB;
     CFramebuffer mirrorSwapFB;
 
     CTexture     stencilTex;
+};
+
+struct SCurrentRenderData {
+    SMonitor*   pMonitor = nullptr;
+    float       projection[9];
+
+    SMonitorRenderData* pCurrentMonData = nullptr;
+
+    pixman_region32_t* pDamage = nullptr;
+
+    bool        renderingPrimarySurface = false;
+    Vector2D    primarySurfaceUVTopLeft = Vector2D(-1, -1);
+    Vector2D    primarySurfaceUVBottomRight = Vector2D(-1, -1);
 };
 
 class CHyprOpenGLImpl {
@@ -59,9 +61,10 @@ public:
     void    renderRect(wlr_box*, const CColor&, int round = 0);
     void    renderRectWithDamage(wlr_box*, const CColor&, pixman_region32_t* damage, int round = 0);
     void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
-    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool border = false, bool allowPrimary = false);
-    void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool border = false);
+    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool allowPrimary = false);
+    void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0);
     void    renderRoundedShadow(wlr_box*, int round, int range, float a = 1.0);
+    void    renderBorder(wlr_box*, const CColor&, int round);
 
     void    makeWindowSnapshot(CWindow*);
     void    makeLayerSnapshot(SLayerSurface*);
@@ -101,13 +104,14 @@ private:
     bool                    m_bEndFrame = false;
 
     // Shaders
-    SQuad                   m_shQUAD;
+    CShader                 m_shQUAD;
     CShader                 m_shRGBA;
     CShader                 m_shRGBX;
     CShader                 m_shEXT;
     CShader                 m_shBLUR1;
     CShader                 m_shBLUR2;
     CShader                 m_shSHADOW;
+    CShader                 m_shBORDER1;
     //
 
     GLuint                  createProgram(const std::string&, const std::string&);
@@ -117,8 +121,7 @@ private:
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
 
-    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool border = false, bool noAA = false, bool allowPrimary = false);
-    void                    renderBorder(wlr_box*, const CColor&, int thick = 1, int round = 0);
+    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false, bool allowPrimary = false);
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

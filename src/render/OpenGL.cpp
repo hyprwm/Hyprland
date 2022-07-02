@@ -81,6 +81,12 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shSHADOW.posAttrib = glGetAttribLocation(prog, "pos");
     m_shSHADOW.texAttrib = glGetAttribLocation(prog, "texcoord");
 
+    prog = createProgram(QUADVERTSRC, FRAGBORDER1);
+    m_shBORDER1.program = prog;
+    m_shBORDER1.proj = glGetUniformLocation(prog, "proj");
+    m_shBORDER1.posAttrib = glGetAttribLocation(prog, "pos");
+    m_shBORDER1.texAttrib = glGetAttribLocation(prog, "texcoord");
+
     Debug::log(LOG, "Shaders initialized successfully.");
 
     // End shaders
@@ -138,7 +144,9 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage, bool
 
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
-    wlr_matrix_projection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);  // TODO: this is deprecated
+    matrixProjection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);
+
+    m_RenderData.pCurrentMonData = &m_mMonitorRenderResources[pMonitor];
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -146,22 +154,22 @@ void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage, bool
     m_iWLROutputFb = m_iCurrentOutputFb;
 
     // ensure a framebuffer for the monitor exists
-    if (m_mMonitorRenderResources.find(pMonitor) == m_mMonitorRenderResources.end() || m_mMonitorRenderResources[pMonitor].primaryFB.m_Size != pMonitor->vecPixelSize) {
-        m_mMonitorRenderResources[pMonitor].stencilTex.allocate();
+    if (m_mMonitorRenderResources.find(pMonitor) == m_mMonitorRenderResources.end() || m_RenderData.pCurrentMonData->primaryFB.m_Size != pMonitor->vecPixelSize) {
+        m_RenderData.pCurrentMonData->stencilTex.allocate();
 
-        m_mMonitorRenderResources[pMonitor].primaryFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
-        m_mMonitorRenderResources[pMonitor].mirrorFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
-        m_mMonitorRenderResources[pMonitor].mirrorSwapFB.m_pStencilTex = &m_mMonitorRenderResources[pMonitor].stencilTex;
+        m_RenderData.pCurrentMonData->primaryFB.m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
+        m_RenderData.pCurrentMonData->mirrorFB.m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
+        m_RenderData.pCurrentMonData->mirrorSwapFB.m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
 
-        m_mMonitorRenderResources[pMonitor].primaryFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
-        m_mMonitorRenderResources[pMonitor].mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
-        m_mMonitorRenderResources[pMonitor].mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_RenderData.pCurrentMonData->primaryFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_RenderData.pCurrentMonData->mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_RenderData.pCurrentMonData->mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
         createBGTextureForMonitor(pMonitor);
     }
 
     // bind the primary Hypr Framebuffer
-    m_mMonitorRenderResources[pMonitor].primaryFB.bind();
+    m_RenderData.pCurrentMonData->primaryFB.bind();
 
     m_RenderData.pDamage = pDamage;
 
@@ -180,7 +188,7 @@ void CHyprOpenGLImpl::end() {
 
         m_bEndFrame = true;
 
-        renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &monbox, 255.f, 0);
+        renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 255.f, 0);
 
         m_bEndFrame = false;
     }
@@ -277,11 +285,11 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
-    glUniform2f(glGetUniformLocation(m_shQUAD.program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(glGetUniformLocation(m_shQUAD.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(glGetUniformLocation(m_shQUAD.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(glGetUniformLocation(m_shQUAD.program, "radius"), round);
-    glUniform1i(glGetUniformLocation(m_shQUAD.program, "primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
+    glUniform2f(m_shQUAD.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shQUAD.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shQUAD.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shQUAD.getUniformLocation("radius"), round);
+    glUniform1i(m_shQUAD.getUniformLocation("primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
 
     glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shQUAD.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -309,15 +317,15 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
     renderTexture(CTexture(tex), pBox, alpha, round);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool border, bool allowPrimary) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowPrimary) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, border, false, allowPrimary);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowPrimary);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool border, bool noAA, bool allowPrimary) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowPrimary) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -351,23 +359,6 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
             RASSERT(false, "tex.m_iTarget unsupported!");
     }
 
-    // stencil for when we want a border
-    if (border) {
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
-
-        glEnable(GL_STENCIL_TEST);
-
-        glStencilFunc(GL_ALWAYS, 1, -1);
-        glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-
-        // hacky fix to fix broken borders.
-        // TODO: this is kinda slow... question mark?
-        renderRect(pBox, CColor(0, 0, 0, 0), round);
-
-        glDisable(GL_STENCIL_TEST);
-    }
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex.m_iTarget, tex.m_iTexID);
 
@@ -389,11 +380,11 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
-    glUniform2f(glGetUniformLocation(shader->program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(glGetUniformLocation(shader->program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(glGetUniformLocation(shader->program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(glGetUniformLocation(shader->program, "radius"), round);
-    glUniform1i(glGetUniformLocation(shader->program, "primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !border && !noAA));
+    glUniform2f(shader->getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(shader->getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(shader->getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(shader->getUniformLocation("radius"), round);
+    glUniform1i(shader->getUniformLocation("primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
@@ -421,30 +412,10 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         }
     }
 
-    if (border) {
-        glEnable(GL_STENCIL_TEST);
-
-        glStencilFunc(GL_EQUAL, 1, -1);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-    }
-
     glDisableVertexAttribArray(shader->posAttrib);
     glDisableVertexAttribArray(shader->texAttrib);
 
     glBindTexture(tex.m_iTarget, 0);
-
-    // if border draw
-    // we dont disable stencil here if we havent touched it. 
-    // some other func might be using it.
-    if (border) {
-        auto BORDERCOL = m_pCurrentWindow->m_cRealBorderColor.col();
-        static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-        BORDERCOL.a *= alpha / 255.f;
-        renderBorder(pBox, BORDERCOL, *PBORDERSIZE, round);
-        glStencilMask(-1);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glDisable(GL_STENCIL_TEST);
-    }
 }
 
 // This probably isn't the fastest
@@ -478,10 +449,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     wlr_region_expand(&damage, &damage, pow(2, *PBLURPASSES) * *PBLURSIZE);
 
     // helper
-    const auto PMIRRORFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorFB;
-    const auto PMIRRORSWAPFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].mirrorSwapFB;
+    const auto PMIRRORFB = &m_RenderData.pCurrentMonData->mirrorFB;
+    const auto PMIRRORSWAPFB = &m_RenderData.pCurrentMonData->mirrorSwapFB;
 
-    CFramebuffer* currentRenderToFB = &m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB;
+    CFramebuffer* currentRenderToFB = &m_RenderData.pCurrentMonData->primaryFB;
 
     // declare the draw func
     auto drawPass = [&](CShader* pShader, pixman_region32_t* pDamage) {
@@ -500,11 +471,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 
         // prep two shaders
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
-        glUniform1f(glGetUniformLocation(pShader->program, "radius"), *PBLURSIZE * (a / 255.f));  // this makes the blursize change with a
+        glUniform1f(pShader->getUniformLocation("radius"), *PBLURSIZE * (a / 255.f));  // this makes the blursize change with a
         if (pShader == &m_shBLUR1)
-            glUniform2f(glGetUniformLocation(m_shBLUR1.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
+            glUniform2f(m_shBLUR1.getUniformLocation("halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
         else
-            glUniform2f(glGetUniformLocation(m_shBLUR2.program, "halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
+            glUniform2f(m_shBLUR2.getUniformLocation("halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
         glUniform1i(pShader->tex, 0);
 
         glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -534,7 +505,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     // draw the things.
     // first draw is prim -> mirr
     PMIRRORFB->bind();
-    glBindTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTarget, m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex.m_iTexID);
+    glBindTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex.m_iTarget, m_RenderData.pCurrentMonData->primaryFB.m_cTex.m_iTexID);
 
     // damage region will be scaled, make a temp
     pixman_region32_t tempDamage;
@@ -566,14 +537,14 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     return currentRenderToFB;
 }
 
-void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round, bool border) {
+void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
     static auto* const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
 
     if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
-        renderTexture(tex, pBox, a, round, false, border, true);
+        renderTexture(tex, pBox, a, round, false, true);
         return;
     }
 
@@ -596,7 +567,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     }
 
     if (!pixman_region32_not_empty(&inverseOpaque)) {
-        renderTexture(tex, pBox, a, round, false, border); // reject blurring a fully opaque window
+        renderTexture(tex, pBox, a, round, false); // reject blurring a fully opaque window
         return;
     }
 
@@ -606,7 +577,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     pixman_region32_fini(&inverseOpaque);
 
     // bind primary
-    m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.bind();
+    m_RenderData.pCurrentMonData->primaryFB.bind();
 
     // make a stencil for rounded corners to work with blur
     scissor((wlr_box*)nullptr);  // allow the entire window and stencil to render
@@ -630,7 +601,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
         static auto *const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
-        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, false, true);
+        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, true);
 
         // render the window, but clear stencil
         glClearStencil(0);
@@ -638,36 +609,11 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
         // draw window
         glDisable(GL_STENCIL_TEST);
-        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true, true);
-        glEnable(GL_STENCIL_TEST);
-
-        // prep stencil for border
-        glStencilFunc(GL_ALWAYS, 1, -1);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-        if (border) {
-            // hacky fix to fix broken borders.
-            // TODO: this is kinda slow... question mark?
-            renderRectWithDamage(pBox, CColor(0,0,0,0), &damage, round);
-        }
-
-        // then stop
-        glStencilFunc(GL_EQUAL, 1, -1);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true);
     }
 
-    // disable the stencil (if no border), finalize everything
-    if (!border) {
-        glStencilMask(-1);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    } else {
-        auto BORDERCOL = m_pCurrentWindow->m_cRealBorderColor.col();
-        BORDERCOL.a *= a / 255.f;
-        static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-        renderBorder(pBox, BORDERCOL, *PBORDERSIZE, round);
-    }
-    
-    glDisable(GL_STENCIL_TEST);
+    glStencilMask(-1);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
     pixman_region32_fini(&damage);
     scissor((wlr_box*)nullptr);
 }
@@ -679,23 +625,67 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
     counter++;
 }
 
-void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int thick, int round) {
+void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
-    // this method assumes a set stencil and scaled box
-    box->x -= thick;
-    box->y -= thick;
-    box->width += 2 * thick;
-    box->height += 2 * thick;
+    static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto *const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
-    round += thick; // cuz yeah
+    // adjust box
+    box->x -= *PBORDERSIZE;
+    box->y -= *PBORDERSIZE;
+    box->width += 2 * *PBORDERSIZE;
+    box->height += 2 * *PBORDERSIZE;
 
-    // only draw on non-stencild.
-    glStencilFunc(GL_NOTEQUAL, 1, -1);
+    round += *PBORDERSIZE;
 
-    // draw a rounded rect
-    renderRect(box, col, round);
+    float matrix[9];
+    wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
+
+    wlr_matrix_transpose(glMatrix, glMatrix);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUseProgram(m_shBORDER1.program);
+
+    glUniformMatrix3fv(m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
+    glUniform4f(m_shBORDER1.getUniformLocation("color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
+
+    const auto TOPLEFT = Vector2D(round, round);
+    const auto BOTTOMRIGHT = Vector2D(box->width - round, box->height - round);
+    const auto FULLSIZE = Vector2D(box->width, box->height);
+
+    glUniform2f(m_shBORDER1.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shBORDER1.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shBORDER1.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shBORDER1.getUniformLocation("radius"), round);
+    glUniform1f(m_shBORDER1.getUniformLocation("thick"), *PBORDERSIZE);
+    glUniform1i(m_shBORDER1.getUniformLocation("primitiveMultisample"), *PMULTISAMPLE);
+
+    glVertexAttribPointer(m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+    glEnableVertexAttribArray(m_shBORDER1.posAttrib);
+    glEnableVertexAttribArray(m_shBORDER1.texAttrib);
+
+    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+            const auto RECT = RECTSARR[i];
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
+
+    glDisableVertexAttribArray(m_shBORDER1.posAttrib);
+    glDisableVertexAttribArray(m_shBORDER1.texAttrib);
+
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
@@ -744,7 +734,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     clear(CColor(0, 0, 0, 0));  // JIC
 
     wlr_box fullMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
-    renderTexture(m_mMonitorRenderResources[m_RenderData.pMonitor].primaryFB.m_cTex, &fullMonBox, 255.f, 0);
+    renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &fullMonBox, 255.f, 0);
 
     // restore original fb
     #ifndef GLES2
@@ -823,12 +813,13 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     wlr_box windowBox;
     // some mafs to figure out the correct box
-    Vector2D scaleXY = Vector2D((PWINDOW->m_vRealSize.vec().x / PWINDOW->m_vOriginalClosedSize.x), (PWINDOW->m_vRealSize.vec().y / PWINDOW->m_vOriginalClosedSize.y));
+    // the originalClosedPos is relative to the monitor's pos
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.vec().x / (PWINDOW->m_vOriginalClosedSize.x * PMONITOR->scale)), (PMONITOR->scale * PWINDOW->m_vRealSize.vec().y / (PWINDOW->m_vOriginalClosedSize.y * PMONITOR->scale)));
 
     windowBox.width = PMONITOR->vecPixelSize.x * scaleXY.x;
     windowBox.height = PMONITOR->vecPixelSize.y * scaleXY.y;
-    windowBox.x = (PWINDOW->m_vRealPosition.vec().x - PMONITOR->vecPosition.x) - ((PWINDOW->m_vOriginalClosedPos.x - PMONITOR->vecPosition.x) * scaleXY.x);
-    windowBox.y = (PWINDOW->m_vRealPosition.vec().y - PMONITOR->vecPosition.y) - ((PWINDOW->m_vOriginalClosedPos.y - PMONITOR->vecPosition.y) * scaleXY.y);
+    windowBox.x = ((PWINDOW->m_vRealPosition.vec().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.x * PMONITOR->scale) * scaleXY.x);
+    windowBox.y = ((PWINDOW->m_vRealPosition.vec().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.y * PMONITOR->scale) * scaleXY.y);
 
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
@@ -870,7 +861,6 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
 
     static auto *const PSHADOWCOL = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow")->intValue;
     static auto *const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->intValue;
-    static auto *const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
 
     const auto SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
 
@@ -891,20 +881,19 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glUseProgram(m_shSHADOW.program);
 
     glUniformMatrix3fv(m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(glGetUniformLocation(m_shSHADOW.program, "color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
+    glUniform4f(m_shSHADOW.getUniformLocation("color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
 
     const auto TOPLEFT = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(box->width - (range + round), box->height - (range + round));
     const auto FULLSIZE = Vector2D(box->width, box->height);
 
     // Rounded corners
-    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(glGetUniformLocation(m_shSHADOW.program, "fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "radius"), range + round);
-    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "range"), range);
-    glUniform1f(glGetUniformLocation(m_shSHADOW.program, "shadowPower"), SHADOWPOWER);
-    glUniform1i(glGetUniformLocation(m_shSHADOW.program, "ignoreWindow"), *PSHADOWIGNOREWINDOW);
+    glUniform2f(m_shSHADOW.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shSHADOW.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shSHADOW.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shSHADOW.getUniformLocation("radius"), range + round);
+    glUniform1f(m_shSHADOW.getUniformLocation("range"), range);
+    glUniform1f(m_shSHADOW.getUniformLocation("shadowPower"), SHADOWPOWER);
 
     glVertexAttribPointer(m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);

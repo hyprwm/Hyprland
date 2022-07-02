@@ -10,7 +10,7 @@ enum eFullscreenMode : uint8_t {
 
 class CWorkspace {
 public:
-    CWorkspace(int monitorID, bool special = false);
+    CWorkspace(int monitorID, std::string name, bool special = false);
     ~CWorkspace();
 
     // Workspaces ID-based have IDs > 0

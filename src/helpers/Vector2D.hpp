@@ -35,5 +35,7 @@ class Vector2D {
         return a.x != x || a.y != y;
     }
 
+    Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D());
+
     Vector2D floor();
 };

@@ -99,7 +99,7 @@ clear:
 	rm -rf build
 	rm -f *.o *-protocol.h *-protocol.c
 	rm -f ./hyprctl/hyprctl
-	rm -rf ./wlroots/build
+	rm -rf ./subprojects/wlroots/build
 
 all:
 	make config
@@ -107,6 +107,10 @@ all:
 	cd ./hyprctl && make all && cd ..
 
 install:
+	[ ! -d /usr/include/wlr ] || mv /usr/include/wlr /usr/include/wlrBackup
+	[ ! -f /usr/lib/libwlroots.so ] || mv /usr/lib/libwlroots.so /usr/lib/libwlroots.so.backup
+	[ ! -f /usr/lib/pkgconfig/wlroots.pc ] || mv /usr/lib/pkgconfig/wlroots.pc /usr/lib/pkgconfig/wlroots.pc.backup
+
 	make all
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions/
@@ -118,6 +122,13 @@ install:
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
+	rm -rf /usr/include/wlr
+	rm -f /usr/lib/libwlroots.so
+	rm -f /usr/lib/pkgconfig/wlroots.pc
+	[ ! -d /usr/include/wlrBackup ] || mv /usr/include/wlrBackup /usr/include/wlr
+	[ ! -f /usr/lib/libwlroots.so.backup ] || mv -f /usr/lib/libwlroots.so.backup /usr/lib/libwlroots.so
+	[ ! -f /usr/lib/pkgconfig/wlroots.pc.backup ] || mv -f /usr/lib/pkgconfig/wlroots.pc.backup /usr/lib/pkgconfig/wlroots.pc
+
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
 	rm -f ${PREFIX}/bin/Hyprland
@@ -126,12 +137,15 @@ uninstall:
 
 protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o
 
-config:
-	make protocols
-
+fixwlr:
 	sed -i -E 's/(soversion = 11)([^032]|$$)/soversion = 11032/g' subprojects/wlroots/meson.build
 
 	rm -rf ./subprojects/wlroots/build
+
+config:
+	make protocols
+
+	make fixwlr
 
 	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release
 	cd subprojects/wlroots && ninja -C build/

@@ -87,7 +87,7 @@ void CEventManager::startThread() {
 
             // write all queued events
             for (auto& ev : m_dQueuedEvents) {
-                std::string eventString = ev.event + ">>" + ev.data + "\n";
+                std::string eventString = (ev.event + ">>" + ev.data).substr(0, 1022) + "\n";
                 for (auto& fd : m_dAcceptedSocketFDs) {
                     write(fd, eventString.c_str(), eventString.length());
                 }
@@ -104,9 +104,9 @@ void CEventManager::startThread() {
     }).detach();
 }
 
-void CEventManager::postEvent(const SHyprIPCEvent event) {
+void CEventManager::postEvent(const SHyprIPCEvent event, bool force) {
 
-    if (m_bIgnoreEvents) {
+    if (m_bIgnoreEvents && !force) {
         Debug::log(WARN, "Suppressed (ignoreevents true) event of type %s, content: %s",event.event.c_str(), event.data.c_str());
         return;
     }

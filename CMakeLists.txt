@@ -36,6 +36,7 @@ execute_process(
 #
 
 include_directories(. PRIVATE "subprojects/wlroots/include/")
+include_directories(. PRIVATE "subprojects/wlroots/build/include/")
 add_compile_options(-std=c++20 -DWLR_USE_UNSTABLE )
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing)
 find_package(Threads REQUIRED)
@@ -61,7 +62,7 @@ IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake!")
     add_definitions( -DHYPRLAND_DEBUG )
 ELSE()
-    # add_compile_options(-O3) # may crash for some
+    add_compile_options( -O3 )
     message(STATUS "Configuring Hyprland in Release with CMake!")
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
 

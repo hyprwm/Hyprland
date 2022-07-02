@@ -4,6 +4,41 @@
 #include "../Compositor.hpp"
 #include <sys/utsname.h>
 
+static const float transforms[][9] = {{
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		0.0f, 1.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		-1.0f, 0.0f, 0.0f,
+		0.0f, -1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		0.0f, -1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		-1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		0.0f, 1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		1.0f, 0.0f, 0.0f,
+		0.0f, -1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},{
+		0.0f, -1.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+	},
+};
+
 void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
     ASSERT(pSignal);
     ASSERT(pListener);
@@ -79,8 +114,8 @@ std::string getFormat(const char *fmt, ...) {
 }
 
 void scaleBox(wlr_box* box, float scale) {
-    box->width = std::round((box->x + box->width) * scale) - std::round(box->x * scale);
-    box->height = std::round((box->y + box->height) * scale) - std::round(box->y * scale);
+    box->width = std::round(box->width * scale);
+    box->height = std::round(box->height * scale);
     box->x = std::round(box->x * scale);
     box->y = std::round(box->y * scale);
 }
@@ -135,8 +170,8 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
     return result;
 }
 
-bool isNumber(const std::string& str) {
-    return std::ranges::all_of(str.begin(), str.end(), [](char c) { return isdigit(c) != 0 || c == '-'; });
+bool isNumber(const std::string& str, bool allowfloat) {
+    return std::ranges::all_of(str.begin(), str.end(), [&](char c) { return isdigit(c) != 0 || c == '-' || (allowfloat && c == '.'); });
 }
 
 bool isDirection(const std::string& arg) {
@@ -184,12 +219,12 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                     int lowestID = 99999;
                     int highestID = -99999;
 
-                    for (auto& w : g_pCompositor->m_lWorkspaces) {
-                        if (w.m_iID < lowestID)
-                            lowestID = w.m_iID;
+                    for (auto& w : g_pCompositor->m_vWorkspaces) {
+                        if (w->m_iID < lowestID)
+                            lowestID = w->m_iID;
 
-                        if (w.m_iID > highestID)
-                            highestID = w.m_iID;
+                        if (w->m_iID > highestID)
+                            highestID = w->m_iID;
                     }
 
                     if (remains < 0)
@@ -264,4 +299,25 @@ void logSystemInfo() {
     Debug::log(LOG, "os-release:");
 
     Debug::log(NONE, "%s", execAndGet("cat /etc/os-release").c_str());
+}
+
+void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
+    memset(mat, 0, sizeof(*mat) * 9);
+
+    const float* t = transforms[tr];
+    float x = 2.0f / w;
+    float y = 2.0f / h;
+
+    // Rotation + reflection
+    mat[0] = x * t[0];
+    mat[1] = x * t[1];
+    mat[3] = y * -t[3];
+    mat[4] = y * -t[4];
+
+    // Translation
+    mat[2] = -copysign(1.0f, mat[0] + mat[1]);
+    mat[5] = -copysign(1.0f, mat[3] + mat[4]);
+
+    // Identity
+    mat[8] = 1.0f;
 }

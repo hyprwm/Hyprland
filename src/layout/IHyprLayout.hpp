@@ -22,11 +22,21 @@ public:
         The layout HAS TO set the goal pos and size (anim mgr will use it)
         If !animationinprogress, then the anim mgr will not apply an anim.
     */
-    virtual void        onWindowCreated(CWindow*)           = 0;
+    virtual void        onWindowCreated(CWindow*);
+    virtual void        onWindowCreatedTiling(CWindow*) = 0;
+    virtual void        onWindowCreatedFloating(CWindow*);
+
+    /*
+        Return tiled status
+    */
+    virtual bool        isWindowTiled(CWindow*) = 0;
+
     /*
         Called when a window is removed (unmapped)
     */
-    virtual void        onWindowRemoved(CWindow*)           = 0;
+    virtual void        onWindowRemoved(CWindow*);
+    virtual void        onWindowRemovedTiling(CWindow*)           = 0;
+    virtual void        onWindowRemovedFloating(CWindow*);
     /*
         Called when the monitor requires a layout recalculation
         this usually means reserved area changes
@@ -42,13 +52,13 @@ public:
     /*
         Called when a window is requested to be floated
     */
-    virtual void        changeWindowFloatingMode(CWindow*)  = 0;
+    virtual void        changeWindowFloatingMode(CWindow*);
     /*
         Called when a window is clicked on, beginning a drag
         this might be a resize, move, whatever the layout defines it
         as.
     */
-    virtual void        onBeginDragWindow()                 = 0;
+    virtual void        onBeginDragWindow();
     /*
         Called when a user requests a resize of the current window by a vec
         Vector2D holds pixel values
@@ -60,24 +70,18 @@ public:
         Vector2D holds pixel values
         Optional pWindow for a specific window
     */
-    virtual void        moveActiveWindow(const Vector2D&, CWindow* pWindow = nullptr) = 0;
+    virtual void        moveActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
     /*
         Called when a window is ended being dragged
         (mouse up)
     */
-    virtual void        onEndDragWindow()                   = 0;
+    virtual void        onEndDragWindow();
     /*
         Called whenever the mouse moves, should the layout want to 
         do anything with it.
         Useful for dragging.
     */
-    virtual void        onMouseMove(const Vector2D&)        = 0;
-    /*
-        Called when a window is created, but is requesting to be floated.
-        Warning: this also includes stuff like popups, incorrect handling
-        of which can result in a crash!
-    */
-    virtual void        onWindowCreatedFloating(CWindow*)   = 0;
+    virtual void        onMouseMove(const Vector2D&);
 
     /*
         Called when a window / the user requests to toggle the fullscreen state of a window
@@ -116,4 +120,10 @@ public:
         Called when something wants the current layout's name
     */
     virtual std::string  getLayoutName() = 0;
+
+private:
+    Vector2D                        m_vBeginDragXY;
+    Vector2D                        m_vLastDragXY;
+    Vector2D                        m_vBeginDragPositionXY;
+    Vector2D                        m_vBeginDragSizeXY;
 };

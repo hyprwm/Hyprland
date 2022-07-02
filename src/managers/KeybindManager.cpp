@@ -30,7 +30,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["resizeactive"]              = resizeActive;
     m_mDispatchers["moveactive"]                = moveActive;
     m_mDispatchers["cyclenext"]                 = circleNext;
-    m_mDispatchers["focuswindowbyclass"]        = focusWindowByClass;
+    m_mDispatchers["focuswindowbyclass"]        = focusWindow;
+    m_mDispatchers["focuswindow"]               = focusWindow;
     m_mDispatchers["submap"]                    = setSubmap;
 }
 
@@ -108,7 +109,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
     return found;
 }
 
-bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
+bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     // Handles the CTRL+ALT+FX TTY keybinds
     if (!(keysym >= XKB_KEY_XF86Switch_VT_1 && keysym <= XKB_KEY_XF86Switch_VT_12))
         return false;
@@ -118,15 +119,32 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
         const int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
         wlr_session_change_vt(PSESSION, TTY);
 
-        for (auto& m : g_pCompositor->m_lMonitors) {
-            g_pHyprOpenGL->destroyMonitorResources(&m); // mark resources as unusable anymore
-            m.noFrameSchedule = true;
-            m.framesToSkip = 2;
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            g_pHyprOpenGL->destroyMonitorResources(m.get());  // mark resources as unusable anymore
+            m->noFrameSchedule = true;
+            m->framesToSkip = 2;
         }
 
         Debug::log(LOG, "Switched to VT %i, destroyed all render data, frames to skip for each: 2", TTY);
-        
+
         return true;
+    }
+
+    return false;
+}
+
+bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
+    if (handleVT(keysym))
+        return true;
+
+    // handle ESC while in kill mode
+    if (g_pInputManager->getClickMode() == CLICKMODE_KILL) {
+        const auto KBKEY = xkb_keysym_from_name("ESCAPE", XKB_KEYSYM_CASE_INSENSITIVE);
+
+        if (keysym == KBKEY) {
+            g_pInputManager->setClickMode(CLICKMODE_DEFAULT);
+            return true;
+        }
     }
 
     return false;
@@ -204,6 +222,9 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
     const auto ACTIVEWINDOW = g_pCompositor->m_pLastWindow;
 
     if (g_pCompositor->windowValidMapped(ACTIVEWINDOW)) {
+        // remove drag status
+        g_pInputManager->currentlyDraggedWindow = nullptr;
+
         ACTIVEWINDOW->m_bIsFloating = !ACTIVEWINDOW->m_bIsFloating;
 
         if (ACTIVEWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID) {
@@ -319,8 +340,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(OLDWORKSPACE); POLDWORKSPACE)
         POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
 
-    g_pCompositor->m_lWorkspaces.emplace_back(PMONITOR->ID, workspaceToChangeTo == SPECIAL_WORKSPACE_ID);
-    const auto PWORKSPACE = &g_pCompositor->m_lWorkspaces.back();
+    const auto PWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(PMONITOR->ID, workspaceName, workspaceToChangeTo == SPECIAL_WORKSPACE_ID)).get();
 
     // start anim on new workspace
     PWORKSPACE->startAnim(true, ANIMTOLEFT);
@@ -331,7 +351,6 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     PWORKSPACE->m_iID = workspaceToChangeTo;
     PWORKSPACE->m_iMonitorID = PMONITOR->ID;
-    PWORKSPACE->m_szName = workspaceName;
 
     PMONITOR->specialWorkspaceOpen = false;
 
@@ -437,8 +456,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         toggleSpecialWorkspace("");
         g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false, true);
 
-        for (auto& m : g_pCompositor->m_lMonitors)
-            m.specialWorkspaceOpen = false;
+        for (auto& m : g_pCompositor->m_vMonitors)
+            m->specialWorkspaceOpen = false;
     }
 
     g_pInputManager->refocus();
@@ -643,7 +662,7 @@ void CKeybindManager::focusMonitor(std::string arg) {
             Debug::log(ERR, "Error in focusMonitor: invalid num");
         }
 
-        if (monID > -1 && monID < (int)g_pCompositor->m_lMonitors.size()) {
+        if (monID > -1 && monID < (int)g_pCompositor->m_vMonitors.size()) {
             changeworkspace(std::to_string(g_pCompositor->getMonitorFromID(monID)->activeWorkspace));
         } else {
             Debug::log(ERR, "Error in focusMonitor: invalid arg 1");
@@ -662,9 +681,9 @@ void CKeybindManager::focusMonitor(std::string arg) {
                 return;
             }
         } else {
-            for (auto& m : g_pCompositor->m_lMonitors) {
-                if (m.szName == arg) {
-                    changeworkspace(std::to_string(m.activeWorkspace));
+            for (auto& m : g_pCompositor->m_vMonitors) {
+                if (m->szName == arg) {
+                    changeworkspace(std::to_string(m->activeWorkspace));
                     return;
                 }
             }
@@ -724,11 +743,11 @@ void CKeybindManager::workspaceOpt(std::string args) {
         PWORKSPACE->m_bDefaultPseudo = !PWORKSPACE->m_bDefaultPseudo;
 
         // apply
-        for (auto& w : g_pCompositor->m_lWindows) {
-            if (!w.m_bIsMapped || w.m_iWorkspaceID != PWORKSPACE->m_iID)
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped || w->m_iWorkspaceID != PWORKSPACE->m_iID)
                 continue;
 
-            w.m_bIsPseudotiled = PWORKSPACE->m_bDefaultPseudo;
+            w->m_bIsPseudotiled = PWORKSPACE->m_bDefaultPseudo;
         }
     } else if (args == "allfloat") {
         PWORKSPACE->m_bDefaultFloating = !PWORKSPACE->m_bDefaultFloating;
@@ -736,8 +755,8 @@ void CKeybindManager::workspaceOpt(std::string args) {
 
         // we make a copy because changeWindowFloatingMode might invalidate the iterator
         std::deque<CWindow*> ptrs;
-        for (auto& w : g_pCompositor->m_lWindows)
-            ptrs.push_back(&w);
+        for (auto& w : g_pCompositor->m_vWindows)
+            ptrs.push_back(w.get());
 
         for (auto& w : ptrs) {
             if (!w->m_bIsMapped || w->m_iWorkspaceID != PWORKSPACE->m_iID)
@@ -841,8 +860,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     bool open = false;
 
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        if (m.specialWorkspaceOpen) {
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        if (m->specialWorkspaceOpen) {
             open = true;
             break;
         }
@@ -854,10 +873,10 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         Debug::log(LOG, "Toggling special workspace to open");
 
     if (open) {
-        for (auto& m : g_pCompositor->m_lMonitors) {
-            if (m.specialWorkspaceOpen != !open) {
-                m.specialWorkspaceOpen = !open;
-                g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m.ID);
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m->specialWorkspaceOpen != !open) {
+                m->specialWorkspaceOpen = !open;
+                g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
                 g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false);
             }
@@ -866,17 +885,28 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         g_pCompositor->m_pLastMonitor->specialWorkspaceOpen = true;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
 
-        g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(true, true);
+        const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID);
+
+        PSPECIALWORKSPACE->startAnim(true, true);
+        PSPECIALWORKSPACE->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
     }
 
     g_pInputManager->refocus();
 }
 
 void CKeybindManager::forceRendererReload(std::string args) {
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        auto rule = g_pConfigManager->getMonitorRuleFor(m.szName);
-        g_pHyprRenderer->applyMonitorRule(&m, &rule, true);
+    bool overAgain = false;
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        auto rule = g_pConfigManager->getMonitorRuleFor(m->szName);
+        if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule, true)) {
+            overAgain = true;
+            break;
+        }
     }
+
+    if (overAgain)
+        forceRendererReload(args);
 }
 
 void CKeybindManager::resizeActive(std::string args) {
@@ -988,25 +1018,36 @@ void CKeybindManager::circleNext(std::string) {
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
 }
 
-void CKeybindManager::focusWindowByClass(std::string clazz) {
-    std::regex classCheck(clazz);
+void CKeybindManager::focusWindow(std::string regexp) {
+    bool titleRegex = false;
+    std::regex regexCheck(regexp);
+    if (regexp.find("title:") == 0) {
+        titleRegex = true;
+        regexCheck = std::regex(regexp.substr(6));
+    }
 
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (!w.m_bIsMapped || w.m_bHidden)
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped || w->m_bHidden)
             continue;
 
-        const auto windowClass = g_pXWaylandManager->getAppIDClass(&w);
+        if (titleRegex) {
+            const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
+            if (!std::regex_search(windowTitle, regexCheck))
+                continue;
+        }
+        else {
+            const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
+            if (!std::regex_search(windowClass, regexCheck))
+                continue;
+        }
 
-        if (!std::regex_search(windowClass, classCheck))
-            continue;
+        Debug::log(LOG, "Focusing to window name: %s", w->m_szTitle.c_str());
 
-        Debug::log(LOG, "Focusing to window name: %s", w.m_szTitle.c_str());
+        changeworkspace(std::to_string(w->m_iWorkspaceID));
 
-        changeworkspace(std::to_string(w.m_iWorkspaceID));
+        g_pCompositor->focusWindow(w.get());
 
-        g_pCompositor->focusWindow(&w);
-
-        const auto MIDPOINT = w.m_vRealPosition.goalv() + w.m_vRealSize.goalv() / 2.f;
+        const auto MIDPOINT = w->m_vRealPosition.goalv() + w->m_vRealSize.goalv() / 2.f;
 
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
 

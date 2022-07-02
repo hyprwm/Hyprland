@@ -67,6 +67,7 @@ public:
     // XWayland stuff
     bool            m_bIsX11 = false;
     bool            m_bMappedX11 = false;
+    CWindow*        m_pX11Parent = nullptr;
     uint64_t        m_iX11Type = 0;
     bool            m_bIsModal = false;
     bool            m_bX11DoesntWantBorders = false;
@@ -76,6 +77,7 @@ public:
 
     // For nofocus
     bool            m_bNoFocus = false;
+    bool            m_bNoInitialFocus = false;
 
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 
@@ -110,5 +112,7 @@ public:
     // methods
     wlr_box         getFullWindowBoundingBox();
     wlr_box         getWindowIdealBoundingBoxIgnoreReserved();
+    void            updateWindowDecos();
+    pid_t           getPID();
 
 };

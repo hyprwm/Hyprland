@@ -15,9 +15,9 @@
 
 std::string monitorsRequest() {
     std::string result = "";
-    for (auto& m : g_pCompositor->m_lMonitors) {
-        result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tactive workspace: %i (%s)\n\treserved: %i %i %i %i\n\n",
-                            m.szName.c_str(), m.ID, (int)m.vecSize.x, (int)m.vecSize.y, m.refreshRate, (int)m.vecPosition.x, (int)m.vecPosition.y, m.activeWorkspace, g_pCompositor->getWorkspaceByID(m.activeWorkspace)->m_szName.c_str(), (int)m.vecReservedTopLeft.x, (int)m.vecReservedTopLeft.y, (int)m.vecReservedBottomRight.x, (int)m.vecReservedBottomRight.y);
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tactive workspace: %i (%s)\n\treserved: %i %i %i %i\n\tscale: %.2f\n\ttransform: %i\n\n",
+                            m->szName.c_str(), m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform);
     }
 
     return result;
@@ -25,19 +25,21 @@ std::string monitorsRequest() {
 
 std::string clientsRequest() {
     std::string result = "";
-    for (auto& w : g_pCompositor->m_lWindows) {
-        if (w.m_bIsMapped)
-            result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\n",
-                            &w, w.m_szTitle.c_str(), (int)w.m_vRealPosition.vec().x, (int)w.m_vRealPosition.vec().y, (int)w.m_vRealSize.vec().x, (int)w.m_vRealSize.vec().y, w.m_iWorkspaceID, (w.m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w.m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w.m_iWorkspaceID)).c_str()), (int)w.m_bIsFloating, w.m_iMonitorID, g_pXWaylandManager->getAppIDClass(&w).c_str());
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_bIsMapped) {
+            result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
+                            &w, w->m_szTitle.c_str(), (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y, (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID());
+    
+        }
     }
     return result;
 }
 
 std::string workspacesRequest() {
     std::string result = "";
-    for (auto& w : g_pCompositor->m_lWorkspaces) {
+    for (auto& w : g_pCompositor->m_vWorkspaces) {
         result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\n",
-                            w.m_iID, w.m_szName.c_str(), g_pCompositor->getMonitorFromID(w.m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w.m_iID), (int)w.m_bHasFullscreenWindow);
+                            w->m_iID, w->m_szName.c_str(), g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow);
     }
     return result;
 }
@@ -48,17 +50,17 @@ std::string activeWindowRequest() {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return "Invalid";
 
-    return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\n",
-                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating, (int)PWINDOW->m_iMonitorID, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
+    return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
+                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating, (int)PWINDOW->m_iMonitorID, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), g_pXWaylandManager->getTitle(PWINDOW).c_str(), PWINDOW->getPID());
 }
 
 std::string layersRequest() {
     std::string result = "";
 
-    for (auto& mon : g_pCompositor->m_lMonitors) {
+    for (auto& mon : g_pCompositor->m_vMonitors) {
         result += getFormat("Monitor %s:\n");
         int layerLevel = 0;
-        for (auto& level : mon.m_aLayerSurfaceLists) {
+        for (auto& level : mon->m_aLayerSurfaceLists) {
             result += getFormat("\tLayer level %i:\n", layerLevel);
 
             for (auto& layer : level) {
@@ -173,6 +175,12 @@ std::string reloadRequest() {
     return "ok";
 }
 
+std::string killRequest() {
+    g_pInputManager->setClickMode(CLICKMODE_KILL);
+
+    return "ok";
+}
+
 std::string getReply(std::string);
 
 std::string dispatchBatch(std::string request) {
@@ -214,6 +222,8 @@ std::string getReply(std::string request) {
         return workspacesRequest();
     else if (request == "clients")
         return clientsRequest();
+    else if (request == "kill")
+        return killRequest();
     else if (request == "activewindow")
         return activeWindowRequest();
     else if (request == "layers")

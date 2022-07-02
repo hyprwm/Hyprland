@@ -33,6 +33,7 @@ private:
     inline static std::string m_szCurrentSelectedSubmap = "";
 
     bool                handleInternalKeybinds(xkb_keysym_t);
+    bool                handleVT(xkb_keysym_t);
 
     // -------------- Dispatchers -------------- //
     static void         killActive(std::string);
@@ -60,7 +61,7 @@ private:
     static void         resizeActive(std::string);
     static void         moveActive(std::string);
     static void         circleNext(std::string);
-    static void         focusWindowByClass(std::string);
+    static void         focusWindow(std::string);
     static void         setSubmap(std::string);
 
     friend class CCompositor;

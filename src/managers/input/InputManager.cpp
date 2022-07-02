@@ -360,7 +360,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
         if (e->delta < 0) { 
             g_pKeybindManager->m_mDispatchers["workspace"]("-1");
         } else {
-            g_pKeybindManager->m_mDispatchers["workspace"]("+1");
+            g_pKeybindManager->m_mDispatchers["workspace"]("m+1");
         }
 
         return;

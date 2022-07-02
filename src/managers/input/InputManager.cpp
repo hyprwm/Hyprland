@@ -86,6 +86,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             } else {
                 if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
                     g_pCompositor->m_sSeat.mouse->constraintActive = true;
+                    didConstraintOnCursor = true;
                 }
             }
         }

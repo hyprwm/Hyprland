@@ -392,6 +392,9 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     ASSERT(pKeyboard);
 
+    if (!pKeyboard->keyboard->keyboard)
+        return;
+
     const auto REPEATRATE = HASCONFIG ? g_pConfigManager->getDeviceInt(pKeyboard->name, "repeat_rate") : g_pConfigManager->getInt("input:repeat_rate");
     const auto REPEATDELAY = HASCONFIG ? g_pConfigManager->getDeviceInt(pKeyboard->name, "repeat_delay") : g_pConfigManager->getInt("input:repeat_delay");
 

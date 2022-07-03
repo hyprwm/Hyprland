@@ -19,7 +19,7 @@ in {
 
     package = mkOption {
       type = types.package;
-      default = self.packages.${pkgs.system}.default;
+      default = self.packages.${pkgs.system}.default or pkgs.hyprland;
       defaultText = literalExpression "<Hyprland flake>.packages.<system>.default";
       example = literalExpression "<Hyprland flake>.packages.<system>.default.override { }";
       description = ''

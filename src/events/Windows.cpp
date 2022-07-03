@@ -268,6 +268,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
             g_pXWaylandManager->setWindowFullscreen(PFULLWINDOW, PFULLWINDOW->m_bIsFullscreen);
         }
 
+        PWINDOW->m_vRealPosition.warp();
+        PWINDOW->m_vRealSize.warp();
+
         g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
     }
 

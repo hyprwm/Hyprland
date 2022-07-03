@@ -97,7 +97,18 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
     if (pNode->isNode) 
         return;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(pNode->workspaceID)->m_iMonitorID);
+    SMonitor* PMONITOR = nullptr;
+
+    if (pNode->workspaceID != SPECIAL_WORKSPACE_ID) {
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m->specialWorkspaceOpen) {
+                PMONITOR = m.get();
+                break;
+            }
+        }
+    } else {
+        PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(pNode->workspaceID)->m_iMonitorID);
+    }
 
     if (!PMONITOR) {
         Debug::log(ERR, "Orphaned Node %x (workspace ID: %i)!!", pNode, pNode->workspaceID);

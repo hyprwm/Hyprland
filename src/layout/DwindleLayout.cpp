@@ -171,9 +171,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
         }
     }
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-
-    if (PWORKSPACE->m_bIsSpecialWorkspace) {
+    if (PWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID) {
         // if special, we adjust the coords a bit
         static auto *const PSCALEFACTOR = &g_pConfigManager->getConfigValuePtr("dwindle:special_scale_factor")->floatValue;
 

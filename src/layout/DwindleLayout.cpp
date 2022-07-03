@@ -93,16 +93,16 @@ SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const int& id) {
 }
 
 void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(pNode->workspaceID)->m_iMonitorID);
-
-    if (!PMONITOR){
-        Debug::log(ERR, "Orphaned Node %x (workspace ID: %i)!!", pNode, pNode->workspaceID);
-        return;
-    }
-
     // Don't set nodes, only windows.
     if (pNode->isNode) 
         return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(pNode->workspaceID)->m_iMonitorID);
+
+    if (!PMONITOR) {
+        Debug::log(ERR, "Orphaned Node %x (workspace ID: %i)!!", pNode, pNode->workspaceID);
+        return;
+    }
 
     // for gaps outer
     const bool DISPLAYLEFT          = STICKS(pNode->position.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);

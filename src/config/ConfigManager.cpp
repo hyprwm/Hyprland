@@ -43,6 +43,8 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:damage_blink"].intValue = 0;
     configValues["debug:disable_logs"].intValue = 0;
 
+    configValues["experimental:vfr"].intValue = 0;
+
     configValues["decoration:rounding"].intValue = 1;
     configValues["decoration:blur"].intValue = 1;
     configValues["decoration:blur_size"].intValue = 8;

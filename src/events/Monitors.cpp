@@ -173,6 +173,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     static auto *const PDEBUGOVERLAY = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
     static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("general:damage_tracking_internal")->intValue;
     static auto *const PDAMAGEBLINK = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
+    static auto *const VFRENABLED = &g_pConfigManager->getConfigValuePtr("experimental:vfr")->intValue;
 
     static int damageBlinkCleanup = 0; // because double-buffered
 
@@ -231,7 +232,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && PMONITOR->forceFullFrames == 0 && damageBlinkCleanup == 0) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
-        wlr_output_schedule_frame(PMONITOR->output); // we update shit at the monitor's Hz so we need to schedule frames because rollback wont
+
+        if (!*VFRENABLED)
+            wlr_output_schedule_frame(PMONITOR->output);
+
         return;
     }
 
@@ -319,7 +323,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     wlr_output_commit(PMONITOR->output);
 
-    wlr_output_schedule_frame(PMONITOR->output);
+    if (!*VFRENABLED)
+        wlr_output_schedule_frame(PMONITOR->output);
 
     if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;

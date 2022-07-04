@@ -170,6 +170,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
 
             requestedWorkspace = requestedWorkspace.substr(0, requestedWorkspace.find_first_of(' '));
+
+            if (requestedWorkspace == "special") {
+                workspaceSilent = true;
+            }
         }
 
         if (!workspaceSilent) {
@@ -254,7 +258,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (workspaceSilent) {
         // move the window
         if (g_pCompositor->m_pLastWindow == PWINDOW) {
-            g_pKeybindManager->m_mDispatchers["movetoworkspacesilent"](requestedWorkspace);
+            if (requestedWorkspace != "special")
+                g_pKeybindManager->m_mDispatchers["movetoworkspacesilent"](requestedWorkspace);
+            else
+                g_pKeybindManager->m_mDispatchers["movetoworkspace"]("special");
         } else {
             Debug::log(ERR, "Tried to set workspace silent rule to a nofocus window!");
         }

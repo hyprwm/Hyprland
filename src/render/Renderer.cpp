@@ -12,21 +12,17 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, RDATA->output, &outputX, &outputY);
 
     wlr_box windowBox;
-    if (RDATA->surface && surface == RDATA->surface) {
+    if (RDATA->surface && surface == RDATA->surface)
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
-    } else {                                                                                                //  here we clamp to 2, these might be some tiny specks
+    else                                                                                              //  here we clamp to 2, these might be some tiny specks
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
-    }
     scaleBox(&windowBox, RDATA->output->scale);
 
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
 
     float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
 
-    g_pHyprOpenGL->m_RenderData.renderingPrimarySurface = false;
-
     if (RDATA->surface && surface == RDATA->surface) {
-        g_pHyprOpenGL->m_RenderData.renderingPrimarySurface = true;
         g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
 
         if (RDATA->decorate) {
@@ -35,8 +31,18 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
             g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
         }
     }
-    else
-        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, false, false);
+    else {
+        if (wlr_surface_is_xdg_surface(RDATA->surface)) {
+            wlr_box geo;
+            wlr_xdg_surface_get_geometry(wlr_xdg_surface_from_wlr_surface(RDATA->surface), &geo);
+
+            windowBox.x -= geo.x;
+            windowBox.y -= geo.y;
+        }
+
+        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, false);
+    }
+        
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 
@@ -177,22 +183,20 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f);
 
     if (!pWindow->m_bIsX11) {
-
-        // To everyone who makes apps with improperly aligned surfaces,
-        // For example chromium, or GTK devs who allow shadows on windows,
-        // a sincere FUCK YOU.
-
         wlr_box geom;
         wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D((double)geom.x / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)geom.y / (double)pWindow->m_uSurface.xdg->surface->current.height);
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D((double)(geom.width + geom.x) / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)(geom.y + geom.height) / (double)pWindow->m_uSurface.xdg->surface->current.height);
-
+        
         if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
             // No special UV mods needed
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         }
+    } else {
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);

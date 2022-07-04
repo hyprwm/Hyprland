@@ -793,15 +793,16 @@ void CKeybindManager::exitHyprland(std::string argz) {
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
-    if (!isNumber(args) && !isDirection(args)) {
-        Debug::log(ERR, "moveCurrentWorkspaceToMonitor arg not a number or direction!");
-        return;
-    }
+    SMonitor* PMONITOR = nullptr;
 
-    const auto PMONITOR = isDirection(args) ? g_pCompositor->getMonitorInDirection(args[0]) : g_pCompositor->getMonitorFromID(std::stoi(args));
-
-    if (!PMONITOR) {
-        Debug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist");
+    try {
+        if (!isNumber(args) && !isDirection(args)) {
+            PMONITOR = g_pCompositor->getMonitorFromName(args);
+        } else {
+            PMONITOR = isDirection(args) ? g_pCompositor->getMonitorInDirection(args[0]) : g_pCompositor->getMonitorFromID(std::stoi(args));
+        }
+    } catch (std::exception& e) {
+        Debug::log(LOG, "moveCurrentWorkspaceToMonitor: caught exception in monitor", e.what());
         return;
     }
 
@@ -821,12 +822,19 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
     std::string workspace = args.substr(0, args.find_first_of(' '));
     std::string monitor = args.substr(args.find_first_of(' ') + 1);
 
-    if (!isNumber(monitor) && !isDirection(monitor)) {
-        Debug::log(ERR, "moveWorkspaceToMonitor monitor arg not a number or direction!");
+    SMonitor* PMONITOR = nullptr;
+
+    try {
+        if (!isNumber(monitor) && !isDirection(monitor)) {
+            PMONITOR = g_pCompositor->getMonitorFromName(monitor);
+        } else {
+            PMONITOR = isDirection(monitor) ? g_pCompositor->getMonitorInDirection(monitor[0]) : g_pCompositor->getMonitorFromID(std::stoi(monitor));
+        }
+    } catch (std::exception& e) {
+        Debug::log(LOG, "moveWorkspaceToMonitor: caught exception in monitor", e.what());
         return;
     }
-
-    const auto PMONITOR = isDirection(monitor) ? g_pCompositor->getMonitorInDirection(monitor[0]) : g_pCompositor->getMonitorFromID(std::stoi(monitor));
+    
 
     if (!PMONITOR){
         Debug::log(ERR, "Ignoring moveWorkspaceToMonitor: monitor doesnt exist");

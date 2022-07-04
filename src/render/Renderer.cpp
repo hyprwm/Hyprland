@@ -555,6 +555,11 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
     pixman_region32_init(&damageBox);
     wlr_surface_get_effective_damage(pSurface, &damageBox);
 
+    // schedule frame events
+    if (!wl_list_empty(&pSurface->current.frame_callback_list)) {
+        wlr_output_schedule_frame(g_pCompositor->getMonitorFromVector(Vector2D(x, y))->output);
+    }
+
     if (!pixman_region32_not_empty(&damageBox)) {
         pixman_region32_fini(&damageBox);
         return;

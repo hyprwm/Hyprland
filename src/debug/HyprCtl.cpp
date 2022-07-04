@@ -264,6 +264,14 @@ void HyprCtl::tickHyprCtl() {
 }
 
 std::string getRequestFromThread(std::string rq) {
+    // we need to do something to wake hyprland up if VFR is enabled
+    static auto *const VFRENABLED = &g_pConfigManager->getConfigValuePtr("experimental:vfr")->intValue;
+    if (*VFRENABLED) {
+        // TODO: is this safe...?
+        // this might be a race condition
+        wlr_output_schedule_frame(g_pCompositor->m_vMonitors.front()->output);
+    }
+
     while (HyprCtl::request != "" || HyprCtl::requestMade || HyprCtl::requestReady) {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }

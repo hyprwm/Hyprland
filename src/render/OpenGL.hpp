@@ -45,7 +45,6 @@ struct SCurrentRenderData {
 
     pixman_region32_t* pDamage = nullptr;
 
-    bool        renderingPrimarySurface = false;
     Vector2D    primarySurfaceUVTopLeft = Vector2D(-1, -1);
     Vector2D    primarySurfaceUVBottomRight = Vector2D(-1, -1);
 };
@@ -60,8 +59,8 @@ public:
 
     void    renderRect(wlr_box*, const CColor&, int round = 0);
     void    renderRectWithDamage(wlr_box*, const CColor&, pixman_region32_t* damage, int round = 0);
-    void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0);
-    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool allowPrimary = false);
+    void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0, bool allowCustomUV = false);
+    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool allowCustomUV = false);
     void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0);
     void    renderRoundedShadow(wlr_box*, int round, int range, float a = 1.0);
     void    renderBorder(wlr_box*, const CColor&, int round);
@@ -121,7 +120,7 @@ private:
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
 
-    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false, bool allowPrimary = false);
+    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false, bool allowCustomUV = false);
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

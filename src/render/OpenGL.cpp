@@ -311,21 +311,21 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha, int round) {
+void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha, int round, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTexture(CTexture(tex), pBox, alpha, round);
+    renderTexture(CTexture(tex), pBox, alpha, round, false, allowCustomUV);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowPrimary) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowPrimary);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowCustomUV);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowPrimary) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -388,7 +388,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-    if (allowPrimary && m_RenderData.renderingPrimarySurface && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
+    if (allowCustomUV && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
         const float verts[] = {
             m_RenderData.primarySurfaceUVBottomRight.x, m_RenderData.primarySurfaceUVTopLeft.y,      // top right
             m_RenderData.primarySurfaceUVTopLeft.x, m_RenderData.primarySurfaceUVTopLeft.y,          // top left

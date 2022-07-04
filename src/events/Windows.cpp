@@ -122,6 +122,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 requestedWorkspace = WORKSPACERQ;
             }
 
+            if (requestedWorkspace == "special") {
+                requestedWorkspace = "";
+                workspaceSilent = false;
+                Debug::log(LOG, "windowrule=workspace special is not allowed!");
+                continue;
+            }
+
             Debug::log(LOG, "Rule workspace matched by window %x, %s applied.", PWINDOW, r.szValue.c_str());
         } else if (r.szRule.find("float") == 0) {
             PWINDOW->m_bIsFloating = true;
@@ -170,10 +177,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
 
             requestedWorkspace = requestedWorkspace.substr(0, requestedWorkspace.find_first_of(' '));
-
-            if (requestedWorkspace == "special") {
-                workspaceSilent = true;
-            }
         }
 
         if (!workspaceSilent) {

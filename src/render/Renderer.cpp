@@ -32,7 +32,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         }
     }
     else {
-        if (wlr_surface_is_xdg_surface(RDATA->surface)) {
+        if (RDATA->surface && wlr_surface_is_xdg_surface(RDATA->surface)) {
             wlr_box geo;
             wlr_xdg_surface_get_geometry(wlr_xdg_surface_from_wlr_surface(RDATA->surface), &geo);
 

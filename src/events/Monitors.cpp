@@ -184,7 +184,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     // Hack: only check when monitor with top hz refreshes, saves a bit of resources.
     // This is for stuff that should be run every frame
-    if (PMONITOR->ID == pMostHzMonitor->ID) {
+    if (PMONITOR->ID == pMostHzMonitor->ID || *VFRENABLED) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
         g_pCompositor->cleanupFadingOut();

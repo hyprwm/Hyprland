@@ -42,7 +42,7 @@ add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-m
 find_package(Threads REQUIRED)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo pango pangocairo libdrm egl xkbcommon wlroots libinput xcb)
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo pango pangocairo libdrm egl xkbcommon libinput xcb) # we do not check for wlroots, as we provide it ourselves
 
 file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
@@ -80,7 +80,7 @@ include(CPack)
 target_link_libraries(Hyprland PkgConfig::deps)
 
 target_link_libraries(Hyprland
-        wlroots
+        ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.11032 # wlroots is provided by us
         pixman-1
         OpenGL
         GLESv2

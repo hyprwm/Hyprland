@@ -53,15 +53,18 @@ void CAnimationManager::tick() {
         const auto PWINDOW = (CWindow*)av->m_pWindow;
         const auto PWORKSPACE = (CWorkspace*)av->m_pWorkspace;
         const auto PLAYER = (SLayerSurface*)av->m_pLayer;
+        SMonitor* PMONITOR = nullptr;
 
         wlr_box WLRBOXPREV = {0,0,0,0};
         if (PWINDOW) {
             WLRBOXPREV = PWINDOW->getFullWindowBoundingBox();
+            PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
         } else if (PWORKSPACE) {
-            const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+            PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};
         } else if (PLAYER) {
             WLRBOXPREV = PLAYER->geometry;
+            PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
         }
 
         // beziers are with a switch unforto
@@ -190,6 +193,9 @@ void CAnimationManager::tick() {
         // set size and pos if valid, but only if damage policy entire (dont if border for example)
         if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE)
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
+
+        // manually schedule a frame
+        wlr_output_schedule_frame(PMONITOR->output);
     }
 }
 

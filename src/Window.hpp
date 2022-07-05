@@ -99,6 +99,7 @@ public:
 
     // Window decorations
     std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
+    std::vector<IHyprWindowDecoration*> m_vDecosToRemove;
 
     // Special render data, rules, etc
     SWindowSpecialRenderData m_sSpecialRenderData;

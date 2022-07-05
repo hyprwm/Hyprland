@@ -36,7 +36,8 @@ public:
     bool            m_bDefaultFloating = false;
     bool            m_bDefaultPseudo = false;
 
-    void            startAnim(bool in, bool left, bool instant = false);
+    void            startAnim(bool in, bool left, bool instant = false, bool tick = true, bool resetPosition = true);
+    void            setAnimProgress(float progress);
     void            setActive(bool on);
 
     void            moveToMonitor(const int&);

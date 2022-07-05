@@ -19,6 +19,9 @@ public:
     void            onMouseButton(wlr_pointer_button_event*);
     void            onKeyboardKey(wlr_keyboard_key_event*, SKeyboard*);
     void            onKeyboardMod(void*, SKeyboard*);
+    void            onSwipeBegin(wlr_pointer_swipe_begin_event*);
+    void            onSwipeUpdate(wlr_pointer_swipe_update_event* e);
+    void            onSwipeEnd(wlr_pointer_swipe_end_event*);
 
     void            newKeyboard(wlr_input_device*);
     void            newMouse(wlr_input_device*);
@@ -80,6 +83,32 @@ private:
     STabletTool*    ensureTabletToolPresent(wlr_tablet_tool*);
 
     void            applyConfigToKeyboard(SKeyboard*);
+
+    enum class SwipeDirection {
+        UNDECIDED,
+        UP, DOWN, LEFT, RIGHT
+    };
+
+    struct Swipe {
+        uint32_t fingers;
+        SwipeDirection dir;
+
+        double dx, dy;
+        float progress;
+        bool done;
+    };
+
+    struct WorkspaceSwipe {
+        Swipe swipe;
+        CWorkspace* from;
+        CWorkspace* to;
+
+        // animation ends at 300 pixels
+        // TODO define this as pixel agnostic?
+        int dxMax = 300;
+    };
+
+    WorkspaceSwipe* m_curSwipe = nullptr;
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

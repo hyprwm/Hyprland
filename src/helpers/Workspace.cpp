@@ -48,17 +48,26 @@ CWorkspace::~CWorkspace() {
     g_pEventManager->postEvent({"destroyworkspace", m_szName}, true);
 }
 
-void CWorkspace::startAnim(bool in, bool left, bool instant) {
-    const auto ANIMSTYLE = g_pConfigManager->getString("animations:workspaces_style");
+void CWorkspace::startAnim(bool in, bool left, bool instant, bool tick, bool resetPosition) {
+    auto ANIMSTYLE = g_pConfigManager->getString("animations:workspaces_style");
+
+    if(!tick) {
+        ANIMSTYLE = "slide";
+        m_vRenderOffset.unregister();
+    } else {
+        m_vRenderOffset.registerAnim();
+    }
 
     if (ANIMSTYLE == "fade") {
         m_vRenderOffset.setValueAndWarp(Vector2D(0, 0)); // fix a bug, if switching from slide -> fade.
 
         if (in) {
-            m_fAlpha.setValueAndWarp(0.f);
+            if(resetPosition)
+                m_fAlpha.setValueAndWarp(0.f);
             m_fAlpha = 255.f;
         } else {
-            m_fAlpha.setValueAndWarp(255.f);
+            if(resetPosition)
+                m_fAlpha.setValueAndWarp(255.f);
             m_fAlpha = 0.f;
         }
     } else if (ANIMSTYLE == "slidevert") {
@@ -68,7 +77,8 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.setValueAndWarp(255.f);  // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y));
+            if(resetPosition)
+                m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y));
             m_vRenderOffset = Vector2D(0, 0);
         } else {
             m_vRenderOffset = Vector2D(0, left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y);
@@ -80,7 +90,8 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.setValueAndWarp(255.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x, 0));
+            if(resetPosition)
+                m_vRenderOffset.setValueAndWarp(Vector2D(left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x, 0));
             m_vRenderOffset = Vector2D(0, 0);
         } else {
             m_vRenderOffset = Vector2D(left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x, 0);
@@ -92,6 +103,13 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.warp();
     }
 }
+
+void CWorkspace::setAnimProgress(float progress) {
+    const auto DELTA = m_vRenderOffset.m_vGoal - m_vRenderOffset.m_vBegun;
+
+    m_vRenderOffset.m_vValue = m_vRenderOffset.m_vBegun + DELTA * progress;
+}
+
 
 void CWorkspace::setActive(bool on) {
     if (m_pWlrHandle) {

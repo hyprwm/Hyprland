@@ -59,6 +59,10 @@ namespace Events {
     LISTENER(mouseButton);
     LISTENER(mouseAxis);
     LISTENER(mouseFrame);
+
+    LISTENER(swipeBegin);
+    LISTENER(swipeUpdate);
+    LISTENER(swipeEnd);
     
     LISTENER(newInput);
 

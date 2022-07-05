@@ -29,6 +29,7 @@ public:
 
     ~CAnimatedVariable();
 
+    void registerAnim();
     void unregister();
 
     // gets the current vector value (real time)

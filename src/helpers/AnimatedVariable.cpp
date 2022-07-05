@@ -13,7 +13,7 @@ void CAnimatedVariable::create(ANIMATEDVARTYPE type, float* speed, int64_t* enab
     m_pWindow = pWindow;
     m_pBezier = pBezier;
 
-    g_pAnimationManager->m_lAnimatedVariables.push_back(this);
+    registerAnim();
 
     m_bDummy = false;
 }
@@ -53,6 +53,10 @@ void CAnimatedVariable::create(ANIMATEDVARTYPE type, std::any val, float* speed,
 
 CAnimatedVariable::~CAnimatedVariable() {
     unregister();
+}
+
+void CAnimatedVariable::registerAnim() {
+    g_pAnimationManager->m_lAnimatedVariables.push_back(this);
 }
 
 void CAnimatedVariable::unregister() {

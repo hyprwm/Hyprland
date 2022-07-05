@@ -593,6 +593,240 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
     wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &pKeyboard->keyboard->keyboard->modifiers);
 }
 
+// TODO would be nice to use KeybindManager::changeworkspace
+void changeWorkspace(const std::string& args, int oldWorkspace) {
+    int workspaceToChangeTo = 0;
+    std::string workspaceName = "";
+
+    workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
+
+    if (workspaceToChangeTo == INT_MAX) {
+        Debug::log(ERR, "Error in changeWorkspace, invalid value");
+        return;
+    }
+
+    // remove constraints
+    g_pCompositor->m_sSeat.mouse->constraintActive = false;
+
+    // if it exists, we warp to it
+    if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_iMonitorID);
+
+        const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+
+        // change it
+        PMONITOR->specialWorkspaceOpen = false;
+        PMONITOR->activeWorkspace = workspaceToChangeTo;
+
+        g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
+
+        // If the monitor is not the one our cursor's at, warp to it.
+        if (PMONITOR != g_pCompositor->getMonitorFromCursor()) {
+            Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
+        }
+
+        // set active and deactivate all other in wlr
+        g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACETOCHANGETO->m_pWlrHandle);
+        PWORKSPACETOCHANGETO->setActive(true);
+
+        // here and only here begin anim. we don't want to anim visible workspaces on other monitors.
+        // check if anim left or right
+        const auto ANIMTOLEFT = workspaceToChangeTo > oldWorkspace;
+
+        // start anim on old workspace
+        g_pCompositor->getWorkspaceByID(oldWorkspace)->startAnim(false, ANIMTOLEFT, false, true, false);
+
+        // start anim on new workspace
+        PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT, false, true, false);
+
+        // recalc layout
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWORKSPACETOCHANGETO->m_iMonitorID);
+
+        Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
+
+        // focus
+        g_pInputManager->refocus();
+
+        // mark the monitor dirty
+        g_pHyprRenderer->damageMonitor(PMONITOR);
+
+        return;
+    }
+}
+
+void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
+    ASSERT(m_curSwipe == nullptr);
+    Debug::log(LOG, "onSwipeBegin");
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+
+    m_curSwipe = new WorkspaceSwipe{{e->fingers, SwipeDirection::UNDECIDED}, g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)};
+}
+
+void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
+    Debug::log(LOG, "onSwipeEnd");
+
+    if(m_curSwipe == nullptr)
+        return;
+
+    if(!m_curSwipe->swipe.done)
+    {
+        // decide whether to cancel or follow through
+        bool cancelling = m_curSwipe->swipe.progress < 0.5;
+        std::string toWorkspace = cancelling ? m_curSwipe->from->m_szName : m_curSwipe->to->m_szName;
+
+        Debug::log(LOG, "Swipe stopped prematurely, falling back to workspace %s", toWorkspace.c_str());
+        changeWorkspace(toWorkspace, cancelling ? m_curSwipe->to->m_iID : m_curSwipe->from->m_iID);
+    }
+
+    delete m_curSwipe;
+    m_curSwipe = nullptr;
+}
+
+void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
+    Debug::log(LOG, "onSwipeUpdate");
+
+    if(m_curSwipe == nullptr)
+        return;
+
+    if(m_curSwipe->swipe.done) {
+        g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromCursor());
+        return;
+    }
+
+    m_curSwipe->swipe.dx += e->dx;
+    m_curSwipe->swipe.dy += e->dy;
+
+    m_curSwipe->swipe.progress = std::clamp(float(abs(m_curSwipe->swipe.dx)) / m_curSwipe->dxMax, 0.0f, 1.0f);
+
+    if(m_curSwipe->swipe.dir == SwipeDirection::UNDECIDED) {
+        if(abs(m_curSwipe->swipe.dx) > 15) { // TODO make this pixel-agnostic somehow?
+
+            m_curSwipe->swipe.dir = m_curSwipe->swipe.dx > 0 ? SwipeDirection::RIGHT : SwipeDirection::LEFT;
+
+            Debug::log(LOG, "Detected swipe in direction %i", int(m_curSwipe->swipe.dir));
+
+            // find workspace in correct direction
+            int workspaceToChangeTo = 0;
+            switch(m_curSwipe->swipe.dir) {
+                case SwipeDirection::LEFT:
+                    workspaceToChangeTo = 1;
+                    break;
+                case SwipeDirection::RIGHT:
+                    workspaceToChangeTo = -1;
+                    break;
+                default:
+                    Debug::log(LOG, "Error: invalid swipe direction %i", m_curSwipe->swipe.dir);
+
+                    delete m_curSwipe;
+                    m_curSwipe = nullptr;
+                    return;
+            }
+
+            if (!g_pCompositor->m_pLastMonitor) {
+                Debug::log(ERR, "Relative monitor workspace on monitor null! Aborting.");
+                ;
+                delete m_curSwipe;
+                m_curSwipe = nullptr;
+                return;
+            } else {
+                int currentID = g_pCompositor->m_pLastMonitor->activeWorkspace;
+                int searchID = currentID;
+
+                while (true) {
+                    if (workspaceToChangeTo < 0)
+                        searchID--;
+                    else
+                        searchID++;
+
+                    // we're at one of the ends
+                    if (g_pCompositor->workspaceIDOutOfBounds(searchID)){
+                        Debug::log(LOG, "No need to move. Aborting.");
+
+                        delete m_curSwipe;
+                        m_curSwipe = nullptr;
+                        return;
+                    }
+
+                    if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(searchID); PWORKSPACE && PWORKSPACE->m_iID != SPECIAL_WORKSPACE_ID) {
+                        if (PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
+                            currentID = PWORKSPACE->m_iID;
+
+                            break;
+                        }
+                    }
+                }
+
+                workspaceToChangeTo = currentID;
+            }
+
+            Debug::log(LOG, "Workspace to change to: %i", workspaceToChangeTo);
+
+            m_curSwipe->to = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+
+            if (workspaceToChangeTo == INT_MAX || !m_curSwipe->to /*|| m_curSwipe->from->m_iID ==  m_curSwipe->to->m_iID*/) {
+                Debug::log(ERR, "Error in changeWorkspace, invalid value %i", workspaceToChangeTo);
+
+                delete m_curSwipe;
+                m_curSwipe = nullptr;
+                return;
+            }
+
+            // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
+            // and that'd be annoying as hell
+            g_pCompositor->fixXWaylandWindowsOnWorkspace(m_curSwipe->from->m_iID);
+
+            // and fix on the new workspace
+            g_pCompositor->fixXWaylandWindowsOnWorkspace(m_curSwipe->to->m_iID);
+
+            const auto ANIMTOLEFT = workspaceToChangeTo > m_curSwipe->from->m_iID;
+
+            // start anim on old workspace
+            m_curSwipe->from->startAnim(false, ANIMTOLEFT, false, false);
+
+            // start anim on new workspace
+            m_curSwipe->to->startAnim(true, ANIMTOLEFT, false, false);
+
+            // recalc layout TODO needed?
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_curSwipe->to->m_iMonitorID);
+
+            // mark the monitor dirty
+            g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromCursor());
+        } else {
+            return;
+        }
+    }
+
+    if((m_curSwipe->swipe.dir == SwipeDirection::RIGHT && m_curSwipe->swipe.dx < 0)
+        || (m_curSwipe->swipe.dir == SwipeDirection::LEFT && m_curSwipe->swipe.dx > 0)) {
+
+        // swiping backwards, ignore
+        return;
+    }
+
+    // we have decided what kind of swipe, now we must act on it
+    if(m_curSwipe->swipe.progress == 1.0) {
+        Debug::log(LOG, "Swipe complete!");
+
+        if(m_curSwipe->swipe.dir == SwipeDirection::RIGHT) {
+            changeWorkspace("-1", m_curSwipe->from->m_iID);
+        }
+        if(m_curSwipe->swipe.dir == SwipeDirection::LEFT) {
+            changeWorkspace("+1", m_curSwipe->from->m_iID);
+        }
+
+        m_curSwipe->swipe.done = true;
+    }
+
+    m_curSwipe->from->setAnimProgress(m_curSwipe->swipe.progress);
+    m_curSwipe->to->setAnimProgress(m_curSwipe->swipe.progress);
+
+    // TODO is this needed?
+    g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromCursor());
+}
+
+
 void CInputManager::refocus() {
     mouseMoveUnified(0, true);
 }

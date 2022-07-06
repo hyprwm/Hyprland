@@ -32,8 +32,9 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     }
 
     const auto PMONITOR = (SMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
-    PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].push_back(new SLayerSurface());
-    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
+    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].emplace_back(new SLayerSurface());
+
+    layerSurface->szNamespace = WLRLAYERSURFACE->_namespace;
 
     if (!WLRLAYERSURFACE->output) {
         WLRLAYERSURFACE->output = g_pCompositor->m_vMonitors.front()->output;  // TODO: current mon

@@ -25,6 +25,8 @@ struct SLayerSurface {
 
     int                     monitorID = -1;
 
+    std::string             szNamespace = "";
+
     CAnimatedVariable       alpha;
     bool                    fadingOut = false;
     bool                    readyToDelete = false;

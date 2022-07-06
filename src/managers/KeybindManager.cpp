@@ -253,7 +253,14 @@ void CKeybindManager::changeworkspace(std::string args) {
     int workspaceToChangeTo = 0;
     std::string workspaceName = "";
 
-    workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
+    if (args.find("[internal]") == 0) {
+        workspaceToChangeTo = std::stoi(args.substr(10));
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+        if (PWORKSPACE)
+            workspaceName = PWORKSPACE->m_szName;
+    } else {
+        workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
+    }
 
     if (workspaceToChangeTo == INT_MAX) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
@@ -451,7 +458,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     // undo the damage if we are moving to the special workspace
     if (WORKSPACEID == SPECIAL_WORKSPACE_ID) {
-        changeworkspace(std::to_string(OLDWORKSPACE->m_iID));
+        changeworkspace("[internal]" + std::to_string(OLDWORKSPACE->m_iID));
         OLDWORKSPACE->startAnim(true, true, true);
         toggleSpecialWorkspace("");
         g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false, true);
@@ -503,8 +510,8 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
 
-    changeworkspace(std::to_string(OLDWORKSPACEIDONMONITOR));
-    changeworkspace(std::to_string(OLDWORKSPACEIDRETURN));
+    changeworkspace("[internal]" + std::to_string(OLDWORKSPACEIDONMONITOR));
+    changeworkspace("[internal]" + std::to_string(OLDWORKSPACEIDRETURN));
 
     // revert animations
     PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(0,0));
@@ -663,7 +670,7 @@ void CKeybindManager::focusMonitor(std::string arg) {
         }
 
         if (monID > -1 && monID < (int)g_pCompositor->m_vMonitors.size()) {
-            changeworkspace(std::to_string(g_pCompositor->getMonitorFromID(monID)->activeWorkspace));
+            changeworkspace("[internal]" + std::to_string(g_pCompositor->getMonitorFromID(monID)->activeWorkspace));
         } else {
             Debug::log(ERR, "Error in focusMonitor: invalid arg 1");
         }
@@ -683,7 +690,7 @@ void CKeybindManager::focusMonitor(std::string arg) {
         } else {
             for (auto& m : g_pCompositor->m_vMonitors) {
                 if (m->szName == arg) {
-                    changeworkspace(std::to_string(m->activeWorkspace));
+                    changeworkspace("[internal]" + std::to_string(m->activeWorkspace));
                     return;
                 }
             }
@@ -1051,7 +1058,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
         Debug::log(LOG, "Focusing to window name: %s", w->m_szTitle.c_str());
 
-        changeworkspace(std::to_string(w->m_iWorkspaceID));
+        changeworkspace("[internal]" + std::to_string(w->m_iWorkspaceID));
 
         g_pCompositor->focusWindow(w.get());
 

@@ -32,6 +32,7 @@
         src = inputs.wlroots;
       });
       hyprland = prev.callPackage ./nix/default.nix {
+        stdenv = prev.gcc12Stdenv;
         version = "0.6.2beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
         wlroots = wlroots-hyprland;
       };

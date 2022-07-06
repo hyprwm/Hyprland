@@ -58,7 +58,7 @@ std::string layersRequest() {
     std::string result = "";
 
     for (auto& mon : g_pCompositor->m_vMonitors) {
-        result += getFormat("Monitor %s:\n");
+        result += getFormat("Monitor %s:\n", mon->szName.c_str());
         int layerLevel = 0;
         for (auto& level : mon->m_aLayerSurfaceLists) {
             result += getFormat("\tLayer level %i:\n", layerLevel);

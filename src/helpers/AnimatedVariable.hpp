@@ -128,10 +128,10 @@ public:
             case AVARTYPE_COLOR:
                 return m_cValue != m_cGoal;
             default:
-                return false;
+                std::unreachable();
         }
 
-        return false; // unreachable
+        std::unreachable();
     }
 
     void warp() {
@@ -149,7 +149,7 @@ public:
                 break;
             }
             default:
-                break;
+                std::unreachable();
         }
     }
 

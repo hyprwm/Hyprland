@@ -56,9 +56,14 @@ public:
     std::list<STabletTool>  m_lTabletTools;
     std::list<STabletPad>   m_lTabletPads;
 
+    // idle inhibitors
+    std::list<SIdleInhibitor> m_lIdleInhibitors;
+
     void            newTabletTool(wlr_input_device*);
     void            newTabletPad(wlr_input_device*);
     void            focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
+    void            newIdleInhibitor(wlr_idle_inhibitor_v1*);
+    void            recheckIdleInhibitorStatus();
 
     SKeyboard*      m_pActiveKeyboard = nullptr;
 

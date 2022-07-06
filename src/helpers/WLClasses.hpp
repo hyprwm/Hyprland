@@ -221,3 +221,14 @@ struct STabletPad {
         return wlrTabletPadV2 == b.wlrTabletPadV2;
     }
 };
+
+struct SIdleInhibitor {
+    wlr_idle_inhibitor_v1* pWlrInhibitor = nullptr;
+    CWindow* pWindow = nullptr;
+
+    DYNLISTENER(Destroy);
+
+    bool operator==(const SIdleInhibitor& b) {
+        return pWlrInhibitor == b.pWlrInhibitor;
+    }
+};

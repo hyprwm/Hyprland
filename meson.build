@@ -1,6 +1,6 @@
 project('Hyprland', 'cpp', 'c',
   version : '0.6.2beta',
-  default_options : ['warning_level=2', 'cpp_std=c++20', 'default_library=static', 'optimization=3'])
+  default_options : ['warning_level=2', 'cpp_std=c++23', 'default_library=static', 'optimization=3'])
 
 add_project_arguments(
   [

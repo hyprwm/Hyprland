@@ -12,7 +12,7 @@ bool ignoreSudo = false;
 int main(int argc, char** argv) {
 
     if (!getenv("XDG_RUNTIME_DIR"))
-        RIP("XDG_RUNTIME_DIR not set!");
+        throw std::runtime_error("XDG_RUNTIME_DIR is not set!");
 
     // parse some args
     for (int i = 1; i < argc; ++i) {

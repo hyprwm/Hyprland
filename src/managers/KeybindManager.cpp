@@ -49,21 +49,21 @@ void CKeybindManager::removeKeybind(uint32_t mod, const std::string& key) {
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
-    if (mods.find("SHIFT") != std::string::npos)
+    if (mods.contains("SHIFT"))
         modMask |= WLR_MODIFIER_SHIFT;
-    if (mods.find("CAPS") != std::string::npos)
+    if (mods.contains("CAPS"))
         modMask |= WLR_MODIFIER_CAPS;
-    if (mods.find("CTRL") != std::string::npos || mods.find("CONTROL") != std::string::npos)
+    if (mods.contains("CTRL") || mods.contains("CONTROL"))
         modMask |= WLR_MODIFIER_CTRL;
-    if (mods.find("ALT") != std::string::npos)
+    if (mods.contains("ALT"))
         modMask |= WLR_MODIFIER_ALT;
-    if (mods.find("MOD2") != std::string::npos)
+    if (mods.contains("MOD2"))
         modMask |= WLR_MODIFIER_MOD2;
-    if (mods.find("MOD3") != std::string::npos)
+    if (mods.contains("MOD3"))
         modMask |= WLR_MODIFIER_MOD3;
-    if (mods.find("SUPER") != std::string::npos || mods.find("WIN") != std::string::npos || mods.find("LOGO") != std::string::npos || mods.find("MOD4") != std::string::npos)
+    if (mods.contains("SUPER") || mods.contains("WIN") || mods.contains("LOGO") || mods.contains("MOD4"))
         modMask |= WLR_MODIFIER_LOGO;
-    if (mods.find("MOD5") != std::string::npos)
+    if (mods.contains("MOD5"))
         modMask |= WLR_MODIFIER_MOD5;
 
     return modMask;
@@ -823,7 +823,7 @@ void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
 }
 
 void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
-    if (args.find_first_of(' ') == std::string::npos)
+    if (!args.contains(' '))
         return;
 
     std::string workspace = args.substr(0, args.find_first_of(' '));
@@ -925,7 +925,7 @@ void CKeybindManager::forceRendererReload(std::string args) {
 }
 
 void CKeybindManager::resizeActive(std::string args) {
-    if (args.find_first_of(' ') == std::string::npos)
+    if (!args.contains(' '))
         return;
 
     std::string x = args.substr(0, args.find_first_of(' '));
@@ -974,7 +974,7 @@ void CKeybindManager::resizeActive(std::string args) {
 }
 
 void CKeybindManager::moveActive(std::string args) {
-    if (args.find_first_of(' ') == std::string::npos)
+    if (!args.contains(' '))
         return;
 
     std::string x = args.substr(0, args.find_first_of(' '));

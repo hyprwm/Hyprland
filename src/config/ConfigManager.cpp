@@ -356,7 +356,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
     newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));
 
-    if (curitem.find_first_of('@') != std::string::npos)
+    if (curitem.contains("@"))
         newrule.refreshRate = stof(curitem.substr(curitem.find_first_of('@') + 1));
 
     nextItem();
@@ -722,7 +722,7 @@ void CConfigManager::parseLine(std::string& line) {
         line = line.substr(1);
     }
 
-    if (line.find(" {") != std::string::npos) {
+    if (line.contains(" {")) {
         auto cat = line.substr(0, line.find(" {"));
         transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
         if (currentCategory.length() != 0) {
@@ -736,7 +736,7 @@ void CConfigManager::parseLine(std::string& line) {
         return;
     }
 
-    if (line.find("}") != std::string::npos && currentCategory != "") {
+    if (line.contains("}") && currentCategory != "") {
         currentCategory = "";
         return;
     }

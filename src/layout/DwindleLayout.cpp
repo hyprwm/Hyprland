@@ -646,6 +646,8 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
         PPARENT->recalcSizePosRecursive();
     }
+
+    g_pInputManager->refocus();
 }
 
 std::deque<CWindow*> CHyprDwindleLayout::getGroupMembers(CWindow* pWindow) {

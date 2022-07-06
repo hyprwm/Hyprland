@@ -577,6 +577,23 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
 
     auto value = rawpath;
 
+    if (value.length() < 2) {
+        Debug::log(ERR, "source= path garbage");
+        parseError = "source path " + value + " bogus!";
+        return;
+    }
+
+    if (value[0] == '.') {
+        auto currentDir = configCurrentPath.substr(0, configCurrentPath.find_last_of('/'));
+
+        if (value[1] == '.') {
+            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+            value.replace(0, 2, parentDir);
+        } else {
+            value.replace(0, 1, currentDir);
+        }
+    }
+
     if (value[0] == '~') {
         value.replace(0, 1, std::string(ENVHOME));
     }

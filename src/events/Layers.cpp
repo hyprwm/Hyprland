@@ -51,6 +51,8 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     WLRLAYERSURFACE->data = layerSurface;
     layerSurface->monitorID = PMONITOR->ID;
 
+    layerSurface->forceBlur = g_pConfigManager->shouldBlurLS(layerSurface->szNamespace);
+
     Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface->layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer, PMONITOR->szName.c_str());
 }
 

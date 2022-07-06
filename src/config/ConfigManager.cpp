@@ -552,6 +552,10 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
 
 }
 
+void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
+    m_dBlurLSNamespaces.emplace_back(value);
+}
+
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
 
     const auto DISPLAY = value.substr(0, value.find_first_of(','));
@@ -670,6 +674,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
     else if (COMMAND == "source") handleSource(COMMAND, VALUE);
     else if (COMMAND == "submap") handleSubmap(COMMAND, VALUE);
+    else if (COMMAND == "blurls") handleBlurLS(COMMAND, VALUE);
     else
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 
@@ -772,6 +777,7 @@ void CConfigManager::loadConfigLoadVars() {
     m_mAdditionalReservedAreas.clear();
     configDynamicVars.clear();
     deviceConfigs.clear();
+    m_dBlurLSNamespaces.clear();
 
     // paths
     configPaths.clear();
@@ -1103,3 +1109,12 @@ bool CConfigManager::deviceConfigExists(const std::string& dev) {
     return it != deviceConfigs.end();
 }
 
+bool CConfigManager::shouldBlurLS(const std::string& ns) {
+    for (auto& bls : m_dBlurLSNamespaces) {
+        if (bls == ns) {
+            return true;
+        }
+    }
+
+    return false;
+}

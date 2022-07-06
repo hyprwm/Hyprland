@@ -65,6 +65,7 @@ public:
     float               getDeviceFloat(const std::string&, const std::string&);
     std::string         getDeviceString(const std::string&, const std::string&);
     bool                deviceConfigExists(const std::string&);
+    bool                shouldBlurLS(const std::string&);
 
     SConfigValue*       getConfigValuePtr(std::string);
 
@@ -102,6 +103,7 @@ private:
 
     std::deque<SMonitorRule> m_dMonitorRules;
     std::deque<SWindowRule> m_dWindowRules;
+    std::deque<std::string> m_dBlurLSNamespaces;
 
     bool firstExecDispatched = false;
     std::deque<std::string> firstExecRequests;
@@ -127,6 +129,7 @@ private:
     void                handleAnimation(const std::string&, const std::string&);
     void                handleSource(const std::string&, const std::string&);
     void                handleSubmap(const std::string&, const std::string&);
+    void                handleBlurLS(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

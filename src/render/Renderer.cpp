@@ -23,7 +23,10 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
 
     if (RDATA->surface && surface == RDATA->surface) {
-        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
+        if (RDATA->blur)
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
+        else
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
 
         if (RDATA->decorate) {
             auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
@@ -169,6 +172,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.alpha = pWindow->m_bIsFullscreen ? g_pConfigManager->getFloat("decoration:fullscreen_opacity") : pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
     renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;
+    renderdata.blur = true; // if it shouldn't, it will be ignored later
 
     // apply window special data
     if (pWindow->m_sSpecialRenderData.alphaInactive == -1)
@@ -221,6 +225,11 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, SMonitor* pMonitor, times
 
     SRenderData renderdata = {pMonitor->output, time, pLayer->geometry.x, pLayer->geometry.y};
     renderdata.fadeAlpha = pLayer->alpha.fl();
+    renderdata.blur = pLayer->forceBlur;
+    renderdata.surface = pLayer->layerSurface->surface;
+    renderdata.decorate = false;
+    renderdata.w = pLayer->geometry.width;
+    renderdata.h = pLayer->geometry.height;
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
 }
 

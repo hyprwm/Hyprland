@@ -28,23 +28,20 @@ CCompositor::CCompositor() {
 
     if (!m_sWLRBackend) {
         Debug::log(CRIT, "m_sWLRBackend was NULL!");
-        RIP("m_sWLRBackend NULL!");
-        return;
+        throw std::runtime_error("wlr_backend_autocreate() failed!");
     }
 
     m_iDRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
     if (m_iDRMFD < 0) {
         Debug::log(CRIT, "Couldn't query the DRM FD!");
-        RIP("DRMFD NULL!");
-        return;
+        throw std::runtime_error("wlr_backend_get_drm_fd() failed!");
     }
 
     m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
 
     if (!m_sWLRRenderer) {
         Debug::log(CRIT, "m_sWLRRenderer was NULL!");
-        RIP("m_sWLRRenderer NULL!");
-        return;
+        throw std::runtime_error("wlr_gles2_renderer_create_with_drm_fd() failed!");
     }
 
     wlr_renderer_init_wl_display(m_sWLRRenderer, m_sWLDisplay);
@@ -53,16 +50,14 @@ CCompositor::CCompositor() {
 
     if (!m_sWLRAllocator) {
         Debug::log(CRIT, "m_sWLRAllocator was NULL!");
-        RIP("m_sWLRAllocator NULL!");
-        return;
+        throw std::runtime_error("wlr_allocator_autocreate() failed!");
     }
 
     m_sWLREGL = wlr_gles2_renderer_get_egl(m_sWLRRenderer);
 
     if (!m_sWLREGL) {
         Debug::log(CRIT, "m_sWLREGL was NULL!");
-        RIP("m_sWLREGL NULL!");
-        return;
+        throw std::runtime_error("wlr_gles2_renderer_get_egl() failed!");
     }
 
     m_sWLRCompositor = wlr_compositor_create(m_sWLDisplay, m_sWLRRenderer);
@@ -248,7 +243,7 @@ void CCompositor::startCompositor() {
     if (!m_szWLDisplaySocket) {
         Debug::log(CRIT, "m_szWLDisplaySocket NULL!");
         wlr_backend_destroy(m_sWLRBackend);
-        RIP("m_szWLDisplaySocket NULL!");
+        throw std::runtime_error("m_szWLDisplaySocket was null! (wl_display_add_socket_auto failed)");
     }
 
     setenv("WAYLAND_DISPLAY", m_szWLDisplaySocket, 1);
@@ -261,7 +256,7 @@ void CCompositor::startCompositor() {
         Debug::log(CRIT, "Backend did not start!");
         wlr_backend_destroy(m_sWLRBackend);
         wl_display_destroy(m_sWLDisplay);
-        RIP("Backend did not start!");
+        throw std::runtime_error("The backend could not start!");
     }
 
     wlr_xcursor_manager_set_cursor_image(m_sWLRXCursorMgr, "left_ptr", m_sWLRCursor);

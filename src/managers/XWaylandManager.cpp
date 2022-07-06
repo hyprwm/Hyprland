@@ -153,7 +153,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
         if (pWindow->m_uSurface.xwayland->role) {
             try {
                 std::string winrole = std::string(pWindow->m_uSurface.xwayland->role);
-                if (winrole.find("pop-up") != std::string::npos || winrole.find("task_dialog") != std::string::npos) {
+                if (winrole.contains("pop-up") || winrole.contains("task_dialog")) {
                     return true;
                 }
             } catch (std::exception& e) {

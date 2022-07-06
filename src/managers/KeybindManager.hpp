@@ -7,7 +7,7 @@
 #include <functional>
 
 struct SKeybind {
-    std::string       key = 0;
+    std::string       key = "";
     uint32_t          modmask = 0;
     std::string       handler = "";
     std::string       arg = "";

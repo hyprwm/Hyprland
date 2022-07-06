@@ -309,7 +309,7 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
     if (pWindow->m_sAdditionalConfigData.animationStyle != "") {
         // the window has config'd special anim
         if (pWindow->m_sAdditionalConfigData.animationStyle.find("slide") == 0) {
-            if (pWindow->m_sAdditionalConfigData.animationStyle.find(' ') != std::string::npos) {
+            if (pWindow->m_sAdditionalConfigData.animationStyle.contains(' ')) {
                 // has a direction
                 animationSlide(pWindow, pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find(' ') + 1), close);
             } else {

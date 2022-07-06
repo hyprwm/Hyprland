@@ -152,7 +152,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             try {
                 std::string alphaPart = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
-                if (alphaPart.find_first_of(' ') != std::string::npos) {
+                if (alphaPart.contains(' ')) {
                     // we have a comma, 2 values
                     PWINDOW->m_sSpecialRenderData.alpha = std::stof(alphaPart.substr(0, alphaPart.find_first_of(' ')));
                     PWINDOW->m_sSpecialRenderData.alphaInactive = std::stof(alphaPart.substr(alphaPart.find_first_of(' ') + 1));
@@ -170,9 +170,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (requestedWorkspace != "") {
         // process requested workspace
-        if (requestedWorkspace.find_first_of(' ') != std::string::npos) {
+        if (requestedWorkspace.contains(' ')) {
             // check for silent
-            if (requestedWorkspace.find("silent") != std::string::npos) {
+            if (requestedWorkspace.contains("silent")) {
                 workspaceSilent = true;
             }
 
@@ -199,8 +199,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto SIZEXSTR = VALUE.substr(0, VALUE.find(" "));
                     const auto SIZEYSTR = VALUE.substr(VALUE.find(" ") + 1);
 
-                    const auto SIZEX = SIZEXSTR.find('%') == std::string::npos ? std::stoi(SIZEXSTR) : std::stoi(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x;
-                    const auto SIZEY = SIZEYSTR.find('%') == std::string::npos ? std::stoi(SIZEYSTR) : std::stoi(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y;
+                    const auto SIZEX = !SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stoi(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x;
+                    const auto SIZEY = !SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stoi(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y;
 
                     Debug::log(LOG, "Rule size, applying to window %x", PWINDOW);
 
@@ -215,8 +215,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto POSXSTR = VALUE.substr(0, VALUE.find(" "));
                     const auto POSYSTR = VALUE.substr(VALUE.find(" ") + 1);
 
-                    const auto POSX = POSXSTR.find('%') == std::string::npos ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x;
-                    const auto POSY = POSYSTR.find('%') == std::string::npos ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y;
+                    const auto POSX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x;
+                    const auto POSY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y;
 
                     Debug::log(LOG, "Rule move, applying to window %x", PWINDOW);
 

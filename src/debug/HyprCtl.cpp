@@ -158,7 +158,7 @@ std::string dispatchKeyword(std::string in) {
     if (COMMAND == "monitor")
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
 
-    if (COMMAND.find("input") != std::string::npos)
+    if (COMMAND.contains("input"))
         g_pInputManager->setKeyboardLayout(); // update kb layout
 
     Debug::log(LOG, "Hyprctl: keyword %s : %s", COMMAND.c_str(), VALUE.c_str());

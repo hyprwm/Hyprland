@@ -31,6 +31,8 @@ struct SLayerSurface {
     bool                    fadingOut = false;
     bool                    readyToDelete = false;
 
+    bool                    forceBlur = false;
+
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) {
         return layerSurface == rhs.layerSurface && monitorID == rhs.monitorID;
@@ -62,6 +64,9 @@ struct SRenderData {
 
     // for custom round values
     int rounding = -1; // -1 means not set
+
+    // for blurring
+    bool blur = false;
 };
 
 struct SKeyboard {

@@ -124,6 +124,8 @@ CCompositor::CCompositor() {
 
     m_sWLRForeignRegistry = wlr_xdg_foreign_registry_create(m_sWLDisplay);
 
+    m_sWLRIdleInhibitMgr = wlr_idle_inhibit_v1_create(m_sWLDisplay);
+
     wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 }
@@ -160,6 +162,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRXDGDecoMgr->events.new_toplevel_decoration, &Events::listen_NewXDGDeco, m_sWLRXDGDecoMgr, "XDGDecoMgr");
     addWLSignal(&m_sWLRVirtPtrMgr->events.new_virtual_pointer, &Events::listen_newVirtPtr, m_sWLRVirtPtrMgr, "VirtPtrMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
+    addWLSignal(&m_sWLRIdleInhibitMgr->events.new_inhibitor, &Events::listen_newIdleInhibitor, m_sWLRIdleInhibitMgr, "WLRIdleInhibitMgr");
 
     signal(SIGINT, handleCritSignal);
     signal(SIGTERM, handleCritSignal);

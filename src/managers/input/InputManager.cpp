@@ -155,9 +155,18 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // then windows
     if (!foundSurface) {
-        if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED)
-            pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        else
+        if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
+
+            if (PMONITOR->specialWorkspaceOpen) {
+                pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+
+                if (pFoundWindow && pFoundWindow->m_iWorkspaceID != SPECIAL_WORKSPACE_ID) {
+                    pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+                }
+            } else {
+                pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+            }
+        } else
             pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
         if (pFoundWindow) {

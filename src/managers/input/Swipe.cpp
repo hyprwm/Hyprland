@@ -21,6 +21,9 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
 
 void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
+    if (!m_sActiveSwipe.pWorkspaceBegin)
+        return; // no valid swipe
+
     static auto *const PSWIPEPERC = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_cancel_ratio")->floatValue;
     static auto *const PSWIPEDIST = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
     static auto *const PSWIPEFORC = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_min_speed_to_force")->intValue;

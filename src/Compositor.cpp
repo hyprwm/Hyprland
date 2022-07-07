@@ -710,6 +710,8 @@ void CCompositor::sanityCheckWorkspaces() {
 
             if (it == m_vWorkspaces.end())
                 break;
+
+            continue;
         }
 
         if ((*it)->m_iID == SPECIAL_WORKSPACE_ID && WINDOWSONWORKSPACE == 0) {
@@ -721,6 +723,8 @@ void CCompositor::sanityCheckWorkspaces() {
 
             if (it == m_vWorkspaces.end())
                 break;
+
+            continue;
         }
     }
 }

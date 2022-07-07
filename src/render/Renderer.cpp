@@ -228,8 +228,8 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, SMonitor* pMonitor, times
     renderdata.blur = pLayer->forceBlur;
     renderdata.surface = pLayer->layerSurface->surface;
     renderdata.decorate = false;
-    renderdata.w = pLayer->geometry.width;
-    renderdata.h = pLayer->geometry.height;
+    renderdata.w = pLayer->layerSurface->surface->current.width;
+    renderdata.h = pLayer->layerSurface->surface->current.height;
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
 }
 

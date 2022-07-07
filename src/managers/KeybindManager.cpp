@@ -898,7 +898,12 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         }
     } else {
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID);
-        
+
+        if (!PSPECIALWORKSPACE) {
+            // ??? happens sometimes...?
+            PSPECIALWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(g_pCompositor->m_pLastMonitor->ID, "special", true)).get();
+        }
+
         g_pCompositor->m_pLastMonitor->specialWorkspaceOpen = true;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
 

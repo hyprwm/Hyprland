@@ -96,7 +96,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     auto workspaceIDLeft = getWorkspaceIDFromString("m-1", wsname);
     auto workspaceIDRight = getWorkspaceIDFromString("m+1", wsname);
 
-    if (workspaceIDLeft == INT_MAX || workspaceIDRight == INT_MAX)
+    if (workspaceIDLeft == INT_MAX || workspaceIDRight == INT_MAX || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID)
         return;
 
     m_sActiveSwipe.delta = std::clamp(m_sActiveSwipe.delta, (double)-*PSWIPEDIST, (double)*PSWIPEDIST);

@@ -284,8 +284,6 @@ void CKeybindManager::changeworkspace(std::string args) {
             const auto OLDWORKSPACEID = PMONITOR->activeWorkspace;
 
             // change it
-            PMONITOR->specialWorkspaceOpen = false;
-
             if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
                 PMONITOR->activeWorkspace = workspaceToChangeTo;
             else

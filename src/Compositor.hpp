@@ -62,6 +62,7 @@ public:
     wlr_tablet_manager_v2*           m_sWLRTabletManager;
     wlr_xdg_foreign_registry*        m_sWLRForeignRegistry;
     wlr_idle_inhibit_manager_v1*     m_sWLRIdleInhibitMgr;
+    wlr_pointer_gestures_v1*         m_sWLRPointerGestures;
     // ------------------------------------------------- //
 
 
@@ -114,6 +115,7 @@ public:
     CWorkspace*             getWorkspaceByName(const std::string&);
     CWorkspace*             getWorkspaceByString(const std::string&);
     void                    sanityCheckWorkspaces();
+    void                    updateWorkspaceWindowDecos(const int&);
     int                     getWindowsOnWorkspace(const int&);
     CWindow*                getFirstWindowOnWorkspace(const int&);
     void                    fixXWaylandWindowsOnWorkspace(const int&);

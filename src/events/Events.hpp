@@ -114,4 +114,8 @@ namespace Events {
     LISTENER(RendererDestroy);
 
     LISTENER(newIdleInhibitor);
+
+    LISTENER(swipeBegin);
+    LISTENER(swipeEnd);
+    LISTENER(swipeUpdate);
 };

@@ -123,6 +123,8 @@ CCompositor::CCompositor() {
 
     wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
+
+    m_sWLRPointerGestures = wlr_pointer_gestures_v1_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {
@@ -142,6 +144,9 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRCursor->events.button, &Events::listen_mouseButton, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.swipe_begin, &Events::listen_swipeBegin, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.swipe_update, &Events::listen_swipeUpdate, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.swipe_end, &Events::listen_swipeEnd, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRBackend->events.new_input, &Events::listen_newInput, m_sWLRBackend, "Backend");
     addWLSignal(&m_sSeat.seat->events.request_set_cursor, &Events::listen_requestMouse, &m_sSeat, "Seat");
     addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
@@ -1204,4 +1209,13 @@ CWindow* CCompositor::getX11Parent(CWindow* pWindow) {
     }
     
     return nullptr;
+}
+
+void CCompositor::updateWorkspaceWindowDecos(const int& id) {
+    for (auto& w : m_vWindows) {
+        if (w->m_iWorkspaceID != id)
+            continue;
+
+        w->updateWindowDecos();
+    }
 }

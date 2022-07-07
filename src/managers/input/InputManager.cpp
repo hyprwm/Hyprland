@@ -28,6 +28,8 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
+    static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+
     if (!g_pCompositor->m_bReadyToProcess)
         return;
 
@@ -194,6 +196,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
 
+        if (refocus) { // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
+            g_pCompositor->focusSurface(nullptr);
+
+            g_pCompositor->m_pLastWindow = nullptr;
+        }
+
         return;
     }
 
@@ -211,7 +219,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     if (pFoundWindow) {
-        static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
         if (*PFOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating)) {
                 // enter if change floating style

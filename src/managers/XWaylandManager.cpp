@@ -36,7 +36,9 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
         wlr_xdg_toplevel_set_activated(wlr_xdg_surface_from_wlr_surface(pSurface)->toplevel, activate);
     else if (wlr_surface_is_xwayland_surface(pSurface)) {
         wlr_xwayland_surface_activate(wlr_xwayland_surface_from_wlr_surface(pSurface), activate);
-        wlr_xwayland_surface_restack(wlr_xwayland_surface_from_wlr_surface(pSurface), NULL, XCB_STACK_MODE_ABOVE);
+
+        if (activate)
+            wlr_xwayland_surface_restack(wlr_xwayland_surface_from_wlr_surface(pSurface), NULL, XCB_STACK_MODE_ABOVE);
     }
         
 }

@@ -969,9 +969,14 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
 
-    wlr_box box = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+    static auto *const PRENDERTEX = &g_pConfigManager->getConfigValuePtr("general:disable_hyprland_logo")->intValue;
 
-    renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
+    if (!*PRENDERTEX) {
+        wlr_box box = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+        renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
+    } else {
+        clear(CColor(17,17,17,255));
+    }
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(SMonitor* pMonitor) {

@@ -159,3 +159,21 @@ void Events::listener_destroyMouse(void* owner, void* data) {
 
     g_pInputManager->destroyMouse(PMOUSE->mouse);
 }
+
+void Events::listener_swipeBegin(wl_listener* listener, void* data) {
+    const auto EVENT = (wlr_pointer_swipe_begin_event*)data;
+
+    g_pInputManager->onSwipeBegin(EVENT);
+}
+
+void Events::listener_swipeUpdate(wl_listener* listener, void* data) {
+    const auto EVENT = (wlr_pointer_swipe_update_event*)data;
+
+    g_pInputManager->onSwipeUpdate(EVENT);
+}
+
+void Events::listener_swipeEnd(wl_listener* listener, void* data) {
+    const auto EVENT = (wlr_pointer_swipe_end_event*)data;
+
+    g_pInputManager->onSwipeEnd(EVENT);
+}

@@ -61,6 +61,11 @@ stdenv.mkDerivation {
     ./meson-build.patch
   ];
 
+  # Fix hardcoded paths to /usr installation
+  postPatch = ''
+    sed -i "s#/usr#$out#" src/render/OpenGL.cpp
+  '';
+
   passthru.providedSessions = ["hyprland"];
 
   meta = with lib; {

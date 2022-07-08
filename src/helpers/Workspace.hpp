@@ -28,7 +28,7 @@ public:
     // for animations
     CAnimatedVariable m_vRenderOffset;
     CAnimatedVariable m_fAlpha;
-    bool              m_bForceRendering = true;
+    bool              m_bForceRendering = false;
 
     // "scratchpad"
     bool            m_bIsSpecialWorkspace = false;

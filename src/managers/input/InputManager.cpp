@@ -424,7 +424,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     const auto OPTIONS = HASCONFIG ? g_pConfigManager->getDeviceString(pKeyboard->name, "kb_options") : g_pConfigManager->getString("input:kb_options");
 
     try {
-        if (NUMLOCKON == pKeyboard->numlockOn && REPEATDELAY == pKeyboard->repeatDelay && REPEATRATE == pKeyboard->repeatRate && RULES != "" && RULES == std::string(pKeyboard->currentRules.rules) && MODEL == std::string(pKeyboard->currentRules.model) && LAYOUT == std::string(pKeyboard->currentRules.layout) && VARIANT == std::string(pKeyboard->currentRules.variant) && OPTIONS == std::string(pKeyboard->currentRules.options)) {
+        if (NUMLOCKON == pKeyboard->numlockOn && REPEATDELAY == pKeyboard->repeatDelay && REPEATRATE == pKeyboard->repeatRate && RULES != "" && RULES == pKeyboard->currentRules.rules && MODEL == pKeyboard->currentRules.model && LAYOUT == pKeyboard->currentRules.layout && VARIANT == pKeyboard->currentRules.variant && OPTIONS == pKeyboard->currentRules.options) {
             Debug::log(LOG, "Not applying config to keyboard, it did not change.");
             return;
         }
@@ -446,7 +446,11 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         .variant = VARIANT.c_str(),
         .options = OPTIONS.c_str()};
 
-    pKeyboard->currentRules = rules;
+    pKeyboard->currentRules.rules = RULES;
+    pKeyboard->currentRules.model = MODEL;
+    pKeyboard->currentRules.variant = VARIANT;
+    pKeyboard->currentRules.options = OPTIONS;
+    pKeyboard->currentRules.layout = LAYOUT;
 
     const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
@@ -463,7 +467,11 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         Debug::log(ERR, "Keyboard layout %s with variant %s (rules: %s, model: %s, options: %s) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model, rules.options);
         memset(&rules, 0, sizeof(rules));
 
-        pKeyboard->currentRules = rules;
+        pKeyboard->currentRules.rules = "";
+        pKeyboard->currentRules.model = "";
+        pKeyboard->currentRules.variant = "";
+        pKeyboard->currentRules.options = "";
+        pKeyboard->currentRules.layout = "";
 
         KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }

@@ -69,6 +69,14 @@ struct SRenderData {
     bool blur = false;
 };
 
+struct SStringRuleNames {
+    std::string layout = "";
+    std::string model = "";
+    std::string variant = "";
+    std::string options = "";
+    std::string rules = "";
+};
+
 struct SKeyboard {
     wlr_input_device* keyboard;
 
@@ -80,7 +88,7 @@ struct SKeyboard {
 
     std::string name = "";
 
-    xkb_rule_names currentRules = {0};
+    SStringRuleNames currentRules;
     int repeatRate = 0;
     int repeatDelay = 0;
     int numlockOn = -1;

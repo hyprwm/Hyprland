@@ -45,7 +45,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         Vector2D middlePoint = Vector2D(desiredGeometry.x, desiredGeometry.y) + Vector2D(desiredGeometry.width, desiredGeometry.height) / 2.f;
 
         // TODO: detect a popup in a more consistent way.
-        if (!g_pCompositor->isPointOnAnyMonitor(middlePoint) || (desiredGeometry.x == 0 && desiredGeometry.y == 0)) {
+        if ((desiredGeometry.x == 0 && desiredGeometry.y == 0)) {
             // if it's not, fall back to the center placement
             pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
         } else {
@@ -65,10 +65,12 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         pWindow->m_vRealSize.setValue(pWindow->m_vRealSize.goalv());
     }
 
-    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
-    g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
+    if (pWindow->m_iX11Type != 2) {
+        g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
+        g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
 
-    g_pCompositor->moveWindowToTop(pWindow);
+        g_pCompositor->moveWindowToTop(pWindow);
+    }
 }
 
 void IHyprLayout::onBeginDragWindow() {

@@ -49,6 +49,7 @@ namespace Events {
     DYNLISTENFUNC(fullscreenWindow);
     DYNLISTENFUNC(activateX11);
     DYNLISTENFUNC(configureX11);
+    DYNLISTENFUNC(unmanagedSetGeometry);
 
     // Window subsurfaces
    // LISTENER(newSubsurfaceWindow);

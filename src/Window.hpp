@@ -28,6 +28,7 @@ public:
     DYNLISTENER(unmapWindow);
     DYNLISTENER(destroyWindow);
     DYNLISTENER(setTitleWindow);
+    DYNLISTENER(setGeometryX11U);
     DYNLISTENER(fullscreenWindow);
     DYNLISTENER(newPopupXDG);
    // DYNLISTENER(newSubsurfaceWindow);

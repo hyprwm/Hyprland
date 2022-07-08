@@ -92,6 +92,9 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
 
     ASSERT(PWINDOW);
 
+    if (!PWINDOW->m_bIsMapped)
+        return;
+
     Debug::log(LOG, "New layer popup created from XDG window %x -> %s", PWINDOW, PWINDOW->m_szTitle.c_str());
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;

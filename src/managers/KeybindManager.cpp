@@ -41,8 +41,21 @@ void CKeybindManager::addKeybind(SKeybind kb) {
 
 void CKeybindManager::removeKeybind(uint32_t mod, const std::string& key) {
     for (auto it = m_lKeybinds.begin(); it != m_lKeybinds.end(); ++it) {
-        if (it->modmask == mod && it->key == key) {
+        if (isNumber(key) && std::stoi(key) > 9) {
+            const auto KEYNUM = std::stoi(key);
+
+            if (it->modmask == mod && it->keycode == KEYNUM) {
+                it = m_lKeybinds.erase(it);
+
+                if (it == m_lKeybinds.end())
+                    break;
+            }
+        }
+        else if (it->modmask == mod && it->key == key) {
             it = m_lKeybinds.erase(it);
+
+            if (it == m_lKeybinds.end())
+                break;
         }
     }
 }

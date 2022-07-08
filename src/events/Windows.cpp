@@ -250,6 +250,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_activateX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_activate, &Events::listener_activateX11, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_configureX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_configure, &Events::listener_configureX11, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XWayland Window Late");
+        
+        if (PWINDOW->m_iX11Type == 2)
+            PWINDOW->hyprListener_setGeometryX11U.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_geometry, &Events::listener_unmanagedSetGeometry, PWINDOW, "XWayland Window Late");
     }
 
     // do the animation thing
@@ -306,6 +309,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_activateX11.removeCallback();
         PWINDOW->hyprListener_configureX11.removeCallback();
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
+        PWINDOW->hyprListener_setGeometryX11U.removeCallback();
     }
 
     if (PWINDOW->m_bIsFullscreen) {
@@ -371,7 +375,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    if (!g_pCompositor->windowValidMapped(PWINDOW))
+    if (!PWINDOW->m_bMappedX11 || PWINDOW->m_bHidden || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
         return;
 
     g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);        
@@ -488,6 +492,23 @@ void Events::listener_configureX11(void* owner, void* data) {
     g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(PWINDOW);
+}
+
+void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
+    CWindow* PWINDOW = (CWindow*)owner;
+
+    if (!PWINDOW->m_bMappedX11 || PWINDOW->m_bHidden)
+        return;
+
+    const auto POS = PWINDOW->m_vRealPosition.goalv();
+
+    if (floor(POS.x) != PWINDOW->m_uSurface.xwayland->x || floor(POS.x) != PWINDOW->m_uSurface.xwayland->y) {
+        g_pHyprRenderer->damageWindow(PWINDOW);
+        PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y));
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.vec());
+        g_pCompositor->moveWindowToTop(PWINDOW);
+        g_pHyprRenderer->damageWindow(PWINDOW);
+    }
 }
 
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {

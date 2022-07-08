@@ -212,9 +212,23 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         // fix pseudo leaving artifacts
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
     } else {
+        pWindow->m_vSize = pWindow->m_vRealSize.vec();
+        pWindow->m_vPosition = pWindow->m_vRealPosition.vec();
+
         onWindowRemovedTiling(pWindow);
 
         g_pCompositor->moveWindowToTop(pWindow);
+
+        const auto POS = pWindow->m_vRealPosition.goalv();
+        const auto SIZ = pWindow->m_vRealSize.goalv();
+
+        pWindow->m_vRealPosition.setValueAndWarp(POS + Vector2D(5, 5));
+        pWindow->m_vRealSize.setValueAndWarp(SIZ - Vector2D(10, 10));
+
+        pWindow->m_vRealPosition = POS;
+        pWindow->m_vRealSize = SIZ;
+
+        g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
     }
 }
 

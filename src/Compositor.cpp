@@ -619,6 +619,9 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, pWindowOwner->m_szTitle.c_str());
     else
         Debug::log(LOG, "Set keyboard focus to surface %x", pSurface);
+
+    g_pXWaylandManager->activateSurface(pSurface, false);
+    m_pLastFocus = pSurface;
 }
 
 bool CCompositor::windowValidMapped(CWindow* pWindow) {

@@ -121,6 +121,11 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     if (layersurface->layerSurface->current.keyboard_interactive)
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
+    // mouse enter always, keeb only when needed
+    const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
+    wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
+    wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
     wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
@@ -153,13 +158,16 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = false;
 
-    if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
-        g_pCompositor->m_pLastFocus = nullptr;
-
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
     if (!PMONITOR)
         return;
+
+    // refocus if needed
+    if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus) {
+        g_pCompositor->m_pLastFocus = nullptr;
+        g_pInputManager->refocus();
+    }
 
     wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);

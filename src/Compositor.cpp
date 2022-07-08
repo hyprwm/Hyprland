@@ -420,13 +420,13 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     if (PMONITOR->specialWorkspaceOpen) {
         for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
             wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
-            if ((*w)->m_bIsFloating && (*w)->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && (*w)->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && !(*w)->m_bHidden && !(*w)->m_bIsModal && (*w)->m_iX11Type != 2)
+            if ((*w)->m_bIsFloating && (*w)->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && (*w)->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && !(*w)->m_bHidden && (*w)->m_iX11Type != 2)
                 return (*w).get();
         }
 
         for (auto& w : m_vWindows) {
             wlr_box box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
-            if (!w->m_bIsFloating && w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && w->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && !w->m_bHidden && !w->m_bIsModal && w->m_iX11Type != 2)
+            if (!w->m_bIsFloating && w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && w->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && !w->m_bHidden && w->m_iX11Type != 2)
                 return w.get();
         }
     }
@@ -434,13 +434,13 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
         wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
-        if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden && !(*w)->m_bIsModal && (*w)->m_iX11Type != 2)
+        if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden && (*w)->m_iX11Type != 2)
             return w->get();
     }
 
     for (auto& w : m_vWindows) {
         wlr_box box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
-        if (!w->m_bIsFloating && w->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->m_bHidden && !w->m_bIsModal && w->m_iX11Type != 2)
+        if (!w->m_bIsFloating && w->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->m_bHidden && w->m_iX11Type != 2)
             return w.get();
     }
 

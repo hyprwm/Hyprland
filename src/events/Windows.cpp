@@ -235,7 +235,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv() - Vector2D(10,10);
     }
 
-    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus)
+    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && !PWINDOW->m_bIsModal && PWINDOW->m_iX11Type != 2)
         g_pCompositor->focusWindow(PWINDOW);
 
     Debug::log(LOG, "Window got assigned a surfaceTreeNode %x", PWINDOW->m_pSurfaceTree);

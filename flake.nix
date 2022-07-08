@@ -48,6 +48,16 @@
         default = self.packages.${system}.hyprland;
       });
 
+    devShells = genSystems (system: {
+      default = pkgsFor.${system}.mkShell.override {stdenv = pkgsFor.${system}.gcc12Stdenv;} {
+        name = "hyprland-shell";
+        inputsFrom = [
+          self.packages.${system}.wlroots-hyprland
+          self.packages.${system}.hyprland
+        ];
+      };
+    });
+
     formatter = genSystems (system: pkgsFor.${system}.alejandra);
 
     nixosModules.default = import ./nix/module.nix self;

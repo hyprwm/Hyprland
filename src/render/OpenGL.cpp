@@ -926,6 +926,9 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 
     Debug::log(LOG, "Allocated texture for BGTex");
 
+    // TODO: use relative paths to the installation
+    // or configure the paths at build time
+
     // check if wallpapers exist
     if (!std::filesystem::exists("/usr/share/hyprland/wall_8K.png"))
         return; // the texture will be empty, oh well. We'll clear with a solid color anyways.

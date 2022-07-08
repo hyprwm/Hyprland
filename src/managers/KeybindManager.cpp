@@ -69,7 +69,7 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     return modMask;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key) {
+bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key, const int& keycode) {
     bool found = false;
 
     if (handleInternalKeybinds(key))
@@ -82,15 +82,24 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap)
             continue;
 
-        // oMg such performance hit!!11!
-        // this little maneouver is gonna cost us 4µs
-        const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
-        const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
-        // small TODO: fix 0-9 keys and other modified ones with shift
-        
-        if (key != KBKEY && key != KBKEYUPPER)
-            continue;
 
+        if (k.keycode != -1) {
+            if (keycode != k.keycode)
+                continue;
+
+        } else {
+            if (key == 0)
+                continue;  // this is a keycode check run
+
+            // oMg such performance hit!!11!
+            // this little maneouver is gonna cost us 4µs
+            const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+            const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
+            // small TODO: fix 0-9 keys and other modified ones with shift
+
+            if (key != KBKEY && key != KBKEYUPPER)
+                continue;
+        }
 
         const auto DISPATCHER = m_mDispatchers.find(k.handler);
 
@@ -99,7 +108,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
             Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %d)", modmask, KBKEYUPPER);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %d)", modmask, key);
             DISPATCHER->second(k.arg);
         }
 

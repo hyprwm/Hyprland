@@ -512,8 +512,13 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         return;
     }
 
-    if (KEY != "")
-        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+    if (KEY != "") {
+        if (isNumber(KEY) && std::stoi(KEY) > 9)
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+        else
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+    }
+        
 }
 
 void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {

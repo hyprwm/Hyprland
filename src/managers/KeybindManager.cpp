@@ -1044,11 +1044,14 @@ void CKeybindManager::moveActive(std::string args) {
     g_pLayoutManager->getCurrentLayout()->moveActiveWindow(Vector2D(X, Y));
 }
 
-void CKeybindManager::circleNext(std::string) {
+void CKeybindManager::circleNext(std::string arg) {
     if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
         return;
 
-    g_pCompositor->focusWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow));
+    if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
+        g_pCompositor->focusWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow));
+    else
+        g_pCompositor->focusWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow));
 
     const auto MIDPOINT = g_pCompositor->m_pLastWindow->m_vRealPosition.goalv() + g_pCompositor->m_pLastWindow->m_vRealSize.goalv() / 2.f;
 

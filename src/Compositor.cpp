@@ -938,6 +938,29 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow) {
     return nullptr;
 }
 
+CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow) {
+    bool gotToWindow = false;
+    for (auto it = m_vWindows.rbegin(); it != m_vWindows.rend(); it++) {
+        if (it->get() != pWindow && !gotToWindow)
+            continue;
+
+        if (it->get() == pWindow) {
+            gotToWindow = true;
+            continue;
+        }
+
+        if ((*it)->m_iWorkspaceID == pWindow->m_iWorkspaceID && (*it)->m_bIsMapped && !(*it)->m_bHidden)
+            return it->get();
+    }
+
+    for (auto it = m_vWindows.rbegin(); it != m_vWindows.rend(); it++) {
+        if (it->get() != pWindow && (*it)->m_iWorkspaceID == pWindow->m_iWorkspaceID && (*it)->m_bIsMapped && !(*it)->m_bHidden)
+            return it->get();
+    }
+
+    return nullptr;
+}
+
 int CCompositor::getNextAvailableNamedWorkspace() {
     int lowest = -1337 + 1;
     for (auto& w : m_vWorkspaces) {

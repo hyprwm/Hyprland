@@ -127,6 +127,7 @@ public:
     CWindow*                getWindowInDirection(CWindow*, char);
     void                    deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude = nullptr);
     CWindow*                getNextWindowOnWorkspace(CWindow*);
+    CWindow*                getPrevWindowOnWorkspace(CWindow*);
     int                     getNextAvailableNamedWorkspace();
     bool                    isPointOnAnyMonitor(const Vector2D&);
     CWindow*                getConstraintWindow(SMouse*);

@@ -595,7 +595,7 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
     const xkb_keysym_t* keysyms;
     int syms = xkb_state_key_get_syms(pKeyboard->keyboard->keyboard->xkb_state, KEYCODE, &keysyms);
 
-    const auto MODS = wlr_keyboard_get_modifiers(pKeyboard->keyboard->keyboard);
+    const auto MODS = accumulateModsFromAllKBs();
 
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
@@ -735,4 +735,15 @@ void CInputManager::updateCapabilities(wlr_input_device* pDev) {
     }
 
     wlr_seat_set_capabilities(g_pCompositor->m_sSeat.seat, m_uiCapabilities);
+}
+
+uint32_t CInputManager::accumulateModsFromAllKBs() {
+
+    uint32_t finalMask = 0;
+
+    for (auto& kb : m_lKeyboards) {
+        finalMask |= wlr_keyboard_get_modifiers(kb.keyboard->keyboard);
+    }
+
+    return finalMask;
 }

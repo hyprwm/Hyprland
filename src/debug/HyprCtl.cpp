@@ -181,6 +181,10 @@ std::string killRequest() {
     return "ok";
 }
 
+std::string splashRequest() {
+    return g_pCompositor->m_szCurrentSplash;
+}
+
 std::string getReply(std::string);
 
 std::string dispatchBatch(std::string request) {
@@ -234,6 +238,8 @@ std::string getReply(std::string request) {
         return reloadRequest();
     else if (request == "devices")
         return devicesRequest();
+    else if (request == "splash")
+        return splashRequest();
     else if (request.find("dispatch") == 0)
         return dispatchRequest(request);
     else if (request.find("keyword") == 0)

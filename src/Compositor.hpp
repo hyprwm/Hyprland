@@ -68,6 +68,7 @@ public:
 
     const char*             m_szWLDisplaySocket;
     std::string             m_szInstanceSignature = "";
+    std::string             m_szCurrentSplash = "error";
 
     std::vector<std::unique_ptr<SMonitor>>      m_vMonitors;
     std::vector<std::unique_ptr<CWindow>>       m_vWindows;
@@ -144,6 +145,7 @@ public:
 
 private:
     void                    initAllSignals();
+    void                    setRandomSplash();
 };
 
 

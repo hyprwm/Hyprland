@@ -915,8 +915,27 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
+void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const CAIROSURFACE) {
+    cairo_select_font_face(CAIRO, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+
+    const auto FONTSIZE = (int)(m_RenderData.pMonitor->vecPixelSize.y / 76); 
+    cairo_set_font_size(CAIRO, FONTSIZE);
+
+    cairo_set_source_rgba(CAIRO, 1.f, 1.f, 1.f, 0.32f);
+
+    cairo_text_extents_t textExtents;
+    cairo_text_extents(CAIRO, g_pCompositor->m_szCurrentSplash.c_str(), &textExtents);
+
+    cairo_move_to(CAIRO, m_RenderData.pMonitor->vecPixelSize.x / 2.f - textExtents.width / 2.f, m_RenderData.pMonitor->vecPixelSize.y - textExtents.height - 1);
+    cairo_show_text(CAIRO, g_pCompositor->m_szCurrentSplash.c_str());
+
+    cairo_surface_flush(CAIROSURFACE);
+}
+
 void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
+
+    static auto *const PNOSPLASH = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];
@@ -952,6 +971,9 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 
     const auto CAIRO = cairo_create(CAIROSURFACE);
 
+    if (!*PNOSPLASH)
+        renderSplash(CAIRO, CAIROSURFACE);
+
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     glBindTexture(GL_TEXTURE_2D, PTEX->m_iTexID);
@@ -972,7 +994,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
 
-    static auto *const PRENDERTEX = &g_pConfigManager->getConfigValuePtr("general:disable_hyprland_logo")->intValue;
+    static auto *const PRENDERTEX = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
 
     if (!*PRENDERTEX) {
         wlr_box box = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};

@@ -270,7 +270,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     // potentially can save on resources.
 
     g_pHyprOpenGL->begin(PMONITOR, &damage);
-    g_pHyprOpenGL->clear(CColor(100, 11, 11, 255));
+    g_pHyprOpenGL->clear(CColor(17, 17, 17, 255));
     g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
     g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);

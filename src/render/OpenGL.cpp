@@ -977,8 +977,6 @@ void CHyprOpenGLImpl::clearWithTex() {
     if (!*PRENDERTEX) {
         wlr_box box = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
         renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
-    } else {
-        clear(CColor(17,17,17,255));
     }
 }
 

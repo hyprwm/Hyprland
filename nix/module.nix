@@ -29,13 +29,9 @@ in {
 
     extraPackages = mkOption {
       type = with types; listOf package;
-      default = with pkgs; [
-        kitty
-        wofi
-        swaybg
-      ];
+      default = with pkgs; [ ];
       defaultText = literalExpression ''
-        with pkgs; [ kitty wofi swaybg ];
+        with pkgs; [ ];
       '';
       example = literalExpression ''
         with pkgs; [

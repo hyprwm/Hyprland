@@ -36,7 +36,9 @@ void CConfigManager::setDefaultVars() {
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
     configValues["general:cursor_inactive_timeout"].intValue = 0;
-    configValues["general:disable_hyprland_logo"].intValue = 0;
+    
+    configValues["misc:disable_hyprland_logo"].intValue = 0;
+    configValues["misc:disable_splash_rendering"].intValue = 0;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

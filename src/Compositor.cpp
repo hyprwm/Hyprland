@@ -1,4 +1,6 @@
 #include "Compositor.hpp"
+#include "helpers/Splashes.hpp"
+#include <random>
 
 CCompositor::CCompositor() {
     m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
@@ -21,6 +23,10 @@ CCompositor::CCompositor() {
     Debug::log(NONE, "\n\n"); // pad
 
     Debug::log(INFO, "If you are crashing, or encounter any bugs, please consult https://github.com/hyprwm/Hyprland/wiki/Crashing-and-bugs\n\n");
+
+    setRandomSplash();
+
+    Debug::log(LOG, "\nCurrent splash: %s\n\n", m_szCurrentSplash.c_str());
 
     m_sWLDisplay = wl_display_create();
 
@@ -134,6 +140,14 @@ CCompositor::~CCompositor() {
 void handleCritSignal(int signo) {
     g_pCompositor->cleanupExit();
     exit(signo);
+}
+
+void CCompositor::setRandomSplash() {
+    std::random_device dev;
+    std::mt19937 engine(dev());
+    std::uniform_int_distribution<> distribution(0, SPLASHES.size() - 1);
+
+    m_szCurrentSplash = SPLASHES[distribution(engine)];
 }
 
 void CCompositor::initAllSignals() {

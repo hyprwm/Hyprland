@@ -509,6 +509,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height));
         g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.vec());
         g_pCompositor->moveWindowToTop(PWINDOW);
+        PWINDOW->updateWindowDecos();
         g_pHyprRenderer->damageWindow(PWINDOW);
     }
 }

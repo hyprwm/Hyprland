@@ -67,6 +67,9 @@ struct SRenderData {
 
     // for blurring
     bool blur = false;
+
+    // for windows that animate poorly
+    bool squishOversized = false;
 };
 
 struct SStringRuleNames {

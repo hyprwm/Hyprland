@@ -16,6 +16,15 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
     else                                                                                              //  here we clamp to 2, these might be some tiny specks
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
+    
+    // squish all oversized
+    if (RDATA->squishOversized) {
+        if (x + windowBox.width > RDATA->w)
+            windowBox.width = RDATA->w - x;
+        if (y + windowBox.height > RDATA->h) 
+            windowBox.height = RDATA->h - y;
+    }
+    
     scaleBox(&windowBox, RDATA->output->scale);
 
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
@@ -173,6 +182,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
     renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;
     renderdata.blur = true; // if it shouldn't, it will be ignored later
+    renderdata.squishOversized = pWindow->m_vRealPosition.isBeingAnimated();
 
     // apply window special data
     if (pWindow->m_sSpecialRenderData.alphaInactive == -1)

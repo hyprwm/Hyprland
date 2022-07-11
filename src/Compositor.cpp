@@ -612,8 +612,11 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     if (m_pLastFocus && ((m_sSeat.seat->keyboard_state.focused_surface && wlr_surface_is_xdg_surface(m_pLastFocus)) || !pSurface))
         g_pXWaylandManager->activateSurface(m_pLastFocus, false);
 
-    if (!pSurface)
+    if (!pSurface) {
+        wlr_seat_keyboard_clear_focus(m_sSeat.seat);
         return;
+    }
+        
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);
 

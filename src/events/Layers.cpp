@@ -118,7 +118,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
-    if (layersurface->layerSurface->current.keyboard_interactive)
+    if (layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) // don't focus if constrained
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
     // mouse enter always, keeb only when needed

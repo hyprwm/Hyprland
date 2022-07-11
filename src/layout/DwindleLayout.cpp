@@ -387,6 +387,8 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
     if (!PWORKSPACE)
         return;
 
+    g_pHyprRenderer->damageMonitor(PMONITOR);
+
     if (PMONITOR->specialWorkspaceOpen) {
         const auto TOPNODE = getMasterNodeOnWorkspace(SPECIAL_WORKSPACE_ID);
 
@@ -397,9 +399,26 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
         }
     }
 
-    // Ignore any recalc events if we have a fullscreen window.
-    if (PWORKSPACE->m_bHasFullscreenWindow)
+    // Ignore any recalc events if we have a fullscreen window, but process if fullscreen mode 2
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL)
+            return;
+
+        // massive hack from the fullscreen func
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+
+        SDwindleNodeData fakeNode;
+        fakeNode.pWindow = PFULLWINDOW;
+        fakeNode.position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+        fakeNode.size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+        fakeNode.workspaceID = PWORKSPACE->m_iID;
+        PFULLWINDOW->m_vPosition = fakeNode.position;
+        PFULLWINDOW->m_vSize = fakeNode.size;
+
+        applyNodeDataToWindow(&fakeNode);
+
         return;
+    }
 
     const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->activeWorkspace);
 
@@ -573,6 +592,8 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
     // we need to fix XWayland windows by sending them to NARNIA
     // because otherwise they'd still be recieving mouse events
     g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
+
+    recalculateMonitor(PMONITOR->ID);
 }
 
 void CHyprDwindleLayout::recalculateWindow(CWindow* pWindow) {

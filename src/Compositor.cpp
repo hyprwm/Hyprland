@@ -690,7 +690,7 @@ CWorkspace* CCompositor::getWorkspaceByID(const int& id) {
  * @brief Switch to a target workspace, creating a new one on the current 
  * monitor if required.
  * 
- * @param TARGET_ID ID of the target workspace.
+ * @param TENTATIVE_TARGET_ID ID of the target workspace.
  * @param TARGET_WORKSPACE_NAME Name of target workspace, only needed if the 
  * workspace doesn't yet exist.
  */

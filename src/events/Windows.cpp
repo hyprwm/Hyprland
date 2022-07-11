@@ -501,10 +501,12 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         return;
 
     const auto POS = PWINDOW->m_vRealPosition.goalv();
+    const auto SIZ = PWINDOW->m_vRealSize.goalv();
 
-    if (floor(POS.x) != PWINDOW->m_uSurface.xwayland->x || floor(POS.x) != PWINDOW->m_uSurface.xwayland->y) {
+    if (floor(POS.x) != PWINDOW->m_uSurface.xwayland->x || floor(POS.x) != PWINDOW->m_uSurface.xwayland->y || floor(SIZ.x) != PWINDOW->m_uSurface.xwayland->width || floor(SIZ.y) != PWINDOW->m_uSurface.xwayland->height) {
         g_pHyprRenderer->damageWindow(PWINDOW);
         PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y));
+        PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height));
         g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.vec());
         g_pCompositor->moveWindowToTop(PWINDOW);
         g_pHyprRenderer->damageWindow(PWINDOW);

@@ -151,7 +151,7 @@ void Events::listener_newVirtPtr(wl_listener* listener, void* data) {
     const auto POINTER = EV->new_pointer;
     const auto DEVICE = &POINTER->pointer.base;
 
-    g_pInputManager->newMouse(DEVICE);
+    g_pInputManager->newMouse(DEVICE, true);
 }
 
 void Events::listener_destroyMouse(void* owner, void* data) {

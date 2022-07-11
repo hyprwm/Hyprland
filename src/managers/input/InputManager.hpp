@@ -21,7 +21,7 @@ public:
     void            onKeyboardMod(void*, SKeyboard*);
 
     void            newKeyboard(wlr_input_device*);
-    void            newMouse(wlr_input_device*);
+    void            newMouse(wlr_input_device*, bool virt = false);
     void            destroyKeyboard(SKeyboard*);
     void            destroyMouse(wlr_input_device*);
 

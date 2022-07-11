@@ -109,6 +109,8 @@ struct SMouse {
 
     std::string name = "";
 
+    bool        virt = false;
+
     DYNLISTENER(commitConstraint);
     DYNLISTENER(destroyMouse);
 

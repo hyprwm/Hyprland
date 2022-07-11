@@ -38,6 +38,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         return;
     }
 
+    if (g_pCompositor->m_sSeat.mouse->virt)
+        return; // don't refocus on virt
+
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto MOUSECOORDSFLOORED = mouseCoords.floor();
 
@@ -498,11 +501,12 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     Debug::log(LOG, "Set the keyboard layout to %s and variant to %s for keyboard \"%s\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
 } 
 
-void CInputManager::newMouse(wlr_input_device* mouse) {
+void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
     m_lMice.emplace_back();
     const auto PMOUSE = &m_lMice.back();
 
     PMOUSE->mouse = mouse;
+    PMOUSE->virt = virt;
     try {
         PMOUSE->name = std::string(mouse->name);
     } catch(std::exception& e) {

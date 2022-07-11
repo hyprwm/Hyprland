@@ -387,8 +387,8 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
         Debug::log(ERR, "Keyboard had no name???");  // logic error
     }
 
-    PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&keyboard->keyboard->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
-    PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&keyboard->keyboard->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
     PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
 
     if (m_pActiveKeyboard)
@@ -397,7 +397,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
 
     applyConfigToKeyboard(PNEWKEYBOARD);
 
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard->keyboard);
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
 
     Debug::log(LOG, "New keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
 }
@@ -412,7 +412,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     ASSERT(pKeyboard);
 
-    if (!pKeyboard->keyboard->keyboard)
+    if (!wlr_keyboard_from_input_device(pKeyboard->keyboard))
         return;
 
     const auto REPEATRATE = HASCONFIG ? g_pConfigManager->getDeviceInt(pKeyboard->name, "repeat_rate") : g_pConfigManager->getInt("input:repeat_rate");
@@ -436,7 +436,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         // we can ignore those and just apply
     }
 
-    wlr_keyboard_set_repeat_info(pKeyboard->keyboard->keyboard, std::max(0, REPEATRATE), std::max(0, REPEATDELAY));
+    wlr_keyboard_set_repeat_info(wlr_keyboard_from_input_device(pKeyboard->keyboard), std::max(0, REPEATRATE), std::max(0, REPEATDELAY));
 
     pKeyboard->repeatDelay = REPEATDELAY;
     pKeyboard->repeatRate = REPEATRATE;
@@ -479,7 +479,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
-    wlr_keyboard_set_keymap(pKeyboard->keyboard->keyboard, KEYMAP);
+    wlr_keyboard_set_keymap(wlr_keyboard_from_input_device(pKeyboard->keyboard), KEYMAP);
 
     wlr_keyboard_modifiers wlrMods = {0};
 
@@ -492,7 +492,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     }
 
     if (wlrMods.locked != 0) {
-        wlr_keyboard_notify_modifiers(pKeyboard->keyboard->keyboard, 0, 0, wlrMods.locked, 0);
+        wlr_keyboard_notify_modifiers(wlr_keyboard_from_input_device(pKeyboard->keyboard), 0, 0, wlrMods.locked, 0);
     }
 
     xkb_keymap_unref(KEYMAP);
@@ -597,7 +597,7 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
     const auto KEYCODE = e->keycode + 8; // Because to xkbcommon it's +8 from libinput
 
     const xkb_keysym_t* keysyms;
-    int syms = xkb_state_key_get_syms(pKeyboard->keyboard->keyboard->xkb_state, KEYCODE, &keysyms);
+    int syms = xkb_state_key_get_syms(wlr_keyboard_from_input_device(pKeyboard->keyboard)->xkb_state, KEYCODE, &keysyms);
 
     const auto MODS = accumulateModsFromAllKBs();
 
@@ -614,14 +614,14 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
     }
 
     if (!found) {
-        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->keyboard->keyboard);
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
         wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e->time_msec, e->keycode, e->state);
     }
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->keyboard->keyboard);
-    wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &pKeyboard->keyboard->keyboard->modifiers);
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
+    wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers);
 }
 
 void CInputManager::refocus() {
@@ -746,7 +746,7 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
     uint32_t finalMask = 0;
 
     for (auto& kb : m_lKeyboards) {
-        finalMask |= wlr_keyboard_get_modifiers(kb.keyboard->keyboard);
+        finalMask |= wlr_keyboard_get_modifiers(wlr_keyboard_from_input_device(kb.keyboard));
     }
 
     return finalMask;

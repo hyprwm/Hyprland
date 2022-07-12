@@ -15,6 +15,8 @@
 //                                                           //
 // --------------------------------------------------------- //
 
+SMonitor* pMostHzMonitor = nullptr;
+
 void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
@@ -149,6 +151,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     PNEWWORKSPACE->setActive(true);
     //
 
+    if (!pMostHzMonitor || monitorRule.refreshRate > pMostHzMonitor->refreshRate)
+        pMostHzMonitor = PNEWMONITOR;
+
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->m_pLastMonitor = PNEWMONITOR;
 
@@ -168,6 +173,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     static auto *const PDEBUGOVERLAY = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
     static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("general:damage_tracking_internal")->intValue;
     static auto *const PDAMAGEBLINK = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
+    static auto *const PNOVFR = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
 
     static int damageBlinkCleanup = 0; // because double-buffered
 
@@ -177,18 +183,20 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // checks //
-    g_pCompositor->sanityCheckWorkspaces();
-    g_pAnimationManager->tick();
-    g_pCompositor->cleanupFadingOut();
+    if (PMONITOR->ID == pMostHzMonitor->ID || !*PNOVFR) {  // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
+        g_pCompositor->sanityCheckWorkspaces();
+        g_pAnimationManager->tick();
+        g_pCompositor->cleanupFadingOut();
 
-    HyprCtl::tickHyprCtl();  // so that we dont get that race condition multithread bullshit
+        HyprCtl::tickHyprCtl();  // so that we dont get that race condition multithread bullshit
 
-    g_pConfigManager->dispatchExecOnce();  // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
+        g_pConfigManager->dispatchExecOnce();  // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
 
-    if (g_pConfigManager->m_bWantsMonitorReload)
-        g_pConfigManager->performMonitorReload();
+        if (g_pConfigManager->m_bWantsMonitorReload)
+            g_pConfigManager->performMonitorReload();
 
-    g_pHyprRenderer->ensureCursorRenderingMode();  // so that the cursor gets hidden/shown if the user requested timeouts
+        g_pHyprRenderer->ensureCursorRenderingMode();  // so that the cursor gets hidden/shown if the user requested timeouts
+    }
     //       //
 
     if (PMONITOR->framesToSkip > 0) {
@@ -225,7 +233,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
 
-        if (*PDAMAGEBLINK)
+        if (*PDAMAGEBLINK || *PNOVFR)
             wlr_output_schedule_frame(PMONITOR->output);
 
         return;
@@ -315,7 +323,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     wlr_output_commit(PMONITOR->output);
 
-    if (*PDAMAGEBLINK)
+    if (*PDAMAGEBLINK || *PNOVFR)
         wlr_output_schedule_frame(PMONITOR->output);
 
     if (*PDEBUGOVERLAY == 1) {
@@ -382,4 +390,18 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     g_pEventManager->postEvent(SHyprIPCEvent("monitorremoved", pMonitor->szName));
 
     g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](std::unique_ptr<SMonitor>& el) { return el.get() == pMonitor; }));
+
+    if (pMostHzMonitor == pMonitor) {
+        int mostHz = 0;
+        SMonitor* pMonitorMostHz = nullptr;
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m->refreshRate > mostHz) {
+                pMonitorMostHz = m.get();
+                mostHz = m->refreshRate;
+            }
+        }
+
+        pMostHzMonitor = pMonitorMostHz;
+    }
 }

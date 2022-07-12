@@ -39,6 +39,7 @@ void CConfigManager::setDefaultVars() {
     
     configValues["misc:disable_hyprland_logo"].intValue = 0;
     configValues["misc:disable_splash_rendering"].intValue = 0;
+    configValues["misc:no_vfr"].intValue = 0;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

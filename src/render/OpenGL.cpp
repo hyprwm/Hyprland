@@ -702,8 +702,6 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     begin(PMONITOR, &fakeDamage, true);
 
-    pixman_region32_fini(&fakeDamage);
-
     clear(CColor(0,0,0,0)); // JIC
 
     timespec now;
@@ -742,8 +740,9 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
     #endif
-
     end();
+
+    pixman_region32_fini(&fakeDamage);
 
     wlr_output_rollback(PMONITOR->output);
 }
@@ -761,8 +760,6 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
     begin(PMONITOR, &fakeDamage, true);
-
-    pixman_region32_fini(&fakeDamage);
 
     const auto PFRAMEBUFFER = &m_mLayerFramebuffers[pLayer];
 
@@ -791,6 +788,8 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 #endif
 
     end();
+
+    pixman_region32_fini(&fakeDamage);
 
     wlr_output_rollback(PMONITOR->output);
 }

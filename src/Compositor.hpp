@@ -124,7 +124,7 @@ public:
     bool                    doesSeatAcceptInput(wlr_surface*);
     bool                    isWindowActive(CWindow*);
     void                    moveWindowToTop(CWindow*);
-    void                    cleanupFadingOut();
+    void                    cleanupFadingOut(const int& monid);
     CWindow*                getWindowInDirection(CWindow*, char);
     void                    deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude = nullptr);
     CWindow*                getNextWindowOnWorkspace(CWindow*);

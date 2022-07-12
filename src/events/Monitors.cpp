@@ -186,7 +186,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (PMONITOR->ID == pMostHzMonitor->ID || !*PNOVFR) {  // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
-        g_pCompositor->cleanupFadingOut();
 
         HyprCtl::tickHyprCtl();  // so that we dont get that race condition multithread bullshit
 
@@ -228,6 +227,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         Debug::log(ERR, "Couldn't attach render to display %s ???", PMONITOR->szName.c_str());
         return;
     }
+
+    // we need to cleanup fading out when rendering the appropriate context
+    g_pCompositor->cleanupFadingOut(PMONITOR->ID);
 
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && PMONITOR->forceFullFrames == 0 && damageBlinkCleanup == 0) {
         pixman_region32_fini(&damage);

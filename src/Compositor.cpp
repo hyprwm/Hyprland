@@ -852,8 +852,11 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
     }
 }
 
-void CCompositor::cleanupFadingOut() {
+void CCompositor::cleanupFadingOut(const int& monid) {
     for (auto& w : m_vWindowsFadingOut) {
+
+        if (w->m_iMonitorID != (long unsigned int)monid)
+            continue;
 
         bool valid = windowExists(w);
 
@@ -867,11 +870,16 @@ void CCompositor::cleanupFadingOut() {
             m_vWindowsFadingOut.erase(std::remove(m_vWindowsFadingOut.begin(), m_vWindowsFadingOut.end(), w));
 
             Debug::log(LOG, "Cleanup: destroyed a window");
+
+            glFlush();  // to free mem NOW.
             return;
         }
     }
 
     for (auto& ls : m_vSurfacesFadingOut) {
+        if (ls->monitorID != monid)
+            continue;
+
         if (ls->fadingOut && ls->readyToDelete && !ls->alpha.isBeingAnimated()) {
             for (auto& m : m_vMonitors) {
                 for (auto& lsl : m->m_aLayerSurfaceLists) {
@@ -887,6 +895,7 @@ void CCompositor::cleanupFadingOut() {
 
             Debug::log(LOG, "Cleanup: destroyed a layersurface");
 
+            glFlush();  // to free mem NOW.
             return;
         }
     }

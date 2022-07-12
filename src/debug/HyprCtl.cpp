@@ -526,7 +526,8 @@ std::string getReply(std::string request) {
             format = HyprCtl::FORMAT_JSON;
     }
 
-    request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
+    if (sepIndex < request.size())
+        request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
 
     if (request == "monitors")
         return monitorsRequest(format);

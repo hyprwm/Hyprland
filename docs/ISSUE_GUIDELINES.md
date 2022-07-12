@@ -26,6 +26,7 @@ If your bug is one that doesn't crash Hyprland, but feels like invalid behavior,
 If your bug crashes Hyprland, append additionally:
 - The Hyprland log
 - Coredump / Coredump analysis (with a stacktrace)
+- Your config
 
 **Important**: Please do NOT use any package for reporting bugs! Clone and compile from source.
 

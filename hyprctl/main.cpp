@@ -195,16 +195,23 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (!strcmp(argv[1], "monitors")) request("monitors");
-    else if (!strcmp(argv[1], "clients")) request("clients");
-    else if (!strcmp(argv[1], "workspaces")) request("workspaces");
-    else if (!strcmp(argv[1], "activewindow")) request("activewindow");
-    else if (!strcmp(argv[1], "layers")) request("layers");
-    else if (!strcmp(argv[1], "version")) request("version");
-    else if (!strcmp(argv[1], "kill")) request("kill");
-    else if (!strcmp(argv[1], "splash")) request("splash");
-    else if (!strcmp(argv[1], "devices")) request("devices");
-    else if (!strcmp(argv[1], "reload")) request("reload");
+    std::string args(argv[1]);
+
+    if (argc > 2) {
+        args += " ";
+        args += argv[2];
+    }
+
+    if (!strcmp(argv[1], "monitors")) request(args);
+    else if (!strcmp(argv[1], "clients")) request(args);
+    else if (!strcmp(argv[1], "workspaces")) request(args);
+    else if (!strcmp(argv[1], "activewindow")) request(args);
+    else if (!strcmp(argv[1], "layers")) request(args);
+    else if (!strcmp(argv[1], "version")) request(args);
+    else if (!strcmp(argv[1], "kill")) request(args);
+    else if (!strcmp(argv[1], "splash")) request(args);
+    else if (!strcmp(argv[1], "devices")) request(args);
+    else if (!strcmp(argv[1], "reload")) request(args);
     else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
     else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);
     else if (!strcmp(argv[1], "hyprpaper")) hyprpaperRequest(argc, argv);

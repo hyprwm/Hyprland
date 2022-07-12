@@ -530,7 +530,7 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
                 libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
         }
 
-        if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "clickfinger_behavior") : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
+        if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "drag_lock") : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
             libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_DISABLED);
         else
             libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_ENABLED);

@@ -159,17 +159,15 @@ void CConfigManager::init() {
 
 void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::string& VALUE) {
     if (configValues.find(COMMAND) == configValues.end()) {
-        if (COMMAND[0] == '$') {
-            // register a dynamic var
-            Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
-            configDynamicVars[COMMAND.substr(1)] = VALUE;
-        } else {
-            parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
-        }
+        if (COMMAND.find("device:") != 0 /* devices parsed later */) {
+            if (COMMAND[0] == '$') {
+                // register a dynamic var
+                Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
+                configDynamicVars[COMMAND.substr(1)] = VALUE;
+            } else {
+                parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
+            }
 
-        if (COMMAND.find("device:") == 0 /* devices parsed later */) {
-            parseError = "";
-        } else {
             return;
         }
     }

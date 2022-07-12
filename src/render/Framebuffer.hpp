@@ -6,6 +6,8 @@
 class CFramebuffer {
 public:
 
+    ~CFramebuffer();
+
     bool alloc(int w, int h);
     void bind();
     void release();

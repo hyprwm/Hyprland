@@ -201,7 +201,12 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                 // Values with 0x are hex
                 const auto VALUEWITHOUTHEX = VALUE.substr(2);
                 CONFIGENTRY->intValue = stol(VALUEWITHOUTHEX, nullptr, 16);
-            } else
+            } else if (VALUE.find("true") == 0 || VALUE.find("on") == 0 || VALUE.find("yes") == 0) {
+                CONFIGENTRY->intValue = 1;
+            } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
+                CONFIGENTRY->intValue = 0;
+            }
+            else
                 CONFIGENTRY->intValue = stol(VALUE);
         } catch (...) {
             Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());

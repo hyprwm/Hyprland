@@ -134,6 +134,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["clickfinger_behavior"].intValue = 0;
     cfgValues["middle_button_emulation"].intValue = 0;
     cfgValues["tap-to-click"].intValue = 1;
+    cfgValues["drag_lock"].intValue = 0;
 }
 
 void CConfigManager::init() {

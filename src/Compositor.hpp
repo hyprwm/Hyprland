@@ -133,8 +133,8 @@ public:
     bool                    isPointOnAnyMonitor(const Vector2D&);
     CWindow*                getConstraintWindow(SMouse*);
     SMonitor*               getMonitorInDirection(const char&);
-    void                    updateAllWindowsBorders();
-    void                    updateWindowBorderColor(CWindow*);
+    void                    updateAllWindowsAnimatedDecorationValues();
+    void                    updateWindowAnimatedDecorationValues(CWindow*);
     void                    moveWindowToWorkspace(CWindow*, const std::string&);
     int                     getNextAvailableMonitorID();
     void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);

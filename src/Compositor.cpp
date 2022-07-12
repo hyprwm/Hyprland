@@ -604,7 +604,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
     if (windowValidMapped(PLASTWINDOW)) {
-        updateWindowBorderColor(PLASTWINDOW);
+        updateWindowAnimatedDecorationValues(PLASTWINDOW);
 
         if (PLASTWINDOW->m_bIsX11) {
             wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
@@ -627,7 +627,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.goalv();
     wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, POINTERLOCAL.x, POINTERLOCAL.y);
 
-    updateWindowBorderColor(pWindow);
+    updateWindowAnimatedDecorationValues(pWindow);
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent("activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle));
@@ -1134,25 +1134,50 @@ SMonitor* CCompositor::getMonitorInDirection(const char& dir) {
     return nullptr;
 }
 
-void CCompositor::updateAllWindowsBorders() {
+void CCompositor::updateAllWindowsAnimatedDecorationValues() {
     for (auto& w : m_vWindows) {
         if (!w->m_bIsMapped)
             continue;
 
-        updateWindowBorderColor(w.get());
+        updateWindowAnimatedDecorationValues(w.get());
     }
 }
 
-void CCompositor::updateWindowBorderColor(CWindow* pWindow) {
+void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     // optimization
     static int64_t* ACTIVECOL = &g_pConfigManager->getConfigValuePtr("general:col.active_border")->intValue;
     static int64_t* INACTIVECOL = &g_pConfigManager->getConfigValuePtr("general:col.inactive_border")->intValue;
+    static auto *const PINACTIVEALPHA = &g_pConfigManager->getConfigValuePtr("decoration:inactive_opacity")->floatValue;
+    static auto *const PACTIVEALPHA = &g_pConfigManager->getConfigValuePtr("decoration:active_opacity")->floatValue;
+    static auto *const PFULLSCREENALPHA = &g_pConfigManager->getConfigValuePtr("decoration:fullscreen_opacity")->floatValue;
 
+
+    // border
     const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
     if (RENDERDATA.isBorderColor)
         pWindow->m_cRealBorderColor = RENDERDATA.borderColor;
     else
         pWindow->m_cRealBorderColor = CColor(pWindow == m_pLastWindow ? *ACTIVECOL : *INACTIVECOL);
+
+
+    // opacity
+    if (pWindow->m_bIsFullscreen) {
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+        if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL)
+            pWindow->m_fActiveInactiveAlpha = *PFULLSCREENALPHA;
+        else {
+            if (pWindow == m_pLastWindow)
+                pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alpha != -1 ? pWindow->m_sSpecialRenderData.alpha : *PACTIVEALPHA;
+            else
+                pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaInactive != -1 ? pWindow->m_sSpecialRenderData.alphaInactive : *PINACTIVEALPHA;
+        }
+    } else {
+        if (pWindow == m_pLastWindow)
+            pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alpha != -1 ? pWindow->m_sSpecialRenderData.alpha : *PACTIVEALPHA;
+        else
+            pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaInactive != -1 ? pWindow->m_sSpecialRenderData.alphaInactive : *PINACTIVEALPHA;
+    }
 }
 
 void CCompositor::moveWindowToWorkspace(CWindow* pWindow, const std::string& work) {

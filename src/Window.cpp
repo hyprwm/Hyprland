@@ -7,6 +7,7 @@ CWindow::CWindow() {
     m_vRealSize.create(AVARTYPE_VECTOR, &g_pConfigManager->getConfigValuePtr("animations:windows_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:windows")->intValue, &g_pConfigManager->getConfigValuePtr("animations:windows_curve")->strValue, (void*)this, AVARDAMAGE_ENTIRE);
     m_cRealBorderColor.create(AVARTYPE_COLOR, &g_pConfigManager->getConfigValuePtr("animations:borders_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:borders")->intValue, &g_pConfigManager->getConfigValuePtr("animations:borders_curve")->strValue, (void*)this, AVARDAMAGE_BORDER);
     m_fAlpha.create(AVARTYPE_FLOAT, &g_pConfigManager->getConfigValuePtr("animations:fadein_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:fadein")->intValue, &g_pConfigManager->getConfigValuePtr("animations:fadein_curve")->strValue, (void*)this, AVARDAMAGE_ENTIRE);
+    m_fActiveInactiveAlpha.create(AVARTYPE_FLOAT, &g_pConfigManager->getConfigValuePtr("animations:fadein_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:fadein")->intValue, &g_pConfigManager->getConfigValuePtr("animations:fadein_curve")->strValue, (void*)this, AVARDAMAGE_ENTIRE);
 
     m_dWindowDecorations.emplace_back(std::make_unique<CHyprDropShadowDecoration>(this)); // put the shadow so it's the first deco (has to be rendered first)
 }

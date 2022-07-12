@@ -707,7 +707,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
         // Update window border colors
-        g_pCompositor->updateAllWindowsBorders();
+        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         return retval;
     }
@@ -899,7 +899,7 @@ void CConfigManager::loadConfigLoadVars() {
     }
 
     // Update window border colors
-    g_pCompositor->updateAllWindowsBorders();
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     // Force the compositor to fully re-render all monitors
     for (auto& m : g_pCompositor->m_vMonitors)

@@ -844,7 +844,7 @@ void CCompositor::changeWorkspace(const int TENTATIVE_TARGET_ID, const std::stri
     P_TARGET_MONITOR->specialWorkspaceOpen = false;
 
     // Handle special workspace case.
-    if (!P_TARGET->m_bIsSpecialWorkspace)
+    if (!P_CREATED_TARGET->m_bIsSpecialWorkspace)
         P_TARGET_MONITOR->activeWorkspace = P_CREATED_TARGET->m_iID;
     else
         P_TARGET_MONITOR->specialWorkspaceOpen = true;

@@ -15,8 +15,9 @@
 #include <fstream>
 #include <string>
 
-const std::string USAGE = R"#(usage: hyprctl [command] [(opt)args]
+const std::string USAGE = R"#(usage: hyprctl [(opt)flag] [command] [(opt)args]
     
+commands:
     monitors
     workspaces
     clients
@@ -29,7 +30,11 @@ const std::string USAGE = R"#(usage: hyprctl [command] [(opt)args]
     kill
     splash
     hyprpaper
-    reload)#";
+    reload
+    
+flags:
+    -j -> output in JSON
+)#";
 
 void request(std::string arg) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);

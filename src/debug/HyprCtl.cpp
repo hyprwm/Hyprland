@@ -13,9 +13,9 @@
 
 #include <string>
 
-std::string monitorsRequest(bool json) {
+std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
-    if (json) {
+    if (format == HyprCtl::FORMAT_JSON) {
         result += "[";
         
         for (auto& m : g_pCompositor->m_vMonitors) {
@@ -64,9 +64,9 @@ R"#({
     return result;
 }
 
-std::string clientsRequest(bool json) {
+std::string clientsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
-    if (json) {
+    if (format == HyprCtl::FORMAT_JSON) {
         result += "[";
 
         for (auto& w : g_pCompositor->m_vWindows) {
@@ -115,9 +115,9 @@ R"#({
     return result;
 }
 
-std::string workspacesRequest(bool json) {
+std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
-    if (json) {
+    if (format == HyprCtl::FORMAT_JSON) {
         result += "[";
 
         for (auto& w : g_pCompositor->m_vWorkspaces) {
@@ -150,13 +150,13 @@ R"#({
     return result;
 }
 
-std::string activeWindowRequest(bool json) {
+std::string activeWindowRequest(HyprCtl::eHyprCtlOutputFormat format) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return "Invalid";
 
-    if (json) {
+    if (format == HyprCtl::FORMAT_JSON) {
         return getFormat(
 R"#({
     "address": "0x%x",
@@ -188,10 +188,10 @@ R"#({
     }
 }
 
-std::string layersRequest(bool json) {
+std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
 
-    if (json) {
+    if (format == HyprCtl::FORMAT_JSON) {
         result += "{\n";
 
         for (auto& mon : g_pCompositor->m_vMonitors) {
@@ -271,10 +271,10 @@ R"#(                {
     return result;
 }
 
-std::string devicesRequest(bool json) {
+std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
 
-    if (json) {
+    if (format == HyprCtl::FORMAT_JSON) {
         result += "{\n";
         result += "\"mice\": [\n";
 
@@ -511,29 +511,41 @@ std::string dispatchBatch(std::string request) {
 }
 
 std::string getReply(std::string request) {
-    std::size_t jpos = request.find(" -j");
-    bool json = jpos != std::string::npos;
-    if (json)
-        request.erase(jpos, 3); // remove the `-j` flag so `==` still works
+    auto format = HyprCtl::FORMAT_NORMAL;
+
+    // process flags
+    int sepIndex = 0;
+    for (const auto& c : request) {
+        if (c == '/') { // stop at separator
+            break;
+        }
+
+        sepIndex++;
+        
+        if (c == 'j')
+            format = HyprCtl::FORMAT_JSON;
+    }
+
+    request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
 
     if (request == "monitors")
-        return monitorsRequest(json);
+        return monitorsRequest(format);
     else if (request == "workspaces")
-        return workspacesRequest(json);
+        return workspacesRequest(format);
     else if (request == "clients")
-        return clientsRequest(json);
+        return clientsRequest(format);
     else if (request == "kill")
         return killRequest();
     else if (request == "activewindow")
-        return activeWindowRequest(json);
+        return activeWindowRequest(format);
     else if (request == "layers")
-        return layersRequest(json);
+        return layersRequest(format);
     else if (request == "version")
         return versionRequest();
     else if (request == "reload")
         return reloadRequest();
     else if (request == "devices")
-        return devicesRequest(json);
+        return devicesRequest(format);
     else if (request == "splash")
         return splashRequest();
     else if (request.find("dispatch") == 0)

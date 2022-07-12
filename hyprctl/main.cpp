@@ -186,8 +186,8 @@ void hyprpaperRequest(int argc, char** argv) {
     requestHyprpaper(rq);
 }
 
-void batchRequest(int argc, char** argv) {
-    std::string rq = "[[BATCH]]" + std::string(argv[2]);
+void batchRequest(std::string arg) {
+    std::string rq = "[[BATCH]]" + arg.substr(arg.find_first_of(" ") + 1);
     
     request(rq);
 }
@@ -200,13 +200,18 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string fullRequest = argv[1];
+    std::string fullRequest = "";
+    for (int i = 1; i < argc; i++) {
+        fullRequest += std::string(argv[i]) + " ";
+    }
+    fullRequest.pop_back(); // remove trailing space
 
-    if (!fullRequest.contains("/")) {
+    if (!std::string(argv[1]).contains("/")) {
         fullRequest = "/" + fullRequest;
     }
 
-    if (fullRequest.contains("/monitors")) request(fullRequest);
+    if (fullRequest.contains("/--batch")) batchRequest(fullRequest);
+    else if (fullRequest.contains("/monitors")) request(fullRequest);
     else if (fullRequest.contains("/clients")) request(fullRequest);
     else if (fullRequest.contains("/workspaces")) request(fullRequest);
     else if (fullRequest.contains("/activewindow")) request(fullRequest);
@@ -219,7 +224,6 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/dispatch")) dispatchRequest(argc, argv);
     else if (fullRequest.contains("/keyword")) keywordRequest(argc, argv);
     else if (fullRequest.contains("/hyprpaper")) hyprpaperRequest(argc, argv);
-    else if (fullRequest.contains("/--batch")) batchRequest(argc, argv);
     else if (fullRequest.contains("/--help")) printf("%s", USAGE.c_str());
     else {
         printf("%s\n", USAGE.c_str());

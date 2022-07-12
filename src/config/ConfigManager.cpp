@@ -105,6 +105,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:clickfinger_behavior"].intValue = 0;
     configValues["input:touchpad:middle_button_emulation"].intValue = 0;
     configValues["input:touchpad:tap-to-click"].intValue = 1;
+    configValues["input:touchpad:drag_lock"].intValue = 0;
 
     configValues["gestures:workspace_swipe"].intValue = 0;
     configValues["gestures:workspace_swipe_distance"].intValue = 300;

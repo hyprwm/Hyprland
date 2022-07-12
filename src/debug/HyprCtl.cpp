@@ -13,95 +13,386 @@
 
 #include <string>
 
-std::string monitorsRequest() {
+std::string monitorsRequest(bool json) {
     std::string result = "";
-    for (auto& m : g_pCompositor->m_vMonitors) {
-        result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tactive workspace: %i (%s)\n\treserved: %i %i %i %i\n\tscale: %.2f\n\ttransform: %i\n\tactive: %s\n\n",
-                            m->szName.c_str(), m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"));
+    if (json) {
+        result += "[";
+        
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            result += getFormat(
+R"#({
+    "id": %i,
+    "name": "%s",
+    "width": %i,
+    "height": %i,
+    "refreshRate": %f,
+    "x": %i,
+    "y": %i,
+    "activeWorkspace": {
+        "id": %i,
+        "name": "%s"
+    },
+    "reserved": [%i, %i, %i, %i],
+    "scale": %.2f,
+    "transform": %i,
+    "active": "%s"
+},)#",
+                m->ID,
+                m->szName.c_str(),
+                (int)m->vecPixelSize.x, (int)m->vecPixelSize.y,
+                m->refreshRate,
+                (int)m->vecPosition.x, (int)m->vecPosition.y,
+                m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(),
+                (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y,
+                m->scale,
+                (int)m->transform,
+                (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no")
+            );
+        }
+
+        // remove trailing comma
+        result.pop_back();
+
+        result += "]";
+    } else {
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tactive workspace: %i (%s)\n\treserved: %i %i %i %i\n\tscale: %.2f\n\ttransform: %i\n\tactive: %s\n\n",
+                                m->szName.c_str(), m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"));
+        }
     }
 
     return result;
 }
 
-std::string clientsRequest() {
+std::string clientsRequest(bool json) {
     std::string result = "";
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_bIsMapped) {
-            result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
-                            &w, w->m_szTitle.c_str(), (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y, (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID());
-    
+    if (json) {
+        result += "[";
+
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (w->m_bIsMapped) {
+                result += getFormat(
+R"#({
+    "address": "0x%x",
+    "at": [%i, %i],
+    "size": [%i, %i],
+    "workspace": {
+        "id": %i,
+        "name": "%s"
+    },
+    "floating": %i,
+    "monitor": %i,
+    "class": "%s",
+    "title": "%s",
+    "pid": %i
+},)#",
+                    &w,
+                    (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y,
+                    (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y,
+                    w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()),
+                    (int)w->m_bIsFloating,
+                    w->m_iMonitorID,
+                    g_pXWaylandManager->getAppIDClass(w.get()).c_str(),
+                    g_pXWaylandManager->getTitle(w.get()).c_str(),
+                    w->getPID()
+                );
+            }
+        }
+
+        // remove trailing comma
+        result.pop_back();
+
+        result += "]";
+    } else {
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (w->m_bIsMapped) {
+                result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
+                                &w, w->m_szTitle.c_str(), (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y, (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID());
+        
+            }
         }
     }
     return result;
 }
 
-std::string workspacesRequest() {
+std::string workspacesRequest(bool json) {
     std::string result = "";
-    for (auto& w : g_pCompositor->m_vWorkspaces) {
-        result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\n",
-                            w->m_iID, w->m_szName.c_str(), g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow);
+    if (json) {
+        result += "[";
+
+        for (auto& w : g_pCompositor->m_vWorkspaces) {
+            result += getFormat(
+R"#({
+    "id": %i,
+    "name": "%s",
+    "monitor": "%s",
+    "windows": %i,
+    "hasfullscreen": %i
+},)#",
+                w->m_iID,
+                w->m_szName.c_str(),
+                g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName.c_str(),
+                g_pCompositor->getWindowsOnWorkspace(w->m_iID),
+                (int)w->m_bHasFullscreenWindow
+            );
+        }
+
+        // remove trailing comma
+        result.pop_back();
+
+        result += "]";
+    } else {
+        for (auto& w : g_pCompositor->m_vWorkspaces) {
+            result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\n",
+                                w->m_iID, w->m_szName.c_str(), g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow);
+        }
     }
     return result;
 }
 
-std::string activeWindowRequest() {
+std::string activeWindowRequest(bool json) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return "Invalid";
 
-    return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
-                        PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating, (int)PWINDOW->m_iMonitorID, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), g_pXWaylandManager->getTitle(PWINDOW).c_str(), PWINDOW->getPID());
+    if (json) {
+        return getFormat(
+R"#({
+    "address": "0x%x",
+    "at": [%i, %i],
+    "size": [%i, %i],
+    "workspace": {
+        "id": %i,
+        "name": "%s"
+    },
+    "floating": %i,
+    "monitor": %i,
+    "class": "%s",
+    "title": "%s",
+    "pid": %i
+})#",
+            PWINDOW,
+            (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y,
+            (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y,
+            PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()),
+            (int)PWINDOW->m_bIsFloating,
+            PWINDOW->m_iMonitorID,
+            g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(),
+            g_pXWaylandManager->getTitle(PWINDOW).c_str(),
+            PWINDOW->getPID()
+        );
+    } else {
+        return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
+                            PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating, (int)PWINDOW->m_iMonitorID, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), g_pXWaylandManager->getTitle(PWINDOW).c_str(), PWINDOW->getPID());
+    }
 }
 
-std::string layersRequest() {
+std::string layersRequest(bool json) {
     std::string result = "";
 
-    for (auto& mon : g_pCompositor->m_vMonitors) {
-        result += getFormat("Monitor %s:\n", mon->szName.c_str());
-        int layerLevel = 0;
-        for (auto& level : mon->m_aLayerSurfaceLists) {
-            result += getFormat("\tLayer level %i:\n", layerLevel);
+    if (json) {
+        result += "{\n";
 
-            for (auto& layer : level) {
-                result += getFormat("\t\tLayer %x: xywh: %i %i %i %i, namespace: %s\n", layer, layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, layer->szNamespace.c_str());
+        for (auto& mon : g_pCompositor->m_vMonitors) {
+            result += getFormat(
+R"#("%s": {
+    "levels": {
+)#",
+                mon->szName.c_str()
+            ); 
+
+            int layerLevel = 0;
+            for (auto& level : mon->m_aLayerSurfaceLists) {
+                result += getFormat(
+R"#(        
+        "%i": [
+)#",
+                    layerLevel
+                );
+                for (auto& layer : level) {
+                    result += getFormat(
+R"#(                {
+                    "address": "0x%x",
+                    "x": %i,
+                    "y": %i,
+                    "w": %i,
+                    "h": %i,
+                    "namespace": "%s"
+                },)#",
+					layer,
+                    layer->geometry.x,
+                    layer->geometry.y,
+                    layer->geometry.width,
+                    layer->geometry.height,
+                    layer->szNamespace.c_str()
+                    );
+                }
+
+                // remove trailing comma
+                result.pop_back();
+
+                if (level.size() > 0)
+                    result += "\n        ";
+
+                result += "],";
+
+                layerLevel++;
             }
 
-            layerLevel++;
+            // remove trailing comma
+            result.pop_back();
+
+            result += "\n    }\n},";
         }
-        result += "\n\n";
+
+        // remove trailing comma
+        result.pop_back();
+
+        result += "\n}\n";
+        
+    } else {
+        for (auto& mon : g_pCompositor->m_vMonitors) {
+            result += getFormat("Monitor %s:\n", mon->szName.c_str());
+            int layerLevel = 0;
+            for (auto& level : mon->m_aLayerSurfaceLists) {
+                result += getFormat("\tLayer level %i:\n", layerLevel);
+
+                for (auto& layer : level) {
+                    result += getFormat("\t\tLayer %x: xywh: %i %i %i %i, namespace: %s\n", layer, layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, layer->szNamespace.c_str());
+                }
+
+                layerLevel++;
+            }
+            result += "\n\n";
+        }
     }
 
     return result;
 }
 
-std::string devicesRequest() {
+std::string devicesRequest(bool json) {
     std::string result = "";
 
-    result += "mice:\n";
+    if (json) {
+        result += "{\n";
+        result += "\"mice\": [\n";
 
-    for (auto& m : g_pInputManager->m_lMice) {
-        result += getFormat("\tMouse at %x:\n\t\t%s\n", &m, m.mouse->name);
-    }
+        for (auto& m : g_pInputManager->m_lMice) {
+            result += getFormat(
+R"#(    {
+        "address": "0x%x",
+        "name": "%s"
+    },)#",
+                &m,
+                m.mouse->name
+            );
+        }
 
-    result += "\n\nKeyboards:\n";
+        // remove trailing comma
+        result.pop_back();
+        result += "\n],\n";
 
-    for (auto& k : g_pInputManager->m_lKeyboards) {
-        result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n", &k, k.keyboard->name, k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(), k.currentRules.options.c_str());
-    }
+        result += "\"keyboards\": [\n";
+        for (auto& k : g_pInputManager->m_lKeyboards) {
+            result += getFormat(
+R"#(    {
+        "address": "0x%x",
+        "name": "%s",
+        "rules": "%s",
+        "model": "%s",
+        "layout": "%s",
+        "variant": "%s",
+        "options": "%s"
+    },)#",
+                &k,
+                k.keyboard->name,
+                k.currentRules.rules.c_str(),
+                k.currentRules.model.c_str(),
+                k.currentRules.layout.c_str(),
+                k.currentRules.variant.c_str(),
+                k.currentRules.options.c_str()
+            );
+        }
 
-    result += "\n\nTablets:\n";
+        // remove trailing comma
+        result.pop_back();
+        result += "\n],\n";
 
-    for (auto& d : g_pInputManager->m_lTabletPads) {
-        result += getFormat("\tTablet Pad at %x (belongs to %x -> %s)\n", &d, d.pTabletParent, d.pTabletParent ? d.pTabletParent->wlrDevice ? d.pTabletParent->wlrDevice->name : "" : "");
-    }
+        result += "\"tablets\": [\n";
 
-    for (auto& d : g_pInputManager->m_lTablets) {
-        result += getFormat("\tTablet at %x:\n\t\t%s\n", &d, d.wlrDevice ? d.wlrDevice->name : "");
-    }
+        for (auto& d : g_pInputManager->m_lTabletPads) {
+            result += getFormat(
+R"#(    {
+        "address": "0x%x",
+        "type": "tabletPad",
+        "belongsTo": {
+            "address": "0x%x",
+            "name": "%s"
+        }
+    },)#",
+                &d,
+                d.pTabletParent,
+                d.pTabletParent ? d.pTabletParent->wlrDevice ? d.pTabletParent->wlrDevice->name : "" : ""
+            );
+        }
 
-    for (auto& d : g_pInputManager->m_lTabletTools) {
-        result += getFormat("\tTablet Tool at %x (belongs to %x)\n", &d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
+        for (auto& d : g_pInputManager->m_lTablets) {
+            result += getFormat(
+R"#(    {
+        "address": "0x%x",
+        "name": "%s"
+    },)#",
+                &d,
+                d.wlrDevice ? d.wlrDevice->name : ""
+            );
+        }
+
+        for (auto& d : g_pInputManager->m_lTabletTools) {
+            result += getFormat(
+R"#(    {
+        "address": "0x%x",
+        "type": "tabletTool",
+        "belongsTo": "0x%x"
+    },)#",
+                &d,
+                d.wlrTabletTool ? d.wlrTabletTool->data : 0
+            );
+        }
+
+        // remove trailing comma
+        if (result[result.size() - 1] == ',')
+            result.pop_back();
+        result += "\n]\n";
+
+        result += "}\n";
+
+    } else {
+        result += "mice:\n";
+
+        for (auto& m : g_pInputManager->m_lMice) {
+            result += getFormat("\tMouse at %x:\n\t\t%s\n", &m, m.mouse->name);
+        }
+
+        result += "\n\nKeyboards:\n";
+
+        for (auto& k : g_pInputManager->m_lKeyboards) {
+            result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n", &k, k.keyboard->name, k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(), k.currentRules.options.c_str());
+        }
+
+        result += "\n\nTablets:\n";
+
+        for (auto& d : g_pInputManager->m_lTabletPads) {
+            result += getFormat("\tTablet Pad at %x (belongs to %x -> %s)\n", &d, d.pTabletParent, d.pTabletParent ? d.pTabletParent->wlrDevice ? d.pTabletParent->wlrDevice->name : "" : "");
+        }
+
+        for (auto& d : g_pInputManager->m_lTablets) {
+            result += getFormat("\tTablet at %x:\n\t\t%s\n", &d, d.wlrDevice ? d.wlrDevice->name : "");
+        }
+
+        for (auto& d : g_pInputManager->m_lTabletTools) {
+            result += getFormat("\tTablet Tool at %x (belongs to %x)\n", &d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
+        }
     }
 
     return result;
@@ -220,24 +511,29 @@ std::string dispatchBatch(std::string request) {
 }
 
 std::string getReply(std::string request) {
+    std::size_t jpos = request.find(" -j");
+    bool json = jpos != std::string::npos;
+    if (json)
+        request.erase(jpos, 3); // remove the `-j` flag so `==` still works
+
     if (request == "monitors")
-        return monitorsRequest();
+        return monitorsRequest(json);
     else if (request == "workspaces")
-        return workspacesRequest();
+        return workspacesRequest(json);
     else if (request == "clients")
-        return clientsRequest();
+        return clientsRequest(json);
     else if (request == "kill")
         return killRequest();
     else if (request == "activewindow")
-        return activeWindowRequest();
+        return activeWindowRequest(json);
     else if (request == "layers")
-        return layersRequest();
+        return layersRequest(json);
     else if (request == "version")
         return versionRequest();
     else if (request == "reload")
         return reloadRequest();
     else if (request == "devices")
-        return devicesRequest();
+        return devicesRequest(json);
     else if (request == "splash")
         return splashRequest();
     else if (request.find("dispatch") == 0)

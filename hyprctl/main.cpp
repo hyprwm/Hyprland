@@ -195,29 +195,27 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string ourRequest = argv[1];
+    std::string fullRequest = argv[1];
 
-    if (!ourRequest.contains("/")) {
-        ourRequest = "/" + ourRequest;
+    if (!fullRequest.contains("/")) {
+        fullRequest = "/" + fullRequest;
     }
 
-    ourRequest.contains("/");
-
-    if (ourRequest.contains("/monitors")) request(ourRequest);
-    else if (ourRequest.contains("/clients")) request(ourRequest);
-    else if (ourRequest.contains("/workspaces")) request(ourRequest);
-    else if (ourRequest.contains("/activewindow")) request(ourRequest);
-    else if (ourRequest.contains("/layers")) request(ourRequest);
-    else if (ourRequest.contains("/version")) request(ourRequest);
-    else if (ourRequest.contains("/kill")) request(ourRequest);
-    else if (ourRequest.contains("/splash")) request(ourRequest);
-    else if (ourRequest.contains("/devices")) request(ourRequest);
-    else if (ourRequest.contains("/reload")) request(ourRequest);
-    else if (ourRequest.contains("/dispatch")) dispatchRequest(argc, argv);
-    else if (ourRequest.contains("/keyword")) keywordRequest(argc, argv);
-    else if (ourRequest.contains("/hyprpaper")) hyprpaperRequest(argc, argv);
-    else if (ourRequest.contains("/--batch")) batchRequest(argc, argv);
-    else if (ourRequest.contains("/--help")) printf("%s", USAGE.c_str());
+    if (fullRequest.contains("/monitors")) request(fullRequest);
+    else if (fullRequest.contains("/clients")) request(fullRequest);
+    else if (fullRequest.contains("/workspaces")) request(fullRequest);
+    else if (fullRequest.contains("/activewindow")) request(fullRequest);
+    else if (fullRequest.contains("/layers")) request(fullRequest);
+    else if (fullRequest.contains("/version")) request(fullRequest);
+    else if (fullRequest.contains("/kill")) request(fullRequest);
+    else if (fullRequest.contains("/splash")) request(fullRequest);
+    else if (fullRequest.contains("/devices")) request(fullRequest);
+    else if (fullRequest.contains("/reload")) request(fullRequest);
+    else if (fullRequest.contains("/dispatch")) dispatchRequest(argc, argv);
+    else if (fullRequest.contains("/keyword")) keywordRequest(argc, argv);
+    else if (fullRequest.contains("/hyprpaper")) hyprpaperRequest(argc, argv);
+    else if (fullRequest.contains("/--batch")) batchRequest(argc, argv);
+    else if (fullRequest.contains("/--help")) printf("%s", USAGE.c_str());
     else {
         printf("%s\n", USAGE.c_str());
         return 1;

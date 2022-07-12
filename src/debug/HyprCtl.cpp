@@ -513,21 +513,23 @@ std::string dispatchBatch(std::string request) {
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
-    // process flags
-    int sepIndex = 0;
-    for (const auto& c : request) {
-        if (c == '/') { // stop at separator
-            break;
+    // process flags for non-batch requests
+    if (!(request.find("[[BATCH]]") == 0)) {
+        int sepIndex = 0;
+        for (const auto& c : request) {
+            if (c == '/') { // stop at separator
+                break;
+            }
+
+            sepIndex++;
+            
+            if (c == 'j')
+                format = HyprCtl::FORMAT_JSON;
         }
 
-        sepIndex++;
-        
-        if (c == 'j')
-            format = HyprCtl::FORMAT_JSON;
+        if (sepIndex < request.size())
+            request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
     }
-
-    if (sepIndex < request.size())
-        request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
 
     if (request == "monitors")
         return monitorsRequest(format);

@@ -111,7 +111,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
             continue;
 
         // found it!
-        renderWindow(w.get(), pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL);
+        renderWindow(w.get(), pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL, RENDER_PASS_ALL);
 
         pWorkspaceWindow = w.get();
     }
@@ -121,7 +121,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
         if (w->m_iWorkspaceID != pWorkspaceWindow->m_iWorkspaceID || !w->m_bCreatedOverFullscreen || !w->m_bIsMapped)
             continue;
 
-        renderWindow(w.get(), pMonitor, time, true);
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // and then special windows
@@ -136,7 +136,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true);
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // and the overlay layers
@@ -158,7 +158,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
         g_pHyprError->draw();
 }
 
-void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate) {
+void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode) {
     if (pWindow->m_bHidden)
         return;
 
@@ -193,35 +193,40 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 
     // render window decorations first, if not fullscreen full
-    if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) for (auto& wd : pWindow->m_dWindowDecorations)
-        wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f);
 
-    if (!pWindow->m_bIsX11) {
-        wlr_box geom;
-        wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
+    if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
+        if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) for (auto& wd : pWindow->m_dWindowDecorations)
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f);
 
-        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D((double)geom.x / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)geom.y / (double)pWindow->m_uSurface.xdg->surface->current.height);
-        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D((double)(geom.width + geom.x) / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)(geom.y + geom.height) / (double)pWindow->m_uSurface.xdg->surface->current.height);
-        
-        if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
-            // No special UV mods needed
+        if (!pWindow->m_bIsX11) {
+            wlr_box geom;
+            wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
+
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D((double)geom.x / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)geom.y / (double)pWindow->m_uSurface.xdg->surface->current.height);
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D((double)(geom.width + geom.x) / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)(geom.y + geom.height) / (double)pWindow->m_uSurface.xdg->surface->current.height);
+
+            if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
+                // No special UV mods needed
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+            }
+        } else {
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         }
-    } else {
+
+        wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }
 
-    wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
-
-    g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
-    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-
-    if (!pWindow->m_bIsX11) {
-        renderdata.dontRound = false; // restore dontround
-        renderdata.pMonitor = pMonitor;
-        wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
+    if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
+        if (!pWindow->m_bIsX11) {
+            renderdata.dontRound = false;  // restore dontround
+            renderdata.pMonitor = pMonitor;
+            wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
+        }
     }
 
     g_pHyprOpenGL->m_pCurrentWindow = nullptr;
@@ -266,7 +271,25 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         return;
     }
 
-    // Non-floating
+    // Non-floating main
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
+
+        if (w->m_bIsFloating)
+            continue;  // floating are in the second pass
+
+        if (w->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+            continue;  // special are in the third pass
+
+        if (!shouldRenderWindow(w.get(), PMONITOR))
+            continue;
+
+        // render the bad boy
+        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_MAIN);
+    }
+
+    // Non-floating popup
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
@@ -281,7 +304,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), PMONITOR, time, true);
+        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_POPUP);
     }
 
     // floating on top
@@ -299,7 +322,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), PMONITOR, time, true);
+        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_ALL);
     }
 
     // and then special
@@ -314,7 +337,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), PMONITOR, time, true);
+        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_ALL);
     }
 
     // Render surfaces above windows for monitor

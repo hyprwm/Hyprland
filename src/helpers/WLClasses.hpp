@@ -72,6 +72,12 @@ struct SRenderData {
     bool squishOversized = false;
 };
 
+struct SExtensionFindingData {
+    Vector2D origin;
+    Vector2D vec;
+    wlr_surface** found;
+};
+
 struct SStringRuleNames {
     std::string layout = "";
     std::string model = "";

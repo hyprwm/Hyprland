@@ -427,6 +427,15 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
     return nullptr;
 }
 
+void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
+    const auto DATA = (SExtensionFindingData*)data;
+
+    wlr_box box = {DATA->origin.x + x, DATA->origin.y + y, surface->current.width, surface->current.height};
+
+    if (wlr_box_contains_point(&box, DATA->vec.x, DATA->vec.y))
+        *DATA->found = surface;
+}
+
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     const auto PMONITOR = getMonitorFromVector(pos);
 
@@ -448,10 +457,34 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
         wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
-        if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden && (*w)->m_iX11Type != 2)
-            return w->get();
+        if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden && (*w)->m_iX11Type != 2) {
+            if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))
+                return w->get();
+
+            if (!(*w)->m_bIsX11) {
+                wlr_surface* resultSurf = nullptr;
+                Vector2D origin =(*w)->m_vRealPosition.vec();
+                SExtensionFindingData data = {origin, pos, &resultSurf};
+                wlr_xdg_surface_for_each_popup_surface((*w)->m_uSurface.xdg, findExtensionForVector2D, &data);
+
+                if (resultSurf)
+                    return w->get();
+            }
+        } 
     }
 
+    // for windows, we need to check their extensions too, first.
+    for (auto& w : m_vWindows) {
+        if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->m_bHidden && w->m_iX11Type != 2) {
+            wlr_surface* resultSurf = nullptr;
+            Vector2D origin = w->m_vRealPosition.vec();
+            SExtensionFindingData data = {origin, pos, &resultSurf};
+            wlr_xdg_surface_for_each_popup_surface(w->m_uSurface.xdg, findExtensionForVector2D, &data);
+
+            if (resultSurf)
+                return w.get();
+        }
+    }
     for (auto& w : m_vWindows) {
         wlr_box box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
         if (!w->m_bIsFloating && w->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->m_bHidden && w->m_iX11Type != 2)

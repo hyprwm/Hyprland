@@ -717,7 +717,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     const auto BLURVAL = g_pConfigManager->getInt("decoration:blur");
     g_pConfigManager->setInt("decoration:blur", 0);
 
-    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders);
+    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
 
     g_pConfigManager->setInt("decoration:blur", BLURVAL);
 

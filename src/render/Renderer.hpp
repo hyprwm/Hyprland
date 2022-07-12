@@ -17,6 +17,12 @@ enum DAMAGETRACKINGMODES {
     DAMAGE_TRACKING_FULL
 };
 
+enum eRenderPassMode {
+    RENDER_PASS_ALL = 0,
+    RENDER_PASS_MAIN,
+    RENDER_PASS_POPUP
+};
+
 class CHyprRenderer {
 public:
 
@@ -41,7 +47,7 @@ public:
 private:
     void                arrangeLayerArray(SMonitor*, const std::list<SLayerSurface*>&, bool, wlr_box*);
     void                renderWorkspaceWithFullscreenWindow(SMonitor*, CWorkspace*, timespec*);
-    void                renderWindow(CWindow*, SMonitor*, timespec*, bool);
+    void                renderWindow(CWindow*, SMonitor*, timespec*, bool, eRenderPassMode);
     void                renderLayer(SLayerSurface*, SMonitor*, timespec*);
     void                renderDragIcon(SMonitor*, timespec*);
 

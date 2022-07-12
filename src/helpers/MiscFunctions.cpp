@@ -137,7 +137,7 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
 
     if (source.find_first_of("+") == 0) {
         try {
-            if (source.find('.') != std::string::npos)
+            if (source.contains("."))
                 result = relative + std::stof(source.substr(1));
             else
                 result = relative + std::stoi(source.substr(1));
@@ -147,7 +147,7 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
         }
     } else if (source.find_first_of("-") == 0) {
         try {
-            if (source.find('.') != std::string::npos)
+            if (source.contains("."))
                 result = relative - std::stof(source.substr(1));
             else
                 result = relative - std::stoi(source.substr(1));
@@ -157,7 +157,7 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
         }
     } else {
         try {
-            if (source.find('.') != std::string::npos)
+            if (source.contains("."))
                 result = stof(source);
             else
                 result = stoi(source);

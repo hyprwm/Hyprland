@@ -61,11 +61,14 @@ public:
     wlr_foreign_toplevel_manager_v1* m_sWLRToplevelMgr;
     wlr_tablet_manager_v2*           m_sWLRTabletManager;
     wlr_xdg_foreign_registry*        m_sWLRForeignRegistry;
+    wlr_idle_inhibit_manager_v1*     m_sWLRIdleInhibitMgr;
+    wlr_pointer_gestures_v1*         m_sWLRPointerGestures;
     // ------------------------------------------------- //
 
 
     const char*             m_szWLDisplaySocket;
     std::string             m_szInstanceSignature = "";
+    std::string             m_szCurrentSplash = "error";
 
     std::vector<std::unique_ptr<SMonitor>>      m_vMonitors;
     std::vector<std::unique_ptr<CWindow>>       m_vWindows;
@@ -103,7 +106,7 @@ public:
     bool                    windowExists(CWindow*);
     bool                    windowValidMapped(CWindow*);
     CWindow*                vectorToWindow(const Vector2D&);
-    CWindow*                vectorToWindowIdeal(const Vector2D&);
+    CWindow*                vectorToWindowIdeal(const Vector2D&); // used only for finding a window to focus on, basically a "findFocusableWindow"
     CWindow*                vectorToWindowTiled(const Vector2D&);
     wlr_surface*            vectorToLayerSurface(const Vector2D&, std::list<SLayerSurface*>*, Vector2D*, SLayerSurface**);
     wlr_surface*            vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
@@ -119,6 +122,7 @@ public:
     void                    changeWorkspace(const int targetWorkspaceID, const std::string& targetWorkspaceName);
     void                    changeToLastWorkspace();
     void                    sanityCheckWorkspaces();
+    void                    updateWorkspaceWindowDecos(const int&);
     int                     getWindowsOnWorkspace(const int&);
     CWindow*                getFirstWindowOnWorkspace(const int&);
     void                    fixXWaylandWindowsOnWorkspace(const int&);
@@ -130,6 +134,7 @@ public:
     CWindow*                getWindowInDirection(CWindow*, char);
     void                    deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude = nullptr);
     CWindow*                getNextWindowOnWorkspace(CWindow*);
+    CWindow*                getPrevWindowOnWorkspace(CWindow*);
     int                     getNextAvailableNamedWorkspace();
     bool                    isPointOnAnyMonitor(const Vector2D&);
     CWindow*                getConstraintWindow(SMouse*);
@@ -146,6 +151,7 @@ public:
 
 private:
     void                    initAllSignals();
+    void                    setRandomSplash();
 };
 
 

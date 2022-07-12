@@ -49,6 +49,7 @@ namespace Events {
     DYNLISTENFUNC(fullscreenWindow);
     DYNLISTENFUNC(activateX11);
     DYNLISTENFUNC(configureX11);
+    DYNLISTENFUNC(unmanagedSetGeometry);
 
     // Window subsurfaces
    // LISTENER(newSubsurfaceWindow);
@@ -112,4 +113,10 @@ namespace Events {
 
     // Renderer destroy
     LISTENER(RendererDestroy);
+
+    LISTENER(newIdleInhibitor);
+
+    LISTENER(swipeBegin);
+    LISTENER(swipeEnd);
+    LISTENER(swipeUpdate);
 };

@@ -27,6 +27,7 @@ const std::string USAGE = R"#(usage: hyprctl [command] [(opt)args]
     keyword
     version
     kill
+    splash
     hyprpaper
     reload)#";
 
@@ -201,6 +202,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[1], "layers")) request("layers");
     else if (!strcmp(argv[1], "version")) request("version");
     else if (!strcmp(argv[1], "kill")) request("kill");
+    else if (!strcmp(argv[1], "splash")) request("splash");
     else if (!strcmp(argv[1], "devices")) request("devices");
     else if (!strcmp(argv[1], "reload")) request("reload");
     else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);

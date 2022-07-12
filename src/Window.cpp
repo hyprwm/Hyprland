@@ -77,6 +77,18 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 void CWindow::updateWindowDecos() {
     for (auto& wd : m_dWindowDecorations)
         wd->updateWindow(this);
+
+    for (auto& wd : m_vDecosToRemove) {
+        for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
+            if (it->get() == wd) {
+                it = m_dWindowDecorations.erase(it);
+                if (it == m_dWindowDecorations.end())
+                    break;
+            }
+        }
+    }
+
+    m_vDecosToRemove.clear();
 }
 
 pid_t CWindow::getPID() {

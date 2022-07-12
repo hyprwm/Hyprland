@@ -16,8 +16,8 @@
 std::string monitorsRequest() {
     std::string result = "";
     for (auto& m : g_pCompositor->m_vMonitors) {
-        result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tactive workspace: %i (%s)\n\treserved: %i %i %i %i\n\tscale: %.2f\n\ttransform: %i\n\n",
-                            m->szName.c_str(), m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform);
+        result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tactive workspace: %i (%s)\n\treserved: %i %i %i %i\n\tscale: %.2f\n\ttransform: %i\n\tactive: %s\n\n",
+                            m->szName.c_str(), m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"));
     }
 
     return result;
@@ -58,13 +58,13 @@ std::string layersRequest() {
     std::string result = "";
 
     for (auto& mon : g_pCompositor->m_vMonitors) {
-        result += getFormat("Monitor %s:\n");
+        result += getFormat("Monitor %s:\n", mon->szName.c_str());
         int layerLevel = 0;
         for (auto& level : mon->m_aLayerSurfaceLists) {
             result += getFormat("\tLayer level %i:\n", layerLevel);
 
             for (auto& layer : level) {
-                result += getFormat("\t\tLayer %x: xywh: %i %i %i %i\n", layer, layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height);
+                result += getFormat("\t\tLayer %x: xywh: %i %i %i %i, namespace: %s\n", layer, layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, layer->szNamespace.c_str());
             }
 
             layerLevel++;
@@ -87,7 +87,7 @@ std::string devicesRequest() {
     result += "\n\nKeyboards:\n";
 
     for (auto& k : g_pInputManager->m_lKeyboards) {
-        result += getFormat("\tKeyboard at %x:\n\t\t%s\n", &k, k.keyboard->name);
+        result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n", &k, k.keyboard->name, k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(), k.currentRules.options.c_str());
     }
 
     result += "\n\nTablets:\n";
@@ -158,7 +158,7 @@ std::string dispatchKeyword(std::string in) {
     if (COMMAND == "monitor")
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
 
-    if (COMMAND.find("input") != std::string::npos)
+    if (COMMAND.contains("input"))
         g_pInputManager->setKeyboardLayout(); // update kb layout
 
     Debug::log(LOG, "Hyprctl: keyword %s : %s", COMMAND.c_str(), VALUE.c_str());
@@ -179,6 +179,10 @@ std::string killRequest() {
     g_pInputManager->setClickMode(CLICKMODE_KILL);
 
     return "ok";
+}
+
+std::string splashRequest() {
+    return g_pCompositor->m_szCurrentSplash;
 }
 
 std::string getReply(std::string);
@@ -234,6 +238,8 @@ std::string getReply(std::string request) {
         return reloadRequest();
     else if (request == "devices")
         return devicesRequest();
+    else if (request == "splash")
+        return splashRequest();
     else if (request.find("dispatch") == 0)
         return dispatchRequest(request);
     else if (request.find("keyword") == 0)
@@ -265,12 +271,11 @@ void HyprCtl::tickHyprCtl() {
 
 std::string getRequestFromThread(std::string rq) {
     // we need to do something to wake hyprland up if VFR is enabled
-    static auto *const VFRENABLED = &g_pConfigManager->getConfigValuePtr("experimental:vfr")->intValue;
-    if (*VFRENABLED) {
-        // TODO: is this safe...?
-        // this might be a race condition
-        wlr_output_schedule_frame(g_pCompositor->m_vMonitors.front()->output);
-    }
+
+    // TODO: is this safe...?
+    // this might be a race condition
+    // tested with 2 instances of `watch -n 0.1 hyprctl splash` and seems to not crash so I'll take that as a yes
+    wlr_output_schedule_frame(g_pCompositor->m_vMonitors.front()->output);
 
     while (HyprCtl::request != "" || HyprCtl::requestMade || HyprCtl::requestReady) {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));

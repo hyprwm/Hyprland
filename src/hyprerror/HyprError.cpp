@@ -14,7 +14,7 @@ void CHyprError::createQueued() {
 
     const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
 
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
     const auto CAIRO = cairo_create(CAIROSURFACE);
 
@@ -27,12 +27,12 @@ void CHyprError::createQueued() {
     const auto LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
 
     cairo_set_source_rgba(CAIRO, m_cQueued.r / 255.f, m_cQueued.g / 255.f, m_cQueued.b / 255.f, m_cQueued.a / 255.f);
-    cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecSize.x, 10 * LINECOUNT);
+    cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, 10 * LINECOUNT);
 
     // outline
-    cairo_rectangle(CAIRO, 0, 0, 1, PMONITOR->vecSize.y); // left
-    cairo_rectangle(CAIRO, PMONITOR->vecSize.x - 1, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y);  // right
-    cairo_rectangle(CAIRO, 0, PMONITOR->vecSize.y - 1, PMONITOR->vecSize.x, PMONITOR->vecSize.y);  // bottom
+    cairo_rectangle(CAIRO, 0, 0, 1, PMONITOR->vecPixelSize.y);                                     // left
+    cairo_rectangle(CAIRO, PMONITOR->vecPixelSize.x - 1, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);  // right
+    cairo_rectangle(CAIRO, 0, PMONITOR->vecPixelSize.y - 1, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);  // bottom
 
     cairo_fill(CAIRO);
 
@@ -70,7 +70,7 @@ void CHyprError::createQueued() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
     #endif
     
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecSize.x, PMONITOR->vecSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     // delete cairo
     cairo_destroy(CAIRO);
@@ -104,7 +104,7 @@ void CHyprError::draw() {
     if (g_pHyprOpenGL->m_RenderData.pMonitor != PMONITOR)
         return; // wrong mon
 
-    wlr_box windowBox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    wlr_box windowBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
 
     g_pHyprOpenGL->renderTexture(m_tTexture, &windowBox, 255.f, 0);
 }

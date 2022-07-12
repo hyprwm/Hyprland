@@ -37,14 +37,14 @@ void CConfigManager::setDefaultVars() {
     configValues["general:col.inactive_border"].intValue = 0xff444444;
     configValues["general:cursor_inactive_timeout"].intValue = 0;
     configValues["general:auto_back_and_forth"].intValue = 0;
+    configValues["misc:disable_hyprland_logo"].intValue = 0;
+    configValues["misc:disable_splash_rendering"].intValue = 0;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;
     configValues["debug:overlay"].intValue = 0;
     configValues["debug:damage_blink"].intValue = 0;
     configValues["debug:disable_logs"].intValue = 0;
-
-    configValues["experimental:vfr"].intValue = 0;
 
     configValues["decoration:rounding"].intValue = 1;
     configValues["decoration:blur"].intValue = 1;
@@ -105,6 +105,12 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:clickfinger_behavior"].intValue = 0;
     configValues["input:touchpad:middle_button_emulation"].intValue = 0;
     configValues["input:touchpad:tap-to-click"].intValue = 1;
+
+    configValues["gestures:workspace_swipe"].intValue = 0;
+    configValues["gestures:workspace_swipe_distance"].intValue = 300;
+    configValues["gestures:workspace_swipe_invert"].intValue = 1;
+    configValues["gestures:workspace_swipe_min_speed_to_force"].intValue = 30;
+    configValues["gestures:workspace_swipe_cancel_ratio"].floatValue = 0.5f;
 
     configValues["input:follow_mouse"].intValue = 1;
 
@@ -357,7 +363,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
     newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));
 
-    if (curitem.find_first_of('@') != std::string::npos)
+    if (curitem.contains("@"))
         newrule.refreshRate = stof(curitem.substr(curitem.find_first_of('@') + 1));
 
     nextItem();
@@ -506,8 +512,13 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         return;
     }
 
-    if (KEY != "")
-        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+    if (KEY != "") {
+        if (isNumber(KEY) && std::stoi(KEY) > 9)
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+        else
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+    }
+        
 }
 
 void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {
@@ -553,6 +564,10 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
 
 }
 
+void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
+    m_dBlurLSNamespaces.emplace_back(value);
+}
+
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
 
     const auto DISPLAY = value.substr(0, value.find_first_of(','));
@@ -577,6 +592,23 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
     static const char* const ENVHOME = getenv("HOME");
 
     auto value = rawpath;
+
+    if (value.length() < 2) {
+        Debug::log(ERR, "source= path garbage");
+        parseError = "source path " + value + " bogus!";
+        return;
+    }
+
+    if (value[0] == '.') {
+        auto currentDir = configCurrentPath.substr(0, configCurrentPath.find_last_of('/'));
+
+        if (value[1] == '.') {
+            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+            value.replace(0, 2, parentDir);
+        } else {
+            value.replace(0, 1, currentDir);
+        }
+    }
 
     if (value[0] == '~') {
         value.replace(0, 1, std::string(ENVHOME));
@@ -654,6 +686,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
     else if (COMMAND == "source") handleSource(COMMAND, VALUE);
     else if (COMMAND == "submap") handleSubmap(COMMAND, VALUE);
+    else if (COMMAND == "blurls") handleBlurLS(COMMAND, VALUE);
     else
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 
@@ -706,7 +739,7 @@ void CConfigManager::parseLine(std::string& line) {
         line = line.substr(1);
     }
 
-    if (line.find(" {") != std::string::npos) {
+    if (line.contains(" {")) {
         auto cat = line.substr(0, line.find(" {"));
         transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
         if (currentCategory.length() != 0) {
@@ -720,7 +753,7 @@ void CConfigManager::parseLine(std::string& line) {
         return;
     }
 
-    if (line.find("}") != std::string::npos && currentCategory != "") {
+    if (line.contains("}") && currentCategory != "") {
         currentCategory = "";
         return;
     }
@@ -756,6 +789,7 @@ void CConfigManager::loadConfigLoadVars() {
     m_mAdditionalReservedAreas.clear();
     configDynamicVars.clear();
     deviceConfigs.clear();
+    m_dBlurLSNamespaces.clear();
 
     // paths
     configPaths.clear();
@@ -1087,3 +1121,12 @@ bool CConfigManager::deviceConfigExists(const std::string& dev) {
     return it != deviceConfigs.end();
 }
 
+bool CConfigManager::shouldBlurLS(const std::string& ns) {
+    for (auto& bls : m_dBlurLSNamespaces) {
+        if (bls == ns) {
+            return true;
+        }
+    }
+
+    return false;
+}

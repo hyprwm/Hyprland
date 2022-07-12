@@ -16,6 +16,15 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
     else                                                                                              //  here we clamp to 2, these might be some tiny specks
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
+    
+    // squish all oversized
+    if (RDATA->squishOversized) {
+        if (x + windowBox.width > RDATA->w)
+            windowBox.width = RDATA->w - x;
+        if (y + windowBox.height > RDATA->h) 
+            windowBox.height = RDATA->h - y;
+    }
+    
     scaleBox(&windowBox, RDATA->output->scale);
 
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
@@ -23,7 +32,10 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
 
     if (RDATA->surface && surface == RDATA->surface) {
-        g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
+        if (RDATA->blur)
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
+        else
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
 
         if (RDATA->decorate) {
             auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
@@ -60,8 +72,8 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
         return true;
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    // if not, check if it maybe is active on a different monitor.                    vvv might be animation in progress
-    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated())))
+    // if not, check if it maybe is active on a different monitor.                                                                                             vvv might be animation in progress
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && PWORKSPACE->m_bForceRendering) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated())))
         return true;
 
     if (pMonitor->specialWorkspaceOpen && pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
@@ -169,6 +181,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.alpha = pWindow->m_bIsFullscreen ? g_pConfigManager->getFloat("decoration:fullscreen_opacity") : pWindow == g_pCompositor->m_pLastWindow ? g_pConfigManager->getFloat("decoration:active_opacity") : g_pConfigManager->getFloat("decoration:inactive_opacity");
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
     renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;
+    renderdata.blur = true; // if it shouldn't, it will be ignored later
+    renderdata.squishOversized = pWindow->m_vRealPosition.isBeingAnimated();
 
     // apply window special data
     if (pWindow->m_sSpecialRenderData.alphaInactive == -1)
@@ -221,6 +235,11 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, SMonitor* pMonitor, times
 
     SRenderData renderdata = {pMonitor->output, time, pLayer->geometry.x, pLayer->geometry.y};
     renderdata.fadeAlpha = pLayer->alpha.fl();
+    renderdata.blur = pLayer->forceBlur;
+    renderdata.surface = pLayer->layerSurface->surface;
+    renderdata.decorate = false;
+    renderdata.w = pLayer->layerSurface->surface->current.width;
+    renderdata.h = pLayer->layerSurface->surface->current.height;
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
 }
 

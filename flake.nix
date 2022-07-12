@@ -32,6 +32,7 @@
         src = inputs.wlroots;
       });
       hyprland = prev.callPackage ./nix/default.nix {
+        stdenv = prev.gcc12Stdenv;
         version = "0.6.2beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101"));
         wlroots = wlroots-hyprland;
       };
@@ -46,6 +47,16 @@
       // {
         default = self.packages.${system}.hyprland;
       });
+
+    devShells = genSystems (system: {
+      default = pkgsFor.${system}.mkShell.override {stdenv = pkgsFor.${system}.gcc12Stdenv;} {
+        name = "hyprland-shell";
+        inputsFrom = [
+          self.packages.${system}.wlroots-hyprland
+          self.packages.${system}.hyprland
+        ];
+      };
+    });
 
     formatter = genSystems (system: pkgsFor.${system}.alejandra);
 

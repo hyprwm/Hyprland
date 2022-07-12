@@ -151,11 +151,29 @@ void Events::listener_newVirtPtr(wl_listener* listener, void* data) {
     const auto POINTER = EV->new_pointer;
     const auto DEVICE = &POINTER->pointer.base;
 
-    g_pInputManager->newMouse(DEVICE);
+    g_pInputManager->newMouse(DEVICE, true);
 }
 
 void Events::listener_destroyMouse(void* owner, void* data) {
     const auto PMOUSE = (SMouse*)owner;
 
     g_pInputManager->destroyMouse(PMOUSE->mouse);
+}
+
+void Events::listener_swipeBegin(wl_listener* listener, void* data) {
+    const auto EVENT = (wlr_pointer_swipe_begin_event*)data;
+
+    g_pInputManager->onSwipeBegin(EVENT);
+}
+
+void Events::listener_swipeUpdate(wl_listener* listener, void* data) {
+    const auto EVENT = (wlr_pointer_swipe_update_event*)data;
+
+    g_pInputManager->onSwipeUpdate(EVENT);
+}
+
+void Events::listener_swipeEnd(wl_listener* listener, void* data) {
+    const auto EVENT = (wlr_pointer_swipe_end_event*)data;
+
+    g_pInputManager->onSwipeEnd(EVENT);
 }

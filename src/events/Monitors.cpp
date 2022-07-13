@@ -360,8 +360,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     if (!BACKUPMON) {
         Debug::log(CRIT, "No monitors! Unplugged last! Exiting.");
-        g_pCompositor->cleanupExit();
-        exit(1);
+        g_pCompositor->cleanup();
         return;
     }
 

@@ -812,8 +812,7 @@ void CKeybindManager::workspaceOpt(std::string args) {
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
-    g_pCompositor->cleanupExit();
-    exit(0);
+    g_pCompositor->cleanup();
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {

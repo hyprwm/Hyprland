@@ -30,6 +30,7 @@ public:
 
     // ------------------ WLR BASICS ------------------ //
     wl_display*                      m_sWLDisplay;
+    wl_event_loop*                   m_sWLEventLoop;
     wlr_backend*                     m_sWLRBackend;
     wlr_renderer*                    m_sWLRRenderer;
     wlr_allocator*                   m_sWLRAllocator;
@@ -80,7 +81,7 @@ public:
     std::vector<SLayerSurface*>                 m_vSurfacesFadingOut;
 
     void                    startCompositor(); 
-    void                    cleanupExit();
+    void                    cleanup();
 
     wlr_surface*            m_pLastFocus = nullptr;
     CWindow*                m_pLastWindow = nullptr;

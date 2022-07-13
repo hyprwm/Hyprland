@@ -166,7 +166,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 void Events::listener_monitorFrame(void* owner, void* data) {
     SMonitor* const PMONITOR = (SMonitor*)owner;
 
-    if (!g_pCompositor->m_sWLRSession->active) {
+    if (!g_pCompositor->m_sWLRSession->active || !g_pCompositor->m_bSessionActive) {
         Debug::log(WARN, "Attempted to render frame on inactive session!");
         return; // cannot draw on session inactive (different tty)
     }
@@ -191,7 +191,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         PMONITOR->framesToSkip -= 1;
 
         if (!PMONITOR->noFrameSchedule)
-            wlr_output_schedule_frame(PMONITOR->output);
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR);
         else {
             Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
         }
@@ -241,7 +241,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         wlr_output_rollback(PMONITOR->output);
 
         if (*PDAMAGEBLINK || *PNOVFR)
-            wlr_output_schedule_frame(PMONITOR->output);
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
         return;
     }
@@ -331,7 +331,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     wlr_output_commit(PMONITOR->output);
 
     if (*PDAMAGEBLINK || *PNOVFR)
-        wlr_output_schedule_frame(PMONITOR->output);
+        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;

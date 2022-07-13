@@ -91,6 +91,7 @@ public:
     SSeat                   m_sSeat;
 
     bool                    m_bReadyToProcess = false;
+    bool                    m_bSessionActive = true;
 
     // ------------------------------------------------- //
 
@@ -144,6 +145,7 @@ public:
     void                    setWindowFullscreen(CWindow*, bool, eFullscreenMode);
     void                    moveUnmanagedX11ToWindows(CWindow*);
     CWindow*                getX11Parent(CWindow*);
+    void                    scheduleFrameForMonitor(SMonitor*);
 
 private:
     void                    initAllSignals();

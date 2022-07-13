@@ -140,6 +140,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     if (PSESSION) {
         const int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
         wlr_session_change_vt(PSESSION, TTY);
+        g_pCompositor->m_bSessionActive = false;
 
         for (auto& m : g_pCompositor->m_vMonitors) {
             m->noFrameSchedule = true;

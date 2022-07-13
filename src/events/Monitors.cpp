@@ -166,7 +166,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 void Events::listener_monitorFrame(void* owner, void* data) {
     SMonitor* const PMONITOR = (SMonitor*)owner;
 
-    if (!g_pCompositor->m_sWLRSession->active || !g_pCompositor->m_bSessionActive) {
+    if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive) {
         Debug::log(WARN, "Attempted to render frame on inactive session!");
         return; // cannot draw on session inactive (different tty)
     }

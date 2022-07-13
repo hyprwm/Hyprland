@@ -190,7 +190,8 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRVirtPtrMgr->events.new_virtual_pointer, &Events::listen_newVirtPtr, m_sWLRVirtPtrMgr, "VirtPtrMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
     addWLSignal(&m_sWLRIdleInhibitMgr->events.new_inhibitor, &Events::listen_newIdleInhibitor, m_sWLRIdleInhibitMgr, "WLRIdleInhibitMgr");
-    addWLSignal(&m_sWLRSession->events.active, &Events::listen_sessionActive, m_sWLRSession, "Session");
+    if (m_sWLRSession)
+        addWLSignal(&m_sWLRSession->events.active, &Events::listen_sessionActive, m_sWLRSession, "Session");
 }
 
 void CCompositor::cleanup() {
@@ -1346,7 +1347,7 @@ void CCompositor::updateWorkspaceWindowDecos(const int& id) {
 }
 
 void CCompositor::scheduleFrameForMonitor(SMonitor* pMonitor) {
-    if (!m_sWLRSession->active || !m_bSessionActive)
+    if ((m_sWLRSession && !m_sWLRSession->active) || !m_bSessionActive)
         return;
 
     wlr_output_schedule_frame(pMonitor->output);

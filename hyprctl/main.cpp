@@ -15,8 +15,9 @@
 #include <fstream>
 #include <string>
 
-const std::string USAGE = R"#(usage: hyprctl [command] [(opt)args]
+const std::string USAGE = R"#(usage: hyprctl [(opt)flag] [command] [(opt)args]
     
+commands:
     monitors
     workspaces
     clients
@@ -29,7 +30,11 @@ const std::string USAGE = R"#(usage: hyprctl [command] [(opt)args]
     kill
     splash
     hyprpaper
-    reload)#";
+    reload
+    
+flags:
+    -j -> output in JSON
+)#";
 
 void request(std::string arg) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -181,8 +186,8 @@ void hyprpaperRequest(int argc, char** argv) {
     requestHyprpaper(rq);
 }
 
-void batchRequest(int argc, char** argv) {
-    std::string rq = "[[BATCH]]" + std::string(argv[2]);
+void batchRequest(std::string arg) {
+    std::string rq = "[[BATCH]]" + arg.substr(arg.find_first_of(" ") + 1);
     
     request(rq);
 }
@@ -195,21 +200,31 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (!strcmp(argv[1], "monitors")) request("monitors");
-    else if (!strcmp(argv[1], "clients")) request("clients");
-    else if (!strcmp(argv[1], "workspaces")) request("workspaces");
-    else if (!strcmp(argv[1], "activewindow")) request("activewindow");
-    else if (!strcmp(argv[1], "layers")) request("layers");
-    else if (!strcmp(argv[1], "version")) request("version");
-    else if (!strcmp(argv[1], "kill")) request("kill");
-    else if (!strcmp(argv[1], "splash")) request("splash");
-    else if (!strcmp(argv[1], "devices")) request("devices");
-    else if (!strcmp(argv[1], "reload")) request("reload");
-    else if (!strcmp(argv[1], "dispatch")) dispatchRequest(argc, argv);
-    else if (!strcmp(argv[1], "keyword")) keywordRequest(argc, argv);
-    else if (!strcmp(argv[1], "hyprpaper")) hyprpaperRequest(argc, argv);
-    else if (!strcmp(argv[1], "--batch")) batchRequest(argc, argv);
-    else if (!strcmp(argv[1], "--help")) printf("%s", USAGE.c_str());
+    std::string fullRequest = "";
+    for (int i = 1; i < argc; i++) {
+        fullRequest += std::string(argv[i]) + " ";
+    }
+    fullRequest.pop_back(); // remove trailing space
+
+    if (!std::string(argv[1]).contains("/")) {
+        fullRequest = "/" + fullRequest;
+    }
+
+    if (fullRequest.contains("/--batch")) batchRequest(fullRequest);
+    else if (fullRequest.contains("/monitors")) request(fullRequest);
+    else if (fullRequest.contains("/clients")) request(fullRequest);
+    else if (fullRequest.contains("/workspaces")) request(fullRequest);
+    else if (fullRequest.contains("/activewindow")) request(fullRequest);
+    else if (fullRequest.contains("/layers")) request(fullRequest);
+    else if (fullRequest.contains("/version")) request(fullRequest);
+    else if (fullRequest.contains("/kill")) request(fullRequest);
+    else if (fullRequest.contains("/splash")) request(fullRequest);
+    else if (fullRequest.contains("/devices")) request(fullRequest);
+    else if (fullRequest.contains("/reload")) request(fullRequest);
+    else if (fullRequest.contains("/dispatch")) dispatchRequest(argc, argv);
+    else if (fullRequest.contains("/keyword")) keywordRequest(argc, argv);
+    else if (fullRequest.contains("/hyprpaper")) hyprpaperRequest(argc, argv);
+    else if (fullRequest.contains("/--help")) printf("%s", USAGE.c_str());
     else {
         printf("%s\n", USAGE.c_str());
         return 1;

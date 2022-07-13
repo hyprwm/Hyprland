@@ -166,6 +166,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 void Events::listener_monitorFrame(void* owner, void* data) {
     SMonitor* const PMONITOR = (SMonitor*)owner;
 
+    if (!g_pCompositor->m_sWLRSession->active) {
+        Debug::log(WARN, "Attempted to render frame on inactive session!");
+        return; // cannot draw on session inactive (different tty)
+    }
+
     static std::chrono::high_resolution_clock::time_point startRender = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay = std::chrono::high_resolution_clock::now();

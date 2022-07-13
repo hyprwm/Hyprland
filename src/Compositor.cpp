@@ -147,6 +147,8 @@ CCompositor::CCompositor() {
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
     m_sWLRPointerGestures = wlr_pointer_gestures_v1_create(m_sWLDisplay);
+
+    m_sWLRSession = wlr_backend_get_session(m_sWLRBackend);
 }
 
 CCompositor::~CCompositor() {

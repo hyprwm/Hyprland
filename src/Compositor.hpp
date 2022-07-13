@@ -32,6 +32,7 @@ public:
     wl_display*                      m_sWLDisplay;
     wl_event_loop*                   m_sWLEventLoop;
     wlr_backend*                     m_sWLRBackend;
+    wlr_session*                     m_sWLRSession;
     wlr_renderer*                    m_sWLRRenderer;
     wlr_allocator*                   m_sWLRAllocator;
     wlr_compositor*                  m_sWLRCompositor;

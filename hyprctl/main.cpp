@@ -15,7 +15,7 @@
 #include <fstream>
 #include <string>
 
-const std::string USAGE = R"#(usage: hyprctl [command] [(opt)flag] [(opt)args]
+const std::string USAGE = R"#(usage: hyprctl [(opt)flag /][command] [(opt)args]
     
 commands:
     monitors
@@ -33,7 +33,7 @@ commands:
     reload
     
 flags:
-    -j -> output in JSON
+    j -> output in JSON
 )#";
 
 void request(std::string arg) {

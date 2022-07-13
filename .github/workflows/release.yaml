@@ -23,7 +23,7 @@ jobs:
         name: Get latest release
         uses: pozetroninc/github-action-get-latest-release@master
         with:
-          owner: viperML
+          owner: hyprwm
           repo: Hyprland
           excludes: prerelease, draft
 

@@ -1,3 +1,5 @@
+name: Release artifacts
+
 on:
   release:
     types: [published]
@@ -31,6 +33,6 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: source.tar.gz
-          asset_name: hyprland-source-${{ steps.whatrelease.outputs.release }}.tar.gz
+          asset_name: source-${{ steps.whatrelease.outputs.release }}.tar.gz
           tag: ${{ steps.whatrelease.outputs.release }}
-          overwrite: false
+          overwrite: true

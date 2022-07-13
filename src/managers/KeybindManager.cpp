@@ -140,11 +140,11 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     if (PSESSION) {
         const int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
         wlr_session_change_vt(PSESSION, TTY);
+        g_pCompositor->m_bSessionActive = false;
 
         for (auto& m : g_pCompositor->m_vMonitors) {
-            g_pHyprOpenGL->destroyMonitorResources(m.get());  // mark resources as unusable anymore
             m->noFrameSchedule = true;
-            m->framesToSkip = 2;
+            m->framesToSkip = 1;
         }
 
         Debug::log(LOG, "Switched to VT %i, destroyed all render data, frames to skip for each: 2", TTY);
@@ -812,8 +812,7 @@ void CKeybindManager::workspaceOpt(std::string args) {
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
-    g_pCompositor->cleanupExit();
-    exit(0);
+    g_pCompositor->cleanup();
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {

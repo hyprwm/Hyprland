@@ -119,4 +119,7 @@ namespace Events {
     LISTENER(swipeBegin);
     LISTENER(swipeEnd);
     LISTENER(swipeUpdate);
+
+    // session
+    LISTENER(sessionActive);
 };

@@ -30,7 +30,9 @@ public:
 
     // ------------------ WLR BASICS ------------------ //
     wl_display*                      m_sWLDisplay;
+    wl_event_loop*                   m_sWLEventLoop;
     wlr_backend*                     m_sWLRBackend;
+    wlr_session*                     m_sWLRSession;
     wlr_renderer*                    m_sWLRRenderer;
     wlr_allocator*                   m_sWLRAllocator;
     wlr_compositor*                  m_sWLRCompositor;
@@ -80,7 +82,7 @@ public:
     std::vector<SLayerSurface*>                 m_vSurfacesFadingOut;
 
     void                    startCompositor(); 
-    void                    cleanupExit();
+    void                    cleanup();
 
     wlr_surface*            m_pLastFocus = nullptr;
     CWindow*                m_pLastWindow = nullptr;
@@ -89,6 +91,7 @@ public:
     SSeat                   m_sSeat;
 
     bool                    m_bReadyToProcess = false;
+    bool                    m_bSessionActive = true;
 
     // ------------------------------------------------- //
 
@@ -142,6 +145,7 @@ public:
     void                    setWindowFullscreen(CWindow*, bool, eFullscreenMode);
     void                    moveUnmanagedX11ToWindows(CWindow*);
     CWindow*                getX11Parent(CWindow*);
+    void                    scheduleFrameForMonitor(SMonitor*);
 
 private:
     void                    initAllSignals();

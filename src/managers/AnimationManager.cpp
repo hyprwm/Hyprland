@@ -195,7 +195,7 @@ void CAnimationManager::tick() {
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
         // manually schedule a frame
-        wlr_output_schedule_frame(PMONITOR->output);
+        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
     }
 }
 

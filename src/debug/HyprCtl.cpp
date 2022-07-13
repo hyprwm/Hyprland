@@ -515,7 +515,7 @@ std::string getReply(std::string request) {
 
     // process flags for non-batch requests
     if (!(request.find("[[BATCH]]") == 0)) {
-        int sepIndex = 0;
+        long unsigned int sepIndex = 0;
         for (const auto& c : request) {
             if (c == '/') { // stop at separator
                 break;

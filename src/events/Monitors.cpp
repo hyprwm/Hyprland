@@ -182,6 +182,18 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pDebugOverlay->frameData(PMONITOR);
     }
 
+    if (PMONITOR->framesToSkip > 0) {
+        PMONITOR->framesToSkip -= 1;
+
+        if (!PMONITOR->noFrameSchedule)
+            wlr_output_schedule_frame(PMONITOR->output);
+        else {
+            Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
+        }
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        return;
+    }
+
     // checks //
     if (PMONITOR->ID == pMostHzMonitor->ID || !*PNOVFR) {  // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
@@ -197,18 +209,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pHyprRenderer->ensureCursorRenderingMode();  // so that the cursor gets hidden/shown if the user requested timeouts
     }
     //       //
-
-    if (PMONITOR->framesToSkip > 0) {
-        PMONITOR->framesToSkip -= 1;
-
-        if (!PMONITOR->noFrameSchedule)
-            wlr_output_schedule_frame(PMONITOR->output);
-        else {
-            Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
-        }
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-        return;
-    }
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);

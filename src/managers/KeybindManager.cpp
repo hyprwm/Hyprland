@@ -142,9 +142,8 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         wlr_session_change_vt(PSESSION, TTY);
 
         for (auto& m : g_pCompositor->m_vMonitors) {
-            g_pHyprOpenGL->destroyMonitorResources(m.get());  // mark resources as unusable anymore
             m->noFrameSchedule = true;
-            m->framesToSkip = 2;
+            m->framesToSkip = 1;
         }
 
         Debug::log(LOG, "Switched to VT %i, destroyed all render data, frames to skip for each: 2", TTY);

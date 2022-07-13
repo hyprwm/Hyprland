@@ -44,7 +44,7 @@ CCompositor::CCompositor() {
 
     // register crit signal handler
     wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
-    wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
+    //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay);
 

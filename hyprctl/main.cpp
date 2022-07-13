@@ -15,7 +15,7 @@
 #include <fstream>
 #include <string>
 
-const std::string USAGE = R"#(usage: hyprctl [(opt)flag] [command] [(opt)args]
+const std::string USAGE = R"#(usage: hyprctl [command] [(opt)flag] [(opt)args]
     
 commands:
     monitors

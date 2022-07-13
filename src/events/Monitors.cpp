@@ -166,6 +166,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 void Events::listener_monitorFrame(void* owner, void* data) {
     SMonitor* const PMONITOR = (SMonitor*)owner;
 
+    if (!g_pCompositor->m_sWLRSession->active || !g_pCompositor->m_bSessionActive) {
+        Debug::log(WARN, "Attempted to render frame on inactive session!");
+        return; // cannot draw on session inactive (different tty)
+    }
+
     static std::chrono::high_resolution_clock::time_point startRender = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay = std::chrono::high_resolution_clock::now();
@@ -180,6 +185,18 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (*PDEBUGOVERLAY == 1) {
         startRender = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->frameData(PMONITOR);
+    }
+
+    if (PMONITOR->framesToSkip > 0) {
+        PMONITOR->framesToSkip -= 1;
+
+        if (!PMONITOR->noFrameSchedule)
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+        else {
+            Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
+        }
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        return;
     }
 
     // checks //
@@ -197,18 +214,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pHyprRenderer->ensureCursorRenderingMode();  // so that the cursor gets hidden/shown if the user requested timeouts
     }
     //       //
-
-    if (PMONITOR->framesToSkip > 0) {
-        PMONITOR->framesToSkip -= 1;
-
-        if (!PMONITOR->noFrameSchedule)
-            wlr_output_schedule_frame(PMONITOR->output);
-        else {
-            Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
-        }
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-        return;
-    }
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -236,7 +241,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         wlr_output_rollback(PMONITOR->output);
 
         if (*PDAMAGEBLINK || *PNOVFR)
-            wlr_output_schedule_frame(PMONITOR->output);
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
         return;
     }
@@ -326,7 +331,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     wlr_output_commit(PMONITOR->output);
 
     if (*PDAMAGEBLINK || *PNOVFR)
-        wlr_output_schedule_frame(PMONITOR->output);
+        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;
@@ -360,8 +365,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     if (!BACKUPMON) {
         Debug::log(CRIT, "No monitors! Unplugged last! Exiting.");
-        g_pCompositor->cleanupExit();
-        exit(1);
+        g_pCompositor->cleanup();
         return;
     }
 

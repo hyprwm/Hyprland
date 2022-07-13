@@ -599,7 +599,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 
     // schedule frame events
     if (!wl_list_empty(&pSurface->current.frame_callback_list)) {
-        wlr_output_schedule_frame(g_pCompositor->getMonitorFromVector(Vector2D(x, y))->output);
+        g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)));
     }
 
     if (!pixman_region32_not_empty(&damageBox)) {

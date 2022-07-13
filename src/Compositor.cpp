@@ -2,6 +2,16 @@
 #include "helpers/Splashes.hpp"
 #include <random>
 
+int handleCritSignal(int signo, void* data) {
+    Debug::log(LOG, "Hyprland received signal %d", signo);
+
+    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL) {
+        g_pCompositor->cleanup();
+    }
+
+    return 0; // everything went fine
+}
+
 CCompositor::CCompositor() {
     m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
 
@@ -29,6 +39,12 @@ CCompositor::CCompositor() {
     Debug::log(LOG, "\nCurrent splash: %s\n\n", m_szCurrentSplash.c_str());
 
     m_sWLDisplay = wl_display_create();
+
+    m_sWLEventLoop = wl_display_get_event_loop(m_sWLDisplay);
+
+    // register crit signal handler
+    wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
+    //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay);
 
@@ -131,15 +147,12 @@ CCompositor::CCompositor() {
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
     m_sWLRPointerGestures = wlr_pointer_gestures_v1_create(m_sWLDisplay);
+
+    m_sWLRSession = wlr_backend_get_session(m_sWLRBackend);
 }
 
 CCompositor::~CCompositor() {
-    cleanupExit();
-}
-
-void handleCritSignal(int signo) {
-    g_pCompositor->cleanupExit();
-    exit(signo);
+    cleanup();
 }
 
 void CCompositor::setRandomSplash() {
@@ -177,12 +190,10 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRVirtPtrMgr->events.new_virtual_pointer, &Events::listen_newVirtPtr, m_sWLRVirtPtrMgr, "VirtPtrMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
     addWLSignal(&m_sWLRIdleInhibitMgr->events.new_inhibitor, &Events::listen_newIdleInhibitor, m_sWLRIdleInhibitMgr, "WLRIdleInhibitMgr");
-
-    signal(SIGINT, handleCritSignal);
-    signal(SIGTERM, handleCritSignal);
+    addWLSignal(&m_sWLRSession->events.active, &Events::listen_sessionActive, m_sWLRSession, "Session");
 }
 
-void CCompositor::cleanupExit() {
+void CCompositor::cleanup() {
     if (!m_sWLDisplay)
         return;
 
@@ -197,8 +208,7 @@ void CCompositor::cleanupExit() {
         g_pXWaylandManager->m_sWLRXWayland = nullptr;
     }
 
-    wl_display_destroy_clients(m_sWLDisplay);
-    wl_display_destroy(m_sWLDisplay);
+    wl_display_terminate(m_sWLDisplay);
 
     m_sWLDisplay = nullptr;
 }
@@ -1333,4 +1343,11 @@ void CCompositor::updateWorkspaceWindowDecos(const int& id) {
 
         w->updateWindowDecos();
     }
+}
+
+void CCompositor::scheduleFrameForMonitor(SMonitor* pMonitor) {
+    if (!m_sWLRSession->active || !m_bSessionActive)
+        return;
+
+    wlr_output_schedule_frame(pMonitor->output);
 }

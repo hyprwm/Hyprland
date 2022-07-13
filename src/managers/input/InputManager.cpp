@@ -169,7 +169,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                     pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
                 }
             } else {
-                pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+                pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+
+                if (!(pFoundWindow && pFoundWindow->m_bIsFloating && pFoundWindow->m_bCreatedOverFullscreen))
+                    pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
             }
         } else
             pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);

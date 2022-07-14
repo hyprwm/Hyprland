@@ -99,8 +99,6 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     layersurface->layerSurface->mapped = true;
 
-    wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
-
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
@@ -118,13 +116,14 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
-    if (layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) // don't focus if constrained
+    if (layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) { // don't focus if constrained
+        wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
-    // mouse enter always, keeb only when needed
-    const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
-    wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
-    wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+        const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
+        wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
+        wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+    }
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 

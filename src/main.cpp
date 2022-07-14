@@ -19,9 +19,14 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--i-am-really-stupid"))
             ignoreSudo = true;
-        if ((!strcmp(argv[i], "-c") || !strcmp(argv[i], "--config")) && argc >= i + 2) {
+        else if ((!strcmp(argv[i], "-c") || !strcmp(argv[i], "--config")) && argc >= i + 2) {
             configPath = std::string(argv[++i]);
             Debug::log(LOG, "Using config location %s.", configPath.c_str());
+        } else {
+            std::cout << "Hyprland usage: Hyprland [arg [...]].\n\nArguments:\n" <<
+                "--help         -h | Show this help message\n" <<
+                "--config       -c | Specify config file to use\n";
+            return 1;
         }
     }
 

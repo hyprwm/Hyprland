@@ -13,6 +13,7 @@ build/
 result
 /.vscode/
 .envrc
+.cache
 
 *.o
 *-protocol.c

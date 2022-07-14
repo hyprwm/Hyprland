@@ -15,9 +15,14 @@ int main(int argc, char** argv) {
         throw std::runtime_error("XDG_RUNTIME_DIR is not set!");
 
     // parse some args
+    std::string configPath;
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--i-am-really-stupid"))
             ignoreSudo = true;
+        if ((!strcmp(argv[i], "-c") || !strcmp(argv[i], "--config")) && argc >= i + 2) {
+            configPath = std::string(argv[++i]);
+            Debug::log(LOG, "Using config location %s.", configPath.c_str());
+        }
     }
 
     system("mkdir -p /tmp/hypr");
@@ -37,6 +42,7 @@ int main(int argc, char** argv) {
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
     g_pCompositor = std::make_unique<CCompositor>(); 
+    g_pCompositor->explicitConfigPath = configPath;
 
     Debug::log(LOG, "Hyprland init finished.");
 

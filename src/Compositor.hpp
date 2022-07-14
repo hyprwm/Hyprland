@@ -147,6 +147,8 @@ public:
     CWindow*                getX11Parent(CWindow*);
     void                    scheduleFrameForMonitor(SMonitor*);
 
+    std::string             explicitConfigPath;
+
 private:
     void                    initAllSignals();
     void                    setRandomSplash();

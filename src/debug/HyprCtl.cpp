@@ -518,7 +518,7 @@ std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
     // process flags for non-batch requests
-    if (!(request.find("[[BATCH]]") == 0)) {
+    if (!request.contains("[[BATCH]]") && request.contains("/")) {
         long unsigned int sepIndex = 0;
         for (const auto& c : request) {
             if (c == '/') { // stop at separator

@@ -20,7 +20,7 @@ class CKeybindManager {
 public:
     CKeybindManager();
 
-    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&, const int&);
+    bool                handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&);
     void                addKeybind(SKeybind);
     void                removeKeybind(uint32_t, const std::string&);
     uint32_t            stringToModMask(std::string);

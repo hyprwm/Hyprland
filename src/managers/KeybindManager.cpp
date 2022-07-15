@@ -82,10 +82,10 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     return modMask;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key, const int& keycode) {
+bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string& key, const xkb_keysym_t& keysym, const int& keycode) {
     bool found = false;
 
-    if (handleInternalKeybinds(key))
+    if (handleInternalKeybinds(keysym))
         return true;
 
     if (g_pCompositor->m_sSeat.exclusiveClient)
@@ -95,13 +95,14 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap)
             continue;
 
-
-        if (k.keycode != -1) {
+        if (!key.empty()) {
+            if (key != k.key)
+                continue;
+        } else if (k.keycode != -1) {
             if (keycode != k.keycode)
                 continue;
-
         } else {
-            if (key == 0)
+            if (keysym == 0)
                 continue;  // this is a keycode check run
 
             // oMg such performance hit!!11!
@@ -110,7 +111,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
             // small TODO: fix 0-9 keys and other modified ones with shift
 
-            if (key != KBKEY && key != KBKEYUPPER)
+            if (keysym != KBKEY && keysym != KBKEYUPPER)
                 continue;
         }
 
@@ -121,7 +122,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
             Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %d)", modmask, key);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %s)", modmask, key);
             DISPATCHER->second(k.arg);
         }
 

@@ -376,21 +376,20 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
-    const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
+    const auto MODS = accumulateModsFromAllKBs();
 
-    if (wlr_keyboard_get_modifiers(PKEYBOARD) == (uint32_t)g_pConfigManager->getInt("general:main_mod_internal") && 
-        e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
-            
+    bool found = false;
+    if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
         if (e->delta < 0) { 
-            g_pKeybindManager->m_mDispatchers["workspace"]("-1");
+            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_down", 0, 0);
         } else {
-            g_pKeybindManager->m_mDispatchers["workspace"]("m+1");
+            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_up", 0, 0);
         }
-
-        return;
     }
 
-    wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, e->delta, e->delta_discrete, e->source);
+    if (!found) {
+        wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, e->delta, e->delta_discrete, e->source);
+    }
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
@@ -631,10 +630,12 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-        for (int i = 0; i < syms; ++i)
-            found = g_pKeybindManager->handleKeybinds(MODS, keysyms[i], 0) || found;
+        static const std::string empty = "";
 
-        found = g_pKeybindManager->handleKeybinds(MODS, 0, KEYCODE) || found;
+        for (int i = 0; i < syms; ++i)
+            found = g_pKeybindManager->handleKeybinds(MODS, empty, keysyms[i], 0) || found;
+
+        found = g_pKeybindManager->handleKeybinds(MODS, empty, 0, KEYCODE) || found;
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
         // hee hee
     }

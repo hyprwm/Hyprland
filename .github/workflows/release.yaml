@@ -1,0 +1,38 @@
+name: Release artifacts
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  source-tarball:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Hyprland
+        id: checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Create tarball with submodules
+        id: tar
+        run: tar -czv --owner=0 --group=0 --no-same-owner --no-same-permissions -f source.tar.gz *
+
+      - id: whatrelease
+        name: Get latest release
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          owner: hyprwm
+          repo: Hyprland
+          excludes: prerelease, draft
+
+      - name: Upload to release
+        id: upload
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: source.tar.gz
+          asset_name: source-${{ steps.whatrelease.outputs.release }}.tar.gz
+          tag: ${{ steps.whatrelease.outputs.release }}
+          overwrite: true

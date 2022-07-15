@@ -22,7 +22,7 @@ public:
     void            onKeyboardMod(void*, SKeyboard*);
 
     void            newKeyboard(wlr_input_device*);
-    void            newMouse(wlr_input_device*);
+    void            newMouse(wlr_input_device*, bool virt = false);
     void            destroyKeyboard(SKeyboard*);
     void            destroyMouse(wlr_input_device*);
 
@@ -57,9 +57,20 @@ public:
     std::list<STabletTool>  m_lTabletTools;
     std::list<STabletPad>   m_lTabletPads;
 
+    // idle inhibitors
+    std::list<SIdleInhibitor> m_lIdleInhibitors;
+
     void            newTabletTool(wlr_input_device*);
     void            newTabletPad(wlr_input_device*);
     void            focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
+    void            newIdleInhibitor(wlr_idle_inhibitor_v1*);
+    void            recheckIdleInhibitorStatus();
+
+    void            onSwipeBegin(wlr_pointer_swipe_begin_event*);
+    void            onSwipeEnd(wlr_pointer_swipe_end_event*);
+    void            onSwipeUpdate(wlr_pointer_swipe_update_event*);
+
+    SSwipeGesture   m_sActiveSwipe;
 
     SKeyboard*      m_pActiveKeyboard = nullptr;
 
@@ -81,6 +92,9 @@ private:
     STabletTool*    ensureTabletToolPresent(wlr_tablet_tool*);
 
     void            applyConfigToKeyboard(SKeyboard*);
+
+    // for shared mods
+    uint32_t        accumulateModsFromAllKBs();
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

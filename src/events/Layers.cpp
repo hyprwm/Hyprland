@@ -32,8 +32,9 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     }
 
     const auto PMONITOR = (SMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
-    PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].push_back(new SLayerSurface());
-    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].back();
+    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].emplace_back(new SLayerSurface());
+
+    layerSurface->szNamespace = WLRLAYERSURFACE->_namespace;
 
     if (!WLRLAYERSURFACE->output) {
         WLRLAYERSURFACE->output = g_pCompositor->m_vMonitors.front()->output;  // TODO: current mon
@@ -49,6 +50,8 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     layerSurface->layer = WLRLAYERSURFACE->current.layer;
     WLRLAYERSURFACE->data = layerSurface;
     layerSurface->monitorID = PMONITOR->ID;
+
+    layerSurface->forceBlur = g_pConfigManager->shouldBlurLS(layerSurface->szNamespace);
 
     Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface->layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer, PMONITOR->szName.c_str());
 }
@@ -96,8 +99,6 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     layersurface->layerSurface->mapped = true;
 
-    wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
-
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
@@ -115,8 +116,14 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
-    if (layersurface->layerSurface->current.keyboard_interactive)
+    if (layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) { // don't focus if constrained
+        wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
+
+        const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
+        wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
+        wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+    }
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
@@ -150,13 +157,16 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = false;
 
-    if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus)
-        g_pCompositor->m_pLastFocus = nullptr;
-
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
     if (!PMONITOR)
         return;
+
+    // refocus if needed
+    if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus) {
+        g_pCompositor->m_pLastFocus = nullptr;
+        g_pInputManager->refocus();
+    }
 
     wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
@@ -205,6 +215,9 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     }
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
+
+    // update geom if it changed
+    layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, layersurface->layerSurface->surface->current.width, layersurface->layerSurface->surface->current.height};
 
     g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 }

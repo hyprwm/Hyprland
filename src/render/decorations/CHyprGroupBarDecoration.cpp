@@ -40,12 +40,8 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 
     if (g_pLayoutManager->getCurrentLayout()->getLayoutName() != "dwindle") {
         // ????
-        for (auto it = pWindow->m_dWindowDecorations.begin(); it != pWindow->m_dWindowDecorations.end(); it++) {
-            if (it->get() == this) {
-                pWindow->m_dWindowDecorations.erase(it);
-                return;
-            }
-        }
+        m_pWindow->m_vDecosToRemove.push_back(this);
+        return;
     }
 
     // get the group info
@@ -58,12 +54,8 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 
     if (m_dwGroupMembers.size() == 0) {
         // remove
-        for (auto it = pWindow->m_dWindowDecorations.begin(); it != pWindow->m_dWindowDecorations.end(); it++) {
-            if (it->get() == this) {
-                pWindow->m_dWindowDecorations.erase(it);
-                return;
-            }
-        }
+        m_pWindow->m_vDecosToRemove.push_back(this);
+        return;
     }
 }
 

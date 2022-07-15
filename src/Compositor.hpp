@@ -30,7 +30,9 @@ public:
 
     // ------------------ WLR BASICS ------------------ //
     wl_display*                      m_sWLDisplay;
+    wl_event_loop*                   m_sWLEventLoop;
     wlr_backend*                     m_sWLRBackend;
+    wlr_session*                     m_sWLRSession;
     wlr_renderer*                    m_sWLRRenderer;
     wlr_allocator*                   m_sWLRAllocator;
     wlr_compositor*                  m_sWLRCompositor;
@@ -61,11 +63,14 @@ public:
     wlr_foreign_toplevel_manager_v1* m_sWLRToplevelMgr;
     wlr_tablet_manager_v2*           m_sWLRTabletManager;
     wlr_xdg_foreign_registry*        m_sWLRForeignRegistry;
+    wlr_idle_inhibit_manager_v1*     m_sWLRIdleInhibitMgr;
+    wlr_pointer_gestures_v1*         m_sWLRPointerGestures;
     // ------------------------------------------------- //
 
 
     const char*             m_szWLDisplaySocket;
     std::string             m_szInstanceSignature = "";
+    std::string             m_szCurrentSplash = "error";
 
     std::vector<std::unique_ptr<SMonitor>>      m_vMonitors;
     std::vector<std::unique_ptr<CWindow>>       m_vWindows;
@@ -77,7 +82,7 @@ public:
     std::vector<SLayerSurface*>                 m_vSurfacesFadingOut;
 
     void                    startCompositor(); 
-    void                    cleanupExit();
+    void                    cleanup();
 
     wlr_surface*            m_pLastFocus = nullptr;
     CWindow*                m_pLastWindow = nullptr;
@@ -86,6 +91,7 @@ public:
     SSeat                   m_sSeat;
 
     bool                    m_bReadyToProcess = false;
+    bool                    m_bSessionActive = true;
 
     // ------------------------------------------------- //
 
@@ -99,7 +105,7 @@ public:
     bool                    windowExists(CWindow*);
     bool                    windowValidMapped(CWindow*);
     CWindow*                vectorToWindow(const Vector2D&);
-    CWindow*                vectorToWindowIdeal(const Vector2D&);
+    CWindow*                vectorToWindowIdeal(const Vector2D&); // used only for finding a window to focus on, basically a "findFocusableWindow"
     CWindow*                vectorToWindowTiled(const Vector2D&);
     wlr_surface*            vectorToLayerSurface(const Vector2D&, std::list<SLayerSurface*>*, Vector2D*, SLayerSurface**);
     wlr_surface*            vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
@@ -113,6 +119,7 @@ public:
     CWorkspace*             getWorkspaceByName(const std::string&);
     CWorkspace*             getWorkspaceByString(const std::string&);
     void                    sanityCheckWorkspaces();
+    void                    updateWorkspaceWindowDecos(const int&);
     int                     getWindowsOnWorkspace(const int&);
     CWindow*                getFirstWindowOnWorkspace(const int&);
     void                    fixXWaylandWindowsOnWorkspace(const int&);
@@ -120,16 +127,17 @@ public:
     bool                    doesSeatAcceptInput(wlr_surface*);
     bool                    isWindowActive(CWindow*);
     void                    moveWindowToTop(CWindow*);
-    void                    cleanupFadingOut();
+    void                    cleanupFadingOut(const int& monid);
     CWindow*                getWindowInDirection(CWindow*, char);
     void                    deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude = nullptr);
     CWindow*                getNextWindowOnWorkspace(CWindow*);
+    CWindow*                getPrevWindowOnWorkspace(CWindow*);
     int                     getNextAvailableNamedWorkspace();
     bool                    isPointOnAnyMonitor(const Vector2D&);
     CWindow*                getConstraintWindow(SMouse*);
     SMonitor*               getMonitorInDirection(const char&);
-    void                    updateAllWindowsBorders();
-    void                    updateWindowBorderColor(CWindow*);
+    void                    updateAllWindowsAnimatedDecorationValues();
+    void                    updateWindowAnimatedDecorationValues(CWindow*);
     void                    moveWindowToWorkspace(CWindow*, const std::string&);
     int                     getNextAvailableMonitorID();
     void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);
@@ -137,9 +145,13 @@ public:
     void                    setWindowFullscreen(CWindow*, bool, eFullscreenMode);
     void                    moveUnmanagedX11ToWindows(CWindow*);
     CWindow*                getX11Parent(CWindow*);
+    void                    scheduleFrameForMonitor(SMonitor*);
+
+    std::string             explicitConfigPath;
 
 private:
     void                    initAllSignals();
+    void                    setRandomSplash();
 };
 
 

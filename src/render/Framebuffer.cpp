@@ -2,15 +2,14 @@
 #include "OpenGL.hpp"
 
 bool CFramebuffer::alloc(int w, int h) {
-     bool firstAlloc = false;
-    if (m_iFb == (uint32_t)-1)
-    {
+    bool firstAlloc = false;
+    
+    if (m_iFb == (uint32_t)-1) {
         firstAlloc = true;
         glGenFramebuffers(1, &m_iFb);
     }
 
-    if (m_cTex.m_iTexID == 0)
-    {
+    if (m_cTex.m_iTexID == 0)  {
         firstAlloc = true;
         glGenTextures(1, &m_cTex.m_iTexID);
         glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
@@ -20,13 +19,11 @@ bool CFramebuffer::alloc(int w, int h) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
-    if (firstAlloc || m_Size != Vector2D(w, h))
-    {
+    if (firstAlloc || m_Size != Vector2D(w, h)) {
         glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
-        glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cTex.m_iTexID, 0);
 
 
@@ -37,7 +34,6 @@ bool CFramebuffer::alloc(int w, int h) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
 
             glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
-            glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_pStencilTex->m_iTexID, 0);
         }
@@ -77,4 +73,8 @@ void CFramebuffer::release() {
 
     m_cTex.m_iTexID = 0;
     m_iFb = -1;
+}
+
+CFramebuffer::~CFramebuffer() {
+    release();
 }

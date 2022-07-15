@@ -149,10 +149,10 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
     PNEWWORKSPACE->setActive(true);
+    //
 
     if (!pMostHzMonitor || monitorRule.refreshRate > pMostHzMonitor->refreshRate)
         pMostHzMonitor = PNEWMONITOR;
-    //
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->m_pLastMonitor = PNEWMONITOR;
@@ -166,6 +166,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 void Events::listener_monitorFrame(void* owner, void* data) {
     SMonitor* const PMONITOR = (SMonitor*)owner;
 
+    if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive) {
+        Debug::log(WARN, "Attempted to render frame on inactive session!");
+        return; // cannot draw on session inactive (different tty)
+    }
+
     static std::chrono::high_resolution_clock::time_point startRender = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay = std::chrono::high_resolution_clock::now();
@@ -173,6 +178,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     static auto *const PDEBUGOVERLAY = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
     static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("general:damage_tracking_internal")->intValue;
     static auto *const PDAMAGEBLINK = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
+    static auto *const PNOVFR = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
 
     static int damageBlinkCleanup = 0; // because double-buffered
 
@@ -181,34 +187,33 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pDebugOverlay->frameData(PMONITOR);
     }
 
-    // Hack: only check when monitor with top hz refreshes, saves a bit of resources.
-    // This is for stuff that should be run every frame
-    if (PMONITOR->ID == pMostHzMonitor->ID) {
-        g_pCompositor->sanityCheckWorkspaces();
-        g_pAnimationManager->tick();
-        g_pCompositor->cleanupFadingOut();
-
-        HyprCtl::tickHyprCtl(); // so that we dont get that race condition multithread bullshit
-
-        g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
-
-        if (g_pConfigManager->m_bWantsMonitorReload)
-            g_pConfigManager->performMonitorReload();
-
-        g_pHyprRenderer->ensureCursorRenderingMode(); // so that the cursor gets hidden/shown if the user requested timeouts
-    }
-
     if (PMONITOR->framesToSkip > 0) {
         PMONITOR->framesToSkip -= 1;
 
         if (!PMONITOR->noFrameSchedule)
-            wlr_output_schedule_frame(PMONITOR->output);
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR);
         else {
             Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
         }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
         return;
     }
+
+    // checks //
+    if (PMONITOR->ID == pMostHzMonitor->ID || !*PNOVFR) {  // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
+        g_pCompositor->sanityCheckWorkspaces();
+        g_pAnimationManager->tick();
+
+        HyprCtl::tickHyprCtl();  // so that we dont get that race condition multithread bullshit
+
+        g_pConfigManager->dispatchExecOnce();  // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
+
+        if (g_pConfigManager->m_bWantsMonitorReload)
+            g_pConfigManager->performMonitorReload();
+
+        g_pHyprRenderer->ensureCursorRenderingMode();  // so that the cursor gets hidden/shown if the user requested timeouts
+    }
+    //       //
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -228,10 +233,16 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
     }
 
+    // we need to cleanup fading out when rendering the appropriate context
+    g_pCompositor->cleanupFadingOut(PMONITOR->ID);
+
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && PMONITOR->forceFullFrames == 0 && damageBlinkCleanup == 0) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
-        wlr_output_schedule_frame(PMONITOR->output); // we update shit at the monitor's Hz so we need to schedule frames because rollback wont
+
+        if (*PDAMAGEBLINK || *PNOVFR)
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+
         return;
     }
 
@@ -266,7 +277,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     // potentially can save on resources.
 
     g_pHyprOpenGL->begin(PMONITOR, &damage);
-    g_pHyprOpenGL->clear(CColor(100, 11, 11, 255));
+    g_pHyprOpenGL->clear(CColor(17, 17, 17, 255));
     g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
     g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
@@ -319,7 +330,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     wlr_output_commit(PMONITOR->output);
 
-    wlr_output_schedule_frame(PMONITOR->output);
+    if (*PDAMAGEBLINK || *PNOVFR)
+        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;
@@ -353,8 +365,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     if (!BACKUPMON) {
         Debug::log(CRIT, "No monitors! Unplugged last! Exiting.");
-        g_pCompositor->cleanupExit();
-        exit(1);
+        g_pCompositor->cleanup();
         return;
     }
 
@@ -386,7 +397,6 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](std::unique_ptr<SMonitor>& el) { return el.get() == pMonitor; }));
 
-    // update the pMostHzMonitor
     if (pMostHzMonitor == pMonitor) {
         int mostHz = 0;
         SMonitor* pMonitorMostHz = nullptr;

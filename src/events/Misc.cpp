@@ -158,3 +158,9 @@ void Events::listener_InhibitDeactivate(wl_listener* listener, void* data) {
 void Events::listener_RendererDestroy(wl_listener* listener, void* data) {
     Debug::log(LOG, "!!Renderer destroyed!!");
 }
+
+void Events::listener_sessionActive(wl_listener* listener, void* data) {
+    Debug::log(LOG, "Session got activated!");
+
+    g_pCompositor->m_bSessionActive = true;
+}

@@ -12,12 +12,22 @@ bool ignoreSudo = false;
 int main(int argc, char** argv) {
 
     if (!getenv("XDG_RUNTIME_DIR"))
-        RIP("XDG_RUNTIME_DIR not set!");
+        throw std::runtime_error("XDG_RUNTIME_DIR is not set!");
 
     // parse some args
+    std::string configPath;
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--i-am-really-stupid"))
             ignoreSudo = true;
+        else if ((!strcmp(argv[i], "-c") || !strcmp(argv[i], "--config")) && argc >= i + 2) {
+            configPath = std::string(argv[++i]);
+            Debug::log(LOG, "Using config location %s.", configPath.c_str());
+        } else {
+            std::cout << "Hyprland usage: Hyprland [arg [...]].\n\nArguments:\n" <<
+                "--help         -h | Show this help message\n" <<
+                "--config       -c | Specify config file to use\n";
+            return 1;
+        }
     }
 
     system("mkdir -p /tmp/hypr");
@@ -37,6 +47,7 @@ int main(int argc, char** argv) {
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
     g_pCompositor = std::make_unique<CCompositor>(); 
+    g_pCompositor->explicitConfigPath = configPath;
 
     Debug::log(LOG, "Hyprland init finished.");
 
@@ -46,7 +57,7 @@ int main(int argc, char** argv) {
     // If we are here it means we got yote.
     Debug::log(LOG, "Hyprland reached the end.");
 
-    g_pCompositor->cleanupExit();
+    g_pCompositor->cleanup();
 
     return EXIT_SUCCESS;
 }

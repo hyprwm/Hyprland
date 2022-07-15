@@ -25,9 +25,13 @@ struct SLayerSurface {
 
     int                     monitorID = -1;
 
+    std::string             szNamespace = "";
+
     CAnimatedVariable       alpha;
     bool                    fadingOut = false;
     bool                    readyToDelete = false;
+
+    bool                    forceBlur = false;
 
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) {
@@ -60,6 +64,26 @@ struct SRenderData {
 
     // for custom round values
     int rounding = -1; // -1 means not set
+
+    // for blurring
+    bool blur = false;
+
+    // for windows that animate poorly
+    bool squishOversized = false;
+};
+
+struct SExtensionFindingData {
+    Vector2D origin;
+    Vector2D vec;
+    wlr_surface** found;
+};
+
+struct SStringRuleNames {
+    std::string layout = "";
+    std::string model = "";
+    std::string variant = "";
+    std::string options = "";
+    std::string rules = "";
 };
 
 struct SKeyboard {
@@ -73,7 +97,7 @@ struct SKeyboard {
 
     std::string name = "";
 
-    xkb_rule_names currentRules = {0};
+    SStringRuleNames currentRules;
     int repeatRate = 0;
     int repeatDelay = 0;
     int numlockOn = -1;
@@ -93,6 +117,8 @@ struct SMouse {
     pixman_region32_t confinedTo;
 
     std::string name = "";
+
+    bool        virt = false;
 
     DYNLISTENER(commitConstraint);
     DYNLISTENER(destroyMouse);
@@ -220,4 +246,26 @@ struct STabletPad {
     bool operator==(const STabletPad& b) {
         return wlrTabletPadV2 == b.wlrTabletPadV2;
     }
+};
+
+struct SIdleInhibitor {
+    wlr_idle_inhibitor_v1* pWlrInhibitor = nullptr;
+    CWindow* pWindow = nullptr;
+
+    DYNLISTENER(Destroy);
+
+    bool operator==(const SIdleInhibitor& b) {
+        return pWlrInhibitor == b.pWlrInhibitor;
+    }
+};
+
+struct SSwipeGesture {
+    CWorkspace*  pWorkspaceBegin = nullptr;
+
+    double       delta = 0;
+
+    float        avgSpeed = 0;
+    int          speedPoints = 0;
+
+    SMonitor*    pMonitor = nullptr;
 };

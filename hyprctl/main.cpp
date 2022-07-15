@@ -232,6 +232,11 @@ int main(int argc, char** argv) {
         fullRequest += ARGS[i] + " ";
     }
 
+    if (fullRequest.empty()) {
+        printf("%s\n", USAGE.c_str());
+        return 1;
+    }
+
     fullRequest.pop_back(); // remove trailing space
 
     fullRequest = fullArgs + "/" + fullRequest;

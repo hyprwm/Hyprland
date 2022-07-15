@@ -1,0 +1,138 @@
+#compdef hyprctl
+
+_hyprctl_monitors() {
+	local -a monitors
+	hyprctl monitors |
+	while read line; do
+		if [[ "$line" == "Monitor"* ]]; then
+				read _ CON _ ID <<< ${line}
+				read RES
+				# ${ID//):}
+				monitors+="${ID//):}:$CON $RES"
+		fi
+	done
+	_describe -t monitors "monitor" monitors
+}
+
+_hyprctl_clients() {
+	local -a windows
+	hyprctl clients |
+	while read line; do
+		if [[ "$line" == "class:"* ]]; then
+				read _ CLASS <<< ${line}
+				read _ TITLE
+				windows+="$CLASS:$TITLE"
+		fi
+	done
+	_describe -t windows "window" windows
+}
+
+_hyprctl_workspaces() {
+	local -a workspaces
+	hyprctl workspaces |
+	while read line; do
+		if [[ "$line" == "workspace"* ]]; then
+				read _ _ ID _ _ _ MON <<< ${line}
+				workspaces+="$ID:on monitor $MON"
+		fi
+	done
+	_describe -t workspaces "workspace" workspaces
+}
+
+_hyprctl_fullscreen() {
+	local -a fullscreen=("0:Real fullscreen" "1:Maximize")
+	_describe -t fullscreen "fullscreen" fullscreen
+}
+
+_hyprctl_direction() {
+	local -a directions=("l:Left" "r:Right" "u:Up" "d:Down")
+	_describe -t directions "direction" directions
+}
+
+_hyprctl_movewindow() {
+	local -a moves=("l:Left" "r:Right" "u:Up" "d:Down" "mon\:l:Left" "mon\:r:Right")
+	hyprctl monitors |
+	while read line; do
+		if [[ "$line" == "Monitor"* ]]; then
+				read _ CON _ ID <<< ${line}
+				read RES
+				moves+="mon\:${ID//):}:$CON $RES"
+		fi
+	done
+	_describe -t moves "movewindow" moves
+}
+
+_hyprctl_corner() {
+	local -a corners=("0:bottom left" "1:bottom right" "2:top right" "3:top left")
+	_describe -t corners "corners" corners
+}
+
+_hyprctl_monmove() {
+	local -a moves=("l:Left" "r:Right" "u:Up" "d:Down")
+	hyprctl monitors |
+	while read line; do
+		if [[ "$line" == "Monitor"* ]]; then
+				read _ CON _ ID <<< ${line}
+				read RES
+				moves+="${ID//):}:$CON $RES"
+		fi
+	done
+	_describe -t moves "movewindow" moves
+}
+
+# Main Function
+_hyprctl() {:
+	local -a hyprctl_all_commands=(
+	"monitors" "workspaces" "clients" "activewindow" "layers" "devices" "dispatch" "keyword" "version" "kill" "reload"
+	)
+
+	local -a dispatch_all_commands=(
+	"exec" "killactive" "workspace" "movetoworkspace" "movetoworkspacesilent" "togglefloating" "fullscreen" "pseudo" "movefocus" "movewindow" "resizeactive" "moveactive" "cyclenext" "focuswindowbyclass" "focusmonitor" "splitratio" "movecursortocorner" "workspaceopt" "exit" "forcerendererreload" "movecurrentworkspacetomonitor" "moveworkspacetomonitor" "togglespecialworkspace"
+	)
+
+	local -a dispatch_workspace_commands=("workspace" "movetoworkspace" "movetoworkspacesilent")
+	local -a dispatch_monmove_commands=("movecurrentworkspacetomonitor" "focusmonitor")
+	local -a dispatch_direction_commands=("movefocus")
+
+	if [[ $words[2] == "dispatch" ]]; then
+
+		if [[ "${#words[@]}" == 3 ]]; then
+			compadd $dispatch_all_commands
+
+		elif [[ "${#words[@]}" == 4 ]]; then
+			case $words[3] in
+				(${(~j.|.)dispatch_workspace_commands})
+					_hyprctl_workspaces
+				;;
+				"fullscreen")
+					_hyprctl_fullscreen
+				;;
+				"movefocus")
+					_hyprctl_direction
+				;;
+				"exec")
+					echo test >> testy
+				;;
+				"movewindow")
+					_hyprctl_movewindow
+				;;
+				"focuswindowbyclass")
+					_hyprctl_clients
+				;;
+				"movecursortocorner")
+					_hyprctl_corner
+				;;
+				(${(~j.|.)dispatch_monmove_commands})
+					_hyprctl_monmove
+				;;
+				"workspaceopt")
+					compadd allfloat allpseudo
+				;;
+			esac
+		fi
+	fi
+
+	if [[ "${#words[@]}" == 2 ]]; then
+		compadd $hyprctl_all_commands
+	fi
+}

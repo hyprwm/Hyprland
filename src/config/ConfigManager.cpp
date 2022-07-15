@@ -12,8 +12,15 @@
 
 CConfigManager::CConfigManager() {
     setDefaultVars();
-    static const char* const ENVHOME = getenv("HOME");
-    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+
+    std::string CONFIGPATH;
+    if (g_pCompositor->explicitConfigPath == "") {
+        static const char* const ENVHOME = getenv("HOME");
+        CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    } else {
+        CONFIGPATH = g_pCompositor->explicitConfigPath;
+    }
+
     configPaths.emplace_back(CONFIGPATH);
 
     Debug::disableLogs = &configValues["debug:disable_logs"].intValue;
@@ -801,28 +808,37 @@ void CConfigManager::loadConfigLoadVars() {
     // paths
     configPaths.clear();
 
+    std::string CONFIGPATH;
+
     static const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPARENTPATH = ENVHOME + (std::string) "/.config/hypr/";
-    const std::string CONFIGPATH = CONFIGPARENTPATH + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
+
+    if (g_pCompositor->explicitConfigPath == "") {
+        CONFIGPATH = CONFIGPARENTPATH + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
+    } else {
+        CONFIGPATH = g_pCompositor->explicitConfigPath;
+    }
 
     configPaths.push_back(CONFIGPATH);
-
+ 
     std::ifstream ifs;
     ifs.open(CONFIGPATH);
 
     if (!ifs.good()) {
-        Debug::log(WARN, "Config reading error. (No file? Attempting to generate, backing up old one if exists)");
-        try {
-            std::filesystem::rename(CONFIGPATH, CONFIGPATH + ".backup");
-        } catch(...) { /* Probably doesn't exist */}
+        if(g_pCompositor->explicitConfigPath == "") {
+            Debug::log(WARN, "Config reading error. (No file? Attempting to generate, backing up old one if exists)");
+            try {
+                std::filesystem::rename(CONFIGPATH, CONFIGPATH + ".backup");
+            } catch(...) { /* Probably doesn't exist */}
 
-        try {
-            if (!std::filesystem::is_directory(CONFIGPARENTPATH))
-                std::filesystem::create_directories(CONFIGPARENTPATH);
-        }
-        catch (...) {
-            parseError = "Broken config file! (Could not create directory)";
-            return;
+            try {
+                if (!std::filesystem::is_directory(CONFIGPARENTPATH))
+                    std::filesystem::create_directories(CONFIGPARENTPATH);
+            }
+            catch (...) {
+                parseError = "Broken config file! (Could not create directory)";
+                return;
+            }
         }
 
         std::ofstream ofs;

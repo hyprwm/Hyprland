@@ -579,6 +579,12 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
 }
 
 void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
+    if (value.find("remove,") == 0) {
+        const auto TOREMOVE = value.substr(7);
+        m_dBlurLSNamespaces.erase(std::remove(m_dBlurLSNamespaces.begin(), m_dBlurLSNamespaces.end(), TOREMOVE));
+        return;
+    }
+
     m_dBlurLSNamespaces.emplace_back(value);
 }
 

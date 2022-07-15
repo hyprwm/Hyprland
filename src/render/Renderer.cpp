@@ -17,11 +17,15 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     else                                                                                              //  here we clamp to 2, these might be some tiny specks
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
     
-    // squish all oversized
+    // squish all oversized but dont in some cases, jesus christ this is a mess
+    // TODO: this shouldn't be done this way. Custom UV here as well.
+    // this is fucking horrible
+    // Issue: will cause oversized apps with reserved area to overflow from the window box. (see chromium on ozone wayland)
+    const auto PRESQUISHSIZE = Vector2D(windowBox.width, windowBox.height);
     if (RDATA->squishOversized) {
         if (x + windowBox.width > RDATA->w)
             windowBox.width = RDATA->w - x;
-        if (y + windowBox.height > RDATA->h) 
+        if (y + windowBox.height > RDATA->h)
             windowBox.height = RDATA->h - y;
     }
     
@@ -47,6 +51,12 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         if (RDATA->surface && wlr_surface_is_xdg_surface(RDATA->surface)) {
             wlr_box geo;
             wlr_xdg_surface_get_geometry(wlr_xdg_surface_from_wlr_surface(RDATA->surface), &geo);
+
+            // TODO: continuation of the above madness.
+            if (geo.x != 0 || geo.y != 0) {
+                windowBox.width = PRESQUISHSIZE.x;
+                windowBox.height = PRESQUISHSIZE.y;
+            }
 
             windowBox.x -= geo.x;
             windowBox.y -= geo.y;
@@ -182,7 +192,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
     renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;
     renderdata.blur = true; // if it shouldn't, it will be ignored later
-    renderdata.squishOversized = pWindow->m_vRealPosition.isBeingAnimated();
 
     // apply window special data
     if (pWindow->m_sSpecialRenderData.alphaInactive == -1)
@@ -202,6 +211,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
             wlr_box geom;
             wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
+            // first, check for poorly sized windows.
+
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D((double)geom.x / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)geom.y / (double)pWindow->m_uSurface.xdg->surface->current.height);
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D((double)(geom.width + geom.x) / (double)pWindow->m_uSurface.xdg->surface->current.width, (double)(geom.y + geom.height) / (double)pWindow->m_uSurface.xdg->surface->current.height);
 
@@ -209,6 +220,19 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
                 // No special UV mods needed
                 g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
                 g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+            }
+
+            // then, if the surface is too big, modify the pos UV
+            if (geom.width > renderdata.w + 1 || geom.height > renderdata.h + 1) {
+                const auto OFF = Vector2D(renderdata.w / (double)geom.width, renderdata.h / (double)geom.height);
+
+                if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D(-1, -1))
+                    g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(0, 0);
+
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(
+                    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x * ((double)renderdata.w / ((double)geom.width / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x)),
+                    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y * ((double)renderdata.h / ((double)geom.height / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y))
+                );
             }
         } else {
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
@@ -225,6 +249,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         if (!pWindow->m_bIsX11) {
             renderdata.dontRound = false;  // restore dontround
             renderdata.pMonitor = pMonitor;
+            renderdata.squishOversized = false; // don't squish popups
             wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
         }
     }

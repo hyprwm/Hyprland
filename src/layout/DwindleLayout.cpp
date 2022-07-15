@@ -548,8 +548,6 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
     pWindow->m_bIsFullscreen = on;
     PWORKSPACE->m_bHasFullscreenWindow = !PWORKSPACE->m_bHasFullscreenWindow;
 
-    g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
-
     g_pEventManager->postEvent(SHyprIPCEvent("fullscreen", std::to_string((int)on)));
 
     if (!pWindow->m_bIsFullscreen) {
@@ -593,6 +591,8 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
             applyNodeDataToWindow(&fakeNode);
         }
     }
+
+    g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 

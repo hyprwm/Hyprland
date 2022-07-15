@@ -14,4 +14,9 @@ namespace HyprCtl {
     inline  std::string request = "";
 
     inline std::ifstream requestStream;
+
+    enum eHyprCtlOutputFormat {
+        FORMAT_NORMAL = 0,
+        FORMAT_JSON
+    };
 };

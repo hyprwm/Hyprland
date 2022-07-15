@@ -41,35 +41,48 @@ void CKeybindManager::addKeybind(SKeybind kb) {
 
 void CKeybindManager::removeKeybind(uint32_t mod, const std::string& key) {
     for (auto it = m_lKeybinds.begin(); it != m_lKeybinds.end(); ++it) {
-        if (it->modmask == mod && it->key == key) {
+        if (isNumber(key) && std::stoi(key) > 9) {
+            const auto KEYNUM = std::stoi(key);
+
+            if (it->modmask == mod && it->keycode == KEYNUM) {
+                it = m_lKeybinds.erase(it);
+
+                if (it == m_lKeybinds.end())
+                    break;
+            }
+        }
+        else if (it->modmask == mod && it->key == key) {
             it = m_lKeybinds.erase(it);
+
+            if (it == m_lKeybinds.end())
+                break;
         }
     }
 }
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
-    if (mods.find("SHIFT") != std::string::npos)
+    if (mods.contains("SHIFT"))
         modMask |= WLR_MODIFIER_SHIFT;
-    if (mods.find("CAPS") != std::string::npos)
+    if (mods.contains("CAPS"))
         modMask |= WLR_MODIFIER_CAPS;
-    if (mods.find("CTRL") != std::string::npos || mods.find("CONTROL") != std::string::npos)
+    if (mods.contains("CTRL") || mods.contains("CONTROL"))
         modMask |= WLR_MODIFIER_CTRL;
-    if (mods.find("ALT") != std::string::npos)
+    if (mods.contains("ALT"))
         modMask |= WLR_MODIFIER_ALT;
-    if (mods.find("MOD2") != std::string::npos)
+    if (mods.contains("MOD2"))
         modMask |= WLR_MODIFIER_MOD2;
-    if (mods.find("MOD3") != std::string::npos)
+    if (mods.contains("MOD3"))
         modMask |= WLR_MODIFIER_MOD3;
-    if (mods.find("SUPER") != std::string::npos || mods.find("WIN") != std::string::npos || mods.find("LOGO") != std::string::npos || mods.find("MOD4") != std::string::npos)
+    if (mods.contains("SUPER") || mods.contains("WIN") || mods.contains("LOGO") || mods.contains("MOD4"))
         modMask |= WLR_MODIFIER_LOGO;
-    if (mods.find("MOD5") != std::string::npos)
+    if (mods.contains("MOD5"))
         modMask |= WLR_MODIFIER_MOD5;
 
     return modMask;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key) {
+bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key, const int& keycode) {
     bool found = false;
 
     if (handleInternalKeybinds(key))
@@ -82,15 +95,24 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap)
             continue;
 
-        // oMg such performance hit!!11!
-        // this little maneouver is gonna cost us 4µs
-        const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
-        const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
-        // small TODO: fix 0-9 keys and other modified ones with shift
-        
-        if (key != KBKEY && key != KBKEYUPPER)
-            continue;
 
+        if (k.keycode != -1) {
+            if (keycode != k.keycode)
+                continue;
+
+        } else {
+            if (key == 0)
+                continue;  // this is a keycode check run
+
+            // oMg such performance hit!!11!
+            // this little maneouver is gonna cost us 4µs
+            const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+            const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
+            // small TODO: fix 0-9 keys and other modified ones with shift
+
+            if (key != KBKEY && key != KBKEYUPPER)
+                continue;
+        }
 
         const auto DISPATCHER = m_mDispatchers.find(k.handler);
 
@@ -99,7 +121,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
             Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %d)", modmask, KBKEYUPPER);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %d)", modmask, key);
             DISPATCHER->second(k.arg);
         }
 
@@ -118,11 +140,11 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     if (PSESSION) {
         const int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
         wlr_session_change_vt(PSESSION, TTY);
+        g_pCompositor->m_bSessionActive = false;
 
         for (auto& m : g_pCompositor->m_vMonitors) {
-            g_pHyprOpenGL->destroyMonitorResources(m.get());  // mark resources as unusable anymore
             m->noFrameSchedule = true;
-            m->framesToSkip = 2;
+            m->framesToSkip = 1;
         }
 
         Debug::log(LOG, "Switched to VT %i, destroyed all render data, frames to skip for each: 2", TTY);
@@ -231,9 +253,6 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
             moveActiveToWorkspace(std::to_string(g_pCompositor->getMonitorFromID(ACTIVEWINDOW->m_iMonitorID)->activeWorkspace));
         }
 
-        ACTIVEWINDOW->m_vRealPosition.setValue(ACTIVEWINDOW->m_vRealPosition.vec() + Vector2D(5, 5));
-        ACTIVEWINDOW->m_vSize = ACTIVEWINDOW->m_vRealPosition.vec() - Vector2D(10, 10);
-
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(ACTIVEWINDOW);
     }
 }
@@ -253,7 +272,14 @@ void CKeybindManager::changeworkspace(std::string args) {
     int workspaceToChangeTo = 0;
     std::string workspaceName = "";
 
-    workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
+    if (args.find("[internal]") == 0) {
+        workspaceToChangeTo = std::stoi(args.substr(10));
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+        if (PWORKSPACE)
+            workspaceName = PWORKSPACE->m_szName;
+    } else {
+        workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
+    }
 
     if (workspaceToChangeTo == INT_MAX) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
@@ -277,8 +303,6 @@ void CKeybindManager::changeworkspace(std::string args) {
             const auto OLDWORKSPACEID = PMONITOR->activeWorkspace;
 
             // change it
-            PMONITOR->specialWorkspaceOpen = false;
-
             if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
                 PMONITOR->activeWorkspace = workspaceToChangeTo;
             else
@@ -451,7 +475,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     // undo the damage if we are moving to the special workspace
     if (WORKSPACEID == SPECIAL_WORKSPACE_ID) {
-        changeworkspace(std::to_string(OLDWORKSPACE->m_iID));
+        changeworkspace("[internal]" + std::to_string(OLDWORKSPACE->m_iID));
         OLDWORKSPACE->startAnim(true, true, true);
         toggleSpecialWorkspace("");
         g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false, true);
@@ -503,8 +527,8 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
 
-    changeworkspace(std::to_string(OLDWORKSPACEIDONMONITOR));
-    changeworkspace(std::to_string(OLDWORKSPACEIDRETURN));
+    changeworkspace("[internal]" + std::to_string(OLDWORKSPACEIDONMONITOR));
+    changeworkspace("[internal]" + std::to_string(OLDWORKSPACEIDRETURN));
 
     // revert animations
     PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(0,0));
@@ -663,7 +687,7 @@ void CKeybindManager::focusMonitor(std::string arg) {
         }
 
         if (monID > -1 && monID < (int)g_pCompositor->m_vMonitors.size()) {
-            changeworkspace(std::to_string(g_pCompositor->getMonitorFromID(monID)->activeWorkspace));
+            changeworkspace("[internal]" + std::to_string(g_pCompositor->getMonitorFromID(monID)->activeWorkspace));
         } else {
             Debug::log(ERR, "Error in focusMonitor: invalid arg 1");
         }
@@ -683,7 +707,7 @@ void CKeybindManager::focusMonitor(std::string arg) {
         } else {
             for (auto& m : g_pCompositor->m_vMonitors) {
                 if (m->szName == arg) {
-                    changeworkspace(std::to_string(m->activeWorkspace));
+                    changeworkspace("[internal]" + std::to_string(m->activeWorkspace));
                     return;
                 }
             }
@@ -788,20 +812,20 @@ void CKeybindManager::workspaceOpt(std::string args) {
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
-    g_pCompositor->cleanupExit();
-    exit(0);
+    g_pCompositor->cleanup();
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
-    if (!isNumber(args) && !isDirection(args)) {
-        Debug::log(ERR, "moveCurrentWorkspaceToMonitor arg not a number or direction!");
-        return;
-    }
+    SMonitor* PMONITOR = nullptr;
 
-    const auto PMONITOR = isDirection(args) ? g_pCompositor->getMonitorInDirection(args[0]) : g_pCompositor->getMonitorFromID(std::stoi(args));
-
-    if (!PMONITOR) {
-        Debug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist");
+    try {
+        if (!isNumber(args) && !isDirection(args)) {
+            PMONITOR = g_pCompositor->getMonitorFromName(args);
+        } else {
+            PMONITOR = isDirection(args) ? g_pCompositor->getMonitorInDirection(args[0]) : g_pCompositor->getMonitorFromID(std::stoi(args));
+        }
+    } catch (std::exception& e) {
+        Debug::log(LOG, "moveCurrentWorkspaceToMonitor: caught exception in monitor", e.what());
         return;
     }
 
@@ -815,18 +839,25 @@ void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
 }
 
 void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
-    if (args.find_first_of(' ') == std::string::npos)
+    if (!args.contains(' '))
         return;
 
     std::string workspace = args.substr(0, args.find_first_of(' '));
     std::string monitor = args.substr(args.find_first_of(' ') + 1);
 
-    if (!isNumber(monitor) && !isDirection(monitor)) {
-        Debug::log(ERR, "moveWorkspaceToMonitor monitor arg not a number or direction!");
+    SMonitor* PMONITOR = nullptr;
+
+    try {
+        if (!isNumber(monitor) && !isDirection(monitor)) {
+            PMONITOR = g_pCompositor->getMonitorFromName(monitor);
+        } else {
+            PMONITOR = isDirection(monitor) ? g_pCompositor->getMonitorInDirection(monitor[0]) : g_pCompositor->getMonitorFromID(std::stoi(monitor));
+        }
+    } catch (std::exception& e) {
+        Debug::log(LOG, "moveWorkspaceToMonitor: caught exception in monitor", e.what());
         return;
     }
-
-    const auto PMONITOR = isDirection(monitor) ? g_pCompositor->getMonitorInDirection(monitor[0]) : g_pCompositor->getMonitorFromID(std::stoi(monitor));
+    
 
     if (!PMONITOR){
         Debug::log(ERR, "Ignoring moveWorkspaceToMonitor: monitor doesnt exist");
@@ -882,10 +913,15 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
             }
         }
     } else {
+        auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID);
+
+        if (!PSPECIALWORKSPACE) {
+            // ??? happens sometimes...?
+            PSPECIALWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(g_pCompositor->m_pLastMonitor->ID, "special", true)).get();
+        }
+
         g_pCompositor->m_pLastMonitor->specialWorkspaceOpen = true;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
-
-        const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID);
 
         PSPECIALWORKSPACE->startAnim(true, true);
         PSPECIALWORKSPACE->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
@@ -910,7 +946,7 @@ void CKeybindManager::forceRendererReload(std::string args) {
 }
 
 void CKeybindManager::resizeActive(std::string args) {
-    if (args.find_first_of(' ') == std::string::npos)
+    if (!args.contains(' '))
         return;
 
     std::string x = args.substr(0, args.find_first_of(' '));
@@ -959,7 +995,7 @@ void CKeybindManager::resizeActive(std::string args) {
 }
 
 void CKeybindManager::moveActive(std::string args) {
-    if (args.find_first_of(' ') == std::string::npos)
+    if (!args.contains(' '))
         return;
 
     std::string x = args.substr(0, args.find_first_of(' '));
@@ -1007,11 +1043,14 @@ void CKeybindManager::moveActive(std::string args) {
     g_pLayoutManager->getCurrentLayout()->moveActiveWindow(Vector2D(X, Y));
 }
 
-void CKeybindManager::circleNext(std::string) {
+void CKeybindManager::circleNext(std::string arg) {
     if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
         return;
 
-    g_pCompositor->focusWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow));
+    if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
+        g_pCompositor->focusWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow));
+    else
+        g_pCompositor->focusWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow));
 
     const auto MIDPOINT = g_pCompositor->m_pLastWindow->m_vRealPosition.goalv() + g_pCompositor->m_pLastWindow->m_vRealSize.goalv() / 2.f;
 
@@ -1043,7 +1082,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
         Debug::log(LOG, "Focusing to window name: %s", w->m_szTitle.c_str());
 
-        changeworkspace(std::to_string(w->m_iWorkspaceID));
+        changeworkspace("[internal]" + std::to_string(w->m_iWorkspaceID));
 
         g_pCompositor->focusWindow(w.get());
 

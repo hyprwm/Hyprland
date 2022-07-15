@@ -12,8 +12,15 @@
 
 CConfigManager::CConfigManager() {
     setDefaultVars();
-    static const char* const ENVHOME = getenv("HOME");
-    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+
+    std::string CONFIGPATH;
+    if (g_pCompositor->explicitConfigPath == "") {
+        static const char* const ENVHOME = getenv("HOME");
+        CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    } else {
+        CONFIGPATH = g_pCompositor->explicitConfigPath;
+    }
+
     configPaths.emplace_back(CONFIGPATH);
 
     Debug::disableLogs = &configValues["debug:disable_logs"].intValue;
@@ -36,6 +43,10 @@ void CConfigManager::setDefaultVars() {
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
     configValues["general:cursor_inactive_timeout"].intValue = 0;
+    
+    configValues["misc:disable_hyprland_logo"].intValue = 0;
+    configValues["misc:disable_splash_rendering"].intValue = 0;
+    configValues["misc:no_vfr"].intValue = 1;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;
@@ -66,6 +77,7 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:force_split"].intValue = 0;
     configValues["dwindle:preserve_split"].intValue = 0;
     configValues["dwindle:special_scale_factor"].floatValue = 0.8f;
+    configValues["dwindle:split_width_multiplier"].floatValue = 1.0f;
 
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;
@@ -102,6 +114,13 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:clickfinger_behavior"].intValue = 0;
     configValues["input:touchpad:middle_button_emulation"].intValue = 0;
     configValues["input:touchpad:tap-to-click"].intValue = 1;
+    configValues["input:touchpad:drag_lock"].intValue = 0;
+
+    configValues["gestures:workspace_swipe"].intValue = 0;
+    configValues["gestures:workspace_swipe_distance"].intValue = 300;
+    configValues["gestures:workspace_swipe_invert"].intValue = 1;
+    configValues["gestures:workspace_swipe_min_speed_to_force"].intValue = 30;
+    configValues["gestures:workspace_swipe_cancel_ratio"].floatValue = 0.5f;
 
     configValues["input:follow_mouse"].intValue = 1;
 
@@ -124,6 +143,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["clickfinger_behavior"].intValue = 0;
     cfgValues["middle_button_emulation"].intValue = 0;
     cfgValues["tap-to-click"].intValue = 1;
+    cfgValues["drag_lock"].intValue = 0;
 }
 
 void CConfigManager::init() {
@@ -147,17 +167,15 @@ void CConfigManager::init() {
 
 void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::string& VALUE) {
     if (configValues.find(COMMAND) == configValues.end()) {
-        if (COMMAND[0] == '$') {
-            // register a dynamic var
-            Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
-            configDynamicVars[COMMAND.substr(1)] = VALUE;
-        } else {
-            parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
-        }
+        if (COMMAND.find("device:") != 0 /* devices parsed later */) {
+            if (COMMAND[0] == '$') {
+                // register a dynamic var
+                Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
+                configDynamicVars[COMMAND.substr(1)] = VALUE;
+            } else {
+                parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
+            }
 
-        if (COMMAND.find("device:") == 0 /* devices parsed later */) {
-            parseError = "";
-        } else {
             return;
         }
     }
@@ -191,7 +209,12 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                 // Values with 0x are hex
                 const auto VALUEWITHOUTHEX = VALUE.substr(2);
                 CONFIGENTRY->intValue = stol(VALUEWITHOUTHEX, nullptr, 16);
-            } else
+            } else if (VALUE.find("true") == 0 || VALUE.find("on") == 0 || VALUE.find("yes") == 0) {
+                CONFIGENTRY->intValue = 1;
+            } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
+                CONFIGENTRY->intValue = 0;
+            }
+            else
                 CONFIGENTRY->intValue = stol(VALUE);
         } catch (...) {
             Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
@@ -354,7 +377,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
     newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));
 
-    if (curitem.find_first_of('@') != std::string::npos)
+    if (curitem.contains("@"))
         newrule.refreshRate = stof(curitem.substr(curitem.find_first_of('@') + 1));
 
     nextItem();
@@ -503,8 +526,13 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         return;
     }
 
-    if (KEY != "")
-        g_pKeybindManager->addKeybind(SKeybind{KEY, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+    if (KEY != "") {
+        if (isNumber(KEY) && std::stoi(KEY) > 9)
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+        else
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+    }
+        
 }
 
 void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {
@@ -550,6 +578,16 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
 
 }
 
+void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
+    if (value.find("remove,") == 0) {
+        const auto TOREMOVE = value.substr(7);
+        m_dBlurLSNamespaces.erase(std::remove(m_dBlurLSNamespaces.begin(), m_dBlurLSNamespaces.end(), TOREMOVE));
+        return;
+    }
+
+    m_dBlurLSNamespaces.emplace_back(value);
+}
+
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
 
     const auto DISPLAY = value.substr(0, value.find_first_of(','));
@@ -574,6 +612,23 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
     static const char* const ENVHOME = getenv("HOME");
 
     auto value = rawpath;
+
+    if (value.length() < 2) {
+        Debug::log(ERR, "source= path garbage");
+        parseError = "source path " + value + " bogus!";
+        return;
+    }
+
+    if (value[0] == '.') {
+        auto currentDir = configCurrentPath.substr(0, configCurrentPath.find_last_of('/'));
+
+        if (value[1] == '.') {
+            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+            value.replace(0, 2, parentDir);
+        } else {
+            value.replace(0, 1, currentDir);
+        }
+    }
 
     if (value[0] == '~') {
         value.replace(0, 1, std::string(ENVHOME));
@@ -651,6 +706,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
     else if (COMMAND == "source") handleSource(COMMAND, VALUE);
     else if (COMMAND == "submap") handleSubmap(COMMAND, VALUE);
+    else if (COMMAND == "blurls") handleBlurLS(COMMAND, VALUE);
     else
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 
@@ -663,7 +719,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
         // Update window border colors
-        g_pCompositor->updateAllWindowsBorders();
+        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         return retval;
     }
@@ -703,7 +759,7 @@ void CConfigManager::parseLine(std::string& line) {
         line = line.substr(1);
     }
 
-    if (line.find(" {") != std::string::npos) {
+    if (line.contains(" {")) {
         auto cat = line.substr(0, line.find(" {"));
         transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
         if (currentCategory.length() != 0) {
@@ -717,7 +773,7 @@ void CConfigManager::parseLine(std::string& line) {
         return;
     }
 
-    if (line.find("}") != std::string::npos && currentCategory != "") {
+    if (line.contains("}") && currentCategory != "") {
         currentCategory = "";
         return;
     }
@@ -753,32 +809,42 @@ void CConfigManager::loadConfigLoadVars() {
     m_mAdditionalReservedAreas.clear();
     configDynamicVars.clear();
     deviceConfigs.clear();
+    m_dBlurLSNamespaces.clear();
 
     // paths
     configPaths.clear();
 
+    std::string CONFIGPATH;
+
     static const char* const ENVHOME = getenv("HOME");
     const std::string CONFIGPARENTPATH = ENVHOME + (std::string) "/.config/hypr/";
-    const std::string CONFIGPATH = CONFIGPARENTPATH + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
+
+    if (g_pCompositor->explicitConfigPath == "") {
+        CONFIGPATH = CONFIGPARENTPATH + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
+    } else {
+        CONFIGPATH = g_pCompositor->explicitConfigPath;
+    }
 
     configPaths.push_back(CONFIGPATH);
-
+ 
     std::ifstream ifs;
     ifs.open(CONFIGPATH);
 
     if (!ifs.good()) {
-        Debug::log(WARN, "Config reading error. (No file? Attempting to generate, backing up old one if exists)");
-        try {
-            std::filesystem::rename(CONFIGPATH, CONFIGPATH + ".backup");
-        } catch(...) { /* Probably doesn't exist */}
+        if(g_pCompositor->explicitConfigPath == "") {
+            Debug::log(WARN, "Config reading error. (No file? Attempting to generate, backing up old one if exists)");
+            try {
+                std::filesystem::rename(CONFIGPATH, CONFIGPATH + ".backup");
+            } catch(...) { /* Probably doesn't exist */}
 
-        try {
-            if (!std::filesystem::is_directory(CONFIGPARENTPATH))
-                std::filesystem::create_directories(CONFIGPARENTPATH);
-        }
-        catch (...) {
-            parseError = "Broken config file! (Could not create directory)";
-            return;
+            try {
+                if (!std::filesystem::is_directory(CONFIGPARENTPATH))
+                    std::filesystem::create_directories(CONFIGPARENTPATH);
+            }
+            catch (...) {
+                parseError = "Broken config file! (Could not create directory)";
+                return;
+            }
         }
 
         std::ofstream ofs;
@@ -854,7 +920,7 @@ void CConfigManager::loadConfigLoadVars() {
     }
 
     // Update window border colors
-    g_pCompositor->updateAllWindowsBorders();
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     // Force the compositor to fully re-render all monitors
     for (auto& m : g_pCompositor->m_vMonitors)
@@ -1084,3 +1150,12 @@ bool CConfigManager::deviceConfigExists(const std::string& dev) {
     return it != deviceConfigs.end();
 }
 
+bool CConfigManager::shouldBlurLS(const std::string& ns) {
+    for (auto& bls : m_dBlurLSNamespaces) {
+        if (bls == ns) {
+            return true;
+        }
+    }
+
+    return false;
+}

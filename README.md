@@ -122,18 +122,18 @@ Try it out and report bugs / suggestions!
 
 <!----------------------------------------------------------------------------->
 
-[Configure]: https://github.com/vaxerski/Hyprland/wiki/Configuring-Hyprland
+[Configure]: https://github.com/hyprwm/Hyprland/wiki/Configuring-Hyprland
 [Discord]: https://discord.gg/hQ9XvMUjjr
-[Stars]: https://starchart.cc/vaxerski/Hyprland
-[Hypr]: https://github.com/vaxerski/Hypr
+[Stars]: https://starchart.cc/hyprwm/Hyprland
+[Hypr]: https://github.com/hyprwm/Hypr
 
-[Pull Requests]: https://github.com/vaxerski/Hyprland/pulls
-[Issues]: https://github.com/vaxerski/Hyprland/issues
-[Todo]: https://github.com/vaxerski/Hyprland/projects?type=beta
+[Pull Requests]: https://github.com/hyprwm/Hyprland/pulls
+[Issues]: https://github.com/hyprwm/Hyprland/issues
+[Todo]: https://github.com/hyprwm/Hyprland/projects?type=beta
 
-[Contribute]: https://github.com/vaxerski/Hyprland/wiki/Contributing-&-Debugging
-[Install]: https://github.com/vaxerski/Hyprland/wiki/Installation
-[Quick Start]: https://github.com/vaxerski/Hyprland/wiki/Quick-start
+[Contribute]: https://github.com/hyprwm/Hyprland/wiki/Contributing-&-Debugging
+[Install]: https://github.com/hyprwm/Hyprland/wiki/Installation
+[Quick Start]: https://github.com/hyprwm/Hyprland/wiki/Quick-start
 [License]: LICENSE
 
 
@@ -156,12 +156,12 @@ Try it out and report bugs / suggestions!
 
 <!----------------------------------{ Badges }--------------------------------->
 
-[Badge Workflow]: https://github.com/vaxerski/Hyprland/actions/workflows/ci.yaml/badge.svg
+[Badge Workflow]: https://github.com/hyprwm/Hyprland/actions/workflows/ci.yaml/badge.svg
 
 [Badge Discord]: https://img.shields.io/badge/Join%20the-Discord%20server-6666ff
-[Badge Issues]: https://img.shields.io/github/issues/vaxerski/Hyprland
-[Badge Pull Requests]: https://img.shields.io/github/issues-pr/vaxerski/Hyprland
-[Badge Language]: https://img.shields.io/github/languages/top/vaxerski/Hyprland
-[Badge License]: https://img.shields.io/github/license/vaxerski/Hyprland
-[Badge Lines]: https://img.shields.io/tokei/lines/github/vaxerski/Hyprland
+[Badge Issues]: https://img.shields.io/github/issues/hyprwm/Hyprland
+[Badge Pull Requests]: https://img.shields.io/github/issues-pr/hyprwm/Hyprland
+[Badge Language]: https://img.shields.io/github/languages/top/hyprwm/Hyprland
+[Badge License]: https://img.shields.io/github/license/hyprwm/Hyprland
+[Badge Lines]: https://img.shields.io/tokei/lines/github/hyprwm/Hyprland
 [Badge Hi Mom]: https://img.shields.io/badge/Hi-mom!-ff69b4

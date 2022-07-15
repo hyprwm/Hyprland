@@ -7,7 +7,8 @@
 #include <functional>
 
 struct SKeybind {
-    std::string       key = 0;
+    std::string       key = "";
+    int               keycode = -1;
     uint32_t          modmask = 0;
     std::string       handler = "";
     std::string       arg = "";
@@ -19,7 +20,7 @@ class CKeybindManager {
 public:
     CKeybindManager();
 
-    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&);
+    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&, const int&);
     void                addKeybind(SKeybind);
     void                removeKeybind(uint32_t, const std::string&);
     uint32_t            stringToModMask(std::string);

@@ -311,21 +311,21 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha, int round) {
+void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha, int round, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTexture(CTexture(tex), pBox, alpha, round);
+    renderTexture(CTexture(tex), pBox, alpha, round, false, allowCustomUV);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowPrimary) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowPrimary);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowCustomUV);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowPrimary) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -388,7 +388,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-    if (allowPrimary && m_RenderData.renderingPrimarySurface && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
+    if (allowCustomUV && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
         const float verts[] = {
             m_RenderData.primarySurfaceUVBottomRight.x, m_RenderData.primarySurfaceUVTopLeft.y,      // top right
             m_RenderData.primarySurfaceUVTopLeft.x, m_RenderData.primarySurfaceUVTopLeft.y,          // top left
@@ -702,8 +702,6 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     begin(PMONITOR, &fakeDamage, true);
 
-    pixman_region32_fini(&fakeDamage);
-
     clear(CColor(0,0,0,0)); // JIC
 
     timespec now;
@@ -717,7 +715,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     const auto BLURVAL = g_pConfigManager->getInt("decoration:blur");
     g_pConfigManager->setInt("decoration:blur", 0);
 
-    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders);
+    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
 
     g_pConfigManager->setInt("decoration:blur", BLURVAL);
 
@@ -742,8 +740,9 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
     #endif
-
     end();
+
+    pixman_region32_fini(&fakeDamage);
 
     wlr_output_rollback(PMONITOR->output);
 }
@@ -761,8 +760,6 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
     begin(PMONITOR, &fakeDamage, true);
-
-    pixman_region32_fini(&fakeDamage);
 
     const auto PFRAMEBUFFER = &m_mLayerFramebuffers[pLayer];
 
@@ -791,6 +788,8 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 #endif
 
     end();
+
+    pixman_region32_fini(&fakeDamage);
 
     wlr_output_rollback(PMONITOR->output);
 }
@@ -915,8 +914,27 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
+void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const CAIROSURFACE) {
+    cairo_select_font_face(CAIRO, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+
+    const auto FONTSIZE = (int)(m_RenderData.pMonitor->vecPixelSize.y / 76); 
+    cairo_set_font_size(CAIRO, FONTSIZE);
+
+    cairo_set_source_rgba(CAIRO, 1.f, 1.f, 1.f, 0.32f);
+
+    cairo_text_extents_t textExtents;
+    cairo_text_extents(CAIRO, g_pCompositor->m_szCurrentSplash.c_str(), &textExtents);
+
+    cairo_move_to(CAIRO, m_RenderData.pMonitor->vecPixelSize.x / 2.f - textExtents.width / 2.f, m_RenderData.pMonitor->vecPixelSize.y - textExtents.height - 1);
+    cairo_show_text(CAIRO, g_pCompositor->m_szCurrentSplash.c_str());
+
+    cairo_surface_flush(CAIROSURFACE);
+}
+
 void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
+
+    static auto *const PNOSPLASH = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];
@@ -925,6 +943,9 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
     PTEX->allocate();
 
     Debug::log(LOG, "Allocated texture for BGTex");
+
+    // TODO: use relative paths to the installation
+    // or configure the paths at build time
 
     // check if wallpapers exist
     if (!std::filesystem::exists("/usr/share/hyprland/wall_8K.png"))
@@ -949,6 +970,9 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 
     const auto CAIRO = cairo_create(CAIROSURFACE);
 
+    if (!*PNOSPLASH)
+        renderSplash(CAIRO, CAIROSURFACE);
+
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     glBindTexture(GL_TEXTURE_2D, PTEX->m_iTexID);
@@ -969,9 +993,12 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
 
-    wlr_box box = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+    static auto *const PRENDERTEX = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
 
-    renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
+    if (!*PRENDERTEX) {
+        wlr_box box = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+        renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
+    }
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(SMonitor* pMonitor) {

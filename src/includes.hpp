@@ -74,6 +74,7 @@ extern "C" {
 #include <wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
+#include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/util/log.h>
 #include <wlr/xwayland.h>
 #include <wlr/util/region.h>
@@ -91,6 +92,7 @@ extern "C" {
 #include <wlr/types/wlr_xdg_foreign_registry.h>
 #include <wlr/types/wlr_xdg_foreign_v1.h>
 #include <wlr/types/wlr_xdg_foreign_v2.h>
+#include <wlr/types/wlr_pointer_gestures_v1.h>
 }
 
 #undef class
@@ -119,3 +121,4 @@ extern "C" {
 #include "ext-workspace-unstable-v1-protocol.h"
 
 #include <algorithm>
+#include <utility>

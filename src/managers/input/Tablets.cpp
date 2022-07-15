@@ -10,7 +10,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         Debug::log(ERR, "Tablet had no name???");  // logic error
     }
 
-    PNEWTABLET->wlrTablet = pDevice->tablet;
+    PNEWTABLET->wlrTablet = wlr_tablet_from_input_device(pDevice);
     PNEWTABLET->wlrDevice = pDevice;
     PNEWTABLET->wlrTabletV2 = wlr_tablet_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pDevice);
     PNEWTABLET->wlrTablet->data = PNEWTABLET;
@@ -27,7 +27,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         Debug::log(LOG, "Removed a tablet");
     }, PNEWTABLET, "Tablet");
 
-    PNEWTABLET->hyprListener_Axis.initCallback(&pDevice->tablet->events.axis, [](void* owner, void* data) {
+    PNEWTABLET->hyprListener_Axis.initCallback(&wlr_tablet_from_input_device(pDevice)->events.axis, [](void* owner, void* data) {
 
         const auto EVENT = (wlr_tablet_tool_axis_event*)data;
         const auto PTAB = (STablet*)owner;
@@ -80,7 +80,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
     }, PNEWTABLET, "Tablet");
 
-    PNEWTABLET->hyprListener_Tip.initCallback(&pDevice->tablet->events.tip, [](void* owner, void* data) {
+    PNEWTABLET->hyprListener_Tip.initCallback(&wlr_tablet_from_input_device(pDevice)->events.tip, [](void* owner, void* data) {
         const auto EVENT = (wlr_tablet_tool_tip_event*)data;
         const auto PTAB = (STablet*)owner;
 
@@ -98,7 +98,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             
     }, PNEWTABLET, "Tablet");
 
-    PNEWTABLET->hyprListener_Button.initCallback(&pDevice->tablet->events.button, [](void* owner, void* data) {
+    PNEWTABLET->hyprListener_Button.initCallback(&wlr_tablet_from_input_device(pDevice)->events.button, [](void* owner, void* data) {
         const auto EVENT = (wlr_tablet_tool_button_event*)data;
 
         const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
@@ -107,7 +107,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             
     }, PNEWTABLET, "Tablet");
 
-    PNEWTABLET->hyprListener_Proximity.initCallback(&pDevice->tablet->events.proximity, [](void* owner, void* data) {
+    PNEWTABLET->hyprListener_Proximity.initCallback(&wlr_tablet_from_input_device(pDevice)->events.proximity, [](void* owner, void* data) {
         const auto EVENT = (wlr_tablet_tool_proximity_event*)data;
         const auto PTAB = (STablet*)owner;
 
@@ -165,7 +165,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 
     PNEWPAD->wlrTabletPadV2 = wlr_tablet_pad_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pDevice);
 
-    PNEWPAD->hyprListener_Button.initCallback(&pDevice->tablet_pad->events.button, [](void* owner, void* data) {
+    PNEWPAD->hyprListener_Button.initCallback(&wlr_tablet_pad_from_input_device(pDevice)->events.button, [](void* owner, void* data) {
 
         const auto EVENT = (wlr_tablet_pad_button_event*)data;
         const auto PPAD = (STabletPad*)owner;
@@ -175,7 +175,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 
     }, PNEWPAD, "Tablet Pad");
 
-    PNEWPAD->hyprListener_Strip.initCallback(&pDevice->tablet_pad->events.strip, [](void* owner, void* data) {
+    PNEWPAD->hyprListener_Strip.initCallback(&wlr_tablet_pad_from_input_device(pDevice)->events.strip, [](void* owner, void* data) {
 
         const auto EVENT = (wlr_tablet_pad_strip_event*)data;
         const auto PPAD = (STabletPad*)owner;
@@ -184,7 +184,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 
     }, PNEWPAD, "Tablet Pad");
 
-    PNEWPAD->hyprListener_Ring.initCallback(&pDevice->tablet_pad->events.strip, [](void* owner, void* data) {
+    PNEWPAD->hyprListener_Ring.initCallback(&wlr_tablet_pad_from_input_device(pDevice)->events.strip, [](void* owner, void* data) {
 
         const auto EVENT = (wlr_tablet_pad_ring_event*)data;
         const auto PPAD = (STabletPad*)owner;
@@ -193,7 +193,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 
     }, PNEWPAD, "Tablet Pad");
 
-    PNEWPAD->hyprListener_Attach.initCallback(&pDevice->tablet_pad->events.strip, [](void* owner, void* data) {
+    PNEWPAD->hyprListener_Attach.initCallback(&wlr_tablet_pad_from_input_device(pDevice)->events.strip, [](void* owner, void* data) {
 
         const auto TABLET = (wlr_tablet_tool*)data;
         const auto PPAD = (STabletPad*)owner;

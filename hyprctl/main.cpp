@@ -14,8 +14,9 @@
 #include <string>
 #include <fstream>
 #include <string>
+#include <deque>
 
-const std::string USAGE = R"#(usage: hyprctl [(opt)flag /][command] [(opt)args]
+const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
     
 commands:
     monitors
@@ -192,6 +193,15 @@ void batchRequest(std::string arg) {
     request(rq);
 }
 
+std::deque<std::string> splitArgs(int argc, char** argv) {
+    std::deque<std::string> result;
+
+    for (auto i = 1 /* skip the executable */; i < argc; ++i)
+        result.push_back(std::string(argv[i]));
+
+    return result;
+}
+
 int main(int argc, char** argv) {
     int bflag = 0, sflag = 0, index, c;
 
@@ -201,14 +211,30 @@ int main(int argc, char** argv) {
     }
 
     std::string fullRequest = "";
-    for (int i = 1; i < argc; i++) {
-        fullRequest += std::string(argv[i]) + " ";
+    std::string fullArgs = "";
+    const auto ARGS = splitArgs(argc, argv);
+
+    for (auto i = 0; i < ARGS.size(); ++i) {
+        if (ARGS[i].contains("-")) {
+            // parse
+            if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
+                fullArgs += "j";
+            } else if (ARGS[i] == "--batch") {
+                fullRequest = "--batch ";
+            } else {
+                printf("%s\n", USAGE.c_str());
+                return 1;
+            }
+
+            continue;
+        }
+
+        fullRequest += ARGS[i] + " ";
     }
+
     fullRequest.pop_back(); // remove trailing space
 
-    if (!std::string(argv[1]).contains("/")) {
-        fullRequest = "/" + fullRequest;
-    }
+    fullRequest = fullArgs + "/" + fullRequest;
 
     if (fullRequest.contains("/--batch")) batchRequest(fullRequest);
     else if (fullRequest.contains("/monitors")) request(fullRequest);

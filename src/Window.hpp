@@ -31,6 +31,10 @@ public:
     DYNLISTENER(setGeometryX11U);
     DYNLISTENER(fullscreenWindow);
     DYNLISTENER(newPopupXDG);
+    DYNLISTENER(requestMove);
+    DYNLISTENER(requestMinimize);
+    DYNLISTENER(requestMaximize);
+    DYNLISTENER(requestResize);
    // DYNLISTENER(newSubsurfaceWindow);
 
     union {

@@ -120,10 +120,14 @@ namespace Events {
 
     LISTENER(newIdleInhibitor);
 
+    // session
+    LISTENER(sessionActive);
+
+    // Touchpad shit
     LISTENER(swipeBegin);
     LISTENER(swipeEnd);
     LISTENER(swipeUpdate);
-
-    // session
-    LISTENER(sessionActive);
+    LISTENER(pinchBegin);
+    LISTENER(pinchUpdate);
+    LISTENER(pinchEnd);
 };

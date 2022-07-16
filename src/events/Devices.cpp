@@ -177,3 +177,18 @@ void Events::listener_swipeEnd(wl_listener* listener, void* data) {
 
     g_pInputManager->onSwipeEnd(EVENT);
 }
+
+void Events::listener_pinchBegin(wl_listener* listener, void* data) {
+    const auto EV = (wlr_pointer_pinch_begin_event*)data;
+    wlr_pointer_gestures_v1_send_pinch_begin(g_pCompositor->m_sWLRPointerGestures, g_pCompositor->m_sSeat.seat, EV->time_msec, EV->fingers);
+}
+
+void Events::listener_pinchUpdate(wl_listener* listener, void* data) {
+    const auto EV = (wlr_pointer_pinch_update_event*)data;
+    wlr_pointer_gestures_v1_send_pinch_update(g_pCompositor->m_sWLRPointerGestures, g_pCompositor->m_sSeat.seat, EV->time_msec, EV->dx, EV->dy, EV->scale, EV->rotation);
+}
+
+void Events::listener_pinchEnd(wl_listener* listener, void* data) {
+    const auto EV = (wlr_pointer_pinch_end_event*)data;
+    wlr_pointer_gestures_v1_send_pinch_end(g_pCompositor->m_sWLRPointerGestures, g_pCompositor->m_sSeat.seat, EV->time_msec, EV->cancelled);
+}

@@ -10,7 +10,7 @@ Dynamic tiling Wayland compositor
 :Copyright: Copyright (c) 2022, vaxerski
 :Version: 0.7.1beta
 :Manual section: 1
-:Manual group: HYPRLAND
+:Manual group: Hyprland
 
 SYNOPSIS
 ========
@@ -23,6 +23,9 @@ DESCRIPTION
 ``Hyprland`` is a dynamic tiling Wayland compositor based on
 wlroots that doesn't sacrifice on its looks.
 
+You can launch Hyprland by either going into a TTY and
+executing ``Hyprland``, or with a login manager.
+
 NOTICE
 ======
 
@@ -34,19 +37,6 @@ CONFIGURATION
 =============
 
 For configuration information please see <`https://github.com/hyprwm/Hyprland/wiki`>.
-
-LAUNCHING
-=========
-
-You can launch Hyprland by either going into a TTY and executing ``Hyprland``, or with a login manager.
-
-`IMPORTANT`: Do `not` launch ``Hyprland`` with `root` permissions (don't `sudo`)
-
-Login managers are not officially supported, but here's a short compatibility list:
-
-    * SDDM -> Works flawlessly.
-    * GDM -> Works with the caveat of crashing `Hyprland` on the first launch.
-    * ly -> Works with minor issues and/or caveats.
 
 OPTIONS
 =======

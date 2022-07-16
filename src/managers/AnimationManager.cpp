@@ -31,6 +31,7 @@ void CAnimationManager::tick() {
     static auto *const  PANIMSPEED        = &g_pConfigManager->getConfigValuePtr("animations:speed")->floatValue;
     static auto *const  PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto *const  BEZIERSTR         = &g_pConfigManager->getConfigValuePtr("animations:curve")->strValue;
+    static auto *const  PSHADOWSENABLED   = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
 
     auto DEFAULTBEZIER = m_mBezierCurves.find(*BEZIERSTR);
     if (DEFAULTBEZIER == m_mBezierCurves.end())
@@ -41,6 +42,11 @@ void CAnimationManager::tick() {
         // first of all, check if we need to update it at all
         if (!av->isBeingAnimated())
             continue;
+
+        if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {
+            av->warp();
+            continue;
+        }
 
         // get speed
         const auto SPEED = *av->m_pSpeed == 0 ? *PANIMSPEED : *av->m_pSpeed;
@@ -180,6 +186,36 @@ void CAnimationManager::tick() {
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height + 2 * BORDERSIZE);                               // left
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width - ROUNDINGSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height + 2 * BORDERSIZE);           // right
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x, WLRBOXNEW.y + WLRBOXNEW.height - ROUNDINGSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);                        // bottom
+
+                break;
+            } case AVARDAMAGE_SHADOW: {
+                RASSERT(PWINDOW, "Tried to AVARDAMAGE_SHADOW a non-window AVAR!");
+
+                static auto* const PSHADOWSIZE = &g_pConfigManager->getConfigValuePtr("decoration:shadow_range")->intValue;
+                static auto* const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
+
+                const auto PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
+
+                if (PDECO) {
+                    const auto EXTENTS = PDECO->getWindowDecorationExtents();
+
+                    wlr_box dmg = {PWINDOW->m_vRealPosition.vec().x + EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y + EXTENTS.topLeft.y,
+                                   PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x, PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
+
+                    if (!*PSHADOWIGNOREWINDOW) {
+                        // easy, damage the entire box
+                        g_pHyprRenderer->damageBox(&dmg);
+                    } else {
+                        pixman_region32_t rg;
+                        pixman_region32_init_rect(&rg, dmg.x, dmg.y, dmg.width, dmg.height);
+                        pixman_region32_t wb;
+                        pixman_region32_init_rect(&wb, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y);
+                        pixman_region32_subtract(&rg, &rg, &wb);
+                        g_pHyprRenderer->damageRegion(&rg);
+                        pixman_region32_fini(&rg);
+                        pixman_region32_fini(&wb);
+                    }
+                }
 
                 break;
             }

@@ -70,6 +70,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:shadow_ignore_window"].intValue = 1;
     configValues["decoration:shadow_offset"].strValue = "0 0";
     configValues["decoration:col.shadow"].intValue = 0xee1a1a1a;
+    configValues["decoration:col.shadow_inactive"].intValue = INT_MAX;
 
     configValues["dwindle:pseudotile"].intValue = 0;
     configValues["dwindle:col.group_border"].intValue = 0x66777700;

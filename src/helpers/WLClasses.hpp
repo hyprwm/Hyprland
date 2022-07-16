@@ -68,8 +68,8 @@ struct SRenderData {
     // for blurring
     bool blur = false;
 
-    // for windows that animate poorly
-    bool squishOversized = false;
+    // only for windows, not popups
+    bool squishOversized = true;
 };
 
 struct SExtensionFindingData {

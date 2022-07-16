@@ -251,6 +251,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_newPopupXDG.initCallback(&PWINDOW->m_uSurface.xdg->events.new_popup, &Events::listener_newPopupXDG, PWINDOW, "XDG Window Late");
+        PWINDOW->hyprListener_requestMaximize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_maximize, &Events::listener_requestMaximize, PWINDOW, "XDG Window Late");
+        PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_minimize, &Events::listener_requestMinimize, PWINDOW, "XDG Window Late");
+        PWINDOW->hyprListener_requestMove.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_move, &Events::listener_requestMove, PWINDOW, "XDG Window Late");
+        PWINDOW->hyprListener_requestResize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_resize, &Events::listener_requestResize, PWINDOW, "XDG Window Late");
     } else {
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_activateX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_activate, &Events::listener_activateX11, PWINDOW, "XWayland Window Late");
@@ -309,6 +313,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
         PWINDOW->hyprListener_newPopupXDG.removeCallback();
+        PWINDOW->hyprListener_requestMaximize.removeCallback();
+        PWINDOW->hyprListener_requestMinimize.removeCallback();
+        PWINDOW->hyprListener_requestMove.removeCallback();
+        PWINDOW->hyprListener_requestResize.removeCallback();
     } else {
         Debug::log(LOG, "Unregistered late callbacks XWL: %x %x %x %x", &PWINDOW->hyprListener_fullscreenWindow.m_sListener.link, &PWINDOW->hyprListener_activateX11.m_sListener.link, &PWINDOW->hyprListener_configureX11.m_sListener.link, &PWINDOW->hyprListener_setTitleWindow.m_sListener.link);
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
@@ -442,6 +450,8 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
 
         if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
             g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, REQUESTED->fullscreen);
+
+        wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
     } else {
         g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, !PWINDOW->m_bIsFullscreen);
     }
@@ -563,4 +573,29 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
 void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
     const auto WLRDECO = (wlr_xdg_toplevel_decoration_v1*)data;
     wlr_xdg_toplevel_decoration_v1_set_mode(WLRDECO, WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+}
+
+void Events::listener_requestMaximize(void* owner, void* data) {
+    const auto PWINDOW = (CWindow*)owner;
+
+    // ignore
+    wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
+}
+
+void Events::listener_requestMinimize(void* owner, void* data) {
+    // ignore
+}
+
+void Events::listener_requestMove(void* owner, void* data) {
+    const auto PWINDOW = (CWindow*)owner;
+
+    // ignore
+    wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
+}
+
+void Events::listener_requestResize(void* owner, void* data) {
+    const auto PWINDOW = (CWindow*)owner;
+
+    // ignore
+    wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
 }

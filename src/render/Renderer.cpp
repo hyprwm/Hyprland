@@ -245,6 +245,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
 
             wlr_box windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
 
+            scaleBox(&windowBox, pMonitor->scale);
+
             g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
         }
 

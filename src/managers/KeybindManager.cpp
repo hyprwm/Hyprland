@@ -1047,6 +1047,11 @@ void CKeybindManager::circleNext(std::string arg) {
     if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
         return;
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow)
+        return;
+
     if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
         g_pCompositor->focusWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow));
     else

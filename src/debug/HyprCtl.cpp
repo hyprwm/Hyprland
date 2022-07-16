@@ -456,6 +456,9 @@ std::string dispatchKeyword(std::string in) {
     if (COMMAND.contains("input"))
         g_pInputManager->setKeyboardLayout(); // update kb layout
 
+    if (COMMAND.contains("general:layout"))
+        g_pLayoutManager->switchToLayout(g_pConfigManager->getString("general:layout"));  // update layout
+
     Debug::log(LOG, "Hyprctl: keyword %s : %s", COMMAND.c_str(), VALUE.c_str());
 
     if (retval == "") 

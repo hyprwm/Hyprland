@@ -630,12 +630,10 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-        static const std::string empty = "";
-
         for (int i = 0; i < syms; ++i)
-            found = g_pKeybindManager->handleKeybinds(MODS, empty, keysyms[i], 0) || found;
+            found = g_pKeybindManager->handleKeybinds(MODS, "", keysyms[i], 0) || found;
 
-        found = g_pKeybindManager->handleKeybinds(MODS, empty, 0, KEYCODE) || found;
+        found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE) || found;
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
         // hee hee
     }

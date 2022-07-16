@@ -112,6 +112,6 @@ bind=ALT,8,movetoworkspace,8
 bind=ALT,9,movetoworkspace,9
 bind=ALT,0,movetoworkspace,10
 
-bind=SUPER,mouse_down,workspace,+1
-bind=SUPER,mouse_up,workspace,-1
+bind=SUPER,mouse_down,workspace,e+1
+bind=SUPER,mouse_up,workspace,e-1
 )#";

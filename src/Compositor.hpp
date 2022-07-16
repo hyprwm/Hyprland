@@ -87,11 +87,15 @@ public:
     wlr_surface*            m_pLastFocus = nullptr;
     CWindow*                m_pLastWindow = nullptr;
     SMonitor*               m_pLastMonitor = nullptr;
+    int                     m_iLastWorkspaceID = -1; // Start with no last workspace, represented by -1.
     
     SSeat                   m_sSeat;
 
     bool                    m_bReadyToProcess = false;
     bool                    m_bSessionActive = true;
+
+    // Settings
+    bool                    m_bAutoBackAndForth = false;
 
     // ------------------------------------------------- //
 
@@ -118,6 +122,8 @@ public:
     CWorkspace*             getWorkspaceByID(const int&);
     CWorkspace*             getWorkspaceByName(const std::string&);
     CWorkspace*             getWorkspaceByString(const std::string&);
+    void                    changeWorkspace(const int targetWorkspaceID, const std::string& targetWorkspaceName);
+    void                    changeToLastWorkspace();
     void                    sanityCheckWorkspaces();
     void                    updateWorkspaceWindowDecos(const int&);
     int                     getWindowsOnWorkspace(const int&);

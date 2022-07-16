@@ -43,7 +43,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
     configValues["general:cursor_inactive_timeout"].intValue = 0;
-    
+    configValues["general:auto_back_and_forth"].intValue = 0;
     configValues["misc:disable_hyprland_logo"].intValue = 0;
     configValues["misc:disable_splash_rendering"].intValue = 0;
     configValues["misc:no_vfr"].intValue = 1;

@@ -1,4 +1,5 @@
 #include "KeybindManager.hpp"
+#include "src/Compositor.hpp"
 
 #include <regex>
 
@@ -269,6 +270,14 @@ void CKeybindManager::toggleActivePseudo(std::string args) {
 }
 
 void CKeybindManager::changeworkspace(std::string args) {
+    if (args == "previous") {
+        g_pCompositor->changeToLastWorkspace();
+        return;
+    }
+
+    // If the above if-statement didn't trigger, then the user is trying to
+    // go to an arbitrary workspace.
+
     int workspaceToChangeTo = 0;
     std::string workspaceName = "";
 
@@ -289,118 +298,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     // remove constraints 
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
 
-    // if it exists, we warp to it
-    if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_iMonitorID);
-
-        const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
-
-        if (workspaceToChangeTo == SPECIAL_WORKSPACE_ID)
-            PWORKSPACETOCHANGETO->m_iMonitorID = PMONITOR->ID;
-
-        // if it's not visible, make it visible.
-        if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo)) {
-            const auto OLDWORKSPACEID = PMONITOR->activeWorkspace;
-
-            // change it
-            if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
-                PMONITOR->activeWorkspace = workspaceToChangeTo;
-            else
-                PMONITOR->specialWorkspaceOpen = true;
-
-            // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
-            // and that'd be annoying as hell
-            g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACEID);
-
-            // and fix on the new workspace
-            g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
-
-            // here and only here begin anim. we don't want to anim visible workspaces on other monitors.
-            // check if anim left or right
-            const auto ANIMTOLEFT = workspaceToChangeTo > OLDWORKSPACEID;
-
-            // start anim on old workspace
-            g_pCompositor->getWorkspaceByID(OLDWORKSPACEID)->startAnim(false, ANIMTOLEFT);
-
-            // start anim on new workspace
-            PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
-
-            g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
-        }
-
-        // If the monitor is not the one our cursor's at, warp to it.
-        if (PMONITOR != g_pCompositor->getMonitorFromCursor()) {
-            Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
-        }
-
-        // set active and deactivate all other in wlr
-        g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACETOCHANGETO->m_pWlrHandle);
-        PWORKSPACETOCHANGETO->setActive(true);
-
-        // recalc layout
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWORKSPACETOCHANGETO->m_iMonitorID);
-
-        Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
-
-        // focus
-        g_pInputManager->refocus();
-
-        // mark the monitor dirty
-        g_pHyprRenderer->damageMonitor(PMONITOR);
-
-        return;
-    }
-
-    // Workspace doesn't exist, create and switch
-    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
-
-    const auto OLDWORKSPACE = PMONITOR->activeWorkspace;
-
-    // get anim direction
-    const auto ANIMTOLEFT = workspaceToChangeTo > OLDWORKSPACE;
-
-    // start anim on old workspace
-    if (const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(OLDWORKSPACE); POLDWORKSPACE)
-        POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
-
-    const auto PWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(PMONITOR->ID, workspaceName, workspaceToChangeTo == SPECIAL_WORKSPACE_ID)).get();
-
-    // start anim on new workspace
-    PWORKSPACE->startAnim(true, ANIMTOLEFT);
-
-    // We are required to set the name here immediately
-    if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
-        wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, workspaceName.c_str());
-
-    PWORKSPACE->m_iID = workspaceToChangeTo;
-    PWORKSPACE->m_iMonitorID = PMONITOR->ID;
-
-    PMONITOR->specialWorkspaceOpen = false;
-
-    if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
-        PMONITOR->activeWorkspace = workspaceToChangeTo;
-    else
-        PMONITOR->specialWorkspaceOpen = true;
-
-    // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
-    // and that'd be annoying as hell
-    g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACE);
-
-    // set active and deactivate all other
-    g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACE->m_pWlrHandle);
-    PWORKSPACE->setActive(true);
-
-    // mark the monitor dirty
-    g_pHyprRenderer->damageMonitor(PMONITOR);
-
-    // focus (clears the last)
-    g_pInputManager->refocus();
-
-    // Event
-    g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACE->m_szName));
-
-    Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
+    // Switch workspaces.
+    g_pCompositor->changeWorkspace(workspaceToChangeTo, workspaceName);
 }
 
 void CKeybindManager::fullscreenActive(std::string args) {

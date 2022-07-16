@@ -37,7 +37,9 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
     if (pWindow->m_bIsFloating)
         return;
 
-    const auto PNODE = &m_lMasterNodesData.emplace_back();
+    static auto *const PNEWTOP = &g_pConfigManager->getConfigValuePtr("master:new_on_top")->intValue;
+
+    const auto PNODE = *PNEWTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
 
     PNODE->workspaceID = pWindow->m_iWorkspaceID;
     PNODE->pWindow = pWindow;

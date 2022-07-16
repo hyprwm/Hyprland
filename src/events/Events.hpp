@@ -50,6 +50,10 @@ namespace Events {
     DYNLISTENFUNC(activateX11);
     DYNLISTENFUNC(configureX11);
     DYNLISTENFUNC(unmanagedSetGeometry);
+    DYNLISTENFUNC(requestMove);
+    DYNLISTENFUNC(requestResize);
+    DYNLISTENFUNC(requestMinimize);
+    DYNLISTENFUNC(requestMaximize);
 
     // Window subsurfaces
    // LISTENER(newSubsurfaceWindow);

@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
     const auto ARGS = splitArgs(argc, argv);
 
     for (auto i = 0; i < ARGS.size(); ++i) {
-        if (ARGS[i].contains("-")) {
+        if (ARGS[i][0] == '-') {
             // parse
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";
@@ -230,6 +230,11 @@ int main(int argc, char** argv) {
         }
 
         fullRequest += ARGS[i] + " ";
+    }
+
+    if (fullRequest.empty()) {
+        printf("%s\n", USAGE.c_str());
+        return 1;
     }
 
     fullRequest.pop_back(); // remove trailing space

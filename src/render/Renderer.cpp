@@ -40,12 +40,6 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
         else
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
-
-        if (RDATA->decorate) {
-            auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
-            col.a *= RDATA->fadeAlpha * RDATA->alpha / 255.f;
-            g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
-        }
     }
     else {
         if (RDATA->surface && wlr_surface_is_xdg_surface(RDATA->surface)) {
@@ -240,6 +234,19 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         }
 
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+
+        if (renderdata.decorate) {
+            static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+
+            float rounding = renderdata.dontRound ? 0 : renderdata.rounding == -1 ? *PROUNDING : renderdata.rounding;
+
+            auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
+            col.a *= renderdata.fadeAlpha * renderdata.alpha / 255.f;
+
+            wlr_box windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
+
+            g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
+        }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);

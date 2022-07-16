@@ -227,6 +227,9 @@ void CCompositor::startCompositor() {
     Debug::log(LOG, "Creating the AnimationManager!");
     g_pAnimationManager = std::make_unique<CAnimationManager>();
 
+    Debug::log(LOG, "Creating the LayoutManager!");
+    g_pLayoutManager = std::make_unique<CLayoutManager>();
+
     Debug::log(LOG, "Creating the ConfigManager!");
     g_pConfigManager = std::make_unique<CConfigManager>();
 
@@ -244,9 +247,6 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the XWaylandManager!");
     g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
-
-    Debug::log(LOG, "Creating the LayoutManager!");
-    g_pLayoutManager = std::make_unique<CLayoutManager>();
 
     Debug::log(LOG, "Creating the EventManager!");
     g_pEventManager = std::make_unique<CEventManager>();

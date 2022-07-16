@@ -43,6 +43,8 @@ void CConfigManager::setDefaultVars() {
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
     configValues["general:cursor_inactive_timeout"].intValue = 0;
+
+    configValues["general:layout"].strValue = "dwindle";
     
     configValues["misc:disable_hyprland_logo"].intValue = 0;
     configValues["misc:disable_splash_rendering"].intValue = 0;
@@ -79,6 +81,9 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:preserve_split"].intValue = 0;
     configValues["dwindle:special_scale_factor"].floatValue = 0.8f;
     configValues["dwindle:split_width_multiplier"].floatValue = 1.0f;
+
+    configValues["master:special_scale_factor"].floatValue = 0.8f;
+    configValues["master:new_is_master"].intValue = 1;
 
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;
@@ -922,6 +927,9 @@ void CConfigManager::loadConfigLoadVars() {
 
     // Update window border colors
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+    // update layout
+    g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
 
     // Force the compositor to fully re-render all monitors
     for (auto& m : g_pCompositor->m_vMonitors)

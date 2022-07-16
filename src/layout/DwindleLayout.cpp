@@ -217,7 +217,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
             
     } else
-        OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
+        OPENINGON = getFirstNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
     Debug::log(LOG, "OPENINGON: %x, Workspace: %i, Monitor: %i", OPENINGON, PNODE->workspaceID, PMONITOR->ID);
 
@@ -863,4 +863,17 @@ void CHyprDwindleLayout::toggleSplit(CWindow* pWindow) {
 
 std::string CHyprDwindleLayout::getLayoutName() {
     return "dwindle";
+}
+
+void CHyprDwindleLayout::onEnable() {
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_bIsFloating || !w->m_bMappedX11 || !w->m_bIsMapped || w->m_bHidden)
+            continue;
+
+        onWindowCreatedTiling(w.get());
+    }
+}
+
+void CHyprDwindleLayout::onDisable() {
+    m_lDwindleNodesData.clear();
 }

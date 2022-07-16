@@ -16,6 +16,8 @@ enum eFullscreenMode : uint8_t;
 
 interface IHyprLayout {
 public:
+    virtual void        onEnable() = 0;
+    virtual void        onDisable() = 0;
 
     /*
         Called when a window is created (mapped)

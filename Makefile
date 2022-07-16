@@ -124,6 +124,8 @@ install:
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
+	rst2man ./docs/hyprctl.1.rst | gzip -c > /usr/share/man/man1/hyprctl.1.gz
+	rst2man ./docs/Hyprland.1.rst | gzip -c > /usr/share/man/man1/Hyprland.1.gz
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop

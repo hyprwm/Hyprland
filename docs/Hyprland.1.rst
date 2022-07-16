@@ -52,7 +52,7 @@ OPTIONS
 =======
 
 -h, --help
-    Show this help message.
+    Show command usage.
 
 -c, --config
     Specify config file to use.
@@ -60,7 +60,7 @@ OPTIONS
 BUGS
 ====
 
-Submit bug reports and feature requests online at:
+Submit bug reports and request features online at:
 
     <`https://github.com/hyprwm/Hyprland/issues`>
 

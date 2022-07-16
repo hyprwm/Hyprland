@@ -30,7 +30,7 @@ Control
 
     ``dispatch``
 
-        Call a keybinding dispatcher with an argument.
+        Call a dispatcher with an argument.
 
         An argument must be present.
         For dispatchers without parameters it can be anything.
@@ -45,7 +45,7 @@ Control
 
     ``keyword``
 
-        Call a config keyword dynamically.
+        Set a config keyword dynamically.
 
         Returns: `ok` on success, and an error message on failure.
 
@@ -62,13 +62,13 @@ Control
     ``kill``
 
         Enter kill mode, where you can kill an app by clicking on it.
-        You can exit with ESCAPE.
+        You can exit by pressing ESCAPE.
 
 Info
 
     ``version``
 
-        Prints the hyprland version, meaning flags, commit and branch of build.
+        Prints the Hyprland version, flags, commit and branch of build.
 
     ``monitors``
 
@@ -84,11 +84,11 @@ Info
 
     ``devices``
 
-        Lists all connected keyboards and mice.
+        Lists all connected input devices.
 
     ``activewindow``
 
-        Gets the active window name.
+        Returns the active window name.
 
     ``layers``
 
@@ -96,7 +96,7 @@ Info
 
     ``splash``
 
-        Prints the current random splash.
+        Returns the current random splash.
 
 OPTIONS
 =======

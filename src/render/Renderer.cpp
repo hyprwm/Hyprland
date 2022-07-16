@@ -693,6 +693,13 @@ void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const in
     damageBox(&box);
 }
 
+void CHyprRenderer::damageRegion(pixman_region32_t* rg) {
+    PIXMAN_DAMAGE_FOREACH(rg) {
+        const auto RECT = RECTSARR[i];
+        damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1);
+    }
+}
+
 void CHyprRenderer::renderDragIcon(SMonitor* pMonitor, timespec* time) {
     if (!(g_pInputManager->m_sDrag.dragIcon && g_pInputManager->m_sDrag.iconMapped && g_pInputManager->m_sDrag.dragIcon->surface))
         return;

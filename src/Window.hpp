@@ -113,6 +113,9 @@ public:
     // for alpha
     CAnimatedVariable m_fActiveInactiveAlpha;
 
+    // animated shadow color
+    CAnimatedVariable m_cRealShadowColor;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) {
         return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize && m_bFadingOut == rhs.m_bFadingOut;
@@ -123,5 +126,6 @@ public:
     wlr_box         getWindowIdealBoundingBoxIgnoreReserved();
     void            updateWindowDecos();
     pid_t           getPID();
+    IHyprWindowDecoration* getDecorationByType(eDecorationType);
 
 };

@@ -224,6 +224,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 } catch (...) {
                     Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }
+            } else if (r.szRule == "center") {
+                PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f;
             }
         }
 

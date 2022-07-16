@@ -34,8 +34,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
 					distances = distances / 4.0;
 
-					gl_FragColor = )#" + colorVarName + R"#( * distances;
-					return;
+					)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
 				}
 			}
 		} else if (pixCoord[1] > bottomRight[1]) {
@@ -66,8 +65,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
 					distances = distances / 4.0;
 
-					gl_FragColor = )#" + colorVarName + R"#( * distances;
-					return;
+					)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
 				}
 			}
 		}
@@ -102,8 +100,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
 					distances = distances / 4.0;
 
-					gl_FragColor = )#" + colorVarName + R"#( * distances;
-					return;
+					)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
 				}
 			}
 		} else if (pixCoord[1] > bottomRight[1]) {
@@ -134,8 +131,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
 					distances = distances / 4.0;
 
-					gl_FragColor = )#" + colorVarName + R"#( * distances;
-					return;
+					)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
 				}
 			}
 		}
@@ -176,11 +172,13 @@ void main() {
 		return;
 	}
 
+	vec4 pixColor = v_color;
+
     vec2 pixCoord = fullSize * v_texcoord;
 
-	)#" + ROUNDED_SHADER_FUNC("v_color") + R"#(
+	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
-	gl_FragColor = v_color;
+	gl_FragColor = pixColor;
 })#";
 
 inline const std::string TEXVERTSRC = R"#(

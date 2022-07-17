@@ -86,7 +86,7 @@ R"#({
     "title": "%s",
     "pid": %i
 },)#",
-                    &w,
+                    w.get(),
                     (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y,
                     (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y,
                     w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()),
@@ -107,7 +107,7 @@ R"#({
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped) {
                 result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
-                                &w, w->m_szTitle.c_str(), (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y, (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID());
+                                w.get(), w->m_szTitle.c_str(), (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y, (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID());
         
             }
         }

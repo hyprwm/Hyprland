@@ -1063,27 +1063,56 @@ void CKeybindManager::circleNext(std::string arg) {
 }
 
 void CKeybindManager::focusWindow(std::string regexp) {
-    bool titleRegex = false;
+    eFocusWindowMode mode = MODE_CLASS_REGEX;
+
     std::regex regexCheck(regexp);
+    std::string matchCheck;    
     if (regexp.find("title:") == 0) {
-        titleRegex = true;
+        mode = MODE_TITLE_REGEX;
         regexCheck = std::regex(regexp.substr(6));
+    }
+    else if (regexp.find("address:") == 0) {
+        mode = MODE_ADDRESS;
+        matchCheck = regexp.substr(8);
+    }
+    else if (regexp.find("pid:") == 0) {
+        mode = MODE_PID;
+        matchCheck = regexp.substr(4);
     }
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->m_bHidden)
             continue;
 
-        if (titleRegex) {
-            const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
-            if (!std::regex_search(windowTitle, regexCheck))
-                continue;
+        switch (mode) {
+            case MODE_CLASS_REGEX: {
+                const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
+                if (!std::regex_search(g_pXWaylandManager->getAppIDClass(w.get()), regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_TITLE_REGEX: {
+                const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
+                if (!std::regex_search(windowTitle, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_ADDRESS: {
+                std::string addr = getFormat("0x%x", w.get());
+                if (matchCheck != addr)
+                    continue;
+                break;
+            }
+            case MODE_PID: {
+                std::string pid = getFormat("%d", w->getPID());
+                if (matchCheck != pid)
+                    continue;
+                break;
+            }
+            default:
+                break;
         }
-        else {
-            const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
-            if (!std::regex_search(windowClass, regexCheck))
-                continue;
-        }
+
 
         Debug::log(LOG, "Focusing to window name: %s", w->m_szTitle.c_str());
 

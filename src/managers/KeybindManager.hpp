@@ -66,6 +66,13 @@ private:
     static void         setSubmap(std::string);
 
     friend class CCompositor;
+
+    enum eFocusWindowMode {
+        MODE_CLASS_REGEX = 0,
+        MODE_TITLE_REGEX,
+        MODE_ADDRESS,
+        MODE_PID
+    };
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

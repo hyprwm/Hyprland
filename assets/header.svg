@@ -29,6 +29,7 @@
                // text-shadow: 0 0 0.5rem #2222224d;
                 background: linear-gradient(to right, #cfe8f6, #c8e6e3);
                 background-clip: text;
+                -webkit-background-clip: text;
                 color: transparent;
                 animation: scaleit 4s infinite ease-in-out;
             }

@@ -1206,10 +1206,14 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     }
 
     // shadow
-    if (pWindow == m_pLastWindow) {
-        pWindow->m_cRealShadowColor = CColor(*PSHADOWCOL);
+    if (pWindow->m_iX11Type != 2 && !pWindow->m_bX11DoesntWantBorders) {
+        if (pWindow == m_pLastWindow) {
+            pWindow->m_cRealShadowColor = CColor(*PSHADOWCOL);
+        } else {
+            pWindow->m_cRealShadowColor = CColor(*PSHADOWCOLINACTIVE != INT_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
+        }
     } else {
-        pWindow->m_cRealShadowColor = CColor(*PSHADOWCOLINACTIVE != INT_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
+        pWindow->m_cRealShadowColor.setValueAndWarp(CColor(0, 0, 0, 0)); // no shadow
     }
 }
 

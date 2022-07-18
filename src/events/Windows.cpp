@@ -49,6 +49,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_iX11Type == 2)
         g_pCompositor->moveUnmanagedX11ToWindows(PWINDOW);
 
+    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+
     // Set all windows tiled regardless of anything
     g_pXWaylandManager->setWindowStyleTiled(PWINDOW, WLR_EDGE_LEFT | WLR_EDGE_RIGHT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM);
 

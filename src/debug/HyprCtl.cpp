@@ -38,11 +38,11 @@ R"#({
     "active": "%s"
 },)#",
                 m->ID,
-                m->szName.c_str(),
+                escapeJSONStrings(m->szName).c_str(),
                 (int)m->vecPixelSize.x, (int)m->vecPixelSize.y,
                 m->refreshRate,
                 (int)m->vecPosition.x, (int)m->vecPosition.y,
-                m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(),
+                m->activeWorkspace, escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName).c_str(),
                 (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y,
                 m->scale,
                 (int)m->transform,
@@ -86,14 +86,14 @@ R"#({
     "title": "%s",
     "pid": %i
 },)#",
-                    &w,
+                    w.get(),
                     (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y,
                     (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y,
-                    w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()),
+                    w->m_iWorkspaceID, escapeJSONStrings(w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID))).c_str(),
                     (int)w->m_bIsFloating,
                     w->m_iMonitorID,
-                    g_pXWaylandManager->getAppIDClass(w.get()).c_str(),
-                    g_pXWaylandManager->getTitle(w.get()).c_str(),
+                    escapeJSONStrings(g_pXWaylandManager->getAppIDClass(w.get())).c_str(),
+                    escapeJSONStrings(g_pXWaylandManager->getTitle(w.get())).c_str(),
                     w->getPID()
                 );
             }
@@ -107,7 +107,7 @@ R"#({
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped) {
                 result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\n",
-                                &w, w->m_szTitle.c_str(), (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y, (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID());
+                                w.get(), w->m_szTitle.c_str(), (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y, (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID());
         
             }
         }
@@ -130,8 +130,8 @@ R"#({
     "hasfullscreen": %i
 },)#",
                 w->m_iID,
-                w->m_szName.c_str(),
-                g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName.c_str(),
+                escapeJSONStrings(w->m_szName).c_str(),
+                escapeJSONStrings(g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName).c_str(),
                 g_pCompositor->getWindowsOnWorkspace(w->m_iID),
                 (int)w->m_bHasFullscreenWindow
             );
@@ -175,11 +175,11 @@ R"#({
             PWINDOW,
             (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y,
             (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y,
-            PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()),
+            PWINDOW->m_iWorkspaceID, escapeJSONStrings(PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName).c_str(),
             (int)PWINDOW->m_bIsFloating,
             PWINDOW->m_iMonitorID,
-            g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(),
-            g_pXWaylandManager->getTitle(PWINDOW).c_str(),
+            escapeJSONStrings(g_pXWaylandManager->getAppIDClass(PWINDOW)).c_str(),
+            escapeJSONStrings(g_pXWaylandManager->getTitle(PWINDOW)).c_str(),
             PWINDOW->getPID()
         );
     } else {
@@ -199,7 +199,7 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
 R"#("%s": {
     "levels": {
 )#",
-                mon->szName.c_str()
+                escapeJSONStrings(mon->szName).c_str()
             ); 
 
             int layerLevel = 0;
@@ -225,7 +225,7 @@ R"#(                {
                     layer->geometry.y,
                     layer->geometry.width,
                     layer->geometry.height,
-                    layer->szNamespace.c_str()
+                    escapeJSONStrings(layer->szNamespace).c_str()
                     );
                 }
 
@@ -285,7 +285,7 @@ R"#(    {
         "name": "%s"
     },)#",
                 &m,
-                m.mouse->name
+                escapeJSONStrings(m.mouse->name).c_str()
             );
         }
 
@@ -308,13 +308,13 @@ R"#(    {
         "active_keymap": "%s"
     },)#",
                 &k,
-                k.keyboard->name,
-                k.currentRules.rules.c_str(),
-                k.currentRules.model.c_str(),
-                k.currentRules.layout.c_str(),
-                k.currentRules.variant.c_str(),
-                k.currentRules.options.c_str(),
-                KM
+                escapeJSONStrings(k.keyboard->name).c_str(),
+                escapeJSONStrings(k.currentRules.rules).c_str(),
+                escapeJSONStrings(k.currentRules.model).c_str(),
+                escapeJSONStrings(k.currentRules.layout).c_str(),
+                escapeJSONStrings(k.currentRules.variant).c_str(),
+                escapeJSONStrings(k.currentRules.options).c_str(),
+                escapeJSONStrings(KM).c_str()
             );
         }
 
@@ -336,7 +336,7 @@ R"#(    {
     },)#",
                 &d,
                 d.pTabletParent,
-                d.pTabletParent ? d.pTabletParent->wlrDevice ? d.pTabletParent->wlrDevice->name : "" : ""
+                escapeJSONStrings(d.pTabletParent ? d.pTabletParent->wlrDevice ? d.pTabletParent->wlrDevice->name : "" : "").c_str()
             );
         }
 
@@ -347,7 +347,7 @@ R"#(    {
         "name": "%s"
     },)#",
                 &d,
-                d.wlrDevice ? d.wlrDevice->name : ""
+                escapeJSONStrings(d.wlrDevice ? d.wlrDevice->name : "").c_str()
             );
         }
 

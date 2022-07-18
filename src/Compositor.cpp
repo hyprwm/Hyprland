@@ -819,6 +819,9 @@ CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
 }
 
 void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
+    // not needed anymore
+    return;
+    
     const auto ISVISIBLE = isWorkspaceVisible(id);
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);

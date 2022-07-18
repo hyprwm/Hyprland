@@ -1,30 +1,24 @@
-========
-Hyprland
-========
+:title: Hyprland
+:author: Vaxerski <*https://github.com/vaxerski*>
 
----------------------------------
-Dynamic tiling Wayland compositor
----------------------------------
+NAME
+====
 
-:Date: 15 Jul 2022
-:Copyright: Copyright (c) 2022, vaxerski
-:Version: 0.7.1beta
-:Manual section: 1
-:Manual group: Hyprland
+Hyprland - Dynamic tiling Wayland compositor
 
 SYNOPSIS
 ========
 
-``Hyprland`` [arg [...]].
+**Hyprland** [*arg [...]*].
 
 DESCRIPTION
 ===========
 
-``Hyprland`` is a dynamic tiling Wayland compositor based on
+**Hyprland** is a dynamic tiling Wayland compositor based on
 wlroots that doesn't sacrifice on its looks.
 
 You can launch Hyprland by either going into a TTY and
-executing ``Hyprland``, or with a login manager.
+executing **Hyprland**, or with a login manager.
 
 NOTICE
 ======
@@ -36,30 +30,29 @@ Although Hyprland is pretty stable, it may have some bugs.
 CONFIGURATION
 =============
 
-For configuration information please see <`https://github.com/hyprwm/Hyprland/wiki`>.
+For configuration information please see <*https://github.com/hyprwm/Hyprland/wiki*>.
 
 OPTIONS
 =======
 
--h, --help
+**-h**, **--help**
     Show command usage.
 
--c, --config
+**-c**, **--config**
     Specify config file to use.
 
 BUGS
 ====
 
 Submit bug reports and request features online at:
-
-    <`https://github.com/hyprwm/Hyprland/issues`>
+    <*https://github.com/hyprwm/Hyprland/issues*>
 
 SEE ALSO
 ========
 
-Sources at: <`https://github.com/hyprwm/Hyprland`>
+Sources at: <*https://github.com/hyprwm/Hyprland*>
 
-AUTHORS
-=======
+COPYRIGHT
+=========
 
-Vaxerski <`https://github.com/vaxerski`>
+Copyright (c) 2022, vaxerski

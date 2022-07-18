@@ -22,7 +22,7 @@
                 font-size: 3rem;
                 position: relative;
                 top: 28%;
-                left: 9%;
+                left: 10%;
                 transform: translateY(-50%);
                 z-index=2;
                 text-align: center;
@@ -36,7 +36,7 @@
 
             bgimg {
                 position: absolute;
-                left: -6%;
+                left: -5%;
                 top: 50%;
                 -webkit-transform: translate(0, -50%);
                 transform: translate(0, -50%);

@@ -1,130 +1,121 @@
-=======
-hyprctl
-=======
+:title: hyprctl(1)
+:author: Vaxerski <*https://github.com/vaxerski*>
 
-----------------------------------------------------------------
-Utility for controlling parts of Hyprland from a CLI or a script
-----------------------------------------------------------------
+NAME
+====
 
-:Date: 15 Jul 2022
-:Copyright: Copyright (c) 2022, vaxerski
-:Version: 0.7.1beta
-:Manual section: 1
-:Manual group: hyprctl
+hyprctl - Utility for controlling parts of Hyprland from a CLI or a script
 
 SYNOPSIS
 ========
 
-``hyprctl`` [(opt)flags] [command] [(opt)args]
+**hyprctl** [*(opt)flags*] [**command**] [*(opt)args*]
 
 DESCRIPTION
 ===========
 
-``hyprctl`` is a utility for controlling some parts of the compositor from a CLI or a script.
+**hyprctl** is a utility for controlling some parts of the compositor from a CLI or a script.
 
-COMMANDS
-========
+CONTROL COMMANDS
+================
 
-Control
+**dispatch**
 
-    ``dispatch``
+    Call a dispatcher with an argument.
 
-        Call a dispatcher with an argument.
+    An argument must be present.
+    For dispatchers without parameters it can be anything.
 
-        An argument must be present.
-        For dispatchers without parameters it can be anything.
+    Returns: *ok* on success, and an error message on failure.
 
-        Returns: `ok` on success, and an error message on failure.
+    Examples:
+        **hyprctl** *dispatch exec kitty*
 
-        Examples:
+        **hyprctl** *dispatch pseudo x*
 
-            ``hyprctl`` `dispatch exec kitty`
+**keyword**
 
-            ``hyprctl`` `dispatch pseudo x`
+    Set a config keyword dynamically.
 
-    ``keyword``
+    Returns: *ok* on success, and an error message on failure.
 
-        Set a config keyword dynamically.
+    Examples:
+        **hyprctl** *keyword bind SUPER,0,pseudo*
 
-        Returns: `ok` on success, and an error message on failure.
+        **hyprctl** *keyword general:border_size 10*
 
-        Examples:
+**reload**
 
-            ``hyprctl`` `keyword bind SUPER,0,pseudo`
+    Force a reload of the config file.
 
-            ``hyprctl`` `keyword general:border_size 10`
+**kill**
 
-    ``reload``
+    Enter kill mode, where you can kill an app by clicking on it.
+    You can exit by pressing ESCAPE.
 
-        Force a reload of the config file.
+INFO COMMANDS
+=============
 
-    ``kill``
+**version**
 
-        Enter kill mode, where you can kill an app by clicking on it.
-        You can exit by pressing ESCAPE.
+    Prints the Hyprland version, flags, commit and branch of build.
 
-Info
+**monitors**
 
-    ``version``
+    Lists all the outputs with their properties.
 
-        Prints the Hyprland version, flags, commit and branch of build.
+**workspaces**
 
-    ``monitors``
+    Lists all workspaces with their properties.
 
-        Lists all the outputs with their properties.
+**clients**
 
-    ``workspaces``
+    Lists all windows with their properties.
 
-        Lists all workspaces with their properties.
+**devices**
 
-    ``clients``
+    Lists all connected input devices.
 
-        Lists all windows with their properties.
+**activewindow**
 
-    ``devices``
+    Returns the active window name.
 
-        Lists all connected input devices.
+**layers**
 
-    ``activewindow``
+    Lists all the layers.
 
-        Returns the active window name.
+**splash**
 
-    ``layers``
-
-        Lists all the layers.
-
-    ``splash``
-
-        Returns the current random splash.
+    Returns the current random splash.
 
 OPTIONS
 =======
 
---batch
+**--batch**
+
     Specify a batch of commands to execute.
 
     Example:
+        **hyprctl** *--batch "keyword general:border_size 2 ; keyword general:gaps_out 20"*
 
-        ``hyprctl`` `--batch "keyword general:border_size 2 ; keyword general:gaps_out 20"`
+        *;* separates the commands.
 
-        `;` separates the commands.
+**-j**
 
--j
     Outputs information in JSON.
 
 BUGS
 ====
 
-Submit bug reports and feature requests online at:
-
-    <`https://github.com/hyprwm/hyprctl/issues`>
+Submit bug reports and request features online at:
+    <*https://github.com/hyprwm/Hyprland/issues*>
 
 SEE ALSO
 ========
 
-Sources at: <`https://github.com/hyprwm/hyprctl`>
+Sources at: <*https://github.com/hyprwm/Hyprland*>
 
-AUTHORS
-=======
+COPYRIGHT
+=========
 
-Vaxerski  <`https://github.com/vaxerski`>
+Copyright (c) 2022, vaxerski

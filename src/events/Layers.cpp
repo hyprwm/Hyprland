@@ -72,6 +72,8 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
         layersurface->fadingOut = true;
     }
 
+    layersurface->noProcess = true;
+
     layersurface->hyprListener_commitLayerSurface.removeCallback();
     layersurface->hyprListener_destroyLayerSurface.removeCallback();
     layersurface->hyprListener_mapLayerSurface.removeCallback();

@@ -508,7 +508,7 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
     wlr_box full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto& ls : layerSurfaces) {
-        if (ls->fadingOut || ls->readyToDelete || !ls->layerSurface)
+        if (ls->fadingOut || ls->readyToDelete || !ls->layerSurface || ls->noProcess)
             continue;
 
         const auto PLAYER = ls->layerSurface;

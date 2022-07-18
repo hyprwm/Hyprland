@@ -30,6 +30,7 @@ struct SLayerSurface {
     CAnimatedVariable       alpha;
     bool                    fadingOut = false;
     bool                    readyToDelete = false;
+    bool                    noProcess = false;
 
     bool                    forceBlur = false;
 

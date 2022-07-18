@@ -18,4 +18,5 @@ namespace Debug {
 
     inline std::string logFile;
     inline int64_t* disableLogs = nullptr;
+    inline int64_t* disableTime = nullptr;
 };

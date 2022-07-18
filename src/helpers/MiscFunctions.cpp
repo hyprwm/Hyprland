@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include <sys/utsname.h>
+#include <iomanip>
 
 static const float transforms[][9] = {{
 		1.0f, 0.0f, 0.0f,
@@ -111,6 +112,29 @@ std::string getFormat(const char *fmt, ...) {
     free(outputStr);
 
     return output;
+}
+
+std::string escapeJSONStrings(const std::string& str) {
+    std::ostringstream oss;
+    for (auto &c : str) {
+        switch (c) {
+        case '"': oss << "\\\""; break;
+        case '\\': oss << "\\\\"; break;
+        case '\b': oss << "\\b"; break;
+        case '\f': oss << "\\f"; break;
+        case '\n': oss << "\\n"; break;
+        case '\r': oss << "\\r"; break;
+        case '\t': oss << "\\t"; break;
+        default:
+            if ('\x00' <= c && c <= '\x1f') {
+                oss << "\\u"
+                    << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
+            } else {
+                oss << c;
+            }
+        }
+    }
+    return oss.str();
 }
 
 void scaleBox(wlr_box* box, float scale) {

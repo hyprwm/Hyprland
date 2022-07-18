@@ -5,6 +5,7 @@
 void addWLSignal(wl_signal*, wl_listener*, void* pOwner, std::string ownerString);
 void wlr_signal_emit_safe(struct wl_signal *signal, void *data);
 std::string getFormat(const char *fmt, ...); // Basically Debug::log to a string
+std::string escapeJSONStrings(const std::string& str);
 void scaleBox(wlr_box*, float);
 std::string removeBeginEndSpacesTabs(std::string);
 bool isNumber(const std::string&, bool allowfloat = false);

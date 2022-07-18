@@ -429,6 +429,9 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         return;
     }
 
+    auto PSAVEDSIZE = PWINDOW->m_vRealSize.vec();
+    auto PSAVEDPOS = PWINDOW->m_vRealPosition.vec();
+
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     g_pKeybindManager->changeworkspace(args);
@@ -456,20 +459,21 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWORKSPACE->m_bHasFullscreenWindow = false;
     }
 
+    if (PWINDOW->m_bIsFullscreen) {
+        PWINDOW->m_bIsFullscreen = false;
+        PSAVEDPOS = PSAVEDPOS + Vector2D(10, 10);
+        PSAVEDSIZE = PSAVEDSIZE - Vector2D(20, 20);
+    }
+
     // Hack: So that the layout doesnt find our window at the cursor
     PWINDOW->m_vPosition = Vector2D(-42069, -42069);
     
-    // Save the real position and size because the layout might set its own
-    const auto PSAVEDSIZE = PWINDOW->m_vRealSize.vec();
-    const auto PSAVEDPOS = PWINDOW->m_vRealPosition.vec();
     g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
-    // and restore it
-    PWINDOW->m_vRealPosition.setValue(PSAVEDPOS);
-    PWINDOW->m_vRealSize.setValue(PSAVEDSIZE);
 
+    // and restore it
     if (PWINDOW->m_bIsFloating) {
-        PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition);
-        PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
+        PWINDOW->m_vRealSize.setValue(PSAVEDSIZE);
+        PWINDOW->m_vRealPosition.setValueAndWarp(PSAVEDPOS - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
     }
 

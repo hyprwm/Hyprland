@@ -24,6 +24,7 @@ CConfigManager::CConfigManager() {
     configPaths.emplace_back(CONFIGPATH);
 
     Debug::disableLogs = &configValues["debug:disable_logs"].intValue;
+    Debug::disableTime = &configValues["debug:disable_time"].intValue;
 }
 
 void CConfigManager::setDefaultVars() {
@@ -55,6 +56,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:overlay"].intValue = 0;
     configValues["debug:damage_blink"].intValue = 0;
     configValues["debug:disable_logs"].intValue = 0;
+    configValues["debug:disable_time"].intValue = 1;
 
     configValues["decoration:rounding"].intValue = 1;
     configValues["decoration:blur"].intValue = 1;

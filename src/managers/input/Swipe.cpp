@@ -58,6 +58,10 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         PWORKSPACEL->m_vRenderOffset.setValue(RENDEROFFSET);
         PWORKSPACEL->m_fAlpha.setValueAndWarp(255.f);
 
+        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
+        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(m_sActiveSwipe.pMonitor->vecSize.x, 0);
+        m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
+
         Debug::log(LOG, "Ended swipe to the left");
     } else {
         // switch to right
@@ -68,11 +72,12 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         PWORKSPACER->m_vRenderOffset.setValue(RENDEROFFSET);
         PWORKSPACER->m_fAlpha.setValueAndWarp(255.f);
 
+        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
+        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-m_sActiveSwipe.pMonitor->vecSize.x, 0);
+        m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
+
         Debug::log(LOG, "Ended swipe to the right");
     }
-
-    m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
-    m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
 
     PWORKSPACEL->m_bForceRendering = false;
     PWORKSPACER->m_bForceRendering = false;

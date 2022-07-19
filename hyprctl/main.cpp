@@ -10,6 +10,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <ranges>
+#include <algorithm>
 
 #include <iostream>
 #include <string>

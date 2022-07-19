@@ -526,7 +526,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
     const auto SIZ = PWINDOW->m_vRealSize.goalv();
 
     if (abs(floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 || abs(floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
-        Debug::log(LOG, "Unmanaged window %x requests geometry update to %i %i %i %i", (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y, (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);
+        Debug::log(LOG, "Unmanaged window %x requests geometry update to %i %i %i %i", PWINDOW, (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y, (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);
         
         g_pHyprRenderer->damageWindow(PWINDOW);
         PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y));

@@ -233,6 +233,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             } else if (*PFOLLOWMOUSE == 2) {
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
+
+            if (pFoundWindow == g_pCompositor->m_pLastWindow && foundSurface != g_pCompositor->m_pLastFocus) {
+                // we changed the subsurface
+                wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+            }
+
             wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
             return;  // don't enter any new surfaces
         } else {

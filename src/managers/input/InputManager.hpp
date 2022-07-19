@@ -32,6 +32,7 @@ public:
     void            refocus();
 
     void            setKeyboardLayout();
+    void            setMouseConfigs();
 
     void            updateDragIcon();
     void            updateCapabilities(wlr_input_device*);

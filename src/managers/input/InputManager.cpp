@@ -522,46 +522,13 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
         Debug::log(ERR, "Mouse had no name???"); // logic error
     }
 
-    const auto HASCONFIG = g_pConfigManager->deviceConfigExists(PMOUSE->name);
-
     if (wlr_input_device_is_libinput(mouse)) {
         const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(mouse);
 
-        if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "clickfinger_behavior") : g_pConfigManager->getInt("input:touchpad:clickfinger_behavior")) == 0) // toggle software buttons or clickfinger
-            libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
-        else
-            libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
-        
-        if (libinput_device_config_middle_emulation_is_available(LIBINPUTDEV)) { // middleclick on r+l mouse button pressed
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "middle_button_emulation") : g_pConfigManager->getInt("input:touchpad:middle_button_emulation")) == 1)
-                libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);
-            else
-                libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
-        }
-
-        if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "drag_lock") : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
-            libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_DISABLED);
-        else
-            libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_ENABLED);
-
-        if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV))  // this is for tapping (like on a laptop)
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "tap-to-click") : g_pConfigManager->getInt("input:touchpad:tap-to-click")) == 1)
-                libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
-
-        if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {
-            double w = 0, h = 0;
-
-            if (libinput_device_has_capability(LIBINPUTDEV, LIBINPUT_DEVICE_CAP_POINTER) && libinput_device_get_size(LIBINPUTDEV, &w, &h) == 0) // pointer with size is a touchpad
-                libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, (HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "natural_scroll") : g_pConfigManager->getInt("input:touchpad:natural_scroll")));
-            else
-                libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, (HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "natural_scroll") : g_pConfigManager->getInt("input:natural_scroll")));
-        }
-        
-        if (libinput_device_config_dwt_is_available(LIBINPUTDEV)) {
-            const auto DWT = static_cast<enum libinput_config_dwt_state>((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "disable_while_typing") : g_pConfigManager->getInt("input:touchpad:disable_while_typing")) != 0);
-            libinput_device_config_dwt_set_enabled(LIBINPUTDEV, DWT);
-        }
+        Debug::log(LOG, "New mouse has libinput sens %.2f (%.2f) with accel profile %i (%i)", libinput_device_config_accel_get_speed(LIBINPUTDEV), libinput_device_config_accel_get_default_speed(LIBINPUTDEV), libinput_device_config_accel_get_profile(LIBINPUTDEV), libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
     }
+
+    setMouseConfigs();
 
     PMOUSE->hyprListener_destroyMouse.initCallback(&mouse->events.destroy, &Events::listener_destroyMouse, PMOUSE, "Mouse");
 
@@ -572,6 +539,60 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
     m_tmrLastCursorMovement.reset();
 
     Debug::log(LOG, "New mouse created, pointer WLR: %x", mouse);
+}
+
+void CInputManager::setMouseConfigs() {
+    for (auto& m : m_lMice) {
+        const auto PMOUSE = &m;
+
+        const auto HASCONFIG = g_pConfigManager->deviceConfigExists(PMOUSE->name);
+
+        if (wlr_input_device_is_libinput(m.mouse)) {
+            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.mouse);
+
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "clickfinger_behavior") : g_pConfigManager->getInt("input:touchpad:clickfinger_behavior")) == 0)  // toggle software buttons or clickfinger
+                libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
+            else
+                libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+
+            if (libinput_device_config_middle_emulation_is_available(LIBINPUTDEV)) {  // middleclick on r+l mouse button pressed
+                if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "middle_button_emulation") : g_pConfigManager->getInt("input:touchpad:middle_button_emulation")) == 1)
+                    libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);
+                else
+                    libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
+            }
+
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "drag_lock") : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
+                libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_DISABLED);
+            else
+                libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_ENABLED);
+
+            if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV))  // this is for tapping (like on a laptop)
+                if ((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "tap-to-click") : g_pConfigManager->getInt("input:touchpad:tap-to-click")) == 1)
+                    libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
+
+            if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {
+                double w = 0, h = 0;
+
+                if (libinput_device_has_capability(LIBINPUTDEV, LIBINPUT_DEVICE_CAP_POINTER) && libinput_device_get_size(LIBINPUTDEV, &w, &h) == 0)  // pointer with size is a touchpad
+                    libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, (HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "natural_scroll") : g_pConfigManager->getInt("input:touchpad:natural_scroll")));
+                else
+                    libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, (HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "natural_scroll") : g_pConfigManager->getInt("input:natural_scroll")));
+            }
+
+            if (libinput_device_config_dwt_is_available(LIBINPUTDEV)) {
+                const auto DWT = static_cast<enum libinput_config_dwt_state>((HASCONFIG ? g_pConfigManager->getDeviceInt(PMOUSE->name, "disable_while_typing") : g_pConfigManager->getInt("input:touchpad:disable_while_typing")) != 0);
+                libinput_device_config_dwt_set_enabled(LIBINPUTDEV, DWT);
+            }
+
+            const auto LIBINPUTSENS = std::clamp((HASCONFIG ? g_pConfigManager->getDeviceFloat(PMOUSE->name, "sensitivity") : g_pConfigManager->getFloat("input:sensitivity")), -1.f, 1.f);
+
+            libinput_device_config_accel_set_profile(LIBINPUTDEV, LIBINPUT_CONFIG_ACCEL_PROFILE_NONE);
+            libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
+
+            Debug::log(LOG, "Applied config to mouse %s, sens %.2f", m.name.c_str(), LIBINPUTSENS);
+        }
+    }
 }
 
 void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {

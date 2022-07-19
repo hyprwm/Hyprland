@@ -108,6 +108,7 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:workspaces_speed"].floatValue = 0.f;
     configValues["animations:workspaces"].intValue = 1;
 
+    configValues["input:sensitivity"].floatValue = 0.f;
     configValues["input:kb_layout"].strValue = "us";
     configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
     configValues["input:kb_options"].strValue = STRVAL_EMPTY;
@@ -140,6 +141,7 @@ void CConfigManager::setDefaultVars() {
 void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     auto& cfgValues = deviceConfigs[dev];
 
+    cfgValues["sensitivity"].floatValue = 0.f;
     cfgValues["kb_layout"].strValue = "us";
     cfgValues["kb_variant"].strValue = STRVAL_EMPTY;
     cfgValues["kb_options"].strValue = STRVAL_EMPTY;
@@ -902,8 +904,10 @@ void CConfigManager::loadConfigLoadVars() {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
-    if (!isFirstLaunch)
+    if (!isFirstLaunch) {
         g_pInputManager->setKeyboardLayout();
+        g_pInputManager->setMouseConfigs();
+    }
 
     // Calculate the internal vars
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);

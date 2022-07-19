@@ -171,12 +171,14 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
         addSurfaceGlobalOffset(PNODE, &lx, &ly);
 
         wlr_box extents = {0};
-        wlr_surface_get_extends(PNODE->pSurface, &extents);
+        if (PNODE->pSurface) {
+            wlr_surface_get_extends(PNODE->pSurface, &extents);
 
-        extents.x += lx;
-        extents.y += ly;
+            extents.x += lx;
+            extents.y += ly;
 
-        g_pHyprRenderer->damageBox(&extents);
+            g_pHyprRenderer->damageBox(&extents);
+        }
 
         SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
         subsurface->pChild = nullptr;

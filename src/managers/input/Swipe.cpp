@@ -4,8 +4,9 @@
 void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
 
     static auto *const PSWIPE = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe")->intValue;
+    static auto *const PSWIPEFINGERS = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_fingers")->intValue;
 
-    if (e->fingers < 3 || *PSWIPE == 0)
+    if (e->fingers != *PSWIPEFINGERS|| *PSWIPE == 0)
         return;
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);

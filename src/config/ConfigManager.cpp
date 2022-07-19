@@ -126,6 +126,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:drag_lock"].intValue = 0;
 
     configValues["gestures:workspace_swipe"].intValue = 0;
+    configValues["gestures:workspace_swipe_fingers"].intValue = 3;
     configValues["gestures:workspace_swipe_distance"].intValue = 300;
     configValues["gestures:workspace_swipe_invert"].intValue = 1;
     configValues["gestures:workspace_swipe_min_speed_to_force"].intValue = 30;

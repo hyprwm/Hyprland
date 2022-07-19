@@ -505,6 +505,8 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
 
+    PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
+
     g_pCompositor->moveWindowToTop(PWINDOW);
 
     PWINDOW->m_bCreatedOverFullscreen = true;
@@ -529,7 +531,9 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
         if (abs(floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2)
             PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height));
-            
+
+        PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
+
         g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.vec());
         g_pCompositor->moveWindowToTop(PWINDOW);
         PWINDOW->updateWindowDecos();

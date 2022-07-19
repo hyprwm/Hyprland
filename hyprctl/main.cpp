@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <ranges>
 
 #include <iostream>
 #include <string>

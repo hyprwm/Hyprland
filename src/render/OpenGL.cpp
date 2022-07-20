@@ -698,7 +698,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     // this is temporary, doesnt mess with the actual wlr damage
     pixman_region32_t fakeDamage;
     pixman_region32_init(&fakeDamage);
-    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
 
     begin(PMONITOR, &fakeDamage, true);
 
@@ -714,6 +714,8 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     // small todo: maybe make this correct? :P
     const auto BLURVAL = g_pConfigManager->getInt("decoration:blur");
     g_pConfigManager->setInt("decoration:blur", 0);
+
+    m_bEndFrame = true;
 
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
 
@@ -731,8 +733,10 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     clear(CColor(0, 0, 0, 0));  // JIC
 
-    wlr_box fullMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    wlr_box fullMonBox = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+    
     renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &fullMonBox, 255.f, 0);
+    m_bEndFrame = false;
 
     // restore original fb
     #ifndef GLES2
@@ -757,7 +761,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     // this is temporary, doesnt mess with the actual wlr damage
     pixman_region32_t fakeDamage;
     pixman_region32_init(&fakeDamage);
-    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
 
     begin(PMONITOR, &fakeDamage, true);
 
@@ -774,8 +778,12 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
+    m_bEndFrame = true;
+
     // draw the layer
     g_pHyprRenderer->renderLayer(pLayer, PMONITOR, &now);
+
+    m_bEndFrame = false;
 
     // TODO: WARN:
     // revise if any stencil-requiring rendering is done to the layers.
@@ -815,13 +823,15 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     // the originalClosedPos is relative to the monitor's pos
     Vector2D scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.vec().x / (PWINDOW->m_vOriginalClosedSize.x * PMONITOR->scale)), (PMONITOR->scale * PWINDOW->m_vRealSize.vec().y / (PWINDOW->m_vOriginalClosedSize.y * PMONITOR->scale)));
 
-    windowBox.width = PMONITOR->vecPixelSize.x * scaleXY.x;
-    windowBox.height = PMONITOR->vecPixelSize.y * scaleXY.y;
+    // TODO: this is wrong on scaled.
+
+    windowBox.width = PMONITOR->vecTransformedSize.x * scaleXY.x;
+    windowBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
     windowBox.x = ((PWINDOW->m_vRealPosition.vec().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.x * PMONITOR->scale) * scaleXY.x);
     windowBox.y = ((PWINDOW->m_vRealPosition.vec().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.y * PMONITOR->scale) * scaleXY.y);
 
     pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y);
 
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), &fakeDamage, 0);
 
@@ -844,10 +854,10 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PLAYER->monitorID);
 
-    wlr_box windowBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    wlr_box windowBox = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
     pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y);
 
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PLAYER->alpha.fl(), &fakeDamage, 0);
 

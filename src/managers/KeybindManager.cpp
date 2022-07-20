@@ -230,7 +230,7 @@ void CKeybindManager::killActive(std::string args) {
         g_pXWaylandManager->sendCloseWindow(g_pCompositor->m_pLastWindow);
         g_pCompositor->m_pLastFocus = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
-        g_pEventManager->postEvent(SHyprIPCEvent("activewindow", ",")); // post an activewindow event to empty, as we are currently unfocused
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // post an activewindow event to empty, as we are currently unfocused
     }
     
     g_pCompositor->focusWindow(g_pCompositor->windowFromCursor());
@@ -325,7 +325,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             // start anim on new workspace
             PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
 
-            g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
+            g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACETOCHANGETO->m_szName});
         }
 
         // If the monitor is not the one our cursor's at, warp to it.
@@ -398,7 +398,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pInputManager->refocus();
 
     // Event
-    g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACE->m_szName));
+    g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACE->m_szName});
 
     Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }

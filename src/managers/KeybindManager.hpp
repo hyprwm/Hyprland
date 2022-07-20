@@ -15,6 +15,9 @@ struct SKeybind {
     bool              locked = false;
     std::string       submap = "";
     bool              release = false;
+
+    // DO NOT INITIALIZE
+    bool              shadowed = false;
 };
 
 class CKeybindManager {
@@ -32,10 +35,16 @@ public:
 
 private:
     std::list<SKeybind> m_lKeybinds;
+    std::deque<xkb_keysym_t> m_dPressedKeysyms;
+    std::deque<uint32_t> m_dPressedKeycodes;
 
     inline static std::string m_szCurrentSelectedSubmap = "";
 
-    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&, const int&, bool);
+    xkb_keysym_t        m_kHeldBack = 0;
+
+    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&, const int&, bool, uint32_t);
+
+    void                shadowKeybinds();
 
     bool                handleInternalKeybinds(xkb_keysym_t);
     bool                handleVT(xkb_keysym_t);

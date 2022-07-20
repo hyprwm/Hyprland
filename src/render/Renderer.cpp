@@ -652,12 +652,12 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
         pixman_region32_translate(&damageBox, -lx, -ly);
     }
 
-    pixman_region32_fini(&damageBox);
-
     static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Surface (extents): xy: %d, %d wh: %d, %d", damageBox.extents.x1, damageBox.extents.y1, damageBox.extents.x2 - damageBox.extents.x1, damageBox.extents.y2 - damageBox.extents.y1);
+
+    pixman_region32_fini(&damageBox);
 }
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {

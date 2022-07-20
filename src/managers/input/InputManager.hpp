@@ -76,6 +76,9 @@ public:
 
     CTimer          m_tmrLastCursorMovement;
 
+    // for shared mods
+    uint32_t        accumulateModsFromAllKBs();
+
 private:
 
     // for click behavior override
@@ -92,9 +95,6 @@ private:
     STabletTool*    ensureTabletToolPresent(wlr_tablet_tool*);
 
     void            applyConfigToKeyboard(SKeyboard*);
-
-    // for shared mods
-    uint32_t        accumulateModsFromAllKBs();
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

@@ -82,7 +82,31 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     return modMask;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key, const int& keycode) {
+bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
+    const auto KEYCODE = e->keycode + 8;  // Because to xkbcommon it's +8 from libinput
+
+    const xkb_keysym_t* keysyms;
+    int syms = xkb_state_key_get_syms(wlr_keyboard_from_input_device(pKeyboard->keyboard)->xkb_state, KEYCODE, &keysyms);
+
+    const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+
+    bool found = false;
+    if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        for (int i = 0; i < syms; ++i)
+            found = g_pKeybindManager->handleKeybinds(MODS, keysyms[i], 0, true) || found;
+
+        found = g_pKeybindManager->handleKeybinds(MODS, 0, KEYCODE, true) || found;
+    } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+        for (int i = 0; i < syms; ++i)
+            found = g_pKeybindManager->handleKeybinds(MODS, keysyms[i], 0, false) || found;
+
+        found = g_pKeybindManager->handleKeybinds(MODS, 0, KEYCODE, false) || found;
+    }
+
+    return !found;
+}
+
+bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key, const int& keycode, bool pressed) {
     bool found = false;
 
     if (handleInternalKeybinds(key))
@@ -92,9 +116,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap)
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || (!pressed && !k.release))
             continue;
-
 
         if (k.keycode != -1) {
             if (keycode != k.keycode)
@@ -112,6 +135,11 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
 
             if (key != KBKEY && key != KBKEYUPPER)
                 continue;
+        }
+
+        if (pressed && k.release) {
+            // suppress down event
+            return true;
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.handler);

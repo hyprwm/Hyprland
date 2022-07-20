@@ -14,13 +14,15 @@ struct SKeybind {
     std::string       arg = "";
     bool              locked = false;
     std::string       submap = "";
+    bool              release = false;
 };
 
 class CKeybindManager {
 public:
     CKeybindManager();
 
-    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&, const int&);
+    bool                onKeyEvent(wlr_keyboard_key_event*, SKeyboard*);
+    
     void                addKeybind(SKeybind);
     void                removeKeybind(uint32_t, const std::string&);
     uint32_t            stringToModMask(std::string);
@@ -32,6 +34,8 @@ private:
     std::list<SKeybind> m_lKeybinds;
 
     inline static std::string m_szCurrentSelectedSubmap = "";
+
+    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&, const int&, bool);
 
     bool                handleInternalKeybinds(xkb_keysym_t);
     bool                handleVT(xkb_keysym_t);

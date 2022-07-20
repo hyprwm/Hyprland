@@ -438,7 +438,7 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) // if it's the active, let's post an event to update others
-        g_pEventManager->postEvent(SHyprIPCEvent("activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle));
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle});
 
     if (PWINDOW->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_title(PWINDOW->m_phForeignToplevel, PWINDOW->m_szTitle.c_str());
@@ -525,13 +525,13 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
     const auto POS = PWINDOW->m_vRealPosition.goalv();
     const auto SIZ = PWINDOW->m_vRealSize.goalv();
 
-    if (abs(floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 || abs(floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
+    if (abs(std::floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(std::floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 || abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
         Debug::log(LOG, "Unmanaged window %x requests geometry update to %i %i %i %i", PWINDOW, (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y, (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);
         
         g_pHyprRenderer->damageWindow(PWINDOW);
         PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y));
 
-        if (abs(floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2)
+        if (abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2)
             PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height));
 
         PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;

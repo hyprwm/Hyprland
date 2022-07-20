@@ -646,7 +646,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     updateWindowAnimatedDecorationValues(pWindow);
 
     // Send an event
-    g_pEventManager->postEvent(SHyprIPCEvent("activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle));
+    g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
 
     if (pWindow->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_activated(pWindow->m_phForeignToplevel, true);
@@ -663,7 +663,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
 
     if (!pSurface) {
         wlr_seat_keyboard_clear_focus(m_sSeat.seat);
-        g_pEventManager->postEvent(SHyprIPCEvent("activewindow", ",")); // unfocused
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // unfocused
         return;
     }
         

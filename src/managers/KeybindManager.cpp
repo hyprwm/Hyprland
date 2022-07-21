@@ -169,7 +169,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
         if (pressed && k.release) {
             // suppress down event
-            m_kHeldBack = key;
+            m_kHeldBack = keysym;
             return true;
         }
 

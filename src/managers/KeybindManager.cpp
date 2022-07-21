@@ -119,9 +119,9 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     bool found = false;
     if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
         if (e->delta < 0) { 
-            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_down", 0, 0, false, 0);
+            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_down", 0, 0, true, 0);
         } else {
-            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_up", 0, 0, false, 0);
+            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_up", 0, 0, true, 0);
         }
     }
 

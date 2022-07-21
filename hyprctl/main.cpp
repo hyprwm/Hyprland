@@ -105,13 +105,6 @@ void requestHyprpaper(std::string arg) {
         return;
     }
 
-    const auto SERVER = gethostbyname("localhost");
-
-    if (!SERVER) {
-        std::cout << "Couldn't get host (2)";
-        return;
-    }
-
     // get the instance signature
     auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
 

@@ -14,13 +14,19 @@ struct SKeybind {
     std::string       arg = "";
     bool              locked = false;
     std::string       submap = "";
+    bool              release = false;
+
+    // DO NOT INITIALIZE
+    bool              shadowed = false;
 };
 
 class CKeybindManager {
 public:
     CKeybindManager();
 
-    bool                handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&);
+    bool                onKeyEvent(wlr_keyboard_key_event*, SKeyboard*);
+    bool                onAxisEvent(wlr_pointer_axis_event*);
+    
     void                addKeybind(SKeybind);
     void                removeKeybind(uint32_t, const std::string&);
     uint32_t            stringToModMask(std::string);
@@ -30,8 +36,16 @@ public:
 
 private:
     std::list<SKeybind> m_lKeybinds;
+    std::deque<xkb_keysym_t> m_dPressedKeysyms;
+    std::deque<uint32_t> m_dPressedKeycodes;
 
     inline static std::string m_szCurrentSelectedSubmap = "";
+
+    xkb_keysym_t        m_kHeldBack = 0;
+
+    bool                handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&, bool, uint32_t);
+
+    void                shadowKeybinds();
 
     bool                handleInternalKeybinds(xkb_keysym_t);
     bool                handleVT(xkb_keysym_t);
@@ -66,6 +80,13 @@ private:
     static void         setSubmap(std::string);
 
     friend class CCompositor;
+
+    enum eFocusWindowMode {
+        MODE_CLASS_REGEX = 0,
+        MODE_TITLE_REGEX,
+        MODE_ADDRESS,
+        MODE_PID
+    };
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

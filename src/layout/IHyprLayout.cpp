@@ -32,11 +32,16 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         return;
     }
 
-    if (desiredGeometry.width <= 0 || desiredGeometry.height <= 0) {
+    if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
         pWindow->m_vRealSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
-        pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.vec().x) / 2.f, PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.vec().y) / 2.f);
+        
+        // reject any windows with size <= 5x5
+        if (pWindow->m_vRealSize.goalv().x <= 5 || pWindow->m_vRealSize.goalv().y <= 5) {
+            pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
+        }
 
+        pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goalv().x) / 2.f, PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goalv().y) / 2.f);
     } else {
         // we respect the size.
         pWindow->m_vRealSize = Vector2D(desiredGeometry.width, desiredGeometry.height);

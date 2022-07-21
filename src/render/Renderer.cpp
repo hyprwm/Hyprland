@@ -40,12 +40,6 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
         else
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
-
-        if (RDATA->decorate) {
-            auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
-            col.a *= RDATA->fadeAlpha * RDATA->alpha / 255.f;
-            g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
-        }
     }
     else {
         if (RDATA->surface && wlr_surface_is_xdg_surface(RDATA->surface)) {
@@ -240,6 +234,21 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
         }
 
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+
+        if (renderdata.decorate) {
+            static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+
+            float rounding = renderdata.dontRound ? 0 : renderdata.rounding == -1 ? *PROUNDING : renderdata.rounding;
+
+            auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
+            col.a *= renderdata.fadeAlpha * renderdata.alpha / 255.f;
+
+            wlr_box windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
+
+            scaleBox(&windowBox, pMonitor->scale);
+
+            g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
+        }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
@@ -499,7 +508,7 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
     wlr_box full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto& ls : layerSurfaces) {
-        if (ls->fadingOut || ls->readyToDelete || !ls->layerSurface)
+        if (ls->fadingOut || ls->readyToDelete || !ls->layerSurface || ls->noProcess)
             continue;
 
         const auto PLAYER = ls->layerSurface;
@@ -643,12 +652,12 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
         pixman_region32_translate(&damageBox, -lx, -ly);
     }
 
-    pixman_region32_fini(&damageBox);
-
     static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Surface (extents): xy: %d, %d wh: %d, %d", damageBox.extents.x1, damageBox.extents.y1, damageBox.extents.x2 - damageBox.extents.x1, damageBox.extents.y2 - damageBox.extents.y1);
+
+    pixman_region32_fini(&damageBox);
 }
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {

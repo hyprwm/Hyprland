@@ -174,11 +174,16 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRCursor->events.swipe_begin, &Events::listen_swipeBegin, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRCursor->events.swipe_update, &Events::listen_swipeUpdate, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRCursor->events.swipe_end, &Events::listen_swipeEnd, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.pinch_begin, &Events::listen_pinchBegin, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.pinch_update, &Events::listen_pinchUpdate, m_sWLRCursor, "WLRCursor");
+    addWLSignal(&m_sWLRCursor->events.pinch_end, &Events::listen_pinchEnd, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRBackend->events.new_input, &Events::listen_newInput, m_sWLRBackend, "Backend");
     addWLSignal(&m_sSeat.seat->events.request_set_cursor, &Events::listen_requestMouse, &m_sSeat, "Seat");
     addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
     addWLSignal(&m_sSeat.seat->events.request_start_drag, &Events::listen_requestDrag, &m_sSeat, "Seat");
     addWLSignal(&m_sSeat.seat->events.start_drag, &Events::listen_startDrag, &m_sSeat, "Seat");
+    addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
+    addWLSignal(&m_sSeat.seat->events.request_set_primary_selection, &Events::listen_requestSetPrimarySel, &m_sSeat, "Seat");
     addWLSignal(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface, m_sWLRLayerShell, "LayerShell");
     addWLSignal(&m_sWLROutputLayout->events.change, &Events::listen_change, m_sWLROutputLayout, "OutputLayout");
     addWLSignal(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply, m_sWLROutputMgr, "OutputMgr");
@@ -227,6 +232,9 @@ void CCompositor::startCompositor() {
     Debug::log(LOG, "Creating the AnimationManager!");
     g_pAnimationManager = std::make_unique<CAnimationManager>();
 
+    Debug::log(LOG, "Creating the LayoutManager!");
+    g_pLayoutManager = std::make_unique<CLayoutManager>();
+
     Debug::log(LOG, "Creating the ConfigManager!");
     g_pConfigManager = std::make_unique<CConfigManager>();
 
@@ -244,9 +252,6 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the XWaylandManager!");
     g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
-
-    Debug::log(LOG, "Creating the LayoutManager!");
-    g_pLayoutManager = std::make_unique<CLayoutManager>();
 
     Debug::log(LOG, "Creating the EventManager!");
     g_pEventManager = std::make_unique<CEventManager>();
@@ -641,7 +646,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     updateWindowAnimatedDecorationValues(pWindow);
 
     // Send an event
-    g_pEventManager->postEvent(SHyprIPCEvent("activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle));
+    g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
 
     if (pWindow->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_activated(pWindow->m_phForeignToplevel, true);
@@ -658,7 +663,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
 
     if (!pSurface) {
         wlr_seat_keyboard_clear_focus(m_sSeat.seat);
-        g_pEventManager->postEvent(SHyprIPCEvent("activewindow", ",")); // unfocused
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // unfocused
         return;
     }
         
@@ -814,6 +819,9 @@ CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
 }
 
 void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
+    // not needed anymore
+    return;
+    
     const auto ISVISIBLE = isWorkspaceVisible(id);
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
@@ -1201,10 +1209,14 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     }
 
     // shadow
-    if (pWindow == m_pLastWindow) {
-        pWindow->m_cRealShadowColor = CColor(*PSHADOWCOL);
+    if (pWindow->m_iX11Type != 2 && !pWindow->m_bX11DoesntWantBorders) {
+        if (pWindow == m_pLastWindow) {
+            pWindow->m_cRealShadowColor = CColor(*PSHADOWCOL);
+        } else {
+            pWindow->m_cRealShadowColor = CColor(*PSHADOWCOLINACTIVE != INT_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
+        }
     } else {
-        pWindow->m_cRealShadowColor = CColor(*PSHADOWCOLINACTIVE != INT_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
+        pWindow->m_cRealShadowColor.setValueAndWarp(CColor(0, 0, 0, 0)); // no shadow
     }
 }
 

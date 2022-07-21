@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <ranges>
+#include <algorithm>
 
 #include <iostream>
 #include <string>
@@ -202,6 +204,10 @@ std::deque<std::string> splitArgs(int argc, char** argv) {
     return result;
 }
 
+bool isNumber(const std::string& str, bool allowfloat) {
+    return std::ranges::all_of(str.begin(), str.end(), [&](char c) { return isdigit(c) != 0 || c == '-' || (allowfloat && c == '.'); });
+}
+
 int main(int argc, char** argv) {
     int bflag = 0, sflag = 0, index, c;
 
@@ -215,7 +221,7 @@ int main(int argc, char** argv) {
     const auto ARGS = splitArgs(argc, argv);
 
     for (auto i = 0; i < ARGS.size(); ++i) {
-        if (ARGS[i][0] == '-') {
+        if (ARGS[i][0] == '-' && !isNumber(ARGS[i], true) /* For stuff like -2 */) {
             // parse
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";

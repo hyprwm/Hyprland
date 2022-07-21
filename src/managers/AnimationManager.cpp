@@ -191,7 +191,6 @@ void CAnimationManager::tick() {
             } case AVARDAMAGE_SHADOW: {
                 RASSERT(PWINDOW, "Tried to AVARDAMAGE_SHADOW a non-window AVAR!");
 
-                static auto* const PSHADOWSIZE = &g_pConfigManager->getConfigValuePtr("decoration:shadow_range")->intValue;
                 static auto* const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
 
                 const auto PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);

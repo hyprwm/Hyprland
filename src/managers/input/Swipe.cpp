@@ -108,6 +108,8 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     if (workspaceIDLeft == INT_MAX || workspaceIDRight == INT_MAX || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID)
         return;
 
+    m_sActiveSwipe.pWorkspaceBegin->m_bForceRendering = true;
+
     m_sActiveSwipe.delta = std::clamp(m_sActiveSwipe.delta, (double)-*PSWIPEDIST, (double)*PSWIPEDIST);
 
     if (m_sActiveSwipe.delta < 0) {
@@ -120,11 +122,9 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
 
         PWORKSPACE->m_bForceRendering = true;
 
-        if (workspaceIDLeft != workspaceIDRight) {
-            const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+        const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
-            PWORKSPACER->m_bForceRendering = true;
-        }
+        PWORKSPACER->m_bForceRendering = true;
 
         PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x - m_sActiveSwipe.pMonitor->vecSize.x, 0));
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
@@ -140,11 +140,9 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
 
         PWORKSPACE->m_bForceRendering = true;
 
-        if (workspaceIDLeft != workspaceIDRight) {
-            const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+        const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
-            PWORKSPACEL->m_bForceRendering = true;
-        }
+        PWORKSPACEL->m_bForceRendering = true;
 
         PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x + m_sActiveSwipe.pMonitor->vecSize.x, 0));
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));

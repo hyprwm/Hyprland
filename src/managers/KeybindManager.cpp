@@ -82,7 +82,53 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     return modMask;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string& key, const xkb_keysym_t& keysym, const int& keycode) {
+bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
+    const auto KEYCODE = e->keycode + 8;  // Because to xkbcommon it's +8 from libinput
+
+    const xkb_keysym_t keysym = xkb_state_key_get_one_sym(wlr_keyboard_from_input_device(pKeyboard->keyboard)->xkb_state, KEYCODE);
+
+    const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+
+
+    bool found = false;
+    if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        m_dPressedKeycodes.push_back(KEYCODE);
+        m_dPressedKeysyms.push_back(keysym);
+
+        found = g_pKeybindManager->handleKeybinds(MODS, "", keysym, 0, true, e->time_msec) || found;
+
+        found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE, true, e->time_msec) || found;
+    } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+
+        m_dPressedKeycodes.erase(std::remove(m_dPressedKeycodes.begin(), m_dPressedKeycodes.end(), KEYCODE));
+        m_dPressedKeysyms.erase(std::remove(m_dPressedKeysyms.begin(), m_dPressedKeysyms.end(), keysym));
+
+        found = g_pKeybindManager->handleKeybinds(MODS, "", keysym, 0, false, e->time_msec) || found;
+
+        found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE, false, e->time_msec) || found;
+
+        shadowKeybinds();
+    }
+
+    return !found;
+}
+
+bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
+    const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+
+    bool found = false;
+    if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
+        if (e->delta < 0) { 
+            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_down", 0, 0, false, 0);
+        } else {
+            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_up", 0, 0, false, 0);
+        }
+    }
+
+    return !found;
+}
+
+bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string& key, const xkb_keysym_t& keysym, const int& keycode, bool pressed, uint32_t time) {
     bool found = false;
 
     if (handleInternalKeybinds(keysym))
@@ -91,8 +137,14 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
+    if (pressed && m_kHeldBack) {
+        // release the held back event
+        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, time, m_kHeldBack, WL_KEYBOARD_KEY_STATE_PRESSED);
+        m_kHeldBack = 0;
+    }
+
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap)
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || (!pressed && !k.release) || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -115,6 +167,12 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
                 continue;
         }
 
+        if (pressed && k.release) {
+            // suppress down event
+            m_kHeldBack = key;
+            return true;
+        }
+
         const auto DISPATCHER = m_mDispatchers.find(k.handler);
 
         // Should never happen, as we check in the ConfigManager, but oh well
@@ -126,10 +184,38 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             DISPATCHER->second(k.arg);
         }
 
+        shadowKeybinds();
+
         found = true;
     }
 
     return found;
+}
+
+void CKeybindManager::shadowKeybinds() {
+    // shadow disables keybinds after one has been triggered
+
+    for (auto& k : m_lKeybinds) {
+
+        bool shadow = false;
+
+        const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+        const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
+
+        for (auto& pk : m_dPressedKeysyms) {
+            if ((pk == KBKEY || pk == KBKEYUPPER)) {
+                shadow = true;
+            }
+        }
+
+        for (auto& pk : m_dPressedKeycodes) {
+            if (pk == (unsigned int)k.keycode) {
+                shadow = true;
+            }
+        }
+
+        k.shadowed = shadow;
+    }
 }
 
 bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
@@ -231,7 +317,7 @@ void CKeybindManager::killActive(std::string args) {
         g_pXWaylandManager->sendCloseWindow(g_pCompositor->m_pLastWindow);
         g_pCompositor->m_pLastFocus = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
-        g_pEventManager->postEvent(SHyprIPCEvent("activewindow", ",")); // post an activewindow event to empty, as we are currently unfocused
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // post an activewindow event to empty, as we are currently unfocused
     }
     
     g_pCompositor->focusWindow(g_pCompositor->windowFromCursor());
@@ -326,7 +412,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             // start anim on new workspace
             PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
 
-            g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACETOCHANGETO->m_szName));
+            g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACETOCHANGETO->m_szName});
         }
 
         // If the monitor is not the one our cursor's at, warp to it.
@@ -399,7 +485,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pInputManager->refocus();
 
     // Event
-    g_pEventManager->postEvent(SHyprIPCEvent("workspace", PWORKSPACE->m_szName));
+    g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACE->m_szName});
 
     Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }
@@ -430,6 +516,9 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         return;
     }
 
+    auto PSAVEDSIZE = PWINDOW->m_vRealSize.vec();
+    auto PSAVEDPOS = PWINDOW->m_vRealPosition.vec();
+
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     g_pKeybindManager->changeworkspace(args);
@@ -457,20 +546,21 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWORKSPACE->m_bHasFullscreenWindow = false;
     }
 
+    if (PWINDOW->m_bIsFullscreen) {
+        PWINDOW->m_bIsFullscreen = false;
+        PSAVEDPOS = PSAVEDPOS + Vector2D(10, 10);
+        PSAVEDSIZE = PSAVEDSIZE - Vector2D(20, 20);
+    }
+
     // Hack: So that the layout doesnt find our window at the cursor
     PWINDOW->m_vPosition = Vector2D(-42069, -42069);
     
-    // Save the real position and size because the layout might set its own
-    const auto PSAVEDSIZE = PWINDOW->m_vRealSize.vec();
-    const auto PSAVEDPOS = PWINDOW->m_vRealPosition.vec();
     g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
-    // and restore it
-    PWINDOW->m_vRealPosition.setValue(PSAVEDPOS);
-    PWINDOW->m_vRealSize.setValue(PSAVEDSIZE);
 
+    // and restore it
     if (PWINDOW->m_bIsFloating) {
-        PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition);
-        PWINDOW->m_vRealPosition.setValue(PWINDOW->m_vRealPosition.vec() + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
+        PWINDOW->m_vRealSize.setValue(PSAVEDSIZE);
+        PWINDOW->m_vRealPosition.setValueAndWarp(PSAVEDPOS - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
     }
 
@@ -1048,6 +1138,11 @@ void CKeybindManager::circleNext(std::string arg) {
     if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
         return;
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow)
+        return;
+
     if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
         g_pCompositor->focusWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow));
     else
@@ -1059,27 +1154,56 @@ void CKeybindManager::circleNext(std::string arg) {
 }
 
 void CKeybindManager::focusWindow(std::string regexp) {
-    bool titleRegex = false;
+    eFocusWindowMode mode = MODE_CLASS_REGEX;
+
     std::regex regexCheck(regexp);
+    std::string matchCheck;    
     if (regexp.find("title:") == 0) {
-        titleRegex = true;
+        mode = MODE_TITLE_REGEX;
         regexCheck = std::regex(regexp.substr(6));
+    }
+    else if (regexp.find("address:") == 0) {
+        mode = MODE_ADDRESS;
+        matchCheck = regexp.substr(8);
+    }
+    else if (regexp.find("pid:") == 0) {
+        mode = MODE_PID;
+        matchCheck = regexp.substr(4);
     }
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->m_bHidden)
             continue;
 
-        if (titleRegex) {
-            const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
-            if (!std::regex_search(windowTitle, regexCheck))
-                continue;
+        switch (mode) {
+            case MODE_CLASS_REGEX: {
+                const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
+                if (!std::regex_search(g_pXWaylandManager->getAppIDClass(w.get()), regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_TITLE_REGEX: {
+                const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
+                if (!std::regex_search(windowTitle, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_ADDRESS: {
+                std::string addr = getFormat("0x%x", w.get());
+                if (matchCheck != addr)
+                    continue;
+                break;
+            }
+            case MODE_PID: {
+                std::string pid = getFormat("%d", w->getPID());
+                if (matchCheck != pid)
+                    continue;
+                break;
+            }
+            default:
+                break;
         }
-        else {
-            const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
-            if (!std::regex_search(windowClass, regexCheck))
-                continue;
-        }
+
 
         Debug::log(LOG, "Focusing to window name: %s", w->m_szTitle.c_str());
 

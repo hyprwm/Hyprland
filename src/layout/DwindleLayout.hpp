@@ -55,6 +55,9 @@ public:
     virtual void        alterSplitRatioBy(CWindow*, float);
     virtual std::string getLayoutName();
 
+    virtual void        onEnable();
+    virtual void        onDisable();
+
 private:
 
     std::list<SDwindleNodeData>     m_lDwindleNodesData;

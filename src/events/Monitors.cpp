@@ -120,7 +120,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         WORKSPACEID = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 
-        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", monitorRule.defaultWorkspace);
+        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", monitorRule.defaultWorkspace.c_str());
     }
 
     auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
@@ -157,7 +157,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->m_pLastMonitor = PNEWMONITOR;
 
-    g_pEventManager->postEvent(SHyprIPCEvent("monitoradded", PNEWMONITOR->szName));
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", PNEWMONITOR->szName});
 
     // ready to process cuz we have a monitor
     g_pCompositor->m_bReadyToProcess = true;
@@ -393,7 +393,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     Debug::log(LOG, "Removed monitor %s!", pMonitor->szName.c_str());
 
-    g_pEventManager->postEvent(SHyprIPCEvent("monitorremoved", pMonitor->szName));
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", pMonitor->szName});
 
     g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](std::unique_ptr<SMonitor>& el) { return el.get() == pMonitor; }));
 

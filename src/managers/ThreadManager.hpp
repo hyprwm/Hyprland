@@ -9,11 +9,9 @@ public:
     CThreadManager();
     ~CThreadManager();
 
-private:
+    wl_event_source* m_esConfigTimer;
 
-    void                handle();
-
-    std::thread*        m_tMainThread;
+   private:
 };
 
 inline std::unique_ptr<CThreadManager> g_pThreadManager;

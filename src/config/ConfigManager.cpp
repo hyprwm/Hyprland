@@ -24,6 +24,7 @@ CConfigManager::CConfigManager() {
     configPaths.emplace_back(CONFIGPATH);
 
     Debug::disableLogs = &configValues["debug:disable_logs"].intValue;
+    Debug::disableTime = &configValues["debug:disable_time"].intValue;
 }
 
 void CConfigManager::setDefaultVars() {
@@ -43,6 +44,8 @@ void CConfigManager::setDefaultVars() {
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
     configValues["general:cursor_inactive_timeout"].intValue = 0;
+
+    configValues["general:layout"].strValue = "dwindle";
     
     configValues["misc:disable_hyprland_logo"].intValue = 0;
     configValues["misc:disable_splash_rendering"].intValue = 0;
@@ -53,6 +56,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:overlay"].intValue = 0;
     configValues["debug:damage_blink"].intValue = 0;
     configValues["debug:disable_logs"].intValue = 0;
+    configValues["debug:disable_time"].intValue = 1;
 
     configValues["decoration:rounding"].intValue = 1;
     configValues["decoration:blur"].intValue = 1;
@@ -80,6 +84,10 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:special_scale_factor"].floatValue = 0.8f;
     configValues["dwindle:split_width_multiplier"].floatValue = 1.0f;
 
+    configValues["master:special_scale_factor"].floatValue = 0.8f;
+    configValues["master:new_is_master"].intValue = 1;
+    configValues["master:new_on_top"].intValue = 0;
+
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;
     configValues["animations:curve"].strValue = "default";
@@ -100,6 +108,7 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:workspaces_speed"].floatValue = 0.f;
     configValues["animations:workspaces"].intValue = 1;
 
+    configValues["input:sensitivity"].floatValue = 0.f;
     configValues["input:kb_layout"].strValue = "us";
     configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
     configValues["input:kb_options"].strValue = STRVAL_EMPTY;
@@ -118,6 +127,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:drag_lock"].intValue = 0;
 
     configValues["gestures:workspace_swipe"].intValue = 0;
+    configValues["gestures:workspace_swipe_fingers"].intValue = 3;
     configValues["gestures:workspace_swipe_distance"].intValue = 300;
     configValues["gestures:workspace_swipe_invert"].intValue = 1;
     configValues["gestures:workspace_swipe_min_speed_to_force"].intValue = 30;
@@ -131,6 +141,7 @@ void CConfigManager::setDefaultVars() {
 void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     auto& cfgValues = deviceConfigs[dev];
 
+    cfgValues["sensitivity"].floatValue = 0.f;
     cfgValues["kb_layout"].strValue = "us";
     cfgValues["kb_variant"].strValue = STRVAL_EMPTY;
     cfgValues["kb_options"].strValue = STRVAL_EMPTY;
@@ -495,9 +506,25 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
     configSetValueSafe("animations:" + ANIMNAME + "_style", curitem);
 }
 
-void CConfigManager::handleBind(const std::string& command, const std::string& value, bool locked) {
+void CConfigManager::handleBind(const std::string& command, const std::string& value) {
     // example:
-    // bind=SUPER,G,exec,dmenu_run <args>
+    // bind[fl]=SUPER,G,exec,dmenu_run <args>
+
+    // flags
+    bool locked = false;
+    bool release = false;
+    const auto ARGS = command.substr(4);
+
+    for (auto& arg : ARGS) {
+        if (arg == 'l') {
+            locked = true;
+        } else if (arg == 'r') {
+            release = true;
+        } else {
+            parseError = "bind: invalid flag";
+            return;
+        }
+    }
 
     auto valueCopy = value;
 
@@ -529,9 +556,9 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release});
     }
         
 }
@@ -566,6 +593,7 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         && RULE.find("monitor") != 0
         && RULE != "nofocus"
         && RULE != "noblur"
+        && RULE != "center"
         && RULE != "fullscreen"
         && RULE.find("animation") != 0
         && RULE.find("rounding") != 0
@@ -698,8 +726,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         }
     }
     else if (COMMAND == "monitor") handleMonitor(COMMAND, VALUE);
-    else if (COMMAND == "bind") handleBind(COMMAND, VALUE);
-    else if (COMMAND == "bindl") handleBind(COMMAND, VALUE, true);
+    else if (COMMAND.find("bind") == 0) handleBind(COMMAND, VALUE);
     else if (COMMAND == "unbind") handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace") handleDefaultWorkspace(COMMAND, VALUE);
     else if (COMMAND == "windowrule") handleWindowRule(COMMAND, VALUE);
@@ -892,8 +919,10 @@ void CConfigManager::loadConfigLoadVars() {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
-    if (!isFirstLaunch)
+    if (!isFirstLaunch) {
         g_pInputManager->setKeyboardLayout();
+        g_pInputManager->setMouseConfigs();
+    }
 
     // Calculate the internal vars
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);
@@ -922,6 +951,9 @@ void CConfigManager::loadConfigLoadVars() {
 
     // Update window border colors
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+    // update layout
+    g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
 
     // Force the compositor to fully re-render all monitors
     for (auto& m : g_pCompositor->m_vMonitors)

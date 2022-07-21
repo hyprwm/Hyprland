@@ -1,34 +1,29 @@
 #include "ThreadManager.hpp"
 #include "../debug/HyprCtl.hpp"
-
-CThreadManager::CThreadManager() {
-    m_tMainThread = new std::thread([&]() {
-        // Call the handle method.
-        this->handle();
-    });
-
-    m_tMainThread->detach(); // detach and continue.
-}
-
-CThreadManager::~CThreadManager() {
-    //
-}
+#include "../Compositor.hpp"
 
 int slowUpdate = 0;
 
-void CThreadManager::handle() {
+int handleTimer(void* data) {
+    const auto PTM = (CThreadManager*)data;
 
+    g_pConfigManager->tick();
+
+    wl_event_source_timer_update(PTM->m_esConfigTimer, 1000);
+
+    return 0;
+}
+
+CThreadManager::CThreadManager() {
     g_pConfigManager->init();
 
     HyprCtl::startHyprCtlSocket();
 
-    while (3.1415f) {
-        slowUpdate++;
-        if (slowUpdate >= g_pConfigManager->getInt("general:max_fps")){
-            g_pConfigManager->tick();
-            slowUpdate = 0;
-        }
+    m_esConfigTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, handleTimer, this);
 
-        std::this_thread::sleep_for(std::chrono::microseconds(1000000 / g_pConfigManager->getInt("general:max_fps")));
-    }
+    wl_event_source_timer_update(m_esConfigTimer, 1000);
+}
+
+CThreadManager::~CThreadManager() {
+    //
 }

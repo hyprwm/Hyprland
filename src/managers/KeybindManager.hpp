@@ -25,6 +25,7 @@ public:
     CKeybindManager();
 
     bool                onKeyEvent(wlr_keyboard_key_event*, SKeyboard*);
+    bool                onAxisEvent(wlr_pointer_axis_event*);
     
     void                addKeybind(SKeybind);
     void                removeKeybind(uint32_t, const std::string&);
@@ -42,7 +43,7 @@ private:
 
     xkb_keysym_t        m_kHeldBack = 0;
 
-    bool                handleKeybinds(const uint32_t&, const xkb_keysym_t&, const int&, bool, uint32_t);
+    bool                handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&, bool, uint32_t);
 
     void                shadowKeybinds();
 

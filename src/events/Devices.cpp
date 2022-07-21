@@ -49,9 +49,7 @@ void Events::listener_mouseButton(wl_listener* listener, void* data) {
 }
 
 void Events::listener_mouseAxis(wl_listener* listener, void* data) {
-    const auto E = (wlr_pointer_axis_event*)data;
-
-    wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, E->time_msec, E->orientation, E->delta, E->delta_discrete, E->source);
+    g_pInputManager->onMouseWheel((wlr_pointer_axis_event*)data);
 }
 
 void Events::listener_requestMouse(wl_listener* listener, void* data) {

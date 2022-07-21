@@ -381,6 +381,16 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
     m_ecbClickBehavior = CLICKMODE_DEFAULT;
 }
 
+void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
+    bool passEvent = g_pKeybindManager->onAxisEvent(e);
+
+    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
+
+    if (passEvent) {
+        wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, e->delta, e->delta_discrete, e->source);
+    }
+}
+
 Vector2D CInputManager::getMouseCoordsInternal() {
     return Vector2D(g_pCompositor->m_sWLRCursor->x, g_pCompositor->m_sWLRCursor->y);
 }

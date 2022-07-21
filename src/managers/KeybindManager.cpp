@@ -95,17 +95,17 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         m_dPressedKeycodes.push_back(KEYCODE);
         m_dPressedKeysyms.push_back(keysym);
 
-        found = g_pKeybindManager->handleKeybinds(MODS, keysym, 0, true, e->time_msec) || found;
+        found = g_pKeybindManager->handleKeybinds(MODS, "", keysym, 0, true, e->time_msec) || found;
 
-        found = g_pKeybindManager->handleKeybinds(MODS, 0, KEYCODE, true, e->time_msec) || found;
+        found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE, true, e->time_msec) || found;
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
 
         m_dPressedKeycodes.erase(std::remove(m_dPressedKeycodes.begin(), m_dPressedKeycodes.end(), KEYCODE));
         m_dPressedKeysyms.erase(std::remove(m_dPressedKeysyms.begin(), m_dPressedKeysyms.end(), keysym));
 
-        found = g_pKeybindManager->handleKeybinds(MODS, keysym, 0, false, e->time_msec) || found;
+        found = g_pKeybindManager->handleKeybinds(MODS, "", keysym, 0, false, e->time_msec) || found;
 
-        found = g_pKeybindManager->handleKeybinds(MODS, 0, KEYCODE, false, e->time_msec) || found;
+        found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE, false, e->time_msec) || found;
 
         shadowKeybinds();
     }
@@ -113,10 +113,25 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
     return !found;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t& key, const int& keycode, bool pressed, uint32_t time) {
+bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
+    const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+
+    bool found = false;
+    if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
+        if (e->delta < 0) { 
+            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_down", 0, 0, true, 0);
+        } else {
+            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_up", 0, 0, true, 0);
+        }
+    }
+
+    return !found;
+}
+
+bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string& key, const xkb_keysym_t& keysym, const int& keycode, bool pressed, uint32_t time) {
     bool found = false;
 
-    if (handleInternalKeybinds(key))
+    if (handleInternalKeybinds(keysym))
         return true;
 
     if (g_pCompositor->m_sSeat.exclusiveClient)
@@ -132,12 +147,14 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
         if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || (!pressed && !k.release) || k.shadowed)
             continue;
 
-        if (k.keycode != -1) {
+        if (!key.empty()) {
+            if (key != k.key)
+                continue;
+        } else if (k.keycode != -1) {
             if (keycode != k.keycode)
                 continue;
-
         } else {
-            if (key == 0)
+            if (keysym == 0)
                 continue;  // this is a keycode check run
 
             // oMg such performance hit!!11!
@@ -146,13 +163,13 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
             // small TODO: fix 0-9 keys and other modified ones with shift
 
-            if (key != KBKEY && key != KBKEYUPPER)
+            if (keysym != KBKEY && keysym != KBKEYUPPER)
                 continue;
         }
 
         if (pressed && k.release) {
             // suppress down event
-            m_kHeldBack = key;
+            m_kHeldBack = keysym;
             return true;
         }
 
@@ -163,7 +180,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const xkb_keysym_t
             Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %d)", modmask, key);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %s, %d)", modmask, key, keysym);
             DISPATCHER->second(k.arg);
         }
 

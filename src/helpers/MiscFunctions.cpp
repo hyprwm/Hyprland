@@ -217,7 +217,9 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         }
         outName = WORKSPACENAME;
     } else {
-        if (in[0] == 'm') {
+        if (in[0] == 'm' || in[0] == 'e') {
+            bool onAllMonitors = in[0] == 'e';
+
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
                 result = INT_MAX;
@@ -258,7 +260,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 }
 
                 if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(searchID); PWORKSPACE && PWORKSPACE->m_iID != SPECIAL_WORKSPACE_ID) {
-                    if (PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
+                    if (onAllMonitors || PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
                         currentID = PWORKSPACE->m_iID;
 
                         if (remains < 0)

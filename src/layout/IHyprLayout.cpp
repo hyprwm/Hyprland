@@ -117,6 +117,9 @@ void IHyprLayout::onBeginDragWindow() {
     m_vLastDragXY = m_vBeginDragXY;
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
+
+    // shadow to ignore any bound to MAIN_MOD
+    g_pKeybindManager->shadowKeybinds();
 }
 
 void IHyprLayout::onEndDragWindow() {

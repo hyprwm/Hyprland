@@ -25,6 +25,7 @@ void CHyprWLListener::removeCallback() {
     if (m_bIsConnected) {
         Debug::log(LOG, "Callback %x -> %x, %s removed.", &m_pCallback, &m_pOwner, m_szAuthor.c_str());
         wl_list_remove(&m_sListener.link);
+        wl_list_init(&m_sListener.link);
     }
 
     m_bIsConnected = false;
@@ -46,6 +47,7 @@ void CHyprWLListener::initCallback(wl_signal* pSignal, std::function<void(void*,
 
     m_bIsConnected = true;
 
+    wl_list_init(&m_sListener.link);
     addWLSignal(pSignal, &m_sListener, pOwner, m_szAuthor);
 }
 

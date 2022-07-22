@@ -19,7 +19,7 @@ struct SLayerSurface {
     DYNLISTENER(commitLayerSurface);
     DYNLISTENER(newPopup);
 
-    wlr_box                 geometry;
+    wlr_box                 geometry = {0,0,0,0};
     Vector2D                position;
     zwlr_layer_shell_v1_layer layer;
 

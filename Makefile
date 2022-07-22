@@ -9,7 +9,6 @@ PKGS = wlroots wayland-server xcb xkbcommon libinput
 CFLAGS += $(foreach p,$(PKGS),$(shell pkg-config --cflags $(p)))
 LDLIBS += $(foreach p,$(PKGS),$(shell pkg-config --libs $(p)))
 
-VERSION=0.7.1beta
 DATE=$(shell date "+%d %b %Y")
 
 xdg-shell-protocol.h:
@@ -157,7 +156,6 @@ man:
 	pandoc ./docs/Hyprland.1.rst \
 		--standalone \
 		--variable=header:"Hyprland User Manual" \
-		--variable=footer:${VERSION} \
 		--variable=date:"${DATE}" \
 		--variable=section:1 \
 		--from rst \
@@ -166,7 +164,6 @@ man:
 	pandoc ./docs/hyprctl.1.rst \
 		--standalone \
 		--variable=header:"hyprctl User Manual" \
-		--variable=footer:${VERSION} \
 		--variable=date:"${DATE}" \
 		--variable=section:1 \
 		--from rst \

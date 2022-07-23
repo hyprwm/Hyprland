@@ -72,10 +72,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         return;
     }
 
-    SMonitor newMonitor;
-    newMonitor.output = OUTPUT;
-    newMonitor.ID = g_pCompositor->getNextAvailableMonitorID();
-    newMonitor.szName = OUTPUT->name;
+    const auto PNEWMONITOR = g_pCompositor->m_vMonitors.emplace_back(std::make_unique<SMonitor>()).get();
+
+    PNEWMONITOR->output = OUTPUT;
+    PNEWMONITOR->ID = g_pCompositor->getNextAvailableMonitorID();
+    PNEWMONITOR->szName = OUTPUT->name;
 
     wlr_output_init_render(OUTPUT, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
 
@@ -86,11 +87,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     wlr_output_enable_adaptive_sync(OUTPUT, 1);
 
     // create it in the arr
-    newMonitor.vecPosition = monitorRule.offset;
-    newMonitor.vecSize = monitorRule.resolution;
-    newMonitor.refreshRate = monitorRule.refreshRate;
-
-    const auto PNEWMONITOR = g_pCompositor->m_vMonitors.emplace_back(std::make_unique<SMonitor>(newMonitor)).get();
+    PNEWMONITOR->vecPosition = monitorRule.offset;
+    PNEWMONITOR->vecSize = monitorRule.resolution;
+    PNEWMONITOR->refreshRate = monitorRule.refreshRate;
 
     PNEWMONITOR->hyprListener_monitorFrame.initCallback(&OUTPUT->events.frame, &Events::listener_monitorFrame, PNEWMONITOR);
     PNEWMONITOR->hyprListener_monitorDestroy.initCallback(&OUTPUT->events.destroy, &Events::listener_monitorDestroy, PNEWMONITOR);
@@ -134,7 +133,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PNEWMONITOR->ID);
         PNEWWORKSPACE->startAnim(true,true,true);
     } else {
-        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(newMonitor.ID, newDefaultWorkspaceName)).get();
+        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(PNEWMONITOR->ID, newDefaultWorkspaceName)).get();
 
         // We are required to set the name here immediately
         wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, newDefaultWorkspaceName.c_str());

@@ -3,8 +3,9 @@
 #include "../defines.hpp"
 #include <deque>
 #include "WLClasses.hpp"
-#include <list>
+#include <vector>
 #include <array>
+#include <memory>
 
 struct SMonitor {
     Vector2D    vecPosition         = Vector2D(0,0);
@@ -38,7 +39,7 @@ struct SMonitor {
     // Double-linked list because we need to have constant mem addresses for signals
     // We have to store pointers and use raw new/delete because they might be moved between them
     // and I am lazy
-    std::array<std::list<SLayerSurface*>, 4>   m_aLayerSurfaceLists;
+    std::array<std::vector<std::unique_ptr<SLayerSurface>>, 4>   m_aLayerSurfaceLists;
 
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);

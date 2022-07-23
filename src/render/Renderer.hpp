@@ -46,7 +46,7 @@ public:
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 
 private:
-    void                arrangeLayerArray(SMonitor*, const std::list<SLayerSurface*>&, bool, wlr_box*);
+    void                arrangeLayerArray(SMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
     void                renderWorkspaceWithFullscreenWindow(SMonitor*, CWorkspace*, timespec*);
     void                renderWindow(CWindow*, SMonitor*, timespec*, bool, eRenderPassMode);
     void                renderLayer(SLayerSurface*, SMonitor*, timespec*);

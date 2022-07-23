@@ -32,7 +32,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     }
 
     const auto PMONITOR = (SMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
-    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].emplace_back(new SLayerSurface());
+    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].emplace_back(std::make_unique<SLayerSurface>()).get();
 
     layerSurface->szNamespace = WLRLAYERSURFACE->_namespace;
 
@@ -109,8 +109,13 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
-        POLDMON->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
-        PMONITOR->m_aLayerSurfaceLists[layersurface->layer].push_back(layersurface);
+        for (auto it = POLDMON->m_aLayerSurfaceLists[layersurface->layer].begin(); it != POLDMON->m_aLayerSurfaceLists[layersurface->layer].end(); it++) {
+            if (it->get() == layersurface) {
+                PMONITOR->m_aLayerSurfaceLists[layersurface->layer].emplace_back(std::move(*it));
+                POLDMON->m_aLayerSurfaceLists[layersurface->layer].erase(it);
+                break;
+            }
+        }
         layersurface->monitorID = PMONITOR->ID;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
         g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
@@ -197,8 +202,15 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     // fix if it changed its mon
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
-        POLDMON->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
-        PMONITOR->m_aLayerSurfaceLists[layersurface->layer].push_back(layersurface);
+
+        for (auto it = POLDMON->m_aLayerSurfaceLists[layersurface->layer].begin(); it != POLDMON->m_aLayerSurfaceLists[layersurface->layer].end(); it++) {
+            if (it->get() == layersurface) {
+                PMONITOR->m_aLayerSurfaceLists[layersurface->layer].emplace_back(std::move(*it));
+                POLDMON->m_aLayerSurfaceLists[layersurface->layer].erase(it);
+                break;
+            }
+        }
+
         layersurface->monitorID = PMONITOR->ID;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
         g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
@@ -208,8 +220,15 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
         if (layersurface->layer != layersurface->layerSurface->current.layer) {
-            PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
-            PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].push_back(layersurface);
+            
+            for (auto it = PMONITOR->m_aLayerSurfaceLists[layersurface->layer].begin(); it != PMONITOR->m_aLayerSurfaceLists[layersurface->layer].end(); it++) {
+                if (it->get() == layersurface) {
+                    PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].emplace_back(std::move(*it));
+                    PMONITOR->m_aLayerSurfaceLists[layersurface->layer].erase(it);
+                    break;
+                }
+            }
+
             layersurface->layer = layersurface->layerSurface->current.layer;
         }
 

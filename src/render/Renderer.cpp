@@ -147,12 +147,12 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
     if (pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL) {
         // on non-full we draw the bar and shit
         for (auto& ls : pMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            renderLayer(ls, pMonitor, time);
+            renderLayer(ls.get(), pMonitor, time);
         }
     }
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ls, pMonitor, time);
+        renderLayer(ls.get(), pMonitor, time);
     }
 
     renderDragIcon(pMonitor, time);
@@ -290,10 +290,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // Render layer surfaces below windows for monitor
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-        renderLayer(ls, PMONITOR, time);
+        renderLayer(ls.get(), PMONITOR, time);
     }
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-        renderLayer(ls, PMONITOR, time);
+        renderLayer(ls.get(), PMONITOR, time);
     }
 
     // if there is a fullscreen window, render it and then do not render anymore.
@@ -376,10 +376,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // Render surfaces above windows for monitor
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        renderLayer(ls, PMONITOR, time);
+        renderLayer(ls.get(), PMONITOR, time);
     }
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ls, PMONITOR, time);
+        renderLayer(ls.get(), PMONITOR, time);
     }
 
     renderDragIcon(PMONITOR, time);
@@ -504,7 +504,7 @@ void apply_exclusive(struct wlr_box* usable_area, uint32_t anchor, int32_t exclu
     }
 }
 
-void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayerSurface*>& layerSurfaces, bool exclusiveZone, wlr_box* usableArea) {
+void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::vector<std::unique_ptr<SLayerSurface>>& layerSurfaces, bool exclusiveZone, wlr_box* usableArea) {
     wlr_box full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto& ls : layerSurfaces) {
@@ -577,7 +577,7 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
             box.y -= PSTATE->margin.bottom;
         }
         if (box.width <= 0 || box.height <= 0) {
-            Debug::log(ERR, "LayerSurface %x has a negative/zero w/h???", ls);
+            Debug::log(ERR, "LayerSurface %x has a negative/zero w/h???", ls.get());
             continue;
         }
         // Apply

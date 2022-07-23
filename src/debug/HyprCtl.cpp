@@ -220,7 +220,7 @@ R"#(                {
                     "h": %i,
                     "namespace": "%s"
                 },)#",
-					layer,
+					layer.get(),
                     layer->geometry.x,
                     layer->geometry.y,
                     layer->geometry.width,
@@ -259,7 +259,7 @@ R"#(                {
                 result += getFormat("\tLayer level %i:\n", layerLevel);
 
                 for (auto& layer : level) {
-                    result += getFormat("\t\tLayer %x: xywh: %i %i %i %i, namespace: %s\n", layer, layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, layer->szNamespace.c_str());
+                    result += getFormat("\t\tLayer %x: xywh: %i %i %i %i, namespace: %s\n", layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, layer->szNamespace.c_str());
                 }
 
                 layerLevel++;

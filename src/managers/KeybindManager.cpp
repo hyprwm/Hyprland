@@ -184,7 +184,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             DISPATCHER->second(k.arg);
         }
 
-        shadowKeybinds();
+        shadowKeybinds(keysym == 0 ? 0 : keysym, keycode == -1 ? -1 : keycode);
 
         found = true;
     }
@@ -192,7 +192,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     return found;
 }
 
-void CKeybindManager::shadowKeybinds() {
+void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint32_t& doesntHaveCode) {
     // shadow disables keybinds after one has been triggered
 
     for (auto& k : m_lKeybinds) {
@@ -206,11 +206,21 @@ void CKeybindManager::shadowKeybinds() {
             if ((pk == KBKEY || pk == KBKEYUPPER)) {
                 shadow = true;
             }
+
+            if (pk == doesntHave && doesntHave != 0) {
+                shadow = false;
+                break;
+            }
         }
 
         for (auto& pk : m_dPressedKeycodes) {
             if (pk == (unsigned int)k.keycode) {
                 shadow = true;
+            }
+
+            if (pk == doesntHaveCode && doesntHaveCode != 0 && doesntHaveCode != -1) {
+                shadow = false;
+                break;
             }
         }
 

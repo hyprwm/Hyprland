@@ -98,6 +98,9 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         found = g_pKeybindManager->handleKeybinds(MODS, "", keysym, 0, true, e->time_msec) || found;
 
         found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE, true, e->time_msec) || found;
+
+        if (found)
+            shadowKeybinds();
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
 
         m_dPressedKeycodes.erase(std::remove(m_dPressedKeycodes.begin(), m_dPressedKeycodes.end(), KEYCODE));
@@ -183,8 +186,6 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %s, %d)", modmask, key, keysym);
             DISPATCHER->second(k.arg);
         }
-
-        shadowKeybinds(keysym == 0 ? 0 : keysym, keycode == -1 ? -1 : keycode);
 
         found = true;
     }

@@ -264,12 +264,6 @@ void CCompositor::startCompositor() {
 
     initAllSignals();
 
-    // Set some env vars so that Firefox is automatically in Wayland mode
-    // and QT apps too
-    // electron needs -- flags so we can't really set them here
-    setenv("QT_QPA_PLATFORM", "wayland", true);
-    setenv("MOZ_ENABLE_WAYLAND", "1", true);
-
     // Set XDG_CURRENT_DESKTOP to our compositor's name
     setenv("XDG_CURRENT_DESKTOP", "hyprland", true);
 

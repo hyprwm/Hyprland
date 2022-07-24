@@ -31,7 +31,7 @@ public:
     void                removeKeybind(uint32_t, const std::string&);
     uint32_t            stringToModMask(std::string);
     void                clearKeybinds();
-    void                shadowKeybinds();
+    void                shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t& doesntHaveCode = 0);
 
     std::unordered_map<std::string, std::function<void(std::string)>> m_mDispatchers;
 

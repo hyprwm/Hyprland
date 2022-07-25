@@ -58,37 +58,20 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
         ofs << "] ";
     }
 
-    char buf[LOGMESSAGESIZE] = "";
-    char* outputStr;
-    int logLen;
+    char* outputStr = nullptr;
 
     va_list args;
     va_start(args, fmt);
-    logLen = vsnprintf(buf, sizeof buf, fmt, args);
+    vasprintf(&outputStr, fmt, args);
     va_end(args);
 
-    if ((long unsigned int)logLen < sizeof buf) {
-        outputStr = strdup(buf);
-    } else {
-        outputStr = (char*)malloc(logLen + 1);
+    std::string output = std::string(outputStr);
+    free(outputStr);
 
-        if (!outputStr) {
-            printf("CRITICAL: Cannot alloc size %d for log! (Out of memory?)", logLen + 1);
-            return;
-        }
-
-        va_start(args, fmt);
-        vsnprintf(outputStr, logLen + 1U, fmt, args);
-        va_end(args);
-    }
-
-    ofs << outputStr << "\n";
+    ofs << output << "\n";
 
     ofs.close();
 
     // log it to the stdout too.
-    std::cout << outputStr << "\n";
-
-    // free the log
-    free(outputStr);
+    std::cout << output << "\n";
 }

@@ -248,22 +248,22 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const int& 
         for (auto& pk : m_dPressedKeysyms) {
             if ((pk == KBKEY || pk == KBKEYUPPER)) {
                 shadow = true;
-            }
-
-            if (pk == doesntHave && doesntHave != 0) {
-                shadow = false;
-                break;
+                
+                if (pk == doesntHave && doesntHave != 0) {
+                    shadow = false;
+                    break;
+                }
             }
         }
 
         for (auto& pk : m_dPressedKeycodes) {
             if (pk == k.keycode) {
                 shadow = true;
-            }
 
-            if (pk == doesntHaveCode && doesntHaveCode != 0 && doesntHaveCode != -1) {
-                shadow = false;
-                break;
+                if (pk == doesntHaveCode && doesntHaveCode != 0 && doesntHaveCode != -1) {
+                    shadow = false;
+                    break;
+                }
             }
         }
 

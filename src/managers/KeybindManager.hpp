@@ -15,6 +15,7 @@ struct SKeybind {
     bool              locked = false;
     std::string       submap = "";
     bool              release = false;
+    bool              repeat = false;
 
     // DO NOT INITIALIZE
     bool              shadowed = false;
@@ -35,6 +36,8 @@ public:
 
     std::unordered_map<std::string, std::function<void(std::string)>> m_mDispatchers;
 
+    wl_event_source*    m_pActiveKeybindEventSource = nullptr;
+
 private:
     std::list<SKeybind> m_lKeybinds;
     std::deque<xkb_keysym_t> m_dPressedKeysyms;
@@ -43,6 +46,8 @@ private:
     inline static std::string m_szCurrentSelectedSubmap = "";
 
     xkb_keysym_t        m_kHeldBack = 0;
+
+    SKeybind*           m_pActiveKeybind = nullptr;
 
     bool                handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&, bool, uint32_t);
 

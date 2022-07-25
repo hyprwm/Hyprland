@@ -234,8 +234,6 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     }
 
     if (layersurface->layerSurface->current.committed != 0) {
-        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
-
         if (layersurface->layer != layersurface->layerSurface->current.layer) {
             
             for (auto it = PMONITOR->m_aLayerSurfaceLists[layersurface->layer].begin(); it != PMONITOR->m_aLayerSurfaceLists[layersurface->layer].end(); it++) {
@@ -248,6 +246,8 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
             layersurface->layer = layersurface->layerSurface->current.layer;
         }
+
+        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
     }

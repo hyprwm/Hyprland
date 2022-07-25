@@ -23,6 +23,8 @@ struct SLayerSurface {
     Vector2D                position;
     zwlr_layer_shell_v1_layer layer;
 
+    bool                    mapped = false;
+
     int                     monitorID = -1;
 
     std::string             szNamespace = "";

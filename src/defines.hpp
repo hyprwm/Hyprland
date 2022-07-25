@@ -54,6 +54,12 @@
 
 #define ASSERT(expr) RASSERT(expr, "?")
 
+#if ISDEBUG
+#define UNREACHABLE() { Debug::log(CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)"); *((int*)nullptr) = 1; }
+#else
+#define UNREACHABLE() std::unreachable();
+#endif
+
 // git stuff
 #ifndef GIT_COMMIT_HASH
 #define GIT_COMMIT_HASH "?"

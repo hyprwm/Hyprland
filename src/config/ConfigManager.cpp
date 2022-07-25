@@ -513,6 +513,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     // flags
     bool locked = false;
     bool release = false;
+    bool repeat = false;
     const auto ARGS = command.substr(4);
 
     for (auto& arg : ARGS) {
@@ -520,6 +521,8 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
             locked = true;
         } else if (arg == 'r') {
             release = true;
+        } else if (arg == 'e') {
+            repeat = true;
         } else {
             parseError = "bind: invalid flag";
             return;
@@ -556,9 +559,9 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release});
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat});
     }
         
 }

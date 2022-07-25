@@ -890,6 +890,34 @@ void CCompositor::cleanupFadingOut(const int& monid) {
     }
 
     for (auto& ls : m_vSurfacesFadingOut) {
+
+        // sometimes somehow fucking happens wtf
+        bool exists = false;
+        for (auto& m : m_vMonitors) {
+            for (auto& lsl : m->m_aLayerSurfaceLists) {
+                for (auto& lsp : lsl) {
+                    if (lsp.get() == ls) {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (exists)
+                    break;
+            }
+
+            if (exists)
+                break;
+        }
+
+        if (!exists) {
+            m_vSurfacesFadingOut.erase(std::remove(m_vSurfacesFadingOut.begin(), m_vSurfacesFadingOut.end(), ls));
+
+            Debug::log(LOG, "Fading out a non-existent LS??");
+
+            return;
+        }
+
         if (ls->monitorID != monid)
             continue;
 

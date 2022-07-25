@@ -83,32 +83,14 @@ void wlr_signal_emit_safe(struct wl_signal *signal, void *data) {
 }
 
 std::string getFormat(const char *fmt, ...) {
-    char buf[LOGMESSAGESIZE] = "";
-    char* outputStr;
-    int logLen;
+    char* outputStr = nullptr;
 
     va_list args;
     va_start(args, fmt);
-    logLen = vsnprintf(buf, sizeof buf, fmt, args);
+    vasprintf(&outputStr, fmt, args);
     va_end(args);
 
-    if ((long unsigned int)logLen < sizeof buf) {
-        outputStr = strdup(buf);
-    } else {
-        outputStr = (char*)malloc(logLen + 1);
-
-        if (!outputStr) {
-            printf("CRITICAL: Cannot alloc size %d for log! (Out of memory?)", logLen + 1);
-            return "";
-        }
-
-        va_start(args, fmt);
-        vsnprintf(outputStr, logLen + 1U, fmt, args);
-        va_end(args);
-    }
-
     std::string output = std::string(outputStr);
-
     free(outputStr);
 
     return output;

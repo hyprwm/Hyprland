@@ -70,6 +70,7 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
         Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
         layersurface->alpha.setValueAndWarp(0.f);
         layersurface->fadingOut = true;
+        g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
     }
 
     layersurface->noProcess = true;

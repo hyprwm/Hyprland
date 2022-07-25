@@ -193,7 +193,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     return found;
 }
 
-void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint32_t& doesntHaveCode) {
+void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const int& doesntHaveCode) {
     // shadow disables keybinds after one has been triggered
 
     for (auto& k : m_lKeybinds) {
@@ -215,7 +215,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
         }
 
         for (auto& pk : m_dPressedKeycodes) {
-            if (pk == (unsigned int)k.keycode) {
+            if (pk == k.keycode) {
                 shadow = true;
             }
 

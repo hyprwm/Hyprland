@@ -100,7 +100,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE, true, e->time_msec) || found;
 
         if (found)
-            shadowKeybinds();
+            shadowKeybinds(keysym, KEYCODE);
     } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
 
         m_dPressedKeycodes.erase(std::remove(m_dPressedKeycodes.begin(), m_dPressedKeycodes.end(), KEYCODE));

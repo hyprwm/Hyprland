@@ -67,10 +67,15 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
         Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
     if (!layersurface->fadingOut && PMONITOR) {
-        Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
-        layersurface->alpha.setValueAndWarp(0.f);
-        layersurface->fadingOut = true;
-        g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
+        if (layersurface->mapped) {
+            Debug::log(LOG, "Forcing an unmap of a LS that did a straight destroy!");
+            listener_unmapLayerSurface(layersurface, nullptr);
+        } else {
+            Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
+            layersurface->alpha.setValueAndWarp(0.f);
+            layersurface->fadingOut = true;
+            g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
+        }
     }
 
     layersurface->noProcess = true;
@@ -101,6 +106,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     Debug::log(LOG, "LayerSurface %x mapped", layersurface->layerSurface);
 
     layersurface->layerSurface->mapped = true;
+    layersurface->mapped = true;
 
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
@@ -157,6 +163,8 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     // make a snapshot and start fade
     g_pHyprOpenGL->makeLayerSnapshot(layersurface);
     layersurface->alpha = 0.f;
+
+    layersurface->mapped = false;
 
     layersurface->fadingOut = true;
 

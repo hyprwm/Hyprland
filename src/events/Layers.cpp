@@ -66,7 +66,7 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
     if (!g_pCompositor->getMonitorFromID(layersurface->monitorID))
         Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
-    if (!layersurface->fadingOut && PMONITOR) {
+    if (!layersurface->fadingOut) {
         if (layersurface->mapped) {
             Debug::log(LOG, "Forcing an unmap of a LS that did a straight destroy!");
             listener_unmapLayerSurface(layersurface, nullptr);
@@ -157,6 +157,14 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     if (!g_pCompositor->getMonitorFromID(layersurface->monitorID)) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
+
+        g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
+
+        layersurface->mapped = false;
+
+        layersurface->fadingOut = true;
+
+        layersurface->alpha.setValueAndWarp(0.f);
         return;
     }
 

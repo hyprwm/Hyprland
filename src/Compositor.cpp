@@ -1273,8 +1273,14 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, SMonitor* pMoni
     pWorkspace->moveToMonitor(pMonitor->ID);
 
     for (auto& w : m_vWindows) {
-        if (w->m_iWorkspaceID == pWorkspace->m_iID)
+        if (w->m_iWorkspaceID == pWorkspace->m_iID) {
             w->m_iMonitorID = pMonitor->ID;
+
+            // additionally, move floating windows manually
+            if (w->m_bIsFloating && w->m_bIsMapped && !w->m_bHidden) {
+                w->m_vRealPosition = w->m_vRealPosition.vec() - POLDMON->vecPosition + pMonitor->vecPosition;
+            }
+        }
     }
 
     if (SWITCHINGISACTIVE) { // if it was active, preserve its' status. If it wasn't, don't.

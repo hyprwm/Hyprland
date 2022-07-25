@@ -368,7 +368,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     PWINDOW->m_bFadingOut = true;
 
-    g_pCompositor->m_vWindowsFadingOut.emplace_back(PWINDOW);
+    g_pCompositor->addToFadingOutSafe(PWINDOW);
 
     g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
 

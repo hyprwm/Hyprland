@@ -74,7 +74,7 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
             Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
             layersurface->alpha.setValueAndWarp(0.f);
             layersurface->fadingOut = true;
-            g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
+            g_pCompositor->addToFadingOutSafe(layersurface);
         }
     }
 
@@ -158,7 +158,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     if (!g_pCompositor->getMonitorFromID(layersurface->monitorID)) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
-        g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
+        g_pCompositor->addToFadingOutSafe(layersurface);
 
         layersurface->mapped = false;
 
@@ -176,7 +176,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     layersurface->fadingOut = true;
 
-    g_pCompositor->m_vSurfacesFadingOut.push_back(layersurface);
+    g_pCompositor->addToFadingOutSafe(layersurface);
 
     if (layersurface->layerSurface->mapped)
         layersurface->layerSurface->mapped = false;

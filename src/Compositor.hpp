@@ -146,6 +146,8 @@ public:
     void                    moveUnmanagedX11ToWindows(CWindow*);
     CWindow*                getX11Parent(CWindow*);
     void                    scheduleFrameForMonitor(SMonitor*);
+    void                    addToFadingOutSafe(SLayerSurface*);
+    void                    addToFadingOutSafe(CWindow*);
 
     std::string             explicitConfigPath;
 

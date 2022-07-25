@@ -901,8 +901,10 @@ void CCompositor::cleanupFadingOut(const int& monid) {
 
             for (auto& m : m_vMonitors) {
                 for (auto& lsl : m->m_aLayerSurfaceLists) {
-                    if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; }) != lsl.end())
+                    if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; }) != lsl.end()) {
                         lsl.erase(std::remove_if(lsl.begin(), lsl.end(), [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; }));
+                        return;
+                    }
                 }
             }
 
@@ -912,6 +914,24 @@ void CCompositor::cleanupFadingOut(const int& monid) {
             return;
         }
     }
+}
+
+void CCompositor::addToFadingOutSafe(SLayerSurface* pLS) {
+    const auto FOUND = std::find_if(m_vSurfacesFadingOut.begin(), m_vSurfacesFadingOut.end(), [&](SLayerSurface* other) { return other == pLS; });
+
+    if (FOUND != m_vSurfacesFadingOut.end())
+        return;  // if it's already added, don't add it.
+
+    m_vSurfacesFadingOut.emplace_back(pLS);
+}
+
+void CCompositor::addToFadingOutSafe(CWindow* pWindow) {
+    const auto FOUND = std::find_if(m_vWindowsFadingOut.begin(), m_vWindowsFadingOut.end(), [&](CWindow* other) { return other == pWindow; });
+
+    if (FOUND != m_vWindowsFadingOut.end())
+        return;  // if it's already added, don't add it.
+
+    m_vWindowsFadingOut.emplace_back(pWindow);
 }
 
 CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {

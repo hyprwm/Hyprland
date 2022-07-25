@@ -41,15 +41,21 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
     if ((abs(m_sActiveSwipe.delta) < *PSWIPEDIST * *PSWIPEPERC && (*PSWIPEFORC == 0 || (*PSWIPEFORC != 0 && m_sActiveSwipe.avgSpeed < *PSWIPEFORC))) || abs(m_sActiveSwipe.delta) < 2) {
         // revert
-        if (m_sActiveSwipe.delta < 0) {
-            // to left
-            PWORKSPACEL->m_vRenderOffset = Vector2D({-m_sActiveSwipe.pMonitor->vecSize.x, 0});
+        if (abs(m_sActiveSwipe.delta) < 2) {
+            PWORKSPACEL->m_vRenderOffset.setValueAndWarp(Vector2D(0,0));
+            PWORKSPACER->m_vRenderOffset.setValueAndWarp(Vector2D(0,0));
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0,0));
         } else {
-            // to right
-            PWORKSPACER->m_vRenderOffset = Vector2D({m_sActiveSwipe.pMonitor->vecSize.x, 0});
-        }
+            if (m_sActiveSwipe.delta < 0) {
+                // to left
+                PWORKSPACEL->m_vRenderOffset = Vector2D({-m_sActiveSwipe.pMonitor->vecSize.x, 0});
+            } else {
+                // to right
+                PWORKSPACER->m_vRenderOffset = Vector2D({m_sActiveSwipe.pMonitor->vecSize.x, 0});
+            }
 
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D();
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D();
+        }
     } else if (m_sActiveSwipe.delta < 0) {
         // switch to left
         const auto RENDEROFFSET = PWORKSPACEL->m_vRenderOffset.vec();
@@ -122,9 +128,11 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
 
         PWORKSPACE->m_bForceRendering = true;
 
-        const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+        if (workspaceIDLeft != workspaceIDRight) {
+            const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
-        PWORKSPACER->m_bForceRendering = true;
+            PWORKSPACER->m_bForceRendering = false;
+        }
 
         PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x - m_sActiveSwipe.pMonitor->vecSize.x, 0));
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
@@ -140,9 +148,11 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
 
         PWORKSPACE->m_bForceRendering = true;
 
-        const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+        if (workspaceIDLeft != workspaceIDRight) {
+            const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
-        PWORKSPACEL->m_bForceRendering = true;
+            PWORKSPACEL->m_bForceRendering = false;
+        }
 
         PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x + m_sActiveSwipe.pMonitor->vecSize.x, 0));
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));

@@ -31,14 +31,14 @@ public:
     void                removeKeybind(uint32_t, const std::string&);
     uint32_t            stringToModMask(std::string);
     void                clearKeybinds();
-    void                shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t& doesntHaveCode = 0);
+    void                shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const int& doesntHaveCode = 0);
 
     std::unordered_map<std::string, std::function<void(std::string)>> m_mDispatchers;
 
 private:
     std::list<SKeybind> m_lKeybinds;
     std::deque<xkb_keysym_t> m_dPressedKeysyms;
-    std::deque<uint32_t> m_dPressedKeycodes;
+    std::deque<int>     m_dPressedKeycodes;
 
     inline static std::string m_szCurrentSelectedSubmap = "";
 

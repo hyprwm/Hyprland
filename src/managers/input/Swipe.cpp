@@ -9,6 +9,16 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
     if (e->fingers != *PSWIPEFINGERS|| *PSWIPE == 0)
         return;
 
+    int onMonitor = 0;
+    for (auto& w : g_pCompositor->m_vWorkspaces) {
+        if (w->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
+            onMonitor++;
+        }
+    }
+
+    if (onMonitor < 2)
+        return; // disallow swiping when there's 1 workspace on a monitor
+
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
     Debug::log(LOG, "Starting a swipe from %s", PWORKSPACE->m_szName.c_str());

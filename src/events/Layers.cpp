@@ -80,6 +80,7 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
 
     layersurface->noProcess = true;
 
+    layersurface->hyprListener_commitLayerSurface.removeCallback();
     layersurface->hyprListener_destroyLayerSurface.removeCallback();
     layersurface->hyprListener_mapLayerSurface.removeCallback();
     layersurface->hyprListener_unmapLayerSurface.removeCallback();

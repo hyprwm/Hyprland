@@ -33,6 +33,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focuswindowbyclass"]        = focusWindow;
     m_mDispatchers["focuswindow"]               = focusWindow;
     m_mDispatchers["submap"]                    = setSubmap;
+    m_mDispatchers["pass"]                      = pass;
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -93,6 +94,8 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
+    m_uTimeLastMs = e->time_msec;
+    m_uLastCode = KEYCODE;
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -1229,69 +1232,20 @@ void CKeybindManager::circleNext(std::string arg) {
 }
 
 void CKeybindManager::focusWindow(std::string regexp) {
-    eFocusWindowMode mode = MODE_CLASS_REGEX;
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(regexp);
 
-    std::regex regexCheck(regexp);
-    std::string matchCheck;    
-    if (regexp.find("title:") == 0) {
-        mode = MODE_TITLE_REGEX;
-        regexCheck = std::regex(regexp.substr(6));
-    }
-    else if (regexp.find("address:") == 0) {
-        mode = MODE_ADDRESS;
-        matchCheck = regexp.substr(8);
-    }
-    else if (regexp.find("pid:") == 0) {
-        mode = MODE_PID;
-        matchCheck = regexp.substr(4);
-    }
+    if (!PWINDOW)
+        return;
 
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || w->m_bHidden)
-            continue;
+    Debug::log(LOG, "Focusing to window name: %s", PWINDOW->m_szTitle.c_str());
 
-        switch (mode) {
-            case MODE_CLASS_REGEX: {
-                const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
-                if (!std::regex_search(g_pXWaylandManager->getAppIDClass(w.get()), regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_TITLE_REGEX: {
-                const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
-                if (!std::regex_search(windowTitle, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_ADDRESS: {
-                std::string addr = getFormat("0x%x", w.get());
-                if (matchCheck != addr)
-                    continue;
-                break;
-            }
-            case MODE_PID: {
-                std::string pid = getFormat("%d", w->getPID());
-                if (matchCheck != pid)
-                    continue;
-                break;
-            }
-            default:
-                break;
-        }
+    changeworkspace("[internal]" + std::to_string(PWINDOW->m_iWorkspaceID));
 
+    g_pCompositor->focusWindow(PWINDOW);
 
-        Debug::log(LOG, "Focusing to window name: %s", w->m_szTitle.c_str());
+    const auto MIDPOINT = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
 
-        changeworkspace("[internal]" + std::to_string(w->m_iWorkspaceID));
-
-        g_pCompositor->focusWindow(w.get());
-
-        const auto MIDPOINT = w->m_vRealPosition.goalv() + w->m_vRealSize.goalv() / 2.f;
-
-        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
-
-        break;
-    }
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
 }
 
 void CKeybindManager::setSubmap(std::string submap) {
@@ -1310,4 +1264,32 @@ void CKeybindManager::setSubmap(std::string submap) {
     }
 
     Debug::log(ERR, "Cannot set submap %s, submap doesn't exist (wasn't registered!)", submap.c_str());
+}
+
+void CKeybindManager::pass(std::string regexp) {
+
+    // find the first window passing the regex
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(regexp);
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "pass: window not found");
+        return;
+    }
+
+    const auto PLASTSRF = g_pCompositor->m_pLastFocus;
+
+    const auto KEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
+
+    if (!KEYBOARD){
+        Debug::log(ERR, "No kb in pass?");
+        return;
+    }
+
+    // pass all mf shit
+    wlr_seat_keyboard_notify_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+
+    wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
+    wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+
+    wlr_seat_keyboard_notify_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 }

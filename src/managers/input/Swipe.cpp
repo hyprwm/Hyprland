@@ -79,6 +79,8 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(m_sActiveSwipe.pMonitor->vecSize.x, 0);
         m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
 
+        g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
+
         Debug::log(LOG, "Ended swipe to the left");
     } else {
         // switch to right
@@ -92,6 +94,8 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-m_sActiveSwipe.pMonitor->vecSize.x, 0);
         m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
+
+        g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
 
         Debug::log(LOG, "Ended swipe to the right");
     }

@@ -312,7 +312,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
     if (!PWINDOW->m_bIsX11) {
-        Debug::log(LOG, "Unregistered late callbacks XDG: %x %x %x %x", &PWINDOW->hyprListener_commitWindow.m_sListener.link, &PWINDOW->hyprListener_setTitleWindow.m_sListener.link, &PWINDOW->hyprListener_fullscreenWindow.m_sListener.link, &PWINDOW->hyprListener_newPopupXDG.m_sListener.link);
+        Debug::log(LOG, "Unregistered late callbacks XDG");
         PWINDOW->hyprListener_commitWindow.removeCallback();
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
@@ -322,7 +322,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestMove.removeCallback();
         PWINDOW->hyprListener_requestResize.removeCallback();
     } else {
-        Debug::log(LOG, "Unregistered late callbacks XWL: %x %x %x %x", &PWINDOW->hyprListener_fullscreenWindow.m_sListener.link, &PWINDOW->hyprListener_activateX11.m_sListener.link, &PWINDOW->hyprListener_configureX11.m_sListener.link, &PWINDOW->hyprListener_setTitleWindow.m_sListener.link);
+        Debug::log(LOG, "Unregistered late callbacks XWL");
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
         PWINDOW->hyprListener_activateX11.removeCallback();
         PWINDOW->hyprListener_configureX11.removeCallback();

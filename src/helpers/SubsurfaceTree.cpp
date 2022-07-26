@@ -21,9 +21,7 @@ void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
 }
 
 SSurfaceTreeNode* createTree(wlr_surface* pSurface, CWindow* pWindow) {
-    SubsurfaceTree::surfaceTreeNodes.push_back(SSurfaceTreeNode());
-
-    const auto PNODE = &SubsurfaceTree::surfaceTreeNodes.back();
+    const auto PNODE = &SubsurfaceTree::surfaceTreeNodes.emplace_back();
 
     PNODE->pSurface = pSurface;
     PNODE->pWindowOwner = pWindow;
@@ -128,8 +126,7 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
 
     const auto PSUBSURFACE = (wlr_subsurface*)data;
 
-    pNode->childSubsurfaces.push_back(SSubsurface());
-    const auto PNEWSUBSURFACE = &pNode->childSubsurfaces.back();
+    const auto PNEWSUBSURFACE = &pNode->childSubsurfaces.emplace_back();
 
     Debug::log(LOG, "Added a new subsurface %x", PSUBSURFACE);
 

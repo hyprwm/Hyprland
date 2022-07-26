@@ -262,6 +262,9 @@ void CCompositor::startCompositor() {
     //
     //
 
+    // firefox wont detect wl
+    setenv("MOZ_ENABLE_WAYLAND", "1", 1);
+
     initAllSignals();
 
     // Set XDG_CURRENT_DESKTOP to our compositor's name

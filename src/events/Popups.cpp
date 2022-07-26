@@ -51,7 +51,7 @@ void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
 void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     pHyprPopup->popup = popup;
 
-    pHyprPopup->hyprListener_destroyPopupXDG.initCallback(&popup->base->surface->events.destroy, &Events::listener_destroyPopupXDG, pHyprPopup, "HyprPopup");
+    pHyprPopup->hyprListener_destroyPopupXDG.initCallback(&popup->base->events.destroy, &Events::listener_destroyPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_mapPopupXDG.initCallback(&popup->base->events.map, &Events::listener_mapPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_unmapPopupXDG.initCallback(&popup->base->events.unmap, &Events::listener_unmapPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_newPopupFromPopupXDG.initCallback(&popup->base->events.new_popup, &Events::listener_newPopupFromPopupXDG, pHyprPopup, "HyprPopup");

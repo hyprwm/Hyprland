@@ -31,6 +31,7 @@ struct SMonitor {
     int         framesToSkip    = 0;
     int         forceFullFrames = 0;
     bool        noFrameSchedule = false;
+    bool        scheduledRecalc = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
 
     // for the special workspace

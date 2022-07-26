@@ -34,6 +34,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focuswindow"]               = focusWindow;
     m_mDispatchers["submap"]                    = setSubmap;
     m_mDispatchers["pass"]                      = pass;
+
+    m_tScrollTimer.reset();
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -138,6 +140,15 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 
 bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+
+    static auto *const PDELAY = &g_pConfigManager->getConfigValuePtr("binds:scroll_event_delay")->intValue;
+
+    if (m_tScrollTimer.getMillis() < *PDELAY) {
+        m_tScrollTimer.reset();
+        return true; // timer hasn't passed yet!
+    }
+
+    m_tScrollTimer.reset();
 
     bool found = false;
     if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {

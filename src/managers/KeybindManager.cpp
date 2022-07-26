@@ -143,6 +143,28 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
         } else {
             found = g_pKeybindManager->handleKeybinds(MODS, "mouse_up", 0, 0, true, 0);
         }
+
+        if (found)
+            shadowKeybinds();
+    }
+
+    return !found;
+}
+
+bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
+    const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+
+    bool found = false;
+
+    if (e->state == WLR_BUTTON_PRESSED) {
+        found = g_pKeybindManager->handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, true, 0);
+
+        if (found)
+            shadowKeybinds();
+    } else {
+        found = g_pKeybindManager->handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, false, 0);
+
+        shadowKeybinds();
     }
 
     return !found;

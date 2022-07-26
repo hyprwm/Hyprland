@@ -323,6 +323,13 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
         return;
     }
 
+    // notify the keybind manager
+    static auto *const PPASSMOUSE = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
+    const auto PASS = g_pKeybindManager->onMouseEvent(e);
+
+    if (!PASS && !*PPASSMOUSE)
+        return;
+
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
             if (!g_pCompositor->m_sSeat.mouse->currentConstraint)

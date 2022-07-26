@@ -531,6 +531,11 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         }
     }
 
+    if (release && repeat) {
+        parseError = "flags r and e are mutually exclusive";
+        return;
+    }
+
     auto valueCopy = value;
 
     const auto MOD = g_pKeybindManager->stringToModMask(valueCopy.substr(0, valueCopy.find_first_of(",")));

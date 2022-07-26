@@ -148,6 +148,7 @@ public:
     void                    scheduleFrameForMonitor(SMonitor*);
     void                    addToFadingOutSafe(SLayerSurface*);
     void                    addToFadingOutSafe(CWindow*);
+    CWindow*                getWindowByRegex(const std::string&);
 
     std::string             explicitConfigPath;
 

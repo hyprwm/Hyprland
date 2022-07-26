@@ -21,6 +21,13 @@ struct SKeybind {
     bool              shadowed = false;
 };
 
+enum eFocusWindowMode {
+    MODE_CLASS_REGEX = 0,
+    MODE_TITLE_REGEX,
+    MODE_ADDRESS,
+    MODE_PID
+};
+
 class CKeybindManager {
 public:
     CKeybindManager();
@@ -49,6 +56,9 @@ private:
     xkb_keysym_t        m_kHeldBack = 0;
 
     SKeybind*           m_pActiveKeybind = nullptr;
+
+    uint32_t            m_uTimeLastMs = 0;
+    uint32_t            m_uLastCode = 0;
 
     bool                handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&, bool, uint32_t);
 
@@ -83,15 +93,9 @@ private:
     static void         circleNext(std::string);
     static void         focusWindow(std::string);
     static void         setSubmap(std::string);
+    static void         pass(std::string);
 
     friend class CCompositor;
-
-    enum eFocusWindowMode {
-        MODE_CLASS_REGEX = 0,
-        MODE_TITLE_REGEX,
-        MODE_ADDRESS,
-        MODE_PID
-    };
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

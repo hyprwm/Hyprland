@@ -9,6 +9,8 @@ PKGS = wlroots wayland-server xcb xkbcommon libinput
 CFLAGS += $(foreach p,$(PKGS),$(shell pkg-config --cflags $(p)))
 LDLIBS += $(foreach p,$(PKGS),$(shell pkg-config --libs $(p)))
 
+DATE=$(shell date "+%d %b %Y")
+
 xdg-shell-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		$(WAYLAND_PROTOCOLS)/stable/xdg-shell/xdg-shell.xml $@
@@ -124,6 +126,7 @@ install:
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
+	make man
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
@@ -148,3 +151,20 @@ config:
 	cd subprojects/wlroots && ninja -C build/
 
 	cd subprojects/wlroots && ninja -C build/ install
+
+man:
+	pandoc ./docs/Hyprland.1.rst \
+		--standalone \
+		--variable=header:"Hyprland User Manual" \
+		--variable=date:"${DATE}" \
+		--variable=section:1 \
+		--from rst \
+		--to man | gzip -c > /usr/share/man/man1/Hyprland.1.gz
+
+	pandoc ./docs/hyprctl.1.rst \
+		--standalone \
+		--variable=header:"hyprctl User Manual" \
+		--variable=date:"${DATE}" \
+		--variable=section:1 \
+		--from rst \
+		--to man | gzip -c > /usr/share/man/man1/hyprctl.1.gz

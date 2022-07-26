@@ -89,7 +89,7 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
     // rearrange to fix the reserved areas
     if (PMONITOR) {
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        PMONITOR->scheduledRecalc = true;
 
         // and damage
         wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
@@ -124,7 +124,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
             }
         }
         layersurface->monitorID = PMONITOR->ID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+        PMONITOR->scheduledRecalc = true;
         g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
     }
 
@@ -229,7 +229,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         }
 
         layersurface->monitorID = PMONITOR->ID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+        PMONITOR->scheduledRecalc = true;
         g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
     }
 
@@ -249,7 +249,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        PMONITOR->scheduledRecalc = true;
     }
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);

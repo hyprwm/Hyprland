@@ -214,6 +214,11 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
     //       //
 
+    if (PMONITOR->scheduledRecalc) {
+        PMONITOR->scheduledRecalc = false;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+    }
+
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 

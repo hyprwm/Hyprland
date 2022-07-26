@@ -57,6 +57,7 @@ Try it out and report bugs / suggestions!
 - Drop shadows
 - Fully dynamic workspaces
 - Closely follows `wlroots-git`
+- Global keybinds passed to your apps of choice
 - Bundled wlroots
 - Window/layer fade in/out
 - Tiling/pseudotiling/floating/fullscreen windows
@@ -69,6 +70,7 @@ Try it out and report bugs / suggestions!
 - Full damage tracking
 - Docks support
 - Drawing tablet support
+- and much more...
 
 <br>
 <br>

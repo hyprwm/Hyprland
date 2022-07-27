@@ -36,10 +36,14 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
 
     if (RDATA->surface && surface == RDATA->surface) {
-        if (RDATA->blur)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
-        else
+        if (wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha) {
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
+        } else {
+            if (RDATA->blur)
+                g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
+            else
+                g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
+        }
     }
     else {
         if (RDATA->surface && wlr_surface_is_xdg_surface(RDATA->surface)) {

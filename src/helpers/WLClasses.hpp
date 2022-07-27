@@ -143,7 +143,7 @@ struct SConstraint {
     }
 };
 
-struct CMonitor;
+class CMonitor;
 
 struct SXDGPopup {
     CWindow*        parentWindow = nullptr;

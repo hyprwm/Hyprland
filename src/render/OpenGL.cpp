@@ -139,7 +139,7 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src) {
     return shader;
 }
 
-void CHyprOpenGLImpl::begin(SMonitor* pMonitor, pixman_region32_t* pDamage, bool fake) {
+void CHyprOpenGLImpl::begin(CMonitor* pMonitor, pixman_region32_t* pDamage, bool fake) {
     m_RenderData.pMonitor = pMonitor;
 
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
@@ -941,7 +941,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const 
     cairo_surface_flush(CAIROSURFACE);
 }
 
-void CHyprOpenGLImpl::createBGTextureForMonitor(SMonitor* pMonitor) {
+void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
 
     static auto *const PNOSPLASH = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
@@ -1011,7 +1011,7 @@ void CHyprOpenGLImpl::clearWithTex() {
     }
 }
 
-void CHyprOpenGLImpl::destroyMonitorResources(SMonitor* pMonitor) {
+void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorFB.release();
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].primaryFB.release();
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].stencilTex.destroyTexture();

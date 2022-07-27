@@ -1,7 +1,7 @@
 #include "HyprDebugOverlay.hpp"
 #include "../Compositor.hpp"
 
-void CHyprMonitorDebugOverlay::renderData(SMonitor* pMonitor, float µs) {
+void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
     m_dLastRenderTimes.push_back(µs / 1000.f);
 
     if (m_dLastRenderTimes.size() > (long unsigned int)pMonitor->refreshRate)
@@ -11,7 +11,7 @@ void CHyprMonitorDebugOverlay::renderData(SMonitor* pMonitor, float µs) {
         m_pMonitor = pMonitor;
 }
 
-void CHyprMonitorDebugOverlay::renderDataNoOverlay(SMonitor* pMonitor, float µs) {
+void CHyprMonitorDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float µs) {
     m_dLastRenderTimesNoOverlay.push_back(µs / 1000.f);
 
     if (m_dLastRenderTimesNoOverlay.size() > (long unsigned int)pMonitor->refreshRate)
@@ -21,7 +21,7 @@ void CHyprMonitorDebugOverlay::renderDataNoOverlay(SMonitor* pMonitor, float µs
         m_pMonitor = pMonitor;
 }
 
-void CHyprMonitorDebugOverlay::frameData(SMonitor* pMonitor) {
+void CHyprMonitorDebugOverlay::frameData(CMonitor* pMonitor) {
     m_dLastFrametimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - m_tpLastFrame).count() / 1000.f);
 
     if (m_dLastFrametimes.size() > (long unsigned int)pMonitor->refreshRate)
@@ -126,15 +126,15 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     return yOffset - offset;
 }
 
-void CHyprDebugOverlay::renderData(SMonitor* pMonitor, float µs) {
+void CHyprDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
     m_mMonitorOverlays[pMonitor].renderData(pMonitor, µs);
 }
 
-void CHyprDebugOverlay::renderDataNoOverlay(SMonitor* pMonitor, float µs) {
+void CHyprDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float µs) {
     m_mMonitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, µs);
 }
 
-void CHyprDebugOverlay::frameData(SMonitor* pMonitor) {
+void CHyprDebugOverlay::frameData(CMonitor* pMonitor) {
     m_mMonitorOverlays[pMonitor].frameData(pMonitor);
 }
 

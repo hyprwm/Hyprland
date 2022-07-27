@@ -65,7 +65,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
 }
 
-bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, SMonitor* pMonitor) {
+bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     wlr_box geometry = pWindow->getFullWindowBoundingBox();
 
     if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
@@ -107,7 +107,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
     return false;
 }
 
-void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
+void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
     CWindow* pWorkspaceWindow = nullptr;
 
     for (auto& w : g_pCompositor->m_vWindows) {
@@ -162,7 +162,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(SMonitor* pMonitor, CWor
         g_pHyprError->draw();
 }
 
-void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode) {
+void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode) {
     if (pWindow->m_bHidden)
         return;
 
@@ -266,7 +266,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, SMonitor* pMonitor, timespec*
     g_pHyprOpenGL->m_pCurrentWindow = nullptr;
 }
 
-void CHyprRenderer::renderLayer(SLayerSurface* pLayer, SMonitor* pMonitor, timespec* time) {
+void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time) {
     if (pLayer->fadingOut) {
         g_pHyprOpenGL->renderSnapshot(&pLayer);
         return;
@@ -504,7 +504,7 @@ void apply_exclusive(struct wlr_box* usable_area, uint32_t anchor, int32_t exclu
     }
 }
 
-void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::vector<std::unique_ptr<SLayerSurface>>& layerSurfaces, bool exclusiveZone, wlr_box* usableArea) {
+void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std::unique_ptr<SLayerSurface>>& layerSurfaces, bool exclusiveZone, wlr_box* usableArea) {
     wlr_box full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto& ls : layerSurfaces) {
@@ -674,7 +674,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
         Debug::log(LOG, "Damage: Window (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
 }
 
-void CHyprRenderer::damageMonitor(SMonitor* pMonitor) {
+void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
     wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
 
@@ -709,7 +709,7 @@ void CHyprRenderer::damageRegion(pixman_region32_t* rg) {
     }
 }
 
-void CHyprRenderer::renderDragIcon(SMonitor* pMonitor, timespec* time) {
+void CHyprRenderer::renderDragIcon(CMonitor* pMonitor, timespec* time) {
     if (!(g_pInputManager->m_sDrag.dragIcon && g_pInputManager->m_sDrag.iconMapped && g_pInputManager->m_sDrag.dragIcon->surface))
         return;
 
@@ -735,17 +735,22 @@ DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& 
     return DAMAGE_TRACKING_INVALID;
 }
 
-bool CHyprRenderer::applyMonitorRule(SMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
+bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
 
     Debug::log(LOG, "Applying monitor rule for %s", pMonitor->szName.c_str());
 
     // if it's disabled, disable and ignore
     if (pMonitorRule->disabled) {
-        wlr_output_enable(pMonitor->output, 0);
-        wlr_output_commit(pMonitor->output);
 
-        Events::listener_monitorDestroy(nullptr, pMonitor->output);
+        if (pMonitor->m_bEnabled)
+            pMonitor->onDisconnect();
+
         return false;
+    }
+
+    if (!pMonitor->m_bEnabled) {
+        pMonitor->onConnect(true); // enable it.
+        force = true;
     }
 
     // Check if the rule isn't already applied

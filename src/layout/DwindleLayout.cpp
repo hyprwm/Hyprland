@@ -99,7 +99,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
     if (pNode->isNode) 
         return;
 
-    SMonitor* PMONITOR = nullptr;
+    CMonitor* PMONITOR = nullptr;
 
     if (pNode->workspaceID == SPECIAL_WORKSPACE_ID) {
         for (auto& m : g_pCompositor->m_vMonitors) {

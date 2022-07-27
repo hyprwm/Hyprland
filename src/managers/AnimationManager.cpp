@@ -59,7 +59,7 @@ void CAnimationManager::tick() {
         const auto PWINDOW = (CWindow*)av->m_pWindow;
         const auto PWORKSPACE = (CWorkspace*)av->m_pWorkspace;
         const auto PLAYER = (SLayerSurface*)av->m_pLayer;
-        SMonitor* PMONITOR = nullptr;
+        CMonitor* PMONITOR = nullptr;
 
         wlr_box WLRBOXPREV = {0,0,0,0};
         if (PWINDOW) {

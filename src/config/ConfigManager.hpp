@@ -111,6 +111,7 @@ private:
     // internal methods
     void                setDefaultVars();
     void                setDeviceDefaultVars(const std::string&);
+    void                ensureDPMS();
 
     void                applyUserDefinedVars(std::string&, const size_t);
     void                loadConfigLoadVars();

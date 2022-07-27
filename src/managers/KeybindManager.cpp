@@ -996,7 +996,7 @@ void CKeybindManager::exitHyprland(std::string argz) {
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
-    SMonitor* PMONITOR = nullptr;
+    CMonitor* PMONITOR = nullptr;
 
     try {
         if (!isNumber(args) && !isDirection(args)) {
@@ -1025,7 +1025,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
     std::string workspace = args.substr(0, args.find_first_of(' '));
     std::string monitor = args.substr(args.find_first_of(' ') + 1);
 
-    SMonitor* PMONITOR = nullptr;
+    CMonitor* PMONITOR = nullptr;
 
     try {
         if (!isNumber(monitor) && !isDirection(monitor)) {

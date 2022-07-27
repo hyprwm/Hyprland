@@ -171,7 +171,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
 }
 
 void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
-    SMonitor* PMONITOR = nullptr;
+    CMonitor* PMONITOR = nullptr;
 
     if (pNode->workspaceID == SPECIAL_WORKSPACE_ID) {
         for (auto& m : g_pCompositor->m_vMonitors) {

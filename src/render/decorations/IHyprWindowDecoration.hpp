@@ -14,7 +14,7 @@ struct SWindowDecorationExtents {
 };
 
 class CWindow;
-struct CMonitor;
+class CMonitor;
 
 interface IHyprWindowDecoration {
 public:

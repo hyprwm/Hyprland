@@ -81,6 +81,10 @@ void CMonitor::onConnect(bool noRule) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
         PNEWWORKSPACE->startAnim(true, true, true);
     } else {
+
+        if (newDefaultWorkspaceName == "")
+            newDefaultWorkspaceName = std::to_string(WORKSPACEID);
+
         PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(ID, newDefaultWorkspaceName)).get();
 
         // We are required to set the name here immediately

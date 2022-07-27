@@ -298,7 +298,7 @@ void CCompositor::startCompositor() {
     wl_display_run(m_sWLDisplay);
 }
 
-SMonitor* CCompositor::getMonitorFromID(const int& id) {
+CMonitor* CCompositor::getMonitorFromID(const int& id) {
     for (auto& m : m_vMonitors) {
         if (m->ID == (uint64_t)id) {
             return m.get();
@@ -308,7 +308,7 @@ SMonitor* CCompositor::getMonitorFromID(const int& id) {
     return nullptr;
 }
 
-SMonitor* CCompositor::getMonitorFromName(const std::string& name) {
+CMonitor* CCompositor::getMonitorFromName(const std::string& name) {
     for (auto& m : m_vMonitors) {
         if (m->szName == name) {
             return m.get();
@@ -318,18 +318,18 @@ SMonitor* CCompositor::getMonitorFromName(const std::string& name) {
     return nullptr;
 }
 
-SMonitor* CCompositor::getMonitorFromCursor() {
+CMonitor* CCompositor::getMonitorFromCursor() {
     const auto COORDS = Vector2D(m_sWLRCursor->x, m_sWLRCursor->y);
 
     return getMonitorFromVector(COORDS);
 }
 
-SMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
+CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
     const auto OUTPUT = wlr_output_layout_output_at(m_sWLROutputLayout, point.x, point.y);
 
     if (!OUTPUT) {
         float bestDistance = 0.f;
-        SMonitor* pBestMon = nullptr;
+        CMonitor* pBestMon = nullptr;
 
         for (auto& m : m_vMonitors) {
             float dist = vecToRectDistanceSquared(point, m->vecPosition, m->vecPosition + m->vecSize);
@@ -582,7 +582,7 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     return PSURFACE->surface;
 }
 
-SMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
+CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
     for (auto& m : m_vMonitors) {
         if (m->output == out) {
             return m.get();
@@ -1145,12 +1145,12 @@ CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
     return nullptr;
 }
 
-SMonitor* CCompositor::getMonitorInDirection(const char& dir) {
+CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
     const auto POSA = m_pLastMonitor->vecPosition;
     const auto SIZEA = m_pLastMonitor->vecSize;
 
     auto longestIntersect = -1;
-    SMonitor* longestIntersectMonitor = nullptr;
+    CMonitor* longestIntersectMonitor = nullptr;
 
     for (auto& m : m_vMonitors) {
         if (m.get() == m_pLastMonitor)
@@ -1281,7 +1281,7 @@ int CCompositor::getNextAvailableMonitorID() {
     return topID + 1;
 }
 
-void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, SMonitor* pMonitor) {
+void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMonitor) {
 
     // We trust the workspace and monitor to be correct.
 
@@ -1416,7 +1416,7 @@ void CCompositor::updateWorkspaceWindowDecos(const int& id) {
     }
 }
 
-void CCompositor::scheduleFrameForMonitor(SMonitor* pMonitor) {
+void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
     if ((m_sWLRSession && !m_sWLRSession->active) || !m_bSessionActive)
         return;
 

@@ -143,13 +143,13 @@ struct SConstraint {
     }
 };
 
-struct SMonitor;
+struct CMonitor;
 
 struct SXDGPopup {
     CWindow*        parentWindow = nullptr;
     SXDGPopup*      parentPopup = nullptr;
     wlr_xdg_popup*  popup = nullptr;
-    SMonitor*       monitor = nullptr;
+    CMonitor*       monitor = nullptr;
 
     DYNLISTENER(newPopupFromPopupXDG);
     DYNLISTENER(destroyPopupXDG);
@@ -270,5 +270,5 @@ struct SSwipeGesture {
     float        avgSpeed = 0;
     int          speedPoints = 0;
 
-    SMonitor*    pMonitor = nullptr;
+    CMonitor*    pMonitor = nullptr;
 };

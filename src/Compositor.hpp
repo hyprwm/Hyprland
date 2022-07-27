@@ -72,7 +72,8 @@ public:
     std::string             m_szInstanceSignature = "";
     std::string             m_szCurrentSplash = "error";
 
-    std::vector<std::unique_ptr<SMonitor>>      m_vMonitors;
+    std::vector<std::shared_ptr<CMonitor>>      m_vMonitors;
+    std::vector<std::shared_ptr<CMonitor>>      m_vRealMonitors; // for all monitors, even those turned off
     std::vector<std::unique_ptr<CWindow>>       m_vWindows;
     std::deque<std::unique_ptr<CWindow>>        m_dUnmanagedX11Windows;
     std::vector<std::unique_ptr<SXDGPopup>>     m_vXDGPopups;
@@ -86,7 +87,7 @@ public:
 
     wlr_surface*            m_pLastFocus = nullptr;
     CWindow*                m_pLastWindow = nullptr;
-    SMonitor*               m_pLastMonitor = nullptr;
+    CMonitor*               m_pLastMonitor = nullptr;
     
     SSeat                   m_sSeat;
 
@@ -95,10 +96,10 @@ public:
 
     // ------------------------------------------------- //
 
-    SMonitor*               getMonitorFromID(const int&);
-    SMonitor*               getMonitorFromName(const std::string&);
-    SMonitor*               getMonitorFromCursor();
-    SMonitor*               getMonitorFromVector(const Vector2D&);
+    CMonitor*               getMonitorFromID(const int&);
+    CMonitor*               getMonitorFromName(const std::string&);
+    CMonitor*               getMonitorFromCursor();
+    CMonitor*               getMonitorFromVector(const Vector2D&);
     void                    removeWindowFromVectorSafe(CWindow*);
     void                    focusWindow(CWindow*, wlr_surface* pSurface = nullptr);
     void                    focusSurface(wlr_surface*, CWindow* pWindowOwner = nullptr);
@@ -111,7 +112,7 @@ public:
     wlr_surface*            vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
     CWindow*                windowFromCursor();
     CWindow*                windowFloatingFromCursor();
-    SMonitor*               getMonitorFromOutput(wlr_output*);
+    CMonitor*               getMonitorFromOutput(wlr_output*);
     CWindow*                getWindowForPopup(wlr_xdg_popup*);
     CWindow*                getWindowFromSurface(wlr_surface*);
     bool                    isWorkspaceVisible(const int&);
@@ -135,17 +136,17 @@ public:
     int                     getNextAvailableNamedWorkspace();
     bool                    isPointOnAnyMonitor(const Vector2D&);
     CWindow*                getConstraintWindow(SMouse*);
-    SMonitor*               getMonitorInDirection(const char&);
+    CMonitor*               getMonitorInDirection(const char&);
     void                    updateAllWindowsAnimatedDecorationValues();
     void                    updateWindowAnimatedDecorationValues(CWindow*);
     void                    moveWindowToWorkspace(CWindow*, const std::string&);
     int                     getNextAvailableMonitorID();
-    void                    moveWorkspaceToMonitor(CWorkspace*, SMonitor*);
+    void                    moveWorkspaceToMonitor(CWorkspace*, CMonitor*);
     bool                    workspaceIDOutOfBounds(const int&);
     void                    setWindowFullscreen(CWindow*, bool, eFullscreenMode);
     void                    moveUnmanagedX11ToWindows(CWindow*);
     CWindow*                getX11Parent(CWindow*);
-    void                    scheduleFrameForMonitor(SMonitor*);
+    void                    scheduleFrameForMonitor(CMonitor*);
     void                    addToFadingOutSafe(SLayerSurface*);
     void                    addToFadingOutSafe(CWindow*);
     CWindow*                getWindowByRegex(const std::string&);

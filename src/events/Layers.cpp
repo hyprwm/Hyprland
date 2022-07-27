@@ -31,7 +31,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
         WLRLAYERSURFACE->output = PMONITOR->output;
     }
 
-    const auto PMONITOR = (SMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
+    const auto PMONITOR = (CMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
     SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].emplace_back(std::make_unique<SLayerSurface>()).get();
 
     layerSurface->szNamespace = WLRLAYERSURFACE->_namespace;

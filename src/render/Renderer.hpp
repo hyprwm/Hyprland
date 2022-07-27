@@ -34,9 +34,9 @@ public:
     void                damageBox(wlr_box*);
     void                damageBox(const int& x, const int& y, const int& w, const int& h);
     void                damageRegion(pixman_region32_t*);
-    void                damageMonitor(SMonitor*);
-    bool                applyMonitorRule(SMonitor*, SMonitorRule*, bool force = false);
-    bool                shouldRenderWindow(CWindow*, SMonitor*);
+    void                damageMonitor(CMonitor*);
+    bool                applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
+    bool                shouldRenderWindow(CWindow*, CMonitor*);
     bool                shouldRenderWindow(CWindow*);
     void                ensureCursorRenderingMode();
     bool                shouldRenderCursor();
@@ -46,11 +46,11 @@ public:
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 
 private:
-    void                arrangeLayerArray(SMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
-    void                renderWorkspaceWithFullscreenWindow(SMonitor*, CWorkspace*, timespec*);
-    void                renderWindow(CWindow*, SMonitor*, timespec*, bool, eRenderPassMode);
-    void                renderLayer(SLayerSurface*, SMonitor*, timespec*);
-    void                renderDragIcon(SMonitor*, timespec*);
+    void                arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
+    void                renderWorkspaceWithFullscreenWindow(CMonitor*, CWorkspace*, timespec*);
+    void                renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode);
+    void                renderLayer(SLayerSurface*, CMonitor*, timespec*);
+    void                renderDragIcon(CMonitor*, timespec*);
 
     bool                m_bHasARenderedCursor = true;
 

@@ -11,16 +11,16 @@ class CHyprMonitorDebugOverlay {
 public:
     int draw(int offset);
 
-    void renderData(SMonitor* pMonitor, float µs);
-    void renderDataNoOverlay(SMonitor* pMonitor, float µs);
-    void frameData(SMonitor* pMonitor);
+    void renderData(CMonitor* pMonitor, float µs);
+    void renderDataNoOverlay(CMonitor* pMonitor, float µs);
+    void frameData(CMonitor* pMonitor);
 
 private:
     std::deque<float> m_dLastFrametimes;
     std::deque<float> m_dLastRenderTimes;
     std::deque<float> m_dLastRenderTimesNoOverlay;
     std::chrono::high_resolution_clock::time_point m_tpLastFrame;
-    SMonitor* m_pMonitor = nullptr;
+    CMonitor* m_pMonitor = nullptr;
     wlr_box m_wbLastDrawnBox;
 };
 
@@ -28,13 +28,13 @@ class CHyprDebugOverlay {
 public:
 
     void draw();
-    void renderData(SMonitor*, float µs);
-    void renderDataNoOverlay(SMonitor*, float µs);
-    void frameData(SMonitor*);
+    void renderData(CMonitor*, float µs);
+    void renderDataNoOverlay(CMonitor*, float µs);
+    void frameData(CMonitor*);
 
 private:
 
-    std::unordered_map<SMonitor*, CHyprMonitorDebugOverlay> m_mMonitorOverlays;
+    std::unordered_map<CMonitor*, CHyprMonitorDebugOverlay> m_mMonitorOverlays;
 
     cairo_surface_t* m_pCairoSurface = nullptr;
     cairo_t* m_pCairo = nullptr;

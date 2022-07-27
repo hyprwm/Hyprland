@@ -7,7 +7,8 @@
 #include <array>
 #include <memory>
 
-struct SMonitor {
+class CMonitor {
+public:
     Vector2D    vecPosition         = Vector2D(0,0);
     Vector2D    vecSize             = Vector2D(0,0);
     Vector2D    vecPixelSize        = Vector2D(0,0);
@@ -51,9 +52,16 @@ struct SMonitor {
     wlr_ext_workspace_group_handle_v1* pWLRWorkspaceGroupHandle = nullptr;
 
 
+    // methods
+    void        onConnect(bool noRule);
+    void        onDisconnect();
+
+    std::shared_ptr<CMonitor>* m_pThisWrap = nullptr;
+    bool        m_bEnabled = false;
+
     // For the list lookup
 
-    bool operator==(const SMonitor& rhs) {
+    bool operator==(const CMonitor& rhs) {
         return vecPosition == rhs.vecPosition && vecSize == rhs.vecSize && szName == rhs.szName;
     }
 };

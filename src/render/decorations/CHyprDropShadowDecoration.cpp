@@ -48,7 +48,7 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
     }
 }
 
-void CHyprDropShadowDecoration::draw(SMonitor* pMonitor, float a) {
+void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;

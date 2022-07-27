@@ -40,7 +40,7 @@ struct SMonitorRenderData {
 };
 
 struct SCurrentRenderData {
-    SMonitor*   pMonitor = nullptr;
+    CMonitor*   pMonitor = nullptr;
     float       projection[9];
 
     SMonitorRenderData* pCurrentMonData = nullptr;
@@ -56,7 +56,7 @@ public:
 
     CHyprOpenGLImpl();
 
-    void    begin(SMonitor*, pixman_region32_t*, bool fake = false);
+    void    begin(CMonitor*, pixman_region32_t*, bool fake = false);
     void    end();
 
     void    renderRect(wlr_box*, const CColor&, int round = 0);
@@ -78,7 +78,7 @@ public:
     void    scissor(const pixman_box32*);
     void    scissor(const int x, const int y, const int w, const int h);
 
-    void    destroyMonitorResources(SMonitor*);
+    void    destroyMonitorResources(CMonitor*);
 
     SCurrentRenderData m_RenderData;
 
@@ -91,8 +91,8 @@ public:
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
     std::unordered_map<SLayerSurface*, CFramebuffer> m_mLayerFramebuffers;
-    std::unordered_map<SMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
-    std::unordered_map<SMonitor*, CTexture> m_mMonitorBGTextures;
+    std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
+    std::unordered_map<CMonitor*, CTexture> m_mMonitorBGTextures;
 
 private:
     std::list<GLuint>       m_lBuffers;
@@ -117,7 +117,7 @@ private:
 
     GLuint                  createProgram(const std::string&, const std::string&);
     GLuint                  compileShader(const GLuint&, std::string);
-    void                    createBGTextureForMonitor(SMonitor*);
+    void                    createBGTextureForMonitor(CMonitor*);
 
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);

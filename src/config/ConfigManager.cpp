@@ -958,6 +958,9 @@ void CConfigManager::loadConfigLoadVars() {
     // and they'll be taken care of in the newMonitor event
     if (!isFirstLaunch) {
         m_bWantsMonitorReload = true;
+
+        // check
+        ensureDPMS();
     }
 
     // Update window border colors
@@ -1211,4 +1214,15 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
     }
 
     return false;
+}
+
+void CConfigManager::ensureDPMS() {
+    for (auto& rm : g_pCompositor->m_vRealMonitors) {
+        auto rule = getMonitorRuleFor(rm->szName);
+
+        if (rule.disabled == rm->m_bEnabled) {
+	    rm->m_pThisWrap = &rm;
+            g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);
+        }
+    }
 }

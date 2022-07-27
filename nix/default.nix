@@ -18,9 +18,10 @@
   wlroots,
   xcbutilwm,
   xwayland,
-  enableXWayland ? true,
-  version ? "git",
   debug ? false,
+  enableXWayland ? true,
+  legacyRenderer ? false,
+  version ? "git",
 }:
 stdenv.mkDerivation {
   pname = "hyprland" + lib.optionalString debug "-debug";
@@ -54,7 +55,10 @@ stdenv.mkDerivation {
     then "debug"
     else "release";
 
-  mesonFlags = lib.optional (!enableXWayland) "-DNO_XWAYLAND=true";
+  mesonFlags = builtins.concatLists [
+    (lib.optional (!enableXWayland) "-DNO_XWAYLAND=true")
+    (lib.optional (legacyRenderer) "-DLEGACY_RENDERER:STRING=true")  
+  ];
 
   patches = [
     # make meson use the provided wlroots instead of the git submodule

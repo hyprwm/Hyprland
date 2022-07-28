@@ -1105,7 +1105,11 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
     // fallback if not set explicitly
     if (!copy.set) {
         for (auto& cv : configValues) {
-            if (cv.first.find(val) == cv.first.length() - val.length()) {
+            auto foundIt = cv.first.find(val);
+            if (foundIt == std::string::npos)
+                continue;
+
+            if (foundIt == cv.first.length() - val.length()) {
                 copy = cv.second;
             }
         }

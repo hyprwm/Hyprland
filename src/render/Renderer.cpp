@@ -197,6 +197,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     else
         renderdata.alpha *= pWindow == g_pCompositor->m_pLastWindow ? pWindow->m_sSpecialRenderData.alpha : pWindow->m_sSpecialRenderData.alphaInactive;
 
+    // apply opaque
+    if (pWindow->m_sAdditionalConfigData.forceOpaque)
+        renderdata.alpha = 1.f;
+
     g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 
     // render window decorations first, if not fullscreen full

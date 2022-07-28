@@ -97,6 +97,7 @@ private:
     static void         setSubmap(std::string);
     static void         pass(std::string);
     static void         layoutmsg(std::string);
+    static void         toggleOpaque(std::string);
 
     friend class CCompositor;
 };

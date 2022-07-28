@@ -35,6 +35,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["submap"]                    = setSubmap;
     m_mDispatchers["pass"]                      = pass;
     m_mDispatchers["layoutmsg"]                 = layoutmsg;
+    m_mDispatchers["toggleopaque"]              = toggleOpaque;
 
     m_tScrollTimer.reset();
 }
@@ -1309,4 +1310,15 @@ void CKeybindManager::pass(std::string regexp) {
 void CKeybindManager::layoutmsg(std::string msg) {
     SLayoutMessageHeader hd = {g_pCompositor->m_pLastWindow};
     g_pLayoutManager->getCurrentLayout()->layoutMessage(hd, msg);
+}
+
+void CKeybindManager::toggleOpaque(std::string unused) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    PWINDOW->m_sAdditionalConfigData.forceOpaque = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
+
+    g_pHyprRenderer->damageWindow(PWINDOW);
 }

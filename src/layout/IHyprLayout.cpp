@@ -35,6 +35,11 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
         pWindow->m_vRealSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
+
+        if (desiredGeometry.width <= 1 || desiredGeometry.height <= 1) {
+            pWindow->m_bHidden = true;
+            return;
+        }
         
         // reject any windows with size <= 5x5
         if (pWindow->m_vRealSize.goalv().x <= 5 || pWindow->m_vRealSize.goalv().y <= 5) {

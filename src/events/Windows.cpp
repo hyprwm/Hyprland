@@ -517,6 +517,11 @@ void Events::listener_configureX11(void* owner, void* data) {
         return;
     }
 
+    if (E->width > 1 && E->height > 1)
+        PWINDOW->m_bHidden = false;
+    else
+        PWINDOW->m_bHidden = true;
+
     PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(E->x, E->y));
     PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(E->width, E->height));
     PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
@@ -543,6 +548,11 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
     const auto POS = PWINDOW->m_vRealPosition.goalv();
     const auto SIZ = PWINDOW->m_vRealSize.goalv();
+
+    if (PWINDOW->m_uSurface.xwayland->width > 1 && PWINDOW->m_uSurface.xwayland->height > 1)
+        PWINDOW->m_bHidden = false;
+    else
+        PWINDOW->m_bHidden = true;
 
     if (abs(std::floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(std::floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 || abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
         Debug::log(LOG, "Unmanaged window %x requests geometry update to %i %i %i %i", PWINDOW, (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y, (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);

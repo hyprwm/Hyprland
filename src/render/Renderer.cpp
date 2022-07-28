@@ -666,14 +666,20 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 
     pixman_region32_translate(&damageBox, x, y);
 
+    pixman_region32_t damageBoxForEach;
+    pixman_region32_init(&damageBoxForEach);
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         double lx = 0, ly = 0;
         wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m->output, &lx, &ly);
-        pixman_region32_translate(&damageBox, lx, ly);
-        wlr_region_scale(&damageBox, &damageBox, m->scale);
+
+        wlr_region_scale(&damageBox, &damageBoxForEach, m->scale);
+        pixman_region32_translate(&damageBoxForEach, lx, ly);
+
         wlr_output_damage_add(m->damage, &damageBox);
-        pixman_region32_translate(&damageBox, -lx, -ly);
     }
+
+    pixman_region32_fini(&damageBoxForEach);
 
     static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 

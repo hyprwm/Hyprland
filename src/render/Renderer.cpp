@@ -671,8 +671,10 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
         double lx = 0, ly = 0;
         wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m->output, &lx, &ly);
 
-        wlr_region_scale(&damageBoxForEach, &damageBox, m->scale);
-        pixman_region32_translate(&damageBoxForEach, lx + x, ly + y);
+        pixman_region32_copy(&damageBoxForEach, &damageBox);
+        pixman_region32_translate(&damageBoxForEach, x, y);
+        wlr_region_scale(&damageBoxForEach, &damageBoxForEach, m->scale);
+        pixman_region32_translate(&damageBoxForEach, lx, ly);
 
         wlr_output_damage_add(m->damage, &damageBoxForEach);
     }

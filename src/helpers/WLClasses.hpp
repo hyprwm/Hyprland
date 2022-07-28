@@ -155,6 +155,7 @@ struct SXDGPopup {
     DYNLISTENER(destroyPopupXDG);
     DYNLISTENER(mapPopupXDG);
     DYNLISTENER(unmapPopupXDG);
+    DYNLISTENER(commitPopupXDG);
 
     double lx;
     double ly;

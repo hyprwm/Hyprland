@@ -55,6 +55,7 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     pHyprPopup->hyprListener_mapPopupXDG.initCallback(&popup->base->events.map, &Events::listener_mapPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_unmapPopupXDG.initCallback(&popup->base->events.unmap, &Events::listener_unmapPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_newPopupFromPopupXDG.initCallback(&popup->base->events.new_popup, &Events::listener_newPopupFromPopupXDG, pHyprPopup, "HyprPopup");
+    pHyprPopup->hyprListener_commitPopupXDG.initCallback(&popup->base->surface->events.commit, &Events::listener_commitPopupXDG, pHyprPopup, "HyprPopup");
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
@@ -144,6 +145,11 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
 
     PPOPUP->pSurfaceTree = SubsurfaceTree::createTreeRoot(PPOPUP->popup->base->surface, addPopupGlobalCoords, PPOPUP, PPOPUP->parentWindow);
 
+    int lx = 0, ly = 0;
+    addPopupGlobalCoords(PPOPUP, &lx, &ly);
+
+    g_pHyprRenderer->damageBox(lx, ly, PPOPUP->popup->current.geometry.width, PPOPUP->popup->current.geometry.width);
+
     Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode %x", PPOPUP->pSurfaceTree);
 }
 
@@ -155,7 +161,21 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
 
     SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);
 
+    int lx = 0, ly = 0;
+    addPopupGlobalCoords(PPOPUP, &lx, &ly);
+
+    g_pHyprRenderer->damageBox(lx, ly, PPOPUP->popup->current.geometry.width, PPOPUP->popup->current.geometry.width);
+
     PPOPUP->pSurfaceTree = nullptr;
+}
+
+void Events::listener_commitPopupXDG(void* owner, void* data) {
+    SXDGPopup* PPOPUP = (SXDGPopup*)owner;
+
+    int lx = 0, ly = 0;
+    addPopupGlobalCoords(PPOPUP, &lx, &ly);
+
+    g_pHyprRenderer->damageSurface(PPOPUP->popup->base->surface, lx, ly);
 }
 
 void Events::listener_destroyPopupXDG(void* owner, void* data) {

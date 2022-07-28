@@ -12,6 +12,7 @@
 
 CConfigManager::CConfigManager() {
     setDefaultVars();
+    setDefaultAnimationVars();
 
     std::string CONFIGPATH;
     if (g_pCompositor->explicitConfigPath == "") {
@@ -159,6 +160,56 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["middle_button_emulation"].intValue = 0;
     cfgValues["tap-to-click"].intValue = 1;
     cfgValues["drag_lock"].intValue = 0;
+}
+
+void CConfigManager::setDefaultAnimationVars() {
+    if (isFirstLaunch) {
+        INITANIMCFG("global");
+        INITANIMCFG("windows");
+        INITANIMCFG("fade");
+        INITANIMCFG("border");
+        INITANIMCFG("workspaces");
+
+        // windows
+        INITANIMCFG("windowsIn");
+        INITANIMCFG("windowsOut");
+        INITANIMCFG("windowsMove");
+
+        // fade
+        INITANIMCFG("fadeIn");
+        INITANIMCFG("fadeOut");
+        INITANIMCFG("fadeSwitch");
+        INITANIMCFG("fadeShadow");
+
+        // border
+
+        // workspaces
+    }
+    
+    // init the values
+    animationConfig["global"] = {
+        false,
+        "default",
+        "",
+        8.f,
+        1,
+        &animationConfig["general"],
+        nullptr
+    };
+
+    CREATEANIMCFG("windows", "global");
+    CREATEANIMCFG("fade", "global");
+    CREATEANIMCFG("border", "global");
+    CREATEANIMCFG("workspaces", "global");
+
+    CREATEANIMCFG("windowsIn", "windows");
+    CREATEANIMCFG("windowsOut", "windows");
+    CREATEANIMCFG("windowsMove", "windows");
+
+    CREATEANIMCFG("fadeIn", "fade");
+    CREATEANIMCFG("fadeOut", "fade");
+    CREATEANIMCFG("fadeSwitch", "fade");
+    CREATEANIMCFG("fadeShadow", "fade");
 }
 
 void CConfigManager::init() {
@@ -457,6 +508,17 @@ void CConfigManager::handleBezier(const std::string& command, const std::string&
     g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
 }
 
+void CConfigManager::setAnimForChildren(SAnimationPropertyConfig *const ANIM) {
+    for (auto& [name, anim] : animationConfig) {
+        if (anim.pParentAnimation == ANIM && !anim.overriden) {
+            // if a child isnt overriden, set the values of the parent
+            anim.pValues = ANIM->pValues;
+
+            setAnimForChildren(&anim);
+        }
+    }
+};
+
 void CConfigManager::handleAnimation(const std::string& command, const std::string& args) {
     std::string curitem = "";
 
@@ -480,33 +542,44 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
 
     // anim name
     const auto ANIMNAME = curitem;
-    const auto ANIMMASTERSETTING = configValues.find("animations:" + ANIMNAME);
+    
+    const auto PANIM = animationConfig.find(ANIMNAME);
 
-    if (ANIMMASTERSETTING == configValues.end()) {
-        Debug::log(ERR, "Anim %s doesnt exist", ANIMNAME.c_str());
-        parseError = "Animation " + ANIMNAME + " does not exist";
+    if (PANIM == animationConfig.end()) {
+        parseError = "no such animation";
         return;
     }
+
+    PANIM->second.overriden = true;
+    PANIM->second.pValues = &PANIM->second;
 
     nextItem();
 
     // on/off
-    configSetValueSafe("animations:" + ANIMNAME, curitem);
+    PANIM->second.internalEnabled = curitem == "1";
 
     nextItem();
 
-    // Speed
-    configSetValueSafe("animations:" + ANIMNAME + "_speed", curitem);
+    // speed
+    if (isNumber(curitem, true)) {
+        PANIM->second.internalSpeed = std::stof(curitem);
+    } else {
+        PANIM->second.internalSpeed = 10.f;
+        parseError = "Invalid speed";
+    }
 
     nextItem();
 
     // curve
-    configSetValueSafe("animations:" + ANIMNAME + "_curve", curitem);
+    PANIM->second.internalBezier = curitem;
 
     nextItem();
 
     // style
-    configSetValueSafe("animations:" + ANIMNAME + "_style", curitem);
+    PANIM->second.internalStyle = curitem;
+
+    // now, check for children, recursively
+    setAnimForChildren(&PANIM->second);
 }
 
 void CConfigManager::handleBind(const std::string& command, const std::string& value) {
@@ -849,6 +922,7 @@ void CConfigManager::loadConfigLoadVars() {
     configDynamicVars.clear();
     deviceConfigs.clear();
     m_dBlurLSNamespaces.clear();
+    setDefaultAnimationVars(); // reset anims
 
     // paths
     configPaths.clear();
@@ -1225,4 +1299,8 @@ void CConfigManager::ensureDPMS() {
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);
         }
     }
+}
+
+SAnimationPropertyConfig* CConfigManager::getAnimationPropertyConfig(const std::string& name) {
+    return &animationConfig[name];
 }

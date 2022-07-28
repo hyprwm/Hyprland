@@ -108,6 +108,9 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     layersurface->layerSurface->mapped = true;
     layersurface->mapped = true;
 
+    // anim
+    layersurface->alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
@@ -167,6 +170,9 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
         layersurface->alpha.setValueAndWarp(0.f);
         return;
     }
+
+    // anim
+    layersurface->alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
 
     // make a snapshot and start fade
     g_pHyprOpenGL->makeLayerSnapshot(layersurface);

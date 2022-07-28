@@ -28,14 +28,10 @@ void CAnimationManager::tick() {
     if (!*PANIMENABLED)
         animationsDisabled = true;
 
-    static auto *const  PANIMSPEED        = &g_pConfigManager->getConfigValuePtr("animations:speed")->floatValue;
     static auto *const  PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-    static auto *const  BEZIERSTR         = &g_pConfigManager->getConfigValuePtr("animations:curve")->strValue;
     static auto *const  PSHADOWSENABLED   = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
 
-    auto DEFAULTBEZIER = m_mBezierCurves.find(*BEZIERSTR);
-    if (DEFAULTBEZIER == m_mBezierCurves.end())
-        DEFAULTBEZIER = m_mBezierCurves.find("default");
+    const auto DEFAULTBEZIER = m_mBezierCurves.find("default");
 
     for (auto& av : m_lAnimatedVariables) {
 
@@ -49,7 +45,7 @@ void CAnimationManager::tick() {
         }
 
         // get speed
-        const auto SPEED = *av->m_pSpeed == 0 ? *PANIMSPEED : *av->m_pSpeed;
+        const auto SPEED = av->m_pConfig->pValues->internalSpeed;
 
         // get the spent % (0 - 1)
         const auto DURATIONPASSED = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - av->animationBegin).count();
@@ -79,7 +75,7 @@ void CAnimationManager::tick() {
         switch (av->m_eVarType) {
             case AVARTYPE_FLOAT: {
                 // for disabled anims just warp
-                if (*av->m_pEnabled == 0 || animationsDisabled) {
+                if (av->m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
                     av->warp();
                     break;
                 }
@@ -90,7 +86,7 @@ void CAnimationManager::tick() {
                 }
 
                 const auto DELTA = av->m_fGoal - av->m_fBegun;
-                const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+                const auto BEZIER = m_mBezierCurves.find(av->m_pConfig->pValues->internalBezier);
 
                 if (BEZIER != m_mBezierCurves.end())
                     av->m_fValue = av->m_fBegun + BEZIER->second.getYForPoint(SPENT) * DELTA;
@@ -100,7 +96,7 @@ void CAnimationManager::tick() {
             }
             case AVARTYPE_VECTOR: {
                 // for disabled anims just warp
-                if (*av->m_pEnabled == 0 || animationsDisabled) {
+                if (av->m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
                     av->warp();
                     break;
                 }
@@ -111,7 +107,7 @@ void CAnimationManager::tick() {
                 }
 
                 const auto DELTA = av->m_vGoal - av->m_vBegun;
-                const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+                const auto BEZIER = m_mBezierCurves.find(av->m_pConfig->pValues->internalBezier);
 
                 if (BEZIER != m_mBezierCurves.end())
                     av->m_vValue = av->m_vBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
@@ -121,7 +117,7 @@ void CAnimationManager::tick() {
             }
             case AVARTYPE_COLOR: {
                 // for disabled anims just warp
-                if (*av->m_pEnabled == 0 || animationsDisabled) {
+                if (av->m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
                     av->warp();
                     break;
                 }
@@ -132,7 +128,7 @@ void CAnimationManager::tick() {
                 }
 
                 const auto DELTA = av->m_cGoal - av->m_cBegun;
-                const auto BEZIER = m_mBezierCurves.find(*av->m_pBezier);
+                const auto BEZIER = m_mBezierCurves.find(av->m_pConfig->pValues->internalBezier);
 
                 if (BEZIER != m_mBezierCurves.end())
                     av->m_cValue = av->m_cBegun + DELTA * BEZIER->second.getYForPoint(SPENT);
@@ -334,7 +330,17 @@ void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool
 }
 
 void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
-    auto ANIMSTYLE = g_pConfigManager->getString("animations:windows_style");
+    if (!close) {
+        pWindow->m_vRealPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsIn");
+        pWindow->m_vRealSize.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsIn");
+        pWindow->m_fAlpha.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("fadeIn");
+    } else {
+        pWindow->m_vRealPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsOut");
+        pWindow->m_vRealSize.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsOut");
+        pWindow->m_fAlpha.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("fadeOut");
+    }
+
+    auto ANIMSTYLE = pWindow->m_vRealPosition.m_pConfig->pValues->internalStyle;
     transform(ANIMSTYLE.begin(), ANIMSTYLE.end(), ANIMSTYLE.begin(), ::tolower);
 
     // if the window is not being animated, that means the layout set a fixed size for it, don't animate.

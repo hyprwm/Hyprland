@@ -29,6 +29,20 @@ void addViewCoords(void* pWindow, int* x, int* y) {
     }
 }
 
+int setAnimToMove(void* data) {
+    const auto PWINDOW = (CWindow*)data;
+
+    auto *const PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return 0;
+
+    PWINDOW->m_vRealPosition.setConfig(PANIMCFG);
+    PWINDOW->m_vRealSize.setConfig(PANIMCFG);
+
+    return 0;
+}
+
 void Events::listener_mapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
@@ -44,7 +58,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_bReadyToDelete = false;
     PWINDOW->m_bFadingOut = false;
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
-    PWINDOW->m_fAlpha = 255.f;
 
     if (PWINDOW->m_iX11Type == 2)
         g_pCompositor->moveUnmanagedX11ToWindows(PWINDOW);
@@ -271,6 +284,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // do the animation thing
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
+    PWINDOW->m_fAlpha.setValueAndWarp(0.f);
+    PWINDOW->m_fAlpha = 255.f;
+
+    const auto TIMER = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, setAnimToMove, PWINDOW);
+    wl_event_source_timer_update(TIMER, PWINDOW->m_vRealPosition.getDurationLeftMs() + 5);
 
     if (workspaceSilent) {
         // move the window
@@ -343,8 +361,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pCompositor->m_pLastFocus = nullptr;
     }
 
-    PWINDOW->m_fAlpha = 0.f;
-
     PWINDOW->m_bMappedX11 = false;
 
     // remove the fullscreen window status from workspace if we closed it
@@ -380,7 +396,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_bX11DoesntWantBorders)   // don't animate out if they weren't animated in.
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.vec() + Vector2D(0.01f, 0.01f);  // it has to be animated, otherwise onWindowPostCreateClose will ignore it
+    
+    // anims
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
+    PWINDOW->m_fAlpha = 0.f;
 
     // Destroy Foreign Toplevel
     wlr_foreign_toplevel_handle_v1_destroy(PWINDOW->m_phForeignToplevel);

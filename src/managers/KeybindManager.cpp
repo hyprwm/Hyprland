@@ -34,6 +34,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focuswindow"]               = focusWindow;
     m_mDispatchers["submap"]                    = setSubmap;
     m_mDispatchers["pass"]                      = pass;
+    m_mDispatchers["layoutmsg"]                 = layoutmsg;
 
     m_tScrollTimer.reset();
 }
@@ -1303,4 +1304,9 @@ void CKeybindManager::pass(std::string regexp) {
     wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
 
     wlr_seat_keyboard_notify_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+}
+
+void CKeybindManager::layoutmsg(std::string msg) {
+    SLayoutMessageHeader hd = {g_pCompositor->m_pLastWindow};
+    g_pLayoutManager->getCurrentLayout()->layoutMessage(hd, msg);
 }

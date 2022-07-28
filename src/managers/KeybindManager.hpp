@@ -96,6 +96,7 @@ private:
     static void         focusWindow(std::string);
     static void         setSubmap(std::string);
     static void         pass(std::string);
+    static void         layoutmsg(std::string);
 
     friend class CCompositor;
 };

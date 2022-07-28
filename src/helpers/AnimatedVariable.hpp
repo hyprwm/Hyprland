@@ -20,13 +20,14 @@ enum AVARDAMAGEPOLICY {
 class CAnimationManager;
 class CWorkspace;
 struct SLayerSurface;
+struct SAnimationPropertyConfig;
 
 class CAnimatedVariable {
 public:
     CAnimatedVariable(); // dummy var
 
-    void create(ANIMATEDVARTYPE, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY);
-    void create(ANIMATEDVARTYPE, std::any val, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY);
+    void create(ANIMATEDVARTYPE, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
+    void create(ANIMATEDVARTYPE, std::any val, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
 
     ~CAnimatedVariable();
 
@@ -156,6 +157,16 @@ public:
         }
     }
 
+    void setConfig(SAnimationPropertyConfig* pConfig) {
+        m_pConfig = pConfig;
+    }
+
+    SAnimationPropertyConfig* getConfig() {
+        return m_pConfig;
+    }
+
+    int getDurationLeftMs();
+
 private:
 
     Vector2D        m_vValue = Vector2D(0,0);
@@ -170,15 +181,12 @@ private:
     float           m_fBegun = 0;
     CColor          m_cBegun;
 
-    float*          m_pSpeed = nullptr;
-    int64_t*        m_pEnabled = nullptr;
-
     // owners
     void*           m_pWindow = nullptr;
     void*           m_pWorkspace = nullptr;
     void*           m_pLayer = nullptr;
 
-    std::string*    m_pBezier = nullptr;
+    SAnimationPropertyConfig* m_pConfig = nullptr;
 
     bool            m_bDummy = true;
 

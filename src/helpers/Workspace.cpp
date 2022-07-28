@@ -26,9 +26,9 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     }
 
     m_vRenderOffset.m_pWorkspace = this;
-    m_vRenderOffset.create(AVARTYPE_VECTOR, &g_pConfigManager->getConfigValuePtr("animations:workspaces_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces")->intValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces_curve")->strValue, nullptr, AVARDAMAGE_ENTIRE);
+    m_vRenderOffset.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.m_pWorkspace = this;
-    m_fAlpha.create(AVARTYPE_FLOAT, &g_pConfigManager->getConfigValuePtr("animations:workspaces_speed")->floatValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces")->intValue, &g_pConfigManager->getConfigValuePtr("animations:workspaces_curve")->strValue, nullptr, AVARDAMAGE_ENTIRE);
+    m_fAlpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(255.f);
 
     g_pEventManager->postEvent({"createworkspace", m_szName}, true);
@@ -49,7 +49,7 @@ CWorkspace::~CWorkspace() {
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
-    const auto ANIMSTYLE = g_pConfigManager->getString("animations:workspaces_style");
+    const auto ANIMSTYLE = m_fAlpha.m_pConfig->pValues->internalStyle;
 
     if (ANIMSTYLE == "fade") {
         m_vRenderOffset.setValueAndWarp(Vector2D(0, 0)); // fix a bug, if switching from slide -> fade.

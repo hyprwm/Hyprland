@@ -1,25 +1,24 @@
 #include "AnimatedVariable.hpp"
 #include "../managers/AnimationManager.hpp"
+#include "../config/ConfigManager.hpp"
 
 CAnimatedVariable::CAnimatedVariable() {
     ; // dummy var
 }
 
-void CAnimatedVariable::create(ANIMATEDVARTYPE type, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY policy) {
+void CAnimatedVariable::create(ANIMATEDVARTYPE type, SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
     m_eVarType = type;
     m_eDamagePolicy = policy;
-    m_pSpeed = speed;
-    m_pEnabled = enabled;
+    m_pConfig = pAnimConfig;
     m_pWindow = pWindow;
-    m_pBezier = pBezier;
 
     g_pAnimationManager->m_lAnimatedVariables.push_back(this);
 
     m_bDummy = false;
 }
 
-void CAnimatedVariable::create(ANIMATEDVARTYPE type, std::any val, float* speed, int64_t* enabled, std::string* pBezier, void* pWindow, AVARDAMAGEPOLICY policy) {
-    create(type, speed, enabled, pBezier, pWindow, policy);
+void CAnimatedVariable::create(ANIMATEDVARTYPE type, std::any val, SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
+    create(type, pAnimConfig, pWindow, policy);
 
     try {
         switch (type) {
@@ -57,4 +56,8 @@ CAnimatedVariable::~CAnimatedVariable() {
 
 void CAnimatedVariable::unregister() {
     g_pAnimationManager->m_lAnimatedVariables.remove(this);
+}
+
+int CAnimatedVariable::getDurationLeftMs() {
+    return std::clamp((int)(m_pConfig->pValues->internalSpeed * 100) - (int)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - animationBegin).count(), 0, INT_MAX);
 }

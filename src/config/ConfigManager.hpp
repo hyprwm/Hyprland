@@ -16,6 +16,9 @@
 
 #define STRVAL_EMPTY "[[EMPTY]]"
 
+#define INITANIMCFG(name)  animationConfig[name] = {}
+#define CREATEANIMCFG(name, parent) animationConfig[name] = {true, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
+
 struct SConfigValue {
     int64_t intValue = -1;
     float floatValue = -1;
@@ -45,6 +48,18 @@ struct SMonitorAdditionalReservedArea {
 struct SWindowRule {
     std::string szRule;
     std::string szValue;
+};
+
+struct SAnimationPropertyConfig {
+    bool            overriden = true;
+
+    std::string     internalBezier = "";
+    std::string     internalStyle = "";
+    float           internalSpeed = 0.f;
+    int             internalEnabled = -1;
+
+    SAnimationPropertyConfig* pValues = nullptr;
+    SAnimationPropertyConfig* pParentAnimation = nullptr;
 };
 
 class CConfigManager {
@@ -84,12 +99,16 @@ public:
 
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
 
+    SAnimationPropertyConfig* getAnimationPropertyConfig(const std::string&);
+
 private:
     std::deque<std::string>                       configPaths; // stores all the config paths
     std::unordered_map<std::string, time_t>       configModifyTimes; // stores modify times
     std::unordered_map<std::string, std::string>  configDynamicVars; // stores dynamic vars declared by the user
     std::unordered_map<std::string, SConfigValue> configValues;
     std::unordered_map<std::string, std::unordered_map<std::string, SConfigValue>> deviceConfigs; // stores device configs
+
+    std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
 
     std::string                                   configCurrentPath;
 
@@ -110,8 +129,11 @@ private:
 
     // internal methods
     void                setDefaultVars();
+    void                setDefaultAnimationVars();
     void                setDeviceDefaultVars(const std::string&);
     void                ensureDPMS();
+
+    void                setAnimForChildren(SAnimationPropertyConfig *const);
 
     void                applyUserDefinedVars(std::string&, const size_t);
     void                loadConfigLoadVars();

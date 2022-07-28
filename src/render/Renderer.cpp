@@ -115,8 +115,12 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
     CWindow* pWorkspaceWindow = nullptr;
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID != pWorkspace->m_iID || !w->m_bIsFullscreen)
-            continue;
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID);
+
+        if (w->m_iWorkspaceID != pWorkspace->m_iID || !w->m_bIsFullscreen){
+            if (!(PWORKSPACE && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated())))
+                continue;
+        }
 
         // found it!
         renderWindow(w.get(), pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL, RENDER_PASS_ALL);

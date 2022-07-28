@@ -17,7 +17,7 @@
 #define STRVAL_EMPTY "[[EMPTY]]"
 
 #define INITANIMCFG(name)  animationConfig[name] = {}
-#define CREATEANIMCFG(name, parent) animationConfig[name] = {true, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
+#define CREATEANIMCFG(name, parent) animationConfig[name] = {false, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
 
 struct SConfigValue {
     int64_t intValue = -1;

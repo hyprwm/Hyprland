@@ -78,7 +78,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     // now check if it has the same workspace
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
-    if (PWORKSPACE->m_iMonitorID == pMonitor->ID) {
+    if (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID) {
         if (!(!PWORKSPACE->m_bHasFullscreenWindow || pWindow->m_bIsFullscreen || (pWindow->m_bIsFloating && pWindow->m_bCreatedOverFullscreen)))
             return false;
     }

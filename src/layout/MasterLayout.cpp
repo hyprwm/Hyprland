@@ -406,7 +406,110 @@ void CHyprMasterLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
 }
 
 std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
-    return "";
+    auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
+        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+        Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
+    };
+
+    if (message == "swapwithmaster") {
+
+        const auto PWINDOW = header.pWindow;
+
+        if (!isWindowTiled(PWINDOW))
+            return 0;
+
+        const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
+
+        if (!PMASTER || PMASTER->pWindow == PWINDOW)
+            return 0;
+
+        switchWindows(PWINDOW, PMASTER->pWindow);
+
+        switchToWindow(PWINDOW);
+
+        return 0;
+    } else if (message == "cyclenext") {
+        const auto PWINDOW = header.pWindow;
+
+        if (!isWindowTiled(PWINDOW))
+            return 0;
+
+        const auto PNODE = getNodeFromWindow(PWINDOW);
+
+        if (PNODE->isMaster) {
+            // focus the first non master
+            for (auto n : m_lMasterNodesData) {
+                if (n.pWindow != PWINDOW && n.workspaceID == PWINDOW->m_iWorkspaceID) {
+                    switchToWindow(n.pWindow);
+                    break;
+                }
+            }
+        } else {
+            // focus next
+            bool reached = false;
+            bool found = false;
+            for (auto n : m_lMasterNodesData) {
+                if (n.pWindow == PWINDOW) {
+                    reached = true;
+                    continue;
+                }
+
+                if (n.workspaceID == PWINDOW->m_iWorkspaceID && reached) {
+                    switchToWindow(n.pWindow);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
+
+                if (PMASTER)
+                    switchToWindow(PMASTER->pWindow);
+            }
+        }
+    } else if (message == "cycleprev") {
+        const auto PWINDOW = header.pWindow;
+
+        if (!isWindowTiled(PWINDOW))
+            return 0;
+
+        const auto PNODE = getNodeFromWindow(PWINDOW);
+
+        if (PNODE->isMaster) {
+            // focus the first non master
+            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
+                if (it->pWindow != PWINDOW && it->workspaceID == PWINDOW->m_iWorkspaceID) {
+                    switchToWindow(it->pWindow);
+                    break;
+                }
+            }
+        } else {
+            // focus next
+            bool reached = false;
+            bool found = false;
+            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
+                if (it->pWindow == PWINDOW) {
+                    reached = true;
+                    continue;
+                }
+
+                if (it->workspaceID == PWINDOW->m_iWorkspaceID && reached) {
+                    switchToWindow(it->pWindow);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
+
+                if (PMASTER)
+                    switchToWindow(PMASTER->pWindow);
+            }
+        }
+    }
+
+    return 0;
 }
 
 void CHyprMasterLayout::onEnable() {

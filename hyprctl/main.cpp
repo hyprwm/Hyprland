@@ -36,7 +36,8 @@ commands:
     reload
     
 flags:
-    j -> output in JSON
+    -j -> output in JSON
+    --batch -> execute a batch of commands, separated by ';'
 )#";
 
 void request(std::string arg) {

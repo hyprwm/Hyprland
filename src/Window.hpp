@@ -51,6 +51,10 @@ public:
     CAnimatedVariable m_vRealPosition;
     CAnimatedVariable m_vRealSize;
 
+    // for not spamming the protocols
+    Vector2D            m_vReportedPosition;
+    Vector2D            m_vReportedSize;
+
     // this is used for pseudotiling
     bool                m_bIsPseudotiled = false;
     Vector2D            m_vPseudoSize = Vector2D(0,0);

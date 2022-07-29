@@ -26,22 +26,6 @@ in {
         Hyprland package to use.
       '';
     };
-
-    extraPackages = mkOption {
-      type = with types; listOf package;
-      default = with pkgs; [ ];
-      defaultText = literalExpression ''
-        with pkgs; [ ];
-      '';
-      example = literalExpression ''
-        with pkgs; [
-          alacritty wofi
-        ]
-      '';
-      description = ''
-        Extra packages to be installed system wide.
-      '';
-    };
   };
 
   config = mkIf cfg.enable {

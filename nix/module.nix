@@ -27,25 +27,9 @@ in {
       '';
     };
 
-    extraPackages = mkOption {
-      type = with types; listOf package;
-      default = with pkgs; [
-        kitty
-        wofi
-        swaybg
-      ];
-      defaultText = literalExpression ''
-        with pkgs; [ kitty wofi swaybg ];
-      '';
-      example = literalExpression ''
-        with pkgs; [
-          alacritty wofi
-        ]
-      '';
-      description = ''
-        Extra packages to be installed system wide.
-      '';
-    };
+    imports = [
+      (mkRemovedOptionModule ["programs" "hyprland" "extraPackages"] "extraPackages has been removed. Use environment.systemPackages instead.")
+    ];
   };
 
   config = mkIf cfg.enable {

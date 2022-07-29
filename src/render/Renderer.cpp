@@ -62,7 +62,6 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
         g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, false);
     }
-        
 
     wlr_surface_send_frame_done(surface, RDATA->when);
 

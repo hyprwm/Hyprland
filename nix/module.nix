@@ -26,6 +26,10 @@ in {
         Hyprland package to use.
       '';
     };
+
+    imports = [
+      (mkRemovedOptionModule ["programs" "hyprland" "extraPackages"] "extraPackages has been removed. Use environment.systemPackages instead.")
+    ];
   };
 
   config = mkIf cfg.enable {

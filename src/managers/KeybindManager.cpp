@@ -1011,6 +1011,9 @@ void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
         return;
     }
 
+    if (!PMONITOR)
+        return;
+
     // get the current workspace
     const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 

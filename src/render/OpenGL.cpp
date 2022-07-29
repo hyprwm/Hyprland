@@ -31,6 +31,11 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shQUAD.color = glGetUniformLocation(prog, "color");
     m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
     m_shQUAD.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_shQUAD.topLeft = glGetUniformLocation(prog, "topLeft");
+    m_shQUAD.bottomRight = glGetUniformLocation(prog, "bottomRight");
+    m_shQUAD.fullSize = glGetUniformLocation(prog, "fullSize");
+    m_shQUAD.radius = glGetUniformLocation(prog, "radius");
+    m_shQUAD.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
     m_shRGBA.program = prog;
@@ -40,6 +45,11 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shRGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_shRGBA.posAttrib = glGetAttribLocation(prog, "pos");
     m_shRGBA.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
+    m_shRGBA.topLeft = glGetUniformLocation(prog, "topLeft");
+    m_shRGBA.bottomRight = glGetUniformLocation(prog, "bottomRight");
+    m_shRGBA.fullSize = glGetUniformLocation(prog, "fullSize");
+    m_shRGBA.radius = glGetUniformLocation(prog, "radius");
+    m_shRGBA.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
     m_shRGBX.program = prog;
@@ -49,6 +59,11 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shRGBX.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_shRGBX.posAttrib = glGetAttribLocation(prog, "pos");
     m_shRGBX.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
+    m_shRGBX.topLeft = glGetUniformLocation(prog, "topLeft");
+    m_shRGBX.bottomRight = glGetUniformLocation(prog, "bottomRight");
+    m_shRGBX.fullSize = glGetUniformLocation(prog, "fullSize");
+    m_shRGBX.radius = glGetUniformLocation(prog, "radius");
+    m_shRGBX.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCEXT);
     m_shEXT.program = prog;
@@ -58,6 +73,11 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shEXT.posAttrib = glGetAttribLocation(prog, "pos");
     m_shEXT.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_shEXT.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
+    m_shEXT.topLeft = glGetUniformLocation(prog, "topLeft");
+    m_shEXT.bottomRight = glGetUniformLocation(prog, "bottomRight");
+    m_shEXT.fullSize = glGetUniformLocation(prog, "fullSize");
+    m_shEXT.radius = glGetUniformLocation(prog, "radius");
+    m_shEXT.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
 
     prog = createProgram(TEXVERTSRC, FRAGBLUR1);
     m_shBLUR1.program = prog;
@@ -66,6 +86,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shBLUR1.proj = glGetUniformLocation(prog, "proj");
     m_shBLUR1.posAttrib = glGetAttribLocation(prog, "pos");
     m_shBLUR1.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_shBLUR1.radius = glGetAttribLocation(prog, "radius");
+    m_shBLUR1.halfpixel = glGetAttribLocation(prog, "halfpixel");
 
     prog = createProgram(TEXVERTSRC, FRAGBLUR2);
     m_shBLUR2.program = prog;
@@ -74,18 +96,33 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shBLUR2.proj = glGetUniformLocation(prog, "proj");
     m_shBLUR2.posAttrib = glGetAttribLocation(prog, "pos");
     m_shBLUR2.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_shBLUR2.radius = glGetAttribLocation(prog, "radius");
+    m_shBLUR2.halfpixel = glGetAttribLocation(prog, "halfpixel");
 
     prog = createProgram(QUADVERTSRC, FRAGSHADOW);
     m_shSHADOW.program = prog;
     m_shSHADOW.proj = glGetUniformLocation(prog, "proj");
     m_shSHADOW.posAttrib = glGetAttribLocation(prog, "pos");
     m_shSHADOW.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_shSHADOW.topLeft = glGetUniformLocation(prog, "topLeft");
+    m_shSHADOW.bottomRight = glGetUniformLocation(prog, "bottomRight");
+    m_shSHADOW.fullSize = glGetUniformLocation(prog, "fullSize");
+    m_shSHADOW.radius = glGetUniformLocation(prog, "radius");
+    m_shSHADOW.range = glGetUniformLocation(prog, "range");
+    m_shSHADOW.shadowPower = glGetUniformLocation(prog, "shadowPower");
 
     prog = createProgram(QUADVERTSRC, FRAGBORDER1);
     m_shBORDER1.program = prog;
     m_shBORDER1.proj = glGetUniformLocation(prog, "proj");
+    m_shBORDER1.thick = glGetUniformLocation(prog, "thick");
     m_shBORDER1.posAttrib = glGetAttribLocation(prog, "pos");
     m_shBORDER1.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_shBORDER1.topLeft = glGetUniformLocation(prog, "topLeft");
+    m_shBORDER1.bottomRight = glGetUniformLocation(prog, "bottomRight");
+    m_shBORDER1.fullSize = glGetUniformLocation(prog, "fullSize");
+    m_shBORDER1.radius = glGetUniformLocation(prog, "radius");
+    m_shBORDER1.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
+    m_shBORDER1.color = glGetUniformLocation(prog, "color");
 
     Debug::log(LOG, "Shaders initialized successfully.");
 
@@ -285,11 +322,11 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
-    glUniform2f(m_shQUAD.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_shQUAD.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(m_shQUAD.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(m_shQUAD.getUniformLocation("radius"), round);
-    glUniform1i(m_shQUAD.getUniformLocation("primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
+    glUniform2f(m_shQUAD.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shQUAD.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shQUAD.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shQUAD.radius, round);
+    glUniform1i(m_shQUAD.primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
 
     glVertexAttribPointer(m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shQUAD.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -380,11 +417,11 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
-    glUniform2f(shader->getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(shader->getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(shader->getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(shader->getUniformLocation("radius"), round);
-    glUniform1i(shader->getUniformLocation("primitiveMultisample"), (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
+    glUniform2f(shader->topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(shader->bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(shader->fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(shader->radius, round);
+    glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
@@ -471,11 +508,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 
         // prep two shaders
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
-        glUniform1f(pShader->getUniformLocation("radius"), *PBLURSIZE * (a / 255.f));  // this makes the blursize change with a
+        glUniform1f(pShader->radius, *PBLURSIZE * (a / 255.f));  // this makes the blursize change with a
         if (pShader == &m_shBLUR1)
-            glUniform2f(m_shBLUR1.getUniformLocation("halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
+            glUniform2f(m_shBLUR1.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
         else
-            glUniform2f(m_shBLUR2.getUniformLocation("halfpixel"), 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
+            glUniform2f(m_shBLUR2.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
         glUniform1i(pShader->tex, 0);
 
         glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -655,18 +692,18 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     glUseProgram(m_shBORDER1.program);
 
     glUniformMatrix3fv(m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(m_shBORDER1.getUniformLocation("color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
+    glUniform4f(m_shBORDER1.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
     const auto TOPLEFT = Vector2D(round, round);
     const auto BOTTOMRIGHT = Vector2D(box->width - round, box->height - round);
     const auto FULLSIZE = Vector2D(box->width, box->height);
 
-    glUniform2f(m_shBORDER1.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_shBORDER1.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(m_shBORDER1.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(m_shBORDER1.getUniformLocation("radius"), round);
-    glUniform1f(m_shBORDER1.getUniformLocation("thick"), *PBORDERSIZE);
-    glUniform1i(m_shBORDER1.getUniformLocation("primitiveMultisample"), *PMULTISAMPLE);
+    glUniform2f(m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shBORDER1.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shBORDER1.radius, round);
+    glUniform1f(m_shBORDER1.thick, *PBORDERSIZE);
+    glUniform1i(m_shBORDER1.primitiveMultisample, *PMULTISAMPLE);
 
     glVertexAttribPointer(m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -890,19 +927,19 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glUseProgram(m_shSHADOW.program);
 
     glUniformMatrix3fv(m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
-    glUniform4f(m_shSHADOW.getUniformLocation("color"), col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
+    glUniform4f(m_shSHADOW.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
 
     const auto TOPLEFT = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(box->width - (range + round), box->height - (range + round));
     const auto FULLSIZE = Vector2D(box->width, box->height);
 
     // Rounded corners
-    glUniform2f(m_shSHADOW.getUniformLocation("topLeft"), (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_shSHADOW.getUniformLocation("bottomRight"), (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(m_shSHADOW.getUniformLocation("fullSize"), (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(m_shSHADOW.getUniformLocation("radius"), range + round);
-    glUniform1f(m_shSHADOW.getUniformLocation("range"), range);
-    glUniform1f(m_shSHADOW.getUniformLocation("shadowPower"), SHADOWPOWER);
+    glUniform2f(m_shSHADOW.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shSHADOW.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shSHADOW.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shSHADOW.radius, range + round);
+    glUniform1f(m_shSHADOW.range, range);
+    glUniform1f(m_shSHADOW.shadowPower, SHADOWPOWER);
 
     glVertexAttribPointer(m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);

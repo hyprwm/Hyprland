@@ -14,6 +14,19 @@ public:
     GLint texAttrib;
     GLint discardOpaque;
 
+    GLint topLeft;
+    GLint bottomRight;
+    GLint fullSize;
+    GLint radius;
+    GLint primitiveMultisample;
+
+    GLint thick;
+
+    GLint halfpixel;
+
+    GLint range;
+    GLint shadowPower;
+
     GLint getUniformLocation(const std::string&);
 
 private:

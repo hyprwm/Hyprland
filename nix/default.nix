@@ -5,6 +5,7 @@
   pkg-config,
   meson,
   ninja,
+  git,
   libdrm,
   libinput,
   libxcb,
@@ -36,6 +37,7 @@ stdenv.mkDerivation {
 
   buildInputs =
     [
+      git
       libdrm
       libinput
       libxcb

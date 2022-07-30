@@ -13,6 +13,8 @@ int handleCritSignal(int signo, void* data) {
 }
 
 CCompositor::CCompositor() {
+    wlr_log_init(WLR_INFO, NULL);
+
     m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);

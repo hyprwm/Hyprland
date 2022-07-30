@@ -753,9 +753,9 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     const auto BLURVAL = g_pConfigManager->getInt("decoration:blur");
     g_pConfigManager->setInt("decoration:blur", 0);
 
-    m_bEndFrame = true;
-
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
+
+    m_bEndFrame = true;
 
     g_pConfigManager->setInt("decoration:blur", BLURVAL);
 
@@ -815,8 +815,6 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-
-    m_bEndFrame = true;
 
     // draw the layer
     g_pHyprRenderer->renderLayer(pLayer, PMONITOR, &now);

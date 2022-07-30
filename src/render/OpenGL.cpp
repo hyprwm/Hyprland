@@ -86,8 +86,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shBLUR1.proj = glGetUniformLocation(prog, "proj");
     m_shBLUR1.posAttrib = glGetAttribLocation(prog, "pos");
     m_shBLUR1.texAttrib = glGetAttribLocation(prog, "texcoord");
-    m_shBLUR1.radius = glGetAttribLocation(prog, "radius");
-    m_shBLUR1.halfpixel = glGetAttribLocation(prog, "halfpixel");
+    m_shBLUR1.radius = glGetUniformLocation(prog, "radius");
+    m_shBLUR1.halfpixel = glGetUniformLocation(prog, "halfpixel");
 
     prog = createProgram(TEXVERTSRC, FRAGBLUR2);
     m_shBLUR2.program = prog;
@@ -96,8 +96,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shBLUR2.proj = glGetUniformLocation(prog, "proj");
     m_shBLUR2.posAttrib = glGetAttribLocation(prog, "pos");
     m_shBLUR2.texAttrib = glGetAttribLocation(prog, "texcoord");
-    m_shBLUR2.radius = glGetAttribLocation(prog, "radius");
-    m_shBLUR2.halfpixel = glGetAttribLocation(prog, "halfpixel");
+    m_shBLUR2.radius = glGetUniformLocation(prog, "radius");
+    m_shBLUR2.halfpixel = glGetUniformLocation(prog, "halfpixel");
 
     prog = createProgram(QUADVERTSRC, FRAGSHADOW);
     m_shSHADOW.program = prog;
@@ -110,6 +110,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_shSHADOW.radius = glGetUniformLocation(prog, "radius");
     m_shSHADOW.range = glGetUniformLocation(prog, "range");
     m_shSHADOW.shadowPower = glGetUniformLocation(prog, "shadowPower");
+    m_shSHADOW.color = glGetUniformLocation(prog, "color");
 
     prog = createProgram(QUADVERTSRC, FRAGBORDER1);
     m_shBORDER1.program = prog;

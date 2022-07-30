@@ -65,6 +65,7 @@ public:
     wlr_xdg_foreign_registry*        m_sWLRForeignRegistry;
     wlr_idle_inhibit_manager_v1*     m_sWLRIdleInhibitMgr;
     wlr_pointer_gestures_v1*         m_sWLRPointerGestures;
+    wlr_output_power_manager_v1*     m_sWLROutputPowerMgr;
     // ------------------------------------------------- //
 
 

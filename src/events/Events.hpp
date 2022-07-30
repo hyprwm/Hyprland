@@ -130,4 +130,7 @@ namespace Events {
     LISTENER(pinchBegin);
     LISTENER(pinchUpdate);
     LISTENER(pinchEnd);
+
+    // Power
+    LISTENER(powerMgrSetMode);
 };

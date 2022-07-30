@@ -36,6 +36,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pass"]                      = pass;
     m_mDispatchers["layoutmsg"]                 = layoutmsg;
     m_mDispatchers["toggleopaque"]              = toggleOpaque;
+    m_mDispatchers["dpms"]                      = dpms;
 
     m_tScrollTimer.reset();
 }
@@ -1324,4 +1325,16 @@ void CKeybindManager::toggleOpaque(std::string unused) {
     PWINDOW->m_sAdditionalConfigData.forceOpaque = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
 
     g_pHyprRenderer->damageWindow(PWINDOW);
+}
+
+void CKeybindManager::dpms(std::string arg) {
+    bool enable = arg == "on";
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        wlr_output_enable(m->output, enable);
+        
+        if (!wlr_output_commit(m->output)) {
+            Debug::log(ERR, "Couldn't commit output %s", m->szName.c_str());
+        }
+    }
 }

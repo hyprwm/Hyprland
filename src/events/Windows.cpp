@@ -542,6 +542,8 @@ void Events::listener_configureX11(void* owner, void* data) {
     g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(PWINDOW);
+
+    PWINDOW->updateWindowDecos();
 }
 
 void Events::listener_unmanagedSetGeometry(void* owner, void* data) {

@@ -441,11 +441,15 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         return;
     }
 
-    newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
-    newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));
+    if (curitem.find("pref") == 0) {
+        newrule.resolution = Vector2D();
+    } else {
+        newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
+        newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));
 
-    if (curitem.contains("@"))
-        newrule.refreshRate = stof(curitem.substr(curitem.find_first_of('@') + 1));
+        if (curitem.contains("@"))
+            newrule.refreshRate = stof(curitem.substr(curitem.find_first_of('@') + 1));
+    }    
 
     nextItem();
 

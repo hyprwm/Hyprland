@@ -19,6 +19,8 @@ CThreadManager::CThreadManager() {
 
     HyprCtl::startHyprCtlSocket();
 
+    g_pCompositor->startHyprCtlTick();
+
     m_esConfigTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, handleTimer, this);
 
     wl_event_source_timer_update(m_esConfigTimer, 1000);

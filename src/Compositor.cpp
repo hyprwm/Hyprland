@@ -1,6 +1,7 @@
 #include "Compositor.hpp"
 #include "helpers/Splashes.hpp"
 #include <random>
+#include "debug/HyprCtl.hpp"
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal %d", signo);
@@ -1477,4 +1478,21 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
     }
 
     return nullptr;
+}
+
+wl_event_source* hyprCtlTickSource = nullptr;
+
+int hyprCtlTick(void* data) {
+    HyprCtl::tickHyprCtl();  // so that we dont get that race condition multithread bullshit
+
+    wl_event_source_timer_update(hyprCtlTickSource, 16); // tick it 60/s, should be enough.
+}
+
+void CCompositor::startHyprCtlTick() {
+    if (hyprCtlTickSource)
+        return;
+
+    hyprCtlTickSource = wl_event_loop_add_timer(m_sWLEventLoop, hyprCtlTick, nullptr);
+
+    wl_event_source_timer_update(hyprCtlTickSource, 16);
 }

@@ -120,8 +120,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
 
-        HyprCtl::tickHyprCtl();  // so that we dont get that race condition multithread bullshit
-
         g_pConfigManager->dispatchExecOnce();  // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
 
         if (g_pConfigManager->m_bWantsMonitorReload)

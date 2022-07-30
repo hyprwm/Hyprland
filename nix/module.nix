@@ -33,7 +33,7 @@ in {
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [cfg.package];
+    environment.systemPackages = lib.optional (cfg.package != null) cfg.package;
     security.polkit.enable = true;
     hardware.opengl.enable = mkDefault true;
     fonts.enableDefaultFonts = mkDefault true;

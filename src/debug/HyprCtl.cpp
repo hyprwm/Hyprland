@@ -592,16 +592,7 @@ void HyprCtl::tickHyprCtl() {
 }
 
 std::string getRequestFromThread(std::string rq) {
-    // we need to do something to wake hyprland up if VFR is enabled
-
-    static auto *const PNOVFR = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
-
-    // TODO: is this safe...?
-    // this might be a race condition
-    // tested with 2 instances of `watch -n 0.1 hyprctl splash` and seems to not crash so I'll take that as a yes
-    if (!*PNOVFR)
-        g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_vMonitors.front().get());
-
+    
     while (HyprCtl::request != "" || HyprCtl::requestMade || HyprCtl::requestReady) {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }

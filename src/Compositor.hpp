@@ -154,9 +154,11 @@ public:
 
     std::string             explicitConfigPath;
 
+    void                    startHyprCtlTick();
+
 private:
     void                    initAllSignals();
-    void                    setRandomSplash();
+    void                    setRandomSplash();    
 };
 
 

@@ -81,6 +81,16 @@ idle-protocol.c:
 
 idle-protocol.o: idle-protocol.h
 
+wlr-output-power-management-unstable-v1-protocol.h:
+	$(WAYLAND_SCANNER) server-header \
+		protocols/wlr-output-power-management-unstable-v1.xml $@
+
+wlr-output-power-management-unstable-v1-protocol.c:
+	$(WAYLAND_SCANNER) private-code \
+		protocols/wlr-output-power-management-unstable-v1.xml $@
+
+wlr-output-power-management-unstable-v1-protocol.o: wlr-output-power-management-unstable-v1-protocol.h
+
 legacyrenderer:
 	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:STRING=true -H./ -B./build -G Ninja
 	cmake --build ./build --config Release --target all -j 10
@@ -133,7 +143,7 @@ uninstall:
 	rm -f /usr/lib/libwlroots.so.11032
 	rm -rf ${PREFIX}/share/hyprland
 
-protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o
+protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o wlr-output-power-management-unstable-v1-protocol.o
 
 fixwlr:
 	sed -i -E 's/(soversion = 11)([^032]|$$)/soversion = 11032/g' subprojects/wlroots/meson.build

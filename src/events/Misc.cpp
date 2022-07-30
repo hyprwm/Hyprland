@@ -164,3 +164,14 @@ void Events::listener_sessionActive(wl_listener* listener, void* data) {
 
     g_pCompositor->m_bSessionActive = true;
 }
+
+void Events::listener_powerMgrSetMode(wl_listener* listener, void* data) {
+    Debug::log(LOG, "PowerMgr set mode!");
+
+    const auto EVENT = (wlr_output_power_v1_set_mode_event*)data;
+
+    wlr_output_enable(EVENT->output, EVENT->mode == 1);
+    
+    if (!wlr_output_commit(EVENT->output))
+        Debug::log(ERR, "Couldn't set power mode");
+}

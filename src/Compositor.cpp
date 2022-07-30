@@ -96,6 +96,8 @@ CCompositor::CCompositor() {
 
     m_sWLROutputLayout = wlr_output_layout_create();
 
+    m_sWLROutputPowerMgr = wlr_output_power_manager_v1_create(m_sWLDisplay);
+
     m_sWLRScene = wlr_scene_create();
     wlr_scene_attach_output_layout(m_sWLRScene, m_sWLROutputLayout);
 
@@ -195,6 +197,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRVirtPtrMgr->events.new_virtual_pointer, &Events::listen_newVirtPtr, m_sWLRVirtPtrMgr, "VirtPtrMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
     addWLSignal(&m_sWLRIdleInhibitMgr->events.new_inhibitor, &Events::listen_newIdleInhibitor, m_sWLRIdleInhibitMgr, "WLRIdleInhibitMgr");
+    addWLSignal(&m_sWLROutputPowerMgr->events.set_mode, &Events::listen_powerMgrSetMode, m_sWLROutputPowerMgr, "PowerMgr");
     if (m_sWLRSession)
         addWLSignal(&m_sWLRSession->events.active, &Events::listen_sessionActive, m_sWLRSession, "Session");
 }

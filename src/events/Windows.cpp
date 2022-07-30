@@ -221,6 +221,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->m_vRealSize = Vector2D(SIZEX, SIZEY);
                     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
+
+                    PWINDOW->m_bHidden = false;
                 } catch (...) {
                     Debug::log(LOG, "Rule size failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }
@@ -236,6 +238,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     Debug::log(LOG, "Rule move, applying to window %x", PWINDOW);
 
                     PWINDOW->m_vRealPosition = Vector2D(POSX, POSY) + PMONITOR->vecPosition;
+
+                    PWINDOW->m_bHidden = false;
                 } catch (...) {
                     Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }

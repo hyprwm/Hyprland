@@ -872,6 +872,11 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), &fakeDamage, 0);
 
     pixman_region32_fini(&fakeDamage);
+
+    static auto *const PDAMAGEMON = &g_pConfigManager->getConfigValuePtr("misc:damage_entire_on_snapshot")->intValue;
+
+    if (*PDAMAGEMON)
+        PMONITOR->forceFullFrames += 1;
 }
 
 void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
@@ -898,6 +903,11 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PLAYER->alpha.fl(), &fakeDamage, 0);
 
     pixman_region32_fini(&fakeDamage);
+
+    static auto *const PDAMAGEMON = &g_pConfigManager->getConfigValuePtr("misc:damage_entire_on_snapshot")->intValue;
+
+    if (*PDAMAGEMON)
+        PMONITOR->forceFullFrames += 1;
 }
 
 void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, float a) {

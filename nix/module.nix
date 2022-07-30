@@ -38,7 +38,7 @@ in {
     hardware.opengl.enable = mkDefault true;
     fonts.enableDefaultFonts = mkDefault true;
     programs.dconf.enable = mkDefault true;
-    services.xserver.displayManager.sessionPackages = [cfg.package];
+    services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) cfg.package;
     programs.xwayland.enable = mkDefault true;
     xdg.portal.enable = mkDefault true;
     xdg.portal.extraPortals = [pkgs.xdg-desktop-portal-wlr];

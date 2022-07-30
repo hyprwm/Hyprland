@@ -35,7 +35,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     static auto *const PBORDERTHICK = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
     float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
-    rounding += *PBORDERTHICK * RDATA->output->scale;
+    rounding += *PBORDERTHICK;
 
     if (RDATA->surface && surface == RDATA->surface) {
         if (wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 255.f) {

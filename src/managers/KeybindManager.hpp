@@ -98,6 +98,7 @@ private:
     static void         pass(std::string);
     static void         layoutmsg(std::string);
     static void         toggleOpaque(std::string);
+    static void         dpms(std::string);
 
     friend class CCompositor;
 };

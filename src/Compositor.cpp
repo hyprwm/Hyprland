@@ -1486,6 +1486,8 @@ int hyprCtlTick(void* data) {
     HyprCtl::tickHyprCtl();  // so that we dont get that race condition multithread bullshit
 
     wl_event_source_timer_update(hyprCtlTickSource, 16); // tick it 60/s, should be enough.
+
+    return 0;
 }
 
 void CCompositor::startHyprCtlTick() {

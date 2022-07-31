@@ -799,7 +799,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     // this is temporary, doesnt mess with the actual wlr damage
     pixman_region32_t fakeDamage;
     pixman_region32_init(&fakeDamage);
-    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
 
     begin(PMONITOR, &fakeDamage, true);
 

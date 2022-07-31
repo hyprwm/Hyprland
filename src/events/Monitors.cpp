@@ -98,6 +98,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     static int damageBlinkCleanup = 0; // because double-buffered
 
+    if (!*PDAMAGEBLINK)
+        damageBlinkCleanup = 0;
+
     if (*PDEBUGOVERLAY == 1) {
         startRender = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->frameData(PMONITOR);
@@ -112,6 +115,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             Debug::log(LOG, "NoFrameSchedule hit for %s.", PMONITOR->szName.c_str());
         }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+
+        if (PMONITOR->framesToSkip > 10)
+            PMONITOR->framesToSkip = 0;
         return;
     }
 
@@ -189,8 +195,12 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         }
     }
 
-    if (PMONITOR->forceFullFrames > 0)
+    if (PMONITOR->forceFullFrames > 0) {
         PMONITOR->forceFullFrames -= 1;
+        if (PMONITOR->forceFullFrames > 10)
+            PMONITOR->forceFullFrames = 0;
+    }
+        
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.

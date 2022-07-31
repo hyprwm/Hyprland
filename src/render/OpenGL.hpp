@@ -37,6 +37,8 @@ struct SMonitorRenderData {
     CFramebuffer mirrorSwapFB;
 
     CTexture     stencilTex;
+
+    wlr_box      backgroundTexBox;
 };
 
 struct SCurrentRenderData {

@@ -981,7 +981,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const 
     cairo_text_extents_t textExtents;
     cairo_text_extents(CAIRO, g_pCompositor->m_szCurrentSplash.c_str(), &textExtents);
 
-    cairo_move_to(CAIRO, m_RenderData.pMonitor->vecPixelSize.x / 2.f - textExtents.width / 2.f, m_RenderData.pMonitor->vecPixelSize.y - textExtents.height - 1);
+    cairo_move_to(CAIRO, m_RenderData.pMonitor->vecTransformedSize.x / 2.f - textExtents.width / 2.f, m_RenderData.pMonitor->vecTransformedSize.y - textExtents.height - 1);
     cairo_show_text(CAIRO, g_pCompositor->m_szCurrentSplash.c_str());
 
     cairo_surface_flush(CAIROSURFACE);
@@ -1021,6 +1021,8 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         texPath += "2K.png";
     }
 
+    PTEX->m_vSize = textureSize;
+
     // create a new one with cairo
     const auto CAIROSURFACE = cairo_image_surface_create_from_png(texPath.c_str());
 
@@ -1043,6 +1045,28 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     cairo_surface_destroy(CAIROSURFACE);
     cairo_destroy(CAIRO);
 
+    // calc the target box
+
+    const float MONRATIO = m_RenderData.pMonitor->vecTransformedSize.x / m_RenderData.pMonitor->vecTransformedSize.y;
+    const float WPRATIO = 1.77f;
+
+    Vector2D origin;
+    float scale;
+
+    if (MONRATIO > WPRATIO) {
+        scale = m_RenderData.pMonitor->vecTransformedSize.x / PTEX->m_vSize.x;
+
+        origin.y = -(PTEX->m_vSize.y * scale - m_RenderData.pMonitor->vecTransformedSize.y) / 2.f / scale;
+    } else {
+        scale = m_RenderData.pMonitor->vecTransformedSize.y / PTEX->m_vSize.y;
+
+        origin.x = -(PTEX->m_vSize.x * scale - m_RenderData.pMonitor->vecTransformedSize.x) / 2.f / scale;
+    }
+
+    wlr_box box = {origin.x * scale, origin.y * scale, PTEX->m_vSize.x * scale, PTEX->m_vSize.y * scale};
+
+    m_mMonitorRenderResources[pMonitor].backgroundTexBox = box;
+
     Debug::log(LOG, "Background created for monitor %s", pMonitor->szName.c_str());
 }
 
@@ -1052,8 +1076,7 @@ void CHyprOpenGLImpl::clearWithTex() {
     static auto *const PRENDERTEX = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
 
     if (!*PRENDERTEX) {
-        wlr_box box = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-        renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &box, 255, 0);
+        renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox, 255, 0);
     }
 }
 

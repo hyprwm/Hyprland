@@ -13,9 +13,13 @@ jobs:
     - name: Install nix
       uses: cachix/install-nix-action@v17
       with:
-        install_url: https://releases.nixos.org/nix/nix-2.8.0/install
+        install_url: https://releases.nixos.org/nix/nix-2.10.3/install
         extra_nix_config: |
           auto-optimise-store = true
           experimental-features = nix-command flakes
-    - name: Build HyprLand with default settings
+    - uses: cachix/cachix-action@v10
+      with:
+        name: hyprland
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    - name: Build Hyprland with default settings
       run: nix build --print-build-logs

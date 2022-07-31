@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <functional>
 
+class CInputManager;
+
 struct SKeybind {
     std::string       key = "";
     int               keycode = -1;
@@ -101,6 +103,7 @@ private:
     static void         dpms(std::string);
 
     friend class CCompositor;
+    friend class CInputManager;
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

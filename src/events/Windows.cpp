@@ -601,10 +601,10 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     // A window got opened
     const auto XDGSURFACE = (wlr_xdg_surface*)data;
 
-    Debug::log(LOG, "New XDG Surface created. (class: %s)", XDGSURFACE->toplevel->app_id);
-
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return;
+
+    Debug::log(LOG, "New XDG Surface created. (class: %s)", XDGSURFACE->toplevel->app_id);
 
     const auto PNEWWINDOW = g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;

@@ -104,9 +104,12 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
+    wlr_box geom;
+    wlr_xdg_surface_get_geometry(PWINDOW->m_uSurface.xdg, &geom);
+
     PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = PWINDOW->m_vRealPosition.goalv().x;
-    PNEWPOPUP->ly = PWINDOW->m_vRealPosition.goalv().y;
+    PNEWPOPUP->lx = PWINDOW->m_vRealPosition.goalv().x - geom.x;
+    PNEWPOPUP->ly = PWINDOW->m_vRealPosition.goalv().y - geom.y;
     PNEWPOPUP->parentWindow = PWINDOW;
     PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);

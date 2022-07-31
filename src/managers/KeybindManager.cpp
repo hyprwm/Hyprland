@@ -1336,5 +1336,8 @@ void CKeybindManager::dpms(std::string arg) {
         if (!wlr_output_commit(m->output)) {
             Debug::log(ERR, "Couldn't commit output %s", m->szName.c_str());
         }
+
+        if (enable)
+            g_pHyprRenderer->damageMonitor(m.get());
     }
 }

@@ -29,6 +29,7 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PMOUSEDPMS = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
 
     if (!g_pCompositor->m_bReadyToProcess)
         return;
@@ -40,6 +41,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (g_pCompositor->m_sSeat.mouse->virt)
         return; // don't refocus on virt
+
+    if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS) {
+        // enable dpms
+        g_pKeybindManager->dpms("on");
+    }
 
     Vector2D mouseCoords = getMouseCoordsInternal();
     const auto MOUSECOORDSFLOORED = mouseCoords.floor();

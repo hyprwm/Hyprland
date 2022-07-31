@@ -94,6 +94,7 @@ public:
 
     bool                    m_bReadyToProcess = false;
     bool                    m_bSessionActive = true;
+    bool                    m_bDPMSStateON = true;
 
     // ------------------------------------------------- //
 

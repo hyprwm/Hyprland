@@ -810,7 +810,7 @@ int CCompositor::getWindowsOnWorkspace(const int& id) {
 
 CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
     for (auto& w : m_vWindows) {
-        if (w->m_iWorkspaceID == id)
+        if (w->m_iWorkspaceID == id && w->m_bIsMapped && !w->m_bHidden)
             return w.get();
     }
 

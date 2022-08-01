@@ -1502,3 +1502,17 @@ void CCompositor::startHyprCtlTick() {
 
     wl_event_source_timer_update(hyprCtlTickSource, 16);
 }
+
+void CCompositor::warpCursorTo(const Vector2D& pos) {
+
+    // warpCursorTo should only be used for warps that
+    // should be disabled with no_cursor_warps
+
+    static auto *const PNOWARPS = &g_pConfigManager->getConfigValuePtr("general:no_cursor_warps")->intValue;
+
+    if (*PNOWARPS)
+        return;
+
+    wlr_cursor_warp(m_sWLRCursor, m_sSeat.mouse->mouse, pos.x, pos.y);
+}
+

@@ -153,6 +153,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
     }
 
+    g_pHyprOpenGL->preRender(PMONITOR);
+
     if (!wlr_output_damage_attach_render(PMONITOR->damage, &hasChanged, &damage)){
         Debug::log(ERR, "Couldn't attach render to display %s ???", PMONITOR->szName.c_str());
         return;

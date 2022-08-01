@@ -159,6 +159,9 @@ void CAnimationManager::tick() {
 
                         w->updateWindowDecos();
                     }
+                } else if (PLAYER) {
+                    if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
+                        g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
                 }
                 break;
             }

@@ -38,6 +38,9 @@ struct SMonitorRenderData {
 
     CTexture     stencilTex;
 
+    CFramebuffer blurFB;
+    bool         blurFBDirty = true;
+
     wlr_box      backgroundTexBox;
 };
 
@@ -81,6 +84,8 @@ public:
     void    scissor(const int x, const int y, const int w, const int h);
 
     void    destroyMonitorResources(CMonitor*);
+
+    void    markBlurDirtyForMonitor(CMonitor*);
 
     SCurrentRenderData m_RenderData;
 
@@ -127,6 +132,8 @@ private:
     void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false, bool allowCustomUV = false);
 
     void                    renderSplash(cairo_t *const, cairo_surface_t *const);
+
+    void                    preBlurForCurrentMonitor();
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

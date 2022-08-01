@@ -320,6 +320,9 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         renderLayer(ls.get(), PMONITOR, time);
     }
 
+    // pre window pass
+    g_pHyprOpenGL->preWindowPass();
+
     // if there is a fullscreen window, render it and then do not render anymore.
     // fullscreen window will hide other windows and top layers
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);

@@ -87,6 +87,8 @@ public:
 
     void    markBlurDirtyForMonitor(CMonitor*);
 
+    void    preWindowPass();
+
     SCurrentRenderData m_RenderData;
 
     GLint  m_iCurrentOutputFb = 0;

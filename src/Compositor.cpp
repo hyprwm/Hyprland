@@ -926,6 +926,10 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         if (ls->monitorID != monid)
             continue;
 
+        // mark blur for recalc
+        if (ls->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
+            g_pHyprOpenGL->markBlurDirtyForMonitor(getMonitorFromID(monid));
+
         if (ls->fadingOut && ls->readyToDelete && !ls->alpha.isBeingAnimated()) {
             g_pHyprOpenGL->m_mLayerFramebuffers[ls].release();
             g_pHyprOpenGL->m_mLayerFramebuffers.erase(ls);

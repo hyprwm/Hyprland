@@ -575,11 +575,37 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     return currentRenderToFB;
 }
 
+void CHyprOpenGLImpl::markBlurDirtyForMonitor(CMonitor* pMonitor) {
+    m_mMonitorRenderResources[pMonitor].blurFBDirty = true;
+}
+
+void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
+
+    // make the fake dmg
+    pixman_region32_t fakeDamage;
+    pixman_region32_init_rect(&fakeDamage, 0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
+    wlr_box wholeMonitor = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+    const auto POUTFB = blurMainFramebufferWithDamage(255, &wholeMonitor, &fakeDamage);
+
+    // render onto blurFB
+    m_RenderData.pCurrentMonData->blurFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
+    m_RenderData.pCurrentMonData->blurFB.bind();
+
+    clear(CColor(0,0,0,0));
+
+    renderTextureInternalWithDamage(POUTFB->m_cTex, &wholeMonitor, 255, &fakeDamage, 0, false, true, false);
+
+    m_RenderData.pCurrentMonData->primaryFB.bind();
+
+    m_RenderData.pCurrentMonData->blurFBDirty = false;
+}
+
 void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
-    static auto* const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
+    static auto *const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
+    static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
 
     if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
         renderTexture(tex, pBox, a, round, false, true);
@@ -610,7 +636,13 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     }
 
     // blur the main FB, it will be rendered onto the mirror
-    const auto POUTFB = blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
+    if (*PBLURNEWOPTIMIZE && m_RenderData.pCurrentMonData->blurFBDirty) {
+        // redraw the blur. Since this resets the dirty flag, it will be drawn before the first window.
+        preBlurForCurrentMonitor();
+    }
+
+        //                                                          vvv TODO: layered blur fbs?
+    const auto POUTFB = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating) ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
 
     pixman_region32_fini(&inverseOpaque);
 

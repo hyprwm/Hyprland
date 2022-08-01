@@ -221,6 +221,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     if (layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);  // so that blur is recalc'd
+            // TODO: only the committed area
 
     wlr_box geomFixed = {layersurface->geometry.x, layersurface->geometry.y, layersurface->geometry.width, layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
@@ -257,6 +258,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
             if (layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                 g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);  // so that blur is recalc'd
+                    // TODO: only the committed area
         }
 
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);

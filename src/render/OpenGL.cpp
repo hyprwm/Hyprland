@@ -656,49 +656,59 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         return;
     }
 
-        //                                                          vvv TODO: layered blur fbs?
-    const auto POUTFB = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating) ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
+    //                                                                       vvv TODO: layered blur fbs?
+    const bool USENEWOPTIM = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating);
+        
+    const auto POUTFB = USENEWOPTIM ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
 
     pixman_region32_fini(&inverseOpaque);
 
     // bind primary
     m_RenderData.pCurrentMonData->primaryFB.bind();
 
-    // make a stencil for rounded corners to work with blur
-    scissor((wlr_box*)nullptr);  // allow the entire window and stencil to render
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
+    if (!USENEWOPTIM) {
+        // make a stencil for rounded corners to work with blur
+        scissor((wlr_box*)nullptr);  // allow the entire window and stencil to render
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
 
-    glEnable(GL_STENCIL_TEST);
+        glEnable(GL_STENCIL_TEST);
 
-    glStencilFunc(GL_ALWAYS, 1, -1);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glStencilFunc(GL_ALWAYS, 1, -1);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    renderTexture(tex, pBox, a, round, true, true);  // discard opaque
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        renderTexture(tex, pBox, a, round, true, true);  // discard opaque
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    glStencilFunc(GL_EQUAL, 1, -1);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glStencilFunc(GL_EQUAL, 1, -1);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    }    
 
     // stencil done. Render everything.
     wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
         static auto *const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
-        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, false);
+        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, USENEWOPTIM ? round : 0, false, false, false);
 
         // render the window, but clear stencil
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
+        if (!USENEWOPTIM) {
+            glClearStencil(0);
+            glClear(GL_STENCIL_BUFFER_BIT);
 
-        // draw window
-        glDisable(GL_STENCIL_TEST);
+            // draw window
+            glDisable(GL_STENCIL_TEST);
+        }
+        
         renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true);
     }
-
-    glStencilMask(-1);
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    
+    if (!USENEWOPTIM) {
+        glStencilMask(-1);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    }
+    
     pixman_region32_fini(&damage);
     scissor((wlr_box*)nullptr);
 }

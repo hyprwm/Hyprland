@@ -656,8 +656,10 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         return;
     }
 
-        //                                                          vvv TODO: layered blur fbs?
-    const auto POUTFB = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating) ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
+        //                                                                        vvv TODO: layered blur fbs?
+    const bool USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating);
+
+    const auto POUTFB = USENEWOPTIMIZE ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
 
     pixman_region32_fini(&inverseOpaque);
 
@@ -675,7 +677,10 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    renderTexture(tex, pBox, a, round, true, true);  // discard opaque
+    if (USENEWOPTIMIZE)
+        renderRect(pBox, CColor(0,0,0,0), round);
+    else
+        renderTexture(tex, pBox, a, round, true, true);  // discard opaque
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_EQUAL, 1, -1);

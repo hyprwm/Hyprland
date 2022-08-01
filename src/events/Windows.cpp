@@ -153,6 +153,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_sAdditionalConfigData.forceNoBlur = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen = true;
+        } else if (r.szRule == "opaque") {
+            PWINDOW->m_sAdditionalConfigData.forceOpaque = true;
         } else if (r.szRule.find("rounding") == 0) {
             try {
                 PWINDOW->m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));

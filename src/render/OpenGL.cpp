@@ -579,6 +579,25 @@ void CHyprOpenGLImpl::markBlurDirtyForMonitor(CMonitor* pMonitor) {
     m_mMonitorRenderResources[pMonitor].blurFBDirty = true;
 }
 
+void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
+    static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+
+    if (!*PBLURNEWOPTIMIZE || !m_mMonitorRenderResources[pMonitor].blurFBDirty)
+        return;
+
+    bool has = false;
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID == pMonitor->activeWorkspace && w->m_bIsMapped && !w->m_bHidden && !w->m_bIsFloating) {
+            has = true;
+            break;
+        }
+    }
+
+    if (has)
+        g_pHyprRenderer->damageMonitor(pMonitor);
+}
+
 void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
     // make the fake dmg

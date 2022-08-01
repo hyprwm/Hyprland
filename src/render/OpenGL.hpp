@@ -88,6 +88,7 @@ public:
     void    markBlurDirtyForMonitor(CMonitor*);
 
     void    preWindowPass();
+    void    preRender(CMonitor*);
 
     SCurrentRenderData m_RenderData;
 

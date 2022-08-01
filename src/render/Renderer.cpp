@@ -711,6 +711,9 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
     wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
 
+    // TODO: this should NOT be required here.
+    g_pHyprOpenGL->markBlurDirtyForMonitor(pMonitor);
+
     static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)

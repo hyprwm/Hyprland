@@ -510,7 +510,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         // If the monitor is not the one our cursor's at, warp to it.
         if (PMONITOR != g_pCompositor->getMonitorFromCursor()) {
             Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
+            g_pCompositor->warpCursorTo(middle);
         }
 
         // set active and deactivate all other in wlr
@@ -744,7 +744,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
         Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
-        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
+        g_pCompositor->warpCursorTo(middle);
     };
 
     if (!g_pCompositor->windowValidMapped(PLASTWINDOW)) {
@@ -1245,7 +1245,7 @@ void CKeybindManager::circleNext(std::string arg) {
 
     const auto MIDPOINT = g_pCompositor->m_pLastWindow->m_vRealPosition.goalv() + g_pCompositor->m_pLastWindow->m_vRealSize.goalv() / 2.f;
 
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
+    g_pCompositor->warpCursorTo(MIDPOINT);
 }
 
 void CKeybindManager::focusWindow(std::string regexp) {
@@ -1262,7 +1262,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
     const auto MIDPOINT = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
 
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, MIDPOINT.x, MIDPOINT.y);
+    g_pCompositor->warpCursorTo(MIDPOINT);
 }
 
 void CKeybindManager::setSubmap(std::string submap) {

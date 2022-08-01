@@ -45,6 +45,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:col.active_border"].intValue = 0xffffffff;
     configValues["general:col.inactive_border"].intValue = 0xff444444;
     configValues["general:cursor_inactive_timeout"].intValue = 0;
+    configValues["general:no_cursor_warps"].intValue = 0;
 
     configValues["general:layout"].strValue = "dwindle";
     

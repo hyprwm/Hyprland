@@ -152,6 +152,7 @@ public:
     void                    addToFadingOutSafe(SLayerSurface*);
     void                    addToFadingOutSafe(CWindow*);
     CWindow*                getWindowByRegex(const std::string&);
+    void                    warpCursorTo(const Vector2D&);
 
     std::string             explicitConfigPath;
 

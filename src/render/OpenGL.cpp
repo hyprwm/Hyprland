@@ -627,7 +627,7 @@ void CHyprOpenGLImpl::preWindowPass() {
 
     bool hasWindows = false;
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->m_bHidden && w->m_bIsMapped) {
+        if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->m_bHidden && w->m_bIsMapped && !w->m_bIsFloating) {
             hasWindows = true;
             break;  
         }

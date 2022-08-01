@@ -92,6 +92,7 @@ void CConfigManager::setDefaultVars() {
     configValues["master:special_scale_factor"].floatValue = 0.8f;
     configValues["master:new_is_master"].intValue = 1;
     configValues["master:new_on_top"].intValue = 0;
+    configValues["master:no_gaps_when_only"].intValue = 0;
 
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;

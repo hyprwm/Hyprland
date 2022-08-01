@@ -688,6 +688,7 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         && RULE != "nofocus"
         && RULE != "noblur"
         && RULE != "center"
+        && RULE != "opaque"
         && RULE != "fullscreen"
         && RULE.find("animation") != 0
         && RULE.find("rounding") != 0

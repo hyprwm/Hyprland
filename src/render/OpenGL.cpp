@@ -600,6 +600,27 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     m_RenderData.pCurrentMonData->blurFBDirty = false;
 }
 
+void CHyprOpenGLImpl::preWindowPass() {
+    static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+
+    if (!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE)
+        return;
+
+    bool hasWindows = false;
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->m_bHidden && w->m_bIsMapped) {
+            hasWindows = true;
+            break;  
+        }
+    }
+
+    if (!hasWindows)
+        return;
+
+    // blur the main FB, it will be rendered onto the mirror
+    preBlurForCurrentMonitor();
+}
+
 void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
@@ -633,12 +654,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     if (!pixman_region32_not_empty(&inverseOpaque)) {
         renderTexture(tex, pBox, a, round, false, true); // reject blurring a fully opaque window
         return;
-    }
-
-    // blur the main FB, it will be rendered onto the mirror
-    if (*PBLURNEWOPTIMIZE && m_RenderData.pCurrentMonData->blurFBDirty) {
-        // redraw the blur. Since this resets the dirty flag, it will be drawn before the first window.
-        preBlurForCurrentMonitor();
     }
 
         //                                                          vvv TODO: layered blur fbs?

@@ -10,6 +10,9 @@
 struct SWindowSpecialRenderData {
     float alpha = 1.f;
     float alphaInactive = -1.f; // -1 means unset
+
+    // set by the layout
+    bool rounding = true;
 };  
 
 struct SWindowAdditionalConfigData {

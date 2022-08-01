@@ -63,7 +63,7 @@ void SDwindleNodeData::getAllChildrenRecursive(std::deque<SDwindleNodeData*>* pD
 int CHyprDwindleLayout::getNodesOnWorkspace(const int& id) {
     int no = 0;
     for (auto& n : m_lDwindleNodesData) {
-        if (n.workspaceID == id)
+        if (n.workspaceID == id && n.valid)
             ++no;
     }
     return no;
@@ -137,8 +137,23 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
     PWINDOW->m_vSize = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
+    static auto *const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
+
     auto calcPos = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
     auto calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
+
+    if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1) {
+        PWINDOW->m_vRealPosition = calcPos;
+        PWINDOW->m_vRealSize = calcSize;
+
+        PWINDOW->updateWindowDecos();
+
+        PWINDOW->m_sSpecialRenderData.rounding = false;
+
+        return;
+    }
+
+    PWINDOW->m_sSpecialRenderData.rounding = true;
 
     const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? GAPSOUT : GAPSIN,
                                         DISPLAYTOP ? GAPSOUT : GAPSIN);
@@ -377,6 +392,9 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
             toggleWindowGroup(PPARENT->groupMembers[PPARENT->groupMemberActive]->pWindow);
         }
     }
+
+    PPARENT->valid = false;
+    PNODE->valid = false;
 
     if (PSIBLING->pParent)
         PSIBLING->pParent->recalcSizePosRecursive();

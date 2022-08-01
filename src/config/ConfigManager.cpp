@@ -87,6 +87,7 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:preserve_split"].intValue = 0;
     configValues["dwindle:special_scale_factor"].floatValue = 0.8f;
     configValues["dwindle:split_width_multiplier"].floatValue = 1.0f;
+    configValues["dwindle:no_gaps_when_only"].intValue = 0;
 
     configValues["master:special_scale_factor"].floatValue = 0.8f;
     configValues["master:new_is_master"].intValue = 1;

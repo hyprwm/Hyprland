@@ -866,11 +866,37 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         if (!PREFERREDMODE) {
             Debug::log(ERR, "Monitor %s has NO PREFERRED MODE",
                        (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
-            return true;
-        }
 
-        // Preferred is valid
-        wlr_output_set_mode(pMonitor->output, PREFERREDMODE);
+            if (!wl_list_empty(&pMonitor->output->modes)) {
+                wlr_output_mode* mode;
+
+                wl_list_for_each(mode, &pMonitor->output->modes, link) {
+                    wlr_output_set_mode(pMonitor->output, mode);
+
+                    if (!wlr_output_test(pMonitor->output)) {
+                        Debug::log(LOG, "Monitor %s: REJECTED available mode: %ix%i@%2f!",
+                                   pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,
+                                   mode->width, mode->height, mode->refresh / 1000.f);
+                        continue;
+                    }
+
+                    Debug::log(LOG, "Monitor %s: requested %ix%i@%2f, found available mode: %ix%i@%imHz, applying.",
+                               pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,
+                               mode->width, mode->height, mode->refresh);
+
+                    pMonitor->refreshRate = mode->refresh / 1000.f;
+                    pMonitor->vecSize = Vector2D(mode->width, mode->height);
+
+                    break;
+                }
+            }
+        } else {
+            // Preferred is valid
+            wlr_output_set_mode(pMonitor->output, PREFERREDMODE);
+
+            pMonitor->vecSize = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
+            pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
+        }
     }
     
 

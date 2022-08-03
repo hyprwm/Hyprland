@@ -383,6 +383,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // refocus on a new window
     g_pInputManager->refocus();
 
+    if (!g_pCompositor->m_pLastWindow) {
+        g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(PWORKSPACE->m_iID));
+    }
+
     Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %x", PWINDOW);
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
     

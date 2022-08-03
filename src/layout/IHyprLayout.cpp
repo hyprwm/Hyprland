@@ -36,7 +36,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
         pWindow->m_vRealSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
 
-        if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 && pWindow->m_bNoInitialFocus) { // XDG windows should be fine. TODO: check for weird atoms?
+        if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) { // XDG windows should be fine. TODO: check for weird atoms?
             pWindow->m_bHidden = true;
             return;
         }

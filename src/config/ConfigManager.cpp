@@ -433,13 +433,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             return;
         }
 
-        // overwrite if exists
-        for (auto& r : m_dMonitorRules) {
-            if (r.name == newrule.name) {
-                r = newrule;
-                return;
-            }
-        }
+        m_dMonitorRules.erase(std::remove_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }));
 
         m_dMonitorRules.push_back(newrule);
 
@@ -474,13 +468,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         return;
     }
 
-    // overwrite if exists
-    for (auto& r : m_dMonitorRules) {
-        if (r.name == newrule.name) {
-            r = newrule;
-            return;
-        }
-    }
+    m_dMonitorRules.erase(std::remove_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }));
 
     m_dMonitorRules.push_back(newrule);
 }

@@ -62,6 +62,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     const auto PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
     const auto PNEWMONITOR = PNEWMONITORWRAP->get();
 
+    PNEWMONITOR->ID = g_pCompositor->getNextAvailableMonitorID();
+
     wlr_output_init_render(OUTPUT, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
 
     PNEWMONITOR->output = OUTPUT;

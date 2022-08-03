@@ -3,6 +3,9 @@
 #include "../Compositor.hpp"
 
 void CMonitor::onConnect(bool noRule) {
+    if (m_bEnabled)
+        return;
+
     // get monitor rule that matches
     SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(output->name);
 
@@ -109,6 +112,10 @@ void CMonitor::onConnect(bool noRule) {
 }
 
 void CMonitor::onDisconnect() {
+
+    if (!m_bEnabled)
+        return;
+
     // Cleanup everything. Move windows back, snap cursor, shit.
     CMonitor* BACKUPMON = nullptr;
     for (auto& m : g_pCompositor->m_vMonitors) {

@@ -143,8 +143,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
 
     if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1) {
-        PWINDOW->m_vRealPosition = calcPos;
-        PWINDOW->m_vRealSize = calcSize;
+        PWINDOW->m_vRealPosition = calcPos - Vector2D(BORDERSIZE, BORDERSIZE);
+        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
 
         PWINDOW->updateWindowDecos();
 

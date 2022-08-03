@@ -44,8 +44,8 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force) {
             children[1]->size = Vector2D(size.x, size.y / 2.f * REVERSESPLITRATIO);
         }
 
-        children[0]->recalcSizePosRecursive();
-        children[1]->recalcSizePosRecursive();
+        children[0]->recalcSizePosRecursive(force);
+        children[1]->recalcSizePosRecursive(force);
     } else {
         layout->applyNodeDataToWindow(this, force);
     }

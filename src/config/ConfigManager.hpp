@@ -96,6 +96,7 @@ public:
     void                performMonitorReload();
     bool                m_bWantsMonitorReload = false;
     bool                m_bForceReload = false;
+    void                ensureDPMS();
 
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
 
@@ -131,7 +132,6 @@ private:
     void                setDefaultVars();
     void                setDefaultAnimationVars();
     void                setDeviceDefaultVars(const std::string&);
-    void                ensureDPMS();
 
     void                setAnimForChildren(SAnimationPropertyConfig *const);
 

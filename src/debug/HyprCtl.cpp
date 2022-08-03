@@ -591,7 +591,7 @@ void HyprCtl::tickHyprCtl() {
     requestReady = true;
 
     if (g_pConfigManager->m_bWantsMonitorReload) {
-        g_pConfigManager->performMonitorReload(); // will unset
+        g_pConfigManager->ensureDPMS();
     }
 }
 

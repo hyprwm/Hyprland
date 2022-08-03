@@ -1314,7 +1314,7 @@ void CConfigManager::ensureDPMS() {
         auto rule = getMonitorRuleFor(rm->szName);
 
         if (rule.disabled == rm->m_bEnabled) {
-	    rm->m_pThisWrap = &rm;
+	        rm->m_pThisWrap = &rm;
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);
         }
     }

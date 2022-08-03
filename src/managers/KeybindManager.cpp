@@ -812,7 +812,7 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
 
-    if (!g_pCompositor->windowValidMapped(PLASTWINDOW))
+    if (!g_pCompositor->windowValidMapped(PLASTWINDOW) || PLASTWINDOW->m_bIsFullscreen)
         return;
 
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);

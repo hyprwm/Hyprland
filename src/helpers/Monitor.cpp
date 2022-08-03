@@ -21,6 +21,17 @@ void CMonitor::onConnect(bool noRule) {
         return;
     }
 
+    if (!m_pThisWrap) {
+
+        // find the wrap
+        for (auto& m : g_pCompositor->m_vRealMonitors) {
+            if (m->ID == ID) {
+                m_pThisWrap = &m;
+                break;
+            }
+        }
+    }
+
     if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end()){
         g_pCompositor->m_vMonitors.push_back(*m_pThisWrap);
     }
@@ -97,6 +108,8 @@ void CMonitor::onConnect(bool noRule) {
 
     activeWorkspace = PNEWWORKSPACE->m_iID;
     scale = monitorRule.scale;
+
+    m_pThisWrap = nullptr;
 
     forceFullFrames = 3;  // force 3 full frames to make sure there is no blinking due to double-buffering.
 

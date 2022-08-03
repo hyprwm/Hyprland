@@ -118,7 +118,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->m_iMonitorID = PMONITOR->ID;
                 } else {
                     const long int MONITOR = std::stoi(MONITORSTR);
-                    if (MONITOR >= (long int)g_pCompositor->m_vMonitors.size() || MONITOR < (long int)0)
+                    if (!g_pCompositor->getMonitorFromID(MONITOR))
                         PWINDOW->m_iMonitorID = 0;
                     else
                         PWINDOW->m_iMonitorID = MONITOR;

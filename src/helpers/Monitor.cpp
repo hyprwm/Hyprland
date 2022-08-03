@@ -27,7 +27,6 @@ void CMonitor::onConnect(bool noRule) {
     
     m_bEnabled = true;
 
-    ID = g_pCompositor->getNextAvailableMonitorID();
     szName = output->name;
 
     wlr_output_set_scale(output, monitorRule.scale);

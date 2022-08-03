@@ -1281,7 +1281,7 @@ void CCompositor::moveWindowToWorkspace(CWindow* pWindow, const std::string& wor
 
 int CCompositor::getNextAvailableMonitorID() {
     int64_t topID = -1;
-    for (auto& m : m_vMonitors) {
+    for (auto& m : m_vRealMonitors) {
         if ((int64_t)m->ID > topID)
             topID = m->ID;
     }

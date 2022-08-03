@@ -742,9 +742,20 @@ void CKeybindManager::moveFocusTo(std::string args) {
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
 
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
-        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
-        g_pCompositor->warpCursorTo(middle);
+
+        if (PLASTWINDOW->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && PLASTWINDOW->m_bIsFullscreen) {
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PLASTWINDOW->m_iWorkspaceID);
+            const auto FSMODE = PWORKSPACE->m_efFullscreenMode;
+            g_pCompositor->setWindowFullscreen(PLASTWINDOW, false, FULLSCREEN_FULL);
+
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+
+            g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
+        } else {
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+            Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
+            g_pCompositor->warpCursorTo(middle);
+        }
     };
 
     if (!g_pCompositor->windowValidMapped(PLASTWINDOW)) {

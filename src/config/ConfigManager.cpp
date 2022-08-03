@@ -449,16 +449,26 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
         if (curitem.contains("@"))
             newrule.refreshRate = stof(curitem.substr(curitem.find_first_of('@') + 1));
-    }    
+    }
 
     nextItem();
 
     newrule.offset.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
     newrule.offset.y = stoi(curitem.substr(curitem.find_first_of('x') + 1));
 
+    if (newrule.offset.x < 0 || newrule.offset.y < 0) {
+        parseError = "invalid offset. Offset cannot be negative.";
+        newrule.offset = Vector2D();
+    }
+
     nextItem();
 
     newrule.scale = stof(curitem);
+
+    if (newrule.scale < 0.25f) {
+        parseError = "not a valid scale.";
+        newrule.scale = 1;
+    }
 
     nextItem();
 

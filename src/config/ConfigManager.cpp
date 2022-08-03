@@ -1265,7 +1265,7 @@ void CConfigManager::performMonitorReload() {
 
     bool overAgain = false;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto& m : g_pCompositor->m_vRealMonitors) {
         auto rule = getMonitorRuleFor(m->szName);
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
             overAgain = true;

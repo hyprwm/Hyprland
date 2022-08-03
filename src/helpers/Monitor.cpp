@@ -163,6 +163,10 @@ void CMonitor::onDisconnect() {
 
     wlr_output_commit(output);
 
+    for (auto& lsl : m_aLayerSurfaceLists) {
+        lsl.clear();
+    }
+
     g_pCompositor->m_vWorkspaces.erase(std::remove_if(g_pCompositor->m_vWorkspaces.begin(), g_pCompositor->m_vWorkspaces.end(), [&](std::unique_ptr<CWorkspace>& el) { return el->m_iMonitorID == ID; }));
 
     Debug::log(LOG, "Removed monitor %s!", szName.c_str());

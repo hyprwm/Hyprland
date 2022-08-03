@@ -37,7 +37,7 @@ struct SDwindleNodeData {
         return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && position == rhs.position && size == rhs.size && pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }
 
-    void            recalcSizePosRecursive();
+    void            recalcSizePosRecursive(bool force = false);
     void            getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
     CHyprDwindleLayout* layout = nullptr;
 };
@@ -65,7 +65,7 @@ private:
     std::list<SDwindleNodeData>     m_lDwindleNodesData;
 
     int                 getNodesOnWorkspace(const int&);
-    void                applyNodeDataToWindow(SDwindleNodeData*);
+    void                applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
     SDwindleNodeData*   getNodeFromWindow(CWindow*);
     SDwindleNodeData*   getFirstNodeOnWorkspace(const int&);
     SDwindleNodeData*   getMasterNodeOnWorkspace(const int&);

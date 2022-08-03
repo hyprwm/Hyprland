@@ -1,7 +1,7 @@
 #include "DwindleLayout.hpp"
 #include "../Compositor.hpp"
 
-void SDwindleNodeData::recalcSizePosRecursive() {
+void SDwindleNodeData::recalcSizePosRecursive(bool force) {
 
     // check the group, if we are in one and not active, ignore.
     if (pGroupParent && pGroupParent->groupMembers[pGroupParent->groupMemberActive] != this) {
@@ -47,7 +47,7 @@ void SDwindleNodeData::recalcSizePosRecursive() {
         children[0]->recalcSizePosRecursive();
         children[1]->recalcSizePosRecursive();
     } else {
-        layout->applyNodeDataToWindow(this);
+        layout->applyNodeDataToWindow(this, force);
     }
 }
 
@@ -94,7 +94,7 @@ SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const int& id) {
     return nullptr;
 }
 
-void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
+void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool force) {
     // Don't set nodes, only windows.
     if (pNode->isNode) 
         return;
@@ -201,6 +201,11 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode) {
         PWINDOW->m_vRealPosition = calcPos;
 
         g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
+    }
+
+    if (force) {
+        PWINDOW->m_vRealPosition.warp();
+        PWINDOW->m_vRealSize.warp();
     }
 
     PWINDOW->updateWindowDecos();
@@ -504,11 +509,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
         if (PARENTSIDEBYSIDE) {
             allowedMovement.x *= 2.f / PPARENT->size.x;
             PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
-            PPARENT->recalcSizePosRecursive();
+            PPARENT->recalcSizePosRecursive(true);
         } else {
             allowedMovement.y *= 2.f / PPARENT->size.y;
             PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-            PPARENT->recalcSizePosRecursive();
+            PPARENT->recalcSizePosRecursive(true);
         }
 
         return;
@@ -523,11 +528,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
         if (PARENTSIDEBYSIDE) {
             allowedMovement.x *= 2.f / PPARENT->size.x;
             PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
-            PPARENT->recalcSizePosRecursive();
+            PPARENT->recalcSizePosRecursive(true);
         } else {
             allowedMovement.y *= 2.f / PPARENT->size.y;
             PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-            PPARENT->recalcSizePosRecursive();
+            PPARENT->recalcSizePosRecursive(true);
         }
 
         return;
@@ -542,8 +547,8 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
 
     SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
     TOPCONTAINER->splitRatio = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-    SIDECONTAINER->recalcSizePosRecursive();
-    TOPCONTAINER->recalcSizePosRecursive();
+    SIDECONTAINER->recalcSizePosRecursive(true);
+    TOPCONTAINER->recalcSizePosRecursive(true);
 }
 
 void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode, bool on) {

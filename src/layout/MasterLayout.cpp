@@ -250,6 +250,11 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
     }
 
+    if (m_bForceWarps) {
+        PWINDOW->m_vRealPosition.warp();
+        PWINDOW->m_vRealSize.warp();
+    }
+
     PWINDOW->updateWindowDecos();
 }
 
@@ -278,6 +283,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* p
     if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) < 2)
         return;
 
+    m_bForceWarps = true;
+
     float delta = pixResize.x / PMONITOR->vecSize.x;
 
     PMASTER->percMaster += delta;
@@ -285,6 +292,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* p
     std::clamp(PMASTER->percMaster, 0.05f, 0.95f);
 
     recalculateMonitor(PMONITOR->ID);
+
+    m_bForceWarps = false;
 }
 
 void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode, bool on) {

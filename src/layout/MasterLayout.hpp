@@ -44,6 +44,8 @@ private:
 
     std::list<SMasterNodeData>     m_lMasterNodesData;
 
+    bool                m_bForceWarps = false;
+
     int                 getNodesOnWorkspace(const int&);
     void                applyNodeDataToWindow(SMasterNodeData*);
     SMasterNodeData*    getNodeFromWindow(CWindow*);

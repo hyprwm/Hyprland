@@ -589,6 +589,10 @@ void HyprCtl::tickHyprCtl() {
 
     requestMade = false;
     requestReady = true;
+
+    if (g_pConfigManager->m_bWantsMonitorReload) {
+        g_pConfigManager->performMonitorReload(); // will unset
+    }
 }
 
 std::string getRequestFromThread(std::string rq) {

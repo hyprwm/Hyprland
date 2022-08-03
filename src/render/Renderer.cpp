@@ -776,7 +776,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         if (pMonitor->m_bEnabled)
             pMonitor->onDisconnect();
 
-        return false;
+        return true;
     }
 
     if (!pMonitor->m_bEnabled) {

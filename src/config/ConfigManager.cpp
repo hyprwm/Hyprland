@@ -453,12 +453,16 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
     nextItem();
 
-    newrule.offset.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
-    newrule.offset.y = stoi(curitem.substr(curitem.find_first_of('x') + 1));
+    if (curitem.find("auto") == 0) {
+        newrule.offset = Vector2D(-1, -1);
+    } else {
+        newrule.offset.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
+        newrule.offset.y = stoi(curitem.substr(curitem.find_first_of('x') + 1));
 
-    if (newrule.offset.x < 0 || newrule.offset.y < 0) {
-        parseError = "invalid offset. Offset cannot be negative.";
-        newrule.offset = Vector2D();
+        if (newrule.offset.x < 0 || newrule.offset.y < 0) {
+            parseError = "invalid offset. Offset cannot be negative.";
+            newrule.offset = Vector2D();
+        }
     }
 
     nextItem();

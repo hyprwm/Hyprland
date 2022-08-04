@@ -117,7 +117,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     }
 
     scaleBox(&fullBox, pMonitor->scale);
-    g_pHyprOpenGL->renderRoundedShadow(&fullBox, *PROUNDING, *PSHADOWSIZE, a);
+    g_pHyprOpenGL->renderRoundedShadow(&fullBox, *PROUNDING, *PSHADOWSIZE * pMonitor->scale, a);
 
     if (*PSHADOWIGNOREWINDOW) {
         // cleanup

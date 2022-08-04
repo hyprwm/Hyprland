@@ -785,7 +785,14 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     }
 
     // Check if the rule isn't already applied
-    if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale && DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1) && pMonitor->transform == pMonitorRule->transform) {
+    if (!force
+            && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1)
+            && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1)
+            && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1)
+            && pMonitor->scale == pMonitorRule->scale
+            && ((DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1)) || pMonitorRule->offset == Vector2D(-1, -1))
+            && pMonitor->transform == pMonitorRule->transform) {
+
         Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());
         return true;
     }
@@ -916,9 +923,23 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->vecSize = (Vector2D(x, y) / pMonitor->scale).floor();
     pMonitor->vecTransformedSize = Vector2D(x,y);
 
-    wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitorRule->offset.x, (int)pMonitorRule->offset.y);
+    if (pMonitorRule->offset == Vector2D(-1, -1)) {
+        // let's find manually a sensible position for it, to the right.
+        Vector2D finalPos;
 
-    //wlr_output_damage_add_whole(pMonitor->damage);
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m->ID == pMonitor->ID)
+                continue;
+
+            if (m->vecPosition.x + std::ceil(m->vecSize.x) > finalPos.x) {
+                finalPos.x = m->vecPosition.x + std::ceil(m->vecSize.x);
+            }
+        }
+
+        pMonitor->vecPosition = finalPos;
+    }
+
+    wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
 
     wlr_output_enable(pMonitor->output, true);
 

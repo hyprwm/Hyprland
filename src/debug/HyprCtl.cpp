@@ -102,7 +102,8 @@ R"#({
         }
 
         // remove trailing comma
-        result.pop_back();
+        if (result != "[")
+          result.pop_back();
 
         result += "]";
     } else {

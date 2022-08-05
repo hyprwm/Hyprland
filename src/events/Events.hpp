@@ -138,4 +138,10 @@ namespace Events {
     LISTENER(newIME);
     LISTENER(newTextInput);
     LISTENER(newVirtualKeyboard);
+
+    // IME Popups
+    DYNLISTENFUNC(mapInputPopup);
+    DYNLISTENFUNC(unmapInputPopup);
+    DYNLISTENFUNC(commitInputPopup);
+    DYNLISTENFUNC(destroyInputPopup);
 };

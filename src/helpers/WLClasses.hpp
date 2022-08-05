@@ -295,3 +295,22 @@ struct SIMEKbGrab {
 
     DYNLISTENER(grabDestroy);
 };
+
+struct SIMEPopup {
+    wlr_input_popup_surface_v2* pSurface = nullptr;
+
+    int x, y;
+    int realX, realY;
+    bool visible;
+
+    DYNLISTENER(mapPopup);
+    DYNLISTENER(unmapPopup);
+    DYNLISTENER(destroyPopup);
+    DYNLISTENER(commitPopup);
+
+    DYNLISTENER(focusedSurfaceUnmap);
+
+    bool operator==(const SIMEPopup& other) {
+        return pSurface == other.pSurface;
+    }
+};

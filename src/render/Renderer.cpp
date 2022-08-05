@@ -304,6 +304,18 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
 }
 
+void CHyprRenderer::renderIMEPopup(SIMEPopup* pPopup, CMonitor* pMonitor, timespec* time) {
+    SRenderData renderdata = {pMonitor->output, time, pPopup->realX, pPopup->realY};
+
+    renderdata.blur = false;
+    renderdata.surface = pPopup->pSurface->surface;
+    renderdata.decorate = false;
+    renderdata.w = pPopup->pSurface->surface->current.width;
+    renderdata.h = pPopup->pSurface->surface->current.height;
+
+    wlr_surface_for_each_surface(pPopup->pSurface->surface, renderSurface, &renderdata);
+}
+
 void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(ID);
 
@@ -403,6 +415,12 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         renderLayer(ls.get(), PMONITOR, time);
     }
+
+    // Render IME popups
+    for (auto& imep : g_pInputManager->m_sIMERelay.m_lIMEPopups) {
+        renderIMEPopup(&imep, PMONITOR, time);
+    }
+
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
         renderLayer(ls.get(), PMONITOR, time);
     }

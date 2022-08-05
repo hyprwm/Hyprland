@@ -55,6 +55,7 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
         hyprListener_IMEDestroy.removeCallback();
         hyprListener_IMECommit.removeCallback();
         hyprListener_IMEGrab.removeCallback();
+        hyprListener_IMENewPopup.removeCallback();
 
         m_pKeyboardGrab.reset(nullptr);
 
@@ -102,12 +103,152 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
 
     }, this, "IMERelay");
 
+    hyprListener_IMENewPopup.initCallback(&m_pWLRIME->events.new_popup_surface, [&](void* owner, void* data) {
+        
+        const auto PNEWPOPUP = &m_lIMEPopups.emplace_back();
+
+        PNEWPOPUP->pSurface = (wlr_input_popup_surface_v2*)data;
+
+        PNEWPOPUP->hyprListener_commitPopup.initCallback(&PNEWPOPUP->pSurface->surface->events.commit, &Events::listener_commitInputPopup, PNEWPOPUP, "IME Popup");
+        PNEWPOPUP->hyprListener_mapPopup.initCallback(&PNEWPOPUP->pSurface->events.map, &Events::listener_mapInputPopup, PNEWPOPUP, "IME Popup");
+        PNEWPOPUP->hyprListener_unmapPopup.initCallback(&PNEWPOPUP->pSurface->events.unmap, &Events::listener_unmapInputPopup, PNEWPOPUP, "IME Popup");
+        PNEWPOPUP->hyprListener_destroyPopup.initCallback(&PNEWPOPUP->pSurface->events.destroy, &Events::listener_destroyInputPopup, PNEWPOPUP, "IME Popup");
+
+        Debug::log(LOG, "New input popup");
+
+    }, this, "IMERelay");
+
     const auto PTI = getFocusableTextInput();
 
     if (PTI) {
         wlr_text_input_v3_send_enter(PTI->pWlrInput, PTI->pPendingSurface);
         setPendingSurface(PTI, nullptr);
     }
+}
+
+void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
+    if (!pPopup->pSurface->mapped)  
+        return;
+
+    const auto PFOCUSEDTI = getFocusedTextInput();
+
+    if (!PFOCUSEDTI || !PFOCUSEDTI->pWlrInput->focused_surface)
+        return;
+
+    bool cursorRect = PFOCUSEDTI->pWlrInput->current.features & WLR_TEXT_INPUT_V3_FEATURE_CURSOR_RECTANGLE;
+    const auto PFOCUSEDSURFACE = PFOCUSEDTI->pWlrInput->focused_surface;
+    auto cursorBox = PFOCUSEDTI->pWlrInput->current.cursor_rectangle;
+
+    Vector2D parentPos;
+    Vector2D parentSize;
+
+    if (wlr_surface_is_layer_surface(PFOCUSEDSURFACE)) {
+        const auto PLS = g_pCompositor->getLayerSurfaceFromWlr(wlr_layer_surface_v1_from_wlr_surface(PFOCUSEDSURFACE));
+
+        if (PLS) {
+            parentPos = Vector2D(PLS->geometry.x, PLS->geometry.y) + g_pCompositor->getMonitorFromID(PLS->monitorID)->vecPosition;
+            parentSize = Vector2D(PLS->geometry.width, PLS->geometry.height);
+        }
+    } else {
+        const auto PWINDOW = g_pCompositor->getWindowFromSurface(PFOCUSEDSURFACE);
+
+        if (PWINDOW) {
+            parentPos = PWINDOW->m_vRealPosition.goalv();
+            parentSize = PWINDOW->m_vRealSize.goalv();
+        }
+    }
+
+    if (!cursorRect) {
+        cursorBox = {0, 0, (int)parentSize.x, (int)parentSize.y};
+    }
+
+    // todo: anti-overflow
+
+    wlr_box finalBox = cursorBox;
+
+    pPopup->x = finalBox.x;
+    pPopup->y = finalBox.y;
+
+    pPopup->realX = finalBox.x + parentPos.x;
+    pPopup->realY = finalBox.y + parentPos.y;
+
+    wlr_input_popup_surface_v2_send_text_input_rectangle(pPopup->pSurface, &finalBox);
+
+    damagePopup(pPopup);
+}
+
+void CInputMethodRelay::setIMEPopupFocus(SIMEPopup* pPopup, wlr_surface* pSurface) {
+    updateInputPopup(pPopup);
+}
+
+void Events::listener_mapInputPopup(void* owner, void* data) {
+    const auto PPOPUP = (SIMEPopup*)owner;
+
+    Debug::log(LOG, "Mapped an IME Popup");
+
+    g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
+}
+
+void Events::listener_unmapInputPopup(void* owner, void* data) {
+    const auto PPOPUP = (SIMEPopup*)owner;
+
+    Debug::log(LOG, "Unmapped an IME Popup");
+
+    g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
+}
+
+void Events::listener_destroyInputPopup(void* owner, void* data) {
+    const auto PPOPUP = (SIMEPopup*)owner;
+
+    Debug::log(LOG, "Removed an IME Popup");
+
+    PPOPUP->hyprListener_commitPopup.removeCallback();
+    PPOPUP->hyprListener_destroyPopup.removeCallback();
+    PPOPUP->hyprListener_focusedSurfaceUnmap.removeCallback();
+    PPOPUP->hyprListener_mapPopup.removeCallback();
+    PPOPUP->hyprListener_unmapPopup.removeCallback();
+
+    g_pInputManager->m_sIMERelay.removePopup(PPOPUP);
+}
+
+void Events::listener_commitInputPopup(void* owner, void* data) {
+    const auto PPOPUP = (SIMEPopup*)owner;
+
+    g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
+}
+
+void CInputMethodRelay::removePopup(SIMEPopup* pPopup) {
+    m_lIMEPopups.remove(*pPopup);
+}
+
+void CInputMethodRelay::damagePopup(SIMEPopup* pPopup) {
+    if (!pPopup->pSurface->mapped)
+        return;
+
+    const auto PFOCUSEDTI = getFocusedTextInput();
+
+    if (!PFOCUSEDTI || !PFOCUSEDTI->pWlrInput->focused_surface)
+        return;
+
+    Vector2D parentPos;
+
+    const auto PFOCUSEDSURFACE = PFOCUSEDTI->pWlrInput->focused_surface;
+
+    if (wlr_surface_is_layer_surface(PFOCUSEDSURFACE)) {
+        const auto PLS = g_pCompositor->getLayerSurfaceFromWlr(wlr_layer_surface_v1_from_wlr_surface(PFOCUSEDSURFACE));
+
+        if (PLS) {
+            parentPos = Vector2D(PLS->geometry.x, PLS->geometry.y) + g_pCompositor->getMonitorFromID(PLS->monitorID)->vecPosition;
+        }
+    } else {
+        const auto PWINDOW = g_pCompositor->getWindowFromSurface(PFOCUSEDSURFACE);
+
+        if (PWINDOW) {
+            parentPos = PWINDOW->m_vRealPosition.goalv();
+        }
+    }
+
+    g_pHyprRenderer->damageSurface(pPopup->pSurface->surface, parentPos.x + pPopup->x, parentPos.y + pPopup->y);
 }
 
 SIMEKbGrab* CInputMethodRelay::getIMEKeyboardGrab(SKeyboard* pKeyboard) {
@@ -248,6 +389,10 @@ void CInputMethodRelay::commitIMEState(wlr_text_input_v3* pInput) {
 
     if (pInput->active_features & WLR_TEXT_INPUT_V3_FEATURE_CONTENT_TYPE)
         wlr_input_method_v2_send_content_type(m_pWLRIME, pInput->current.content_type.hint, pInput->current.content_type.purpose);
+
+    for (auto& p : m_lIMEPopups) {
+        updateInputPopup(&p);
+    }
 
     wlr_input_method_v2_send_done(m_pWLRIME);
 }

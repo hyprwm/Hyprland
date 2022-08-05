@@ -51,6 +51,7 @@ private:
     void                renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode);
     void                renderLayer(SLayerSurface*, CMonitor*, timespec*);
     void                renderDragIcon(CMonitor*, timespec*);
+    void                renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
 
     bool                m_bHasARenderedCursor = true;
 

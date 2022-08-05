@@ -1529,3 +1529,15 @@ void CCompositor::warpCursorTo(const Vector2D& pos) {
     wlr_cursor_warp(m_sWLRCursor, m_sSeat.mouse->mouse, pos.x, pos.y);
 }
 
+SLayerSurface* CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {
+    for (auto& m : m_vMonitors) {
+        for (auto& lsl : m->m_aLayerSurfaceLists) {
+            for (auto& ls : lsl) {
+                if (ls->layerSurface == pLS)
+                    return ls.get();
+            }
+        }
+    }
+
+    return nullptr;
+}

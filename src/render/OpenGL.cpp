@@ -741,9 +741,11 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto *const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
+    if (*PBORDERSIZE < 1)
+        return;
+
     if (round < 1) {
         // zero rounding, just lines
-        
         wlr_box borderbox = {box->x - *PBORDERSIZE, box->y - *PBORDERSIZE, *PBORDERSIZE, box->height + 2 * *PBORDERSIZE};
         renderRect(&borderbox, col, 0); // left
         borderbox = {box->x, box->y - (int)*PBORDERSIZE, box->width + (int)*PBORDERSIZE, (int)*PBORDERSIZE};

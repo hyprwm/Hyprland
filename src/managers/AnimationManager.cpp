@@ -147,8 +147,8 @@ void CAnimationManager::tick() {
                 g_pHyprRenderer->damageBox(&WLRBOXPREV);
 
                 if (PWINDOW) {
-                    g_pHyprRenderer->damageWindow(PWINDOW);
                     PWINDOW->updateWindowDecos();
+                    g_pHyprRenderer->damageWindow(PWINDOW);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
                         if (!w->m_bIsMapped || w->m_bHidden)
@@ -197,7 +197,7 @@ void CAnimationManager::tick() {
                 if (PDECO) {
                     const auto EXTENTS = PDECO->getWindowDecorationExtents();
 
-                    wlr_box dmg = {PWINDOW->m_vRealPosition.vec().x + EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y + EXTENTS.topLeft.y,
+                    wlr_box dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
                                    PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x, PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
 
                     if (!*PSHADOWIGNOREWINDOW) {

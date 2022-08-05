@@ -58,6 +58,9 @@ public:
     Vector2D            m_vReportedPosition;
     Vector2D            m_vReportedSize;
 
+    // for restoring floating statuses
+    Vector2D            m_vLastFloatingSize;
+
     // this is used for pseudotiling
     bool                m_bIsPseudotiled = false;
     Vector2D            m_vPseudoSize = Vector2D(0,0);

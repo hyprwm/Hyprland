@@ -6,6 +6,16 @@ void IHyprLayout::onWindowCreated(CWindow* pWindow) {
     if (pWindow->m_bIsFloating) {
         onWindowCreatedFloating(pWindow);
     } else {
+        wlr_box desiredGeometry = {0};
+        g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
+
+        if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
+            const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+            pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
+        } else {
+            pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+        }
+
         onWindowCreatedTiling(pWindow);
     }
 }
@@ -116,12 +126,14 @@ void IHyprLayout::onBeginDragWindow() {
             changeWindowFloatingMode(DRAGGINGWINDOW);
             DRAGGINGWINDOW->m_bIsFloating = true;
             DRAGGINGWINDOW->m_bDraggingTiled = true;
+
+            DRAGGINGWINDOW->m_vRealPosition = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize.goalv() / 2.f;
         }
     }
 
     m_vBeginDragXY = g_pInputManager->getMouseCoordsInternal();
-    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition.vec();
-    m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize.vec();
+    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition.goalv();
+    m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize.goalv();
     m_vLastDragXY = m_vBeginDragXY;
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
@@ -220,6 +232,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         // if the window is pseudo, update its size
         pWindow->m_vPseudoSize = pWindow->m_vRealSize.vec();
 
+        pWindow->m_vLastFloatingSize = PSAVEDSIZE;
+
         onWindowCreatedTiling(pWindow);
 
         pWindow->m_vRealPosition.setValue(PSAVEDPOS);
@@ -235,14 +249,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         g_pCompositor->moveWindowToTop(pWindow);
 
-        const auto POS = pWindow->m_vRealPosition.goalv();
-        const auto SIZ = pWindow->m_vRealSize.goalv();
-
-        pWindow->m_vRealPosition.setValueAndWarp(POS + Vector2D(5, 5));
-        pWindow->m_vRealSize.setValueAndWarp(SIZ - Vector2D(10, 10));
-
-        pWindow->m_vRealPosition = POS;
-        pWindow->m_vRealSize = SIZ;
+        pWindow->m_vRealPosition = pWindow->m_vRealPosition.vec() + (pWindow->m_vRealSize.vec() - pWindow->m_vLastFloatingSize) / 2.f;
+        pWindow->m_vRealSize = pWindow->m_vLastFloatingSize;
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
     }

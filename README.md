@@ -70,6 +70,7 @@ Try it out and report bugs / suggestions!
 - Full damage tracking
 - Docks support
 - Drawing tablet support
+- Native IME + Input panels support
 - and much more...
 
 <br>

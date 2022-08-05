@@ -382,6 +382,9 @@ void CInputMethodRelay::removeTextInput(wlr_text_input_v3* pInput) {
 }
 
 void CInputMethodRelay::commitIMEState(wlr_text_input_v3* pInput) {
+    if (!m_pWLRIME)
+        return;
+
     if (pInput->active_features & WLR_TEXT_INPUT_V3_FEATURE_SURROUNDING_TEXT)
         wlr_input_method_v2_send_surrounding_text(m_pWLRIME, pInput->current.surrounding.text, pInput->current.surrounding.cursor, pInput->current.surrounding.anchor);
 

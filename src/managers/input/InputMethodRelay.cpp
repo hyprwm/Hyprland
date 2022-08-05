@@ -57,7 +57,7 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
         Debug::log(LOG, "IME Destroy");
 
         if (PTI) {
-            PTI->pPendingSurface = PTI->pWlrInput->focused_surface;
+            setPendingSurface(PTI, PTI->pWlrInput->focused_surface);
 
             wlr_text_input_v3_send_leave(PTI->pWlrInput);
         }
@@ -68,7 +68,7 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
 
     if (PTI) {
         wlr_text_input_v3_send_enter(PTI->pWlrInput, PTI->pPendingSurface);
-        PTI->pPendingSurface = nullptr;
+        setPendingSurface(PTI, nullptr);
     }
 }
 
@@ -167,6 +167,8 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
             g_pInputManager->m_sIMERelay.commitIMEState(PINPUT->pWlrInput);
         }
 
+        g_pInputManager->m_sIMERelay.setPendingSurface(PINPUT, nullptr);
+
         PINPUT->hyprListener_textInputCommit.removeCallback();
         PINPUT->hyprListener_textInputDestroy.removeCallback();
         PINPUT->hyprListener_textInputDisable.removeCallback();
@@ -196,7 +198,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
         if (ti.pPendingSurface) {
 
             if (pSurface != ti.pPendingSurface) 
-                ti.pPendingSurface = nullptr;
+                setPendingSurface(&ti, nullptr);
 
         } else if (ti.pWlrInput->focused_surface) {
 
@@ -216,9 +218,25 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
             if (m_pWLRIME) {
                 wlr_text_input_v3_send_enter(ti.pWlrInput, pSurface);
             } else {
-                ti.pPendingSurface = pSurface;
+                setPendingSurface(&ti, pSurface);
             }
 
         }
+    }
+}
+
+void CInputMethodRelay::setPendingSurface(STextInput* pInput, wlr_surface* pSurface) {
+    pInput->pPendingSurface = pSurface;
+
+    if (pSurface) {
+        pInput->hyprListener_pendingSurfaceDestroy.initCallback(&pSurface->events.destroy, [](void* owner, void* data) {
+            const auto PINPUT = (STextInput*)owner;
+
+            PINPUT->pPendingSurface = nullptr;
+
+            PINPUT->hyprListener_pendingSurfaceDestroy.removeCallback();
+        }, pInput, "TextInput");
+    } else {
+        pInput->hyprListener_pendingSurfaceDestroy.removeCallback();
     }
 }

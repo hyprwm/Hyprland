@@ -153,6 +153,10 @@ CCompositor::CCompositor() {
     m_sWLRPointerGestures = wlr_pointer_gestures_v1_create(m_sWLDisplay);
 
     m_sWLRSession = wlr_backend_get_session(m_sWLRBackend);
+
+    m_sWLRTextInputMgr = wlr_text_input_manager_v3_create(m_sWLDisplay);
+
+    m_sWLRIMEMgr = wlr_input_method_manager_v2_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {
@@ -200,6 +204,9 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
     addWLSignal(&m_sWLRIdleInhibitMgr->events.new_inhibitor, &Events::listen_newIdleInhibitor, m_sWLRIdleInhibitMgr, "WLRIdleInhibitMgr");
     addWLSignal(&m_sWLROutputPowerMgr->events.set_mode, &Events::listen_powerMgrSetMode, m_sWLROutputPowerMgr, "PowerMgr");
+    addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
+    addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
+
     if (m_sWLRSession)
         addWLSignal(&m_sWLRSession->events.active, &Events::listen_sessionActive, m_sWLRSession, "Session");
 }
@@ -665,6 +672,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     if (!pSurface) {
         wlr_seat_keyboard_clear_focus(m_sSeat.seat);
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // unfocused
+        g_pInputManager->m_sIMERelay.onKeyboardFocus(nullptr);
         return;
     }
         
@@ -675,6 +683,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         return;
 
     wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+
+    g_pInputManager->m_sIMERelay.onKeyboardFocus(pSurface);
 
     wlr_seat_keyboard_focus_change_event event = {
         .seat = m_sSeat.seat,

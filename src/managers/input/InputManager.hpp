@@ -5,6 +5,7 @@
 #include "../../helpers/WLClasses.hpp"
 #include "../../Window.hpp"
 #include "../../helpers/Timer.hpp"
+#include "InputMethodRelay.hpp"
 
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
@@ -76,6 +77,8 @@ public:
     SKeyboard*      m_pActiveKeyboard = nullptr;
 
     CTimer          m_tmrLastCursorMovement;
+
+    CInputMethodRelay m_sIMERelay;
 
     // for shared mods
     uint32_t        accumulateModsFromAllKBs();

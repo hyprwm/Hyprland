@@ -32,6 +32,7 @@
 #define class _class
 #define namespace _namespace
 #define static
+#define delete delete_
 
 extern "C" {
 #include <wlr/backend.h>
@@ -94,8 +95,11 @@ extern "C" {
 #include <wlr/types/wlr_xdg_foreign_v2.h>
 #include <wlr/types/wlr_pointer_gestures_v1.h>
 #include <wlr/types/wlr_output_power_management_v1.h>
+#include <wlr/types/wlr_input_method_v2.h>
+#include <wlr/types/wlr_text_input_v3.h>
 }
 
+#undef delete
 #undef class
 #undef namespace
 #undef static

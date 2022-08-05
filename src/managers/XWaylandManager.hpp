@@ -24,6 +24,7 @@ public:
     bool                shouldBeFloated(CWindow*);
     void                moveXWaylandWindow(CWindow*, const Vector2D&);
     void                checkBorders(CWindow*);
+    Vector2D            getMaxSizeForWindow(CWindow*);
 };
 
 inline std::unique_ptr<CHyprXWaylandManager> g_pXWaylandManager;

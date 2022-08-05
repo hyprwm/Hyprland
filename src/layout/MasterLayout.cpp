@@ -39,6 +39,8 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     static auto *const PNEWTOP = &g_pConfigManager->getConfigValuePtr("master:new_on_top")->intValue;
 
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
     const auto PNODE = *PNEWTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
 
     PNODE->workspaceID = pWindow->m_iWorkspaceID;
@@ -60,8 +62,26 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
         PNODE->isMaster = true;
         PNODE->percMaster = lastSplitPercent;
+
+        // first, check if it isn't too big.
+        if (const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow); MAXSIZE.x < PMONITOR->vecSize.x * lastSplitPercent || MAXSIZE.y < PMONITOR->vecSize.y) {
+            // we can't continue. make it floating.
+            pWindow->m_bIsFloating = true;
+            m_lMasterNodesData.remove(*PNODE);
+            g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
+            return;
+        }
     } else {
         PNODE->isMaster = false;
+
+        // first, check if it isn't too big.
+        if (const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow); MAXSIZE.x < PMONITOR->vecSize.x * (1 - lastSplitPercent) || MAXSIZE.y < PMONITOR->vecSize.y * (1.f / (WINDOWSONWORKSPACE - 1))) {
+            // we can't continue. make it floating.
+            pWindow->m_bIsFloating = true;
+            m_lMasterNodesData.remove(*PNODE);
+            g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
+            return;
+        }
     }
 
     // recalc

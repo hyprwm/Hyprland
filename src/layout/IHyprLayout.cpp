@@ -184,14 +184,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     } else {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
-            auto MAXSIZE = DRAGGINGWINDOW->m_bIsX11 ?
-                Vector2D(DRAGGINGWINDOW->m_uSurface.xwayland->size_hints->max_width, DRAGGINGWINDOW->m_uSurface.xwayland->size_hints->max_height)
-                : Vector2D(DRAGGINGWINDOW->m_uSurface.xdg->toplevel->current.max_width, DRAGGINGWINDOW->m_uSurface.xdg->toplevel->current.max_height);
-
-            if (MAXSIZE.x < 5)
-                MAXSIZE.x = 99999;
-            if (MAXSIZE.y < 5)
-                MAXSIZE.y = 99999;
+            const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW);
 
             DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
             DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().x, (double)20, (double)MAXSIZE.x), std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().y, (double)20, (double)MAXSIZE.y)));

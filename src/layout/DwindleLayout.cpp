@@ -246,6 +246,15 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         OPENINGON = getFirstNodeOnWorkspace(PNODE->workspaceID);
     }
 
+    // first, check if OPENINGON isn't too big.
+    if (const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow); MAXSIZE.x < OPENINGON->size.x || MAXSIZE.y < OPENINGON->size.y) {
+        // we can't continue. make it floating.
+        pWindow->m_bIsFloating = true;
+        m_lDwindleNodesData.remove(*PNODE);
+        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
+        return;
+    }
+
     // if it's the first, it's easy. Make it fullscreen.
     if (!OPENINGON || OPENINGON->pWindow == pWindow) {
         PNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;

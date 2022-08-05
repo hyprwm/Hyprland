@@ -231,3 +231,15 @@ void CHyprXWaylandManager::setWindowFullscreen(CWindow* pWindow, bool fullscreen
     if (pWindow->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_fullscreen(pWindow->m_phForeignToplevel, fullscreen);
 }
+
+Vector2D CHyprXWaylandManager::getMaxSizeForWindow(CWindow* pWindow) {
+    auto MAXSIZE = pWindow->m_bIsX11 ? Vector2D(pWindow->m_uSurface.xwayland->size_hints->max_width, pWindow->m_uSurface.xwayland->size_hints->max_height)
+                                     : Vector2D(pWindow->m_uSurface.xdg->toplevel->current.max_width, pWindow->m_uSurface.xdg->toplevel->current.max_height);
+
+    if (MAXSIZE.x < 5)
+        MAXSIZE.x = 99999;
+    if (MAXSIZE.y < 5)
+        MAXSIZE.y = 99999;
+
+    return MAXSIZE;
+}

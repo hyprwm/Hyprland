@@ -190,3 +190,9 @@ void Events::listener_pinchEnd(wl_listener* listener, void* data) {
     const auto EV = (wlr_pointer_pinch_end_event*)data;
     wlr_pointer_gestures_v1_send_pinch_end(g_pCompositor->m_sWLRPointerGestures, g_pCompositor->m_sSeat.seat, EV->time_msec, EV->cancelled);
 }
+
+void Events::listener_newVirtualKeyboard(wl_listener* listener, void* data) {
+    const auto WLRKB = (wlr_virtual_keyboard_v1*)data;
+
+    g_pInputManager->newVirtualKeyboard(&WLRKB->keyboard.base);
+}

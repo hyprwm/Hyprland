@@ -93,6 +93,9 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
 }
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
+    if (pKeyboard->isVirtual)
+        return true;
+
     const auto KEYCODE = e->keycode + 8;  // Because to xkbcommon it's +8 from libinput
 
     const xkb_keysym_t keysym = xkb_state_key_get_one_sym(wlr_keyboard_from_input_device(pKeyboard->keyboard)->xkb_state, KEYCODE);

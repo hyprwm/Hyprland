@@ -167,10 +167,10 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
     wlr_box finalBox = cursorBox;
 
     pPopup->x = finalBox.x;
-    pPopup->y = finalBox.y;
+    pPopup->y = finalBox.y + finalBox.height;
 
     pPopup->realX = finalBox.x + parentPos.x;
-    pPopup->realY = finalBox.y + parentPos.y;
+    pPopup->realY = finalBox.y + parentPos.y + finalBox.height;
 
     wlr_input_popup_surface_v2_send_text_input_rectangle(pPopup->pSurface, &finalBox);
 

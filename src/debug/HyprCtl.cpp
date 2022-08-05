@@ -35,7 +35,7 @@ R"#({
     "reserved": [%i, %i, %i, %i],
     "scale": %.2f,
     "transform": %i,
-    "active": "%s"
+    "active": %s
 },)#",
                 m->ID,
                 escapeJSONStrings(m->szName).c_str(),
@@ -46,7 +46,7 @@ R"#({
                 (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y,
                 m->scale,
                 (int)m->transform,
-                (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no")
+                (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false")
             );
         }
 

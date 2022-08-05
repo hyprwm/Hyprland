@@ -80,23 +80,23 @@ R"#({
         "id": %i,
         "name": "%s"
     },
-    "floating": %i,
+    "floating": %s,
     "monitor": %i,
     "class": "%s",
     "title": "%s",
     "pid": %i,
-    "xwayland": %i
+    "xwayland": %s
 },)#",
                     w.get(),
                     (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y,
                     (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y,
                     w->m_iWorkspaceID, escapeJSONStrings(w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID))).c_str(),
-                    (int)w->m_bIsFloating,
+                    ((int)w->m_bIsFloating == 1 ? "true" : "false"),
                     w->m_iMonitorID,
                     escapeJSONStrings(g_pXWaylandManager->getAppIDClass(w.get())).c_str(),
                     escapeJSONStrings(g_pXWaylandManager->getTitle(w.get())).c_str(),
                     w->getPID(),
-                    (int)w->m_bIsX11
+                    ((int)w->m_bIsX11 == 1 ? "true" : "false")
                 );
             }
         }
@@ -129,13 +129,13 @@ R"#({
     "name": "%s",
     "monitor": "%s",
     "windows": %i,
-    "hasfullscreen": %i
+    "hasfullscreen": %s
 },)#",
                 w->m_iID,
                 escapeJSONStrings(w->m_szName).c_str(),
                 escapeJSONStrings(g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName).c_str(),
                 g_pCompositor->getWindowsOnWorkspace(w->m_iID),
-                (int)w->m_bHasFullscreenWindow
+                ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false")
             );
         }
 

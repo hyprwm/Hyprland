@@ -27,20 +27,15 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
             return;
         }
 
-        Debug::log(LOG, "IME Commit");
-
         if (PIMR->m_pWLRIME->current.preedit.text) {
-            Debug::log(LOG, "IME TextInput preedit");
             wlr_text_input_v3_send_preedit_string(PTI->pWlrInput, PIMR->m_pWLRIME->current.preedit.text, PIMR->m_pWLRIME->current.preedit.cursor_begin, PIMR->m_pWLRIME->current.preedit.cursor_end);
         }
 
         if (PIMR->m_pWLRIME->current.commit_text) {
-            Debug::log(LOG, "IME TextInput commit");
             wlr_text_input_v3_send_commit_string(PTI->pWlrInput, PIMR->m_pWLRIME->current.commit_text);
         }
 
         if (PIMR->m_pWLRIME->current.delete_.before_length || PIMR->m_pWLRIME->current.delete_.after_length) {
-            Debug::log(LOG, "IME TextInput delete");
             wlr_text_input_v3_send_delete_surrounding_text(PTI->pWlrInput, PIMR->m_pWLRIME->current.delete_.before_length, PIMR->m_pWLRIME->current.delete_.after_length);
         }
 

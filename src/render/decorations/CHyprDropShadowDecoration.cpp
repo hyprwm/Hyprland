@@ -92,11 +92,13 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     if (fullBox.width < 1 || fullBox.height < 1)
         return; // don't draw invisible shadows
 
+    g_pHyprOpenGL->scissor((wlr_box *)nullptr);
+
     if (*PSHADOWIGNOREWINDOW) {
+        glEnable(GL_STENCIL_TEST);
+
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
-
-        glEnable(GL_STENCIL_TEST);
 
         glStencilFunc(GL_ALWAYS, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -106,8 +108,10 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
         scaleBox(&windowBox, pMonitor->scale);
         
         if (windowBox.width < 1 || windowBox.height < 1) {
-		    glDisable(GL_STENCIL_TEST);
-		    return; // prevent assert failed
+            glClearStencil(0);
+            glClear(GL_STENCIL_BUFFER_BIT);
+            glDisable(GL_STENCIL_TEST);
+            return;  // prevent assert failed
         }
 	
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0,0,0,0), *PROUNDING);

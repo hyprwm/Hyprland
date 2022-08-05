@@ -178,8 +178,6 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (g_pInputManager->dragButton == BTN_LEFT) {
         DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
 
-        DRAGGINGWINDOW->updateWindowDecos();
-
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
     } else {
         if (DRAGGINGWINDOW->m_bIsFloating) {
@@ -188,8 +186,6 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
             DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().x, (double)20, (double)MAXSIZE.x), std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().y, (double)20, (double)MAXSIZE.y)));
-
-            DRAGGINGWINDOW->updateWindowDecos();
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
         } else {
@@ -207,6 +203,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
         DRAGGINGWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
     }
+
+    DRAGGINGWINDOW->updateWindowDecos();
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }

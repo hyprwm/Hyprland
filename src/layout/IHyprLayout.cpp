@@ -263,6 +263,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         pWindow->m_vRealSize = pWindow->m_vLastFloatingSize;
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
+
+        pWindow->m_sSpecialRenderData.rounding = true;
     }
 }
 

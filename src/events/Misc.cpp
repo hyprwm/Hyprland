@@ -175,3 +175,15 @@ void Events::listener_powerMgrSetMode(wl_listener* listener, void* data) {
     if (!wlr_output_commit(EVENT->output))
         Debug::log(ERR, "Couldn't set power mode");
 }
+
+void Events::listener_newIME(wl_listener* listener, void* data) {
+    Debug::log(LOG, "New IME added!");
+
+    g_pInputManager->m_sIMERelay.onNewIME((wlr_input_method_v2*)data);
+}
+
+void Events::listener_newTextInput(wl_listener* listener, void* data) {
+    Debug::log(LOG, "New TextInput added!");
+
+    g_pInputManager->m_sIMERelay.onNewTextInput((wlr_text_input_v3*)data);
+}

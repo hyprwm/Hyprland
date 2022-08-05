@@ -133,4 +133,8 @@ namespace Events {
 
     // Power
     LISTENER(powerMgrSetMode);
+
+    // IME
+    LISTENER(newIME);
+    LISTENER(newTextInput);
 };

@@ -20,6 +20,8 @@ public:
     STextInput* getFocusedTextInput();
     STextInput* getFocusableTextInput();
 
+    void        setPendingSurface(STextInput*, wlr_surface*);
+
 private:
 
     std::list<STextInput>   m_lTextInputs;

@@ -22,13 +22,18 @@ public:
 
     void        setPendingSurface(STextInput*, wlr_surface*);
 
+    SIMEKbGrab* getIMEKeyboardGrab(SKeyboard*);
+
 private:
+
+    std::unique_ptr<SIMEKbGrab> m_pKeyboardGrab;
 
     std::list<STextInput>   m_lTextInputs;
 
     DYNLISTENER(textInputNew);
     DYNLISTENER(IMECommit);
     DYNLISTENER(IMEDestroy);
+    DYNLISTENER(IMEGrab);
 
     void        createNewTextInput(wlr_text_input_v3*);
 };

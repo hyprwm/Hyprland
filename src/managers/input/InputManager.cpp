@@ -436,6 +436,33 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     Debug::log(LOG, "New keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
 }
 
+void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
+    const auto PNEWKEYBOARD = &m_lKeyboards.emplace_back();
+
+    PNEWKEYBOARD->keyboard = keyboard;
+    PNEWKEYBOARD->isVirtual = true;
+
+    try {
+        PNEWKEYBOARD->name = std::string(keyboard->name);
+    } catch (std::exception& e) {
+        Debug::log(ERR, "Keyboard had no name???");  // logic error
+    }
+
+    PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
+
+    if (m_pActiveKeyboard)
+        m_pActiveKeyboard->active = false;
+    m_pActiveKeyboard = PNEWKEYBOARD;
+
+    applyConfigToKeyboard(PNEWKEYBOARD);
+
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
+
+    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
+}
+
 void CInputManager::setKeyboardLayout() {
     for (auto& k : m_lKeyboards)
         applyConfigToKeyboard(&k);
@@ -667,14 +694,29 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
     if (passEvent) {
-        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e->time_msec, e->keycode, e->state);
+
+        const auto PIMEGRAB = m_sIMERelay.getIMEKeyboardGrab(pKeyboard);
+
+        if (PIMEGRAB && PIMEGRAB->pWlrKbGrab && PIMEGRAB->pWlrKbGrab->input_method) {
+            wlr_input_method_keyboard_grab_v2_set_keyboard(PIMEGRAB->pWlrKbGrab, wlr_keyboard_from_input_device(pKeyboard->keyboard));
+            wlr_input_method_keyboard_grab_v2_send_key(PIMEGRAB->pWlrKbGrab, e->time_msec, e->keycode, e->state);
+        } else {
+            wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
+            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e->time_msec, e->keycode, e->state);
+        }
     }
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-    wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers);
+    const auto PIMEGRAB = m_sIMERelay.getIMEKeyboardGrab(pKeyboard);
+
+    if (PIMEGRAB && PIMEGRAB->pWlrKbGrab && PIMEGRAB->pWlrKbGrab->input_method) {
+        wlr_input_method_keyboard_grab_v2_set_keyboard(PIMEGRAB->pWlrKbGrab, wlr_keyboard_from_input_device(pKeyboard->keyboard));
+        wlr_input_method_keyboard_grab_v2_send_modifiers(PIMEGRAB->pWlrKbGrab, &wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers);
+    } else {
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
+        wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers);
+    }
 }
 
 void CInputManager::refocus() {

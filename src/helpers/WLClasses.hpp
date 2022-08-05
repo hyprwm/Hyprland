@@ -96,6 +96,7 @@ struct SKeyboard {
     DYNLISTENER(keyboardKey);
     DYNLISTENER(keyboardDestroy);
 
+    bool isVirtual = false;
     bool active = false;
 
     std::string name = "";
@@ -285,4 +286,12 @@ struct STextInput {
     DYNLISTENER(textInputDestroy);
 
     DYNLISTENER(pendingSurfaceDestroy);
+};
+
+struct SIMEKbGrab {
+    wlr_input_method_keyboard_grab_v2* pWlrKbGrab = nullptr;
+
+    wlr_keyboard* pKeyboard = nullptr;
+
+    DYNLISTENER(grabDestroy);
 };

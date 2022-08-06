@@ -84,6 +84,8 @@ public:
     // for shared mods
     uint32_t        accumulateModsFromAllKBs();
 
+    CWindow*        m_pFollowOnDnDBegin = nullptr;
+
 private:
 
     // for click behavior override

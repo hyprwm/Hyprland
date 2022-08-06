@@ -54,6 +54,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:no_vfr"].intValue = 1;
     configValues["misc:damage_entire_on_snapshot"].intValue = 0;
     configValues["misc:mouse_move_enables_dpms"].intValue = 0;
+    configValues["misc:always_follow_on_dnd"].intValue = 1;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

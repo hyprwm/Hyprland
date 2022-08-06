@@ -103,6 +103,13 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
         g_pInputManager->m_sDrag.hyprListener_destroyIcon.initCallback(&wlrDrag->icon->events.destroy, &Events::listener_destroyDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
         g_pInputManager->m_sDrag.hyprListener_commitIcon.initCallback(&wlrDrag->icon->surface->events.commit, &Events::listener_commitDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
     }
+
+    static auto *const PFOLLOWONDND = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
+
+    if (*PFOLLOWONDND)
+        g_pInputManager->m_pFollowOnDnDBegin = g_pCompositor->m_pLastWindow;
+    else
+        g_pInputManager->m_pFollowOnDnDBegin = nullptr;
 }
 
 void Events::listener_destroyDrag(void* owner, void* data) {
@@ -113,6 +120,11 @@ void Events::listener_destroyDrag(void* owner, void* data) {
     g_pInputManager->m_sDrag.hyprListener_destroy.removeCallback();
 
     g_pInputManager->refocus();
+
+    if (g_pInputManager->m_pFollowOnDnDBegin)
+        g_pCompositor->focusWindow(g_pInputManager->m_pFollowOnDnDBegin);
+
+    g_pInputManager->m_pFollowOnDnDBegin = nullptr;
 }
 
 void Events::listener_mapDragIcon(void* owner, void* data) {

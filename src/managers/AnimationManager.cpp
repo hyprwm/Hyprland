@@ -262,16 +262,16 @@ bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
 //
 //
 
-void CAnimationManager::animationPopin(CWindow* pWindow, bool close) {
+void CAnimationManager::animationPopin(CWindow* pWindow, bool close, float minPerc) {
     const auto GOALPOS = pWindow->m_vRealPosition.goalv();
     const auto GOALSIZE = pWindow->m_vRealSize.goalv();
 
     if (!close) {
-        pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f);
-        pWindow->m_vRealSize.setValue(Vector2D(5, 5));
+        pWindow->m_vRealSize.setValue((GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y}));
+        pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize.m_vValue / 2.f);
     } else {
-        pWindow->m_vRealPosition = GOALPOS + GOALSIZE / 2.f;
-        pWindow->m_vRealSize = Vector2D(5, 5);
+        pWindow->m_vRealSize = (GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y});
+        pWindow->m_vRealPosition = GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize.m_vGoal / 2.f;
     }
 }
 
@@ -361,14 +361,36 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
             }
         } else {
             // anim popin, fallback
-            animationPopin(pWindow, close);
+
+            float minPerc = 0.f;
+            if (pWindow->m_sAdditionalConfigData.animationStyle.find("%") != 0) {
+                try {
+                    auto percstr = pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find_last_of(' '));
+                    minPerc = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) {
+                    ; // oops
+                }
+            }
+
+            animationPopin(pWindow, close, minPerc / 100.f);
         }
     } else {
         if (ANIMSTYLE == "slide") {
             animationSlide(pWindow, "", close);
         } else {
             // anim popin, fallback
-            animationPopin(pWindow, close);
+
+            float minPerc = 0.f;
+            if (ANIMSTYLE.find("%") != 0) {
+                try {
+                    auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
+                    minPerc = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) {
+                    ; // oops
+                }
+            }
+
+            animationPopin(pWindow, close, minPerc / 100.f);
         }
     }
 }

@@ -624,6 +624,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     if (m_pLastWindow == pWindow && m_sSeat.seat->keyboard_state.focused_surface == pSurface)
         return;
 
+    if (!isWorkspaceVisible(pWindow->m_iWorkspaceID))
+        g_pKeybindManager->changeworkspace("[internal]" + std::to_string(pWindow->m_iWorkspaceID));
+
     const auto PLASTWINDOW = m_pLastWindow;
     m_pLastWindow = pWindow;
 
@@ -1549,10 +1552,10 @@ void CCompositor::closeWindow(CWindow* pWindow) {
         g_pXWaylandManager->sendCloseWindow(pWindow);
 
         if (pWindow == m_pLastWindow) {
-            g_pCompositor->m_pLastFocus = nullptr;
-            g_pCompositor->m_pLastWindow = nullptr;
+            m_pLastFocus = nullptr;
+            m_pLastWindow = nullptr;
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // post an activewindow event to empty, as we are currently unfocused
-            g_pCompositor->focusWindow(g_pCompositor->windowFromCursor());
+            focusWindow(windowFromCursor());
         }
     }
 }

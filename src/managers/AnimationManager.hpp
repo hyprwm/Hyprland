@@ -31,7 +31,7 @@ private:
     std::unordered_map<std::string, CBezierCurve> m_mBezierCurves;
 
     // Anim stuff
-    void            animationPopin(CWindow*, bool close = false);
+    void            animationPopin(CWindow*, bool close = false, float minPerc = 0.f);
     void            animationSlide(CWindow*, std::string force = "", bool close = false);
 };
 

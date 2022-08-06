@@ -80,8 +80,8 @@ void CEventManager::startThread() {
             eventQueueMutex.lock();
 
             if (m_dQueuedEvents.empty()){ // if queue empty, sleep and ignore
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 eventQueueMutex.unlock();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 continue;
             }
 

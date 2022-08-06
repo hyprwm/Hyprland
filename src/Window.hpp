@@ -39,6 +39,11 @@ public:
     DYNLISTENER(requestMinimize);
     DYNLISTENER(requestMaximize);
     DYNLISTENER(requestResize);
+    DYNLISTENER(activateX11);
+    DYNLISTENER(configureX11);
+    DYNLISTENER(toplevelClose);
+    DYNLISTENER(toplevelActivate);
+    DYNLISTENER(toplevelFullscreen);
    // DYNLISTENER(newSubsurfaceWindow);
 
     union {
@@ -87,8 +92,6 @@ public:
     uint64_t        m_iX11Type = 0;
     bool            m_bIsModal = false;
     bool            m_bX11DoesntWantBorders = false;
-    DYNLISTENER(activateX11);
-    DYNLISTENER(configureX11);
     //
 
     // For nofocus
@@ -127,6 +130,9 @@ public:
     // animated shadow color
     CAnimatedVariable m_cRealShadowColor;
 
+    // for toplevel monitor events
+    int             m_iLastToplevelMonitorID = -1;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) {
         return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize && m_bFadingOut == rhs.m_bFadingOut;
@@ -138,5 +144,8 @@ public:
     void            updateWindowDecos();
     pid_t           getPID();
     IHyprWindowDecoration* getDecorationByType(eDecorationType);
+    void            createToplevelHandle();
+    void            destroyToplevelHandle();
+    void            updateToplevel();
 
 };

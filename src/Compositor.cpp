@@ -1349,6 +1349,8 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
             if (w->m_bIsFloating && w->m_bIsMapped && !w->m_bHidden) {
                 w->m_vRealPosition = w->m_vRealPosition.vec() - POLDMON->vecPosition + pMonitor->vecPosition;
             }
+
+            w->updateToplevel();
         }
     }
 
@@ -1540,4 +1542,17 @@ SLayerSurface* CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {
     }
 
     return nullptr;
+}
+
+void CCompositor::closeWindow(CWindow* pWindow) {
+    if (pWindow && windowValidMapped(pWindow)) {
+        g_pXWaylandManager->sendCloseWindow(pWindow);
+
+        if (pWindow == m_pLastWindow) {
+            g_pCompositor->m_pLastFocus = nullptr;
+            g_pCompositor->m_pLastWindow = nullptr;
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // post an activewindow event to empty, as we are currently unfocused
+            g_pCompositor->focusWindow(g_pCompositor->windowFromCursor());
+        }
+    }
 }

@@ -157,7 +157,7 @@ std::string activeWindowRequest(HyprCtl::eHyprCtlOutputFormat format) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
-        return "Invalid";
+        return format == HyprCtl::FORMAT_JSON ? "{}" : "Invalid";
 
     if (format == HyprCtl::FORMAT_JSON) {
         return getFormat(

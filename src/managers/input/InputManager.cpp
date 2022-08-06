@@ -29,7 +29,8 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
-    static auto* const PMOUSEDPMS = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
+    static auto *const PMOUSEDPMS = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
+    static auto *const PFOLLOWONDND = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
 
     if (!g_pCompositor->m_bReadyToProcess)
         return;
@@ -243,6 +244,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
             if (pFoundWindow == g_pCompositor->m_pLastWindow && foundSurface != g_pCompositor->m_pLastFocus) {
                 // we changed the subsurface
+                wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+            }
+
+            if (*PFOLLOWONDND && m_sDrag.dragIcon) {
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
@@ -724,16 +729,16 @@ void CInputManager::refocus() {
 }
 
 void CInputManager::updateDragIcon() {
-    if (!g_pInputManager->m_sDrag.dragIcon)
+    if (!m_sDrag.dragIcon)
         return;
 
-    switch (g_pInputManager->m_sDrag.dragIcon->drag->grab_type) {
+    switch (m_sDrag.dragIcon->drag->grab_type) {
         case WLR_DRAG_GRAB_KEYBOARD:
             break;
         case WLR_DRAG_GRAB_KEYBOARD_POINTER: {
-            wlr_box box = {g_pInputManager->m_sDrag.pos.x - 2, g_pInputManager->m_sDrag.pos.y - 2, g_pInputManager->m_sDrag.dragIcon->surface->current.width + 4, g_pInputManager->m_sDrag.dragIcon->surface->current.height + 4};
+            wlr_box box = {m_sDrag.pos.x - 2, m_sDrag.pos.y - 2, m_sDrag.dragIcon->surface->current.width + 4, m_sDrag.dragIcon->surface->current.height + 4};
             g_pHyprRenderer->damageBox(&box);
-            g_pInputManager->m_sDrag.pos = g_pInputManager->getMouseCoordsInternal();
+            m_sDrag.pos = getMouseCoordsInternal();
             break;
         }
         default:

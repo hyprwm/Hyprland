@@ -202,6 +202,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (PMONITOR) {
         DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
         DRAGGINGWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
+
+        DRAGGINGWINDOW->updateToplevel();
     }
 
     DRAGGINGWINDOW->updateWindowDecos();
@@ -257,6 +259,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         pWindow->m_sSpecialRenderData.rounding = true;
     }
+
+    pWindow->updateToplevel();
 }
 
 void IHyprLayout::moveActiveWindow(const Vector2D& delta, CWindow* pWindow) {

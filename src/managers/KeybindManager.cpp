@@ -408,14 +408,7 @@ void CKeybindManager::spawn(std::string args) {
 }
 
 void CKeybindManager::killActive(std::string args) {
-    if (g_pCompositor->m_pLastWindow && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow)) {
-        g_pXWaylandManager->sendCloseWindow(g_pCompositor->m_pLastWindow);
-        g_pCompositor->m_pLastFocus = nullptr;
-        g_pCompositor->m_pLastWindow = nullptr;
-        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // post an activewindow event to empty, as we are currently unfocused
-    }
-    
-    g_pCompositor->focusWindow(g_pCompositor->windowFromCursor());
+    g_pCompositor->closeWindow(g_pCompositor->m_pLastWindow);
 }
 
 void CKeybindManager::clearKeybinds() {
@@ -671,6 +664,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     }
 
     g_pInputManager->refocus();
+
+    PWINDOW->updateToplevel();
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {

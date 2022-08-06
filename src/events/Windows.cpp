@@ -68,9 +68,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pXWaylandManager->setWindowStyleTiled(PWINDOW, WLR_EDGE_LEFT | WLR_EDGE_RIGHT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM);
 
     // Foreign Toplevel
-    PWINDOW->m_phForeignToplevel = wlr_foreign_toplevel_handle_v1_create(g_pCompositor->m_sWLRToplevelMgr);
-    // TODO: handle foreign events (requests)
-    wlr_foreign_toplevel_handle_v1_set_app_id(PWINDOW->m_phForeignToplevel, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
+    PWINDOW->createToplevelHandle();
 
     // checks if the window wants borders and sets the appriopriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
@@ -327,6 +325,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);
 
+    PWINDOW->updateToplevel();
+
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
 }
 
@@ -412,8 +412,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     PWINDOW->m_fAlpha = 0.f;
 
     // Destroy Foreign Toplevel
-    wlr_foreign_toplevel_handle_v1_destroy(PWINDOW->m_phForeignToplevel);
-    PWINDOW->m_phForeignToplevel = nullptr;
+    PWINDOW->destroyToplevelHandle();
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
@@ -469,8 +468,7 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
     if (PWINDOW == g_pCompositor->m_pLastWindow) // if it's the active, let's post an event to update others
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle});
 
-    if (PWINDOW->m_phForeignToplevel)
-        wlr_foreign_toplevel_handle_v1_set_title(PWINDOW->m_phForeignToplevel, PWINDOW->m_szTitle.c_str());
+    PWINDOW->updateToplevel();
 
     Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());
 }
@@ -488,6 +486,8 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
     } else {
         g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, !PWINDOW->m_bIsFullscreen);
     }
+
+    PWINDOW->updateToplevel();
 
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
     

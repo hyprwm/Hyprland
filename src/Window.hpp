@@ -131,7 +131,7 @@ public:
     CAnimatedVariable m_cRealShadowColor;
 
     // for toplevel monitor events
-    int             m_iLastToplevelMonitorID = -1;
+    uint64_t          m_iLastToplevelMonitorID = -1;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

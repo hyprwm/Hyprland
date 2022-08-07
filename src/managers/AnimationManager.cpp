@@ -257,6 +257,15 @@ bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
     return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
 }
 
+bool CAnimationManager::bezierExists(const std::string& bezier) {
+    for (auto&[bc, bz] : m_mBezierCurves) {
+        if (bc == bezier)
+            return true;
+    }
+
+    return false;
+}
+
 //
 // Anims
 //
@@ -393,4 +402,38 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
             animationPopin(pWindow, close, minPerc / 100.f);
         }
     }
+}
+
+std::string CAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
+    if (config.find("window") == 0) {
+        if (style == "slide") {
+            return "";
+        } else if (style.find("popin") == 0) {
+            // try parsing
+            float minPerc = 0.f;
+            if (style.find("%") != 0) {
+                try {
+                    auto percstr = style.substr(style.find_last_of(' '));
+                    minPerc = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) {
+                    return "invalid minperc";
+                }
+
+                return "";
+            }
+
+            return "";
+        }
+
+        return "unknown style";
+    } else if (config == "workspaces") {
+        if (style == "slide" || style == "slidevert" || style == "fade")
+            return "";
+
+        return "unknown style";
+    } else {
+        return "animation has no styles";
+    }
+
+    return "";
 }

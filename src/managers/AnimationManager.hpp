@@ -18,6 +18,10 @@ public:
 
     void            onWindowPostCreateClose(CWindow*, bool close = false);
 
+    bool            bezierExists(const std::string&);
+
+    std::string     styleValidInConfigVar(const std::string&, const std::string&);
+
     std::list<CAnimatedVariable*> m_lAnimatedVariables;
 
 private:

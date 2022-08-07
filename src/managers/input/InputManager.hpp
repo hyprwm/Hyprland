@@ -12,6 +12,10 @@ enum eClickBehaviorMode {
     CLICKMODE_KILL
 };
 
+struct STouchData {
+    CWindow* touchFocusWindow = nullptr;
+};
+
 class CInputManager {
 public:
 
@@ -44,6 +48,11 @@ public:
     eClickBehaviorMode getClickMode();
     void            processMouseRequest(wlr_seat_pointer_request_set_cursor_event*);
 
+    void            onTouchDown(wlr_touch_down_event*);
+    void            onTouchUp(wlr_touch_up_event*);
+    void            onTouchMove(wlr_touch_motion_event*);
+
+    STouchData      m_sTouchData;
 
     // for dragging floating windows
     CWindow*        currentlyDraggedWindow = nullptr;

@@ -144,4 +144,9 @@ namespace Events {
     DYNLISTENFUNC(unmapInputPopup);
     DYNLISTENFUNC(commitInputPopup);
     DYNLISTENFUNC(destroyInputPopup);
+
+    // Touch
+    LISTENER(touchBegin);
+    LISTENER(touchEnd);
+    LISTENER(touchUpdate);
 };

@@ -422,6 +422,8 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
                 return "";
             }
 
+            minPerc; // fix warning
+
             return "";
         }
 

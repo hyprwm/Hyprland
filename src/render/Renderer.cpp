@@ -882,6 +882,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         } else {
             wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (int)pMonitorRule->refreshRate * 1000);
             pMonitor->vecSize = pMonitorRule->resolution;
+
+            Debug::log(LOG, "Setting custom mode for %s", pMonitor->output->name);
         }
     } else {
         const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
@@ -919,6 +921,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
             pMonitor->vecSize = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
             pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
+
+            Debug::log(LOG, "Setting preferred mode for %s", pMonitor->output->name);
         }
     }
     

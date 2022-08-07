@@ -59,7 +59,7 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
-    wlr_box box = {.x = PMONITOR->vecPosition.x - pHyprPopup->lx, .y = PMONITOR->vecPosition.y - pHyprPopup->ly, .width = PMONITOR->vecTransformedSize.x, .height = PMONITOR->vecTransformedSize.y};
+    wlr_box box = {.x = PMONITOR->vecPosition.x - pHyprPopup->lx, .y = PMONITOR->vecPosition.y - pHyprPopup->ly, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
 
     wlr_xdg_popup_unconstrain_from_box(popup, &box);
 

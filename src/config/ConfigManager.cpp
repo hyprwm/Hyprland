@@ -573,14 +573,23 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
     // on/off
     PANIM->second.internalEnabled = curitem == "1";
 
+    if (curitem != "0" && curitem != "1") {
+        parseError = "invalid animation on/off state";
+    }
+
     nextItem();
 
     // speed
     if (isNumber(curitem, true)) {
         PANIM->second.internalSpeed = std::stof(curitem);
+
+        if (PANIM->second.internalSpeed <= 0) {
+            parseError = "invalid speed";
+            PANIM->second.internalSpeed = 1.f;
+        }
     } else {
         PANIM->second.internalSpeed = 10.f;
-        parseError = "Invalid speed";
+        parseError = "invalid speed";
     }
 
     nextItem();
@@ -588,10 +597,22 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
     // curve
     PANIM->second.internalBezier = curitem;
 
+    if (!g_pAnimationManager->bezierExists(curitem)) {
+        parseError = "no such bezier";
+        PANIM->second.internalBezier = "default";
+    }
+
     nextItem();
 
     // style
     PANIM->second.internalStyle = curitem;
+
+    if (curitem != "") {
+        const auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, curitem);
+
+        if (ERR != "")
+            parseError = ERR;
+    }
 
     // now, check for children, recursively
     setAnimForChildren(&PANIM->second);

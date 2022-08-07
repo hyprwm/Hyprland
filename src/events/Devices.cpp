@@ -72,7 +72,6 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             break;
         case WLR_INPUT_DEVICE_TOUCH:
             Debug::log(LOG, "Attached a touch device with name %s", DEVICE->name);
-            Debug::log(WARN, "!!!! Hyprland does not directly support touchscreens, bugs may occur !!!!");
             wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET_TOOL:
@@ -195,4 +194,16 @@ void Events::listener_newVirtualKeyboard(wl_listener* listener, void* data) {
     const auto WLRKB = (wlr_virtual_keyboard_v1*)data;
 
     g_pInputManager->newVirtualKeyboard(&WLRKB->keyboard.base);
+}
+
+void Events::listener_touchBegin(wl_listener* listener, void* data) {
+    g_pInputManager->onTouchDown((wlr_touch_down_event*)data);
+}
+
+void Events::listener_touchEnd(wl_listener* listener, void* data) {
+    g_pInputManager->onTouchUp((wlr_touch_up_event*)data);
+}
+
+void Events::listener_touchUpdate(wl_listener* listener, void* data) {
+    g_pInputManager->onTouchMove((wlr_touch_motion_event*)data);
 }

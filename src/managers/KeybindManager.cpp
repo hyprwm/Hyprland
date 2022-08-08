@@ -736,6 +736,9 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
 
+    if (!PLASTWINDOW)
+        return;
+
     // remove constraints
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
 

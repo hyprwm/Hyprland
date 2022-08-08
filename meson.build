@@ -1,5 +1,5 @@
 project('Hyprland', 'cpp', 'c',
-  version : '0.8.1beta',
+  version : '0.10.0beta',
   default_options : ['warning_level=2', 'default_library=static', 'optimization=3'])
 
 add_global_arguments('-std=c++23', language: 'cpp')

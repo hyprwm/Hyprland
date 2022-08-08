@@ -169,23 +169,23 @@ R"#({
         "id": %i,
         "name": "%s"
     },
-    "floating": %i,
+    "floating": %s,
     "monitor": %i,
     "class": "%s",
     "title": "%s",
     "pid": %i,
-    "xwayland": %i
+    "xwayland": %s
 })#",
             PWINDOW,
             (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y,
             (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y,
             PWINDOW->m_iWorkspaceID, escapeJSONStrings(PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName).c_str(),
-            (int)PWINDOW->m_bIsFloating,
+            ((int)w->m_bIsFloating == 1 ? "true" : "false"),
             PWINDOW->m_iMonitorID,
             escapeJSONStrings(g_pXWaylandManager->getAppIDClass(PWINDOW)).c_str(),
             escapeJSONStrings(g_pXWaylandManager->getTitle(PWINDOW)).c_str(),
             PWINDOW->getPID(),
-            (int)PWINDOW->m_bIsX11
+            ((int)w->m_bIsX11 == 1 ? "true" : "false")
         );
     } else {
         return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\txwayland: %i\n\n",

@@ -169,12 +169,12 @@ R"#({
         "id": %i,
         "name": "%s"
     },
-    "floating": %s,
+    "floating": %i,
     "monitor": %i,
     "class": "%s",
     "title": "%s",
     "pid": %i,
-    "xwayland": %s
+    "xwayland": %i
 })#",
             PWINDOW,
             (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y,

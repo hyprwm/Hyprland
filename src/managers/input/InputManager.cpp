@@ -210,9 +210,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
 
         if (refocus) { // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
-            g_pCompositor->focusSurface(nullptr);
-
-            g_pCompositor->m_pLastWindow = nullptr;
+            g_pCompositor->focusWindow(nullptr);
         }
 
         return;

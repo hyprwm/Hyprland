@@ -164,6 +164,8 @@ void CWindow::destroyToplevelHandle() {
 }
 
 void CWindow::updateToplevel() {
+    updateSurfaceOutputs();
+
     if (!m_phForeignToplevel)
         return;
 
@@ -176,4 +178,30 @@ void CWindow::updateToplevel() {
 
         m_iLastToplevelMonitorID = m_iMonitorID;
     }
+}
+
+void sendEnterIter(wlr_surface* pSurface, int x, int y, void* data) {
+    const auto OUTPUT = (wlr_output*)data;
+    wlr_surface_send_enter(pSurface, OUTPUT);
+}
+
+void sendLeaveIter(wlr_surface* pSurface, int x, int y, void* data) {
+    const auto OUTPUT = (wlr_output*)data;
+    wlr_surface_send_leave(pSurface, OUTPUT);
+}
+
+void CWindow::updateSurfaceOutputs() {
+    if (m_iLastSurfaceMonitorID == m_iMonitorID)
+        return;
+
+    const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);
+
+    m_iLastSurfaceMonitorID = m_iMonitorID;
+
+    const auto PNEWMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+
+    if (PLASTMONITOR)
+        wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendLeaveIter, PLASTMONITOR->output);
+
+    wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendEnterIter, PNEWMONITOR->output);
 }

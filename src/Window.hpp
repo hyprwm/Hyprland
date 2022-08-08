@@ -132,6 +132,7 @@ public:
 
     // for toplevel monitor events
     uint64_t          m_iLastToplevelMonitorID = -1;
+    uint64_t          m_iLastSurfaceMonitorID = -1;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
@@ -147,5 +148,5 @@ public:
     void            createToplevelHandle();
     void            destroyToplevelHandle();
     void            updateToplevel();
-
+    void            updateSurfaceOutputs();
 };

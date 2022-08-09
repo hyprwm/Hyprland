@@ -1147,6 +1147,12 @@ void CKeybindManager::resizeActive(std::string args) {
     if (!args.contains(' '))
         return;
 
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    // calc the delta
+    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+        return; // ignore
+
     std::string x = args.substr(0, args.find_first_of(' '));
     std::string y = args.substr(args.find_first_of(' ') + 1);
 
@@ -1167,16 +1173,13 @@ void CKeybindManager::resizeActive(std::string args) {
             return;
         }
 
-        // calc the delta
-        if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
-            return; // ignore
-
-        const auto PWINDOW = g_pCompositor->m_pLastWindow;
-
         const int DX = X - PWINDOW->m_vRealSize.goalv().x;
         const int DY = Y - PWINDOW->m_vRealSize.goalv().y;
 
         g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(DX, DY));
+
+        if (PWINDOW->m_vRealSize.goalv().x > 1 && PWINDOW->m_vRealSize.goalv().y > 1)
+            PWINDOW->m_bHidden = false;
 
         return;
     }
@@ -1190,6 +1193,9 @@ void CKeybindManager::resizeActive(std::string args) {
     const int Y = std::stoi(y);
 
     g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(X, Y));
+
+    if (PWINDOW->m_vRealSize.goalv().x > 1 && PWINDOW->m_vRealSize.goalv().y > 1)
+        PWINDOW->m_bHidden = false;
 }
 
 void CKeybindManager::moveActive(std::string args) {

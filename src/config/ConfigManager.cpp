@@ -512,13 +512,24 @@ void CConfigManager::handleBezier(const std::string& command, const std::string&
     std::string bezierName = curitem;
 
     nextItem();
+    if (curitem == "")
+        parseError = "too few arguments";
     float p1x = std::stof(curitem);
     nextItem();
+    if (curitem == "")
+        parseError = "too few arguments";
     float p1y = std::stof(curitem);
     nextItem();
+    if (curitem == "")
+        parseError = "too few arguments";
     float p2x = std::stof(curitem);
     nextItem();
+    if (curitem == "")
+        parseError = "too few arguments";
     float p2y = std::stof(curitem);
+    nextItem();
+    if (curitem != "")
+        parseError = "too many arguments";
 
     g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
 }

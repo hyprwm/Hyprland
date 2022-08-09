@@ -1349,3 +1349,8 @@ void CConfigManager::ensureDPMS() {
 SAnimationPropertyConfig* CConfigManager::getAnimationPropertyConfig(const std::string& name) {
     return &animationConfig[name];
 }
+
+void CConfigManager::addParseError(const std::string& err) {
+    if (parseError == "")
+        parseError = err;
+}

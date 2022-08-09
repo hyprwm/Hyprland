@@ -100,6 +100,8 @@ public:
 
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
 
+    void                addParseError(const std::string&);
+
     SAnimationPropertyConfig* getAnimationPropertyConfig(const std::string&);
 
 private:

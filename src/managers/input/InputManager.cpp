@@ -68,7 +68,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
         if (!CONSTRAINTWINDOW) {
-            g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
+            unconstrainMouse();
         } else {
             // Native Wayland apps know how 2 constrain themselves.
             // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
@@ -315,7 +315,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
             m_ecbClickBehavior = CLICKMODE_KILL;
 
             // remove constraints
-            g_pCompositor->m_sSeat.mouse->constraintActive = false;
+            g_pInputManager->unconstrainMouse();
             refocus();
 
             // set cursor
@@ -690,7 +690,7 @@ void CInputManager::destroyMouse(wlr_input_device* mouse) {
     g_pCompositor->m_sSeat.mouse = m_lMice.size() > 0 ? &m_lMice.front() : nullptr;
 
     if (g_pCompositor->m_sSeat.mouse)
-        g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
+        unconstrainMouse();
 }
 
 void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
@@ -815,6 +815,29 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     pMouse->hyprListener_commitConstraint.initCallback(&pMouse->currentConstraint->surface->events.commit, &Events::listener_commitConstraint, pMouse, "Mouse constraint commit");
 
     Debug::log(LOG, "Constrained mouse to %x", pMouse->currentConstraint);
+}
+
+void CInputManager::unconstrainMouse() {
+    if (!g_pCompositor->m_sSeat.mouse->currentConstraint)
+        return;
+
+    const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+
+    if (CONSTRAINTWINDOW) {
+        if (CONSTRAINTWINDOW->m_bIsX11) {
+            wlr_xwayland_surface_activate(CONSTRAINTWINDOW->m_uSurface.xwayland, false);
+        } else {
+            wlr_xdg_toplevel_set_activated(CONSTRAINTWINDOW->m_uSurface.xdg->toplevel, false);
+        }
+    }
+
+    wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);
+    g_pCompositor->m_sSeat.mouse->constraintActive = false;
+
+    // TODO: its better to somehow detect the workspace...
+    g_pCompositor->m_sSeat.mouse->currentConstraint = nullptr;
+
+    g_pCompositor->m_sSeat.mouse->hyprListener_commitConstraint.removeCallback();
 }
 
 void Events::listener_commitConstraint(void* owner, void* data) {

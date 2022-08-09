@@ -657,6 +657,11 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
     if (!PNODE)
         return; // reject
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PNODE->workspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow)
+        fullscreenRequestForWindow(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), FULLSCREEN_FULL, false);
+
     const auto PGROUPPARENT = PNODE->pGroupParent;
 
     if (PGROUPPARENT) {
@@ -752,6 +757,8 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
     if (!PNODE->pGroupParent)
         return; // reject
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PNODE->workspaceID);
+
     if (forward)
         PNODE->pGroupParent->groupMemberActive++;
     else
@@ -763,6 +770,13 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
     if ((long unsigned int)PNODE->pGroupParent->groupMemberActive >= PNODE->pGroupParent->groupMembers.size())
         PNODE->pGroupParent->groupMemberActive = 0;
 
+    bool restoreFullscreen = false;
+
+    if (PNODE->pWindow->m_bIsFullscreen) {
+        fullscreenRequestForWindow(PNODE->pWindow, PWORKSPACE->m_efFullscreenMode, false);
+        restoreFullscreen = true;
+    }
+
     PNODE->pGroupParent->recalcSizePosRecursive();
 
     for (auto& gm : PNODE->pGroupParent->groupMembers) {
@@ -773,6 +787,10 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
 
     // focus
     g_pCompositor->focusWindow(PNODE->pGroupParent->groupMembers[PNODE->pGroupParent->groupMemberActive]->pWindow);
+
+    if (restoreFullscreen) {
+         fullscreenRequestForWindow(PNODE->pGroupParent->groupMembers[PNODE->pGroupParent->groupMemberActive]->pWindow, PWORKSPACE->m_efFullscreenMode, true);
+    }
 }
 
 SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow) {

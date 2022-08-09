@@ -260,6 +260,11 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             // call the dispatcher
             Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %s, %d)", modmask, key.c_str(), keysym);
             DISPATCHER->second(k.arg);
+
+            if (k.handler == "submap") {
+                found = true; // don't process keybinds on submap change.
+                break;
+            }
         }
 
         if (k.repeat) {

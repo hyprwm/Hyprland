@@ -467,7 +467,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     }
 
     // remove constraints 
-    g_pCompositor->m_sSeat.mouse->constraintActive = false;
+    g_pInputManager->unconstrainMouse();
 
     // if it exists, we warp to it
     if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {
@@ -745,7 +745,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
         return;
 
     // remove constraints
-    g_pCompositor->m_sSeat.mouse->constraintActive = false;
+    g_pInputManager->unconstrainMouse();
 
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
 

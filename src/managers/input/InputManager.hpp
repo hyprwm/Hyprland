@@ -34,6 +34,7 @@ public:
 
     void            constrainMouse(SMouse*, wlr_pointer_constraint_v1*);
     void            recheckConstraint(SMouse*);
+    void            unconstrainMouse();
 
     Vector2D        getMouseCoordsInternal();
     void            refocus();

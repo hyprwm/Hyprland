@@ -64,18 +64,17 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     PNEWMONITOR->ID = g_pCompositor->getNextAvailableMonitorID();
 
-    wlr_output_init_render(OUTPUT, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
-
     PNEWMONITOR->output = OUTPUT;
     PNEWMONITOR->m_pThisWrap = PNEWMONITORWRAP;
 
     PNEWMONITOR->onConnect(false);
 
-    if (!pMostHzMonitor || PNEWMONITOR->refreshRate > pMostHzMonitor->refreshRate)
+    if ((!pMostHzMonitor || PNEWMONITOR->refreshRate > pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
         pMostHzMonitor = PNEWMONITOR;
 
     // ready to process cuz we have a monitor
-    g_pCompositor->m_bReadyToProcess = true;
+    if (PNEWMONITOR->m_bEnabled)
+        g_pCompositor->m_bReadyToProcess = true;
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {

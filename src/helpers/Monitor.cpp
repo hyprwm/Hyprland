@@ -99,7 +99,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
-    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", output->name, (int)monitorRule.offset.x, (int)monitorRule.offset.y, (int)monitorRule.resolution.x, (int)monitorRule.resolution.y, output);
+    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x, (int)vecPixelSize.y, output);
 
     damage = wlr_output_damage_create(output);
 

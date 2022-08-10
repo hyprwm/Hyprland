@@ -1574,3 +1574,16 @@ void CCompositor::closeWindow(CWindow* pWindow) {
         }
     }
 }
+
+SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
+    for (auto& m : m_vMonitors) {
+        for (auto& lsl : m->m_aLayerSurfaceLists) {
+            for (auto& ls : lsl) {
+                if (ls->layerSurface && ls->layerSurface->surface == pSurface)
+                    return ls.get();
+            }
+        }
+    }
+
+    return nullptr;
+}

@@ -156,6 +156,7 @@ public:
     CWindow*                getWindowByRegex(const std::string&);
     void                    warpCursorTo(const Vector2D&);
     SLayerSurface*          getLayerSurfaceFromWlr(wlr_layer_surface_v1*);
+    SLayerSurface*          getLayerSurfaceFromSurface(wlr_surface*);
     void                    closeWindow(CWindow*);
 
     std::string             explicitConfigPath;

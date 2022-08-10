@@ -31,6 +31,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
     static auto *const PMOUSEDPMS = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
     static auto *const PFOLLOWONDND = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
+    static auto *const PHOGFOCUS = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
 
     if (!g_pCompositor->m_bReadyToProcess)
         return;
@@ -229,11 +230,21 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         surfaceLocal = mouseCoords - surfacePos + Vector2D(geom.x, geom.y);
     }
 
+    bool allowKeyboardRefocus = true;
+
+    if (*PHOGFOCUS && !refocus && g_pCompositor->m_pLastFocus) {
+        const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
+
+        if (PLS && PLS->layerSurface->current.keyboard_interactive) {
+            allowKeyboardRefocus = false;
+        }
+    }
+
     if (pFoundWindow) {
         if (*PFOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating)) {
                 // enter if change floating style
-                if (*PFOLLOWMOUSE != 3)
+                if (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             } else if (*PFOLLOWMOUSE == 2) {
@@ -252,11 +263,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
             return;  // don't enter any new surfaces
         } else {
-            if (*PFOLLOWMOUSE != 3)
+            if (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
-    } else if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3)
-        g_pCompositor->focusSurface(foundSurface);
+    } else {
+        if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
+            g_pCompositor->focusSurface(foundSurface);
+    }
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);

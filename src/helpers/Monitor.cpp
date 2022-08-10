@@ -40,7 +40,7 @@ void CMonitor::onConnect(bool noRule) {
         if (PREFSTATE)
             wlr_output_set_mode(output, PREFSTATE);
         else
-            Debug::log(WARN, "No mode found for disabled output %s", output->name)
+            Debug::log(WARN, "No mode found for disabled output %s", output->name);
 
         wlr_output_enable(output, 0);
         

@@ -522,6 +522,56 @@ std::string dispatchBatch(std::string request) {
     return reply;
 }
 
+std::string dispatchSetCursor(std::string request) {
+    std::string curitem = "";
+
+    auto nextItem = [&]() {
+        auto idx = request.find_first_of(' ');
+
+        if (idx != std::string::npos) {
+            curitem = request.substr(0, idx);
+            request = request.substr(idx + 1);
+        } else {
+            curitem = request;
+            request = "";
+        }
+
+        curitem = removeBeginEndSpacesTabs(curitem);
+    };
+
+    nextItem();
+    nextItem();
+
+    const auto THEME = curitem;
+
+    nextItem();
+
+    const auto SIZE = curitem;
+
+    if (!isNumber(SIZE)) {
+        return "size not int";
+    }
+
+    const auto SIZEINT = std::stoi(SIZE);
+
+    if (SIZEINT < 1) {
+        return "size must be positive";
+    }
+
+    wlr_xcursor_manager_destroy(g_pCompositor->m_sWLRXCursorMgr);
+
+    g_pCompositor->m_sWLRXCursorMgr = wlr_xcursor_manager_create(THEME.c_str(), SIZEINT);
+
+    setenv("XCURSOR_SIZE", SIZE.c_str(), true);
+    setenv("XCURSOR_THEME", THEME.c_str(), true);
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, m->scale);
+    }
+
+    return "ok";
+}
+
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
@@ -567,6 +617,8 @@ std::string getReply(std::string request) {
         return dispatchRequest(request);
     else if (request.find("keyword") == 0)
         return dispatchKeyword(request);
+    else if (request.find("setcursor") == 0)
+        return dispatchSetCursor(request);
     else if (request.find("[[BATCH]]") == 0)
         return dispatchBatch(request);
 

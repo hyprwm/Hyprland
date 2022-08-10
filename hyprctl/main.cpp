@@ -34,6 +34,7 @@ commands:
     splash
     hyprpaper
     reload
+    setcursor
     
 flags:
     -j -> output in JSON
@@ -183,6 +184,17 @@ void hyprpaperRequest(int argc, char** argv) {
     requestHyprpaper(rq);
 }
 
+void setcursorRequest(int argc, char** argv) {
+    if (argc < 4) {
+        std::cout << "setcursor requires 2 params";
+        return;
+    }
+
+    std::string rq = "setcursor " + std::string(argv[2]) + " " + std::string(argv[3]);
+
+    request(rq);
+}
+
 void batchRequest(std::string arg) {
     std::string rq = "[[BATCH]]" + arg.substr(arg.find_first_of(" ") + 1);
     
@@ -252,6 +264,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/splash")) request(fullRequest);
     else if (fullRequest.contains("/devices")) request(fullRequest);
     else if (fullRequest.contains("/reload")) request(fullRequest);
+    else if (fullRequest.contains("/setcursor")) setcursorRequest(argc, argv);
     else if (fullRequest.contains("/dispatch")) dispatchRequest(argc, argv);
     else if (fullRequest.contains("/keyword")) keywordRequest(argc, argv);
     else if (fullRequest.contains("/hyprpaper")) hyprpaperRequest(argc, argv);

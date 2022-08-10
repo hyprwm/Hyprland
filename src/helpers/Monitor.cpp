@@ -158,6 +158,8 @@ void CMonitor::onConnect(bool noRule) {
     if (!g_pCompositor->m_pLastMonitor)  // set the last monitor if it isnt set yet
         g_pCompositor->m_pLastMonitor = this;
 
+    wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
+
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
 }
 

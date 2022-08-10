@@ -14,8 +14,34 @@ void CMonitor::onConnect(bool noRule) {
 
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
+
+        wlr_output_enable_adaptive_sync(output, 1);
+        wlr_output_set_scale(output, 1);
+        wlr_output_set_transform(output, WL_OUTPUT_TRANSFORM_NORMAL);
+
+        auto PREFSTATE = wlr_output_preferred_mode(output);
+
+        if (!PREFSTATE) {
+            wlr_output_mode* mode;
+
+            wl_list_for_each(mode, &output->modes, link) {
+                wlr_output_set_mode(output, PREFSTATE);
+
+                if (!wlr_output_test(output))
+                    continue;
+                
+                PREFSTATE = mode;
+                break;
+            }
+        }
+
+        if (PREFSTATE)
+            wlr_output_set_mode(output, PREFSTATE);
+
         wlr_output_enable(output, 0);
         wlr_output_commit(output);
+
+        m_bEnabled = false;
 
         hyprListener_monitorFrame.removeCallback();
         return;

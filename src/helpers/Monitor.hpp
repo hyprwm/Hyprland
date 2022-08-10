@@ -58,6 +58,7 @@ public:
 
     std::shared_ptr<CMonitor>* m_pThisWrap = nullptr;
     bool        m_bEnabled = false;
+    bool        m_bRenderingInitPassed = false;
 
     // For the list lookup
 

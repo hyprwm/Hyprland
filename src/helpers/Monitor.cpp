@@ -6,6 +6,8 @@ void CMonitor::onConnect(bool noRule) {
     if (m_bEnabled)
         return;
 
+    szName = output->name;
+
     // get monitor rule that matches
     SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(output->name);
 
@@ -37,14 +39,26 @@ void CMonitor::onConnect(bool noRule) {
 
         if (PREFSTATE)
             wlr_output_set_mode(output, PREFSTATE);
+        else
+            Debug::log(WARN, "No mode found for disabled output %s", output->name)
 
         wlr_output_enable(output, 0);
-        wlr_output_commit(output);
+        
+        if (!wlr_output_commit(output)) {
+            Debug::log(ERR, "Couldn't commit disabled state on output %s", output->name);
+        }
+
+        Events::listener_change(nullptr, nullptr);
 
         m_bEnabled = false;
 
         hyprListener_monitorFrame.removeCallback();
         return;
+    }
+
+    if (!m_bRenderingInitPassed) {
+        wlr_output_init_render(output, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
+        m_bRenderingInitPassed = true;
     }
 
     if (!m_pThisWrap) {
@@ -63,8 +77,6 @@ void CMonitor::onConnect(bool noRule) {
     }
     
     m_bEnabled = true;
-
-    szName = output->name;
 
     wlr_output_set_scale(output, monitorRule.scale);
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, monitorRule.scale);

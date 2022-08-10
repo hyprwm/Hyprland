@@ -181,6 +181,7 @@ void CMonitor::onDisconnect() {
     }
 
     m_bEnabled = false;
+    m_bRenderingInitPassed = false;
 
     hyprListener_monitorFrame.removeCallback();
 

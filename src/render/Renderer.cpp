@@ -672,6 +672,9 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
     if (!pSurface)
         return; // wut?
 
+    if (g_pCompositor->m_bUnsafeState)
+        return;
+
     pixman_region32_t damageBox;
     pixman_region32_init(&damageBox);
     wlr_surface_get_effective_damage(pSurface, &damageBox);
@@ -712,6 +715,9 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
 }
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {
+    if (g_pCompositor->m_bUnsafeState)
+        return;
+
     wlr_box damageBox = pWindow->getFullWindowBoundingBox();
     for (auto& m : g_pCompositor->m_vMonitors) {
         wlr_box fixedDamageBox = {damageBox.x - m->vecPosition.x, damageBox.y - m->vecPosition.y, damageBox.width, damageBox.height};
@@ -726,6 +732,9 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 }
 
 void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
+    if (g_pCompositor->m_bUnsafeState)
+        return;
+
     wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
     wlr_output_damage_add_box(pMonitor->damage, &damageBox);
 
@@ -736,6 +745,9 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
 }
 
 void CHyprRenderer::damageBox(wlr_box* pBox) {
+    if (g_pCompositor->m_bUnsafeState)
+        return;
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         wlr_box damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
         scaleBox(&damageBox, m->scale);

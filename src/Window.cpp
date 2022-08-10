@@ -173,7 +173,8 @@ void CWindow::updateToplevel() {
     wlr_foreign_toplevel_handle_v1_set_fullscreen(m_phForeignToplevel, m_bIsFullscreen);
 
     if (m_iLastToplevelMonitorID != m_iMonitorID) {
-        wlr_foreign_toplevel_handle_v1_output_leave(m_phForeignToplevel, g_pCompositor->getMonitorFromID(m_iLastToplevelMonitorID)->output);
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iLastToplevelMonitorID); PMONITOR && PMONITOR->m_bEnabled)
+            wlr_foreign_toplevel_handle_v1_output_leave(m_phForeignToplevel, PMONITOR->output);
         wlr_foreign_toplevel_handle_v1_output_enter(m_phForeignToplevel, g_pCompositor->getMonitorFromID(m_iMonitorID)->output);
 
         m_iLastToplevelMonitorID = m_iMonitorID;
@@ -191,7 +192,7 @@ void sendLeaveIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 void CWindow::updateSurfaceOutputs() {
-    if (m_iLastSurfaceMonitorID == m_iMonitorID)
+    if (m_iLastSurfaceMonitorID == m_iMonitorID || !m_bIsMapped || m_bHidden || !m_bMappedX11)
         return;
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);
@@ -200,7 +201,7 @@ void CWindow::updateSurfaceOutputs() {
 
     const auto PNEWMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-    if (PLASTMONITOR)
+    if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendLeaveIter, PLASTMONITOR->output);
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendEnterIter, PNEWMONITOR->output);

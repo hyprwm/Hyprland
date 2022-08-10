@@ -114,14 +114,14 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
             return;  // prevent assert failed
         }
 	
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0,0,0,0), *PROUNDING);
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(0,0,0,0), *PROUNDING * pMonitor->scale);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     }
 
     scaleBox(&fullBox, pMonitor->scale);
-    g_pHyprOpenGL->renderRoundedShadow(&fullBox, *PROUNDING, *PSHADOWSIZE * pMonitor->scale, a);
+    g_pHyprOpenGL->renderRoundedShadow(&fullBox, *PROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
 
     if (*PSHADOWIGNOREWINDOW) {
         // cleanup

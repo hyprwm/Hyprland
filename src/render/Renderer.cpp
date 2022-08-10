@@ -34,6 +34,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
 
     float rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
+    rounding /= RDATA->output->scale;
 
     if (RDATA->surface && surface == RDATA->surface) {
         if (wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 255.f) {
@@ -258,6 +259,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
 
             float rounding = renderdata.dontRound ? 0 : renderdata.rounding == -1 ? *PROUNDING : renderdata.rounding;
+            rounding /= pMonitor->scale;
 
             auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
             col.a *= renderdata.fadeAlpha * renderdata.alpha / 255.f;

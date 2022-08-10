@@ -160,6 +160,9 @@ void CMonitor::onConnect(bool noRule) {
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
+    g_pHyprRenderer->arrangeLayersForMonitor(ID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
+
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
 }
 
@@ -177,15 +180,20 @@ void CMonitor::onDisconnect() {
         }
     }
 
-    if (!BACKUPMON) {
-        Debug::log(CRIT, "No monitors! Unplugged last! Exiting.");
-        g_pCompositor->cleanup();
-        return;
-    }
-
     m_bEnabled = false;
 
     hyprListener_monitorFrame.removeCallback();
+
+    if (!BACKUPMON) {
+        Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
+
+        hyprListener_monitorMode.removeCallback();
+        hyprListener_monitorDestroy.removeCallback();
+
+        g_pCompositor->m_bUnsafeState = true;
+
+        return;
+    }
 
     const auto BACKUPWORKSPACE = BACKUPMON->activeWorkspace > 0 ? std::to_string(BACKUPMON->activeWorkspace) : "name:" + g_pCompositor->getWorkspaceByID(BACKUPMON->activeWorkspace)->m_szName;
 
@@ -214,10 +222,6 @@ void CMonitor::onDisconnect() {
     wlr_output_enable(output, false);
 
     wlr_output_commit(output);
-
-    for (auto& lsl : m_aLayerSurfaceLists) {
-        lsl.clear();
-    }
 
     g_pCompositor->m_vWorkspaces.erase(std::remove_if(g_pCompositor->m_vWorkspaces.begin(), g_pCompositor->m_vWorkspaces.end(), [&](std::unique_ptr<CWorkspace>& el) { return el->m_iMonitorID == ID; }));
 

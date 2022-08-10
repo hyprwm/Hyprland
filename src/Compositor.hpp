@@ -97,6 +97,7 @@ public:
     bool                    m_bReadyToProcess = false;
     bool                    m_bSessionActive = true;
     bool                    m_bDPMSStateON = true;
+    bool                    m_bUnsafeState = false; // unsafe state is when there is no monitors.
 
     // ------------------------------------------------- //
 
@@ -158,6 +159,7 @@ public:
     SLayerSurface*          getLayerSurfaceFromWlr(wlr_layer_surface_v1*);
     SLayerSurface*          getLayerSurfaceFromSurface(wlr_surface*);
     void                    closeWindow(CWindow*);
+    
 
     std::string             explicitConfigPath;
 

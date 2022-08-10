@@ -53,16 +53,29 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         return;
     }
 
-    if (g_pCompositor->getMonitorFromName(std::string(OUTPUT->name))) {
-        Debug::log(WARN, "Monitor with name %s already exists, not adding as new!", OUTPUT->name);
-        return;
+    if (g_pCompositor->m_bUnsafeState) {
+        Debug::log(WARN, "Recovering from an unsafe state. May you be lucky.");
     }
 
     // add it to real
-    const auto PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
-    const auto PNEWMONITOR = PNEWMONITORWRAP->get();
+    std::shared_ptr<CMonitor>* PNEWMONITORWRAP = nullptr;
 
-    PNEWMONITOR->ID = g_pCompositor->getNextAvailableMonitorID();
+    for (auto& rm : g_pCompositor->m_vRealMonitors) {
+        if (rm->szName == OUTPUT->name) {
+            PNEWMONITORWRAP = &rm;
+            Debug::log(LOG, "Recovering a removed monitor.");
+            break;
+        }
+    }
+
+    if (!PNEWMONITORWRAP) {
+        Debug::log(LOG, "Adding completely new monitor.");
+        PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
+
+        (*PNEWMONITORWRAP)->ID = g_pCompositor->getNextAvailableMonitorID();
+    }
+
+    const auto PNEWMONITOR = PNEWMONITORWRAP->get();
 
     PNEWMONITOR->output = OUTPUT;
     PNEWMONITOR->m_pThisWrap = PNEWMONITORWRAP;
@@ -73,14 +86,16 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         pMostHzMonitor = PNEWMONITOR;
 
     // ready to process cuz we have a monitor
-    if (PNEWMONITOR->m_bEnabled)
+    if (PNEWMONITOR->m_bEnabled) {
         g_pCompositor->m_bReadyToProcess = true;
+        g_pCompositor->m_bUnsafeState = false;
+    }
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {
     CMonitor* const PMONITOR = (CMonitor*)owner;
 
-    if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive) {
+    if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Attempted to render frame on inactive session!");
         return; // cannot draw on session inactive (different tty)
     }
@@ -294,20 +309,23 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     pMonitor->onDisconnect();
 
-    // cleanup
-    g_pCompositor->m_vRealMonitors.erase(std::remove_if(g_pCompositor->m_vRealMonitors.begin(), g_pCompositor->m_vRealMonitors.end(), [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; }));
+    // cleanup if not unsafe
 
-    if (pMostHzMonitor == pMonitor) {
-        int mostHz = 0;
-        CMonitor* pMonitorMostHz = nullptr;
+    if (!g_pCompositor->m_bUnsafeState) {
+        g_pCompositor->m_vRealMonitors.erase(std::remove_if(g_pCompositor->m_vRealMonitors.begin(), g_pCompositor->m_vRealMonitors.end(), [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; }));
 
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (m->refreshRate > mostHz) {
-                pMonitorMostHz = m.get();
-                mostHz = m->refreshRate;
+        if (pMostHzMonitor == pMonitor) {
+            int mostHz = 0;
+            CMonitor* pMonitorMostHz = nullptr;
+
+            for (auto& m : g_pCompositor->m_vMonitors) {
+                if (m->refreshRate > mostHz) {
+                    pMonitorMostHz = m.get();
+                    mostHz = m->refreshRate;
+                }
             }
-        }
 
-        pMostHzMonitor = pMonitorMostHz;
+            pMostHzMonitor = pMonitorMostHz;
+        }
     }
 }

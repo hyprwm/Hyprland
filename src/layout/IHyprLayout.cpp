@@ -260,6 +260,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         pWindow->m_sSpecialRenderData.rounding = true;
     }
 
+    g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
+
     pWindow->updateToplevel();
 }
 

@@ -42,6 +42,18 @@ struct SMonitorRenderData {
     bool         blurFBDirty = true;
 
     wlr_box      backgroundTexBox;
+
+    // Shaders
+    bool                    m_bShadersInitialized = false;
+    CShader                 m_shQUAD;
+    CShader                 m_shRGBA;
+    CShader                 m_shRGBX;
+    CShader                 m_shEXT;
+    CShader                 m_shBLUR1;
+    CShader                 m_shBLUR2;
+    CShader                 m_shSHADOW;
+    CShader                 m_shBORDER1;
+    //
 };
 
 struct SCurrentRenderData {
@@ -114,20 +126,10 @@ private:
     bool                    m_bFakeFrame = false;
     bool                    m_bEndFrame = false;
 
-    // Shaders
-    CShader                 m_shQUAD;
-    CShader                 m_shRGBA;
-    CShader                 m_shRGBX;
-    CShader                 m_shEXT;
-    CShader                 m_shBLUR1;
-    CShader                 m_shBLUR2;
-    CShader                 m_shSHADOW;
-    CShader                 m_shBORDER1;
-    //
-
     GLuint                  createProgram(const std::string&, const std::string&);
     GLuint                  compileShader(const GLuint&, std::string);
     void                    createBGTextureForMonitor(CMonitor*);
+    void                    initShaders();
 
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);

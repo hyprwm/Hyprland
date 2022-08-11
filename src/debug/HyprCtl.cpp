@@ -407,23 +407,56 @@ R"#(    {
     return result;
 }
 
-std::string versionRequest() {
-    std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + GIT_DIRTY + " (" + GIT_COMMIT_MESSAGE + ").\nflags: (if any)\n";
+std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
+
+    if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
+        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + GIT_DIRTY + " (" + removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str() + ").\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
-    result += "legacyrenderer\n";
+        result += "legacyrenderer\n";
 #endif
 #ifndef NDEBUG
-    result += "debug\n";
+        result += "debug\n";
 #endif
 #ifdef HYPRLAND_DEBUG
-	result += "debug\n";
+	    result += "debug\n";
 #endif
 #ifdef NO_XWAYLAND
-    result += "no xwayland\n";
+        result += "no xwayland\n";
 #endif
 
-    return result;
+        return result;
+    } else {
+        std::string result = getFormat(
+R"#({
+    "branch": "%s",
+    "commit": "%s",
+    "dirty": %s
+    "commit_message": "%s",
+    "flags" = [)#", GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str());
+
+#ifdef LEGACY_RENDERER
+        result += "\"legacyrenderer\",";
+#endif
+#ifndef NDEBUG
+        result += "\"debug\",";
+#endif
+#ifdef HYPRLAND_DEBUG
+	    result += "\"debug\",";
+#endif
+#ifdef NO_XWAYLAND
+        result += "\"no xwayland\",";
+#endif
+
+        if (result[result.length() - 1] == ',')
+            result.pop_back();
+
+        result += "]\n}";
+
+        return result;
+    }
+
+    return ""; // make the compiler happy
 }
 
 std::string dispatchRequest(std::string in) {
@@ -647,7 +680,7 @@ std::string getReply(std::string request) {
     else if (request == "layers")
         return layersRequest(format);
     else if (request == "version")
-        return versionRequest();
+        return versionRequest(format);
     else if (request == "reload")
         return reloadRequest();
     else if (request == "devices")

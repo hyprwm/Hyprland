@@ -372,7 +372,7 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
             // anim popin, fallback
 
             float minPerc = 0.f;
-            if (pWindow->m_sAdditionalConfigData.animationStyle.find("%") != 0) {
+            if (pWindow->m_sAdditionalConfigData.animationStyle.find("%") != std::string::npos) {
                 try {
                     auto percstr = pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find_last_of(' '));
                     minPerc = std::stoi(percstr.substr(0, percstr.length() - 1));
@@ -411,7 +411,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
         } else if (style.find("popin") == 0) {
             // try parsing
             float minPerc = 0.f;
-            if (style.find("%") != 0) {
+            if (style.find("%") != std::string::npos) {
                 try {
                     auto percstr = style.substr(style.find_last_of(' '));
                     minPerc = std::stoi(percstr.substr(0, percstr.length() - 1));

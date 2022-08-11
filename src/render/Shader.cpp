@@ -11,3 +11,10 @@ GLint CShader::getUniformLocation(const std::string& unif) {
 
     return itpos->second;
 }
+
+CShader::~CShader() {
+    // destroy shader
+    if (program != 0) {
+        glDeleteProgram(program);
+    }
+}

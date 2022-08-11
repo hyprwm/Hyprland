@@ -5,7 +5,9 @@
 
 class CShader {
 public:
-    GLuint program;
+    ~CShader();
+
+    GLuint program = 0;
     GLint proj;
     GLint color;
     GLint tex;

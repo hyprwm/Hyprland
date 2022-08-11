@@ -125,7 +125,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         ACTIVEWORKSPACE->setActive(true);
 
         // event
-        g_pEventManager->postEvent(SHyprIPCEvent{"activemon", PMONITOR->szName + "," + ACTIVEWORKSPACE->m_szName});
+        g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", PMONITOR->szName + "," + ACTIVEWORKSPACE->m_szName});
     }
 
     Vector2D surfaceCoords;

@@ -1331,6 +1331,15 @@ SConfigValue* CConfigManager::getConfigValuePtr(std::string val) {
     return &configValues[val];
 }
 
+SConfigValue* CConfigManager::getConfigValuePtrSafe(std::string val) {
+    const auto IT = configValues.find(val);
+
+    if (IT == configValues.end())
+        return nullptr;
+
+    return &(IT->second);
+}
+
 bool CConfigManager::deviceConfigExists(const std::string& dev) {
     const auto it = deviceConfigs.find(dev);
 

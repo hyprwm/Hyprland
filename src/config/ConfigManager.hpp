@@ -83,6 +83,7 @@ public:
     bool                shouldBlurLS(const std::string&);
 
     SConfigValue*       getConfigValuePtr(std::string);
+    SConfigValue*       getConfigValuePtrSafe(std::string);
 
     SMonitorRule        getMonitorRuleFor(std::string);
 

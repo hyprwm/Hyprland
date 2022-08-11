@@ -572,6 +572,47 @@ std::string dispatchSetCursor(std::string request) {
     return "ok";
 }
 
+std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
+    std::string curitem = "";
+
+    auto nextItem = [&]() {
+        auto idx = request.find_first_of(' ');
+
+        if (idx != std::string::npos) {
+            curitem = request.substr(0, idx);
+            request = request.substr(idx + 1);
+        } else {
+            curitem = request;
+            request = "";
+        }
+
+        curitem = removeBeginEndSpacesTabs(curitem);
+    };
+
+    nextItem();
+    nextItem();
+
+    const auto PCFGOPT = g_pConfigManager->getConfigValuePtrSafe(curitem);
+
+    if (!PCFGOPT)
+        return "no such option";
+
+    if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL)
+        return getFormat("option %s\n\tint: %i\n\tfloat: %f\n\tstr: \"%s\"", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str());
+    else {
+        return getFormat(
+R"#(
+{
+    "option": "%s",
+    "int": %i,
+    "float": %f,
+    "str": "%s"
+}
+)#", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str()
+        );
+    }
+}
+
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
@@ -619,6 +660,8 @@ std::string getReply(std::string request) {
         return dispatchKeyword(request);
     else if (request.find("setcursor") == 0)
         return dispatchSetCursor(request);
+    else if (request.find("getoption") == 0)
+        return dispatchGetOption(request, format);
     else if (request.find("[[BATCH]]") == 0)
         return dispatchBatch(request);
 

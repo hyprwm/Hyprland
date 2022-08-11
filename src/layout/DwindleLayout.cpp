@@ -768,6 +768,11 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
         addToDequeRecursive(&newGroupMembers, &nodesToRemove, PNODE->pParent->children[0] == PNODE ? PNODE->pParent->children[1] : PNODE->pParent->children[0]);
 
+        for (auto& n : newGroupMembers) {
+            if (n->isGroupMember())
+                return; // reject nested groups
+        }
+
         for (auto& nd : nodesToRemove) {
             m_lDwindleNodesData.remove(*nd);
         }

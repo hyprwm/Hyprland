@@ -92,6 +92,7 @@ public:
     uint64_t        m_iX11Type = 0;
     bool            m_bIsModal = false;
     bool            m_bX11DoesntWantBorders = false;
+    bool            m_bX11ShouldntFocus = false;
     //
 
     // For nofocus

@@ -1257,7 +1257,7 @@ void CKeybindManager::circleNext(std::string arg) {
         return;
 
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
-        if (PWINDOWTOCHANGETO == g_pCompositor->m_pLastWindow)
+        if (PWINDOWTOCHANGETO == g_pCompositor->m_pLastWindow || !PWINDOWTOCHANGETO)
             return;
 
         if (g_pCompositor->m_pLastWindow->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsFullscreen) {

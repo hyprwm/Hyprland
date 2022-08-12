@@ -27,7 +27,16 @@
 stdenv.mkDerivation {
   pname = "hyprland" + lib.optionalString debug "-debug";
   inherit version;
-  src = ../.;
+
+  src = lib.cleanSourceWith {
+    filter = name: type: let
+      baseName = baseNameOf (toString name);
+    in
+      ! (
+        lib.hasSuffix ".nix" baseName
+      );
+    src = lib.cleanSource ../.;
+  };
 
   nativeBuildInputs = [
     meson
@@ -59,7 +68,7 @@ stdenv.mkDerivation {
 
   mesonFlags = builtins.concatLists [
     (lib.optional (!enableXWayland) "-DNO_XWAYLAND=true")
-    (lib.optional (legacyRenderer) "-DLEGACY_RENDERER:STRING=true")  
+    (lib.optional legacyRenderer "-DLEGACY_RENDERER:STRING=true")
   ];
 
   patches = [

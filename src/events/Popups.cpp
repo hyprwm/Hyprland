@@ -151,7 +151,10 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
 
-    g_pHyprRenderer->damageBox(lx, ly, PPOPUP->popup->current.geometry.width, PPOPUP->popup->current.geometry.width);
+    wlr_box extents;
+    wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
+
+    g_pHyprRenderer->damageBox(lx, ly, extents.width + 2, extents.height + 2);
 
     Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode %x", PPOPUP->pSurfaceTree);
 }
@@ -167,7 +170,10 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
 
-    g_pHyprRenderer->damageBox(lx, ly, PPOPUP->popup->current.geometry.width, PPOPUP->popup->current.geometry.width);
+    wlr_box extents;
+    wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
+
+    g_pHyprRenderer->damageBox(lx, ly, extents.width + 2, extents.height + 2);
 
     PPOPUP->pSurfaceTree = nullptr;
 }

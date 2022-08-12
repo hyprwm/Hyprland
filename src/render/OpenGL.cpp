@@ -76,6 +76,10 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src) {
 void CHyprOpenGLImpl::begin(CMonitor* pMonitor, pixman_region32_t* pDamage, bool fake) {
     m_RenderData.pMonitor = pMonitor;
 
+    if (eglGetCurrentContext() != wlr_egl_get_context(g_pCompositor->m_sWLREGL)) {
+        eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL));
+    }
+
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
     matrixProjection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);

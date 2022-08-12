@@ -1,8 +1,22 @@
 project('Hyprland', 'cpp', 'c',
   version : '0.10.0beta',
-  default_options : ['warning_level=2', 'default_library=static', 'optimization=3'])
+  default_options : [
+    'warning_level=2',
+    'default_library=static',
+    'optimization=3',
+    # 'cpp_std=c++23' # not yet supported by meson, as of version 0.63.0
+    ])
 
-add_global_arguments('-std=c++23', language: 'cpp')
+# clang v14.0.6 uses C++2b instead of C++23, so we've gotta account for that
+# replace the following with a project default option once meson gets support for C++23
+cpp_compiler = meson.get_compiler('cpp')
+if cpp_compiler.has_argument('-std=c++23')
+  add_global_arguments('-std=c++23', language: 'cpp')
+elif cpp_compiler.has_argument('-std=c++2b')
+  add_global_arguments('-std=c++2b', language: 'cpp')
+else
+  error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.get_version() + ') with required C++ standard (C++23)')
+endif
 
 GIT_BRANCH = run_command('git', 'rev-parse', '--abbrev-ref', 'HEAD', check: false).stdout().strip()
 GIT_COMMIT_HASH = run_command('git', 'rev-parse', 'HEAD', check: false).stdout().strip()

@@ -40,6 +40,7 @@ struct SDwindleNodeData {
     void            getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
     bool            isGroupMember();
     SDwindleNodeData* getGroupHead();
+    SDwindleNodeData* getGroupVisible();
     void            setGroupFocusedNode(SDwindleNodeData*);
     CHyprDwindleLayout* layout = nullptr;
 };

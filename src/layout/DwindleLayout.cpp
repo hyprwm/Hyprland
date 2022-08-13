@@ -63,6 +63,20 @@ SDwindleNodeData* SDwindleNodeData::getGroupHead() {
     return this;
 }
 
+SDwindleNodeData* SDwindleNodeData::getGroupVisible() {
+    SDwindleNodeData* current = this->pNextGroupMember;
+
+    while (current != this) {
+        if (!current->pWindow->m_bHidden) {
+            return current;
+        }
+
+        current = current->pNextGroupMember;
+    }
+
+    return this;
+}
+
 void SDwindleNodeData::setGroupFocusedNode(SDwindleNodeData* pMember) {
     SDwindleNodeData* current = this->pNextGroupMember;
 
@@ -220,6 +234,14 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     if (force) {
         PWINDOW->m_vRealPosition.warp();
         PWINDOW->m_vRealSize.warp();
+    }
+
+    if (pNode->isGroupMember() && pNode->groupHead) {
+        // update visible node
+        const auto PVISNODE = pNode->getGroupVisible();
+
+        PVISNODE->pWindow->m_vRealSize = PWINDOW->m_vRealSize.goalv();
+        PVISNODE->pWindow->m_vRealPosition = PWINDOW->m_vRealPosition.goalv();
     }
 
     PWINDOW->updateWindowDecos();

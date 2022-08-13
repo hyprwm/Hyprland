@@ -1107,10 +1107,10 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     // get the adequate tex
     std::string texPath = "/usr/share/hyprland/wall_";
     Vector2D textureSize;
-    if (pMonitor->vecTransformedSize.x > 7000) {
+    if (pMonitor->vecTransformedSize.x > 3850) {
         textureSize = Vector2D(7680, 4320);
         texPath += "8K.png";
-    } else if (pMonitor->vecTransformedSize.x > 3000) {
+    } else if (pMonitor->vecTransformedSize.x > 1930) {
         textureSize = Vector2D(3840, 2160);
         texPath += "4K.png";
     } else {
@@ -1131,8 +1131,8 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     glBindTexture(GL_TEXTURE_2D, PTEX->m_iTexID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     #ifndef GLES2
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);

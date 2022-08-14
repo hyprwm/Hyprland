@@ -77,7 +77,7 @@ in {
           if cfg.package == null
           then defaultHyprlandPackage
           else cfg.package;
-      in "HYPRLAND_INSTANCE_SIGNATURE=$(ls -w 1 /tmp/hypr | tail -1) ${hyprlandPackage}/bin/hyprctl reload";
+      in "HYPRLAND_INSTANCE_SIGNATURE=$(ls -w 1 /tmp/hypr | tail -1) ${hyprlandPackage}/bin/hyprctl reload config-only";
     };
 
     systemd.user.targets.hyprland-session = lib.mkIf cfg.systemdIntegration {

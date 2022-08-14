@@ -97,6 +97,7 @@ public:
     void                performMonitorReload();
     bool                m_bWantsMonitorReload = false;
     bool                m_bForceReload = false;
+    bool                m_bNoMonitorReload = false;
     void                ensureDPMS();
 
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);

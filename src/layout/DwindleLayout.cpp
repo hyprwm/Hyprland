@@ -697,10 +697,6 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
 
     g_pCompositor->moveWindowToTop(pWindow);
 
-    // we need to fix XWayland windows by sending them to NARNIA
-    // because otherwise they'd still be recieving mouse events
-    g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
-
     recalculateMonitor(PMONITOR->ID);
 }
 

@@ -128,7 +128,6 @@ public:
     void                    updateWorkspaceWindowDecos(const int&);
     int                     getWindowsOnWorkspace(const int&);
     CWindow*                getFirstWindowOnWorkspace(const int&);
-    void                    fixXWaylandWindowsOnWorkspace(const int&);
     CWindow*                getFullscreenWindowOnWorkspace(const int&);
     bool                    doesSeatAcceptInput(wlr_surface*);
     bool                    isWindowActive(CWindow*);

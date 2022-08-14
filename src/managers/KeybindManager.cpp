@@ -488,13 +488,6 @@ void CKeybindManager::changeworkspace(std::string args) {
             else
                 PMONITOR->specialWorkspaceOpen = true;
 
-            // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
-            // and that'd be annoying as hell
-            g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACEID);
-
-            // and fix on the new workspace
-            g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
-
             // here and only here begin anim. we don't want to anim visible workspaces on other monitors.
             // check if anim left or right
             const auto ANIMTOLEFT = workspaceToChangeTo > OLDWORKSPACEID;
@@ -562,10 +555,6 @@ void CKeybindManager::changeworkspace(std::string args) {
         PMONITOR->activeWorkspace = workspaceToChangeTo;
     else
         PMONITOR->specialWorkspaceOpen = true;
-
-    // we need to move XWayland windows to narnia or otherwise they will still process our cursor and shit
-    // and that'd be annoying as hell
-    g_pCompositor->fixXWaylandWindowsOnWorkspace(OLDWORKSPACE);
 
     // set active and deactivate all other
     g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACE->m_pWlrHandle);

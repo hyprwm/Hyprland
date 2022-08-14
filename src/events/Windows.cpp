@@ -481,11 +481,11 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 
         if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
-            g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, REQUESTED->fullscreen);
+            g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
 
         wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
     } else {
-        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, !PWINDOW->m_bIsFullscreen);
+        g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_FULL);
     }
 
     PWINDOW->updateToplevel();

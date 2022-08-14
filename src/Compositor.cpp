@@ -848,31 +848,6 @@ CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
     return nullptr;
 }
 
-void CCompositor::fixXWaylandWindowsOnWorkspace(const int& id) {
-    // not needed anymore
-    return;
-    
-    const auto ISVISIBLE = isWorkspaceVisible(id);
-
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-
-    if (!PWORKSPACE)
-        return;
-
-    for (auto& w : m_vWindows) {
-        if (w->m_iWorkspaceID == id) {
-
-            // moveXWaylandWindow only moves XWayland windows
-            // so there is no need to check here
-            // if the window is XWayland or not.
-            if (ISVISIBLE && (!PWORKSPACE->m_bHasFullscreenWindow || w->m_bIsFullscreen))
-                g_pXWaylandManager->moveXWaylandWindow(w.get(), w->m_vRealPosition.vec());
-            else 
-                g_pXWaylandManager->moveXWaylandWindow(w.get(), Vector2D(42069,42069));
-        }
-    }
-}
-
 bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
     return !m_sSeat.exclusiveClient || (surface && m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource));
 }

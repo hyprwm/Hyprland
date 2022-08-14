@@ -87,7 +87,6 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
 
     if (pWindow->m_iX11Type != 2) {
         g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
-        g_pCompositor->fixXWaylandWindowsOnWorkspace(PMONITOR->activeWorkspace);
 
         g_pCompositor->moveWindowToTop(pWindow);
     }

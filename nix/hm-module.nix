@@ -65,9 +65,11 @@ in {
 
     xdg.configFile."hypr/hyprland.conf" = {
       text =
-        (lib.optionalString cfg.systemdIntegration "
-            exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP; systemctl --user start hyprland-session.target
-          ")
+        (lib.optionalString cfg.systemdIntegration ''
+            exec-once=export XDG_SESSION_TYPE=wayland
+            exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+            exec-once=systemctl --user start hyprland-session.target
+          '')
         + cfg.extraConfig;
 
       onChange = let
@@ -75,7 +77,7 @@ in {
           if cfg.package == null
           then defaultHyprlandPackage
           else cfg.package;
-      in "${hyprlandPackage}/bin/hyprctl reload";
+      in "HYPRLAND_INSTANCE_SIGNATURE=$(ls -w 1 /tmp/hypr | tail -1) ${hyprlandPackage}/bin/hyprctl reload";
     };
 
     systemd.user.targets.hyprland-session = lib.mkIf cfg.systemdIntegration {

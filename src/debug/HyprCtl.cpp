@@ -505,8 +505,15 @@ std::string dispatchKeyword(std::string in) {
     return retval;
 }
 
-std::string reloadRequest() {
+std::string reloadRequest(std::string request) {
+    
+    const auto REQMODE = request.substr(request.find_last_of(' ') + 1);
+
     g_pConfigManager->m_bForceReload = true;
+
+    if (REQMODE == "config-only") {
+        g_pConfigManager->m_bNoMonitorReload = true;
+    }
 
     return "ok";
 }
@@ -681,8 +688,8 @@ std::string getReply(std::string request) {
         return layersRequest(format);
     else if (request == "version")
         return versionRequest(format);
-    else if (request == "reload")
-        return reloadRequest();
+    else if (request.find("reload") == 0)
+        return reloadRequest(request);
     else if (request == "devices")
         return devicesRequest(format);
     else if (request == "splash")

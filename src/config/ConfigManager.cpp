@@ -1079,7 +1079,8 @@ void CConfigManager::loadConfigLoadVars() {
     // Set the modes for all monitors as we configured them
     // not on first launch because monitors might not exist yet
     // and they'll be taken care of in the newMonitor event
-    if (!isFirstLaunch) {
+    // ignore if nomonitorreload is set
+    if (!isFirstLaunch && !m_bNoMonitorReload) {
         m_bWantsMonitorReload = true;
 
         // check
@@ -1099,6 +1100,9 @@ void CConfigManager::loadConfigLoadVars() {
     // Force the compositor to fully re-render all monitors
     for (auto& m : g_pCompositor->m_vMonitors)
         m->forceFullFrames = 2;
+    
+    // Reset no monitor reload
+    m_bNoMonitorReload = false;
 }
 
 void CConfigManager::tick() {

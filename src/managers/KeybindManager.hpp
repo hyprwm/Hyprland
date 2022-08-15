@@ -94,6 +94,8 @@ private:
     static void         forceRendererReload(std::string);
     static void         resizeActive(std::string);
     static void         moveActive(std::string);
+    static void         moveWindow(std::string);
+    static void         resizeWindow(std::string);
     static void         circleNext(std::string);
     static void         focusWindow(std::string);
     static void         setSubmap(std::string);

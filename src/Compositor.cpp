@@ -1564,3 +1564,42 @@ SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
 
     return nullptr;
 }
+
+// returns a delta
+Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, const Vector2D& relativeTo) {
+    if (!args.contains(' '))
+        return relativeTo;
+
+    std::string x = args.substr(0, args.find_first_of(' '));
+    std::string y = args.substr(args.find_first_of(' ') + 1);
+
+    if (x == "exact") {
+        std::string newX = y.substr(0, y.find_first_of(' '));
+        std::string newY = y.substr(y.find_first_of(' ') + 1);
+
+        if (!isNumber(newX) || !isNumber(newY)) {
+            Debug::log(ERR, "parseWindowVectorArgsRelative: exact args not numbers");
+            return relativeTo;
+        }
+
+        const int X = std::stoi(newX);
+        const int Y = std::stoi(newY);
+
+        if (X < 0 || Y < 0) {
+            Debug::log(ERR, "parseWindowVectorArgsRelative: exact args cannot be < 0");
+            return relativeTo;
+        }
+
+        return Vector2D(X, Y);
+    }
+
+    if (!isNumber(x) || !isNumber(y)) {
+        Debug::log(ERR, "parseWindowVectorArgsRelative: args not numbers");
+        return relativeTo;
+    }
+
+    const int X = std::stoi(x);
+    const int Y = std::stoi(y);
+
+    return Vector2D(X + relativeTo.x, Y + relativeTo.y);
+}

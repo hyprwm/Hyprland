@@ -37,6 +37,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["layoutmsg"]                 = layoutmsg;
     m_mDispatchers["toggleopaque"]              = toggleOpaque;
     m_mDispatchers["dpms"]                      = dpms;
+    m_mDispatchers["movewindowpixel"]           = moveWindow;
+    m_mDispatchers["resizewindowpixel"]         = resizeWindow;
 
     m_tScrollTimer.reset();
 }
@@ -1138,107 +1140,61 @@ void CKeybindManager::forceRendererReload(std::string args) {
 }
 
 void CKeybindManager::resizeActive(std::string args) {
-    if (!args.contains(' '))
-        return;
-
-    const auto PWINDOW = g_pCompositor->m_pLastWindow;
-
-    // calc the delta
     if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
-        return; // ignore
-
-    std::string x = args.substr(0, args.find_first_of(' '));
-    std::string y = args.substr(args.find_first_of(' ') + 1);
-
-    if (x == "exact") {
-        std::string newX = y.substr(0, y.find_first_of(' '));
-        std::string newY = y.substr(y.find_first_of(' ') + 1);
-
-        if (!isNumber(newX) || !isNumber(newY)) {
-            Debug::log(ERR, "resizeTiledWindow: exact args not numbers");
-            return;
-        }
-
-        const int X = std::stoi(newX);
-        const int Y = std::stoi(newY);
-
-        if (X < 10 || Y < 10) {
-            Debug::log(ERR, "resizeTiledWindow: exact args cannot be < 10");
-            return;
-        }
-
-        const int DX = X - PWINDOW->m_vRealSize.goalv().x;
-        const int DY = Y - PWINDOW->m_vRealSize.goalv().y;
-
-        g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(DX, DY));
-
-        if (PWINDOW->m_vRealSize.goalv().x > 1 && PWINDOW->m_vRealSize.goalv().y > 1)
-            PWINDOW->m_bHidden = false;
-
         return;
-    }
 
-    if (!isNumber(x) || !isNumber(y)) {
-        Debug::log(ERR, "resizeTiledWindow: args not numbers");
-        return;
-    }
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealSize.goalv());
 
-    const int X = std::stoi(x);
-    const int Y = std::stoi(y);
+    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - g_pCompositor->m_pLastWindow->m_vRealSize.goalv());
 
-    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(Vector2D(X, Y));
-
-    if (PWINDOW->m_vRealSize.goalv().x > 1 && PWINDOW->m_vRealSize.goalv().y > 1)
-        PWINDOW->m_bHidden = false;
+    if (g_pCompositor->m_pLastWindow->m_vRealSize.goalv().x > 1 && g_pCompositor->m_pLastWindow->m_vRealSize.goalv().y > 1)
+        g_pCompositor->m_pLastWindow->m_bHidden = false;
 }
 
 void CKeybindManager::moveActive(std::string args) {
-    if (!args.contains(' '))
+    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
         return;
 
-    std::string x = args.substr(0, args.find_first_of(' '));
-    std::string y = args.substr(args.find_first_of(' ') + 1);
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealPosition.goalv());
 
-    if (x == "exact") {
-        std::string newX = y.substr(0, y.find_first_of(' '));
-        std::string newY = y.substr(y.find_first_of(' ') + 1);
+    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - g_pCompositor->m_pLastWindow->m_vRealPosition.goalv());
+}
 
-        if (!isNumber(newX) || !isNumber(newY)) {
-            Debug::log(ERR, "moveActive: exact args not numbers");
-            return;
-        }
+void CKeybindManager::moveWindow(std::string args) {
 
-        const int X = std::stoi(newX);
-        const int Y = std::stoi(newY);
+    const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
+    const auto MOVECMD = args.substr(0, args.find_first_of(','));
 
-        if (X < 0 || Y < 0) {
-            Debug::log(ERR, "moveActive: exact args cannot be < 0");
-            return;
-        }
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
 
-        // calc the delta
-        if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
-            return;  // ignore
-
-        const auto PWINDOW = g_pCompositor->m_pLastWindow;
-
-        const int DX = X - PWINDOW->m_vRealPosition.goalv().x;
-        const int DY = Y - PWINDOW->m_vRealPosition.goalv().y;
-
-        g_pLayoutManager->getCurrentLayout()->moveActiveWindow(Vector2D(DX, DY));
-
+    if (!PWINDOW) {
+        Debug::log(ERR, "moveWindow: no window");
         return;
     }
 
-    if (!isNumber(x) || !isNumber(y)) {
-        Debug::log(ERR, "moveActive: args not numbers");
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealPosition.goalv());
+
+    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PWINDOW->m_vRealPosition.goalv(), PWINDOW);
+}
+
+void CKeybindManager::resizeWindow(std::string args) {
+
+    const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
+    const auto MOVECMD = args.substr(0, args.find_first_of(','));
+
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "resizeWindow: no window");
         return;
     }
 
-    const int X = std::stoi(x);
-    const int Y = std::stoi(y);
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealSize.goalv());
 
-    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(Vector2D(X, Y));
+    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_vRealSize.goalv(), PWINDOW);
+
+    if (PWINDOW->m_vRealSize.goalv().x > 1 && PWINDOW->m_vRealSize.goalv().y > 1)
+        PWINDOW->m_bHidden = false;
 }
 
 void CKeybindManager::circleNext(std::string arg) {

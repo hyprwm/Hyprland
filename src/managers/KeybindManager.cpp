@@ -584,7 +584,15 @@ void CKeybindManager::fullscreenActive(std::string args) {
 }
 
 void CKeybindManager::moveActiveToWorkspace(std::string args) {
-    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    CWindow* PWINDOW = nullptr;
+
+    if (args.contains(',')) {
+        PWINDOW = g_pCompositor->getWindowByRegex(args.substr(args.find_last_of(',') + 1));
+        args = args.substr(0, args.find_last_of(','));
+    } else {
+        PWINDOW = g_pCompositor->m_pLastWindow;
+    }
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;
@@ -667,6 +675,20 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     // hacky, but works lol
 
+    CWindow* PWINDOW = nullptr;
+
+    const auto ORIGINALARGS = args;
+
+    if (args.contains(',')) {
+        PWINDOW = g_pCompositor->getWindowByRegex(args.substr(args.find_last_of(',') + 1));
+        args = args.substr(0, args.find_last_of(','));
+    } else {
+        PWINDOW = g_pCompositor->m_pLastWindow;
+    }
+
+    if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
     int workspaceToMoveTo = 0;
     std::string workspaceName = "";
 
@@ -677,14 +699,9 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
         return;
     }
 
-    const auto PWINDOW = g_pCompositor->m_pLastWindow;
-
-    if (!g_pCompositor->windowValidMapped(PWINDOW))
-        return;
-
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-    if (workspaceToMoveTo == PMONITOR->activeWorkspace)
+    if (workspaceToMoveTo == PWINDOW->m_iWorkspaceID)
         return;
 
     // may be null until later!
@@ -700,7 +717,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     g_pEventManager->m_bIgnoreEvents = true;
 
-    moveActiveToWorkspace(args);
+    moveActiveToWorkspace(ORIGINALARGS);
 
     PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
 

@@ -516,20 +516,21 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
         // massive hack from the fullscreen func
         const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
-        if (!PFULLWINDOW) // ????
+        if (!PFULLWINDOW) { // ????
             PWORKSPACE->m_bHasFullscreenWindow = false;
+        } else {
+            SDwindleNodeData fakeNode;
+            fakeNode.pWindow = PFULLWINDOW;
+            fakeNode.position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID = PWORKSPACE->m_iID;
+            PFULLWINDOW->m_vPosition = fakeNode.position;
+            PFULLWINDOW->m_vSize = fakeNode.size;
 
-        SDwindleNodeData fakeNode;
-        fakeNode.pWindow = PFULLWINDOW;
-        fakeNode.position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-        fakeNode.size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-        fakeNode.workspaceID = PWORKSPACE->m_iID;
-        PFULLWINDOW->m_vPosition = fakeNode.position;
-        PFULLWINDOW->m_vSize = fakeNode.size;
+            applyNodeDataToWindow(&fakeNode);
 
-        applyNodeDataToWindow(&fakeNode);
-
-        return;
+            return;
+        }
     }
 
     const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->activeWorkspace);

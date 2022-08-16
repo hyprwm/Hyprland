@@ -477,6 +477,9 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
 void Events::listener_fullscreenWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
+    if (!PWINDOW->m_bIsMapped || PWINDOW->m_bHidden)
+        return;
+
     if (!PWINDOW->m_bIsX11) {
         const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 

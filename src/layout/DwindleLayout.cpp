@@ -561,6 +561,8 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
         return;
     }
 
+    const auto PANIMATE = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
+
     // get some data about our window
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
     const bool DISPLAYLEFT = STICKS(PWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
@@ -592,11 +594,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
         if (PARENTSIDEBYSIDE) {
             allowedMovement.x *= 2.f / PPARENT->size.x;
             PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
-            PPARENT->recalcSizePosRecursive(true);
+            PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
         } else {
             allowedMovement.y *= 2.f / PPARENT->size.y;
             PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-            PPARENT->recalcSizePosRecursive(true);
+            PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
         }
 
         return;
@@ -611,11 +613,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
         if (PARENTSIDEBYSIDE) {
             allowedMovement.x *= 2.f / PPARENT->size.x;
             PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
-            PPARENT->recalcSizePosRecursive(true);
+            PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
         } else {
             allowedMovement.y *= 2.f / PPARENT->size.y;
             PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-            PPARENT->recalcSizePosRecursive(true);
+            PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
         }
 
         return;
@@ -630,8 +632,8 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
 
     SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
     TOPCONTAINER->splitRatio = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
-    SIDECONTAINER->recalcSizePosRecursive(true);
-    TOPCONTAINER->recalcSizePosRecursive(true);
+    SIDECONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
+    TOPCONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
 }
 
 void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode, bool on) {

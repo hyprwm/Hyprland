@@ -516,7 +516,7 @@ void Events::listener_configureX11(void* owner, void* data) {
     const auto E = (wlr_xwayland_surface_configure_event*)data;
     g_pHyprRenderer->damageWindow(PWINDOW);
 
-    if (!PWINDOW->m_bIsFloating) {
+    if (!PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen) {
         g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.vec());
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(PWINDOW);

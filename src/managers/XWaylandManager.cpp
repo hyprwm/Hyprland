@@ -120,9 +120,9 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
     }
 }
 
-void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size) {
+void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size, bool force) {
 
-    if ((pWindow->m_vReportedSize == size && pWindow->m_vRealPosition.vec() == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11))
+    if (!force && ((pWindow->m_vReportedSize == size && pWindow->m_vRealPosition.vec() == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
         return;
 
     pWindow->m_vReportedPosition = pWindow->m_vRealPosition.vec();

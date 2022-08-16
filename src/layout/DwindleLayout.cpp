@@ -487,6 +487,10 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
 void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
+
+    if (!PMONITOR)
+        return; // ???
+
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
     if (!PWORKSPACE)
@@ -511,6 +515,9 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
 
         // massive hack from the fullscreen func
         const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+
+        if (!PFULLWINDOW) // ????
+            PWORKSPACE->m_bHasFullscreenWindow = false;
 
         SDwindleNodeData fakeNode;
         fakeNode.pWindow = PFULLWINDOW;

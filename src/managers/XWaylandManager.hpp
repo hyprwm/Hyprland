@@ -17,7 +17,7 @@ public:
     std::string         getTitle(CWindow*);
     std::string         getAppIDClass(CWindow*);
     void                sendCloseWindow(CWindow*);
-    void                setWindowSize(CWindow*, const Vector2D&);
+    void                setWindowSize(CWindow*, const Vector2D&, bool force = false);
     void                setWindowStyleTiled(CWindow*, uint32_t);
     void                setWindowFullscreen(CWindow*, bool);
     wlr_surface*        surfaceAt(CWindow*, const Vector2D&, Vector2D&);

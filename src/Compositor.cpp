@@ -1391,11 +1391,14 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
 
     g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
+    
     // make all windows on the same workspace under the fullscreen window
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID)
             w->m_bCreatedOverFullscreen = false;
     }
+    
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv(), true);
 }
 
 void CCompositor::moveUnmanagedX11ToWindows(CWindow* pWindow) {

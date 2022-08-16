@@ -300,7 +300,7 @@ R"#(    {
 
         result += "\"keyboards\": [\n";
         for (auto& k : g_pInputManager->m_lKeyboards) {
-            const auto KM = xkb_keymap_layout_get_name(wlr_keyboard_from_input_device(k.keyboard)->keymap, 0);
+            const auto KM = g_pInputManager->getActiveLayoutForKeyboard(&k);
             result += getFormat(
 R"#(    {
         "address": "0x%x",
@@ -385,7 +385,7 @@ R"#(    {
         result += "\n\nKeyboards:\n";
 
         for (auto& k : g_pInputManager->m_lKeyboards) {
-            const auto KM = xkb_keymap_layout_get_name(wlr_keyboard_from_input_device(k.keyboard)->keymap, 0);
+            const auto KM = g_pInputManager->getActiveLayoutForKeyboard(&k);
             result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n\t\t\tactive keymap: %s\n", &k, k.keyboard->name, k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(), k.currentRules.options.c_str(), KM);
         }
 

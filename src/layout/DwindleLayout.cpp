@@ -177,11 +177,13 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         PWINDOW->updateWindowDecos();
 
         PWINDOW->m_sSpecialRenderData.rounding = false;
+        PWINDOW->m_sSpecialRenderData.border = false;
 
         return;
     }
 
     PWINDOW->m_sSpecialRenderData.rounding = true;
+    PWINDOW->m_sSpecialRenderData.border = true;
 
     const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? GAPSOUT : GAPSIN,
                                         DISPLAYTOP ? GAPSOUT : GAPSIN);

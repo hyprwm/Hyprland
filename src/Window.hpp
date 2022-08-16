@@ -13,6 +13,7 @@ struct SWindowSpecialRenderData {
 
     // set by the layout
     bool rounding = true;
+    bool border = true;
 };  
 
 struct SWindowAdditionalConfigData {

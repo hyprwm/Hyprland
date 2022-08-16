@@ -255,7 +255,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 
-        if (renderdata.decorate) {
+        if (renderdata.decorate && pWindow->m_sSpecialRenderData.border) {
             static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
 
             float rounding = renderdata.dontRound ? 0 : renderdata.rounding == -1 ? *PROUNDING : renderdata.rounding;

@@ -167,6 +167,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     const auto DELTA = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
     const auto TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
 
+    const auto PANIMATE = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
+
     if (abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f)
         return;
 
@@ -175,7 +177,11 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     if (g_pInputManager->dragButton == BTN_LEFT) {
-        DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
+        if (*PANIMATE) {
+            DRAGGINGWINDOW->m_vRealPosition = m_vBeginDragPositionXY + DELTA;
+        } else {
+            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
+        }
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
     } else {
@@ -183,9 +189,13 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW);
 
-            DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
-            DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().x, (double)20, (double)MAXSIZE.x), std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().y, (double)20, (double)MAXSIZE.y)));
-
+            if (*PANIMATE) {
+                DRAGGINGWINDOW->m_vRealSize = Vector2D(std::clamp(m_vBeginDragSizeXY.x + DELTA.x, (double)20, (double)MAXSIZE.x), std::clamp(m_vBeginDragSizeXY.y + DELTA.y, (double)20, (double)MAXSIZE.y));
+            } else {
+                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
+                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().x, (double)20, (double)MAXSIZE.x), std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().y, (double)20, (double)MAXSIZE.y)));
+            }
+            
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
         } else {
             resizeActiveWindow(TICKDELTA, DRAGGINGWINDOW);

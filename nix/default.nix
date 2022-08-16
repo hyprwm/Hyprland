@@ -19,6 +19,7 @@
   wlroots,
   xcbutilwm,
   xwayland,
+  pandoc,
   debug ? false,
   enableXWayland ? true,
   legacyRenderer ? false,
@@ -42,6 +43,12 @@ stdenv.mkDerivation {
     meson
     ninja
     pkg-config
+    pandoc # Man pages
+  ];
+
+  outputs = [
+    "out"
+    "man"
   ];
 
   buildInputs =
@@ -66,9 +73,10 @@ stdenv.mkDerivation {
     then "debug"
     else "release";
 
-  mesonFlags = builtins.concatLists [
+  mesonFlags = lib.flatten [
     (lib.optional (!enableXWayland) "-DNO_XWAYLAND=true")
     (lib.optional legacyRenderer "-DLEGACY_RENDERER:STRING=true")
+    "-Dman=enabled"
   ];
 
   patches = [

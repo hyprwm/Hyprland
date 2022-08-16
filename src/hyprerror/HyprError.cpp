@@ -14,6 +14,8 @@ void CHyprError::createQueued() {
 
     const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
 
+    const auto FONTSIZE = std::clamp((int)(10.f * (PMONITOR->vecPixelSize.x / 1920.f)), 8, 40);
+
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
     const auto CAIRO = cairo_create(CAIROSURFACE);
@@ -27,7 +29,7 @@ void CHyprError::createQueued() {
     const auto LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
 
     cairo_set_source_rgba(CAIRO, m_cQueued.r / 255.f, m_cQueued.g / 255.f, m_cQueued.b / 255.f, m_cQueued.a / 255.f);
-    cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, 10 * LINECOUNT);
+    cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, (FONTSIZE + 2 * (FONTSIZE / 10.f)) * LINECOUNT);
 
     // outline
     cairo_rectangle(CAIRO, 0, 0, 1, PMONITOR->vecPixelSize.y);                                     // left
@@ -40,10 +42,10 @@ void CHyprError::createQueued() {
     const CColor textColor = m_cQueued.r * m_cQueued.g * m_cQueued.b < 0.5f ? CColor(255, 255, 255, 255) : CColor(0, 0, 0, 255);
 
     cairo_select_font_face(CAIRO, "Noto Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(CAIRO, 8);
+    cairo_set_font_size(CAIRO, FONTSIZE);
     cairo_set_source_rgba(CAIRO, textColor.r / 255.f, textColor.g / 255.f, textColor.b / 255.f, textColor.a / 255.f);
 
-    float yoffset = 8;
+    float yoffset = FONTSIZE;
     while(m_szQueued != "") {
         std::string current = m_szQueued.substr(0, m_szQueued.find('\n'));
         if (const auto NEWLPOS = m_szQueued.find('\n'); NEWLPOS != std::string::npos)
@@ -52,7 +54,7 @@ void CHyprError::createQueued() {
             m_szQueued = "";
         cairo_move_to(CAIRO, 0, yoffset);
         cairo_show_text(CAIRO, current.c_str());
-        yoffset += 9;
+        yoffset += FONTSIZE + (FONTSIZE / 10.f);
     }
     
 

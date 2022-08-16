@@ -100,6 +100,8 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         Debug::log(LOG, "Ended swipe to the right");
     }
 
+    g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
+
     PWORKSPACEL->m_bForceRendering = false;
     PWORKSPACER->m_bForceRendering = false;
     m_sActiveSwipe.pWorkspaceBegin->m_bForceRendering = false;

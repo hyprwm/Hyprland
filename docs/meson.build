@@ -26,6 +26,7 @@ if build_man_pages
         get_option('mandir'),
         'man1',
       ),
+      install_tag : 'man',
     )
   endforeach
 endif

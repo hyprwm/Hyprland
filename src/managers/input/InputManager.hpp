@@ -35,6 +35,7 @@ public:
     void            constrainMouse(SMouse*, wlr_pointer_constraint_v1*);
     void            recheckConstraint(SMouse*);
     void            unconstrainMouse();
+    std::string     getActiveLayoutForKeyboard(SKeyboard*);
 
     Vector2D        getMouseCoordsInternal();
     void            refocus();

@@ -887,3 +887,22 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
 
     return finalMask;
 }
+
+std::string CInputManager::getActiveLayoutForKeyboard(SKeyboard* pKeyboard) {
+    const auto WLRKB = wlr_keyboard_from_input_device(pKeyboard->keyboard);
+    const auto KEYMAP = WLRKB->keymap;
+    const auto STATE = WLRKB->xkb_state;
+    const auto LAYOUTSNUM = xkb_keymap_num_layouts(KEYMAP);
+
+    for (auto i = 0; i < LAYOUTSNUM; ++i) {
+        if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE)) {
+            const auto LAYOUTNAME = xkb_keymap_layout_get_name(KEYMAP, i);
+
+            if (LAYOUTNAME) 
+                return std::string(LAYOUTNAME);
+            return "error";
+        }
+    }
+
+    return "none";
+}

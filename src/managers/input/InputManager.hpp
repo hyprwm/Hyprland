@@ -14,6 +14,7 @@ enum eClickBehaviorMode {
 
 struct STouchData {
     CWindow* touchFocusWindow = nullptr;
+    Vector2D touchSurfaceOrigin;
 };
 
 class CInputManager {

@@ -94,10 +94,13 @@ struct SKeyboard {
 
     DYNLISTENER(keyboardMod);
     DYNLISTENER(keyboardKey);
+    DYNLISTENER(keyboardKeymap);
     DYNLISTENER(keyboardDestroy);
 
     bool isVirtual = false;
     bool active = false;
+
+    xkb_layout_index_t activeLayout = 0;
 
     std::string name = "";
 

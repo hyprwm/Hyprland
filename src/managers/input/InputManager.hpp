@@ -107,6 +107,8 @@ private:
     void            processMouseDownNormal(wlr_pointer_button_event* e);
     void            processMouseDownKill(wlr_pointer_button_event* e);
 
+    void            disableAllKeyboards(bool virt = false);
+
     uint32_t        m_uiCapabilities = 0;
 
     void            mouseMoveUnified(uint32_t, bool refocus = false);

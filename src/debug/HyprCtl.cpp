@@ -310,7 +310,8 @@ R"#(    {
         "layout": "%s",
         "variant": "%s",
         "options": "%s",
-        "active_keymap": "%s"
+        "active_keymap": "%s",
+        "main": %s
     },)#",
                 &k,
                 escapeJSONStrings(k.keyboard->name).c_str(),
@@ -319,7 +320,8 @@ R"#(    {
                 escapeJSONStrings(k.currentRules.layout).c_str(),
                 escapeJSONStrings(k.currentRules.variant).c_str(),
                 escapeJSONStrings(k.currentRules.options).c_str(),
-                escapeJSONStrings(KM).c_str()
+                escapeJSONStrings(KM).c_str(),
+                (k.active ? "true" : "false")
             );
         }
 
@@ -386,7 +388,7 @@ R"#(    {
 
         for (auto& k : g_pInputManager->m_lKeyboards) {
             const auto KM = g_pInputManager->getActiveLayoutForKeyboard(&k);
-            result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n\t\t\tactive keymap: %s\n", &k, k.keyboard->name, k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(), k.currentRules.options.c_str(), KM.c_str());
+            result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n\t\t\tactive keymap: %s\n\t\t\tmain: %s\n", &k, k.keyboard->name, k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(), k.currentRules.options.c_str(), KM.c_str(), (k.active ? "yes" : "no"));
         }
 
         result += "\n\nTablets:\n";

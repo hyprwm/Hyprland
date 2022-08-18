@@ -441,9 +441,18 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
     PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
 
-    if (m_pActiveKeyboard)
-        m_pActiveKeyboard->active = false;
+    PNEWKEYBOARD->hyprListener_keyboardKeymap.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.keymap, [&](void* owner, void* data) {
+        const auto PKEYBOARD = (SKeyboard*)owner;
+
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," +getActiveLayoutForKeyboard(PKEYBOARD)}, true); // force as this should ALWAYS be sent
+        
+    }, PNEWKEYBOARD, "Keyboard");
+
+    disableAllKeyboards(false);
+    
     m_pActiveKeyboard = PNEWKEYBOARD;
+
+    PNEWKEYBOARD->active = true;
 
     applyConfigToKeyboard(PNEWKEYBOARD);
 
@@ -467,10 +476,18 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
     PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
     PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
     PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardKeymap.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.keymap, [&](void* owner, void* data) {
+        const auto PKEYBOARD = (SKeyboard*)owner;
 
-    if (m_pActiveKeyboard)
-        m_pActiveKeyboard->active = false;
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," +getActiveLayoutForKeyboard(PKEYBOARD)}, true); // force as this should ALWAYS be sent
+        
+    }, PNEWKEYBOARD, "Keyboard");
+
+    disableAllKeyboards(true);
+
     m_pActiveKeyboard = PNEWKEYBOARD;
+
+    PNEWKEYBOARD->active = true;
 
     applyConfigToKeyboard(PNEWKEYBOARD);
 
@@ -581,6 +598,8 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," +getActiveLayoutForKeyboard(pKeyboard)}, true); // force as this should ALWAYS be sent
 
     Debug::log(LOG, "Set the keyboard layout to %s and variant to %s for keyboard \"%s\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
 } 
@@ -735,6 +754,14 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
         wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
         wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers);
     }
+
+    const auto PWLRKB = wlr_keyboard_from_input_device(pKeyboard->keyboard);
+
+    if (PWLRKB->modifiers.group != pKeyboard->activeLayout) {
+		pKeyboard->activeLayout = PWLRKB->modifiers.group;
+
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + getActiveLayoutForKeyboard(pKeyboard)}, true); // force as this should ALWAYS be sent
+	}
 }
 
 void CInputManager::refocus() {
@@ -905,4 +932,14 @@ std::string CInputManager::getActiveLayoutForKeyboard(SKeyboard* pKeyboard) {
     }
 
     return "none";
+}
+
+void CInputManager::disableAllKeyboards(bool virt) {
+
+    for (auto& k : m_lKeyboards) {
+        if (k.isVirtual != virt)
+            continue;
+
+        k.active = false;
+    }
 }

@@ -295,6 +295,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto TIMER = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, setAnimToMove, PWINDOW);
     wl_event_source_timer_update(TIMER, PWINDOW->m_vRealPosition.getDurationLeftMs() + 5);
 
+    g_pEventManager->postEvent(SHyprIPCEvent{"mapwindow", getFormat("%x,%s,%s,%s", PWINDOW, PWORKSPACE->m_szName.c_str(), g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), PWINDOW->m_szTitle.c_str())});
+
     if (workspaceSilent) {
         // move the window
         if (g_pCompositor->m_pLastWindow == PWINDOW) {
@@ -335,6 +337,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
+    g_pEventManager->postEvent(SHyprIPCEvent{"unmapwindow", getFormat("%x", PWINDOW)});
 
     if (!PWINDOW->m_bIsX11) {
         Debug::log(LOG, "Unregistered late callbacks XDG");

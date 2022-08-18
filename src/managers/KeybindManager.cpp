@@ -670,6 +670,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     g_pInputManager->refocus();
 
     PWINDOW->updateToplevel();
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", PWINDOW, PWORKSPACE->m_szName.c_str())});
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {

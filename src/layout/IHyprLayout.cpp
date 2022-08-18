@@ -206,8 +206,16 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (PMONITOR) {
         DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
-        DRAGGINGWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
+        
+        if (DRAGGINGWINDOW->m_iWorkspaceID != PMONITOR->activeWorkspace) {
+            DRAGGINGWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
 
+            auto PWORKSPACE = g_pCompositor->getWorkspaceByID(DRAGGINGWINDOW->m_iWorkspaceID); 
+            if (PWORKSPACE) {
+                g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", DRAGGINGWINDOW, PWORKSPACE->m_szName.c_str())});
+            }
+        }
+        
         DRAGGINGWINDOW->updateToplevel();
     }
 

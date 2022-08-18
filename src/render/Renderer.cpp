@@ -86,9 +86,11 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     if (pWindow->m_iWorkspaceID == pMonitor->activeWorkspace)
         return true;
 
-    // if not, check if it maybe is active on a different monitor.                                                                                             vvv might be animation in progress
-    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && PWORKSPACE->m_bForceRendering) || (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated())))
-        return true;
+    // if not, check if it maybe is active on a different monitor.
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) ||
+        (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && PWORKSPACE->m_bForceRendering) || // vvvv might be in animation progress vvvvv
+        (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated())))
+        return !pWindow->m_bIsFullscreen; // Do not draw fullscreen windows on other monitors
 
     if (pMonitor->specialWorkspaceOpen && pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
         return true;

@@ -664,8 +664,6 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     focusSurface(PWINDOWSURFACE, pWindow);
 
-    m_pLastFocus = PWINDOWSURFACE;
-
     g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
 
     // do pointer focus too                                     

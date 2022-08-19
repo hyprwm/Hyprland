@@ -40,6 +40,28 @@ static const float transforms[][9] = {{
 	},
 };
 
+std::string absolutePath(const std::string& rawpath, const std::string& currentPath) {
+    auto value = rawpath;
+
+    if (value[0] == '.') {
+        auto currentDir = currentPath.substr(0, currentPath.find_last_of('/'));
+
+        if (value[1] == '.') {
+            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+            value.replace(0, 2, parentDir);
+        } else {
+            value.replace(0, 1, currentDir);
+        }
+    }
+
+    if (value[0] == '~') {
+        static const char* const ENVHOME = getenv("HOME");
+        value.replace(0, 1, std::string(ENVHOME));
+    }
+
+    return value;
+}
+
 void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
     ASSERT(pSignal);
     ASSERT(pListener);

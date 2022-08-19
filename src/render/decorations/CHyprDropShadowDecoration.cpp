@@ -80,6 +80,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
         return; // cannot parse
     }
 
+    const auto ROUNDING = !m_pWindow->m_sSpecialRenderData.rounding ? 0 : (m_pWindow->m_sAdditionalConfigData.rounding == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding);
+
     // update the extents
     m_seExtents = {{*PSHADOWSIZE + 2 - offset.x, *PSHADOWSIZE + 2 - offset.y}, {*PSHADOWSIZE + 2 + offset.x, *PSHADOWSIZE + 2 + offset.y}};
 
@@ -113,15 +115,15 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
             glDisable(GL_STENCIL_TEST);
             return;  // prevent assert failed
         }
-	
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0,0,0,0), *PROUNDING * pMonitor->scale);
+
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), ROUNDING * pMonitor->scale);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     }
 
     scaleBox(&fullBox, pMonitor->scale);
-    g_pHyprOpenGL->renderRoundedShadow(&fullBox, *PROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
+    g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
 
     if (*PSHADOWIGNOREWINDOW) {
         // cleanup

@@ -101,11 +101,12 @@ public:
     void                ensureDPMS();
 
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
-    std::string         absolutePath(const std::string&);
 
     void                addParseError(const std::string&);
 
     SAnimationPropertyConfig* getAnimationPropertyConfig(const std::string&);
+
+    std::string                                   configCurrentPath;
 
 private:
     std::deque<std::string>                       configPaths; // stores all the config paths
@@ -115,8 +116,6 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, SConfigValue>> deviceConfigs; // stores device configs
 
     std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
-
-    std::string                                   configCurrentPath;
 
     std::string currentCategory = "";  // For storing the category of the current item
 

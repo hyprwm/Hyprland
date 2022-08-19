@@ -782,7 +782,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
         return;
     }
 
-    auto value = absolutePath(rawpath);
+    auto value = absolutePath(rawpath, configCurrentPath);
 
     if (!std::filesystem::exists(value)) {
         Debug::log(ERR, "source= file doesnt exist");
@@ -874,28 +874,6 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     }
 
     return parseError;
-}
-
-std::string CConfigManager::absolutePath(const std::string& rawpath) {
-    auto value = rawpath;
-
-    if (value[0] == '.') {
-        auto currentDir = configCurrentPath.substr(0, configCurrentPath.find_last_of('/'));
-
-        if (value[1] == '.') {
-            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
-            value.replace(0, 2, parentDir);
-        } else {
-            value.replace(0, 1, currentDir);
-        }
-    }
-
-    if (value[0] == '~') {
-        static const char* const ENVHOME = getenv("HOME");
-        value.replace(0, 1, std::string(ENVHOME));
-    }
-
-    return value;
 }
 
 void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equalsPlace) {

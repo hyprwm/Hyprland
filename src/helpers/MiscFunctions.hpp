@@ -2,6 +2,7 @@
 
 #include "../includes.hpp"
 
+std::string absolutePath(const std::string&, const std::string&);
 void addWLSignal(wl_signal*, wl_listener*, void* pOwner, std::string ownerString);
 void wlr_signal_emit_safe(struct wl_signal *signal, void *data);
 std::string getFormat(const char *fmt, ...); // Basically Debug::log to a string

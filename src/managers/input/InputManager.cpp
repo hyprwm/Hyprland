@@ -185,9 +185,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         } else {
             pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
-            if (refocus && !pFoundWindow) {
-                pFoundWindow = g_pCompositor->getFirstWindowOnWorkspace(PMONITOR->activeWorkspace);
-            }
+            // TODO: this causes crashes, sometimes. ???
+           // if (refocus && !pFoundWindow) {
+           //     pFoundWindow = g_pCompositor->getFirstWindowOnWorkspace(PMONITOR->activeWorkspace);
+           // }
         }
 
         if (pFoundWindow) {

@@ -568,7 +568,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     xkb_keymap * KEYMAP = NULL;
 
     if (!FILEPATH.empty()) {
-      auto path = g_pConfigManager->absolutePath(FILEPATH);
+      auto path = absolutePath(FILEPATH, g_pConfigManager->configCurrentPath);
 
       if (!std::filesystem::exists(path)) {
           Debug::log(ERR, "input:kb_file= file doesnt exist");

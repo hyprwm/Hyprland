@@ -106,6 +106,8 @@ public:
 
     SAnimationPropertyConfig* getAnimationPropertyConfig(const std::string&);
 
+    std::string                                   configCurrentPath;
+
 private:
     std::deque<std::string>                       configPaths; // stores all the config paths
     std::unordered_map<std::string, time_t>       configModifyTimes; // stores modify times
@@ -114,8 +116,6 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, SConfigValue>> deviceConfigs; // stores device configs
 
     std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
-
-    std::string                                   configCurrentPath;
 
     std::string currentCategory = "";  // For storing the category of the current item
 

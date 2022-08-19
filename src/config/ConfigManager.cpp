@@ -119,6 +119,7 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:workspaces"].intValue = 1;
 
     configValues["input:sensitivity"].floatValue = 0.f;
+    configValues["input:kb_file"].strValue = STRVAL_EMPTY;
     configValues["input:kb_layout"].strValue = "us";
     configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
     configValues["input:kb_options"].strValue = STRVAL_EMPTY;
@@ -155,6 +156,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     auto& cfgValues = deviceConfigs[dev];
 
     cfgValues["sensitivity"].floatValue = 0.f;
+    cfgValues["kb_file"].strValue = STRVAL_EMPTY;
     cfgValues["kb_layout"].strValue = "us";
     cfgValues["kb_variant"].strValue = STRVAL_EMPTY;
     cfgValues["kb_options"].strValue = STRVAL_EMPTY;
@@ -774,28 +776,13 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
 void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
     static const char* const ENVHOME = getenv("HOME");
 
-    auto value = rawpath;
-
-    if (value.length() < 2) {
+    if (rawpath.length() < 2) {
         Debug::log(ERR, "source= path garbage");
-        parseError = "source path " + value + " bogus!";
+        parseError = "source path " + rawpath + " bogus!";
         return;
     }
 
-    if (value[0] == '.') {
-        auto currentDir = configCurrentPath.substr(0, configCurrentPath.find_last_of('/'));
-
-        if (value[1] == '.') {
-            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
-            value.replace(0, 2, parentDir);
-        } else {
-            value.replace(0, 1, currentDir);
-        }
-    }
-
-    if (value[0] == '~') {
-        value.replace(0, 1, std::string(ENVHOME));
-    }
+    auto value = absolutePath(rawpath);
 
     if (!std::filesystem::exists(value)) {
         Debug::log(ERR, "source= file doesnt exist");
@@ -887,6 +874,28 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     }
 
     return parseError;
+}
+
+std::string CConfigManager::absolutePath(const std::string& rawpath) {
+    auto value = rawpath;
+
+    if (value[0] == '.') {
+        auto currentDir = configCurrentPath.substr(0, configCurrentPath.find_last_of('/'));
+
+        if (value[1] == '.') {
+            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+            value.replace(0, 2, parentDir);
+        } else {
+            value.replace(0, 1, currentDir);
+        }
+    }
+
+    if (value[0] == '~') {
+        static const char* const ENVHOME = getenv("HOME");
+        value.replace(0, 1, std::string(ENVHOME));
+    }
+
+    return value;
 }
 
 void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equalsPlace) {

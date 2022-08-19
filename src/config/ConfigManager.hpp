@@ -101,6 +101,7 @@ public:
     void                ensureDPMS();
 
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
+    std::string         absolutePath(const std::string&);
 
     void                addParseError(const std::string&);
 

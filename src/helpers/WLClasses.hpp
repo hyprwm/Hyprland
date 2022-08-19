@@ -103,6 +103,7 @@ struct SKeyboard {
     xkb_layout_index_t activeLayout = 0;
 
     std::string name = "";
+    std::string xkbFilePath = "";
 
     SStringRuleNames currentRules;
     int repeatRate = 0;

@@ -272,8 +272,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
     } else {
-        if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
+        if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
+            g_pCompositor->m_pLastWindow = nullptr; // reset last window as we have a full focus on a LS
+        }
     }
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);

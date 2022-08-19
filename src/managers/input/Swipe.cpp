@@ -143,11 +143,13 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
         PWORKSPACE->m_bForceRendering = true;
+        PWORKSPACE->m_fAlpha.setValueAndWarp(255.f);
 
         if (workspaceIDLeft != workspaceIDRight) {
             const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
             PWORKSPACER->m_bForceRendering = false;
+            PWORKSPACE->m_fAlpha.setValueAndWarp(0.f);
         }
 
         PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x - m_sActiveSwipe.pMonitor->vecSize.x, 0));
@@ -163,11 +165,13 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
         PWORKSPACE->m_bForceRendering = true;
+        PWORKSPACE->m_fAlpha.setValueAndWarp(255.f);
 
         if (workspaceIDLeft != workspaceIDRight) {
             const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
             PWORKSPACEL->m_bForceRendering = false;
+            PWORKSPACE->m_fAlpha.setValueAndWarp(0.f);
         }
 
         PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x + m_sActiveSwipe.pMonitor->vecSize.x, 0));

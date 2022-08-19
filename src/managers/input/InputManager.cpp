@@ -182,8 +182,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 if (!(pFoundWindow && pFoundWindow->m_bIsFloating && pFoundWindow->m_bCreatedOverFullscreen))
                     pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
             }
-        } else
+        } else {
             pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+
+            if (refocus && !pFoundWindow) {
+                pFoundWindow = g_pCompositor->getFirstWindowOnWorkspace(PMONITOR->activeWorkspace);
+            }
+        }
 
         if (pFoundWindow) {
             if (!pFoundWindow->m_bIsX11) {

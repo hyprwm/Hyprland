@@ -912,6 +912,7 @@ void CConfigManager::parseLine(std::string& line) {
     if (line.contains(" {")) {
         auto cat = line.substr(0, line.find(" {"));
         transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
+        std::replace(cat.begin(), cat.end(), ' ', '-');
         if (currentCategory.length() != 0) {
             currentCategory.push_back(':');
             currentCategory.append(cat);
@@ -1140,9 +1141,13 @@ SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
 SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val) {
     std::lock_guard<std::mutex> lg(configmtx);
 
-    const auto it = deviceConfigs.find(dev);
+    auto devcopy = dev;
+    std::replace(devcopy.begin(), devcopy.end(), ' ', '-');
+
+    const auto it = deviceConfigs.find(devcopy);
 
     if (it == deviceConfigs.end()) {
+        Debug::log(ERR, "getConfigValueSafeDevice: No device config for %s found???", devcopy.c_str());
         return SConfigValue();
     }
 
@@ -1155,7 +1160,7 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
             if (foundIt == std::string::npos)
                 continue;
 
-            if (foundIt == cv.first.length() - val.length()) {
+            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + cv.first) {
                 copy = cv.second;
             }
         }
@@ -1334,7 +1339,10 @@ SConfigValue* CConfigManager::getConfigValuePtrSafe(std::string val) {
 }
 
 bool CConfigManager::deviceConfigExists(const std::string& dev) {
-    const auto it = deviceConfigs.find(dev);
+    auto copy = dev;
+    std::replace(copy.begin(), copy.end(), ' ', '-');
+
+    const auto it = deviceConfigs.find(copy);
 
     return it != deviceConfigs.end();
 }

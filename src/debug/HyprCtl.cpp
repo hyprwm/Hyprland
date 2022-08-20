@@ -493,8 +493,10 @@ std::string dispatchKeyword(std::string in) {
     if (COMMAND == "monitor")
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
 
-    if (COMMAND.contains("input"))
+    if (COMMAND.contains("input") || COMMAND.contains("device:")) {
         g_pInputManager->setKeyboardLayout(); // update kb layout
+        g_pInputManager->setMouseConfigs(); // update mouse cfgs
+    }
 
     if (COMMAND.contains("general:layout"))
         g_pLayoutManager->switchToLayout(g_pConfigManager->getString("general:layout"));  // update layout

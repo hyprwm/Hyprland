@@ -718,7 +718,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         .old_surface = m_pLastFocus,
         .new_surface = pSurface,
     };
-    wlr_signal_emit_safe(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
+    wl_signal_emit_mutable(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
 
     if (pWindowOwner)
         Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, pWindowOwner->m_szTitle.c_str());

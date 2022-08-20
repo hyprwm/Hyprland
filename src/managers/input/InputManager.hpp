@@ -14,6 +14,7 @@ enum eClickBehaviorMode {
 
 struct STouchData {
     CWindow* touchFocusWindow = nullptr;
+    Vector2D touchSurfaceOrigin;
 };
 
 class CInputManager {
@@ -105,6 +106,8 @@ private:
 
     void            processMouseDownNormal(wlr_pointer_button_event* e);
     void            processMouseDownKill(wlr_pointer_button_event* e);
+
+    void            disableAllKeyboards(bool virt = false);
 
     uint32_t        m_uiCapabilities = 0;
 

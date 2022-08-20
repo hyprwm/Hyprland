@@ -876,6 +876,20 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
     }
 }
 
+void CCompositor::moveWindowToWorkspace(CWindow* pWindow, int workspaceID) {
+    if (!windowValidMapped(pWindow))
+        return;
+
+    if (pWindow->m_iWorkspaceID != workspaceID) {
+        pWindow->m_iWorkspaceID = workspaceID;
+
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+        if (PWORKSPACE) {
+            g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", pWindow, PWORKSPACE->m_szName.c_str())});
+        } 
+    }
+}
+
 void CCompositor::cleanupFadingOut(const int& monid) {
     for (auto& w : m_vWindowsFadingOut) {
 

@@ -37,17 +37,29 @@ add_project_arguments(
   ],
   language: 'cpp')
 
-wlroots = subproject('wlroots', default_options: ['examples=false'])
-have_xwlr = wlroots.get_variable('features').get('xwayland')
+wlroots = dependency('wlroots', required: get_option('use_system_wlroots'))
+sub_wlroots = subproject('wlroots', default_options : ['examples=false'])
+use_system_wlroots = not get_option('use_system_wlroots').disabled() and wlroots.found()
+if not use_system_wlroots
+  wlroots = sub_wlroots.get_variable('wlroots')
+endif
+
+have_xwlr = false
+if use_system_wlroots
+  have_xwlr = cpp_compiler.get_define('WLR_HAS_XWAYLAND', prefix: '#include <wlr/config.h>', dependencies: wlroots) == '1'
+else
+  have_xwlr = sub_wlroots.get_variable('features').get('xwayland')
+endif
+
 xcb_dep = dependency('xcb', required: get_option('xwayland'))
 
 if get_option('xwayland').enabled() and not have_xwlr
-	error('Cannot enable Xwayland in Hyprland: wlroots has been built without Xwayland support')
+  error('Cannot enable Xwayland in Hyprland: wlroots has been built without Xwayland support')
 endif
 have_xwayland = xcb_dep.found() and have_xwlr
 
 if not have_xwayland
-add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
+  add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
 endif
 
 if get_option('buildtype') == 'debug'

@@ -1,1 +1,2 @@
+option('use_system_wlroots', type: 'feature', value: 'disabled', description: 'Use the system-wide installation of wlroots')
 option('xwayland', type: 'feature', value: 'auto', description: 'Enable support for X11 applications')

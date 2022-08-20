@@ -277,7 +277,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
             
     } else if (*PUSEACTIVE) {
-        if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && !g_pCompositor->m_pLastWindow->m_bIsFloating) {
+        if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && !g_pCompositor->m_pLastWindow->m_bIsFloating && g_pCompositor->m_pLastWindow != pWindow && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsMapped) {
             OPENINGON = getNodeFromWindow(g_pCompositor->m_pLastWindow);
         } else {
             OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
@@ -419,8 +419,10 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
     const auto PNODE = getNodeFromWindow(pWindow);
 
-    if (!PNODE)
+    if (!PNODE) {
+        Debug::log(ERR, "onWindowRemovedTiling node null?");
         return;
+    }
 
     // check if it was grouped
     if (PNODE->isGroupMember()) {
@@ -466,6 +468,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
     const auto PPARENT = PNODE->pParent;
 
     if (!PPARENT) {
+        Debug::log(LOG, "Removing last node (dwindle)");
         m_lDwindleNodesData.remove(*PNODE);
         return;
     }

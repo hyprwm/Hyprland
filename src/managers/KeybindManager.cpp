@@ -629,7 +629,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     OLDWORKSPACE->m_bHasFullscreenWindow = false;
 
-    PWINDOW->m_iWorkspaceID = PWORKSPACE->m_iID;
+    g_pCompositor->moveWindowToWorkspace(PWINDOW, PWORKSPACE->m_iID);
     PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
     PWINDOW->m_bIsFullscreen = false;
 
@@ -670,8 +670,6 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     g_pInputManager->refocus();
 
     PWINDOW->updateToplevel();
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", PWINDOW, PWORKSPACE->m_szName.c_str())});
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {

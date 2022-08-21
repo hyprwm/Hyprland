@@ -465,7 +465,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             workspaceName = PWORKSPACE->m_szName;
     } else if (args.find("previous") == 0) {
         const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(
-            g_pCompositor->getMonitorFromCursor()->activeWorkspace);
+            g_pCompositor->m_pLastMonitor->activeWorkspace);
 
         // Do nothing if there's no previous workspace, otherwise switch to it.
         if (PCURRENTWORKSPACE->m_iPrevWorkspaceID == -1) {

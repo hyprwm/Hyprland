@@ -464,8 +464,8 @@ void CKeybindManager::changeworkspace(std::string args) {
         if (PWORKSPACE)
             workspaceName = PWORKSPACE->m_szName;
     } else if (args.find("previous") == 0) {
-        const auto P_MONITOR = g_pCompositor->getMonitorFromCursor();
-        const auto P_CURRENT_WORKSPACE = g_pCompositor->getWorkspaceByID(P_MONITOR->activeWorkspace);
+        const auto P_CURRENT_WORKSPACE = g_pCompositor->getWorkspaceByID(
+            g_pCompositor->getMonitorFromCursor()->activeWorkspace);
 
         // Do nothing if there's no previous workspace, otherwise switch to it.
         if (P_CURRENT_WORKSPACE->m_iPrevWorkspaceID == -1) {
@@ -486,6 +486,21 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (workspaceToChangeTo == INT_MAX) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
         return;
+    }
+
+    // Workspace_back_and_forth being enabled means that an attempt to switch to 
+    // the current workspace will instead switch to the previous.
+    if (g_pConfigManager->getConfigValuePtr("general:workspace_back_and_forth")->intValue == 1
+        && g_pCompositor->getMonitorFromCursor()->activeWorkspace == workspaceToChangeTo) {
+        
+        const auto P_CURRENT_WORKSPACE = g_pCompositor->getWorkspaceByID(
+            g_pCompositor->getMonitorFromCursor()->activeWorkspace);
+
+        workspaceToChangeTo = P_CURRENT_WORKSPACE->m_iPrevWorkspaceID;
+        isSwitchingToPrevious = true;
+
+        // TODO: Add support for cycles
+        P_CURRENT_WORKSPACE->m_iPrevWorkspaceID = -1;
     }
 
     // remove constraints 

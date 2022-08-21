@@ -34,6 +34,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:apply_sens_to_raw"].intValue = 0;
     configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
+    configValues["general:workspace_back_and_forth"].intValue = 0;
 
     configValues["general:damage_tracking"].strValue = "full";
     configValues["general:damage_tracking_internal"].intValue = DAMAGE_TRACKING_FULL;

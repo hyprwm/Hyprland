@@ -140,6 +140,8 @@ void CConfigManager::setDefaultVars() {
 
     configValues["binds:pass_mouse_when_bound"].intValue = 1;
     configValues["binds:scroll_event_delay"].intValue = 300;
+    configValues["binds:workspace_back_and_forth"].intValue = 0;
+    configValues["binds:allow_workspace_cycles"].intValue = 0;
 
     configValues["gestures:workspace_swipe"].intValue = 0;
     configValues["gestures:workspace_swipe_fingers"].intValue = 3;

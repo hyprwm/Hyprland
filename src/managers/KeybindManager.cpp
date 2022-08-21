@@ -464,22 +464,23 @@ void CKeybindManager::changeworkspace(std::string args) {
         if (PWORKSPACE)
             workspaceName = PWORKSPACE->m_szName;
     } else if (args.find("previous") == 0) {
-        const auto P_CURRENT_WORKSPACE = g_pCompositor->getWorkspaceByID(
+        const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(
             g_pCompositor->getMonitorFromCursor()->activeWorkspace);
 
         // Do nothing if there's no previous workspace, otherwise switch to it.
-        if (P_CURRENT_WORKSPACE->m_iPrevWorkspaceID == -1) {
+        if (PCURRENTWORKSPACE->m_iPrevWorkspaceID == -1) {
             Debug::log(LOG, "No previous workspace to change to");
             return;
         }
         else {
-            workspaceToChangeTo = P_CURRENT_WORKSPACE->m_iPrevWorkspaceID;
+            workspaceToChangeTo = PCURRENTWORKSPACE->m_iPrevWorkspaceID;
             isSwitchingToPrevious = true;
 
             // If the previous workspace ID isn't reset, cycles can form when continually going
             // to the previous workspace again and again.
-            if (!g_pConfigManager->getConfigValuePtr("general:allow_workspace_cycles")->intValue)
-                P_CURRENT_WORKSPACE->m_iPrevWorkspaceID = -1;
+            static auto *const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
+            if (!*PALLOWWORKSPACECYCLES)
+                PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
         }
     } else {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
@@ -492,19 +493,20 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // Workspace_back_and_forth being enabled means that an attempt to switch to 
     // the current workspace will instead switch to the previous.
-    if (g_pConfigManager->getConfigValuePtr("general:workspace_back_and_forth")->intValue == 1
-        && g_pCompositor->getMonitorFromCursor()->activeWorkspace == workspaceToChangeTo) {
+    static auto *const PBACKANDFORTH = &g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth")->intValue;
+    if (*PBACKANDFORTH && g_pCompositor->m_pLastMonitor->activeWorkspace == workspaceToChangeTo) {
         
-        const auto P_CURRENT_WORKSPACE = g_pCompositor->getWorkspaceByID(
-            g_pCompositor->getMonitorFromCursor()->activeWorkspace);
+        const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(
+            g_pCompositor->m_pLastMonitor->activeWorkspace);
 
-        workspaceToChangeTo = P_CURRENT_WORKSPACE->m_iPrevWorkspaceID;
+        workspaceToChangeTo = PCURRENTWORKSPACE->m_iPrevWorkspaceID;
         isSwitchingToPrevious = true;
 
         // If the previous workspace ID isn't reset, cycles can form when continually going
         // to the previous workspace again and again.
-        if (!g_pConfigManager->getConfigValuePtr("general:allow_workspace_cycles")->intValue)
-            P_CURRENT_WORKSPACE->m_iPrevWorkspaceID = -1;
+        static auto *const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
+        if (!*PALLOWWORKSPACECYCLES)
+            PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
     }
 
     // remove constraints 
@@ -518,7 +520,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         if (!isSwitchingToPrevious)
             // Remember previous workspace.
-            PWORKSPACETOCHANGETO->m_iPrevWorkspaceID = g_pCompositor->getMonitorFromCursor()->activeWorkspace;
+            PWORKSPACETOCHANGETO->m_iPrevWorkspaceID = g_pCompositor->m_pLastMonitor->activeWorkspace;
 
         if (workspaceToChangeTo == SPECIAL_WORKSPACE_ID)
             PWORKSPACETOCHANGETO->m_iMonitorID = PMONITOR->ID;

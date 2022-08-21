@@ -20,7 +20,7 @@ public:
     uint64_t        m_iMonitorID = -1;
     // Previous workspace ID is stored during a workspace change, allowing travel
     // to the previous workspace.
-    int m_iPrevWorkspaceID = -1;
+    int             m_iPrevWorkspaceID = -1;
     bool            m_bHasFullscreenWindow = false;
     eFullscreenMode m_efFullscreenMode = FULLSCREEN_FULL;
 

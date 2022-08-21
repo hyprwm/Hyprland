@@ -151,4 +151,5 @@ public:
     void            destroyToplevelHandle();
     void            updateToplevel();
     void            updateSurfaceOutputs();
+    void            moveToWorkspace(int);
 };

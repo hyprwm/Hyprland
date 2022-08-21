@@ -107,7 +107,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(PWINDOW);
     std::string requestedWorkspace = "";
     bool workspaceSilent = false;
-    bool requestsFullscreen = false;
+    bool requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen;
 
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {
@@ -272,8 +272,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_bIsX11) {
         PWINDOW->hyprListener_commitWindow.initCallback(&PWINDOW->m_uSurface.xdg->surface->events.commit, &Events::listener_commitWindow, PWINDOW, "XDG Window Late");
-        PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XDG Window Late");
-        PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW, "XDG Window Late");
+        PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XDG Window Late");        
         PWINDOW->hyprListener_newPopupXDG.initCallback(&PWINDOW->m_uSurface.xdg->events.new_popup, &Events::listener_newPopupXDG, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_requestMaximize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_maximize, &Events::listener_requestMaximize, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_minimize, &Events::listener_requestMinimize, PWINDOW, "XDG Window Late");
@@ -347,7 +346,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         Debug::log(LOG, "Unregistered late callbacks XDG");
         PWINDOW->hyprListener_commitWindow.removeCallback();
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
-        PWINDOW->hyprListener_fullscreenWindow.removeCallback();
         PWINDOW->hyprListener_newPopupXDG.removeCallback();
         PWINDOW->hyprListener_requestMaximize.removeCallback();
         PWINDOW->hyprListener_requestMinimize.removeCallback();
@@ -460,6 +458,9 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->hyprListener_unmapWindow.removeCallback();
     PWINDOW->hyprListener_destroyWindow.removeCallback();
 
+    if (!PWINDOW->m_bIsX11)
+        PWINDOW->hyprListener_fullscreenWindow.removeCallback();
+
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     if (PWINDOW->m_pSurfaceTree) {
@@ -490,7 +491,12 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
 void Events::listener_fullscreenWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    if (!PWINDOW->m_bIsMapped || PWINDOW->m_bHidden)
+    if (!PWINDOW->m_bIsMapped) {
+        PWINDOW->m_bWantsInitialFullscreen = true;
+        return;
+    }
+
+    if (PWINDOW->m_bHidden)
         return;
 
     if (!PWINDOW->m_bIsX11) {
@@ -635,6 +641,7 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XDGSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XDGSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XDG Window");
+    PNEWWINDOW->hyprListener_fullscreenWindow.initCallback(&XDGSURFACE->toplevel->events.request_fullscreen, &Events::listener_fullscreenWindow, PNEWWINDOW, "XDG Window"); // because Qt apps decided it's a great idea to do this before mapping, fucking idiots
 }
 
 void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {

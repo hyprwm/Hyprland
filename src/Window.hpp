@@ -100,6 +100,9 @@ public:
     bool            m_bNoFocus = false;
     bool            m_bNoInitialFocus = false;
 
+    // initial fullscreen
+    bool            m_bWantsInitialFullscreen = false;
+
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 
     // Animated border

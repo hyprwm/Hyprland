@@ -167,7 +167,7 @@ man:
 		--variable=date:"${DATE}" \
 		--variable=section:1 \
 		--from rst \
-		--to man | gzip -c > /usr/share/man/man1/Hyprland.1.gz
+		--to man > ./docs/Hyprland.1
 
 	pandoc ./docs/hyprctl.1.rst \
 		--standalone \
@@ -175,4 +175,4 @@ man:
 		--variable=date:"${DATE}" \
 		--variable=section:1 \
 		--from rst \
-		--to man | gzip -c > /usr/share/man/man1/hyprctl.1.gz
+		--to man > ./docs/hyprctl.1

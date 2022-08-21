@@ -331,12 +331,17 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->updateToplevel();
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
+    
+    auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName; 
+    g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", getFormat("%x,%s,%s,%s", PWINDOW, workspaceID.c_str(), g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), PWINDOW->m_szTitle.c_str())});
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
+    
+    g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x", PWINDOW)});
 
     if (!PWINDOW->m_bIsX11) {
         Debug::log(LOG, "Unregistered late callbacks XDG");

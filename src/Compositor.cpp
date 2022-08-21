@@ -1284,13 +1284,6 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     }
 }
 
-void CCompositor::moveWindowToWorkspace(CWindow* pWindow, const std::string& work) {
-    m_pLastWindow = pWindow;
-    g_pKeybindManager->moveActiveToWorkspace(work);
-
-    g_pInputManager->refocus();
-}
-
 int CCompositor::getNextAvailableMonitorID() {
     int64_t topID = -1;
     for (auto& m : m_vRealMonitors) {

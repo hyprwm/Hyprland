@@ -782,8 +782,6 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
 }
 
 void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
-    static const char* const ENVHOME = getenv("HOME");
-
     if (rawpath.length() < 2) {
         Debug::log(ERR, "source= path garbage");
         parseError = "source path " + rawpath + " bogus!";

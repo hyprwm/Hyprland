@@ -206,7 +206,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (PMONITOR) {
         DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
-        g_pCompositor->moveWindowToWorkspace(DRAGGINGWINDOW, PMONITOR->activeWorkspace);
+        DRAGGINGWINDOW->moveToWorkspace(PMONITOR->activeWorkspace);
         
         DRAGGINGWINDOW->updateToplevel();
     }
@@ -231,7 +231,7 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     if (!TILED) {
         const auto PNEWMON = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
         pWindow->m_iMonitorID = PNEWMON->ID;
-        g_pCompositor->moveWindowToWorkspace(pWindow, PNEWMON->activeWorkspace);
+        pWindow->moveToWorkspace(PNEWMON->activeWorkspace);
 
         // save real pos cuz the func applies the default 5,5 mid
         const auto PSAVEDPOS = pWindow->m_vRealPosition.vec();

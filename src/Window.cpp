@@ -206,3 +206,14 @@ void CWindow::updateSurfaceOutputs() {
 
     wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendEnterIter, PNEWMONITOR->output);
 }
+
+void CWindow::moveToWorkspace(int workspaceID) {
+    if (m_iWorkspaceID != workspaceID) {
+        m_iWorkspaceID = workspaceID;
+
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+        if (PWORKSPACE) {
+            g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", this, PWORKSPACE->m_szName.c_str())});
+        } 
+    }
+}

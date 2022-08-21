@@ -107,7 +107,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(PWINDOW);
     std::string requestedWorkspace = "";
     bool workspaceSilent = false;
-    bool requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen;
+    bool requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen || (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen);
 
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {

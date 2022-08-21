@@ -717,7 +717,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     OLDWORKSPACE->m_bHasFullscreenWindow = false;
 
-    PWINDOW->m_iWorkspaceID = PWORKSPACE->m_iID;
+    PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
     PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
     PWINDOW->m_bIsFullscreen = false;
 

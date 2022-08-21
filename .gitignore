@@ -10,7 +10,7 @@ CTestTestfile.cmake
 _deps
 
 build/
-result
+result*
 /.vscode/
 .envrc
 .cache

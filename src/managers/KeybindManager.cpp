@@ -476,8 +476,10 @@ void CKeybindManager::changeworkspace(std::string args) {
             workspaceToChangeTo = P_CURRENT_WORKSPACE->m_iPrevWorkspaceID;
             isSwitchingToPrevious = true;
 
-            // TODO: Add support for cycles
-            P_CURRENT_WORKSPACE->m_iPrevWorkspaceID = -1;
+            // If the previous workspace ID isn't reset, cycles can form when continually going
+            // to the previous workspace again and again.
+            if (!g_pConfigManager->getConfigValuePtr("general:allow_workspace_cycles")->intValue)
+                P_CURRENT_WORKSPACE->m_iPrevWorkspaceID = -1;
         }
     } else {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
@@ -499,8 +501,10 @@ void CKeybindManager::changeworkspace(std::string args) {
         workspaceToChangeTo = P_CURRENT_WORKSPACE->m_iPrevWorkspaceID;
         isSwitchingToPrevious = true;
 
-        // TODO: Add support for cycles
-        P_CURRENT_WORKSPACE->m_iPrevWorkspaceID = -1;
+        // If the previous workspace ID isn't reset, cycles can form when continually going
+        // to the previous workspace again and again.
+        if (!g_pConfigManager->getConfigValuePtr("general:allow_workspace_cycles")->intValue)
+            P_CURRENT_WORKSPACE->m_iPrevWorkspaceID = -1;
     }
 
     // remove constraints 

@@ -69,6 +69,10 @@ private:
     bool                handleInternalKeybinds(xkb_keysym_t);
     bool                handleVT(xkb_keysym_t);
 
+    xkb_state*          m_pXKBTranslationState = nullptr;
+
+    void                updateXKBTranslationState();
+
     // -------------- Dispatchers -------------- //
     static void         killActive(std::string);
     static void         spawn(std::string);

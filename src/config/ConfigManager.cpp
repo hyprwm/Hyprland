@@ -692,6 +692,11 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         return;
     }
 
+    if (KEY == "exclam" || KEY == "asciicircum" || KEY == "at") { // just some
+        parseError = "Your config contains (probably) wrong keys. The SHIFT keysym behavior has changed after v0.10.3beta. Please consult the wiki (Advanced configuring -> binds)";
+        return;
+    }
+
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
             g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat});

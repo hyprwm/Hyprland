@@ -635,6 +635,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
         wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
 
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
+
         m_pLastFocus = nullptr;
         return;
     }
@@ -1546,13 +1548,6 @@ SLayerSurface* CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {
 void CCompositor::closeWindow(CWindow* pWindow) {
     if (pWindow && windowValidMapped(pWindow)) {
         g_pXWaylandManager->sendCloseWindow(pWindow);
-
-        if (pWindow == m_pLastWindow) {
-            m_pLastFocus = nullptr;
-            m_pLastWindow = nullptr;
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // post an activewindow event to empty, as we are currently unfocused
-            focusWindow(windowFromCursor());
-        }
     }
 }
 

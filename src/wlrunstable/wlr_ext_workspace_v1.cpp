@@ -112,7 +112,7 @@ static void workspace_handle_remove(struct wl_client *client,
 		return;
 	}
 
-	wlr_signal_emit_safe(&workspace->events.remove_request, NULL);
+	wl_signal_emit_mutable(&workspace->events.remove_request, NULL);
 }
 
 static void workspace_handle_deactivate(struct wl_client *client,
@@ -312,7 +312,7 @@ void wlr_ext_workspace_handle_v1_destroy(
 		return;
 	}
 
-	wlr_signal_emit_safe(&workspace->events.destroy, workspace);
+	wl_signal_emit_mutable(&workspace->events.destroy, workspace);
 
 	workspace_manager_update_idle_source(workspace->group->manager);
 
@@ -338,7 +338,7 @@ static void workspace_group_handle_handle_create_workspace(struct wl_client *cli
 	struct wlr_ext_workspace_group_handle_v1_create_workspace_event event;
 	event.workspace_group = group;
 	event.name = arg;
-	wlr_signal_emit_safe(&group->events.create_workspace_request, &event);
+	wl_signal_emit_mutable(&group->events.create_workspace_request, &event);
 }
 
 static void workspace_group_handle_handle_destroy(struct wl_client *client,
@@ -513,7 +513,7 @@ void wlr_ext_workspace_group_handle_v1_destroy(
 		wlr_ext_workspace_handle_v1_destroy(workspace);
 	}
 
-	wlr_signal_emit_safe(&group->events.destroy, group);
+	wl_signal_emit_mutable(&group->events.destroy, group);
 	workspace_manager_update_idle_source(group->manager);
 
 	struct wlr_ext_workspace_group_handle_v1_output *output, *tmp2;
@@ -556,7 +556,7 @@ static void workspace_manager_commit(struct wl_client *client,
 		}
 	}
 
-	wlr_signal_emit_safe(&manager->events.commit, manager);
+	wl_signal_emit_mutable(&manager->events.commit, manager);
 }
 
 static void workspace_manager_stop(struct wl_client *client,
@@ -602,7 +602,7 @@ static void handle_display_destroy(struct wl_listener *listener, void *data) {
 	struct wlr_ext_workspace_manager_v1 *manager =
 		wl_container_of(listener, manager, display_destroy);
 
-	wlr_signal_emit_safe(&manager->events.destroy, manager);
+	wl_signal_emit_mutable(&manager->events.destroy, manager);
 	wl_list_remove(&manager->display_destroy.link);
 	wl_global_destroy(manager->global);
 

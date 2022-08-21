@@ -233,6 +233,14 @@ void CCompositor::cleanup() {
     wl_display_terminate(m_sWLDisplay);
 
     m_sWLDisplay = nullptr;
+
+    // kill the PID with a sigkill after 2 seconds
+    const auto PID = getpid();
+
+    std::string call = "sleep 2 && kill -9 " + std::to_string(PID);
+
+    execl("/bin/sh", "/bin/sh", "-c", call.c_str(), ">", "/dev/null", nullptr); // this is to prevent that random "freezing"
+                                                                                // the PID should not be reused.
 }
 
 void CCompositor::startCompositor() {
@@ -710,7 +718,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         .old_surface = m_pLastFocus,
         .new_surface = pSurface,
     };
-    wlr_signal_emit_safe(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
+    wl_signal_emit_mutable(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
 
     if (pWindowOwner)
         Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, pWindowOwner->m_szTitle.c_str());

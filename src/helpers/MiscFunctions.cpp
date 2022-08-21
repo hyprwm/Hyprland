@@ -40,6 +40,28 @@ static const float transforms[][9] = {{
 	},
 };
 
+std::string absolutePath(const std::string& rawpath, const std::string& currentPath) {
+    auto value = rawpath;
+
+    if (value[0] == '.') {
+        auto currentDir = currentPath.substr(0, currentPath.find_last_of('/'));
+
+        if (value[1] == '.') {
+            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+            value.replace(0, 2, parentDir);
+        } else {
+            value.replace(0, 1, currentDir);
+        }
+    }
+
+    if (value[0] == '~') {
+        static const char* const ENVHOME = getenv("HOME");
+        value.replace(0, 1, std::string(ENVHOME));
+    }
+
+    return value;
+}
+
 void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
     ASSERT(pSignal);
     ASSERT(pListener);
@@ -51,35 +73,6 @@ void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::
 
 void handleNoop(struct wl_listener *listener, void *data) {
     // Do nothing
-}
-
-void wlr_signal_emit_safe(struct wl_signal *signal, void *data) {
-    struct wl_listener cursor;
-    struct wl_listener end;
-
-    /* Add two special markers: one cursor and one end marker. This way, we know
-	 * that we've already called listeners on the left of the cursor and that we
-	 * don't want to call listeners on the right of the end marker. The 'it'
-	 * function can remove any element it wants from the list without troubles.
-	 * wl_list_for_each_safe tries to be safe but it fails: it works fine
-	 * if the current item is removed, but not if the next one is. */
-    wl_list_insert(&signal->listener_list, &cursor.link);
-    cursor.notify = handleNoop;
-    wl_list_insert(signal->listener_list.prev, &end.link);
-    end.notify = handleNoop;
-
-    while (cursor.link.next != &end.link) {
-        struct wl_list *pos = cursor.link.next;
-        struct wl_listener *l = wl_container_of(pos, l, link);
-
-        wl_list_remove(&cursor.link);
-        wl_list_insert(pos, &cursor.link);
-
-        l->notify(l, data);
-    }
-
-    wl_list_remove(&cursor.link);
-    wl_list_remove(&end.link);
 }
 
 std::string getFormat(const char *fmt, ...) {

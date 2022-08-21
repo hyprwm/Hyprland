@@ -85,6 +85,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bRequestsFloat = true;
     }
 
+    PWINDOW->m_bX11ShouldntFocus = PWINDOW->m_bX11ShouldntFocus || (PWINDOW->m_bIsX11 && PWINDOW->m_iX11Type == 2);
+
     if (PWORKSPACE->m_bDefaultFloating)
         PWINDOW->m_bIsFloating = true;
 
@@ -387,11 +389,17 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     PWINDOW->m_bIsMapped = false;
 
     // refocus on a new window
-    g_pInputManager->refocus();
+    auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f);
 
-    if (!g_pCompositor->m_pLastWindow) {
-        g_pCompositor->focusWindow(g_pCompositor->getFirstWindowOnWorkspace(PWORKSPACE->m_iID));
-    }
+    if (!PWINDOWCANDIDATE)
+        PWINDOWCANDIDATE = g_pCompositor->getFirstWindowOnWorkspace(PWINDOW->m_iWorkspaceID);
+
+    if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->m_bHidden || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2)
+        PWINDOWCANDIDATE = nullptr;
+
+    Debug::log(LOG, "On closed window, new focused candidate is %x", PWINDOWCANDIDATE);
+
+    g_pCompositor->focusWindow(PWINDOWCANDIDATE);
 
     Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %x", PWINDOW);
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);

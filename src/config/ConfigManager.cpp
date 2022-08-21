@@ -92,6 +92,7 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:special_scale_factor"].floatValue = 0.8f;
     configValues["dwindle:split_width_multiplier"].floatValue = 1.0f;
     configValues["dwindle:no_gaps_when_only"].intValue = 0;
+    configValues["dwindle:use_active_for_splits"].intValue = 1;
 
     configValues["master:special_scale_factor"].floatValue = 0.8f;
     configValues["master:new_is_master"].intValue = 1;
@@ -119,6 +120,7 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:workspaces"].intValue = 1;
 
     configValues["input:sensitivity"].floatValue = 0.f;
+    configValues["input:kb_file"].strValue = STRVAL_EMPTY;
     configValues["input:kb_layout"].strValue = "us";
     configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
     configValues["input:kb_options"].strValue = STRVAL_EMPTY;
@@ -138,6 +140,8 @@ void CConfigManager::setDefaultVars() {
 
     configValues["binds:pass_mouse_when_bound"].intValue = 1;
     configValues["binds:scroll_event_delay"].intValue = 300;
+    configValues["binds:workspace_back_and_forth"].intValue = 0;
+    configValues["binds:allow_workspace_cycles"].intValue = 0;
 
     configValues["gestures:workspace_swipe"].intValue = 0;
     configValues["gestures:workspace_swipe_fingers"].intValue = 3;
@@ -155,6 +159,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     auto& cfgValues = deviceConfigs[dev];
 
     cfgValues["sensitivity"].floatValue = 0.f;
+    cfgValues["kb_file"].strValue = STRVAL_EMPTY;
     cfgValues["kb_layout"].strValue = "us";
     cfgValues["kb_variant"].strValue = STRVAL_EMPTY;
     cfgValues["kb_options"].strValue = STRVAL_EMPTY;
@@ -774,28 +779,13 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
 void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
     static const char* const ENVHOME = getenv("HOME");
 
-    auto value = rawpath;
-
-    if (value.length() < 2) {
+    if (rawpath.length() < 2) {
         Debug::log(ERR, "source= path garbage");
-        parseError = "source path " + value + " bogus!";
+        parseError = "source path " + rawpath + " bogus!";
         return;
     }
 
-    if (value[0] == '.') {
-        auto currentDir = configCurrentPath.substr(0, configCurrentPath.find_last_of('/'));
-
-        if (value[1] == '.') {
-            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
-            value.replace(0, 2, parentDir);
-        } else {
-            value.replace(0, 1, currentDir);
-        }
-    }
-
-    if (value[0] == '~') {
-        value.replace(0, 1, std::string(ENVHOME));
-    }
+    auto value = absolutePath(rawpath, configCurrentPath);
 
     if (!std::filesystem::exists(value)) {
         Debug::log(ERR, "source= file doesnt exist");
@@ -924,6 +914,7 @@ void CConfigManager::parseLine(std::string& line) {
     if (line.contains(" {")) {
         auto cat = line.substr(0, line.find(" {"));
         transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
+        std::replace(cat.begin(), cat.end(), ' ', '-');
         if (currentCategory.length() != 0) {
             currentCategory.push_back(':');
             currentCategory.append(cat);
@@ -1152,9 +1143,13 @@ SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
 SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val) {
     std::lock_guard<std::mutex> lg(configmtx);
 
-    const auto it = deviceConfigs.find(dev);
+    auto devcopy = dev;
+    std::replace(devcopy.begin(), devcopy.end(), ' ', '-');
+
+    const auto it = deviceConfigs.find(devcopy);
 
     if (it == deviceConfigs.end()) {
+        Debug::log(ERR, "getConfigValueSafeDevice: No device config for %s found???", devcopy.c_str());
         return SConfigValue();
     }
 
@@ -1167,7 +1162,7 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
             if (foundIt == std::string::npos)
                 continue;
 
-            if (foundIt == cv.first.length() - val.length()) {
+            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + cv.first) {
                 copy = cv.second;
             }
         }
@@ -1346,7 +1341,10 @@ SConfigValue* CConfigManager::getConfigValuePtrSafe(std::string val) {
 }
 
 bool CConfigManager::deviceConfigExists(const std::string& dev) {
-    const auto it = deviceConfigs.find(dev);
+    auto copy = dev;
+    std::replace(copy.begin(), copy.end(), ' ', '-');
+
+    const auto it = deviceConfigs.find(copy);
 
     return it != deviceConfigs.end();
 }

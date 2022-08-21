@@ -123,7 +123,7 @@ Try it out and report bugs / suggestions!
 
 <!----------------------------------------------------------------------------->
 
-[Configure]: https://github.com/hyprwm/Hyprland/wiki/Configuring-Hyprland
+[Configure]: https://wiki.hyprland.org/Configuring/Configuring-Hyprland/
 [Discord]: https://discord.gg/hQ9XvMUjjr
 [Stars]: https://starchart.cc/hyprwm/Hyprland
 [Hypr]: https://github.com/hyprwm/Hypr
@@ -132,9 +132,9 @@ Try it out and report bugs / suggestions!
 [Issues]: https://github.com/hyprwm/Hyprland/issues
 [Todo]: https://github.com/hyprwm/Hyprland/projects?type=beta
 
-[Contribute]: https://github.com/hyprwm/Hyprland/wiki/Contributing-&-Debugging
-[Install]: https://github.com/hyprwm/Hyprland/wiki/Installation
-[Quick Start]: https://github.com/hyprwm/Hyprland/wiki/Quick-start
+[Contribute]: https://wiki.hyprland.org/Contributing-and-Debugging/
+[Install]: https://wiki.hyprland.org/Getting-Started/Installation/
+[Quick Start]: https://wiki.hyprland.org/Getting-Started/Quick-start/
 [License]: LICENSE
 
 

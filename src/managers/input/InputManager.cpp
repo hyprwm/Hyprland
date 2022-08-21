@@ -507,6 +507,8 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
 void CInputManager::setKeyboardLayout() {
     for (auto& k : m_lKeyboards)
         applyConfigToKeyboard(&k);
+
+    g_pKeybindManager->updateXKBTranslationState();
 }
 
 void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {

@@ -454,11 +454,31 @@ void CKeybindManager::changeworkspace(std::string args) {
     int workspaceToChangeTo = 0;
     std::string workspaceName = "";
 
+    // Flag needed so that the previous workspace is not recorded when switching
+    // to a previous workspace.
+    bool isSwitchingToPrevious = false;
+
     if (args.find("[internal]") == 0) {
         workspaceToChangeTo = std::stoi(args.substr(10));
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
         if (PWORKSPACE)
             workspaceName = PWORKSPACE->m_szName;
+    } else if (args.find("previous") == 0) {
+        const auto P_MONITOR = g_pCompositor->getMonitorFromCursor();
+        const auto P_CURRENT_WORKSPACE = g_pCompositor->getWorkspaceByID(P_MONITOR->activeWorkspace);
+
+        // Do nothing if there's no previous workspace, otherwise switch to it.
+        if (P_CURRENT_WORKSPACE->m_iPrevWorkspaceID == -1) {
+            Debug::log(LOG, "No previous workspace to change to");
+            return;
+        }
+        else {
+            workspaceToChangeTo = P_CURRENT_WORKSPACE->m_iPrevWorkspaceID;
+            isSwitchingToPrevious = true;
+
+            // TODO: Add support for cycles
+            P_CURRENT_WORKSPACE->m_iPrevWorkspaceID = -1;
+        }
     } else {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
     }
@@ -476,6 +496,10 @@ void CKeybindManager::changeworkspace(std::string args) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_iMonitorID);
 
         const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+
+        if (!isSwitchingToPrevious)
+            // Remember previous workspace.
+            PWORKSPACETOCHANGETO->m_iPrevWorkspaceID = g_pCompositor->getMonitorFromCursor()->activeWorkspace;
 
         if (workspaceToChangeTo == SPECIAL_WORKSPACE_ID)
             PWORKSPACETOCHANGETO->m_iMonitorID = PMONITOR->ID;
@@ -540,6 +564,10 @@ void CKeybindManager::changeworkspace(std::string args) {
         POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
 
     const auto PWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(PMONITOR->ID, workspaceName, workspaceToChangeTo == SPECIAL_WORKSPACE_ID)).get();
+
+    if (!isSwitchingToPrevious)
+        // Remember previous workspace.
+        PWORKSPACE->m_iPrevWorkspaceID = OLDWORKSPACE;
 
     // start anim on new workspace
     PWORKSPACE->startAnim(true, ANIMTOLEFT);

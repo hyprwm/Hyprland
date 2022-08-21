@@ -143,7 +143,6 @@ public:
     CMonitor*               getMonitorInDirection(const char&);
     void                    updateAllWindowsAnimatedDecorationValues();
     void                    updateWindowAnimatedDecorationValues(CWindow*);
-    void                    moveWindowToWorkspace(CWindow*, const std::string&);
     int                     getNextAvailableMonitorID();
     void                    moveWorkspaceToMonitor(CWorkspace*, CMonitor*);
     bool                    workspaceIDOutOfBounds(const int&);

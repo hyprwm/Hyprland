@@ -182,8 +182,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 if (!(pFoundWindow && pFoundWindow->m_bIsFloating && pFoundWindow->m_bCreatedOverFullscreen))
                     pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
             }
-        } else
+        } else {
             pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+
+            // TODO: this causes crashes, sometimes. ???
+           // if (refocus && !pFoundWindow) {
+           //     pFoundWindow = g_pCompositor->getFirstWindowOnWorkspace(PMONITOR->activeWorkspace);
+           // }
+        }
 
         if (pFoundWindow) {
             if (!pFoundWindow->m_bIsX11) {
@@ -267,8 +273,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
     } else {
-        if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
+        if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
+            g_pCompositor->m_pLastWindow = nullptr; // reset last window as we have a full focus on a LS
+        }
     }
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
@@ -519,6 +527,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     const auto NUMLOCKON = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "numlock_by_default") : g_pConfigManager->getInt("input:numlock_by_default");
 
+    const auto FILEPATH = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_file") : g_pConfigManager->getString("input:kb_file");
     const auto RULES = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_rules") : g_pConfigManager->getString("input:kb_rules");
     const auto MODEL = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_model") : g_pConfigManager->getString("input:kb_model");
     const auto LAYOUT = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_layout") : g_pConfigManager->getString("input:kb_layout");
@@ -526,7 +535,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     const auto OPTIONS = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_options") : g_pConfigManager->getString("input:kb_options");
 
     try {
-        if (NUMLOCKON == pKeyboard->numlockOn && REPEATDELAY == pKeyboard->repeatDelay && REPEATRATE == pKeyboard->repeatRate && RULES != "" && RULES == pKeyboard->currentRules.rules && MODEL == pKeyboard->currentRules.model && LAYOUT == pKeyboard->currentRules.layout && VARIANT == pKeyboard->currentRules.variant && OPTIONS == pKeyboard->currentRules.options) {
+        if (NUMLOCKON == pKeyboard->numlockOn && REPEATDELAY == pKeyboard->repeatDelay && REPEATRATE == pKeyboard->repeatRate && RULES != "" && RULES == pKeyboard->currentRules.rules && MODEL == pKeyboard->currentRules.model && LAYOUT == pKeyboard->currentRules.layout && VARIANT == pKeyboard->currentRules.variant && OPTIONS == pKeyboard->currentRules.options && FILEPATH == pKeyboard->xkbFilePath) {
             Debug::log(LOG, "Not applying config to keyboard, it did not change.");
             return;
         }
@@ -540,6 +549,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     pKeyboard->repeatDelay = REPEATDELAY;
     pKeyboard->repeatRate = REPEATRATE;
     pKeyboard->numlockOn = NUMLOCKON;
+    pKeyboard->xkbFilePath = FILEPATH.c_str();
 
     xkb_rule_names rules = {
         .rules = RULES.c_str(),
@@ -563,7 +573,21 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     Debug::log(LOG, "Attempting to create a keymap for layout %s with variant %s (rules: %s, model: %s, options: %s)", rules.layout, rules.variant, rules.rules, rules.model, rules.options);
 
-    auto KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    xkb_keymap * KEYMAP = NULL;
+
+    if (!FILEPATH.empty()) {
+      auto path = absolutePath(FILEPATH, g_pConfigManager->configCurrentPath);
+
+      if (!std::filesystem::exists(path)) {
+          Debug::log(ERR, "input:kb_file= file doesnt exist");
+      } else {
+        KEYMAP = xkb_keymap_new_from_file(CONTEXT, fopen(path.c_str(), "r"), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+      }
+    } 
+
+    if (!KEYMAP) {
+      KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    }
 
     if (!KEYMAP) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS + ", layout: " + LAYOUT + " )");

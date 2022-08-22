@@ -278,6 +278,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_minimize, &Events::listener_requestMinimize, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_requestMove.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_move, &Events::listener_requestMove, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_requestResize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_resize, &Events::listener_requestResize, PWINDOW, "XDG Window Late");
+        PNEWWINDOW->hyprListener_fullscreenWindow.initCallback(&XDGSURFACE->toplevel->events.request_fullscreen, &Events::listener_fullscreenWindow, PNEWWINDOW, "XDG Window Late");
     } else {
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_activateX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_activate, &Events::listener_activateX11, PWINDOW, "XWayland Window Late");
@@ -351,6 +352,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestMinimize.removeCallback();
         PWINDOW->hyprListener_requestMove.removeCallback();
         PWINDOW->hyprListener_requestResize.removeCallback();
+        PWINDOW->hyprListener_fullscreenWindow.removeCallback();
     } else {
         Debug::log(LOG, "Unregistered late callbacks XWL");
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
@@ -457,9 +459,6 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->hyprListener_mapWindow.removeCallback();
     PWINDOW->hyprListener_unmapWindow.removeCallback();
     PWINDOW->hyprListener_destroyWindow.removeCallback();
-
-    if (!PWINDOW->m_bIsX11)
-        PWINDOW->hyprListener_fullscreenWindow.removeCallback();
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
@@ -641,7 +640,6 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XDGSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XDGSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XDG Window");
-    PNEWWINDOW->hyprListener_fullscreenWindow.initCallback(&XDGSURFACE->toplevel->events.request_fullscreen, &Events::listener_fullscreenWindow, PNEWWINDOW, "XDG Window"); // because Qt apps decided it's a great idea to do this before mapping, fucking idiots
 }
 
 void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {

@@ -225,6 +225,9 @@ void CCompositor::cleanup() {
     m_vWorkspaces.clear();
     m_vWindows.clear();
 
+    for (auto& m : m_vMonitors)
+        g_pHyprOpenGL->destroyMonitorResources(m.get());
+
     if (g_pXWaylandManager->m_sWLRXWayland) {
         wlr_xwayland_destroy(g_pXWaylandManager->m_sWLRXWayland);
         g_pXWaylandManager->m_sWLRXWayland = nullptr;

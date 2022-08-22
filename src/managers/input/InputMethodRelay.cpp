@@ -259,9 +259,6 @@ SIMEKbGrab* CInputMethodRelay::getIMEKeyboardGrab(SKeyboard* pKeyboard) {
     if (VIRTKB && (wl_resource_get_client(VIRTKB->resource) == wl_resource_get_client(m_pKeyboardGrab->pWlrKbGrab->resource)))
         return nullptr;
 
-    if (wlr_keyboard_from_input_device(pKeyboard->keyboard) != m_pKeyboardGrab->pKeyboard)
-        return nullptr;
-
     return m_pKeyboardGrab.get();
 }
 

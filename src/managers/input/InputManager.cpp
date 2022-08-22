@@ -269,7 +269,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
             return;  // don't enter any new surfaces
         } else {
-            if (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
+            if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus)
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
     } else {

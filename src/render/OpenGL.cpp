@@ -993,7 +993,7 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     wlr_box monbox = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
     pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x * 20, PMONITOR->vecPixelSize.y * 20);
+    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y);
 
     m_bEndFrame = true;
 

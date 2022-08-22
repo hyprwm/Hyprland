@@ -896,7 +896,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     // this is temporary, doesnt mess with the actual wlr damage
     pixman_region32_t fakeDamage;
     pixman_region32_init(&fakeDamage);
-    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecPixelSize.x, (int)PMONITOR->vecPixelSize.y);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
     begin(PMONITOR, &fakeDamage, true);
 
@@ -915,8 +915,6 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 
     // draw the layer
     g_pHyprRenderer->renderLayer(pLayer, PMONITOR, &now);
-
-    m_bEndFrame = false;
 
     // TODO: WARN:
     // revise if any stencil-requiring rendering is done to the layers.
@@ -992,12 +990,16 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PLAYER->monitorID);
 
-    wlr_box windowBox = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+    wlr_box monbox = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
     pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y);
+    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x * 20, PMONITOR->vecPixelSize.y * 20);
 
-    renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PLAYER->alpha.fl(), &fakeDamage, 0);
+    m_bEndFrame = true;
+
+    renderTextureInternalWithDamage(it->second.m_cTex, &monbox, PLAYER->alpha.fl(), &fakeDamage, 0);
+
+    m_bEndFrame = false;
 
     pixman_region32_fini(&fakeDamage);
 

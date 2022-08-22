@@ -15,7 +15,7 @@ if cpp_compiler.has_argument('-std=c++23')
 elif cpp_compiler.has_argument('-std=c++2b')
   add_global_arguments('-std=c++2b', language: 'cpp')
 else
-  error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.get_version() + ') with required C++ standard (C++23)')
+  error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.version() + ') with required C++ standard (C++23)')
 endif
 
 GIT_BRANCH = run_command('git', 'rev-parse', '--abbrev-ref', 'HEAD', check: false).stdout().strip()

@@ -166,7 +166,10 @@ void keywordRequest(int argc, char** argv) {
         return;
     }
 
-    std::string rq = "keyword " + std::string(argv[2]) + " " + std::string(argv[3]);
+    std::string rq = "/keyword";
+
+    for(int i = 2; i < argc; i++)
+        rq += " " + std::string(argv[i]);
 
     request(rq);
 }

@@ -44,6 +44,11 @@ stdenv.mkDerivation {
     pkg-config
   ];
 
+  outputs = [
+    "out"
+    "man"
+  ];
+
   buildInputs =
     [
       git

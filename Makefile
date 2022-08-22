@@ -136,12 +136,16 @@ install:
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
+	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
+
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
 	rm -f ${PREFIX}/bin/Hyprland
 	rm -f ${PREFIX}/bin/hyprctl
 	rm -f /usr/lib/libwlroots.so.11032
 	rm -rf ${PREFIX}/share/hyprland
+	rm -f ${PREFIX}/share/man/man1/Hyprland.1
+	rm -f ${PREFIX}/share/man/man1/hyprctl.1
 
 protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o wlr-output-power-management-unstable-v1-protocol.o
 
@@ -167,7 +171,7 @@ man:
 		--variable=date:"${DATE}" \
 		--variable=section:1 \
 		--from rst \
-		--to man | gzip -c > /usr/share/man/man1/Hyprland.1.gz
+		--to man > ./docs/Hyprland.1
 
 	pandoc ./docs/hyprctl.1.rst \
 		--standalone \
@@ -175,4 +179,4 @@ man:
 		--variable=date:"${DATE}" \
 		--variable=section:1 \
 		--from rst \
-		--to man | gzip -c > /usr/share/man/man1/hyprctl.1.gz
+		--to man > ./docs/hyprctl.1

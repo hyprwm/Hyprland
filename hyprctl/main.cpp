@@ -152,7 +152,10 @@ void dispatchRequest(int argc, char** argv) {
         return;
     }
 
-    std::string rq = "/dispatch " + std::string(argv[2]) + " " + std::string(argv[3]);
+    std::string rq = "/dispatch";
+
+    for(int i = 2; i < argc; i++)
+        rq += " " + std::string(argv[i]);
 
     request(rq);
 }

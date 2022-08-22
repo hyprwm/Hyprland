@@ -13,7 +13,19 @@ void Debug::init(std::string IS) {
 }
 
 void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {
-    Debug::log(NONE, std::string("[wlr] " + std::string(fmt)).c_str(), args);
+    char* outputStr = nullptr;
+
+    std::ofstream ofs;
+    ofs.open(logFile, std::ios::out | std::ios::app);
+
+    vasprintf(&outputStr, fmt, args);
+
+    std::string output = std::string(outputStr);
+    free(outputStr);
+
+    ofs << "[wlr] " << output << "\n";
+
+    ofs.close();
 }
 
 void Debug::log(LogLevel level, const char* fmt, ...) {

@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 
     const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");
     if (LOGWLR && std::string(LOGWLR) == "1")
-        wlr_log_init(WLR_DEBUG, nullptr);
+        wlr_log_init(WLR_DEBUG, Debug::wlrLog);
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.

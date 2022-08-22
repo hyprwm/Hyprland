@@ -12,6 +12,10 @@ void Debug::init(std::string IS) {
         logFile = "/tmp/hypr/" + IS + "/hyprland.log";
 }
 
+void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {
+    Debug::log(NONE, std::string("[wlr] " + std::string(fmt)).c_str(), args);
+}
+
 void Debug::log(LogLevel level, const char* fmt, ...) {
 
     if (disableLogs && *disableLogs)

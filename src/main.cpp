@@ -44,6 +44,10 @@ int main(int argc, char** argv) {
 
     std::cout << "Welcome to Hyprland!\n";
 
+    const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");
+    if (LOGWLR && std::string(LOGWLR) == "1")
+        wlr_log_init(WLR_DEBUG, nullptr);
+
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
     g_pCompositor = std::make_unique<CCompositor>(); 

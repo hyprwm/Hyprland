@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <wlr/util/log.h>
 
 #define LOGMESSAGESIZE 1024
 
@@ -15,6 +16,7 @@ enum LogLevel {
 namespace Debug {
     void init(std::string IS);
     void log(LogLevel level, const char* fmt, ...);
+    void wlrLog(wlr_log_importance level, const char* fmt, va_list args);
 
     inline std::string logFile;
     inline int64_t* disableLogs = nullptr;

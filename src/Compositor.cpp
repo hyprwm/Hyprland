@@ -1405,6 +1405,8 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     }
     
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv(), true);
+
+    forceReportSizesToWindowsOnWorkspace(pWindow->m_iWorkspaceID);
 }
 
 void CCompositor::moveUnmanagedX11ToWindows(CWindow* pWindow) {
@@ -1604,4 +1606,12 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     const int Y = std::stoi(y);
 
     return Vector2D(X + relativeTo.x, Y + relativeTo.y);
+}
+
+void CCompositor::forceReportSizesToWindowsOnWorkspace(const int& wid) {
+    for (auto& w : m_vWindows) {
+        if (w->m_iWorkspaceID == wid && w->m_bIsMapped && !w->m_bHidden) {
+            g_pXWaylandManager->setWindowSize(w.get(), w->m_vRealSize.vec(), true);
+        }
+    }
 }

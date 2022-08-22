@@ -158,6 +158,7 @@ public:
     SLayerSurface*          getLayerSurfaceFromSurface(wlr_surface*);
     void                    closeWindow(CWindow*);
     Vector2D                parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
+    void                    forceReportSizesToWindowsOnWorkspace(const int&);
     
 
     std::string             explicitConfigPath;

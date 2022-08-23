@@ -394,9 +394,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOWCANDIDATE->m_bCreatedOverFullscreen && !PWINDOW->m_bIsFloating)
         PWINDOWCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
-    if (!PWINDOWCANDIDATE)
-        PWINDOWCANDIDATE = g_pCompositor->getFirstWindowOnWorkspace(PWINDOW->m_iWorkspaceID);
-
     if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->m_bHidden || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
         PWINDOWCANDIDATE = nullptr;
 

@@ -391,6 +391,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // refocus on a new window
     auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f);
 
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOWCANDIDATE->m_bCreatedOverFullscreen && !PWINDOW->m_bIsFloating)
+        PWINDOWCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+
     if (!PWINDOWCANDIDATE)
         PWINDOWCANDIDATE = g_pCompositor->getFirstWindowOnWorkspace(PWINDOW->m_iWorkspaceID);
 

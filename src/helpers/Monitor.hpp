@@ -55,6 +55,8 @@ public:
     // methods
     void        onConnect(bool noRule);
     void        onDisconnect();
+    void        addDamage(pixman_region32_t* rg);
+    void        addDamage(wlr_box* box);
 
     std::shared_ptr<CMonitor>* m_pThisWrap = nullptr;
     bool        m_bEnabled = false;

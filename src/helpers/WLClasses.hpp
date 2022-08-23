@@ -306,6 +306,7 @@ struct SIMEPopup {
     int x, y;
     int realX, realY;
     bool visible;
+    Vector2D lastSize;
 
     DYNLISTENER(mapPopup);
     DYNLISTENER(unmapPopup);

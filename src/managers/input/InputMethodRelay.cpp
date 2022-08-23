@@ -125,6 +125,9 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
     if (!pPopup->pSurface->mapped)  
         return;
 
+    // damage last known pos & size
+    g_pHyprRenderer->damageBox(pPopup->realX, pPopup->realY, pPopup->lastSize.x, pPopup->lastSize.y);
+
     const auto PFOCUSEDTI = getFocusedTextInput();
 
     if (!PFOCUSEDTI || !PFOCUSEDTI->pWlrInput->focused_surface)
@@ -167,6 +170,8 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
     pPopup->realX = finalBox.x + parentPos.x;
     pPopup->realY = finalBox.y + parentPos.y + finalBox.height;
 
+    pPopup->lastSize = Vector2D(pPopup->pSurface->surface->current.width, pPopup->pSurface->surface->current.height);
+
     wlr_input_popup_surface_v2_send_text_input_rectangle(pPopup->pSurface, &finalBox);
 
     damagePopup(pPopup);
@@ -188,6 +193,8 @@ void Events::listener_unmapInputPopup(void* owner, void* data) {
     const auto PPOPUP = (SIMEPopup*)owner;
 
     Debug::log(LOG, "Unmapped an IME Popup");
+
+    g_pHyprRenderer->damageBox(PPOPUP->realX, PPOPUP->realY, PPOPUP->lastSize.x, PPOPUP->lastSize.y);
 
     g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
 }

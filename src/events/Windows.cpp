@@ -397,12 +397,15 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     if (!PWINDOWCANDIDATE)
         PWINDOWCANDIDATE = g_pCompositor->getFirstWindowOnWorkspace(PWINDOW->m_iWorkspaceID);
 
-    if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->m_bHidden || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2)
+    if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->m_bHidden || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
         PWINDOWCANDIDATE = nullptr;
 
     Debug::log(LOG, "On closed window, new focused candidate is %x", PWINDOWCANDIDATE);
 
-    g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+    if (!PWINDOWCANDIDATE)
+        g_pInputManager->refocus();
+    else
+        g_pCompositor->focusWindow(PWINDOWCANDIDATE);
 
     Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %x", PWINDOW);
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);

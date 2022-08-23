@@ -275,6 +275,8 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     if (m_bForceWarps) {
         PWINDOW->m_vRealPosition.warp();
         PWINDOW->m_vRealSize.warp();
+
+        g_pHyprRenderer->damageWindow(PWINDOW);
     }
 
     PWINDOW->updateWindowDecos();

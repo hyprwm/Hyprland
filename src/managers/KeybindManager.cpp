@@ -496,11 +496,15 @@ void CKeybindManager::changeworkspace(std::string args) {
     // to a previous workspace.
     bool isSwitchingToPrevious = false;
 
+    bool internal = false;
+
     if (args.find("[internal]") == 0) {
         workspaceToChangeTo = std::stoi(args.substr(10));
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
         if (PWORKSPACE)
             workspaceName = PWORKSPACE->m_szName;
+
+        internal = true;
     } else if (args.find("previous") == 0) {
         const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(
             g_pCompositor->m_pLastMonitor->activeWorkspace);
@@ -550,6 +554,10 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // remove constraints 
     g_pInputManager->unconstrainMouse();
+
+    // if it's not internal, we will unfocus to prevent stuck focus
+    if (!internal)
+        g_pCompositor->focusWindow(nullptr);
 
     // if it exists, we warp to it
     if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {

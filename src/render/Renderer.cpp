@@ -712,7 +712,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
         wlr_region_scale(&damageBoxForEach, &damageBoxForEach, m->scale);
         pixman_region32_translate(&damageBoxForEach, lx + m->vecPosition.x, ly + m->vecPosition.y);
 
-        wlr_output_damage_add(m->damage, &damageBoxForEach);
+        m->addDamage(&damageBoxForEach);
     }
 
     pixman_region32_fini(&damageBoxForEach);
@@ -733,7 +733,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     for (auto& m : g_pCompositor->m_vMonitors) {
         wlr_box fixedDamageBox = {damageBox.x - m->vecPosition.x, damageBox.y - m->vecPosition.y, damageBox.width, damageBox.height};
         scaleBox(&fixedDamageBox, m->scale);
-        wlr_output_damage_add_box(m->damage, &fixedDamageBox);
+        m->addDamage(&fixedDamageBox);
     }
 
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
@@ -747,7 +747,7 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
         return;
 
     wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
-    wlr_output_damage_add_box(pMonitor->damage, &damageBox);
+    pMonitor->addDamage(&damageBox);
 
     static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
@@ -762,7 +762,7 @@ void CHyprRenderer::damageBox(wlr_box* pBox) {
     for (auto& m : g_pCompositor->m_vMonitors) {
         wlr_box damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
         scaleBox(&damageBox, m->scale);
-        wlr_output_damage_add_box(m->damage, &damageBox);
+        m->addDamage(&damageBox);
     }
 
     static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;

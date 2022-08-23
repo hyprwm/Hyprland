@@ -232,3 +232,11 @@ void CMonitor::onDisconnect() {
 
     g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; }));
 }
+
+void CMonitor::addDamage(pixman_region32_t* rg) {
+    wlr_output_damage_add(damage, rg);
+}
+
+void CMonitor::addDamage(wlr_box* box) {
+    wlr_output_damage_add_box(damage, box);
+}

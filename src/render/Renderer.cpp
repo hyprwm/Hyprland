@@ -288,7 +288,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_bIsX11) {
-            renderdata.dontRound = false;  // restore dontround
+            renderdata.dontRound = true;  // don't round popups
             renderdata.pMonitor = pMonitor;
             renderdata.squishOversized = false; // don't squish popups
             wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
@@ -314,6 +314,7 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
 
     renderdata.squishOversized = false;  // don't squish popups
+    renderdata.dontRound = true;
     wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
 }
 

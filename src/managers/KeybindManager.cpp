@@ -39,7 +39,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["dpms"]                      = dpms;
     m_mDispatchers["movewindowpixel"]           = moveWindow;
     m_mDispatchers["resizewindowpixel"]         = resizeWindow;
-    m_mDispatchers["swapnext"]                  = swapNext;
+    m_mDispatchers["swapnext"]                  = swapnext;
 
     m_tScrollTimer.reset();
 }

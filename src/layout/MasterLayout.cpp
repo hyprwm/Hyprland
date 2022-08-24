@@ -452,8 +452,80 @@ void CHyprMasterLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
     recalculateMonitor(pWindow->m_iMonitorID);
 }
 
+CWindow* CHyprMasterLayout::getNextWindow(CWindow* pWindow, bool next) {
+    if (!isWindowTiled(pWindow))
+        return nullptr;
+
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (next) {
+        if (PNODE->isMaster) {
+            // focus the first non master
+            for (auto n : m_lMasterNodesData) {
+                if (n.pWindow != pWindow && n.workspaceID == pWindow->m_iWorkspaceID) {
+                    return n.pWindow;
+                }
+            }
+        } else {
+            // focus next
+            bool reached = false;
+            bool found = false;
+            for (auto n : m_lMasterNodesData) {
+                if (n.pWindow == pWindow) {
+                    reached = true;
+                    continue;
+                }
+
+                if (n.workspaceID == pWindow->m_iWorkspaceID && reached) {
+                    return n.pWindow;
+                }
+            }
+            if (!found) {
+                const auto PMASTER = getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
+
+                if (PMASTER)
+                    return PMASTER->pWindow;
+            }
+        }
+    } else {
+        if (PNODE->isMaster) {
+            // focus the first non master
+            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
+                if (it->pWindow != pWindow && it->workspaceID == pWindow->m_iWorkspaceID) {
+                    return it->pWindow;
+                }
+            }
+        } else {
+            // focus next
+            bool reached = false;
+            bool found = false;
+            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
+                if (it->pWindow == pWindow) {
+                    reached = true;
+                    continue;
+                }
+
+                if (it->workspaceID == pWindow->m_iWorkspaceID && reached) {
+                    return it->pWindow;
+                }
+            }
+            if (!found) {
+                const auto PMASTER = getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
+
+                if (PMASTER)
+                    return PMASTER->pWindow;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
+        if (!g_pCompositor->windowValidMapped(PWINDOWTOCHANGETO))
+            return;
+
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
         Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
@@ -479,80 +551,40 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     } else if (message == "cyclenext") {
         const auto PWINDOW = header.pWindow;
 
-        if (!isWindowTiled(PWINDOW))
-            return 0;
-
-        const auto PNODE = getNodeFromWindow(PWINDOW);
-
-        if (PNODE->isMaster) {
-            // focus the first non master
-            for (auto n : m_lMasterNodesData) {
-                if (n.pWindow != PWINDOW && n.workspaceID == PWINDOW->m_iWorkspaceID) {
-                    switchToWindow(n.pWindow);
-                    break;
-                }
-            }
-        } else {
-            // focus next
-            bool reached = false;
-            bool found = false;
-            for (auto n : m_lMasterNodesData) {
-                if (n.pWindow == PWINDOW) {
-                    reached = true;
-                    continue;
-                }
-
-                if (n.workspaceID == PWINDOW->m_iWorkspaceID && reached) {
-                    switchToWindow(n.pWindow);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
-
-                if (PMASTER)
-                    switchToWindow(PMASTER->pWindow);
-            }
-        }
+        switchToWindow(getNextWindow(PWINDOW, true));
     } else if (message == "cycleprev") {
         const auto PWINDOW = header.pWindow;
 
-        if (!isWindowTiled(PWINDOW))
+        switchToWindow(getNextWindow(PWINDOW, false));
+    } else if (message == "swapnext") {
+        if (!g_pCompositor->windowValidMapped(header.pWindow))
             return 0;
 
-        const auto PNODE = getNodeFromWindow(PWINDOW);
+        if (header.pWindow->m_bIsFloating) {
+            g_pKeybindManager->m_mDispatchers["swapnext"]("");
+            return 0;
+        }
 
-        if (PNODE->isMaster) {
-            // focus the first non master
-            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
-                if (it->pWindow != PWINDOW && it->workspaceID == PWINDOW->m_iWorkspaceID) {
-                    switchToWindow(it->pWindow);
-                    break;
-                }
-            }
-        } else {
-            // focus next
-            bool reached = false;
-            bool found = false;
-            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
-                if (it->pWindow == PWINDOW) {
-                    reached = true;
-                    continue;
-                }
+        const auto PWINDOWTOSWAPWITH = getNextWindow(header.pWindow, true);
 
-                if (it->workspaceID == PWINDOW->m_iWorkspaceID && reached) {
-                    switchToWindow(it->pWindow);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
+        if (PWINDOWTOSWAPWITH) {
+            switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
+            g_pCompositor->focusWindow(header.pWindow);
+        }
+    } else if (message == "swapprev") {
+        if (!g_pCompositor->windowValidMapped(header.pWindow))
+            return 0;
 
-                if (PMASTER)
-                    switchToWindow(PMASTER->pWindow);
-            }
+        if (header.pWindow->m_bIsFloating) {
+            g_pKeybindManager->m_mDispatchers["swapnext"]("prev");
+            return 0;
+        }
+
+        const auto PWINDOWTOSWAPWITH = getNextWindow(header.pWindow, false);
+
+        if (PWINDOWTOSWAPWITH) {
+            switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
+            g_pCompositor->focusWindow(header.pWindow);
         }
     }
 

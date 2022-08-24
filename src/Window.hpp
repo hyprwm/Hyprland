@@ -118,6 +118,9 @@ public:
     // For hidden windows and stuff
     bool            m_bHidden = false;
 
+    // for proper cycling. While cycling we can't just move the pointers, so we need to keep track of the last cycled window.
+    CWindow*        m_pLastCycledWindow = nullptr;
+
     // Foreign Toplevel proto
     wlr_foreign_toplevel_handle_v1* m_phForeignToplevel = nullptr;
 

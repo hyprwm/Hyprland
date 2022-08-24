@@ -370,7 +370,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // Allow the renderer to catch the last frame.
     g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
 
+    bool wasLastWindow = false;
+
     if (PWINDOW == g_pCompositor->m_pLastWindow) {
+        wasLastWindow = true;
         g_pCompositor->m_pLastWindow = nullptr;
         g_pCompositor->m_pLastFocus = nullptr;
     }
@@ -388,22 +391,26 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // do this after onWindowRemoved because otherwise it'll think the window is invalid
     PWINDOW->m_bIsMapped = false;
 
-    // refocus on a new window
-    auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f);
+    // refocus on a new window if needed
+    if (wasLastWindow) {
+        auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f);
 
-    if (PWORKSPACE->m_bHasFullscreenWindow && (!PWINDOWCANDIDATE->m_bCreatedOverFullscreen || !PWINDOW->m_bIsFloating))
-        PWINDOWCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        if (PWORKSPACE->m_bHasFullscreenWindow && (!PWINDOWCANDIDATE->m_bCreatedOverFullscreen || !PWINDOW->m_bIsFloating))
+            PWINDOWCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
-    if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->m_bHidden || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
-        PWINDOWCANDIDATE = nullptr;
+        if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->m_bHidden || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+            PWINDOWCANDIDATE = nullptr;
 
-    Debug::log(LOG, "On closed window, new focused candidate is %x", PWINDOWCANDIDATE);
+        Debug::log(LOG, "On closed window, new focused candidate is %x", PWINDOWCANDIDATE);
 
-    if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow) {
-        if (!PWINDOWCANDIDATE)
-            g_pInputManager->refocus();
-        else
-            g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow) {
+            if (!PWINDOWCANDIDATE)
+                g_pInputManager->refocus();
+            else
+                g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+        }
+    } else {
+        Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
     }
 
     Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %x", PWINDOW);

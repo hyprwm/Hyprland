@@ -157,7 +157,6 @@ claninstall:
 
 	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
 
-
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
 	rm -f ${PREFIX}/bin/Hyprland

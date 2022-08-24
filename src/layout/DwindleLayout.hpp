@@ -18,9 +18,10 @@ struct SDwindleNodeData {
 
     bool            splitTop = false; // for preserve_split
 
-    bool            groupHead = false;
-    SDwindleNodeData* pNextGroupMember = nullptr;
-    SDwindleNodeData* pPreviousGroupMember = nullptr;
+    bool            isGroup = false;
+    int             groupMemberActive = 0;
+    std::deque<SDwindleNodeData*> groupMembers;
+    SDwindleNodeData* pGroupParent = nullptr;
 
     Vector2D        position;
     Vector2D        size;
@@ -38,10 +39,6 @@ struct SDwindleNodeData {
 
     void            recalcSizePosRecursive(bool force = false);
     void            getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
-    bool            isGroupMember();
-    SDwindleNodeData* getGroupHead();
-    SDwindleNodeData* getGroupVisible();
-    void            setGroupFocusedNode(SDwindleNodeData*);
     CHyprDwindleLayout* layout = nullptr;
 };
 

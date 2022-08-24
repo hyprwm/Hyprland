@@ -2,6 +2,23 @@
 #include "../Compositor.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force) {
+
+    // check the group, if we are in one and not active, ignore.
+    if (pGroupParent && pGroupParent->groupMembers[pGroupParent->groupMemberActive] != this) {
+        if (pWindow)
+            pWindow->m_bHidden = true;
+        return;
+    } else {
+        if (pWindow)
+            pWindow->m_bHidden = false;
+    }
+
+    if (pGroupParent) {
+        // means we are in a group and focused. let's just act like the full window in this
+        size = pGroupParent->size;
+        position = pGroupParent->position;
+    }
+
     if (children[0]) {
 
         const auto REVERSESPLITRATIO = 2.f - splitRatio;
@@ -41,51 +58,6 @@ void SDwindleNodeData::getAllChildrenRecursive(std::deque<SDwindleNodeData*>* pD
     } else {
         pDeque->push_back(this);
     }
-}
-
-bool SDwindleNodeData::isGroupMember() {
-    return pNextGroupMember && pNextGroupMember != this;
-}
-
-SDwindleNodeData* SDwindleNodeData::getGroupHead() {
-    SDwindleNodeData* current = this->pNextGroupMember;
-
-    while (current != this) {
-        if (current->groupHead) {
-            return current;
-        }
-
-        current = current->pNextGroupMember;
-    }
-
-    this->groupHead = true;
-
-    return this;
-}
-
-SDwindleNodeData* SDwindleNodeData::getGroupVisible() {
-    SDwindleNodeData* current = this->pNextGroupMember;
-
-    while (current != this) {
-        if (!current->pWindow->m_bHidden) {
-            return current;
-        }
-
-        current = current->pNextGroupMember;
-    }
-
-    return this;
-}
-
-void SDwindleNodeData::setGroupFocusedNode(SDwindleNodeData* pMember) {
-    SDwindleNodeData* current = this->pNextGroupMember;
-
-    while (current != this) {
-        current->pWindow->m_bHidden = current != pMember;
-        current = current->pNextGroupMember;
-    }
-
-    this->pWindow->m_bHidden = pMember != this;
 }
 
 int CHyprDwindleLayout::getNodesOnWorkspace(const int& id) {
@@ -157,7 +129,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     const auto PWINDOW = pNode->pWindow;
 
-    if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
+    if (!g_pCompositor->windowValidMapped(PWINDOW)) {
         Debug::log(ERR, "Node %x holding invalid window %x!!", pNode, PWINDOW);
         return;
     }
@@ -240,14 +212,6 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         g_pHyprRenderer->damageWindow(PWINDOW);
     }
 
-    if (pNode->isGroupMember() && pNode->groupHead) {
-        // update visible node
-        const auto PVISNODE = pNode->getGroupVisible();
-
-        PVISNODE->pWindow->m_vRealSize = PWINDOW->m_vRealSize.goalv();
-        PVISNODE->pWindow->m_vRealPosition = PWINDOW->m_vRealPosition.goalv();
-    }
-
     PWINDOW->updateWindowDecos();
 }
 
@@ -311,28 +275,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     if (!OPENINGON || OPENINGON->pWindow == pWindow) {
         PNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
         PNODE->size = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-
-        applyNodeDataToWindow(PNODE);
-
-        return;
-    }
-
-    // if it's a group, add the window
-    if (OPENINGON->isGroupMember()) {
-        const auto PHEAD = OPENINGON->getGroupHead();
-
-        const auto PTAIL = PHEAD->pPreviousGroupMember;
-
-        PHEAD->pPreviousGroupMember = PNODE;
-        PTAIL->pNextGroupMember = PNODE;
-
-        PNODE->pNextGroupMember = PHEAD;
-        PNODE->pPreviousGroupMember = PTAIL;
-
-        PHEAD->setGroupFocusedNode(PNODE);
-
-        PNODE->position = PHEAD->position;
-        PNODE->size = PHEAD->size;
 
         applyNodeDataToWindow(PNODE);
 
@@ -411,10 +353,23 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     OPENINGON->pParent = NEWPARENT;
     PNODE->pParent = NEWPARENT;
 
-    NEWPARENT->recalcSizePosRecursive();
+    if (OPENINGON->pGroupParent) {
+        // means we opened on a group
 
-    applyNodeDataToWindow(PNODE);
-    applyNodeDataToWindow(OPENINGON);
+        // add the group deco
+        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
+        PNODE->pGroupParent = OPENINGON->pGroupParent;
+        PNODE->pGroupParent->groupMembers.push_back(PNODE);
+        PNODE->pGroupParent->groupMemberActive = PNODE->pGroupParent->groupMembers.size() - 1;
+
+        PNODE->pGroupParent->recalcSizePosRecursive();
+    } else {
+        NEWPARENT->recalcSizePosRecursive();
+
+        applyNodeDataToWindow(PNODE);
+        applyNodeDataToWindow(OPENINGON);
+    }
 }
 
 void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
@@ -423,47 +378,6 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
     if (!PNODE) {
         Debug::log(ERR, "onWindowRemovedTiling node null?");
-        return;
-    }
-
-    // check if it was grouped
-    if (PNODE->isGroupMember()) {
-        // get shit
-        const auto PPREV = PNODE->pPreviousGroupMember;
-        const auto PNEXT = PNODE->pNextGroupMember;
-
-        PPREV->pNextGroupMember = PNEXT;
-        PNEXT->pPreviousGroupMember = PPREV;
-
-        if (PNODE->groupHead) {
-            PNEXT->groupHead = true;
-            PNEXT->pParent = PNODE->pParent;
-            
-            if (PNODE->pParent) {
-                if (PNODE->pParent->children[0] == PNODE) {
-                    PNODE->pParent->children[0] = PNEXT;
-                } else {
-                    PNODE->pParent->children[1] = PNEXT;
-                }
-            }
-
-            PNEXT->position = PNODE->position;
-            PNEXT->size = PNODE->size;
-
-            applyNodeDataToWindow(PNEXT);
-        } else {
-            const auto PHEAD = PNODE->getGroupHead();
-
-            PNEXT->position = PHEAD->position;
-            PNEXT->size = PHEAD->size;
-
-            applyNodeDataToWindow(PNEXT);
-        }
-
-        PNEXT->setGroupFocusedNode(PNEXT);
-        PNEXT->pWindow->m_bHidden = false;
-
-        m_lDwindleNodesData.remove(*PNODE);
         return;
     }
 
@@ -486,6 +400,29 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
             PPARENT->pParent->children[0] = PSIBLING;
         } else {
             PPARENT->pParent->children[1] = PSIBLING;
+        }
+    }
+
+    // check if it was grouped
+    if (PNODE->pGroupParent) {
+        PNODE->pGroupParent->groupMembers.erase(PNODE->pGroupParent->groupMembers.begin() + PNODE->pGroupParent->groupMemberActive);
+
+        if ((long unsigned int)PNODE->pGroupParent->groupMemberActive >= PNODE->pGroupParent->groupMembers.size())
+            PNODE->pGroupParent->groupMemberActive = 0;
+
+        if (PNODE->pGroupParent->groupMembers.size() <= 1) {
+            PNODE->pGroupParent->isGroup = false;
+            PSIBLING->pGroupParent = nullptr;
+            PNODE->pGroupParent->groupMembers.clear();
+
+            PSIBLING->recalcSizePosRecursive();
+        } else {
+            PNODE->pGroupParent->recalcSizePosRecursive();
+        }
+
+        // if the parent is to be removed, remove the group
+        if (PPARENT == PNODE->pGroupParent) {
+            toggleWindowGroup(PPARENT->groupMembers[PPARENT->groupMemberActive]->pWindow);
         }
     }
 
@@ -737,16 +674,6 @@ void CHyprDwindleLayout::recalculateWindow(CWindow* pWindow) {
     PNODE->recalcSizePosRecursive();
 }
 
-void addToDequeRecursive(std::deque<SDwindleNodeData*>* pDeque, std::deque<SDwindleNodeData*>* pParents, SDwindleNodeData* node) {
-    if (node->isNode) {
-        pParents->push_back(node);
-        addToDequeRecursive(pDeque, pParents, node->children[0]);
-        addToDequeRecursive(pDeque, pParents, node->children[1]);
-    } else {
-        pDeque->emplace_back(node);
-    }
-}
-
 void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
@@ -762,109 +689,60 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
     if (PWORKSPACE->m_bHasFullscreenWindow)
         fullscreenRequestForWindow(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), FULLSCREEN_FULL, false);
 
-    if (PNODE->isGroupMember()) {
-        // dissolve group
+    const auto PGROUPPARENT = PNODE->pGroupParent;
 
-        const auto PHEAD = PNODE->getGroupHead();
+    if (PGROUPPARENT) {
+        // if there is a parent, release it
+        const auto INACTIVEBORDERCOL = CColor(g_pConfigManager->getInt("general:col.inactive_border"));
+        for (auto& node : PGROUPPARENT->groupMembers) {
+            node->pGroupParent = nullptr;
+            node->pWindow->m_cRealBorderColor.setValueAndWarp(INACTIVEBORDERCOL); // no anim here because they pop in
 
-        SDwindleNodeData* current = PNODE->pNextGroupMember;
-
-        PNODE->pWindow->m_bIsFloating = PHEAD->pWindow->m_bIsFloating;
-
-        std::deque<CWindow*> toAddWindows;
+            for (auto& wd : node->pWindow->m_dWindowDecorations) {
+                wd->updateWindow(node->pWindow);
+            }
+        }   
         
-        const auto PWINDOWNODE = PNODE->pWindow;
-        toAddWindows.push_back(PWINDOWNODE);
+        PGROUPPARENT->groupMembers.clear();
 
-        while (current != PNODE) {
-            const auto PWINDOW = current->pWindow;
-            current = current->pNextGroupMember;
+        PGROUPPARENT->isGroup = false;
 
-            toAddWindows.push_back(PWINDOW);
+        PGROUPPARENT->recalcSizePosRecursive();
 
-            PWINDOW->m_bHidden = false;
-        }
-
-        PHEAD->pPreviousGroupMember = nullptr;
-        PHEAD->pNextGroupMember = nullptr;
-        onWindowRemoved(PHEAD->pWindow);
-
-        for (auto& pw : toAddWindows) {
-            const auto PNODE = getNodeFromWindow(pw);
-            if (PNODE)
-                m_lDwindleNodesData.remove(*PNODE);
-
-            pw->m_vPosition = Vector2D(-1000000, -1000000);
-        }
-
-        for (auto& pw : toAddWindows) {
-            onWindowCreated(pw);
-        }
-
-        recalculateMonitor(PWORKSPACE->m_iMonitorID);
+        if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+            g_pCompositor->m_pLastWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("general:col.active_border"));
     } else {
-        // create group
+        // if there is no parent, let's make one
 
-        if (!PNODE->pParent)
-            return;
+        const auto PPARENT = PNODE->pParent;
 
-        PNODE->groupHead = true;
+        if (!PPARENT)
+            return; // reject making group on single window
 
-        std::deque<SDwindleNodeData*> newGroupMembers;
-        std::deque<SDwindleNodeData*> nodesToRemove;
+        
+        PPARENT->isGroup = true;
+        
+        // recursively get all members
+        std::deque<SDwindleNodeData*> allChildren;
+        PPARENT->getAllChildrenRecursive(&allChildren);
 
-        newGroupMembers.emplace_back(PNODE);
+        PPARENT->groupMembers = allChildren;
 
-        addToDequeRecursive(&newGroupMembers, &nodesToRemove, PNODE->pParent->children[0] == PNODE ? PNODE->pParent->children[1] : PNODE->pParent->children[0]);
+        const auto GROUPINACTIVEBORDERCOL = CColor(g_pConfigManager->getInt("dwinle:col.group_border"));
+        for (auto& c : PPARENT->groupMembers) {
+            c->pGroupParent = PPARENT;
+            c->pWindow->m_cRealBorderColor = GROUPINACTIVEBORDERCOL;
 
-        for (auto& n : newGroupMembers) {
-            if (n->isGroupMember())
-                return; // reject nested groups
+            c->pWindow->m_dWindowDecorations.push_back(std::make_unique<CHyprGroupBarDecoration>(c->pWindow));
+
+            if (c->pWindow == g_pCompositor->m_pLastWindow)
+                c->pWindow->m_cRealBorderColor = CColor(g_pConfigManager->getInt("dwindle:col.group_border_active"));
         }
 
-        for (auto& nd : nodesToRemove) {
-            m_lDwindleNodesData.remove(*nd);
-        }
+        PPARENT->groupMemberActive = 0;
 
-        PNODE->position = PNODE->pParent->position;
-        PNODE->size = PNODE->pParent->size;
-
-        applyNodeDataToWindow(PNODE);
-
-        if (PNODE->pParent->pParent) {
-            if (PNODE->pParent->pParent->children[0] == PNODE->pParent) {
-                PNODE->pParent->pParent->children[0] = PNODE;
-            } else {
-                PNODE->pParent->pParent->children[1] = PNODE;
-            }
-        }
-
-        const auto PPARENT2 = PNODE->pParent->pParent;
-
-        m_lDwindleNodesData.remove(*PNODE->pParent);
-
-        PNODE->pParent = PPARENT2;
-
-        // now remove everyone but head from tree
-        // and set order
-        for (int i = 0; i < (int)newGroupMembers.size(); ++i) {
-            if (i != 0) {
-                newGroupMembers[i]->groupHead = false;
-                newGroupMembers[i]->pParent = PNODE->pParent;
-            }
-
-            const auto PREVMEMBER = i == 0 ? newGroupMembers[newGroupMembers.size() - 1] : newGroupMembers[i - 1];
-            const auto NEXTMEMBER = i == (int)newGroupMembers.size() - 1 ? newGroupMembers[0] : newGroupMembers[i + 1];
-
-            newGroupMembers[i]->pPreviousGroupMember = PREVMEMBER;
-            newGroupMembers[i]->pNextGroupMember = NEXTMEMBER;
-        }
-
-        // focus
-        PNODE->setGroupFocusedNode(PNODE);
+        PPARENT->recalcSizePosRecursive();
     }
-
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     g_pInputManager->refocus();
 }
@@ -882,13 +760,13 @@ std::deque<CWindow*> CHyprDwindleLayout::getGroupMembers(CWindow* pWindow) {
     if (!PNODE)
         return result;  // reject with empty
 
-    SDwindleNodeData* current = PNODE->pNextGroupMember;
+    const auto PGROUPPARENT = PNODE->pGroupParent;
 
-    result.push_back(pWindow);
+    if (!PGROUPPARENT)
+        return result;  // reject with empty
 
-    while (current != PNODE) {
-        result.push_back(current->pWindow);
-        current = current->pNextGroupMember;
+    for (auto& node : PGROUPPARENT->groupMembers) {
+        result.push_back(node->pWindow);
     }
 
     return result;
@@ -900,40 +778,45 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
 
     const auto PNODE = getNodeFromWindow(pWindow);
 
-    if (!PNODE || !PNODE->isGroupMember())
+    if (!PNODE)
+        return; // reject
+
+    if (!PNODE->pGroupParent)
         return; // reject
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PNODE->workspaceID);
 
-    SDwindleNodeData* pNewNode;
-
     if (forward)
-        pNewNode = PNODE->pNextGroupMember;
+        PNODE->pGroupParent->groupMemberActive++;
     else
-        pNewNode = PNODE->pPreviousGroupMember;
+        PNODE->pGroupParent->groupMemberActive--;
 
-    PNODE->setGroupFocusedNode(pNewNode);
+    if (PNODE->pGroupParent->groupMemberActive < 0)
+        PNODE->pGroupParent->groupMemberActive = PNODE->pGroupParent->groupMembers.size() - 1;
 
-    pNewNode->position = PNODE->position;
-    pNewNode->size = PNODE->size;
+    if ((long unsigned int)PNODE->pGroupParent->groupMemberActive >= PNODE->pGroupParent->groupMembers.size())
+        PNODE->pGroupParent->groupMemberActive = 0;
 
-    applyNodeDataToWindow(pNewNode);
+    bool restoreFullscreen = false;
 
-    pNewNode->pWindow->m_vRealSize.warp();
-    pNewNode->pWindow->m_vRealPosition.warp();
-
-    g_pCompositor->focusWindow(pNewNode->pWindow);
-
-    pNewNode->pWindow->m_bIsFloating = PNODE->pWindow->m_bIsFloating;
-    
     if (PNODE->pWindow->m_bIsFullscreen) {
-        PNODE->pWindow->m_bHidden = false;
-        g_pCompositor->setWindowFullscreen(PNODE->pWindow, false, PWORKSPACE->m_efFullscreenMode);
-        PNODE->pWindow->m_bHidden = true;
-        g_pCompositor->setWindowFullscreen(pNewNode->pWindow, true, PWORKSPACE->m_efFullscreenMode);
+        fullscreenRequestForWindow(PNODE->pWindow, PWORKSPACE->m_efFullscreenMode, false);
+        restoreFullscreen = true;
+    }
 
-        pNewNode->pWindow->m_vRealSize.warp();
-        pNewNode->pWindow->m_vRealPosition.warp();
+    PNODE->pGroupParent->recalcSizePosRecursive();
+
+    for (auto& gm : PNODE->pGroupParent->groupMembers) {
+        for (auto& deco : gm->pWindow->m_dWindowDecorations) {
+            deco->updateWindow(gm->pWindow);
+        }
+    }
+
+    // focus
+    g_pCompositor->focusWindow(PNODE->pGroupParent->groupMembers[PNODE->pGroupParent->groupMemberActive]->pWindow);
+
+    if (restoreFullscreen) {
+         fullscreenRequestForWindow(PNODE->pGroupParent->groupMembers[PNODE->pGroupParent->groupMemberActive]->pWindow, PWORKSPACE->m_efFullscreenMode, true);
     }
 }
 
@@ -946,7 +829,7 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
     if (!PNODE)
         return hints; // left for the future, maybe floating funkiness
 
-    if (PNODE->isGroupMember()) {
+    if (PNODE->pGroupParent) {
         hints.isBorderColor = true;
 
         if (pWindow == g_pCompositor->m_pLastWindow)

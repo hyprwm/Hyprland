@@ -138,7 +138,7 @@ install:
 
 	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
 	
-claninstall:
+cleaninstall:
 	make clear
 	make fixwlr
 	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.11032 /usr/lib/ && cd ../..

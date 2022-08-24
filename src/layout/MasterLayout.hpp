@@ -51,6 +51,7 @@ private:
     SMasterNodeData*    getNodeFromWindow(CWindow*);
     SMasterNodeData*    getMasterNodeOnWorkspace(const int&);
     void                calculateWorkspace(const int&);
+    CWindow*            getNextWindow(CWindow*, bool);
 
     friend struct SMasterNodeData;
 };

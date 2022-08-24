@@ -107,6 +107,7 @@ private:
     static void         layoutmsg(std::string);
     static void         toggleOpaque(std::string);
     static void         dpms(std::string);
+    static void         swapnext(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

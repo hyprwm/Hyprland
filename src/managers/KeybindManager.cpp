@@ -39,6 +39,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["dpms"]                      = dpms;
     m_mDispatchers["movewindowpixel"]           = moveWindow;
     m_mDispatchers["resizewindowpixel"]         = resizeWindow;
+    m_mDispatchers["swapnext"]                  = swapNext;
 
     m_tScrollTimer.reset();
 }
@@ -1436,4 +1437,23 @@ void CKeybindManager::dpms(std::string arg) {
     }
 
     g_pCompositor->m_bDPMSStateON = enable;
+}
+
+void CKeybindManager::swapnext(std::string arg) {
+
+    CWindow* toSwap = nullptr;
+
+    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+        return;
+
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
+        toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW);
+    else
+        toSwap = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW);
+
+    g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, toSwap);
+
+    g_pCompositor->focusWindow(PLASTWINDOW);
 }

@@ -23,7 +23,7 @@ CWindow::~CWindow() {
 wlr_box CWindow::getFullWindowBoundingBox() {
     static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-    SWindowDecorationExtents maxExtents = {{*PBORDERSIZE + 1, *PBORDERSIZE + 1}, {*PBORDERSIZE + 1, *PBORDERSIZE + 1}};
+    SWindowDecorationExtents maxExtents = {{*PBORDERSIZE + 2, *PBORDERSIZE + 2}, {*PBORDERSIZE + 2, *PBORDERSIZE + 2}};
 
     for (auto& wd : m_dWindowDecorations) {
 

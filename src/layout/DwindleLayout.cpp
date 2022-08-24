@@ -234,6 +234,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     }
 
     if (force) {
+        g_pHyprRenderer->damageWindow(PWINDOW);
+
         PWINDOW->m_vRealPosition.warp();
         PWINDOW->m_vRealSize.warp();
 

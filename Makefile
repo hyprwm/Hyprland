@@ -137,6 +137,26 @@ install:
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
 	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
+	
+claninstall:
+	make clear
+	make fixwlr
+	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.11032 /usr/lib/ && cd ../..
+	make protocols
+	make release
+	cd hyprctl && make all && cd ..
+
+	mkdir -p /usr/share/wayland-sessions
+	mkdir -p ${PREFIX}/bin
+	cp ./build/Hyprland ${PREFIX}/bin
+	cp ./hyprctl/hyprctl ${PREFIX}/bin
+	mkdir -p ${PREFIX}/share/hyprland
+	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
+	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
+	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
+
+	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
+
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop

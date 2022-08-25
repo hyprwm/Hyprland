@@ -240,14 +240,6 @@ void CCompositor::cleanup() {
     wl_display_terminate(m_sWLDisplay);
 
     m_bIsShuttingDown = true;
-
-    // kill the PID with a sigkill after 2 seconds
-    const auto PID = getpid();
-
-    std::string call = "sleep 2 && kill -9 " + std::to_string(PID);
-
-    execl("/bin/sh", "/bin/sh", "-c", call.c_str(), ">", "/dev/null", nullptr); // this is to prevent that random "freezing"
-                                                                                // the PID should not be reused.
 }
 
 void CCompositor::startCompositor() {

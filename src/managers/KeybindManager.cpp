@@ -40,6 +40,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["movewindowpixel"]           = moveWindow;
     m_mDispatchers["resizewindowpixel"]         = resizeWindow;
     m_mDispatchers["swapnext"]                  = swapnext;
+    m_mDispatchers["swapactiveworkspaces"]      = swapActiveWorkspaces;
 
     m_tScrollTimer.reset();
 }
@@ -981,45 +982,12 @@ void CKeybindManager::alterSplitRatio(std::string args) {
 }
 
 void CKeybindManager::focusMonitor(std::string arg) {
-    if (isNumber(arg)) {
-        // change by ID
-        int monID = -1;
-        try {
-            monID = std::stoi(arg);
-        } catch (std::exception& e) {
-            // shouldn't happen but jic
-            Debug::log(ERR, "Error in focusMonitor: invalid num");
-        }
+    const auto PMONITOR = g_pCompositor->getMonitorFromString(arg);
 
-        if (monID > -1 && monID < (int)g_pCompositor->m_vMonitors.size()) {
-            changeworkspace("[internal]" + std::to_string(g_pCompositor->getMonitorFromID(monID)->activeWorkspace));
-        } else {
-            Debug::log(ERR, "Error in focusMonitor: invalid arg 1");
-        }
-    } else {
+    if (!PMONITOR)
+        return;
 
-        if (isDirection(arg)) {
-            const auto PMONITOR = g_pCompositor->getMonitorInDirection(arg[0]);
-            if (PMONITOR) {
-                if (PMONITOR->activeWorkspace < 0) {
-                    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-                    changeworkspace("name:" + PWORKSPACE->m_szName);
-                }
-                else
-                    changeworkspace(std::to_string(PMONITOR->activeWorkspace));
-                return;
-            }
-        } else {
-            for (auto& m : g_pCompositor->m_vMonitors) {
-                if (m->szName == arg) {
-                    changeworkspace("[internal]" + std::to_string(m->activeWorkspace));
-                    return;
-                }
-            }
-        }        
-
-        Debug::log(ERR, "Error in focusMonitor: no such monitor");
-    }
+    changeworkspace("[internal]" + std::to_string(PMONITOR->activeWorkspace));
 }
 
 void CKeybindManager::moveCursorToCorner(std::string arg) {
@@ -1468,4 +1436,17 @@ void CKeybindManager::swapnext(std::string arg) {
     PLASTWINDOW->m_pLastCycledWindow = toSwap;
 
     g_pCompositor->focusWindow(PLASTWINDOW);
+}
+
+void CKeybindManager::swapActiveWorkspaces(std::string args) {
+    const auto MON1 = args.substr(0, args.find_first_of(' '));
+    const auto MON2 = args.substr(args.find_first_of(' ') + 1);
+
+    const auto PMON1 = g_pCompositor->getMonitorFromString(MON1);
+    const auto PMON2 = g_pCompositor->getMonitorFromString(MON2);
+
+    if (!PMON1 || !PMON2)
+        return;
+
+    g_pCompositor->swapActiveWorkspaces(PMON1, PMON2);
 }

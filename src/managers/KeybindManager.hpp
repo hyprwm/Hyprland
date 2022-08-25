@@ -108,6 +108,7 @@ private:
     static void         toggleOpaque(std::string);
     static void         dpms(std::string);
     static void         swapnext(std::string);
+    static void         swapActiveWorkspaces(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

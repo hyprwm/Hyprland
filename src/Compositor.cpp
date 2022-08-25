@@ -1299,6 +1299,88 @@ int CCompositor::getNextAvailableMonitorID() {
     return topID + 1;
 }
 
+void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB) {
+
+    const auto PWORKSPACEA = g_pCompositor->getWorkspaceByID(pMonitorA->activeWorkspace);
+    const auto PWORKSPACEB = g_pCompositor->getWorkspaceByID(pMonitorB->activeWorkspace);
+
+    PWORKSPACEA->m_iMonitorID = pMonitorB->ID;
+    PWORKSPACEA->moveToMonitor(pMonitorB->ID);
+
+    for (auto& w : m_vWindows) {
+        if (w->m_iWorkspaceID == PWORKSPACEA->m_iID) {
+            w->m_iMonitorID = pMonitorB->ID;
+
+            // additionally, move floating windows manually
+            if (w->m_bIsFloating && w->m_bIsMapped && !w->m_bHidden) {
+                w->m_vRealPosition = w->m_vRealPosition.vec() - pMonitorA->vecPosition + pMonitorB->vecPosition;
+            }
+
+            w->updateToplevel();
+        }
+    }
+
+    PWORKSPACEB->m_iMonitorID = pMonitorA->ID;
+    PWORKSPACEB->moveToMonitor(pMonitorA->ID);
+
+    for (auto& w : m_vWindows) {
+        if (w->m_iWorkspaceID == PWORKSPACEB->m_iID) {
+            w->m_iMonitorID = pMonitorA->ID;
+
+            // additionally, move floating windows manually
+            if (w->m_bIsFloating && w->m_bIsMapped && !w->m_bHidden) {
+                w->m_vRealPosition = w->m_vRealPosition.vec() - pMonitorB->vecPosition + pMonitorA->vecPosition;
+            }
+
+            w->updateToplevel();
+        }
+    }
+
+    pMonitorA->activeWorkspace = PWORKSPACEB->m_iID;
+    pMonitorB->activeWorkspace = PWORKSPACEA->m_iID;
+
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->ID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->ID);
+
+    g_pInputManager->refocus();
+}
+
+CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
+    if (isNumber(name)) {
+        // change by ID
+        int monID = -1;
+        try {
+            monID = std::stoi(name);
+        } catch (std::exception& e) {
+            // shouldn't happen but jic
+            Debug::log(ERR, "Error in getMonitorFromString: invalid num");
+            return nullptr;
+        }
+
+        if (monID > -1 && monID < (int)g_pCompositor->m_vMonitors.size()) {
+            return g_pCompositor->getMonitorFromID(monID);
+        } else {
+            Debug::log(ERR, "Error in getMonitorFromString: invalid arg 1");
+            return nullptr;
+        }
+    } else {
+        if (isDirection(name)) {
+            const auto PMONITOR = g_pCompositor->getMonitorInDirection(name[0]);
+            return PMONITOR;
+        } else {
+            for (auto& m : g_pCompositor->m_vMonitors) {
+                if (m->szName == name) {
+                    return m.get();
+                }
+            }
+        }
+
+        Debug::log(ERR, "Error in getMonitorFromString: no such monitor");
+    }
+
+    return nullptr;
+}
+
 void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMonitor) {
 
     // We trust the workspace and monitor to be correct.

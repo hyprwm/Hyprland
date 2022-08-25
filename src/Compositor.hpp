@@ -145,6 +145,8 @@ public:
     void                    updateWindowAnimatedDecorationValues(CWindow*);
     int                     getNextAvailableMonitorID();
     void                    moveWorkspaceToMonitor(CWorkspace*, CMonitor*);
+    void                    swapActiveWorkspaces(CMonitor*, CMonitor*);
+    CMonitor*               getMonitorFromString(const std::string&);
     bool                    workspaceIDOutOfBounds(const int&);
     void                    setWindowFullscreen(CWindow*, bool, eFullscreenMode);
     void                    moveUnmanagedX11ToWindows(CWindow*);

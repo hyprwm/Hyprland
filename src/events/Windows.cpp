@@ -267,7 +267,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv() - Vector2D(10,10);
     }
 
-    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2 && shouldFocus) {
+    const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
     } else
@@ -334,6 +336,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);
 
     PWINDOW->updateToplevel();
+
+    if (!shouldFocus) {
+        if (g_pCompositor->windowValidMapped(PFOCUSEDWINDOWPREV))
+            g_pCompositor->focusWindow(PFOCUSEDWINDOWPREV);
+        else if (!PFOCUSEDWINDOWPREV)
+            g_pCompositor->focusWindow(nullptr);
+    }
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
     

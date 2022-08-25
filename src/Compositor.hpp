@@ -98,6 +98,7 @@ public:
     bool                    m_bSessionActive = true;
     bool                    m_bDPMSStateON = true;
     bool                    m_bUnsafeState = false; // unsafe state is when there is no monitors.
+    bool                    m_bIsShuttingDown = false;
 
     // ------------------------------------------------- //
 

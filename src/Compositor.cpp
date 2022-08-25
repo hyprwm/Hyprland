@@ -216,7 +216,7 @@ void CCompositor::initAllSignals() {
 }
 
 void CCompositor::cleanup() {
-    if (!m_sWLDisplay)
+    if (!m_sWLDisplay || m_bIsShuttingDown)
         return;
 
     m_pLastFocus = nullptr;
@@ -225,8 +225,12 @@ void CCompositor::cleanup() {
     m_vWorkspaces.clear();
     m_vWindows.clear();
 
-    for (auto& m : m_vMonitors)
+    for (auto& m : m_vMonitors) {
         g_pHyprOpenGL->destroyMonitorResources(m.get());
+
+        wlr_output_enable(m->output, false);
+        wlr_output_commit(m->output);
+    }
 
     if (g_pXWaylandManager->m_sWLRXWayland) {
         wlr_xwayland_destroy(g_pXWaylandManager->m_sWLRXWayland);
@@ -235,7 +239,7 @@ void CCompositor::cleanup() {
 
     wl_display_terminate(m_sWLDisplay);
 
-    m_sWLDisplay = nullptr;
+    m_bIsShuttingDown = true;
 
     // kill the PID with a sigkill after 2 seconds
     const auto PID = getpid();

@@ -108,6 +108,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     std::string requestedWorkspace = "";
     bool workspaceSilent = false;
     bool requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen || (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen);
+    bool shouldFocus = true;
 
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {
@@ -188,9 +189,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
             // check for silent
             if (requestedWorkspace.contains("silent")) {
                 workspaceSilent = true;
+                shouldFocus = false;
             }
 
             requestedWorkspace = requestedWorkspace.substr(0, requestedWorkspace.find_first_of(' '));
+
+            if (!shouldFocus && requestedWorkspace == std::to_string(PMONITOR->activeWorkspace))
+                shouldFocus = true;
 
             if (requestedWorkspace == "special") {
                 workspaceSilent = true;
@@ -262,7 +267,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv() - Vector2D(10,10);
     }
 
-    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2) {
+    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2 && shouldFocus) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
     } else

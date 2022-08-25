@@ -551,7 +551,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     static auto *const PBACKANDFORTH = &g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth")->intValue;
     if (*PBACKANDFORTH 
         && PCURRENTWORKSPACE->m_iID == workspaceToChangeTo
-        && PCURRENTWORKSPACE->m_iPrevWorkspaceID != -1) {
+        && PCURRENTWORKSPACE->m_iPrevWorkspaceID != -1
+        && !internal) {
 
         workspaceToChangeTo = PCURRENTWORKSPACE->m_iPrevWorkspaceID;
         isSwitchingToPrevious = true;
@@ -576,7 +577,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
 
-        if (!isSwitchingToPrevious)
+        if (!isSwitchingToPrevious && !internal)
             // Remember previous workspace.
             PWORKSPACETOCHANGETO->m_iPrevWorkspaceID = g_pCompositor->m_pLastMonitor->activeWorkspace;
 

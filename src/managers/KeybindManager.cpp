@@ -463,19 +463,28 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
-    const auto ACTIVEWINDOW = g_pCompositor->m_pLastWindow;
+    CWindow* PWINDOW = nullptr;
 
-    if (g_pCompositor->windowValidMapped(ACTIVEWINDOW)) {
+    if (args != "" && args != "active" && args.length() > 1) {
+        PWINDOW = g_pCompositor->getWindowByRegex(args);
+    } else {
+        PWINDOW = g_pCompositor->m_pLastWindow;
+    }
+
+    if (!PWINDOW)
+        return;
+
+    if (g_pCompositor->windowValidMapped(PWINDOW)) {
         // remove drag status
         g_pInputManager->currentlyDraggedWindow = nullptr;
 
-        ACTIVEWINDOW->m_bIsFloating = !ACTIVEWINDOW->m_bIsFloating;
+        PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
 
-        if (ACTIVEWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID) {
-            moveActiveToWorkspace(std::to_string(g_pCompositor->getMonitorFromID(ACTIVEWINDOW->m_iMonitorID)->activeWorkspace));
+        if (PWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PWINDOW == g_pCompositor->m_pLastWindow) {
+            moveActiveToWorkspace(std::to_string(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace));
         }
 
-        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(ACTIVEWINDOW);
+        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
     }
 }
 

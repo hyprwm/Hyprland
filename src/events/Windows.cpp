@@ -338,9 +338,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->updateToplevel();
 
     if (!shouldFocus) {
-        if (g_pCompositor->windowValidMapped(PFOCUSEDWINDOWPREV))
+        if (g_pCompositor->windowValidMapped(PFOCUSEDWINDOWPREV)) {
             g_pCompositor->focusWindow(PFOCUSEDWINDOWPREV);
-        else if (!PFOCUSEDWINDOWPREV)
+            PFOCUSEDWINDOWPREV->updateWindowDecos(); // need to for some reason i cba to find out why
+        } else if (!PFOCUSEDWINDOWPREV)
             g_pCompositor->focusWindow(nullptr);
     }
 

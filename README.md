@@ -150,9 +150,9 @@ Try it out and report bugs / suggestions!
 <!----------------------------------{ Images }--------------------------------->
 
 [Stars Preview]: https://starchart.cc/vaxerski/Hyprland.svg
-[Preview A]: https://i.imgur.com/sCafdKQ.png
+[Preview A]: https://i.imgur.com/pC6YF1Y.png
 [Preview B]: https://i.imgur.com/NbrTnZH.png
-[Preview C]: https://i.imgur.com/ZA4Fa8R.png
+[Preview C]: https://i.imgur.com/sCafdKQ.png
 
 
 <!----------------------------------{ Badges }--------------------------------->

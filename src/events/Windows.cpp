@@ -97,10 +97,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vPseudoSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
     }
 
+    CWindow* pFullscreenWindow = nullptr;
+
     if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
         const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PFULLWINDOW, FULLSCREEN_FULL, false);
-        g_pXWaylandManager->setWindowFullscreen(PFULLWINDOW, PFULLWINDOW->m_bIsFullscreen);
+        pFullscreenWindow = PFULLWINDOW;
+        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
     }
 
     // window rules
@@ -328,6 +330,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vRealSize.warp();
 
         g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
+    }
+
+    if (pFullscreenWindow && workspaceSilent) {
+        g_pCompositor->setWindowFullscreen(pFullscreenWindow, true, PWORKSPACE->m_efFullscreenMode);
     }
 
     // recheck idle inhibitors

@@ -26,9 +26,9 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     }
 
     m_vRenderOffset.m_pWorkspace = this;
-    m_vRenderOffset.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr, AVARDAMAGE_ENTIRE);
+    m_vRenderOffset.create(AVARTYPE_VECTOR, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.m_pWorkspace = this;
-    m_fAlpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr, AVARDAMAGE_ENTIRE);
+    m_fAlpha.create(AVARTYPE_FLOAT, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(255.f);
 
     g_pEventManager->postEvent({"createworkspace", m_szName}, true);

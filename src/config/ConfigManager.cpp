@@ -199,6 +199,7 @@ void CConfigManager::setDefaultAnimationVars() {
         // border
 
         // workspaces
+        INITANIMCFG("specialWorkspace");
     }
     
     // init the values
@@ -225,6 +226,8 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeOut", "fade");
     CREATEANIMCFG("fadeSwitch", "fade");
     CREATEANIMCFG("fadeShadow", "fade");
+
+    CREATEANIMCFG("specialWorkspace", "workspaces");
 }
 
 void CConfigManager::init() {

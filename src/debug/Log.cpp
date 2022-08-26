@@ -6,10 +6,7 @@
 #include <iostream>
 
 void Debug::init(std::string IS) {
-    if (ISDEBUG)
-        logFile = "/tmp/hypr/" + IS + "/hyprlandd.log";
-    else
-        logFile = "/tmp/hypr/" + IS + "/hyprland.log";
+    logFile = "/tmp/hypr/" + IS + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log");
 }
 
 void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {

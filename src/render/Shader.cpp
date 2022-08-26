@@ -14,7 +14,7 @@ GLint CShader::getUniformLocation(const std::string& unif) {
 
 CShader::~CShader() {
     // destroy shader
-    if (program != 0) {
+    if (program) {
         glDeleteProgram(program);
     }
 }

@@ -1339,6 +1339,10 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->ID);
 
     g_pInputManager->refocus();
+
+    // event
+    g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", PWORKSPACEA->m_szName + "," + pMonitorB->szName});
+    g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", PWORKSPACEB->m_szName + "," + pMonitorA->szName});
 }
 
 CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
@@ -1449,6 +1453,9 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
 
     g_pInputManager->refocus();
+
+    // event
+    g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", pWorkspace->m_szName + "," + pMonitor->szName});
 }
 
 bool CCompositor::workspaceIDOutOfBounds(const int& id) {

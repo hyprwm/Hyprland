@@ -195,13 +195,13 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
     } else {
-        static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
+        static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
         // if we use blur we need to expand the damage for proper blurring
         if (*PBLURENABLED == 1) {
             // TODO: can this be optimized?
-            static auto* const PBLURSIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
-            static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
+            static auto *const PBLURSIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
+            static auto *const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
             const auto BLURRADIUS = *PBLURSIZE * pow(2, *PBLURPASSES);  // is this 2^pass? I don't know but it works... I think.
 
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);

@@ -629,7 +629,7 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 }
 
 void CHyprOpenGLImpl::preWindowPass() {
-    static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+    static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
 
     if (!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE)
         return;
@@ -654,7 +654,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
     static auto *const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
-    static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+    static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
 
     if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
         renderTexture(tex, pBox, a, round, false, true);

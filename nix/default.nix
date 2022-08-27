@@ -72,7 +72,7 @@ stdenv.mkDerivation {
     else "release";
 
   mesonFlags = builtins.concatLists [
-    (lib.optional (!enableXWayland) "-DNO_XWAYLAND=true")
+    (lib.optional (!enableXWayland) "-Dxwayland=disabled")
     (lib.optional legacyRenderer "-DLEGACY_RENDERER:STRING=true")
   ];
 

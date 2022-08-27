@@ -72,9 +72,9 @@ CCompositor::CCompositor() {
     wlr_renderer_init_wl_display(m_sWLRRenderer, m_sWLDisplay);
 
     if (wlr_renderer_get_dmabuf_texture_formats(m_sWLRRenderer) != NULL) {
-		wlr_drm_create(m_sWLDisplay, m_sWLRRenderer);
-		m_sWLRDmabuf = wlr_linux_dmabuf_v1_create(m_sWLDisplay, m_sWLRRenderer);
-	}
+        wlr_drm_create(m_sWLDisplay, m_sWLRRenderer);
+        m_sWLRDmabuf = wlr_linux_dmabuf_v1_create(m_sWLDisplay, m_sWLRRenderer);
+    }
 
     m_sWLRAllocator = wlr_allocator_autocreate(m_sWLRBackend, m_sWLRRenderer);
 

@@ -208,6 +208,14 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
         }
     }
 
+    for (auto& cs : pNode->childSubsurfaces) {
+        const auto NODECOORDS = pNode->pSubsurface ? Vector2D(pNode->pSubsurface->pSubsurface->current.x, pNode->pSubsurface->pSubsurface->current.y) : Vector2D();
+
+        if (&cs != pNode->pSubsurface && cs.pSubsurface) {
+            g_pHyprRenderer->damageSurface(cs.pSubsurface->surface, lx - NODECOORDS.x + cs.pSubsurface->current.x, ly - NODECOORDS.y + cs.pSubsurface->current.y);
+        }
+    }
+
     g_pHyprRenderer->damageSurface(pNode->pSurface, lx, ly);
 }
 

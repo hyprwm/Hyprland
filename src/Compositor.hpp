@@ -38,6 +38,8 @@ public:
     wlr_compositor*                  m_sWLRCompositor;
     wlr_subcompositor*               m_sWLRSubCompositor;
     wlr_data_device_manager*         m_sWLRDataDevMgr;
+    wlr_drm*                         m_sWRLDRM;
+    wlr_drm_lease_v1_manager*        m_sWRLDRMLeaseMgr;
     wlr_xdg_activation_v1*           m_sWLRXDGActivation;
     wlr_output_layout*               m_sWLROutputLayout;
     wlr_idle*                        m_sWLRIdle;

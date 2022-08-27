@@ -94,7 +94,7 @@ CCompositor::CCompositor() {
     wlr_data_control_manager_v1_create(m_sWLDisplay);
     wlr_gamma_control_manager_v1_create(m_sWLDisplay);
     wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
-    // wlr_viewporter_create(m_sWLDisplay); // TODO: support wl_viewporter
+    wlr_viewporter_create(m_sWLDisplay);
 
     m_sWLROutputLayout = wlr_output_layout_create();
 

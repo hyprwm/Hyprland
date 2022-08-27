@@ -147,10 +147,10 @@ CCompositor::CCompositor() {
     m_sWLRToplevelMgr = wlr_foreign_toplevel_manager_v1_create(m_sWLDisplay);
 
     m_sWRLDRMLeaseMgr = wlr_drm_lease_v1_manager_create(m_sWLDisplay, m_sWLRBackend);
-	if (!m_sWRLDRMLeaseMgr) {
-        Debug::log(CRIT, "Failed to create wlr_drm_lease_v1_manager");
+    if (!m_sWRLDRMLeaseMgr) {
+        Debug::log(INFO, "Failed to create wlr_drm_lease_v1_manager");
         Debug::log(INFO, "VR will not be available");
-	}
+    }
 
     m_sWLRTabletManager = wlr_tablet_v2_create(m_sWLDisplay);
 

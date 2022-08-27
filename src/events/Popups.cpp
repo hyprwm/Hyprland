@@ -27,7 +27,7 @@ void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
         px += curPopup->popup->current.geometry.x;
         py += curPopup->popup->current.geometry.y;
 
-        if (curPopup == PPOPUP) {
+        if (curPopup == PPOPUP && PPOPUP->parentWindow) {
             px -= curPopup->popup->base->current.geometry.x;
             py -= curPopup->popup->base->current.geometry.y;
         }

@@ -17,11 +17,6 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     else                                                                                              //  here we clamp to 2, these might be some tiny specks
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::clamp(surface->current.width, 2, 1337420), std::clamp(surface->current.height, 2, 1337420)};
     
-    // squish all oversized but dont in some cases, jesus christ this is a mess
-    // TODO: this shouldn't be done this way. Custom UV here as well.
-    // this is fucking horrible
-    // Issue: will cause oversized apps with reserved area to overflow from the window box. (see chromium on ozone wayland)
-    const auto PRESQUISHSIZE = Vector2D(windowBox.width, windowBox.height);
     if (RDATA->squishOversized) {
         if (x + windowBox.width > RDATA->w)
             windowBox.width = RDATA->w - x;

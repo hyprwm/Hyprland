@@ -56,6 +56,14 @@ void CMonitor::onConnect(bool noRule) {
         return;
     }
 
+    if (output->non_desktop) {
+        Debug::log(LOG, "Not configuring non-desktop output");
+		if (g_pCompositor->m_sWRLDRMLeaseMgr) {
+			wlr_drm_lease_v1_manager_offer_output(g_pCompositor->m_sWRLDRMLeaseMgr, output);
+		}
+		return;
+	}
+
     if (!m_bRenderingInitPassed) {
         wlr_output_init_render(output, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
         m_bRenderingInitPassed = true;

@@ -30,7 +30,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     }
 
     if (RDATA->pWindow)
-        g_pHyprRenderer->calculateUVForWindowSurface(RDATA->pWindow, surface);
+        g_pHyprRenderer->calculateUVForWindowSurface(RDATA->pWindow, surface, RDATA->squishOversized);
     
     scaleBox(&windowBox, RDATA->output->scale);
 
@@ -400,7 +400,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     renderDragIcon(PMONITOR, time);
 }
 
-void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* pSurface) {
+void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* pSurface, bool main) {
     if (!pWindow->m_bIsX11) {
         Vector2D uvTL;
         Vector2D uvBR = Vector2D(1, 1);
@@ -423,9 +423,11 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
             adjustedSurfaceScale = Vector2D(bufferSource.width / surfaceSize.x, bufferSource.height / surfaceSize.y);
 
             // TODO: (example: chromium) this still has a tiny "bump" at the end.
-            uvTL = uvTL + (Vector2D((double)geom.x / ((double)pSurface->current.width), (double)geom.y / ((double)pSurface->current.height)) * (((uvBR.x - uvTL.x) * surfaceSize.x) / surfaceSize.x));
-            uvBR = uvBR * Vector2D((double)(geom.width + geom.x) / ((double)pSurface->current.width), (double)(geom.y + geom.height) / ((double)pSurface->current.height));
-        } else {
+            if (main) {
+                uvTL = uvTL + (Vector2D((double)geom.x / ((double)pSurface->current.width), (double)geom.y / ((double)pSurface->current.height)) * (((uvBR.x - uvTL.x) * surfaceSize.x) / surfaceSize.x));
+                uvBR = uvBR * Vector2D((double)(geom.width + geom.x) / ((double)pSurface->current.width), (double)(geom.y + geom.height) / ((double)pSurface->current.height));
+            }
+        } else if (main) {
             // oversized windows' UV adjusting
             uvTL = Vector2D((double)geom.x / ((double)pSurface->current.width), (double)geom.y / ((double)pSurface->current.height));
             uvBR = Vector2D((double)(geom.width + geom.x) / ((double)pSurface->current.width), (double)(geom.y + geom.height) / ((double)pSurface->current.height));
@@ -440,6 +442,9 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         }
+
+        if (!main)
+            return; // ignore the rest
 
         // then, if the surface is too big, modify the pos UV
         if (geom.width > pWindow->m_vRealSize.vec().x + 1 || geom.height > pWindow->m_vRealSize.vec().y + 1) {

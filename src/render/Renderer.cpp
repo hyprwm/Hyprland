@@ -246,6 +246,12 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_bIsX11) {
+            wlr_box geom;
+            wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
+
+            renderdata.x -= geom.x;
+            renderdata.y -= geom.y;
+
             renderdata.dontRound = true;  // don't round popups
             renderdata.pMonitor = pMonitor;
             renderdata.squishOversized = false; // don't squish popups

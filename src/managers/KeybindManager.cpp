@@ -265,7 +265,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     }
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || (!pressed && !k.release) || k.shadowed)
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || (!pressed && !k.release && k.handler != "pass") || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -302,7 +302,12 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         } else {
             // call the dispatcher
             Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %s, %d)", modmask, key.c_str(), keysym);
+
+            m_iPassPressed = (int)pressed;
+
             DISPATCHER->second(k.arg);
+
+            m_iPassPressed = -1;
 
             if (k.handler == "submap") {
                 found = true; // don't process keybinds on submap change.
@@ -1379,8 +1384,16 @@ void CKeybindManager::pass(std::string regexp) {
     wlr_keyboard_modifiers kbmods = {g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0};
     wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &kbmods);
 
-    wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
-    wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+    if (g_pKeybindManager->m_iPassPressed == 1)
+        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
+    else if (g_pKeybindManager->m_iPassPressed == 0)
+        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+    else {
+        // dynamic call of the dispatcher
+
+        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
+        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+    }
 
     wlr_seat_keyboard_notify_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 }

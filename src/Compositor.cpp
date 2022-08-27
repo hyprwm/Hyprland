@@ -1307,9 +1307,13 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
         if (w->m_iWorkspaceID == PWORKSPACEA->m_iID) {
             w->m_iMonitorID = pMonitorB->ID;
 
-            // additionally, move floating windows manually
-            if (w->m_bIsFloating && w->m_bIsMapped && !w->m_bHidden) {
+            // additionally, move floating and fs windows manually
+            if (w->m_bIsFloating)
                 w->m_vRealPosition = w->m_vRealPosition.vec() - pMonitorA->vecPosition + pMonitorB->vecPosition;
+
+            if (w->m_bIsFullscreen) {
+                w->m_vRealPosition = pMonitorB->vecPosition;
+                w->m_vRealSize = pMonitorB->vecSize;
             }
 
             w->updateToplevel();
@@ -1323,9 +1327,13 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
         if (w->m_iWorkspaceID == PWORKSPACEB->m_iID) {
             w->m_iMonitorID = pMonitorA->ID;
 
-            // additionally, move floating windows manually
-            if (w->m_bIsFloating && w->m_bIsMapped && !w->m_bHidden) {
+            // additionally, move floating and fs windows manually
+            if (w->m_bIsFloating)
                 w->m_vRealPosition = w->m_vRealPosition.vec() - pMonitorB->vecPosition + pMonitorA->vecPosition;
+
+            if (w->m_bIsFullscreen) {
+                w->m_vRealPosition = pMonitorA->vecPosition;
+                w->m_vRealSize = pMonitorA->vecSize;
             }
 
             w->updateToplevel();
@@ -1426,9 +1434,15 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
         if (w->m_iWorkspaceID == pWorkspace->m_iID) {
             w->m_iMonitorID = pMonitor->ID;
 
-            // additionally, move floating windows manually
-            if (w->m_bIsFloating && w->m_bIsMapped && !w->m_bHidden) {
-                w->m_vRealPosition = w->m_vRealPosition.vec() - POLDMON->vecPosition + pMonitor->vecPosition;
+            // additionally, move floating and fs windows manually
+            if (w->m_bIsMapped && !w->m_bHidden) {
+                if (w->m_bIsFloating)
+                    w->m_vRealPosition = w->m_vRealPosition.vec() - POLDMON->vecPosition + pMonitor->vecPosition;
+
+                if (w->m_bIsFullscreen) {
+                    w->m_vRealPosition = pMonitor->vecPosition;
+                    w->m_vRealSize = pMonitor->vecSize;
+                }
             }
 
             w->updateToplevel();

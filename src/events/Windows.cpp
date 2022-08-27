@@ -159,6 +159,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             requestsFullscreen = true;
         } else if (r.szRule == "opaque") {
             PWINDOW->m_sAdditionalConfigData.forceOpaque = true;
+        } else if (r.szRule == "forceinput") {
+            PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
         } else if (r.szRule.find("rounding") == 0) {
             try {
                 PWINDOW->m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -270,6 +272,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow;
+
+    if (PWINDOW->m_sAdditionalConfigData.forceAllowsInput) {
+        PWINDOW->m_bNoFocus = false;
+        PWINDOW->m_bNoInitialFocus = false;
+        PWINDOW->m_bX11ShouldntFocus = false;
+    }
 
     if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2) {
         g_pCompositor->focusWindow(PWINDOW);

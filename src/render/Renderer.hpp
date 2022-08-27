@@ -40,6 +40,7 @@ public:
     bool                shouldRenderWindow(CWindow*);
     void                ensureCursorRenderingMode();
     bool                shouldRenderCursor();
+    void                calculateUVForWindowSurface(CWindow*, wlr_surface*);
 
     bool                m_bWindowRequestedCursorHide = false;
 

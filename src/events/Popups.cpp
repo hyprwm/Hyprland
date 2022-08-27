@@ -23,8 +23,8 @@ void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
 
     auto curPopup = PPOPUP;
     while (true) {
-        px += curPopup->popup->current.geometry.x;
-        py += curPopup->popup->current.geometry.y;
+        px += curPopup->popup->current.geometry.x - curPopup->popup->base->current.geometry.x;
+        py += curPopup->popup->current.geometry.y - curPopup->popup->base->current.geometry.y;
 
         // fix oversized fucking popups 
         // kill me

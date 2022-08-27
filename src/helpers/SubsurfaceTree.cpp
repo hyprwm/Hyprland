@@ -139,6 +139,9 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
 
     PNEWSUBSURFACE->pWindowOwner = pNode->pWindowOwner;
 
+    if (PSUBSURFACE->mapped)
+        listener_mapSubsurface(PNEWSUBSURFACE, nullptr);
+
     wlr_subsurface* existingWlrSubsurface;
     wl_list_for_each(existingWlrSubsurface, &PSUBSURFACE->surface->current.subsurfaces_below, current.link) {
         listener_newSubsurfaceNode(pNode, existingWlrSubsurface);
@@ -201,14 +204,6 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
     // What this does is that basically, if the pNode is a child of some other node, on commit,
     // it will also damage (check & damage if needed) all its siblings.
     if (pNode->pParent) for (auto& cs : pNode->pParent->childSubsurfaces) {
-        const auto NODECOORDS = pNode->pSubsurface ? Vector2D(pNode->pSubsurface->pSubsurface->current.x, pNode->pSubsurface->pSubsurface->current.y) : Vector2D();
-
-        if (&cs != pNode->pSubsurface && cs.pSubsurface) {
-            g_pHyprRenderer->damageSurface(cs.pSubsurface->surface, lx - NODECOORDS.x + cs.pSubsurface->current.x, ly - NODECOORDS.y + cs.pSubsurface->current.y);
-        }
-    }
-
-    for (auto& cs : pNode->childSubsurfaces) {
         const auto NODECOORDS = pNode->pSubsurface ? Vector2D(pNode->pSubsurface->pSubsurface->current.x, pNode->pSubsurface->pSubsurface->current.y) : Vector2D();
 
         if (&cs != pNode->pSubsurface && cs.pSubsurface) {

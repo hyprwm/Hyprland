@@ -28,6 +28,9 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         if (y + windowBox.height > RDATA->h)
             windowBox.height = RDATA->h - y;
     }
+
+    if (RDATA->pWindow)
+        g_pHyprRenderer->calculateUVForWindowSurface(RDATA->pWindow, surface);
     
     scaleBox(&windowBox, RDATA->output->scale);
 
@@ -63,7 +66,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
             windowBox.y -= geo.y;
         }
 
-        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, false);
+        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
     }
 
     wlr_surface_send_frame_done(surface, RDATA->when);
@@ -213,6 +216,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
     renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;
     renderdata.blur = true; // if it shouldn't, it will be ignored later
+    renderdata.pWindow = pWindow;
 
     // apply window special data
     if (pWindow->m_sSpecialRenderData.alphaInactive == -1)
@@ -231,60 +235,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
         if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) for (auto& wd : pWindow->m_dWindowDecorations)
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f);
-
-        if (!pWindow->m_bIsX11) {
-
-            Vector2D uvTL;
-            Vector2D uvBR = Vector2D(1, 1);
-
-            Vector2D adjustedSurfaceScale = Vector2D(1,1);
-
-            wlr_box geom;
-            wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
-
-            // wp_viewporter_v1 implementation
-            if (pWindow->m_uSurface.xdg->surface->current.viewport.has_src) {
-                wlr_fbox bufferSource;
-                wlr_surface_get_buffer_source_box(pWindow->m_uSurface.xdg->surface, &bufferSource);
-
-                Vector2D surfaceSize = Vector2D(pWindow->m_uSurface.xdg->surface->buffer->texture->width, pWindow->m_uSurface.xdg->surface->buffer->texture->height);
-
-                uvTL = Vector2D(bufferSource.x / surfaceSize.x, bufferSource.y / surfaceSize.y);
-                uvBR = Vector2D((bufferSource.x + bufferSource.width) / surfaceSize.x, (bufferSource.y + bufferSource.height) / surfaceSize.y); 
-
-                adjustedSurfaceScale = Vector2D(bufferSource.width / surfaceSize.x, bufferSource.y / surfaceSize.y);
-            } else {
-                // oversized windows' UV adjusting
-                uvTL = Vector2D((double)geom.x / ((double)pWindow->m_uSurface.xdg->surface->current.width * adjustedSurfaceScale.x), (double)geom.y / ((double)pWindow->m_uSurface.xdg->surface->current.height * adjustedSurfaceScale.y));
-                uvBR = Vector2D((double)(geom.width + geom.x) / ((double)pWindow->m_uSurface.xdg->surface->current.width * adjustedSurfaceScale.x), (double)(geom.y + geom.height) / ((double)pWindow->m_uSurface.xdg->surface->current.height * adjustedSurfaceScale.y));
-            }
-            
-            // set UV
-            g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = uvTL;
-            g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = uvBR;
-
-            if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
-                // No special UV mods needed
-                g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
-                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-            }
-
-            // then, if the surface is too big, modify the pos UV
-            if (geom.width > renderdata.w + 1 || geom.height > renderdata.h + 1) {
-                const auto OFF = Vector2D(renderdata.w / (double)geom.width, renderdata.h / (double)geom.height);
-
-                if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D(-1, -1))
-                    g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(0, 0);
-
-                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(
-                    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x * ((double)renderdata.w / ((double)geom.width / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x)),
-                    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y * ((double)renderdata.h / ((double)geom.height / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y))
-                );
-            }
-        } else {
-            g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
-            g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-        }
 
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 
@@ -462,6 +412,61 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     }
 
     renderDragIcon(PMONITOR, time);
+}
+
+void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* pSurface) {
+    if (!pWindow->m_bIsX11) {
+        Vector2D uvTL;
+        Vector2D uvBR = Vector2D(1, 1);
+
+        Vector2D adjustedSurfaceScale = Vector2D(1, 1);
+
+        wlr_box geom = {-1337, -1337, -1337, -1337};
+        if (g_pXWaylandManager->getWindowSurface(pWindow) == pSurface)
+            wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
+
+        // wp_viewporter_v1 implementation
+        if (pSurface->current.viewport.has_src) {
+            wlr_fbox bufferSource;
+            wlr_surface_get_buffer_source_box(pSurface, &bufferSource);
+
+            Vector2D surfaceSize = Vector2D(pSurface->buffer->texture->width, pSurface->buffer->texture->height);
+
+            uvTL = Vector2D(bufferSource.x / surfaceSize.x, bufferSource.y / surfaceSize.y);
+            uvBR = Vector2D((bufferSource.x + bufferSource.width) / surfaceSize.x, (bufferSource.y + bufferSource.height) / surfaceSize.y);
+
+            adjustedSurfaceScale = Vector2D(bufferSource.width / surfaceSize.x, bufferSource.y / surfaceSize.y);
+        } else if (geom.width != -1337) {
+            // oversized windows' UV adjusting
+            uvTL = Vector2D((double)geom.x / ((double)pWindow->m_uSurface.xdg->surface->current.width * adjustedSurfaceScale.x), (double)geom.y / ((double)pWindow->m_uSurface.xdg->surface->current.height * adjustedSurfaceScale.y));
+            uvBR = Vector2D((double)(geom.width + geom.x) / ((double)pWindow->m_uSurface.xdg->surface->current.width * adjustedSurfaceScale.x), (double)(geom.y + geom.height) / ((double)pWindow->m_uSurface.xdg->surface->current.height * adjustedSurfaceScale.y));
+        }
+
+        // set UV
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = uvTL;
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = uvBR;
+
+        if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
+            // No special UV mods needed
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        }
+
+        // then, if the surface is too big, modify the pos UV
+        if (geom.width > pWindow->m_vRealSize.vec().x + 1 || geom.height > pWindow->m_vRealSize.vec().y + 1) {
+            const auto OFF = Vector2D(pWindow->m_vRealSize.vec().x / (double)geom.width, pWindow->m_vRealSize.vec().y / (double)geom.height);
+
+            if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D(-1, -1))
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(0, 0);
+
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x * ((double)pWindow->m_vRealSize.vec().x / ((double)geom.width / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x)),
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y * ((double)pWindow->m_vRealSize.vec().y / ((double)geom.height / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y)));
+        }
+    } else {
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    }
 }
 
 void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {

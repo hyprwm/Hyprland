@@ -62,6 +62,8 @@ private:
     uint32_t            m_uTimeLastMs = 0;
     uint32_t            m_uLastCode = 0;
 
+    int                 m_iPassPressed = -1; // used for pass
+
     CTimer              m_tScrollTimer;
 
     bool                handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&, bool, uint32_t);

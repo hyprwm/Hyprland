@@ -412,7 +412,7 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
 
         Vector2D adjustedSurfaceScale = Vector2D(1, 1);
 
-        wlr_box geom = {-1337, -1337, -1337, -1337};
+        wlr_box geom;
         wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
         // wp_viewporter_v1 implementation

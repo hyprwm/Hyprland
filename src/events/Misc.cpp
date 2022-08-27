@@ -25,6 +25,15 @@ void Events::listener_outputMgrTest(wl_listener* listener, void* data) {
     g_pHyprRenderer->outputMgrApplyTest(CONFIG, true);
 }
 
+void Events::listener_leaseRequest(wl_listener* listener, void* data) {
+    const auto REQUEST = (wlr_drm_lease_request_v1*)data;
+    struct wlr_drm_lease_v1* lease = wlr_drm_lease_request_v1_grant(REQUEST);
+    if (!lease) {
+        Debug::log(ERR, "Failed to grant lease request!");
+        wlr_drm_lease_request_v1_reject(REQUEST);
+    }
+}
+
 void Events::listener_requestSetPrimarySel(wl_listener* listener, void* data) {
     const auto EVENT = (wlr_seat_request_set_primary_selection_event*)data;
     wlr_seat_set_primary_selection(g_pCompositor->m_sSeat.seat, EVENT->source, EVENT->serial);

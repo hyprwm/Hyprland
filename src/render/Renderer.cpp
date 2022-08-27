@@ -52,20 +52,6 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         }
     }
     else {
-        if (RDATA->surface && wlr_surface_is_xdg_surface(RDATA->surface)) {
-            wlr_box geo;
-            wlr_xdg_surface_get_geometry(wlr_xdg_surface_from_wlr_surface(RDATA->surface), &geo);
-
-            // TODO: continuation of the above madness.
-            if (geo.x != 0 || geo.y != 0) {
-                windowBox.width = PRESQUISHSIZE.x;
-                windowBox.height = PRESQUISHSIZE.y;
-            }
-
-            windowBox.x -= geo.x;
-            windowBox.y -= geo.y;
-        }
-
         g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
     }
 
@@ -422,8 +408,7 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
         Vector2D adjustedSurfaceScale = Vector2D(1, 1);
 
         wlr_box geom = {-1337, -1337, -1337, -1337};
-        if (g_pXWaylandManager->getWindowSurface(pWindow) == pSurface)
-            wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
+        wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
         // wp_viewporter_v1 implementation
         if (pSurface->current.viewport.has_src) {
@@ -435,11 +420,15 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
             uvTL = Vector2D(bufferSource.x / surfaceSize.x, bufferSource.y / surfaceSize.y);
             uvBR = Vector2D((bufferSource.x + bufferSource.width) / surfaceSize.x, (bufferSource.y + bufferSource.height) / surfaceSize.y);
 
-            adjustedSurfaceScale = Vector2D(bufferSource.width / surfaceSize.x, bufferSource.y / surfaceSize.y);
-        } else if (geom.width != -1337) {
+            adjustedSurfaceScale = Vector2D(bufferSource.width / surfaceSize.x, bufferSource.height / surfaceSize.y);
+
+            // TODO: (example: chromium) this still has a tiny "bump" at the end.
+            uvTL = uvTL + (Vector2D((double)geom.x / ((double)pSurface->current.width), (double)geom.y / ((double)pSurface->current.height)) * (((uvBR.x - uvTL.x) * surfaceSize.x) / surfaceSize.x));
+            uvBR = uvBR * Vector2D((double)(geom.width + geom.x) / ((double)pSurface->current.width), (double)(geom.y + geom.height) / ((double)pSurface->current.height));
+        } else {
             // oversized windows' UV adjusting
-            uvTL = Vector2D((double)geom.x / ((double)pWindow->m_uSurface.xdg->surface->current.width * adjustedSurfaceScale.x), (double)geom.y / ((double)pWindow->m_uSurface.xdg->surface->current.height * adjustedSurfaceScale.y));
-            uvBR = Vector2D((double)(geom.width + geom.x) / ((double)pWindow->m_uSurface.xdg->surface->current.width * adjustedSurfaceScale.x), (double)(geom.y + geom.height) / ((double)pWindow->m_uSurface.xdg->surface->current.height * adjustedSurfaceScale.y));
+            uvTL = Vector2D((double)geom.x / ((double)pSurface->current.width), (double)geom.y / ((double)pSurface->current.height));
+            uvBR = Vector2D((double)(geom.width + geom.x) / ((double)pSurface->current.width), (double)(geom.y + geom.height) / ((double)pSurface->current.height));
         }
 
         // set UV

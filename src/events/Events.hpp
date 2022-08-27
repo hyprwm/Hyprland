@@ -12,6 +12,9 @@ namespace Events {
     LISTENER(change);
     LISTENER(newOutput);
 
+    // DRM events
+    LISTENER(leaseRequest);
+
     // Layer events
     LISTENER(newLayerSurface);
     DYNLISTENFUNC(destroyLayerSurface);

@@ -71,6 +71,11 @@ CCompositor::CCompositor() {
 
     wlr_renderer_init_wl_display(m_sWLRRenderer, m_sWLDisplay);
 
+    if (wlr_renderer_get_dmabuf_texture_formats(m_sWLRRenderer) != NULL) {
+		wlr_drm_create(m_sWLDisplay, m_sWLRRenderer);
+		m_sWLRDmabuf = wlr_linux_dmabuf_v1_create(m_sWLDisplay, m_sWLRRenderer);
+	}
+
     m_sWLRAllocator = wlr_allocator_autocreate(m_sWLRBackend, m_sWLRRenderer);
 
     if (!m_sWLRAllocator) {
@@ -141,6 +146,12 @@ CCompositor::CCompositor() {
 
     m_sWLRToplevelMgr = wlr_foreign_toplevel_manager_v1_create(m_sWLDisplay);
 
+    m_sWRLDRMLeaseMgr = wlr_drm_lease_v1_manager_create(m_sWLDisplay, m_sWLRBackend);
+	if (!m_sWRLDRMLeaseMgr) {
+        Debug::log(CRIT, "Failed to create wlr_drm_lease_v1_manager");
+        Debug::log(INFO, "VR will not be available");
+	}
+
     m_sWLRTabletManager = wlr_tablet_v2_create(m_sWLDisplay);
 
     m_sWLRForeignRegistry = wlr_xdg_foreign_registry_create(m_sWLDisplay);
@@ -210,6 +221,9 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLROutputPowerMgr->events.set_mode, &Events::listen_powerMgrSetMode, m_sWLROutputPowerMgr, "PowerMgr");
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
+
+    if(m_sWRLDRMLeaseMgr)
+        addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
 
     if (m_sWLRSession)
         addWLSignal(&m_sWLRSession->events.active, &Events::listen_sessionActive, m_sWLRSession, "Session");

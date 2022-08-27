@@ -21,6 +21,7 @@ struct SWindowAdditionalConfigData {
     int rounding = -1; // -1 means no
     bool forceNoBlur = false;
     bool forceOpaque = false;
+    bool forceAllowsInput = false;
 };
 
 class CWindow {

@@ -187,7 +187,7 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
 
     // no damaging if it's not visible
     if (!g_pHyprRenderer->shouldRenderWindow(pNode->pWindowOwner)) {
-        static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+        static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
         if (*PLOGDAMAGE)
             Debug::log(LOG, "Refusing to commit damage from %x because it's invisible.", pNode->pWindowOwner);
         return;

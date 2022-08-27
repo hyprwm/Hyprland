@@ -410,8 +410,6 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
         Vector2D uvTL;
         Vector2D uvBR = Vector2D(1, 1);
 
-        Vector2D adjustedSurfaceScale = Vector2D(1, 1);
-
         wlr_box geom;
         wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
@@ -424,8 +422,6 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
 
             uvTL = Vector2D(bufferSource.x / surfaceSize.x, bufferSource.y / surfaceSize.y);
             uvBR = Vector2D((bufferSource.x + bufferSource.width) / surfaceSize.x, (bufferSource.y + bufferSource.height) / surfaceSize.y);
-
-            adjustedSurfaceScale = Vector2D(bufferSource.width / surfaceSize.x, bufferSource.height / surfaceSize.y);
 
             // TODO: (example: chromium) this still has a tiny "bump" at the end.
             if (main) {

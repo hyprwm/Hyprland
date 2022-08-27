@@ -935,7 +935,14 @@ void CConfigManager::parseLine(std::string& line) {
     }
 
     if (line.contains("}") && currentCategory != "") {
-        currentCategory = "";
+
+        const auto LASTSEP = currentCategory.find_last_of(':');
+
+        if (LASTSEP == std::string::npos)
+            currentCategory = "";
+        else 
+            currentCategory = currentCategory.substr(0, LASTSEP);
+        
         return;
     }
 

@@ -18,13 +18,19 @@
 void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
     SXDGPopup *const PPOPUP = (SXDGPopup*)pPopup;
 
+    auto curPopup = PPOPUP;
+
     int px = 0;
     int py = 0;
 
-    auto curPopup = PPOPUP;
     while (true) {
         px += curPopup->popup->current.geometry.x;
         py += curPopup->popup->current.geometry.y;
+
+        if (curPopup == PPOPUP && PPOPUP->parentWindow) {
+            px -= curPopup->popup->base->current.geometry.x;
+            py -= curPopup->popup->base->current.geometry.y;
+        }
 
         // fix oversized fucking popups 
         // kill me

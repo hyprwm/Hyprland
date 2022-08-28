@@ -159,4 +159,5 @@ public:
     void            updateToplevel();
     void            updateSurfaceOutputs();
     void            moveToWorkspace(int);
+    CWindow*        X11TransientFor();
 };

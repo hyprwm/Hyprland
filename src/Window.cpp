@@ -217,3 +217,19 @@ void CWindow::moveToWorkspace(int workspaceID) {
         } 
     }
 }
+
+CWindow* CWindow::X11TransientFor() {
+    if (!m_bIsX11)
+        return nullptr;
+
+    if (!m_uSurface.xwayland->parent)
+        return nullptr;
+
+    auto PPARENT = g_pCompositor->getWindowFromSurface(m_uSurface.xwayland->parent->surface);
+
+    while (PPARENT->m_uSurface.xwayland->parent) {
+        PPARENT = g_pCompositor->getWindowFromSurface(PPARENT->m_uSurface.xwayland->parent->surface);
+    }
+
+    return PPARENT;
+}

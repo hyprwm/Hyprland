@@ -904,11 +904,34 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
     if (!windowValidMapped(pWindow))
         return;
 
-    for (auto it = m_vWindows.begin(); it != m_vWindows.end(); ++it) {
-        if (it->get() == pWindow) {
-            std::rotate(it, it + 1, m_vWindows.end());
-            break;
+    auto moveToTop = [&](CWindow* pw) -> void {
+        for (auto it = m_vWindows.begin(); it != m_vWindows.end(); ++it) {
+            if (it->get() == pw) {
+                std::rotate(it, it + 1, m_vWindows.end());
+                break;
+            }
         }
+    };
+
+    moveToTop(pWindow);
+
+    if (!pWindow->m_bIsX11)
+        return;
+
+    // move all children
+
+    std::deque<CWindow*> toMove;
+
+    for (auto& w : m_vWindows) {
+        if (w->m_bIsMapped && w->m_bMappedX11 && !w->m_bHidden && w->m_bIsX11 && w->X11TransientFor() == pWindow) {
+            toMove.emplace_back(w.get());
+        }
+    }
+
+    for (auto& pw : toMove) {
+        moveToTop(pw);
+
+        moveWindowToTop(pw);
     }
 }
 

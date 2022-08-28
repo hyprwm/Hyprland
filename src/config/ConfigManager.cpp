@@ -938,7 +938,7 @@ void CConfigManager::parseLine(std::string& line) {
 
         const auto LASTSEP = currentCategory.find_last_of(':');
 
-        if (LASTSEP == std::string::npos)
+        if (LASTSEP == std::string::npos || currentCategory.contains("device:"))
             currentCategory = "";
         else 
             currentCategory = currentCategory.substr(0, LASTSEP);

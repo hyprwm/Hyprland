@@ -150,6 +150,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 
     m_uTimeLastMs = e->time_msec;
     m_uLastCode = KEYCODE;
+    m_uLastMouseCode = 0;
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -221,6 +222,10 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
     bool found = false;
+
+    m_uLastMouseCode = e->button;
+    m_uLastCode = 0;
+    m_uTimeLastMs = e->time_msec;
 
     if (e->state == WLR_BUTTON_PRESSED) {
         found = g_pKeybindManager->handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, true, 0);
@@ -1379,23 +1384,39 @@ void CKeybindManager::pass(std::string regexp) {
     }
 
     const auto XWTOXW = PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsX11;
+    const auto SL = Vector2D(g_pCompositor->m_sSeat.seat->pointer_state.sx, g_pCompositor->m_sSeat.seat->pointer_state.sy);
 
     // pass all mf shit
-    if (!XWTOXW)
-        wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+    if (!XWTOXW) {
+        if (g_pKeybindManager->m_uLastCode != 0)
+            wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+        else
+            wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), 1, 1);
+    }
+        
 
     wlr_keyboard_modifiers kbmods = {g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0};
     wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &kbmods);
 
     if (g_pKeybindManager->m_iPassPressed == 1) {
-        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
+        if (g_pKeybindManager->m_uLastCode != 0)
+            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
+        else
+            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_PRESSED);
     } else if (g_pKeybindManager->m_iPassPressed == 0)
-        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+        if (g_pKeybindManager->m_uLastCode != 0)
+            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+        else
+            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_RELEASED);
     else {
         // dynamic call of the dispatcher
-
-        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
-        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+        if (g_pKeybindManager->m_uLastCode != 0) {
+            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
+            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+        } else {
+            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_PRESSED);
+            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_RELEASED);
+        }  
     }
 
     if (XWTOXW)
@@ -1405,11 +1426,19 @@ void CKeybindManager::pass(std::string regexp) {
     // this will make wlroots NOT send the leave event to XWayland apps, provided we are not on an XWayland window already.
     // please kill me
     if (PWINDOW->m_bIsX11) {
-        g_pCompositor->m_sSeat.seat->keyboard_state.focused_client = nullptr;
-        g_pCompositor->m_sSeat.seat->keyboard_state.focused_surface = nullptr;
+        if (g_pKeybindManager->m_uLastCode != 0) {
+            g_pCompositor->m_sSeat.seat->keyboard_state.focused_client = nullptr;
+            g_pCompositor->m_sSeat.seat->keyboard_state.focused_surface = nullptr;
+        } else {
+            g_pCompositor->m_sSeat.seat->pointer_state.focused_client = nullptr;
+            g_pCompositor->m_sSeat.seat->pointer_state.focused_surface = nullptr;
+        }
     }
 
-    wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+    if (g_pKeybindManager->m_uLastCode != 0)
+        wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+    else
+        wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), SL.x, SL.y);
 }
 
 void CKeybindManager::layoutmsg(std::string msg) {

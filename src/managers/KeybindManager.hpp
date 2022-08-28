@@ -61,6 +61,7 @@ private:
 
     uint32_t            m_uTimeLastMs = 0;
     uint32_t            m_uLastCode = 0;
+    uint32_t            m_uLastMouseCode = 0;
 
     int                 m_iPassPressed = -1; // used for pass
 

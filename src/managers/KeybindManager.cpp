@@ -1378,15 +1378,18 @@ void CKeybindManager::pass(std::string regexp) {
         return;
     }
 
+    const auto XWTOXW = PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsX11;
+
     // pass all mf shit
-    wlr_seat_keyboard_notify_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+    if (!XWTOXW)
+        wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 
     wlr_keyboard_modifiers kbmods = {g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0};
     wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &kbmods);
 
-    if (g_pKeybindManager->m_iPassPressed == 1)
+    if (g_pKeybindManager->m_iPassPressed == 1) {
         wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
-    else if (g_pKeybindManager->m_iPassPressed == 0)
+    } else if (g_pKeybindManager->m_iPassPressed == 0)
         wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
     else {
         // dynamic call of the dispatcher
@@ -1395,7 +1398,18 @@ void CKeybindManager::pass(std::string regexp) {
         wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
     }
 
-    wlr_seat_keyboard_notify_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+    if (XWTOXW)
+        return;
+
+    // Massive hack:
+    // this will make wlroots NOT send the leave event to XWayland apps, provided we are not on an XWayland window already.
+    // please kill me
+    if (PWINDOW->m_bIsX11) {
+        g_pCompositor->m_sSeat.seat->keyboard_state.focused_client = nullptr;
+        g_pCompositor->m_sSeat.seat->keyboard_state.focused_surface = nullptr;
+    }
+
+    wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
 }
 
 void CKeybindManager::layoutmsg(std::string msg) {

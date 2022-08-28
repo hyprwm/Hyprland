@@ -53,6 +53,10 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_surface_send_frame_done(surface, RDATA->when);
 
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
+
+    // reset the UV, we might've set it above
+    g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
+    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
 }
 
 bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
@@ -234,9 +238,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
         }
-
-        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
@@ -253,10 +254,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
         }
     }
-
-    // reset uv
-    g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
-    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
     g_pHyprOpenGL->m_pCurrentWindow = nullptr;
 }
@@ -425,13 +422,13 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
 
             // TODO: (example: chromium) this still has a tiny "bump" at the end.
             if (main) {
-                uvTL = uvTL + (Vector2D((double)geom.x / ((double)pSurface->current.width), (double)geom.y / ((double)pSurface->current.height)) * (((uvBR.x - uvTL.x) * surfaceSize.x) / surfaceSize.x));
-                uvBR = uvBR * Vector2D((double)(geom.width + geom.x) / ((double)pSurface->current.width), (double)(geom.y + geom.height) / ((double)pSurface->current.height));
+                uvTL = uvTL + (Vector2D((double)geom.x / ((double)pWindow->m_uSurface.xdg->surface->current.width), (double)geom.y / ((double)pWindow->m_uSurface.xdg->surface->current.height)) * (((uvBR.x - uvTL.x) * surfaceSize.x) / surfaceSize.x));
+                uvBR = uvBR * Vector2D((double)(geom.width + geom.x) / ((double)pWindow->m_uSurface.xdg->surface->current.width), (double)(geom.y + geom.height) / ((double)pWindow->m_uSurface.xdg->surface->current.height));
             }
         } else if (main) {
             // oversized windows' UV adjusting
-            uvTL = Vector2D((double)geom.x / ((double)pSurface->current.width), (double)geom.y / ((double)pSurface->current.height));
-            uvBR = Vector2D((double)(geom.width + geom.x) / ((double)pSurface->current.width), (double)(geom.y + geom.height) / ((double)pSurface->current.height));
+            uvTL = Vector2D((double)geom.x / ((double)pWindow->m_uSurface.xdg->surface->current.width), (double)geom.y / ((double)pWindow->m_uSurface.xdg->surface->current.height));
+            uvBR = Vector2D((double)(geom.width + geom.x) / ((double)pWindow->m_uSurface.xdg->surface->current.width), (double)(geom.y + geom.height) / ((double)pWindow->m_uSurface.xdg->surface->current.height));
         }
 
         // set UV

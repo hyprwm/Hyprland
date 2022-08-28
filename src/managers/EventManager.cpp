@@ -19,7 +19,7 @@ CEventManager::CEventManager() {
 }
 
 void CEventManager::startThread() {
-    std::thread([&]() {
+    m_tThread = std::thread([&]() {
         const auto SOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
         if (SOCKET < 0) {
@@ -101,13 +101,15 @@ void CEventManager::startThread() {
         }
 
         close(SOCKET);
-    }).detach();
+    });
+
+    m_tThread.detach();
 }
 
 void CEventManager::postEvent(const SHyprIPCEvent event, bool force) {
 
-    if (m_bIgnoreEvents && !force) {
-        Debug::log(WARN, "Suppressed (ignoreevents true) event of type %s, content: %s",event.event.c_str(), event.data.c_str());
+    if ((m_bIgnoreEvents && !force) || g_pCompositor->m_bIsShuttingDown) {
+        Debug::log(WARN, "Suppressed (ignoreevents true / shutting down) event of type %s, content: %s",event.event.c_str(), event.data.c_str());
         return;
     }
 

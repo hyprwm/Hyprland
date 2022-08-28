@@ -759,7 +759,7 @@ std::string getRequestFromThread(std::string rq) {
 }
 
 void HyprCtl::startHyprCtlSocket() {
-    std::thread([&]() {
+    tThread = std::thread([&]() {
         const auto SOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
         if (SOCKET < 0) {
@@ -806,5 +806,7 @@ void HyprCtl::startHyprCtlSocket() {
         }
 
         close(SOCKET);
-    }).detach();
+    });
+
+    tThread.detach();
 }

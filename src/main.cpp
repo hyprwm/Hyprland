@@ -62,6 +62,11 @@ int main(int argc, char** argv) {
     Debug::log(LOG, "Hyprland reached the end.");
 
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
+
+    // kill all clients
+    for (auto& c : g_pCompositor->m_dProcessPIDsOnShutdown)
+        kill(c, SIGKILL);
+
     wl_display_destroy(g_pCompositor->m_sWLDisplay);
 
     return EXIT_SUCCESS;

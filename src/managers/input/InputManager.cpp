@@ -209,11 +209,18 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
+    g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor);
+
     if (!foundSurface) {
-        if (m_ecbClickBehavior == CLICKMODE_KILL)
-            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
-        else
-            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+        if (!m_bEmptyFocusCursorSet) {
+            // TODO: maybe wrap?
+            if (m_ecbClickBehavior == CLICKMODE_KILL)
+                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
+            else
+                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+
+            m_bEmptyFocusCursorSet = true;
+        }
 
         wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
 
@@ -223,6 +230,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         return;
     }
+
+    m_bEmptyFocusCursorSet = false;
 
     if (time)
         wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);

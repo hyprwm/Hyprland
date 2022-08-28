@@ -102,6 +102,7 @@ private:
 
     // for click behavior override
     eClickBehaviorMode m_ecbClickBehavior = CLICKMODE_DEFAULT;
+    bool            m_bEmptyFocusCursorSet = false;
     Vector2D        m_vLastCursorPosFloored = Vector2D();
 
     void            processMouseDownNormal(wlr_pointer_button_event* e);

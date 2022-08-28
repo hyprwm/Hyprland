@@ -410,6 +410,8 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
         wlr_box geom;
         wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
+        const auto SUBSURFACE = g_pXWaylandManager->getWindowSurface(pWindow) != pSurface && main;
+
         // wp_viewporter_v1 implementation
         if (pSurface->current.viewport.has_src) {
             wlr_fbox bufferSource;
@@ -450,7 +452,7 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
             return; // ignore the rest
 
         // then, if the surface is too big, modify the pos UV
-        if (geom.width > pWindow->m_vRealSize.vec().x + 1 || geom.height > pWindow->m_vRealSize.vec().y + 1) {
+        if ((geom.width > pWindow->m_vRealSize.vec().x + 1 || geom.height > pWindow->m_vRealSize.vec().y + 1) && !SUBSURFACE) {
             const auto OFF = Vector2D(pWindow->m_vRealSize.vec().x / (double)geom.width, pWindow->m_vRealSize.vec().y / (double)geom.height);
 
             if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D(-1, -1))

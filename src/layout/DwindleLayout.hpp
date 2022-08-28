@@ -8,20 +8,31 @@
 class CHyprDwindleLayout;
 enum eFullscreenMode : uint8_t;
 
-struct SDwindleNodeData {
+class SDwindleNodeData {
+
+private:
+
+    union {
+        CWindow* pWindow;
+        SDwindleNodeData* activeGroupNode;
+    };
+
+    SDwindleNodeData() = default;
+
+public:
+
     SDwindleNodeData* pParent = nullptr;
-    bool            isNode = false;
+    std::array<SDwindleNodeData*, 2> children;
 
-    CWindow*        pWindow = nullptr;
+    inline bool isTerminal() { return children[0] == nullptr; }
+    inline bool isGroup() { return !isTerminal() && activeGroupNode != nullptr; }
+    inline bool isNode() { return !isTerminal() && activeGroupNode == nullptr; }
 
-    std::array<SDwindleNodeData*, 2> children = { nullptr, nullptr };
+    static SDwindleNodeData newNode(SDwindleNodeData* parent, std::array<SDwindleNodeData *, 2>&& children);
+    static SDwindleNodeData newTerminalNode(SDwindleNodeData* parent, CWindow* window);
+
 
     bool            splitTop = false; // for preserve_split
-
-    bool            isGroup = false;
-    int             groupMemberActive = 0;
-    std::deque<SDwindleNodeData*> groupMembers;
-    SDwindleNodeData* pGroupParent = nullptr;
 
     Vector2D        position;
     Vector2D        size;
@@ -34,12 +45,27 @@ struct SDwindleNodeData {
 
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) {
-        return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && position == rhs.position && size == rhs.size && pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
+        //compare only by means of structure info
+       return workspaceID == rhs.workspaceID &&  pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }
 
-    void            recalcSizePosRecursive(bool force = false);
-    void            getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
+    void            recalcSizePosRecursive(bool force = false, bool apply=true);
+    void            addChildrenRecursive(std::deque<SDwindleNodeData *> &pDeque, bool groupStop=false);
+    std::deque<SDwindleNodeData*> getChildrenRecursive(bool groupStop=false);
+
+    CWindow* getWindow();
+
+    SDwindleNodeData* getNextNode(SDwindleNodeData *topNode, bool forward=true, bool cyclic=true);
+    SDwindleNodeData* getNextTerminalNode(SDwindleNodeData *topNode, bool forward, bool cyclic);
+    SDwindleNodeData* getNextWindowNode(SDwindleNodeData *topNode, bool forward, bool cyclic);
+
+    void ungroup();
+    void turnIntoGroup(SDwindleNodeData* activeNode);
+    SDwindleNodeData* getOuterGroup();
+    SDwindleNodeData* nextInGroup(bool forward= true);
+
     CHyprDwindleLayout* layout = nullptr;
+
 };
 
 class CHyprDwindleLayout : public IHyprLayout {
@@ -66,7 +92,7 @@ private:
 
     int                 getNodesOnWorkspace(const int&);
     void                applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
-    SDwindleNodeData*   getNodeFromWindow(CWindow*);
+    SDwindleNodeData *getNodeFromWindow(CWindow *pWindow, bool reportGroups=true);
     SDwindleNodeData*   getFirstNodeOnWorkspace(const int&);
     SDwindleNodeData*   getMasterNodeOnWorkspace(const int&);
 

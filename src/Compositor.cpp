@@ -16,6 +16,8 @@ int handleCritSignal(int signo, void* data) {
 CCompositor::CCompositor() {
     wlr_log_init(WLR_INFO, NULL);
 
+    m_iHyprlandPID = getpid();
+
     m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
@@ -26,6 +28,8 @@ CCompositor::CCompositor() {
     Debug::init(m_szInstanceSignature);
 
     Debug::log(LOG, "Instance Signature: %s", m_szInstanceSignature.c_str());
+
+    Debug::log(LOG, "Hyprland PID: %i", m_iHyprlandPID);
 
     Debug::log(LOG, "===== SYSTEM INFO: =====");
 
@@ -236,6 +240,17 @@ void CCompositor::cleanup() {
     m_pLastFocus = nullptr;
     m_pLastWindow = nullptr;
 
+    // accumulate all PIDs for killing, also request closing.
+    for (auto& w : m_vWindows) {
+        m_dProcessPIDsOnShutdown.push_back(w->getPID());
+
+        closeWindow(w.get());
+    }
+
+    // end threads
+    g_pEventManager->m_tThread = std::thread();
+    HyprCtl::tThread = std::thread();
+
     m_vWorkspaces.clear();
     m_vWindows.clear();
 
@@ -254,6 +269,9 @@ void CCompositor::cleanup() {
     wl_display_terminate(m_sWLDisplay);
 
     m_bIsShuttingDown = true;
+
+    g_pKeybindManager->spawn("sleep 5 && kill -9 " + std::to_string(m_iHyprlandPID));  // this is to prevent that random "freezing"
+                                                                                       // the PID should not be reused.
 }
 
 void CCompositor::startCompositor() {

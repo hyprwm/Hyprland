@@ -21,6 +21,8 @@ public:
 
     bool m_bIgnoreEvents = false;
 
+    std::thread m_tThread;
+
 private:
 
     std::mutex eventQueueMutex;

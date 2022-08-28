@@ -56,7 +56,6 @@ public:
     wlr_egl*                         m_sWLREGL;
     int                              m_iDRMFD;
     wlr_ext_workspace_manager_v1*    m_sWLREXTWorkspaceMgr;
-    wlr_linux_dmabuf_v1*             m_sWLRDmabuf;
     wlr_pointer_constraints_v1*      m_sWLRPointerConstraints;
     wlr_relative_pointer_manager_v1* m_sWLRRelPointerMgr;
     wlr_server_decoration_manager*   m_sWLRServerDecoMgr;

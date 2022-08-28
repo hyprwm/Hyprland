@@ -420,6 +420,11 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
             uvTL = Vector2D(bufferSource.x / surfaceSize.x, bufferSource.y / surfaceSize.y);
             uvBR = Vector2D((bufferSource.x + bufferSource.width) / surfaceSize.x, (bufferSource.y + bufferSource.height) / surfaceSize.y);
 
+            if (uvBR.x < 0.01f || uvBR.y < 0.01f) {
+                uvTL = Vector2D();
+                uvBR = Vector2D(1,1);
+            }
+
             // TODO: (example: chromium) this still has a tiny "bump" at the end.
             if (main) {
                 uvTL = uvTL + (Vector2D((double)geom.x / ((double)pWindow->m_uSurface.xdg->surface->current.width), (double)geom.y / ((double)pWindow->m_uSurface.xdg->surface->current.height)) * (((uvBR.x - uvTL.x) * surfaceSize.x) / surfaceSize.x));

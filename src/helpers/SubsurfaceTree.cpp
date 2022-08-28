@@ -139,6 +139,9 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
 
     PNEWSUBSURFACE->pWindowOwner = pNode->pWindowOwner;
 
+    if (PSUBSURFACE->mapped)
+        listener_mapSubsurface(PNEWSUBSURFACE, nullptr);
+
     wlr_subsurface* existingWlrSubsurface;
     wl_list_for_each(existingWlrSubsurface, &PSUBSURFACE->surface->current.subsurfaces_below, current.link) {
         listener_newSubsurfaceNode(pNode, existingWlrSubsurface);

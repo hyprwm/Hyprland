@@ -3,7 +3,6 @@
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) {
     m_pWindow = pWindow;
-    updateWindow(pWindow);
 }
 
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {

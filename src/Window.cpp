@@ -233,3 +233,12 @@ CWindow* CWindow::X11TransientFor() {
 
     return PPARENT;
 }
+
+void CWindow::removeDecorationByType(eDecorationType type) {
+    for (auto& wd : m_dWindowDecorations) {
+        if (wd->getDecorationType() == type)
+            m_vDecosToRemove.push_back(wd.get());
+    }
+
+    updateWindowDecos();
+}

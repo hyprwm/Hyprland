@@ -154,6 +154,7 @@ public:
     void            updateWindowDecos();
     pid_t           getPID();
     IHyprWindowDecoration* getDecorationByType(eDecorationType);
+    void            removeDecorationByType(eDecorationType);
     void            createToplevelHandle();
     void            destroyToplevelHandle();
     void            updateToplevel();

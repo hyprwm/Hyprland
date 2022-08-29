@@ -803,6 +803,7 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
         for (auto& pw : toAddWindows) {
             onWindowCreated(pw);
+            pw->removeDecorationByType(DECORATION_GROUPBAR);
         }
 
         recalculateMonitor(PWORKSPACE->m_iMonitorID);
@@ -862,6 +863,9 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
             newGroupMembers[i]->pPreviousGroupMember = PREVMEMBER;
             newGroupMembers[i]->pNextGroupMember = NEXTMEMBER;
+
+            // add the deco
+            newGroupMembers[i]->pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(newGroupMembers[i]->pWindow));
         }
 
         // focus
@@ -883,14 +887,15 @@ std::deque<CWindow*> CHyprDwindleLayout::getGroupMembers(CWindow* pWindow) {
     // get the node
     const auto PNODE = getNodeFromWindow(pWindow);
 
-    if (!PNODE)
+    if (!PNODE || !PNODE->isGroupMember())
         return result;  // reject with empty
 
-    SDwindleNodeData* current = PNODE->pNextGroupMember;
+    const auto HEAD = PNODE->getGroupHead();
+    SDwindleNodeData* current = HEAD->pNextGroupMember;
 
-    result.push_back(pWindow);
+    result.push_back(HEAD->pWindow);
 
-    while (current != PNODE) {
+    while (current != HEAD) {
         result.push_back(current->pWindow);
         current = current->pNextGroupMember;
     }
@@ -939,6 +944,9 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
         pNewNode->pWindow->m_vRealSize.warp();
         pNewNode->pWindow->m_vRealPosition.warp();
     }
+
+    pNewNode->pWindow->updateWindowDecos();
+    PNODE->pWindow->updateWindowDecos();
 }
 
 SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow) {

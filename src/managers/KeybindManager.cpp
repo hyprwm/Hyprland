@@ -127,6 +127,12 @@ void CKeybindManager::updateXKBTranslationState() {
 }
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
+    if (!g_pCompositor->m_bSessionActive) {
+        m_dPressedKeycodes.clear();
+        m_dPressedKeysyms.clear();
+        return true;
+    }
+
     if (pKeyboard->isVirtual)
         return true;
 

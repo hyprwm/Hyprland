@@ -6,7 +6,8 @@ self: {
 }: let
   cfg = config.wayland.windowManager.hyprland;
   defaultHyprlandPackage = self.packages.${pkgs.system}.default.override {
-    enableXWayland = cfg.xwayland;
+    enableXWayland = cfg.xwayland.enable;
+    hidpiXWayland = cfg.xwayland.hidpi;
   };
 in {
   options.wayland.windowManager.hyprland = {
@@ -41,12 +42,21 @@ in {
         </itemizedlist>
       '';
     };
-    xwayland = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = ''
-        Enable xwayland.
-      '';
+    xwayland = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Enable XWayland.
+        '';
+      };
+      hidpi = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Enable HiDPI XWayland.
+        '';
+      };
     };
 
     extraConfig = lib.mkOption {
@@ -56,20 +66,28 @@ in {
         Extra configuration lines to add to ~/.config/hypr/hyprland.conf.
       '';
     };
+
+    imports = [
+      (
+        lib.mkRenamedOptionModule
+        ["wayland" "windowManager" "hyprland" "xwayland"]
+        ["wayland" "windowManager" "hyprland" "xwayland" "enable"]
+      )
+    ];
   };
 
   config = lib.mkIf cfg.enable {
     home.packages =
       lib.optional (cfg.package != null) cfg.package
-      ++ lib.optional cfg.xwayland pkgs.xwayland;
+      ++ lib.optional cfg.xwayland.enable pkgs.xwayland;
 
     xdg.configFile."hypr/hyprland.conf" = {
       text =
         (lib.optionalString cfg.systemdIntegration ''
-            exec-once=export XDG_SESSION_TYPE=wayland
-            exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
-            exec-once=systemctl --user start hyprland-session.target
-          '')
+          exec-once=export XDG_SESSION_TYPE=wayland
+          exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+          exec-once=systemctl --user start hyprland-session.target
+        '')
         + cfg.extraConfig;
 
       onChange = let

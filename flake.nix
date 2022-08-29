@@ -32,12 +32,15 @@
         version = mkDate (inputs.wlroots.lastModifiedDate or "19700101");
         src = inputs.wlroots;
       });
+
       hyprland = prev.callPackage ./nix/default.nix {
         stdenv = prev.gcc12Stdenv;
         version = "0.11.1beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
       };
       hyprland-debug = hyprland.override {debug = true;};
+      hyprland-no-hidpi = hyprland.override {hidpiXWayland = false;};
+
       waybar-hyprland = prev.waybar.overrideAttrs (oldAttrs: {
         mesonFlags = oldAttrs.mesonFlags ++ ["-Dexperimental=true"];
       });

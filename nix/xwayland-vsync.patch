@@ -1,0 +1,12 @@
+--- a/hw/xwayland/xwayland-present.c
++++ b/hw/xwayland/xwayland-present.c
+@@ -824,7 +824,8 @@
+         dixDestroyPixmap(vblank->pixmap, vblank->pixmap->drawable.id);
+         vblank->pixmap = NULL;
+
+-        if (xwl_present_queue_vblank(screen, window, vblank->crtc,
++        if (vblank->target_msc > crtc_msc &&
++            xwl_present_queue_vblank(screen, window, vblank->crtc,
+                                      vblank->event_id, crtc_msc + 1)
+             == Success)
+             return;

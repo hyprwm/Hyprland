@@ -495,11 +495,10 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
         // remove drag status
         g_pInputManager->currentlyDraggedWindow = nullptr;
 
-        PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
+        if (PWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+            return;
 
-        if (PWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PWINDOW == g_pCompositor->m_pLastWindow) {
-            moveActiveToWorkspace(std::to_string(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace));
-        }
+        PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
 
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
     }
@@ -703,6 +702,9 @@ void CKeybindManager::fullscreenActive(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
+        return;
+
+    if (PWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
         return;
 
     g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, args == "1" ? FULLSCREEN_MAXIMIZED : FULLSCREEN_FULL);

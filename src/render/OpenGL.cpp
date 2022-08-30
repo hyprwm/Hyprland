@@ -866,17 +866,12 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     const auto BLURVAL = g_pConfigManager->getInt("decoration:blur");
     g_pConfigManager->setInt("decoration:blur", 0);
 
-    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
-
-    m_bEndFrame = true;
-
-    g_pConfigManager->setInt("decoration:blur", BLURVAL);
-
     // render onto the window fb
-    // we rendered onto the primary because it has a stencil, which we need for the borders etc
     const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
 
     glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
+
+    PFRAMEBUFFER->m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
 
     PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
@@ -884,10 +879,9 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     clear(CColor(0, 0, 0, 0));  // JIC
 
-    wlr_box fullMonBox = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
-    
-    renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &fullMonBox, 255.f, 0);
-    m_bEndFrame = false;
+    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
+
+    g_pConfigManager->setInt("decoration:blur", BLURVAL);
 
     // restore original fb
     #ifndef GLES2
@@ -970,8 +964,6 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     // the originalClosedPos is relative to the monitor's pos
     Vector2D scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.vec().x / (PWINDOW->m_vOriginalClosedSize.x * PMONITOR->scale)), (PMONITOR->scale * PWINDOW->m_vRealSize.vec().y / (PWINDOW->m_vOriginalClosedSize.y * PMONITOR->scale)));
 
-    // TODO: this is wrong on scaled.
-
     windowBox.width = PMONITOR->vecTransformedSize.x * scaleXY.x;
     windowBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
     windowBox.x = ((PWINDOW->m_vRealPosition.vec().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.x * PMONITOR->scale) * scaleXY.x);
@@ -980,7 +972,11 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y);
 
+    m_bEndFrame = true;
+
     renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), &fakeDamage, 0);
+
+    m_bEndFrame = false;
 
     pixman_region32_fini(&fakeDamage);
 

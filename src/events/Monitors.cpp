@@ -191,7 +191,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0 || damageBlinkCleanup > 0) {
-        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
+        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x * 10, (int)PMONITOR->vecTransformedSize.y * 10); // wot?
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
     } else {
@@ -241,7 +241,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
-        wlr_box monrect = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+        wlr_box monrect = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
         g_pHyprOpenGL->renderRect(&monrect, CColor(255,0,255,100), 0);
         damageBlinkCleanup = 1;
     } else if (*PDAMAGEBLINK) {

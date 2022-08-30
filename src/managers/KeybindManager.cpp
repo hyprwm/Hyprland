@@ -7,6 +7,7 @@ CKeybindManager::CKeybindManager() {
 
     m_mDispatchers["exec"]                      = spawn;
     m_mDispatchers["killactive"]                = killActive;
+    m_mDispatchers["closewindow"]               = kill;
     m_mDispatchers["togglefloating"]            = toggleActiveFloating;
     m_mDispatchers["workspace"]                 = changeworkspace;
     m_mDispatchers["fullscreen"]                = fullscreenActive;
@@ -473,6 +474,17 @@ void CKeybindManager::spawn(std::string args) {
 
 void CKeybindManager::killActive(std::string args) {
     g_pCompositor->closeWindow(g_pCompositor->m_pLastWindow);
+}
+
+void CKeybindManager::kill(std::string args) {
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "kill: no window found");
+        return;
+    }
+
+    g_pCompositor->closeWindow(PWINDOW);
 }
 
 void CKeybindManager::clearKeybinds() {

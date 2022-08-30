@@ -78,6 +78,7 @@ private:
 
     // -------------- Dispatchers -------------- //
     static void         killActive(std::string);
+    static void         kill(std::string);
     static void         spawn(std::string);
     static void         toggleActiveFloating(std::string);
     static void         toggleActivePseudo(std::string);

@@ -165,6 +165,8 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBA.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shRGBA.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
+    m_RenderData.pCurrentMonData->m_shRGBA.applyTint = glGetUniformLocation(prog, "applyTint");
+    m_RenderData.pCurrentMonData->m_shRGBA.tint = glGetUniformLocation(prog, "tint");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
     m_RenderData.pCurrentMonData->m_shRGBX.program = prog;
@@ -179,6 +181,8 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBX.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBX.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shRGBX.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
+    m_RenderData.pCurrentMonData->m_shRGBX.applyTint = glGetUniformLocation(prog, "applyTint");
+    m_RenderData.pCurrentMonData->m_shRGBX.tint = glGetUniformLocation(prog, "tint");
 
     prog = createProgram(TEXVERTSRC, TEXFRAGSRCEXT);
     m_RenderData.pCurrentMonData->m_shEXT.program = prog;
@@ -193,6 +197,8 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shEXT.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shEXT.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shEXT.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
+    m_RenderData.pCurrentMonData->m_shEXT.applyTint = glGetUniformLocation(prog, "applyTint");
+    m_RenderData.pCurrentMonData->m_shEXT.tint = glGetUniformLocation(prog, "tint");
 
     prog = createProgram(TEXVERTSRC, FRAGBLUR1);
     m_RenderData.pCurrentMonData->m_shBLUR1.program = prog;
@@ -367,14 +373,16 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
 void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowCustomUV);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowCustomUV, true);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowCustomUV) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
+
+    static auto *const PDIMINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:dim_inactive")->intValue;
 
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
@@ -432,6 +440,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glUniform2f(shader->fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
     glUniform1f(shader->radius, round);
     glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
+
+    if (allowDim && m_pCurrentWindow && *PDIMINACTIVE && m_pCurrentWindow != g_pCompositor->m_pLastWindow) {
+        glUniform1i(shader->applyTint, 1);
+        const auto DIM = m_pCurrentWindow->m_fDimPercent.fl();
+        glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
+    } else {
+        glUniform1i(shader->applyTint, 0);
+    }
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
@@ -727,7 +743,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
         // draw window
         glDisable(GL_STENCIL_TEST);
-        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true);
+        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true, true);
     }
 
     glStencilMask(-1);

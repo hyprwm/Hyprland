@@ -139,6 +139,9 @@ public:
     // animated shadow color
     CAnimatedVariable m_cRealShadowColor;
 
+    // animated tint
+    CAnimatedVariable m_fDimPercent;
+
     // for toplevel monitor events
     uint64_t          m_iLastToplevelMonitorID = -1;
     uint64_t          m_iLastSurfaceMonitorID = -1;

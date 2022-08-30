@@ -83,6 +83,8 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:shadow_offset"].strValue = "0 0";
     configValues["decoration:col.shadow"].intValue = 0xee1a1a1a;
     configValues["decoration:col.shadow_inactive"].intValue = INT_MAX;
+    configValues["decoration:dim_inactive"].intValue = 0;
+    configValues["decoration:dim_strength"].floatValue = 0.5f;
 
     configValues["dwindle:pseudotile"].intValue = 0;
     configValues["dwindle:col.group_border"].intValue = 0x66777700;
@@ -195,6 +197,7 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("fadeOut");
         INITANIMCFG("fadeSwitch");
         INITANIMCFG("fadeShadow");
+        INITANIMCFG("fadeDim");
 
         // border
 
@@ -226,6 +229,7 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeOut", "fade");
     CREATEANIMCFG("fadeSwitch", "fade");
     CREATEANIMCFG("fadeShadow", "fade");
+    CREATEANIMCFG("fadeDim", "fade");
 
     CREATEANIMCFG("specialWorkspace", "workspaces");
 }

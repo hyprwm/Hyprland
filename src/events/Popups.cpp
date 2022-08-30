@@ -32,6 +32,12 @@ void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
             py -= curPopup->popup->base->current.geometry.y;
         }
 
+        if (curPopup->pSurfaceTree && curPopup->pSurfaceTree->pSurface && !curPopup->parentPopup && !curPopup->parentWindow) {
+            const auto EXTENTSSURFACE = pixman_region32_extents(&curPopup->pSurfaceTree->pSurface->input_region);
+            px -= EXTENTSSURFACE->x1;
+            py -= EXTENTSSURFACE->y1;
+        }
+
         if (curPopup->parentPopup) {
             curPopup = curPopup->parentPopup;
         } else {

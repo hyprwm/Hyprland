@@ -205,6 +205,9 @@ uniform float radius;
 
 uniform int discardOpaque;
 
+uniform int applyTint;
+uniform vec3 tint;
+
 uniform int primitiveMultisample;
 uniform int ignoreCorners;
 
@@ -215,6 +218,12 @@ void main() {
 	if (discardOpaque == 1 && pixColor[3] * alpha == 1.0) {
 		discard;
 		return;
+	}
+
+	if (applyTint == 1) {
+		pixColor[0] = pixColor[0] * tint[0];
+		pixColor[1] = pixColor[1] * tint[1];
+		pixColor[2] = pixColor[2] * tint[2];
 	}
 
 	vec2 pixCoord = fullSize * v_texcoord;
@@ -238,6 +247,9 @@ uniform float radius;
 
 uniform int discardOpaque;
 
+uniform int applyTint;
+uniform vec3 tint;
+
 uniform int primitiveMultisample;
 uniform int ignoreCorners;
 
@@ -249,10 +261,17 @@ void main() {
 	}
 
 	vec4 pixColor = vec4(texture2D(tex, v_texcoord).rgb, 1.0);
+
+	if (applyTint == 1) {
+		pixColor[0] = pixColor[0] * tint[0];
+		pixColor[1] = pixColor[1] * tint[1];
+		pixColor[2] = pixColor[2] * tint[2];
+	}
 	
 	vec2 pixCoord = fullSize * v_texcoord;
 
-	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+	)#" + ROUNDED_SHADER_FUNC("pixColor") +
+                                          R"#(
 
 	gl_FragColor = pixColor * alpha;
 })#";
@@ -319,6 +338,9 @@ uniform float radius;
 
 uniform int discardOpaque;
 
+uniform int applyTint;
+uniform vec3 tint;
+
 uniform int primitiveMultisample;
 uniform int ignoreCorners;
 
@@ -331,9 +353,16 @@ void main() {
 		return;
 	}
 
+	if (applyTint == 1) {
+		pixColor[0] = pixColor[0] * tint[0];
+		pixColor[1] = pixColor[1] * tint[1];
+		pixColor[2] = pixColor[2] * tint[2];
+	}
+
 	vec2 pixCoord = fullSize * v_texcoord;
 
-	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+	)#" + ROUNDED_SHADER_FUNC("pixColor") +
+                                         R"#(
 
 	gl_FragColor = pixColor * alpha;
 })#";

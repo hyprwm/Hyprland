@@ -1295,6 +1295,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     static auto *const PFULLSCREENALPHA = &g_pConfigManager->getConfigValuePtr("decoration:fullscreen_opacity")->floatValue;
     static auto *const PSHADOWCOL = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow")->intValue;
     static auto *const PSHADOWCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow_inactive")->intValue;
+    static auto *const PDIMSTRENGTH = &g_pConfigManager->getConfigValuePtr("decoration:dim_strength")->floatValue;
 
     // border
     const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
@@ -1321,6 +1322,13 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
             pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alpha * *PACTIVEALPHA;
         else
             pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaInactive != -1 ? pWindow->m_sSpecialRenderData.alphaInactive * *PINACTIVEALPHA : *PINACTIVEALPHA;
+    }
+
+    // dim
+    if (pWindow == m_pLastWindow) {
+        pWindow->m_fDimPercent = 0;
+    } else {
+        pWindow->m_fDimPercent = *PDIMSTRENGTH;
     }
 
     // shadow

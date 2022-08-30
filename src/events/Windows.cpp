@@ -48,6 +48,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     static auto *const PINACTIVEALPHA = &g_pConfigManager->getConfigValuePtr("decoration:inactive_opacity")->floatValue;
     static auto *const PACTIVEALPHA = &g_pConfigManager->getConfigValuePtr("decoration:active_opacity")->floatValue;
+    static auto *const PDIMSTRENGTH = &g_pConfigManager->getConfigValuePtr("decoration:dim_strength")->floatValue;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
     const auto PWORKSPACE = PMONITOR->specialWorkspaceOpen ? g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
@@ -282,8 +283,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
-    } else
+        PWINDOW->m_fDimPercent.setValueAndWarp(*PDIMSTRENGTH);
+    } else {
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PINACTIVEALPHA);
+        PWINDOW->m_fDimPercent.setValueAndWarp(0);
+    }
 
     Debug::log(LOG, "Window got assigned a surfaceTreeNode %x", PWINDOW->m_pSurfaceTree);
 

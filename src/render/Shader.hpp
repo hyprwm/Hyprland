@@ -29,6 +29,9 @@ public:
     GLint range;
     GLint shadowPower;
 
+    GLint applyTint;
+    GLint tint;
+
     GLint getUniformLocation(const std::string&);
 
 private:

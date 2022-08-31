@@ -161,6 +161,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
         Debug::log(ERR, "Node %x holding invalid window %x!!", pNode, PWINDOW);
+        onWindowRemovedTiling(PWINDOW);
         return;
     }
 

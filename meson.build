@@ -1,5 +1,5 @@
 project('Hyprland', 'cpp', 'c',
-  version : '0.11.1beta',
+  version : '0.12.1beta',
   default_options : [
     'warning_level=2',
     'default_library=static',

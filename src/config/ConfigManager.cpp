@@ -65,7 +65,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:disable_logs"].intValue = 0;
     configValues["debug:disable_time"].intValue = 1;
 
-    configValues["decoration:rounding"].intValue = 1;
+    configValues["decoration:rounding"].intValue = 0;
     configValues["decoration:blur"].intValue = 1;
     configValues["decoration:blur_size"].intValue = 8;
     configValues["decoration:blur_passes"].intValue = 1;

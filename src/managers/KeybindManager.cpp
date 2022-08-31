@@ -636,7 +636,8 @@ void CKeybindManager::changeworkspace(std::string args) {
         }
 
         // If the monitor is not the one our cursor's at, warp to it.
-        if (PMONITOR != g_pCompositor->getMonitorFromCursor()) {
+        const bool anotherMonitor = PMONITOR != g_pCompositor->getMonitorFromCursor();
+        if (anotherMonitor) {
             Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
             g_pCompositor->warpCursorTo(middle);
         }
@@ -653,7 +654,8 @@ void CKeybindManager::changeworkspace(std::string args) {
         // focus
         if (const auto PWINDOW = PWORKSPACETOCHANGETO->m_pLastFocusedWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
             // warp and focus
-            g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
+            if (anotherMonitor)
+                g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
             g_pCompositor->focusWindow(PWINDOW, g_pXWaylandManager->getWindowSurface(PWINDOW));
         } else
             g_pInputManager->refocus();

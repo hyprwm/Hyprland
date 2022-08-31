@@ -8,6 +8,8 @@ enum eFullscreenMode : uint8_t {
     FULLSCREEN_MAXIMIZED
 };
 
+class CWindow;
+
 class CWorkspace {
 public:
     CWorkspace(int monitorID, std::string name, bool special = false);
@@ -35,6 +37,9 @@ public:
 
     // "scratchpad"
     bool            m_bIsSpecialWorkspace = false;
+
+    // last window
+    CWindow*        m_pLastFocusedWindow = nullptr;
 
     // user-set
     bool            m_bDefaultFloating = false;

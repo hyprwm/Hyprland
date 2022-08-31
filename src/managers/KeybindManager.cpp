@@ -651,7 +651,12 @@ void CKeybindManager::changeworkspace(std::string args) {
         Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 
         // focus
-        g_pInputManager->refocus();
+        if (const auto PWINDOW = PWORKSPACETOCHANGETO->m_pLastFocusedWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
+            // warp and focus
+            g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
+            g_pCompositor->focusWindow(PWINDOW, g_pXWaylandManager->getWindowSurface(PWINDOW));
+        } else
+            g_pInputManager->refocus();
 
         // mark the monitor dirty
         g_pHyprRenderer->damageMonitor(PMONITOR);
@@ -1222,14 +1227,23 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         Debug::log(LOG, "Toggling special workspace to open");
 
     if (open) {
+        uint64_t monID = -1;
+
         for (auto& m : g_pCompositor->m_vMonitors) {
             if (m->specialWorkspaceOpen != !open) {
                 m->specialWorkspaceOpen = !open;
                 g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
                 g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false);
+
+                monID = m->ID;
             }
         }
+
+        if (const auto PWINDOW = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace)->m_pLastFocusedWindow; g_pCompositor->windowValidMapped(PWINDOW) && PWINDOW->m_iMonitorID == monID)
+            g_pCompositor->focusWindow(PWINDOW);
+        else
+            g_pInputManager->refocus();
     } else {
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID);
 
@@ -1243,9 +1257,12 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
         PSPECIALWORKSPACE->startAnim(true, true);
         PSPECIALWORKSPACE->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
-    }
 
-    g_pInputManager->refocus();
+        if (const auto PWINDOW = PSPECIALWORKSPACE->m_pLastFocusedWindow; g_pCompositor->windowValidMapped(PWINDOW))
+            g_pCompositor->focusWindow(PWINDOW);
+        else
+            g_pInputManager->refocus();
+    }
 }
 
 void CKeybindManager::forceRendererReload(std::string args) {

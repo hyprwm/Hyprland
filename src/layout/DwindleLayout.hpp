@@ -41,6 +41,7 @@ struct SDwindleNodeData {
     bool            isGroupMember();
     SDwindleNodeData* getGroupHead();
     SDwindleNodeData* getGroupVisible();
+    int             getGroupMemberCount();
     void            setGroupFocusedNode(SDwindleNodeData*);
     CHyprDwindleLayout* layout = nullptr;
 };

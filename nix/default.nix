@@ -24,6 +24,7 @@
   enableXWayland ? true,
   hidpiXWayland ? true,
   legacyRenderer ? false,
+  nvidiaPatches ? false,
   version ? "git",
 }: let
   assertXWayland = lib.assertMsg (hidpiXWayland -> enableXWayland) ''
@@ -68,11 +69,7 @@ in
           wayland
           wayland-protocols
           wayland-scanner
-          (
-            if hidpiXWayland
-            then (import ./hidpi_wlroots.nix {inherit wlroots xwayland fetchpatch;})
-            else wlroots.override {inherit enableXWayland;}
-          )
+          (wlroots.override {inherit enableXWayland hidpiXWayland nvidiaPatches;})
           xcbutilwm
         ]
         ++ lib.optional enableXWayland xwayland;

@@ -49,4 +49,6 @@ public:
     void            setActive(bool on);
 
     void            moveToMonitor(const int&);
+
+    CWindow*        getLastFocusedWindow();
 };

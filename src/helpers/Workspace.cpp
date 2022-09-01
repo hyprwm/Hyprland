@@ -120,3 +120,10 @@ void CWorkspace::moveToMonitor(const int& id) {
 
     wlr_ext_workspace_handle_v1_set_name(m_pWlrHandle, m_szName.c_str());
 }
+
+CWindow* CWorkspace::getLastFocusedWindow() {
+    if (!g_pCompositor->windowValidMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow->m_iWorkspaceID != m_iID)
+        return nullptr;
+
+    return m_pLastFocusedWindow;
+}

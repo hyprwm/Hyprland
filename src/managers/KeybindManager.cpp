@@ -652,7 +652,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 
         // focus
-        if (const auto PWINDOW = PWORKSPACETOCHANGETO->m_pLastFocusedWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
+        if (const auto PWINDOW = PWORKSPACETOCHANGETO->getLastFocusedWindow(); PWINDOW) {
             // warp and focus
             if (anotherMonitor)
                 g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
@@ -1242,7 +1242,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
             }
         }
 
-        if (const auto PWINDOW = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace)->m_pLastFocusedWindow; g_pCompositor->windowValidMapped(PWINDOW) && PWINDOW->m_iMonitorID == monID)
+        if (const auto PWINDOW = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace)->getLastFocusedWindow(); g_pCompositor->windowValidMapped(PWINDOW))
             g_pCompositor->focusWindow(PWINDOW);
         else
             g_pInputManager->refocus();
@@ -1260,7 +1260,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         PSPECIALWORKSPACE->startAnim(true, true);
         PSPECIALWORKSPACE->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
 
-        if (const auto PWINDOW = PSPECIALWORKSPACE->m_pLastFocusedWindow; g_pCompositor->windowValidMapped(PWINDOW))
+        if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); g_pCompositor->windowValidMapped(PWINDOW))
             g_pCompositor->focusWindow(PWINDOW);
         else
             g_pInputManager->refocus();

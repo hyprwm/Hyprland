@@ -232,6 +232,9 @@ CWindow* CWindow::X11TransientFor() {
         PPARENT = g_pCompositor->getWindowFromSurface(PPARENT->m_uSurface.xwayland->parent->surface);
     }
 
+    if (!g_pCompositor->windowValidMapped(PPARENT))
+        return nullptr;
+
     return PPARENT;
 }
 

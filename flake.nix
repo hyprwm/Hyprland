@@ -28,11 +28,10 @@
     ]);
   in {
     overlays.default = _: prev: rec {
-      wlroots-hyprland = prev.wlroots.overrideAttrs (__: {
+      wlroots-hyprland = prev.callPackage ./nix/wlroots.nix {
         version = mkDate (inputs.wlroots.lastModifiedDate or "19700101") + "_" + (inputs.wlroots.shortRev or "dirty");
         src = inputs.wlroots;
-      });
-
+      };
       hyprland = prev.callPackage ./nix/default.nix {
         stdenv = prev.gcc12Stdenv;
         version = "0.12.1beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");

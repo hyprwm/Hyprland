@@ -1242,7 +1242,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
             }
         }
 
-        if (const auto PWINDOW = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace)->getLastFocusedWindow(); g_pCompositor->windowValidMapped(PWINDOW))
+        if (const auto PWINDOW = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace)->getLastFocusedWindow(); PWINDOW)
             g_pCompositor->focusWindow(PWINDOW);
         else
             g_pInputManager->refocus();
@@ -1260,7 +1260,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         PSPECIALWORKSPACE->startAnim(true, true);
         PSPECIALWORKSPACE->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
 
-        if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); g_pCompositor->windowValidMapped(PWINDOW))
+        if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); PWINDOW)
             g_pCompositor->focusWindow(PWINDOW);
         else
             g_pInputManager->refocus();

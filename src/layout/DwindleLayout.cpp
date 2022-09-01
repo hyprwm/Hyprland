@@ -90,6 +90,19 @@ void SDwindleNodeData::setGroupFocusedNode(SDwindleNodeData* pMember) {
     this->pWindow->m_bHidden = pMember != this;
 }
 
+int SDwindleNodeData::getGroupMemberCount() {
+    SDwindleNodeData* current = this->pNextGroupMember;
+
+    int no = 1;
+
+    while (current != this) {
+        current = current->pNextGroupMember;
+        no++;
+    }
+
+    return no;
+}
+
 int CHyprDwindleLayout::getNodesOnWorkspace(const int& id) {
     int no = 0;
     for (auto& n : m_lDwindleNodesData) {
@@ -173,7 +186,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto calcPos = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
     auto calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
 
-    if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1) {
+    const auto NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
+
+    if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && (NODESONWORKSPACE == 1 || (pNode->isGroupMember() && pNode->getGroupMemberCount() == NODESONWORKSPACE))) {
         PWINDOW->m_vRealPosition = calcPos - Vector2D(BORDERSIZE, BORDERSIZE);
         PWINDOW->m_vRealSize = calcSize + Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
 
@@ -871,6 +886,9 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
         // focus
         PNODE->setGroupFocusedNode(PNODE);
+
+        // required for no_gaps_when_only to work
+        applyNodeDataToWindow(PNODE);
     }
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();

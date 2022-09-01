@@ -984,6 +984,14 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     pMonitor->vecPixelSize = pMonitor->vecSize;
 
+    // Adaptive sync (VRR)
+    wlr_output_enable_adaptive_sync(pMonitor->output, 1);
+
+    if (!wlr_output_test(pMonitor->output)) {
+        Debug::log(LOG, "Pending output %s does not accept VRR.", pMonitor->output->name);
+        wlr_output_enable_adaptive_sync(pMonitor->output, 0);
+    }
+
     // update renderer
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 

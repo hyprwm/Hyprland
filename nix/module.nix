@@ -8,6 +8,10 @@ self: {
 with lib; let
   cfg = config.programs.hyprland;
 in {
+  imports = [
+    (mkRemovedOptionModule ["programs" "hyprland" "extraPackages"] "extraPackages has been removed. Use environment.systemPackages instead.")
+  ];
+
   options.programs.hyprland = {
     enable = mkEnableOption ''
       Hyprland, the dynamic tiling Wayland compositor that doesn't sacrifice on its looks.
@@ -26,10 +30,6 @@ in {
         Hyprland package to use.
       '';
     };
-
-    imports = [
-      (mkRemovedOptionModule ["programs" "hyprland" "extraPackages"] "extraPackages has been removed. Use environment.systemPackages instead.")
-    ];
   };
 
   config = mkIf cfg.enable {

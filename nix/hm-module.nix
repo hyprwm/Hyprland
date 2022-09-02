@@ -10,6 +10,14 @@ self: {
     hidpiXWayland = cfg.xwayland.hidpi;
   };
 in {
+  imports = [
+    (
+      lib.mkRenamedOptionModule
+      ["wayland" "windowManager" "hyprland" "xwayland"]
+      ["wayland" "windowManager" "hyprland" "xwayland" "enable"]
+    )
+  ];
+
   options.wayland.windowManager.hyprland = {
     enable = lib.mkEnableOption "hyprland wayland compositor";
     package = lib.mkOption {
@@ -66,14 +74,6 @@ in {
         Extra configuration lines to add to ~/.config/hypr/hyprland.conf.
       '';
     };
-
-    imports = [
-      (
-        lib.mkRenamedOptionModule
-        ["wayland" "windowManager" "hyprland" "xwayland"]
-        ["wayland" "windowManager" "hyprland" "xwayland" "enable"]
-      )
-    ];
   };
 
   config = lib.mkIf cfg.enable {
@@ -84,7 +84,6 @@ in {
     xdg.configFile."hypr/hyprland.conf" = {
       text =
         (lib.optionalString cfg.systemdIntegration ''
-          exec-once=export XDG_SESSION_TYPE=wayland
           exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
           exec-once=systemctl --user start hyprland-session.target
         '')

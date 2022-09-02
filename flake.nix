@@ -65,8 +65,6 @@
 
     nixosModules.default = import ./nix/module.nix self;
     homeManagerModules.default = import ./nix/hm-module.nix self;
-
-    overlay = throw "Hyprland: .overlay output is deprecated, please use the .overlays.default output";
   };
 
   nixConfig = {

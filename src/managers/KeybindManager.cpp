@@ -653,7 +653,11 @@ void CKeybindManager::changeworkspace(std::string args) {
             // warp and focus
             if (anotherMonitor)
                 g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
+            
             g_pCompositor->focusWindow(PWINDOW, g_pXWaylandManager->getWindowSurface(PWINDOW));
+
+            if (g_pCompositor->cursorOnReservedArea()) // fix focus on bars etc
+                g_pInputManager->refocus();
         } else
             g_pInputManager->refocus();
 

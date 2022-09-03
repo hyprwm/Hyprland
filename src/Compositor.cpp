@@ -1776,3 +1776,14 @@ void CCompositor::forceReportSizesToWindowsOnWorkspace(const int& wid) {
         }
     }
 }
+
+bool CCompositor::cursorOnReservedArea() {
+    const auto PMONITOR = getMonitorFromCursor();
+
+    const auto XY1 = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+    const auto XY2 = PMONITOR->vecPosition + PMONITOR->vecSize - PMONITOR->vecReservedBottomRight;
+
+    const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
+
+    return !VECINRECT(CURSORPOS, XY1.x, XY1.y, XY2.x, XY2.y);
+}

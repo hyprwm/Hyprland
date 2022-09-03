@@ -10,14 +10,6 @@ self: {
     hidpiXWayland = cfg.xwayland.hidpi;
   };
 in {
-  imports = [
-    (
-      lib.mkRenamedOptionModule
-      ["wayland" "windowManager" "hyprland" "xwayland"]
-      ["wayland" "windowManager" "hyprland" "xwayland" "enable"]
-    )
-  ];
-
   options.wayland.windowManager.hyprland = {
     enable = lib.mkEnableOption "hyprland wayland compositor";
     package = lib.mkOption {
@@ -74,6 +66,14 @@ in {
         Extra configuration lines to add to ~/.config/hypr/hyprland.conf.
       '';
     };
+
+    imports = [
+      (
+        lib.mkRenamedOptionModule
+        ["wayland" "windowManager" "hyprland" "xwayland"]
+        ["wayland" "windowManager" "hyprland" "xwayland" "enable"]
+      )
+    ];
   };
 
   config = lib.mkIf cfg.enable {

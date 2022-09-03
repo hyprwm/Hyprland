@@ -2,16 +2,18 @@
 #include "../../Compositor.hpp"
 
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
-    float sensitivity = g_pConfigManager->getFloat("general:sensitivity");
+    static auto *const PSENS = &g_pConfigManager->getConfigValuePtr("general:sensitivity")->floatValue;
+    static auto *const PNOACCEL = &g_pConfigManager->getConfigValuePtr("input:force_no_accel")->intValue;
+    static auto* const PSENSTORAW = &g_pConfigManager->getConfigValuePtr("general:apply_sens_to_raw")->intValue;
 
-    const auto DELTA = g_pConfigManager->getInt("input:force_no_accel") == 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
+    const auto DELTA = *PNOACCEL == 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
 
-    if (g_pConfigManager->getInt("general:apply_sens_to_raw") == 1)
-        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * sensitivity, DELTA.y * sensitivity, e->unaccel_dx * sensitivity, e->unaccel_dy * sensitivity);
+    if (*PSENSTORAW == 1)
+        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * *PSENS, DELTA.y * *PSENS, e->unaccel_dx * *PSENS, e->unaccel_dy * *PSENS);
     else
         wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x, DELTA.y, e->unaccel_dx, e->unaccel_dy);
 
-    wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, DELTA.x * sensitivity, DELTA.y * sensitivity);
+    wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, DELTA.x * *PSENS, DELTA.y * *PSENS);
 
     mouseMoveUnified(e->time_msec);
 

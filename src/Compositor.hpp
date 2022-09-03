@@ -164,6 +164,7 @@ public:
     void                    closeWindow(CWindow*);
     Vector2D                parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void                    forceReportSizesToWindowsOnWorkspace(const int&);
+    bool                    cursorOnReservedArea();
     
 
     std::string             explicitConfigPath;

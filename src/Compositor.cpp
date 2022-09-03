@@ -1692,6 +1692,10 @@ void CCompositor::warpCursorTo(const Vector2D& pos) {
         return;
 
     wlr_cursor_warp(m_sWLRCursor, m_sSeat.mouse->mouse, pos.x, pos.y);
+
+    const auto PMONITORNEW = getMonitorFromVector(pos);
+    if (PMONITORNEW != m_pLastMonitor)
+        m_pLastMonitor = PMONITORNEW;
 }
 
 SLayerSurface* CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {

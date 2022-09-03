@@ -1351,8 +1351,6 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
     Debug::log(LOG, "Focusing to window name: %s", PWINDOW->m_szTitle.c_str());
 
-    changeworkspace("[internal]" + std::to_string(PWINDOW->m_iWorkspaceID));
-
     g_pCompositor->focusWindow(PWINDOW);
 
     const auto MIDPOINT = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;

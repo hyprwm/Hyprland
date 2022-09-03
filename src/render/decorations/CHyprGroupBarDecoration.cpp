@@ -26,9 +26,9 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 
     if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
         // we draw 3px above the window's border with 3px
-        const auto BORDERSIZE = g_pConfigManager->getInt("general:border_size");
+        const auto PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-        m_seExtents.topLeft = Vector2D(0, BORDERSIZE + 3 + 3);
+        m_seExtents.topLeft = Vector2D(0, *PBORDERSIZE + 3 + 3);
         m_seExtents.bottomRight = Vector2D();
 
         m_vLastWindowPos = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
@@ -82,7 +82,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
         if (rect.width <= 0 || rect.height <= 0)
             break;
 
-        CColor color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? CColor(g_pConfigManager->getInt("dwindle:col.group_border_active")) : CColor(g_pConfigManager->getInt("dwindle:col.group_border"));
+        static auto *const PGROUPCOLACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->intValue;
+        static auto *const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->intValue;
+
+        CColor color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? CColor(*PGROUPCOLACTIVE) : CColor(*PGROUPCOLINACTIVE);
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 

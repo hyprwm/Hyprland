@@ -1207,16 +1207,12 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         Debug::log(LOG, "Toggling special workspace to open");
 
     if (open) {
-        uint64_t monID = -1;
-
         for (auto& m : g_pCompositor->m_vMonitors) {
             if (m->specialWorkspaceOpen != !open) {
                 m->specialWorkspaceOpen = !open;
                 g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
                 g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID)->startAnim(false, false);
-
-                monID = m->ID;
             }
         }
 

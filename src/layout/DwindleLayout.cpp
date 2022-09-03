@@ -166,9 +166,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     const bool DISPLAYTOP           = STICKS(pNode->position.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
     const bool DISPLAYBOTTOM        = STICKS(pNode->position.y + pNode->size.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
 
-    const auto BORDERSIZE           = g_pConfigManager->getInt("general:border_size");
-    const auto GAPSIN               = g_pConfigManager->getInt("general:gaps_in");
-    const auto GAPSOUT              = g_pConfigManager->getInt("general:gaps_out");
+    const auto PBORDERSIZE          = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    const auto PGAPSIN              = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+    const auto PGAPSOUT             = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
 
     const auto PWINDOW = pNode->pWindow;
 
@@ -183,14 +183,14 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     static auto *const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
 
-    auto calcPos = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
-    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
+    auto calcPos = PWINDOW->m_vPosition + Vector2D(*PBORDERSIZE, *PBORDERSIZE);
+    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
     const auto NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
 
     if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && (NODESONWORKSPACE == 1 || (pNode->isGroupMember() && pNode->getGroupMemberCount() == NODESONWORKSPACE))) {
-        PWINDOW->m_vRealPosition = calcPos - Vector2D(BORDERSIZE, BORDERSIZE);
-        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
+        PWINDOW->m_vRealPosition = calcPos - Vector2D(*PBORDERSIZE, *PBORDERSIZE);
+        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
         PWINDOW->updateWindowDecos();
 
@@ -203,11 +203,11 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->m_sSpecialRenderData.rounding = true;
     PWINDOW->m_sSpecialRenderData.border = true;
 
-    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? GAPSOUT : GAPSIN,
-                                        DISPLAYTOP ? GAPSOUT : GAPSIN);
+    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? *PGAPSOUT : *PGAPSIN,
+                                        DISPLAYTOP ? *PGAPSOUT : *PGAPSIN);
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? GAPSOUT : GAPSIN,
-                                            DISPLAYBOTTOM ? GAPSOUT : GAPSIN);
+    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? *PGAPSOUT : *PGAPSIN,
+                                            DISPLAYBOTTOM ? *PGAPSOUT : *PGAPSIN);
 
     calcPos = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
@@ -371,19 +371,19 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     NEWPARENT->pParent = OPENINGON->pParent;
     NEWPARENT->isNode = true; // it is a node
 
-    const auto WIDTHMULTIPLIER = g_pConfigManager->getFloat("dwindle:split_width_multiplier");
+    const auto PWIDTHMULTIPLIER = &g_pConfigManager->getConfigValuePtr("dwindle:split_width_multiplier")->floatValue;
 
     // if cursor over first child, make it first, etc
-    const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * WIDTHMULTIPLIER;
+    const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop = !SIDEBYSIDE;
 
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
-    const auto FORCESPLIT = g_pConfigManager->getInt("dwindle:force_split");
+    const auto PFORCESPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
 
-    if (FORCESPLIT == 0) {
-        if ((SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / WIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y + NEWPARENT->size.y))
-        || (!SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / WIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f))) {
+    if (*PFORCESPLIT == 0) {
+        if ((SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y + NEWPARENT->size.y))
+        || (!SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f))) {
             // we are hovering over the first node, make PNODE first.
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;
@@ -393,7 +393,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             NEWPARENT->children[1] = PNODE;
         }
     } else {
-        if (FORCESPLIT == 1) {
+        if (*PFORCESPLIT == 1) {
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;
         } else {
@@ -414,7 +414,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     // Update the children
     
 
-    if (NEWPARENT->size.x * WIDTHMULTIPLIER > NEWPARENT->size.y) {
+    if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y) {
         // split left/right
         OPENINGON->position = NEWPARENT->position;
         OPENINGON->size = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
@@ -973,6 +973,9 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
 
     SWindowRenderLayoutHints hints;
 
+    static auto *const PGROUPCOLACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->intValue;
+    static auto *const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->intValue;
+
     const auto PNODE = getNodeFromWindow(pWindow);
     if (!PNODE)
         return hints; // left for the future, maybe floating funkiness
@@ -981,9 +984,9 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
         hints.isBorderColor = true;
 
         if (pWindow == g_pCompositor->m_pLastWindow)
-            hints.borderColor = CColor(g_pConfigManager->getInt("dwindle:col.group_border_active"));
+            hints.borderColor = CColor(*PGROUPCOLACTIVE);
         else
-            hints.borderColor = CColor(g_pConfigManager->getInt("dwindle:col.group_border"));
+            hints.borderColor = CColor(*PGROUPCOLINACTIVE);
     }
 
     return hints;

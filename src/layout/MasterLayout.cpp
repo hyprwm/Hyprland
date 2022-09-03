@@ -215,9 +215,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     const bool DISPLAYTOP           = STICKS(pNode->position.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
     const bool DISPLAYBOTTOM        = STICKS(pNode->position.y + pNode->size.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
 
-    const auto BORDERSIZE           = g_pConfigManager->getInt("general:border_size");
-    const auto GAPSIN               = g_pConfigManager->getInt("general:gaps_in");
-    const auto GAPSOUT              = g_pConfigManager->getInt("general:gaps_out");
+    const auto PBORDERSIZE          = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    const auto PGAPSIN              = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+    const auto PGAPSOUT             = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
 
     const auto PWINDOW = pNode->pWindow;
 
@@ -231,12 +231,12 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     PWINDOW->m_vSize = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
-    auto calcPos = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
-    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
+    auto calcPos = PWINDOW->m_vPosition + Vector2D(*PBORDERSIZE, *PBORDERSIZE);
+    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
     if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1) {
-        PWINDOW->m_vRealPosition = calcPos - Vector2D(BORDERSIZE, BORDERSIZE);
-        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
+        PWINDOW->m_vRealPosition = calcPos - Vector2D(*PBORDERSIZE, *PBORDERSIZE);
+        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
         PWINDOW->updateWindowDecos();
 
@@ -249,11 +249,11 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     PWINDOW->m_sSpecialRenderData.rounding = true;
     PWINDOW->m_sSpecialRenderData.border = true;
 
-    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? GAPSOUT : GAPSIN,
-                                        DISPLAYTOP ? GAPSOUT : GAPSIN);
+    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? *PGAPSOUT : *PGAPSIN,
+                                        DISPLAYTOP ? *PGAPSOUT : *PGAPSIN);
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? GAPSOUT : GAPSIN,
-                                            DISPLAYBOTTOM ? GAPSOUT : GAPSIN);
+    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? *PGAPSOUT : *PGAPSIN,
+                                            DISPLAYBOTTOM ? *PGAPSOUT : *PGAPSIN);
 
     calcPos = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;

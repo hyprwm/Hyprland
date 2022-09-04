@@ -903,11 +903,7 @@ void CInputManager::unconstrainMouse() {
     const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
     if (CONSTRAINTWINDOW) {
-        if (CONSTRAINTWINDOW->m_bIsX11) {
-            wlr_xwayland_surface_activate(CONSTRAINTWINDOW->m_uSurface.xwayland, false);
-        } else {
-            wlr_xdg_toplevel_set_activated(CONSTRAINTWINDOW->m_uSurface.xdg->toplevel, false);
-        }
+        g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(CONSTRAINTWINDOW), false);
     }
 
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);

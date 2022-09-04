@@ -91,9 +91,9 @@ public:
 
     void    clear(const CColor&);
     void    clearWithTex();
-    void    scissor(const wlr_box*);
-    void    scissor(const pixman_box32*);
-    void    scissor(const int x, const int y, const int w, const int h);
+    void    scissor(const wlr_box*, bool transform = true);
+    void    scissor(const pixman_box32*, bool transform = true);
+    void    scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
     void    destroyMonitorResources(CMonitor*);
 

@@ -124,19 +124,25 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "[";
 
         for (auto& w : g_pCompositor->m_vWorkspaces) {
+            const auto PLASTW = w->getLastFocusedWindow();
+
             result += getFormat(
 R"#({
     "id": %i,
     "name": "%s",
     "monitor": "%s",
     "windows": %i,
-    "hasfullscreen": %s
+    "hasfullscreen": %s,
+    "lastwindow": %x,
+    "lastwindowtitle": "%s"
 },)#",
                 w->m_iID,
                 escapeJSONStrings(w->m_szName).c_str(),
                 escapeJSONStrings(g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName).c_str(),
                 g_pCompositor->getWindowsOnWorkspace(w->m_iID),
-                ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false")
+                ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"),
+                PLASTW,
+                PLASTW ? PLASTW->m_szTitle.c_str() : ""
             );
         }
 
@@ -146,8 +152,9 @@ R"#({
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\n",
-                                w->m_iID, w->m_szName.c_str(), g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow);
+            const auto PLASTW = w->getLastFocusedWindow();
+            result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\tlastwindow: %x\n\tlastwindowtitle: %s\n\n",
+                                w->m_iID, w->m_szName.c_str(), g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow, PLASTW, PLASTW ? PLASTW->m_szTitle.c_str() : "");
         }
     }
     return result;

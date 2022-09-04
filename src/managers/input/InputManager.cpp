@@ -144,6 +144,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
         pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+
+        if (!pFoundWindow) {
+            // what the fuck, somehow happens occasionally??
+            PWORKSPACE->m_bHasFullscreenWindow = false;
+            return;
+        }
+
         foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
         surfacePos = pFoundWindow->m_vRealPosition.vec();
 

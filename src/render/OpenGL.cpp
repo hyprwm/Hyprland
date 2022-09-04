@@ -511,9 +511,9 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     pixman_region32_t damage;
     pixman_region32_init(&damage);
     pixman_region32_copy(&damage, originalDamage);
-    wlr_region_transform(&damage, &damage, m_RenderData.pMonitor->transform, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
+    wlr_region_transform(&damage, &damage, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
     wlr_region_expand(&damage, &damage, pow(2, *PBLURPASSES) * *PBLURSIZE);
-
+   
     // helper
     const auto PMIRRORFB = &m_RenderData.pCurrentMonData->mirrorFB;
     const auto PMIRRORSWAPFB = &m_RenderData.pCurrentMonData->mirrorSwapFB;

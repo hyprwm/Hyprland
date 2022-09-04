@@ -269,9 +269,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
-            if (pFoundWindow == g_pCompositor->m_pLastWindow && foundSurface != g_pCompositor->m_pLastFocus) {
-                // we changed the subsurface
-                wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+            if (pFoundWindow == g_pCompositor->m_pLastWindow) {
+                if (foundSurface != g_pCompositor->m_pLastFocus || m_bLastFocusOnLS) {
+                    //      ^^^ changed the subsurface                  ^^^ came back from a LS
+                    wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
+                }
             }
 
             if (*PFOLLOWONDND && m_sDrag.dragIcon) {
@@ -279,16 +281,22 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             }
 
             wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
+            m_bLastFocusOnLS = false;
             return;  // don't enter any new surfaces
         } else {
             if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus)
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
+
+        m_bLastFocusOnLS = false;
     } else {
         if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
             g_pCompositor->m_pLastWindow = nullptr; // reset last window as we have a full focus on a LS
         }
+
+        if (pFoundLayerSurface)
+            m_bLastFocusOnLS = true;
     }
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);

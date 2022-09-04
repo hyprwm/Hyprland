@@ -105,6 +105,9 @@ private:
     bool            m_bEmptyFocusCursorSet = false;
     Vector2D        m_vLastCursorPosFloored = Vector2D();
 
+    // for some bugs in follow mouse 0
+    bool            m_bLastFocusOnLS = false;
+
     void            processMouseDownNormal(wlr_pointer_button_event* e);
     void            processMouseDownKill(wlr_pointer_button_event* e);
 

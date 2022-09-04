@@ -268,7 +268,7 @@ void CHyprOpenGLImpl::clear(const CColor& color) {
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
+void CHyprOpenGLImpl::scissor(const wlr_box* pBox, bool transform) {
     RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
 
     if (!pBox) {
@@ -278,17 +278,19 @@ void CHyprOpenGLImpl::scissor(const wlr_box* pBox) {
 
     wlr_box newBox = *pBox;
 
-    int w, h;
-    wlr_output_transformed_resolution(m_RenderData.pMonitor->output, &w, &h);
+    if (transform) {
+        int w, h;
+        wlr_output_transformed_resolution(m_RenderData.pMonitor->output, &w, &h);
 
-    const auto TR = wlr_output_transform_invert(m_RenderData.pMonitor->transform);
-    wlr_box_transform(&newBox, &newBox, TR, w, h);
+        const auto TR = wlr_output_transform_invert(m_RenderData.pMonitor->transform);
+        wlr_box_transform(&newBox, &newBox, TR, w, h);
+    }
 
     glScissor(newBox.x, newBox.y, newBox.width, newBox.height);
     glEnable(GL_SCISSOR_TEST);
 }
 
-void CHyprOpenGLImpl::scissor(const pixman_box32* pBox) {
+void CHyprOpenGLImpl::scissor(const pixman_box32* pBox, bool transform) {
     RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
 
     if (!pBox) {
@@ -298,12 +300,12 @@ void CHyprOpenGLImpl::scissor(const pixman_box32* pBox) {
 
     wlr_box newBox = {pBox->x1, pBox->y1, pBox->x2 - pBox->x1, pBox->y2 - pBox->y1};
 
-    scissor(&newBox);
+    scissor(&newBox, transform);
 }
 
-void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h) {
+void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h, bool transform) {
     wlr_box box = {x,y,w,h};
-    scissor(&box);
+    scissor(&box, transform);
 }
 
 void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
@@ -491,9 +493,9 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     glDisable(GL_STENCIL_TEST);
 
     // get transforms for the full monitor
-    const auto TRANSFORM = wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL);
+    const auto TRANSFORM = wlr_output_transform_invert(m_RenderData.pMonitor->transform);
     float matrix[9];
-    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
     wlr_matrix_project_box(matrix, &MONITORBOX, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
     float glMatrix[9];
@@ -509,6 +511,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     pixman_region32_t damage;
     pixman_region32_init(&damage);
     pixman_region32_copy(&damage, originalDamage);
+    wlr_region_transform(&damage, &damage, m_RenderData.pMonitor->transform, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
     wlr_region_expand(&damage, &damage, pow(2, *PBLURPASSES) * *PBLURSIZE);
 
     // helper
@@ -550,7 +553,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
         if (pixman_region32_not_empty(pDamage)) {
             PIXMAN_DAMAGE_FOREACH(pDamage) {
                 const auto RECT = RECTSARR[i];
-                scissor(&RECT);
+                scissor(&RECT, false /* this region is already transformed */);
 
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
@@ -573,8 +576,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     // damage region will be scaled, make a temp
     pixman_region32_t tempDamage;
     pixman_region32_init(&tempDamage);
-    wlr_region_scale(&tempDamage, &damage, 1.f / 2.f); // when DOWNscaling, we make the region twice as small because it's the TARGET
-
+    wlr_region_scale(&tempDamage, &damage, 1.f / 2.f);  // when DOWNscaling, we make the region twice as small because it's the TARGET
+   
     drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage);
 
     // and draw
@@ -735,7 +738,9 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
         static auto *const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
+        m_bEndFrame = true; // fix transformed
         renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, false);
+        m_bEndFrame = false;
 
         // render the window, but clear stencil
         glClearStencil(0);

@@ -794,12 +794,17 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
     const auto PIMEGRAB = m_sIMERelay.getIMEKeyboardGrab(pKeyboard);
 
+    const auto ALLMODS = accumulateModsFromAllKBs();
+
+    auto MODS = wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers;
+    MODS.depressed = ALLMODS;
+
     if (PIMEGRAB && PIMEGRAB->pWlrKbGrab && PIMEGRAB->pWlrKbGrab->input_method) {
         wlr_input_method_keyboard_grab_v2_set_keyboard(PIMEGRAB->pWlrKbGrab, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-        wlr_input_method_keyboard_grab_v2_send_modifiers(PIMEGRAB->pWlrKbGrab, &wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers);
+        wlr_input_method_keyboard_grab_v2_send_modifiers(PIMEGRAB->pWlrKbGrab, &MODS);
     } else {
         wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-        wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers);
+        wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &MODS);
     }
 
     const auto PWLRKB = wlr_keyboard_from_input_device(pKeyboard->keyboard);

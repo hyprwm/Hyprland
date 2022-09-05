@@ -158,7 +158,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     Debug::log(LOG, "LayerSurface %x unmapped", layersurface->layerSurface);
 
-    if (!g_pCompositor->getMonitorFromID(layersurface->monitorID)) {
+    if (!g_pCompositor->getMonitorFromID(layersurface->monitorID) || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(layersurface);

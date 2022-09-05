@@ -1097,7 +1097,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const 
     cairo_text_extents_t textExtents;
     cairo_text_extents(CAIRO, g_pCompositor->m_szCurrentSplash.c_str(), &textExtents);
 
-    cairo_move_to(CAIRO, m_RenderData.pMonitor->vecTransformedSize.x / 2.f - textExtents.width / 2.f, m_RenderData.pMonitor->vecTransformedSize.y - textExtents.height - 1);
+    cairo_move_to(CAIRO, m_RenderData.pMonitor->vecPixelSize.x / 2.f - textExtents.width / 2.f, m_RenderData.pMonitor->vecPixelSize.y - textExtents.height - 1);
     cairo_show_text(CAIRO, g_pCompositor->m_szCurrentSplash.c_str());
 
     cairo_surface_flush(CAIROSURFACE);

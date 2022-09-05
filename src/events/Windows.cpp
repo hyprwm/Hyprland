@@ -320,6 +320,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (workspaceSilent) {
         // move the window
+        const auto OLDWORKSPACE = PWINDOW->m_iWorkspaceID;
+
         if (g_pCompositor->m_pLastWindow == PWINDOW) {
             if (requestedWorkspace != "special")
                 g_pKeybindManager->m_mDispatchers["movetoworkspacesilent"](requestedWorkspace);
@@ -328,6 +330,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else {
             Debug::log(ERR, "Tried to set workspace silent rule to a nofocus window!");
         }
+
+        g_pCompositor->forceReportSizesToWindowsOnWorkspace(OLDWORKSPACE);
     }
 
     if (requestsFullscreen) {

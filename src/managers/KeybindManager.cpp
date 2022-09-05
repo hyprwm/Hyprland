@@ -1362,6 +1362,7 @@ void CKeybindManager::setSubmap(std::string submap) {
     if (submap == "reset" || submap == "") {
         m_szCurrentSelectedSubmap = "";
         Debug::log(LOG, "Reset active submap to the default one.");
+        g_pEventManager->postEvent(SHyprIPCEvent{"submap", ""});
         return;
     }
 
@@ -1369,6 +1370,7 @@ void CKeybindManager::setSubmap(std::string submap) {
         if (k.submap == submap) {
             m_szCurrentSelectedSubmap = submap;
             Debug::log(LOG, "Changed keybind submap to %s", submap.c_str());
+            g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
             return;
         }
     }

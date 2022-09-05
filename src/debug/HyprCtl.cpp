@@ -133,7 +133,7 @@ R"#({
     "monitor": "%s",
     "windows": %i,
     "hasfullscreen": %s,
-    "lastwindow": %x,
+    "lastwindow": "%x",
     "lastwindowtitle": "%s"
 },)#",
                 w->m_iID,

@@ -658,8 +658,11 @@ void CKeybindManager::changeworkspace(std::string args) {
 
             if (g_pCompositor->cursorOnReservedArea()) // fix focus on bars etc
                 g_pInputManager->refocus();
-        } else
+        } else if (g_pCompositor->getWindowsOnWorkspace(PWORKSPACETOCHANGETO->m_iID) > 0)
             g_pInputManager->refocus();
+
+        // set the new monitor as the last (no warps would bug otherwise)
+        g_pCompositor->m_pLastMonitor = g_pCompositor->getMonitorFromID(PWORKSPACETOCHANGETO->m_iMonitorID);
 
         // mark the monitor dirty
         g_pHyprRenderer->damageMonitor(PMONITOR);

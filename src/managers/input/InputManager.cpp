@@ -964,6 +964,9 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
     uint32_t finalMask = 0;
 
     for (auto& kb : m_lKeyboards) {
+        if (kb.isVirtual)
+            continue;
+
         finalMask |= wlr_keyboard_get_modifiers(wlr_keyboard_from_input_device(kb.keyboard));
     }
 

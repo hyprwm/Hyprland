@@ -142,7 +142,7 @@ R"#({
                 g_pCompositor->getWindowsOnWorkspace(w->m_iID),
                 ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"),
                 PLASTW,
-                PLASTW ? PLASTW->m_szTitle.c_str() : ""
+                PLASTW ? escapeJSONStrings(PLASTW->m_szTitle).c_str() : ""
             );
         }
 

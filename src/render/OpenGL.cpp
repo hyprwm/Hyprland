@@ -640,7 +640,9 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
     clear(CColor(0,0,0,0));
 
+    m_bEndFrame = true; // fix transformed
     renderTextureInternalWithDamage(POUTFB->m_cTex, &wholeMonitor, 255, &fakeDamage, 0, false, true, false);
+    m_bEndFrame = false;
 
     m_RenderData.pCurrentMonData->primaryFB.bind();
 

@@ -33,14 +33,31 @@ in {
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = lib.optional (cfg.package != null) cfg.package;
-    security.polkit.enable = true;
-    hardware.opengl.enable = mkDefault true;
+    environment = {
+      systemPackages = lib.optional (cfg.package != null) cfg.package;
+      sessionVariables = {
+        CLUTTER_BACKEND = lib.mkDefault "wayland";
+        GDK_BACKEND = lib.mkDefault "wayland";
+        _JAVA_AWT_WM_NONREPARENTING = lib.mkDefault "1";
+        MOZ_ENABLE_WAYLAND = lib.mkDefault "1";
+        NIXOS_OZONE_WL = lib.mkDefault "1";
+        QT_QPA_PLATFORM = lib.mkDefault "wayland;xcb";
+        QT_WAYLAND_DISABLE_WINDOWDECORATION = lib.mkDefault "1";
+        XCURSOR_SIZE = lib.mkDefault "24";
+        XDG_SESSION_TYPE = lib.mkDefault "wayland";
+      };
+    };
     fonts.enableDefaultFonts = mkDefault true;
-    programs.dconf.enable = mkDefault true;
+    hardware.opengl.enable = mkDefault true;
+    programs = {
+      dconf.enable = mkDefault true;
+      xwayland.enable = mkDefault true;
+    };
+    security.polkit.enable = true;
     services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) cfg.package;
-    programs.xwayland.enable = mkDefault true;
-    xdg.portal.enable = mkDefault true;
-    xdg.portal.extraPortals = [pkgs.xdg-desktop-portal-wlr];
+    xdg.portal = {
+      enable = mkDefault true;
+      portal.extraPortals = [pkgs.xdg-desktop-portal-wlr];
+    };
   };
 }

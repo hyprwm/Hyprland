@@ -484,6 +484,12 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
         PNEXT->pWindow->m_bHidden = false;
 
         m_lDwindleNodesData.remove(*PNODE);
+
+        if (!PNEXT->isGroupMember()) {
+            // means we dissolved the group
+            recalculateMonitor(PNEXT->pWindow->m_iMonitorID);
+        }
+        
         return;
     }
 

@@ -1159,16 +1159,16 @@ void CConfigManager::loadConfigLoadVars() {
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
 
-    // mark blur dirty
     for (auto& m : g_pCompositor->m_vMonitors) {
+        // mark blur dirty
         g_pHyprOpenGL->markBlurDirtyForMonitor(m.get());
 
-        m->forceFullFrames = 2; // Force the compositor to fully re-render all monitors
+        // Force the compositor to fully re-render all monitors
+        m->forceFullFrames = 2;
 
         // rearrange layers
-        g_pHyprRenderer->arran
+        g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
     }
-        
     
     // Reset no monitor reload
     m_bNoMonitorReload = false;

@@ -48,6 +48,10 @@ struct SMonitorAdditionalReservedArea {
 struct SWindowRule {
     std::string szRule;
     std::string szValue;
+
+    bool v2 = false;
+    std::string szTitle;
+    std::string szClass;
 };
 
 struct SAnimationPropertyConfig {
@@ -151,6 +155,7 @@ private:
     void                handleBind(const std::string&, const std::string&);
     void                handleUnbind(const std::string&, const std::string&);
     void                handleWindowRule(const std::string&, const std::string&);
+    void                handleWindowRuleV2(const std::string&, const std::string&);
     void                handleDefaultWorkspace(const std::string&, const std::string&);
     void                handleBezier(const std::string&, const std::string&);
     void                handleAnimation(const std::string&, const std::string&);

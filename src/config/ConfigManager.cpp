@@ -725,17 +725,8 @@ void CConfigManager::handleUnbind(const std::string& command, const std::string&
     g_pKeybindManager->removeKeybind(MOD, KEY);
 }
 
-void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto RULE = value.substr(0, value.find_first_of(","));
-    const auto VALUE = value.substr(value.find_first_of(",") + 1);
-
-    // check rule and value
-    if (RULE == "" || VALUE == "") {
-        return;
-    }
-
-    // verify we support a rule
-    if (RULE != "float" 
+bool windowRuleValid(const std::string& RULE) {
+    return !(RULE != "float" 
         && RULE != "tile"
         && RULE.find("opacity") != 0
         && RULE.find("move") != 0
@@ -750,14 +741,77 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         && RULE != "fullscreen"
         && RULE.find("animation") != 0
         && RULE.find("rounding") != 0
-        && RULE.find("workspace") != 0) {
-            Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
-            parseError = "Invalid rule found: " + RULE;
-            return;
-        }
+        && RULE.find("workspace") != 0);
+}
+
+void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
+    const auto RULE = value.substr(0, value.find_first_of(","));
+    const auto VALUE = value.substr(value.find_first_of(",") + 1);
+
+    // check rule and value
+    if (RULE == "" || VALUE == "") {
+        return;
+    }
+
+    // verify we support a rule
+    if (!windowRuleValid(RULE)) {
+        Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
+        parseError = "Invalid rule found: " + RULE;
+        return;
+    }
 
     m_dWindowRules.push_back({RULE, VALUE});
+}
 
+void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
+    const auto RULE = value.substr(0, value.find_first_of(","));
+    const auto VALUE = value.substr(value.find_first_of(",") + 1);
+
+    if (!windowRuleValid(RULE)) {
+        Debug::log(ERR, "Invalid rulev2 found: %s", RULE.c_str());
+        parseError = "Invalid rulev2 found: " + RULE;
+        return;
+    }
+
+    // now we estract shit from the value
+    SWindowRule rule;
+    rule.v2 = true;
+    rule.szRule = RULE;
+
+    const auto TITLEPOS = VALUE.find("title:");
+    const auto CLASSPOS = VALUE.find("class:");
+
+    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos) {
+        Debug::log(ERR, "Invalid rulev2 syntax: %s", VALUE.c_str());
+        parseError = "Invalid rulev2 syntax: " + VALUE;
+        return;
+    }
+
+    auto extract = [&](size_t pos) -> std::string {
+        std::string result;
+        result = VALUE.substr(pos);
+
+        size_t min = 999999;
+        if (TITLEPOS > pos && TITLEPOS < min) min = TITLEPOS;
+        if (CLASSPOS > pos && CLASSPOS < min) min = CLASSPOS;
+
+        result = result.substr(0, min - pos);
+
+        if (result.back() == ',')
+            result.pop_back();
+
+        return result;
+    };
+
+    if (CLASSPOS != std::string::npos) {
+        rule.szClass = extract(CLASSPOS + 6);
+    }
+
+    if (TITLEPOS != std::string::npos) {
+        rule.szTitle = extract(TITLEPOS + 6);
+    }
+
+    m_dWindowRules.push_back(rule);
 }
 
 void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
@@ -866,6 +920,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "unbind") handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace") handleDefaultWorkspace(COMMAND, VALUE);
     else if (COMMAND == "windowrule") handleWindowRule(COMMAND, VALUE);
+    else if (COMMAND == "windowrulev2") handleWindowRuleV2(COMMAND, VALUE);
     else if (COMMAND == "bezier") handleBezier(COMMAND, VALUE);
     else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
     else if (COMMAND == "source") handleSource(COMMAND, VALUE);
@@ -1279,22 +1334,43 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 
     for (auto& rule : m_dWindowRules) {
         // check if we have a matching rule
-        try {
-            if (rule.szValue.find("title:") == 0) {
-                // we have a title rule.
-                std::regex RULECHECK(rule.szValue.substr(6));
+        if (!rule.v2) {
+            try {
+                if (rule.szValue.find("title:") == 0) {
+                    // we have a title rule.
+                    std::regex RULECHECK(rule.szValue.substr(6));
 
-                if (!std::regex_search(title, RULECHECK))
-                    continue;
-            } else {
-                std::regex classCheck(rule.szValue);
+                    if (!std::regex_search(title, RULECHECK))
+                        continue;
+                } else {
+                    std::regex classCheck(rule.szValue);
 
-                if (!std::regex_search(appidclass, classCheck))
-                    continue;
+                    if (!std::regex_search(appidclass, classCheck))
+                        continue;
+                }
+            } catch (...) {
+                Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
+                continue;
             }
-        } catch (...) {
-            Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
-            continue;
+        } else {
+            try {
+                if (rule.szClass != "") {
+                    std::regex RULECHECK(rule.szClass);
+
+                    if (!std::regex_search(appidclass, RULECHECK))
+                        continue;
+                }
+
+                if (rule.szTitle != "") {
+                    std::regex RULECHECK(rule.szTitle);
+
+                    if (!std::regex_search(title, RULECHECK))
+                        continue;
+                }
+            } catch (...) {
+                Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
+                continue;
+            }
         }
 
         // applies. Read the rule and behave accordingly

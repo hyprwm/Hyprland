@@ -469,21 +469,19 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
             PNEXT->position = PNODE->position;
             PNEXT->size = PNODE->size;
-
-            applyNodeDataToWindow(PNEXT);
         } else {
             const auto PHEAD = PNODE->getGroupHead();
 
             PNEXT->position = PHEAD->position;
             PNEXT->size = PHEAD->size;
-
-            applyNodeDataToWindow(PNEXT);
         }
 
         PNEXT->setGroupFocusedNode(PNEXT);
         PNEXT->pWindow->m_bHidden = false;
 
         m_lDwindleNodesData.remove(*PNODE);
+
+        applyNodeDataToWindow(PNEXT);
 
         if (!PNEXT->isGroupMember()) {
             // means we dissolved the group

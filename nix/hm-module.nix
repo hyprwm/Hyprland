@@ -81,6 +81,18 @@ in {
       lib.optional (cfg.package != null) cfg.package
       ++ lib.optional cfg.xwayland.enable pkgs.xwayland;
 
+    home.sessionVariables = {
+      CLUTTER_BACKEND = lib.mkDefault "wayland";
+      GDK_BACKEND = lib.mkDefault "wayland";
+      _JAVA_AWT_WM_NONREPARENTING = lib.mkDefault "1";
+      MOZ_ENABLE_WAYLAND = lib.mkDefault "1";
+      NIXOS_OZONE_WL = lib.mkDefault "1";
+      QT_QPA_PLATFORM = lib.mkDefault "wayland;xcb";
+      QT_WAYLAND_DISABLE_WINDOWDECORATION = lib.mkDefault "1";
+      XCURSOR_SIZE = lib.mkDefault toString config.home.pointerCursor.size or "24";
+      XDG_SESSION_TYPE = lib.mkDefault "wayland";
+    };
+
     xdg.configFile."hypr/hyprland.conf" = {
       text =
         (lib.optionalString cfg.systemdIntegration ''

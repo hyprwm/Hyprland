@@ -57,7 +57,7 @@ in {
     services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) cfg.package;
     xdg.portal = {
       enable = mkDefault true;
-      portal.extraPortals = [pkgs.xdg-desktop-portal-wlr];
+      extraPortals = [pkgs.xdg-desktop-portal-wlr];
     };
   };
 }

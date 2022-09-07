@@ -777,11 +777,14 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     SWindowRule rule;
     rule.v2 = true;
     rule.szRule = RULE;
+    rule.szValue = VALUE;
 
     const auto TITLEPOS = VALUE.find("title:");
     const auto CLASSPOS = VALUE.find("class:");
+    const auto X11POS   = VALUE.find("xwayland:");
+    const auto FLOATPOS = VALUE.find("floating:");
 
-    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos) {
+    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: %s", VALUE.c_str());
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -794,6 +797,8 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         size_t min = 999999;
         if (TITLEPOS > pos && TITLEPOS < min) min = TITLEPOS;
         if (CLASSPOS > pos && CLASSPOS < min) min = CLASSPOS;
+        if (X11POS > pos && X11POS < min) min = X11POS;
+        if (FLOATPOS > pos && FLOATPOS < min) min = FLOATPOS;
 
         result = result.substr(0, min - pos);
 
@@ -809,6 +814,14 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 
     if (TITLEPOS != std::string::npos) {
         rule.szTitle = extract(TITLEPOS + 6);
+    }
+
+    if (X11POS != std::string::npos) {
+        rule.bX11 = extract(X11POS + 9) == "1" ? 1 : 0;
+    }
+
+    if (FLOATPOS != std::string::npos) {
+        rule.bFloating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
     }
 
     m_dWindowRules.push_back(rule);
@@ -1368,6 +1381,16 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
                     std::regex RULECHECK(rule.szTitle);
 
                     if (!std::regex_search(title, RULECHECK))
+                        continue;
+                }
+
+                if (rule.bX11 != -1) {
+                    if (pWindow->m_bIsX11 != rule.bX11)
+                        continue;
+                }
+
+                if (rule.bFloating != -1) {
+                    if (pWindow->m_bIsFloating != rule.bFloating)
                         continue;
                 }
             } catch (...) {

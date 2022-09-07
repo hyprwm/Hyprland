@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - docs/**
+    branches:
+      - 'main'
 
 jobs:
   main:

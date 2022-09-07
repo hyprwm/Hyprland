@@ -356,6 +356,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
         applyNodeDataToWindow(PNODE);
 
+        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
         return;
     }
     

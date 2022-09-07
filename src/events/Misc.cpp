@@ -124,6 +124,8 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
 void Events::listener_destroyDrag(void* owner, void* data) {
     Debug::log(LOG, "Drag destroyed.");
 
+    g_pHyprRenderer->damageBox(g_pInputManager->m_sDrag.pos.x - 2, g_pInputManager->m_sDrag.pos.y - 2, g_pInputManager->m_sDrag.dragIcon->surface->current.width + 4, g_pInputManager->m_sDrag.dragIcon->surface->current.height + 4);
+
     g_pInputManager->m_sDrag.drag = nullptr;
     g_pInputManager->m_sDrag.dragIcon = nullptr;
     g_pInputManager->m_sDrag.hyprListener_destroy.removeCallback();

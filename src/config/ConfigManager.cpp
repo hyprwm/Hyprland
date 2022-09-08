@@ -1178,9 +1178,6 @@ void CConfigManager::loadConfigLoadVars() {
 
         // Force the compositor to fully re-render all monitors
         m->forceFullFrames = 2;
-
-        // rearrange layers
-        g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
     }
     
     // Reset no monitor reload
@@ -1440,6 +1437,8 @@ void CConfigManager::performMonitorReload() {
             overAgain = true;
             break;
         }
+
+        g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
     }
 
     if (overAgain)

@@ -703,6 +703,8 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     if (PMONITOR->damage)
         damageMonitor(PMONITOR);
 
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
+
     Debug::log(LOG, "Monitor %s layers arranged: reserved: %f %f %f %f", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y, PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 

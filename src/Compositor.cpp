@@ -237,7 +237,8 @@ void CCompositor::cleanup() {
 
     // accumulate all PIDs for killing, also request closing.
     for (auto& w : m_vWindows) {
-        m_dProcessPIDsOnShutdown.push_back(w->getPID());
+        if (w->m_bIsMapped || !w->m_bIsX11)
+            m_dProcessPIDsOnShutdown.push_back(w->getPID());
 
         closeWindow(w.get());
     }

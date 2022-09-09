@@ -2,7 +2,6 @@
 #include "../../Compositor.hpp"
 
 void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
-
     static auto *const PSWIPE = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe")->intValue;
     static auto *const PSWIPEFINGERS = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_fingers")->intValue;
 
@@ -31,7 +30,6 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
 }
 
 void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
-
     if (!m_sActiveSwipe.pWorkspaceBegin)
         return; // no valid swipe
 

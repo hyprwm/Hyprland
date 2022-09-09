@@ -2,9 +2,7 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 
-CInputMethodRelay::CInputMethodRelay() {
-    
-}
+CInputMethodRelay::CInputMethodRelay() { }
 
 void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
     if (m_pWLRIME) {

@@ -29,7 +29,6 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
-
     static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
     static auto *const PMOUSEDPMS = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
     static auto *const PFOLLOWONDND = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;

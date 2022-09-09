@@ -2,7 +2,6 @@
 #include "../../Compositor.hpp"
 
 void CInputManager::onTouchDown(wlr_touch_down_event* e) {
-
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, g_pCompositor->m_pLastMonitor->vecPosition.x + e->x * g_pCompositor->m_pLastMonitor->vecSize.x, g_pCompositor->m_pLastMonitor->vecPosition.y + e->y * g_pCompositor->m_pLastMonitor->vecSize.y);
 
     refocus();
@@ -26,7 +25,6 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 }
 
 void CInputManager::onTouchUp(wlr_touch_up_event* e){
-    
     if (m_sTouchData.touchFocusWindow) {
         wlr_seat_touch_notify_up(g_pCompositor->m_sSeat.seat, e->time_msec, e->touch_id);
     }

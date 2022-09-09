@@ -67,6 +67,16 @@ in {
       '';
     };
 
+    recommendedEnvironment = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      defaultText = lib.literalExpression "true";
+      example = lib.literalExpression "false";
+      description = ''
+        Whether to set the recommended environment variables.
+      '';
+    };
+
     imports = [
       (
         lib.mkRenamedOptionModule
@@ -81,14 +91,10 @@ in {
       lib.optional (cfg.package != null) cfg.package
       ++ lib.optional cfg.xwayland.enable pkgs.xwayland;
 
-    home.sessionVariables = {
-      CLUTTER_BACKEND = "wayland";
+    home.sessionVariables = lib.mkIf cfg.recommendedEnvironment {
       GDK_BACKEND = "wayland";
       _JAVA_AWT_WM_NONREPARENTING = "1";
-      MOZ_ENABLE_WAYLAND = "1";
       NIXOS_OZONE_WL = "1";
-      QT_QPA_PLATFORM = "wayland;xcb";
-      QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
       XCURSOR_SIZE = toString config.home.pointerCursor.size or "24";
       XDG_SESSION_TYPE = "wayland";
     };

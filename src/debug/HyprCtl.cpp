@@ -721,9 +721,21 @@ std::string getReply(std::string request) {
     return "unknown request";
 }
 
-void HyprCtl::tickHyprCtl() {
-    if (!requestMade)
-        return;
+int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
+    if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
+        return 0;
+
+    sockaddr_in clientAddress;
+    socklen_t clientSize = sizeof(clientAddress);
+
+    const auto ACCEPTEDCONNECTION = accept(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize);
+
+    char readBuffer[1024];
+
+    auto messageSize = read(ACCEPTEDCONNECTION, readBuffer, 1024);
+    readBuffer[messageSize == 1024 ? 1023 : messageSize] = '\0';
+
+    std::string request(readBuffer);
 
     std::string reply = "";
 
@@ -734,88 +746,38 @@ void HyprCtl::tickHyprCtl() {
         reply = "Err: " + std::string(e.what());
     }
 
-    request = reply;
+    write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
 
-    requestMade = false;
-    requestReady = true;
+    close(ACCEPTEDCONNECTION);
 
     if (g_pConfigManager->m_bWantsMonitorReload) {
         g_pConfigManager->ensureDPMS();
     }
-}
 
-std::string getRequestFromThread(std::string rq) {
-    
-    while (HyprCtl::request != "" || HyprCtl::requestMade || HyprCtl::requestReady) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
-
-    HyprCtl::request = rq;
-    HyprCtl::requestMade = true;
-
-    while (!HyprCtl::requestReady) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
-
-    HyprCtl::requestReady = false;
-    HyprCtl::requestMade = false;
-
-    std::string toReturn = HyprCtl::request;
-
-    HyprCtl::request = "";
-
-    return toReturn;
+    return 0;
 }
 
 void HyprCtl::startHyprCtlSocket() {
-    tThread = std::thread([&]() {
-        const auto SOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
-        if (SOCKET < 0) {
-            Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
-            return;
-        }
+    iSocketFD = socket(AF_UNIX, SOCK_STREAM, 0);
 
-        sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
+    if (iSocketFD < 0) {
+        Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
+        return;
+    }
 
-        std::string socketPath = "/tmp/hypr/" + g_pCompositor->m_szInstanceSignature + "/.socket.sock";
+    sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
 
-        strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
+    std::string socketPath = "/tmp/hypr/" + g_pCompositor->m_szInstanceSignature + "/.socket.sock";
 
-        bind(SOCKET, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS));
+    strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
 
-        // 10 max queued.
-        listen(SOCKET, 10);
+    bind(iSocketFD, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS));
 
-        sockaddr_in clientAddress;
-        socklen_t clientSize = sizeof(clientAddress);
+    // 10 max queued.
+    listen(iSocketFD, 10);
 
-        char readBuffer[1024] = {0};
+    Debug::log(LOG, "Hypr socket started at %s", socketPath.c_str());
 
-        Debug::log(LOG, "Hypr socket started at %s", socketPath.c_str());
-
-        while(1) {
-            const auto ACCEPTEDCONNECTION = accept(SOCKET, (sockaddr*)&clientAddress, &clientSize);
-
-            if (ACCEPTEDCONNECTION < 0) {
-                Debug::log(ERR, "Couldn't listen on the Hyprland Socket. (3) IPC will not work.");
-                break;
-            }
-
-            auto messageSize = read(ACCEPTEDCONNECTION, readBuffer, 1024);
-            readBuffer[messageSize == 1024 ? 1023 : messageSize] = '\0';
-
-            std::string request(readBuffer);
-
-            std::string reply = getRequestFromThread(request);
-            
-            write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
-
-            close(ACCEPTEDCONNECTION);
-        }
-
-        close(SOCKET);
-    });
-
-    tThread.detach();
+    wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, iSocketFD, WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

@@ -245,7 +245,6 @@ void CCompositor::cleanup() {
 
     // end threads
     g_pEventManager->m_tThread = std::thread();
-    HyprCtl::tThread = std::thread();
 
     m_vWorkspaces.clear();
     m_vWindows.clear();
@@ -1717,25 +1716,6 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
     }
 
     return nullptr;
-}
-
-wl_event_source* hyprCtlTickSource = nullptr;
-
-int hyprCtlTick(void* data) {
-    HyprCtl::tickHyprCtl();  // so that we dont get that race condition multithread bullshit
-
-    wl_event_source_timer_update(hyprCtlTickSource, 16); // tick it 60/s, should be enough.
-
-    return 0;
-}
-
-void CCompositor::startHyprCtlTick() {
-    if (hyprCtlTickSource)
-        return;
-
-    hyprCtlTickSource = wl_event_loop_add_timer(m_sWLEventLoop, hyprCtlTick, nullptr);
-
-    wl_event_source_timer_update(hyprCtlTickSource, 16);
 }
 
 void CCompositor::warpCursorTo(const Vector2D& pos) {

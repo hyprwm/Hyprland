@@ -1484,6 +1484,9 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
             return nullptr;
         }
     } else {
+        if (name == "current")
+            return g_pCompositor->m_pLastMonitor;
+
         if (isDirection(name)) {
             const auto PMONITOR = g_pCompositor->getMonitorInDirection(name[0]);
             return PMONITOR;

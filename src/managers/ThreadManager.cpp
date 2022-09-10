@@ -7,7 +7,10 @@ int slowUpdate = 0;
 int handleTimer(void* data) {
     const auto PTM = (CThreadManager*)data;
 
-    g_pConfigManager->tick();
+    static auto *const PDISABLECFGRELOAD = &g_pConfigManager->getConfigValuePtr("misc:disable_autoreload")->intValue;
+
+    if (*PDISABLECFGRELOAD != 1)
+        g_pConfigManager->tick();
 
     wl_event_source_timer_update(PTM->m_esConfigTimer, 1000);
 

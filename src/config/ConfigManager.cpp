@@ -57,6 +57,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:always_follow_on_dnd"].intValue = 1;
     configValues["misc:layers_hog_keyboard_focus"].intValue = 1;
     configValues["misc:animate_manual_resizes"].intValue = 0;
+    configValues["misc:disable_autoreload"].intValue = 0;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

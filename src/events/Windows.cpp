@@ -162,6 +162,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_sAdditionalConfigData.forceOpaque = true;
         } else if (r.szRule == "forceinput") {
             PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
+        } else if (r.szRule == "pin") {
+            PWINDOW->m_bPinned = true;
         } else if (r.szRule.find("rounding") == 0) {
             try {
                 PWINDOW->m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -187,6 +189,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_sAdditionalConfigData.animationStyle = STYLE;
         }
     }
+
+    // disallow tiled pinned
+    if (PWINDOW->m_bPinned && !PWINDOW->m_bIsFloating)
+        PWINDOW->m_bPinned = false;
 
     if (requestedWorkspace != "") {
         // process requested workspace

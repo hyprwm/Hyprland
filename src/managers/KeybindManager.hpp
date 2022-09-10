@@ -113,6 +113,7 @@ private:
     static void         dpms(std::string);
     static void         swapnext(std::string);
     static void         swapActiveWorkspaces(std::string);
+    static void         pinActive(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

@@ -65,6 +65,9 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
         return false;
 
+    if (pWindow->m_bPinned)
+        return true;
+
     // now check if it has the same workspace
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
@@ -98,6 +101,9 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
         return false;
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (pWindow->m_bPinned)
+        return true;
 
     if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
         return true;
@@ -137,7 +143,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
 
     // then render windows over fullscreen
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID != pWorkspaceWindow->m_iWorkspaceID || !w->m_bCreatedOverFullscreen || !w->m_bIsMapped)
+        if (w->m_iWorkspaceID != pWorkspaceWindow->m_iWorkspaceID || (!w->m_bCreatedOverFullscreen && !w->m_bPinned) || !w->m_bIsMapped)
             continue;
 
         renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
@@ -188,7 +194,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     }
     
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    const auto REALPOS = pWindow->m_vRealPosition.vec() + PWORKSPACE->m_vRenderOffset.vec();
+    const auto REALPOS = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
     static const auto PNOFLOATINGBORDERS = &g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue;
 
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
@@ -196,7 +202,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     renderdata.w = std::clamp(pWindow->m_vRealSize.vec().x, (double)5, (double)1337420); // clamp the size to min 5,
     renderdata.h = std::clamp(pWindow->m_vRealSize.vec().y, (double)5, (double)1337420); // otherwise we'll have issues later with invalid boxes
     renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
-    renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (PWORKSPACE->m_fAlpha.fl() / 255.f);
+    renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (pWindow->m_bPinned ? 1.f : (PWORKSPACE->m_fAlpha.fl() / 255.f));
     renderdata.alpha = pWindow->m_fActiveInactiveAlpha.fl();
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
     renderdata.rounding = pWindow->m_sAdditionalConfigData.rounding;

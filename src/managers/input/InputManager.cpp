@@ -156,7 +156,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         // only check floating because tiled cant be over fullscreen
         for (auto w = g_pCompositor->m_vWindows.rbegin(); w != g_pCompositor->m_vWindows.rend(); w++) {
             wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
-            if ((((*w)->m_bIsFloating && (*w)->m_bIsMapped && (*w)->m_bCreatedOverFullscreen) || ((*w)->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden) {
+            if ((((*w)->m_bIsFloating && (*w)->m_bIsMapped && ((*w)->m_bCreatedOverFullscreen || (*w)->m_bPinned)) || ((*w)->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden) {
                 pFoundWindow = (*w).get();
 
                 if (!pFoundWindow->m_bIsX11) {

@@ -226,6 +226,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         return;
     }
 
+    pWindow->m_bPinned = false;
+
     const auto TILED = isWindowTiled(pWindow);
 
     if (!TILED) {

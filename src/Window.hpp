@@ -119,6 +119,9 @@ public:
     // For hidden windows and stuff
     bool            m_bHidden = false;
 
+    // For pinned (sticky) windows
+    bool            m_bPinned = false;
+
     // for proper cycling. While cycling we can't just move the pointers, so we need to keep track of the last cycled window.
     CWindow*        m_pLastCycledWindow = nullptr;
 

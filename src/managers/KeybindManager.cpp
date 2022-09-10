@@ -42,6 +42,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["resizewindowpixel"]         = resizeWindow;
     m_mDispatchers["swapnext"]                  = swapnext;
     m_mDispatchers["swapactiveworkspaces"]      = swapActiveWorkspaces;
+    m_mDispatchers["pin"]                       = pinActive;
 
     m_tScrollTimer.reset();
 }
@@ -613,6 +614,13 @@ void CKeybindManager::changeworkspace(std::string args) {
         if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo)) {
             const auto OLDWORKSPACEID = PMONITOR->activeWorkspace;
 
+            // fix pinned windows
+            for (auto& w : g_pCompositor->m_vWindows) {
+                if (w->m_iWorkspaceID == PMONITOR->activeWorkspace && w->m_bPinned) {
+                    w->m_iWorkspaceID = workspaceToChangeTo;
+                }
+            }
+
             // change it
             if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
                 PMONITOR->activeWorkspace = workspaceToChangeTo;
@@ -699,6 +707,13 @@ void CKeybindManager::changeworkspace(std::string args) {
     PWORKSPACE->m_iMonitorID = PMONITOR->ID;
 
     PMONITOR->specialWorkspaceOpen = false;
+
+    // fix pinned windows
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID == PMONITOR->activeWorkspace && w->m_bPinned) {
+            w->m_iWorkspaceID = workspaceToChangeTo;
+        }
+    }
 
     if (workspaceToChangeTo != SPECIAL_WORKSPACE_ID)
         PMONITOR->activeWorkspace = workspaceToChangeTo;
@@ -1533,4 +1548,16 @@ void CKeybindManager::swapActiveWorkspaces(std::string args) {
         return;
 
     g_pCompositor->swapActiveWorkspaces(PMON1, PMON2);
+}
+
+void CKeybindManager::pinActive(std::string args) {
+    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) || !g_pCompositor->m_pLastWindow->m_bIsFloating)
+        return;
+
+    g_pCompositor->m_pLastWindow->m_bPinned = !g_pCompositor->m_pLastWindow->m_bPinned;
+    g_pCompositor->m_pLastWindow->m_iWorkspaceID = g_pCompositor->getMonitorFromID(g_pCompositor->m_pLastWindow->m_iMonitorID)->activeWorkspace;
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
+
+    PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal());
 }

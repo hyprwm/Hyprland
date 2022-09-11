@@ -166,10 +166,7 @@ public:
     void                    forceReportSizesToWindowsOnWorkspace(const int&);
     bool                    cursorOnReservedArea();
     
-
     std::string             explicitConfigPath;
-
-    void                    startHyprCtlTick();
 
 private:
     void                    initAllSignals();

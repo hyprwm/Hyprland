@@ -6,7 +6,6 @@
 
 namespace HyprCtl {
     void            startHyprCtlSocket();
-    void            tickHyprCtl();
 
     // very simple thread-safe request method
     inline  bool    requestMade = false;
@@ -15,7 +14,9 @@ namespace HyprCtl {
 
     inline std::ifstream requestStream;
 
-    inline std::thread tThread;
+    inline wl_event_source* hyprCtlTickSource = nullptr;
+
+    inline int      iSocketFD = -1;
 
     enum eHyprCtlOutputFormat {
         FORMAT_NORMAL = 0,

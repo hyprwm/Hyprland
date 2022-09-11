@@ -38,7 +38,7 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
-    const auto WORKSPACEOFFSET = PWORKSPACE ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
     if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
         m_vLastWindowPos = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;

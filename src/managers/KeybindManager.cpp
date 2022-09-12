@@ -679,7 +679,9 @@ void CKeybindManager::changeworkspace(std::string args) {
     }
 
     // Workspace doesn't exist, create and switch
-    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto BOUNDMON = g_pConfigManager->getBoundMonitorForWS(workspaceName);
+
+    const auto PMONITOR = BOUNDMON ? BOUNDMON : g_pCompositor->getMonitorFromCursor();
 
     const auto OLDWORKSPACE = PMONITOR->activeWorkspace;
 
@@ -726,6 +728,12 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // mark the monitor dirty
     g_pHyprRenderer->damageMonitor(PMONITOR);
+
+    // some stuf with the cursor and focus
+    if (g_pCompositor->m_pLastMonitor != PMONITOR)
+        g_pCompositor->warpCursorTo(PMONITOR->vecPosition + PMONITOR->vecSize / 2.f);
+
+    g_pCompositor->m_pLastMonitor = PMONITOR;
 
     // focus (clears the last)
     g_pInputManager->refocus();
@@ -872,7 +880,12 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     // may be null until later!
     auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
 
-    const auto PMONITORNEW = PWORKSPACE ? g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID) : PMONITOR;
+    auto PMONITORNEW = PWORKSPACE ? g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID) : PMONITOR;
+    if (!PWORKSPACE) {
+        const auto BOUNDMON = g_pConfigManager->getBoundMonitorForWS(workspaceName);
+        if (BOUNDMON)
+            PMONITORNEW = BOUNDMON;
+    }
 
     const auto OLDWORKSPACEIDONMONITOR = PMONITORNEW->activeWorkspace;
     const auto OLDWORKSPACEIDRETURN = PMONITOR->activeWorkspace;

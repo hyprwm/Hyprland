@@ -913,6 +913,13 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
     }
 }
 
+void CConfigManager::handleBindWS(const std::string& command, const std::string& value) {
+    const auto WS = value.substr(0, value.find_first_of(','));
+    const auto MON = value.substr(value.find_first_of(',') + 1);
+
+    boundWorkspaces.push_back({WS, MON});
+}
+
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
     if (dynamic) {
         parseError = "";
@@ -941,6 +948,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "source") handleSource(COMMAND, VALUE);
     else if (COMMAND == "submap") handleSubmap(COMMAND, VALUE);
     else if (COMMAND == "blurls") handleBlurLS(COMMAND, VALUE);
+    else if (COMMAND == "wsbind") handleBindWS(COMMAND, VALUE);
     else
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
 
@@ -1052,6 +1060,7 @@ void CConfigManager::loadConfigLoadVars() {
     configDynamicVars.clear();
     deviceConfigs.clear();
     m_dBlurLSNamespaces.clear();
+    boundWorkspaces.clear();
     setDefaultAnimationVars(); // reset anims
 
     // paths
@@ -1499,4 +1508,16 @@ SAnimationPropertyConfig* CConfigManager::getAnimationPropertyConfig(const std::
 void CConfigManager::addParseError(const std::string& err) {
     if (parseError == "")
         parseError = err;
+}
+
+CMonitor* CConfigManager::getBoundMonitorForWS(std::string wsname) {
+    for (auto&[ws, mon] : boundWorkspaces) {
+        const auto WSNAME = ws.find("name:") == 0 ? ws.substr(5) : ws;
+
+        if (WSNAME == wsname) {
+            return g_pCompositor->getMonitorFromString(mon);
+        }
+    }
+
+    return nullptr;
 }

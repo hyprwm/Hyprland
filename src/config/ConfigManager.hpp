@@ -93,6 +93,8 @@ public:
 
     SMonitorRule        getMonitorRuleFor(std::string);
 
+    CMonitor*           getBoundMonitorForWS(std::string);
+
     std::vector<SWindowRule> getMatchingRules(CWindow*);
 
     std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
@@ -129,6 +131,8 @@ private:
 
     std::string m_szCurrentSubmap = ""; // For storing the current keybind submap
 
+    std::vector<std::pair<std::string, std::string>> boundWorkspaces;
+
     bool isFirstLaunch = true;  // For exec-once
 
     std::deque<SMonitorRule> m_dMonitorRules;
@@ -164,6 +168,7 @@ private:
     void                handleSource(const std::string&, const std::string&);
     void                handleSubmap(const std::string&, const std::string&);
     void                handleBlurLS(const std::string&, const std::string&);
+    void                handleBindWS(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

@@ -296,10 +296,12 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
             result += getFormat(
 R"#(    {
         "address": "0x%x",
-        "name": "%s"
+        "name": "%s",
+        "defaultSpeed": %f
     },)#",
                 &m,
-                escapeJSONStrings(m.mouse->name).c_str()
+                escapeJSONStrings(m.mouse->name).c_str(),
+                wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f
             );
         }
 
@@ -390,7 +392,7 @@ R"#(    {
         result += "mice:\n";
 
         for (auto& m : g_pInputManager->m_lMice) {
-            result += getFormat("\tMouse at %x:\n\t\t%s\n", &m, m.mouse->name);
+            result += getFormat("\tMouse at %x:\n\t\t%s\n\t\t\tdefault speed: %f\n", &m, m.mouse->name, (wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f));
         }
 
         result += "\n\nKeyboards:\n";

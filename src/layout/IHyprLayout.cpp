@@ -64,8 +64,21 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         // check if it's on the correct monitor!
         Vector2D middlePoint = Vector2D(desiredGeometry.x, desiredGeometry.y) + Vector2D(desiredGeometry.width, desiredGeometry.height) / 2.f;
 
+        // check if it's visible on any monitor
+        bool visible = false;
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
+                || VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
+                || VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
+                || VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)) {
+
+                visible = true;
+                break;
+            }
+        }
+
         // TODO: detect a popup in a more consistent way.
-        if ((desiredGeometry.x == 0 && desiredGeometry.y == 0)) {
+        if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible) {
             // if it's not, fall back to the center placement
             pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
         } else {

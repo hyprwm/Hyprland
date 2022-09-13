@@ -778,7 +778,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 }
 
 void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
-    if (g_pCompositor->m_bUnsafeState)
+    if (g_pCompositor->m_bUnsafeState || pMonitor->isMirror())
         return;
 
     wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
@@ -795,6 +795,9 @@ void CHyprRenderer::damageBox(wlr_box* pBox) {
         return;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
+        if (m->isMirror())
+            continue; // don't damage mirrors traditionally
+
         wlr_box damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
         scaleBox(&damageBox, m->scale);
         m->addDamage(&damageBox);
@@ -815,6 +818,19 @@ void CHyprRenderer::damageRegion(pixman_region32_t* rg) {
     PIXMAN_DAMAGE_FOREACH(rg) {
         const auto RECT = RECTSARR[i];
         damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1);
+    }
+}
+
+void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, pixman_region32_t* pRegion) {
+    for (auto& mirror : pMonitor->mirrors) {
+        Vector2D scale = {mirror->vecSize.x / pMonitor->vecSize.x, mirror->vecSize.y / pMonitor->vecSize.y};
+
+        pixman_region32_t rg;
+        pixman_region32_init(&rg);
+        pixman_region32_copy(&rg, pRegion);
+        wlr_region_scale_xy(&rg, &rg, scale.x, scale.y);
+        pMonitor->addDamage(&rg);
+        pixman_region32_fini(&rg);
     }
 }
 
@@ -1029,7 +1045,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecPosition = finalPos;
     }
 
-    wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
+    if (!pMonitor->isMirror())
+        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
 
     wlr_output_enable(pMonitor->output, true);
 
@@ -1041,6 +1058,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     // frame skip
     pMonitor->framesToSkip = 1;
+
+    // reload to fix mirrors
+    g_pConfigManager->m_bWantsMonitorReload = true;
 
     return true;
 }

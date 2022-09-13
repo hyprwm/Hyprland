@@ -33,8 +33,10 @@ inline const float fanVertsFull[] = {
 
 struct SMonitorRenderData {
     CFramebuffer primaryFB;
-    CFramebuffer mirrorFB;
-    CFramebuffer mirrorSwapFB;
+    CFramebuffer mirrorFB;     // these are used for some effects,
+    CFramebuffer mirrorSwapFB; // etc
+
+    CFramebuffer monitorMirrorFB; // used for mirroring outputs
 
     CTexture     stencilTex;
 
@@ -101,6 +103,9 @@ public:
 
     void    preWindowPass();
     void    preRender(CMonitor*);
+
+    void    saveBufferForMirror();
+    void    renderMirrored();
 
     SCurrentRenderData m_RenderData;
 

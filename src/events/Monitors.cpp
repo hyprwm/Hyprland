@@ -190,7 +190,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0 || damageBlinkCleanup > 0) {
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0 || damageBlinkCleanup > 0 || PMONITOR->isMirror() /* why??? */) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x * 10, (int)PMONITOR->vecTransformedSize.y * 10); // wot?
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
@@ -224,37 +224,44 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     // potentially can save on resources.
 
     g_pHyprOpenGL->begin(PMONITOR, &damage);
-    g_pHyprOpenGL->clear(CColor(17, 17, 17, 255));
-    g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
-    g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
+    if (PMONITOR->isMirror()) {
+        g_pHyprOpenGL->renderMirrored();
 
-    // if correct monitor draw hyprerror
-    if (PMONITOR->ID == 0)
-        g_pHyprError->draw();
+        Debug::log(LOG, "Mirror frame");
+    } else {
+        g_pHyprOpenGL->clear(CColor(17, 17, 17, 255));
+        g_pHyprOpenGL->clearWithTex();  // will apply the hypr "wallpaper"
 
-    // for drawing the debug overlay
-    if (PMONITOR->ID == 0 && *PDEBUGOVERLAY == 1) {
-        startRenderOverlay = std::chrono::high_resolution_clock::now();
-        g_pDebugOverlay->draw();
-        endRenderOverlay = std::chrono::high_resolution_clock::now();
+        g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
+
+        // if correct monitor draw hyprerror
+        if (PMONITOR->ID == 0)
+            g_pHyprError->draw();
+
+        // for drawing the debug overlay
+        if (PMONITOR->ID == 0 && *PDEBUGOVERLAY == 1) {
+            startRenderOverlay = std::chrono::high_resolution_clock::now();
+            g_pDebugOverlay->draw();
+            endRenderOverlay = std::chrono::high_resolution_clock::now();
+        }
+
+        if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
+            wlr_box monrect = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+            g_pHyprOpenGL->renderRect(&monrect, CColor(255, 0, 255, 100), 0);
+            damageBlinkCleanup = 1;
+        } else if (*PDAMAGEBLINK) {
+            damageBlinkCleanup++;
+            if (damageBlinkCleanup > 3)
+                damageBlinkCleanup = 0;
+        }
+
+        wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+
+        wlr_output_render_software_cursors(PMONITOR->output, NULL);
+
+        wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
     }
-
-    if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
-        wlr_box monrect = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
-        g_pHyprOpenGL->renderRect(&monrect, CColor(255,0,255,100), 0);
-        damageBlinkCleanup = 1;
-    } else if (*PDAMAGEBLINK) {
-        damageBlinkCleanup++;
-        if (damageBlinkCleanup > 3)
-            damageBlinkCleanup = 0;
-    }
-
-    wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
-
-    wlr_output_render_software_cursors(PMONITOR->output, NULL);
-
-    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
 
     g_pHyprOpenGL->end();
 
@@ -272,6 +279,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         pixman_region32_union(&frameDamage, &frameDamage, &damage);
 
     wlr_output_set_damage(PMONITOR->output, &frameDamage);
+
+    if (!PMONITOR->mirrors.empty())
+        g_pHyprRenderer->damageMirrorsWith(PMONITOR, &frameDamage);
+
     pixman_region32_fini(&frameDamage);
     pixman_region32_fini(&damage);
 

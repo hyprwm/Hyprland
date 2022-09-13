@@ -115,50 +115,14 @@ void CMonitor::onConnect(bool noRule) {
     }
     
     wlr_ext_workspace_group_handle_v1_output_enter(pWLRWorkspaceGroupHandle, output);
+    
+    setupDefaultWS(monitorRule);
 
-    // Workspace
-    std::string newDefaultWorkspaceName = "";
-    auto WORKSPACEID = monitorRule.defaultWorkspace == "" ? g_pCompositor->m_vWorkspaces.size() + 1 : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
-
-    if (WORKSPACEID == INT_MAX || WORKSPACEID == (long unsigned int)SPECIAL_WORKSPACE_ID) {
-        WORKSPACEID = g_pCompositor->m_vWorkspaces.size() + 1;
-        newDefaultWorkspaceName = std::to_string(WORKSPACEID);
-
-        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", monitorRule.defaultWorkspace.c_str());
-    }
-
-    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
-
-    Debug::log(LOG, "New monitor: WORKSPACEID %d, exists: %d", WORKSPACEID, (int)(PNEWWORKSPACE != nullptr));
-
-    if (PNEWWORKSPACE) {
-        // workspace exists, move it to the newly connected monitor
-        g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, this);
-        activeWorkspace = PNEWWORKSPACE->m_iID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
-        PNEWWORKSPACE->startAnim(true, true, true);
-    } else {
-
-        if (newDefaultWorkspaceName == "")
-            newDefaultWorkspaceName = std::to_string(WORKSPACEID);
-
-        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(ID, newDefaultWorkspaceName)).get();
-
-        // We are required to set the name here immediately
-        wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, newDefaultWorkspaceName.c_str());
-
-        PNEWWORKSPACE->m_iID = WORKSPACEID;
-    }
-
-    activeWorkspace = PNEWWORKSPACE->m_iID;
     scale = monitorRule.scale;
 
     m_pThisWrap = nullptr;
 
     forceFullFrames = 3;  // force 3 full frames to make sure there is no blinking due to double-buffering.
-
-    g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
-    PNEWWORKSPACE->setActive(true);
     //
 
     if (!g_pCompositor->m_pLastMonitor)  // set the last monitor if it isnt set yet
@@ -184,6 +148,20 @@ void CMonitor::onDisconnect() {
             BACKUPMON = m.get();
             break;
         }
+    }
+
+    // remove mirror
+    if (pMirrorOf) {
+        pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
+        pMirrorOf = nullptr;
+    }
+
+    if (!mirrors.empty()) {
+        for (auto& m : mirrors) {
+            m->setMirror("");
+        }
+
+        g_pConfigManager->m_bWantsMonitorReload = true;
     }
 
     m_bEnabled = false;
@@ -245,4 +223,137 @@ void CMonitor::addDamage(pixman_region32_t* rg) {
 
 void CMonitor::addDamage(wlr_box* box) {
     wlr_output_damage_add_box(damage, box);
+}
+
+bool CMonitor::isMirror() {
+    return pMirrorOf != nullptr;
+}
+
+void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
+    // Workspace
+    std::string newDefaultWorkspaceName = "";
+    auto WORKSPACEID = monitorRule.defaultWorkspace == "" ? g_pCompositor->m_vWorkspaces.size() + 1 : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
+
+    if (WORKSPACEID == INT_MAX || WORKSPACEID == (long unsigned int)SPECIAL_WORKSPACE_ID) {
+        WORKSPACEID = g_pCompositor->m_vWorkspaces.size() + 1;
+        newDefaultWorkspaceName = std::to_string(WORKSPACEID);
+
+        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", monitorRule.defaultWorkspace.c_str());
+    }
+
+    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+
+    Debug::log(LOG, "New monitor: WORKSPACEID %d, exists: %d", WORKSPACEID, (int)(PNEWWORKSPACE != nullptr));
+
+    if (PNEWWORKSPACE) {
+        // workspace exists, move it to the newly connected monitor
+        g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, this);
+        activeWorkspace = PNEWWORKSPACE->m_iID;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
+        PNEWWORKSPACE->startAnim(true, true, true);
+    } else {
+        if (newDefaultWorkspaceName == "")
+            newDefaultWorkspaceName = std::to_string(WORKSPACEID);
+
+        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(ID, newDefaultWorkspaceName)).get();
+
+        // We are required to set the name here immediately
+        wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, newDefaultWorkspaceName.c_str());
+
+        PNEWWORKSPACE->m_iID = WORKSPACEID;
+    }
+
+    activeWorkspace = PNEWWORKSPACE->m_iID;
+
+    g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
+    PNEWWORKSPACE->setActive(true);
+}
+
+void CMonitor::setMirror(const std::string& mirrorOf) {
+    const auto PMIRRORMON = g_pCompositor->getMonitorFromString(mirrorOf);
+
+    if (PMIRRORMON == pMirrorOf)
+        return;
+
+    if (PMIRRORMON && PMIRRORMON->isMirror()) {
+        Debug::log(ERR, "Cannot mirror a mirror!");
+        return;
+    }
+
+    if (PMIRRORMON == this) {
+        Debug::log(ERR, "Cannot mirror self!");
+        return;
+    }
+
+    if (!PMIRRORMON) {
+        // disable mirroring
+
+        if (pMirrorOf) {
+            pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
+        }
+
+        pMirrorOf = nullptr;
+
+        // set rule
+        const auto RULE = g_pConfigManager->getMonitorRuleFor(this->szName);
+
+        vecPosition = RULE.offset;
+
+        // push to mvmonitors
+        if (!m_pThisWrap) {
+            // find the wrap
+            for (auto& m : g_pCompositor->m_vRealMonitors) {
+                if (m->ID == ID) {
+                    m_pThisWrap = &m;
+                    break;
+                }
+            }
+        }
+
+        if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end()) {
+            g_pCompositor->m_vMonitors.push_back(*m_pThisWrap);
+        }
+
+        setupDefaultWS(RULE);
+
+        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, output, (int)vecPosition.x, (int)vecPosition.y);
+    } else {
+        CMonitor* BACKUPMON = nullptr;
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m.get() != this) {
+                BACKUPMON = m.get();
+                break;
+            }
+        }
+
+        // move all the WS
+        std::deque<CWorkspace*> wspToMove;
+        for (auto& w : g_pCompositor->m_vWorkspaces) {
+            if (w->m_iMonitorID == ID) {
+                wspToMove.push_back(w.get());
+            }
+        }
+
+        for (auto& w : wspToMove) {
+            g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
+            w->startAnim(true, true, true);
+        }
+
+        activeWorkspace = -1;
+
+        wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
+
+        vecPosition = Vector2D(-1337420, -1337420);
+
+        pMirrorOf = PMIRRORMON;
+
+        pMirrorOf->mirrors.push_back(this);
+
+        // remove from mvmonitors
+        if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) != g_pCompositor->m_vMonitors.end()) {
+            g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](const auto& other) { return other.get() == this; }));
+        }
+
+        g_pCompositor->m_pLastMonitor = g_pCompositor->m_vMonitors.front().get();
+    }
 }

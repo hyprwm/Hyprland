@@ -35,6 +35,7 @@ public:
     void                damageBox(const int& x, const int& y, const int& w, const int& h);
     void                damageRegion(pixman_region32_t*);
     void                damageMonitor(CMonitor*);
+    void                damageMirrorsWith(CMonitor*, pixman_region32_t*);
     bool                applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
     bool                shouldRenderWindow(CWindow*, CMonitor*);
     bool                shouldRenderWindow(CWindow*);

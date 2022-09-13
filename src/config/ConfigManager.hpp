@@ -36,6 +36,7 @@ struct SMonitorRule {
     std::string defaultWorkspace = "";
     bool        disabled = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
+    std::string mirrorOf = "";
 };
 
 struct SMonitorAdditionalReservedArea {

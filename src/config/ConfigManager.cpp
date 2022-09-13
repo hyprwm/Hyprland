@@ -493,11 +493,16 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
     nextItem();
 
-    if (curitem != "") {
-        // warning for old cfg
-        Debug::log(ERR, "Error in parsing rule for %s, possibly old config!", newrule.name.c_str());
-        parseError = "Error in setting monitor rule. Are you using the old syntax? Confront the wiki.";
-        return;
+    while (curitem != "") {
+        if (curitem == "mirror") {
+            nextItem();
+            newrule.mirrorOf = curitem;
+            nextItem();
+        } else {
+            Debug::log(ERR, "Config error: invalid monitor syntax");
+            parseError = "invalid syntax at \"" + curitem + "\"";
+            return;
+        }
     }
 
     if (std::find_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }) != m_dMonitorRules.end())
@@ -1444,6 +1449,10 @@ void CConfigManager::performMonitorReload() {
 
     for (auto& m : g_pCompositor->m_vRealMonitors) {
         auto rule = getMonitorRuleFor(m->szName);
+
+        // ensure mirror
+        m->setMirror(rule.mirrorOf);
+
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
             overAgain = true;
             break;

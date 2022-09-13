@@ -7,6 +7,8 @@
 #include <array>
 #include <memory>
 
+struct SMonitorRule;
+
 class CMonitor {
 public:
     Vector2D    vecPosition         = Vector2D(0,0);
@@ -35,6 +37,10 @@ public:
     bool        scheduledRecalc = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
 
+    // mirroring
+    CMonitor*   pMirrorOf = nullptr;
+    std::vector<CMonitor*> mirrors;
+
     // for the special workspace
     bool        specialWorkspaceOpen = false;
     
@@ -57,6 +63,8 @@ public:
     void        onDisconnect();
     void        addDamage(pixman_region32_t* rg);
     void        addDamage(wlr_box* box);
+    void        setMirror(const std::string&);
+    bool        isMirror();
 
     std::shared_ptr<CMonitor>* m_pThisWrap = nullptr;
     bool        m_bEnabled = false;
@@ -67,4 +75,7 @@ public:
     bool operator==(const CMonitor& rhs) {
         return vecPosition == rhs.vecPosition && vecSize == rhs.vecSize && szName == rhs.szName;
     }
+
+private:
+    void        setupDefaultWS(const SMonitorRule&);
 };

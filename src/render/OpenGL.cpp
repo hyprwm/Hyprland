@@ -102,6 +102,7 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, pixman_region32_t* pDamage, bool
         m_RenderData.pCurrentMonData->primaryFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
         m_RenderData.pCurrentMonData->mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
         m_RenderData.pCurrentMonData->mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_RenderData.pCurrentMonData->monitorMirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
         createBGTextureForMonitor(pMonitor);
     }
@@ -120,10 +121,13 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, pixman_region32_t* pDamage, bool
 void CHyprOpenGLImpl::end() {
     // end the render, copy the data to the WLR framebuffer
     if (!m_bFakeFrame) {
+        pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
+
+        if (!m_RenderData.pMonitor->mirrors.empty())
+            g_pHyprOpenGL->saveBufferForMirror();  // save with original damage region
+
         glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
         wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-
-        pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
 
         clear(CColor(11, 11, 11, 255));
 
@@ -1086,6 +1090,27 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib);
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+void CHyprOpenGLImpl::saveBufferForMirror() {
+    m_RenderData.pCurrentMonData->monitorMirrorFB.bind();
+
+    wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+
+    renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 255.f, 0, false, false);
+
+    m_RenderData.pCurrentMonData->primaryFB.bind();
+}
+
+void CHyprOpenGLImpl::renderMirrored() {
+    wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+
+    const auto PFB = &m_mMonitorRenderResources[m_RenderData.pMonitor->pMirrorOf].monitorMirrorFB;
+
+    if (PFB->m_cTex.m_iTexID <= 0)
+        return;
+
+    renderTexture(PFB->m_cTex, &monbox, 255.f, 0, false, false);
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const CAIROSURFACE) {

@@ -3,6 +3,9 @@
 #include "../Compositor.hpp"
 
 void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
+    if (!node->pSurface)
+        return; // ? how does this happen sometimes
+
     *lx += node->pSurface->sx;
     *ly += node->pSurface->sy;
 

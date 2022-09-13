@@ -3,9 +3,6 @@
 #include "../Compositor.hpp"
 
 void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
-    if (!node->pSurface)
-        return; // ? how does this happen sometimes
-
     *lx += node->pSurface->sx;
     *ly += node->pSurface->sy;
 
@@ -104,6 +101,14 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
         g_pHyprRenderer->damageBox(&extents);
     }
 
+    // remove references to this node
+    for (auto& tn : surfaceTreeNodes) {
+        for (auto& cs : tn.childSubsurfaces) {
+            if (cs.pChild == pNode)
+                cs.pChild = nullptr;
+        }
+    }
+
     surfaceTreeNodes.remove(*pNode);
 
     Debug::log(LOG, "SurfaceTree Node removed");
@@ -157,6 +162,9 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
 void Events::listener_mapSubsurface(void* owner, void* data) {
     SSubsurface* subsurface = (SSubsurface*)owner;
 
+    if (subsurface->pChild)
+        return;
+
     Debug::log(LOG, "Subsurface %x mapped", subsurface->pSubsurface);
 
     subsurface->pChild = createSubsurfaceNode(subsurface->pParent, subsurface, subsurface->pSubsurface->surface, subsurface->pWindowOwner);
@@ -181,8 +189,8 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
             g_pHyprRenderer->damageBox(&extents);
         }
 
-        SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
-        subsurface->pChild = nullptr;
+        //SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
+        //subsurface->pChild = nullptr;
     }
 }
 
@@ -218,8 +226,9 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
 void Events::listener_destroySubsurface(void* owner, void* data) {
     SSubsurface* subsurface = (SSubsurface*)owner;
 
-    if (subsurface->pChild)
-        listener_destroySubsurfaceNode(subsurface->pChild, nullptr);
+    if (subsurface->pChild) {
+        SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
+    }
 
     Debug::log(LOG, "Subsurface %x destroyed", subsurface);
 

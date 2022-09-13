@@ -64,16 +64,19 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         // check if it's on the correct monitor!
         Vector2D middlePoint = Vector2D(desiredGeometry.x, desiredGeometry.y) + Vector2D(desiredGeometry.width, desiredGeometry.height) / 2.f;
 
-        // check if it's visible on any monitor
-        bool visible = false;
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
-                || VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
-                || VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
-                || VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)) {
+        // check if it's visible on any monitor (only for XDG)
+        bool visible = pWindow->m_bIsX11;
 
-                visible = true;
-                break;
+        if (!pWindow->m_bIsX11) {
+            for (auto& m : g_pCompositor->m_vMonitors) {
+                if (VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
+                    || VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
+                    || VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
+                    || VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)) {
+
+                    visible = true;
+                    break;
+                }
             }
         }
 

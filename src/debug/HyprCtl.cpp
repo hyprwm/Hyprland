@@ -530,6 +530,8 @@ std::string reloadRequest(std::string request) {
         g_pConfigManager->m_bNoMonitorReload = true;
     }
 
+    g_pConfigManager->tick();
+
     return "ok";
 }
 

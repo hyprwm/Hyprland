@@ -170,12 +170,10 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
         int lx = 0, ly = 0;
         addSurfaceGlobalOffset(PNODE, &lx, &ly);
 
-        wlr_box extents = {0};
+        wlr_box extents = {lx, ly, 0, 0};
         if (PNODE->pSurface) {
-            wlr_surface_get_extends(PNODE->pSurface, &extents);
-
-            extents.x += lx;
-            extents.y += ly;
+            extents.width = PNODE->pSurface->current.width;
+            extents.height = PNODE->pSurface->current.height;
 
             g_pHyprRenderer->damageBox(&extents);
         }

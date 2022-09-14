@@ -425,16 +425,17 @@ void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
         return;
 
     if (PNODE->workspaceID != PNODE2->workspaceID) {
-        Debug::log(ERR, "Master: Rejecting a swap between workspaces");
-        return;
+        std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
+        std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
     }
 
     // massive hack: just swap window pointers, lol
-    const auto PWINDOW1 = PNODE->pWindow;
-    PNODE->pWindow = PNODE2->pWindow;
-    PNODE2->pWindow = PWINDOW1;
+    PNODE->pWindow = pWindow2;
+    PNODE2->pWindow = pWindow;
 
-    recalculateMonitor(PWINDOW1->m_iMonitorID);
+    recalculateMonitor(pWindow->m_iMonitorID);
+    if (PNODE2->workspaceID != PNODE->workspaceID)
+        recalculateMonitor(pWindow2->m_iMonitorID);
 }
 
 void CHyprMasterLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {

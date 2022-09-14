@@ -1008,8 +1008,8 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
         return;
 
     if (PNODE->workspaceID != PNODE2->workspaceID) {
-        Debug::log(ERR, "Dwindle: Rejecting a swap between workspaces");
-        return;
+        std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
+        std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
     }
 
     // swap the windows and recalc
@@ -1018,6 +1018,9 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
 
     // recalc the workspace
     getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
+    
+    if (PNODE2->workspaceID != PNODE->workspaceID)
+        getMasterNodeOnWorkspace(PNODE2->workspaceID)->recalcSizePosRecursive();
 }
 
 void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {

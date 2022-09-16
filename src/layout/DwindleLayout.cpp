@@ -682,9 +682,6 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
 
-    if (!g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
-        return;
-
     if (on == pWindow->m_bIsFullscreen)
         return; // ignore
 

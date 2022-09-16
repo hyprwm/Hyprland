@@ -326,9 +326,6 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
 
-    if (!g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
-        return;
-
     if (on == pWindow->m_bIsFullscreen)
         return;  // ignore
 

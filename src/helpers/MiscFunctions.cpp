@@ -221,6 +221,9 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                     int highestID = -99999;
 
                     for (auto& w : g_pCompositor->m_vWorkspaces) {
+                        if (w->m_iID == SPECIAL_WORKSPACE_ID)
+                            continue;
+
                         if (w->m_iID < lowestID)
                             lowestID = w->m_iID;
 

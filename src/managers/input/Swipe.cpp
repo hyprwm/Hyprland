@@ -10,7 +10,7 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
 
     int onMonitor = 0;
     for (auto& w : g_pCompositor->m_vWorkspaces) {
-        if (w->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
+        if (w->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID && w->m_iID != SPECIAL_WORKSPACE_ID) {
             onMonitor++;
         }
     }
@@ -125,8 +125,10 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     auto workspaceIDLeft = getWorkspaceIDFromString("m-1", wsname);
     auto workspaceIDRight = getWorkspaceIDFromString("m+1", wsname);
 
-    if (workspaceIDLeft == INT_MAX || workspaceIDRight == INT_MAX || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID)
+    if (workspaceIDLeft == INT_MAX || workspaceIDRight == INT_MAX || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID) {
+        m_sActiveSwipe.pWorkspaceBegin = nullptr; // invalidate the swipe
         return;
+    }
 
     m_sActiveSwipe.pWorkspaceBegin->m_bForceRendering = true;
 

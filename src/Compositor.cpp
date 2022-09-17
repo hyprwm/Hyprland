@@ -1591,6 +1591,9 @@ bool CCompositor::workspaceIDOutOfBounds(const int& id) {
     int highestID = -99999;
 
     for (auto& w : m_vWorkspaces) {
+        if (w->m_iID == SPECIAL_WORKSPACE_ID)
+            continue;
+
         if (w->m_iID < lowestID)
             lowestID = w->m_iID;
         

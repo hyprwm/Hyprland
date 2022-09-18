@@ -286,7 +286,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
-            wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
+            if (*PFOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_pLastWindow)
+                wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
+                
             m_bLastFocusOnLS = false;
             return;  // don't enter any new surfaces
         } else {

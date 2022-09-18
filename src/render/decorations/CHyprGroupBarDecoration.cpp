@@ -82,6 +82,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
         if (rect.width <= 0 || rect.height <= 0)
             break;
 
+        scaleBox(&rect, pMonitor->scale);
+
         static auto *const PGROUPCOLACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->intValue;
         static auto *const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->intValue;
 

@@ -842,7 +842,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
             m->specialWorkspaceOpen = false;
     }
 
-    g_pInputManager->refocus();
+    g_pCompositor->focusWindow(PWINDOW);
 
     PWINDOW->updateToplevel();
 }

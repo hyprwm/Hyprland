@@ -27,6 +27,12 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
     m_sActiveSwipe.pMonitor = g_pCompositor->m_pLastMonitor;
     m_sActiveSwipe.avgSpeed = 0;
     m_sActiveSwipe.speedPoints = 0;
+
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            ls->alpha = 255.f;
+        }
+    }
 }
 
 void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
@@ -47,6 +53,8 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
     const auto RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.vec();
 
+    CWorkspace* pSwitchedTo = nullptr;
+
     if ((abs(m_sActiveSwipe.delta) < *PSWIPEDIST * *PSWIPEPERC && (*PSWIPEFORC == 0 || (*PSWIPEFORC != 0 && m_sActiveSwipe.avgSpeed < *PSWIPEFORC))) || abs(m_sActiveSwipe.delta) < 2) {
         // revert
         if (abs(m_sActiveSwipe.delta) < 2) {
@@ -64,6 +72,8 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D();
         }
+
+        pSwitchedTo = m_sActiveSwipe.pWorkspaceBegin;
     } else if (m_sActiveSwipe.delta < 0) {
         // switch to left
         const auto RENDEROFFSET = PWORKSPACEL->m_vRenderOffset.vec();
@@ -80,6 +90,8 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         g_pInputManager->unconstrainMouse();
 
         Debug::log(LOG, "Ended swipe to the left");
+
+        pSwitchedTo = PWORKSPACEL;
     } else {
         // switch to right
         const auto RENDEROFFSET = PWORKSPACER->m_vRenderOffset.vec();
@@ -96,6 +108,8 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         g_pInputManager->unconstrainMouse();
 
         Debug::log(LOG, "Ended swipe to the right");
+
+        pSwitchedTo = PWORKSPACER;
     }
 
     g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
@@ -107,6 +121,11 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     m_sActiveSwipe.pWorkspaceBegin = nullptr;
 
     g_pInputManager->refocus();
+
+    // apply alpha
+    for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow ? 0.f : 255.f;
+    }
 }
 
 void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {

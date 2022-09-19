@@ -122,6 +122,34 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
 void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
     CWindow* pWorkspaceWindow = nullptr;
 
+    // loop over the tiled windows that are fading out
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID != pMonitor->activeWorkspace)
+            continue;
+
+        if (w->m_fAlpha.fl() == 0.f)
+            continue;
+
+        if (w->m_bIsFullscreen || w->m_bIsFloating)
+            continue;
+
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+    }
+
+    // and floating ones too
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID != pMonitor->activeWorkspace)
+            continue;
+
+        if (w->m_fAlpha.fl() == 0.f)
+            continue;
+
+        if (w->m_bIsFullscreen || !w->m_bIsFloating)
+            continue;
+
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+    }
+
     for (auto& w : g_pCompositor->m_vWindows) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID);
 
@@ -141,7 +169,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
         pWorkspaceWindow = w.get();
     }
 
-    // then render windows over fullscreen
+    // then render windows over fullscreen.
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID != pWorkspaceWindow->m_iWorkspaceID || (!w->m_bCreatedOverFullscreen && !w->m_bPinned) || !w->m_bIsMapped)
             continue;

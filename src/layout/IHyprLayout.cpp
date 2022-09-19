@@ -137,7 +137,7 @@ void IHyprLayout::onBeginDragWindow() {
     DRAGGINGWINDOW->m_bDraggingTiled = false;
 
     if (!DRAGGINGWINDOW->m_bIsFloating) {
-        if (g_pInputManager->dragButton == BTN_LEFT) {
+        if (g_pInputManager->dragMode == MBIND_MOVE) {
             changeWindowFloatingMode(DRAGGINGWINDOW);
             DRAGGINGWINDOW->m_bIsFloating = true;
             DRAGGINGWINDOW->m_bDraggingTiled = true;
@@ -192,11 +192,11 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
-    if (g_pInputManager->dragButton == BTN_LEFT) {
+    if (g_pInputManager->dragMode == MBIND_MOVE) {
         DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
-    } else {
+    } else if (g_pInputManager->dragMode == MBIND_RESIZE) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
             const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW);

@@ -43,6 +43,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["swapnext"]                  = swapnext;
     m_mDispatchers["swapactiveworkspaces"]      = swapActiveWorkspaces;
     m_mDispatchers["pin"]                       = pinActive;
+    m_mDispatchers["mouse"]                     = mouse;
 
     m_tScrollTimer.reset();
 }
@@ -278,7 +279,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     }
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || (!pressed && !k.release && k.handler != "pass") || k.shadowed)
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse") || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -307,7 +308,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             return true;
         }
 
-        const auto DISPATCHER = m_mDispatchers.find(k.handler);
+        const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
 
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
@@ -318,7 +319,10 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
             m_iPassPressed = (int)pressed;
 
-            DISPATCHER->second(k.arg);
+            if (k.handler == "mouse")
+                DISPATCHER->second((pressed ? "1" : "0") + k.arg);
+            else
+                DISPATCHER->second(k.arg);
 
             m_iPassPressed = -1;
 
@@ -1575,4 +1579,37 @@ void CKeybindManager::pinActive(std::string args) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
 
     PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal());
+}
+
+void CKeybindManager::mouse(std::string args) {
+    const auto TRUEARG = args.substr(1);
+    const auto PRESSED = args[0] == '1';
+
+    if (TRUEARG == "movewindow") {
+        if (PRESSED) {
+            g_pInputManager->currentlyDraggedWindow = g_pCompositor->windowFromCursor();
+            g_pInputManager->dragMode = MBIND_MOVE;
+
+            g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
+        } else {
+            if (g_pInputManager->currentlyDraggedWindow) {
+                g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
+                g_pInputManager->currentlyDraggedWindow = nullptr;
+                g_pInputManager->dragMode = MBIND_INVALID;
+            }
+        }
+    } else if (TRUEARG == "resizewindow") {
+        if (PRESSED) {
+            g_pInputManager->currentlyDraggedWindow = g_pCompositor->windowFromCursor();
+            g_pInputManager->dragMode = MBIND_RESIZE;
+
+            g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
+        } else {
+            if (g_pInputManager->currentlyDraggedWindow) {
+                g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
+                g_pInputManager->currentlyDraggedWindow = nullptr;
+                g_pInputManager->dragMode = MBIND_INVALID;
+            }
+        }
+    }
 }

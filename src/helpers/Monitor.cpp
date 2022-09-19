@@ -65,6 +65,8 @@ void CMonitor::onConnect(bool noRule) {
 	}
 
     if (!m_bRenderingInitPassed) {
+        output->allocator = nullptr;
+        output->renderer = nullptr;
         wlr_output_init_render(output, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
         m_bRenderingInitPassed = true;
     }

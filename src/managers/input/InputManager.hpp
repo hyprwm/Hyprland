@@ -12,6 +12,12 @@ enum eClickBehaviorMode {
     CLICKMODE_KILL
 };
 
+enum eMouseBindMode {
+    MBIND_INVALID = -1,
+    MBIND_MOVE = 0,
+    MBIND_RESIZE
+};
+
 struct STouchData {
     CWindow* touchFocusWindow = nullptr;
     Vector2D touchSurfaceOrigin;
@@ -59,7 +65,7 @@ public:
 
     // for dragging floating windows
     CWindow*        currentlyDraggedWindow = nullptr;
-    int             dragButton = -1;
+    eMouseBindMode  dragMode = MBIND_INVALID;
 
     SDrag           m_sDrag;
 

@@ -658,6 +658,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     bool locked = false;
     bool release = false;
     bool repeat = false;
+    bool mouse = false;
     const auto ARGS = command.substr(4);
 
     for (auto& arg : ARGS) {
@@ -667,6 +668,8 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
             release = true;
         } else if (arg == 'e') {
             repeat = true;
+        } else if (arg == 'm') {
+            mouse = true;
         } else {
             parseError = "bind: invalid flag";
             return;
@@ -675,6 +678,11 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (release && repeat) {
         parseError = "flags r and e are mutually exclusive";
+        return;
+    }
+
+    if (mouse && (repeat || release || locked)) {
+        parseError = "flag m is exclusive";
         return;
     }
 
@@ -687,10 +695,13 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     const auto KEY = valueCopy.substr(0, valueCopy.find_first_of(","));
     valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
 
-    const auto HANDLER = valueCopy.substr(0, valueCopy.find_first_of(","));
+    auto HANDLER = valueCopy.substr(0, valueCopy.find_first_of(","));
     valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
 
-    const auto COMMAND = valueCopy;
+    const auto COMMAND = mouse ? HANDLER : valueCopy;
+
+    if (mouse)
+        HANDLER = "mouse";
 
     const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(HANDLER);
 
@@ -713,11 +724,10 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat});
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
     }
-        
 }
 
 void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {

@@ -18,6 +18,7 @@ struct SKeybind {
     std::string       submap = "";
     bool              release = false;
     bool              repeat = false;
+    bool              mouse = false;
 
     // DO NOT INITIALIZE
     bool              shadowed = false;
@@ -114,6 +115,7 @@ private:
     static void         swapnext(std::string);
     static void         swapActiveWorkspaces(std::string);
     static void         pinActive(std::string);
+    static void         mouse(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

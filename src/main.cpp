@@ -14,6 +14,12 @@ int main(int argc, char** argv) {
     if (!getenv("XDG_RUNTIME_DIR"))
         throw std::runtime_error("XDG_RUNTIME_DIR is not set!");
 
+    // export HYPRLAND_CMD
+    std::string cmd = "";
+    for (auto i = 0; i < argc; ++i)
+        cmd += std::string(i == 0 ? "" : " ") + argv[i];
+    setenv("HYPRLAND_CMD", cmd.c_str(), 1);
+
     // parse some args
     std::string configPath;
     for (int i = 1; i < argc; ++i) {

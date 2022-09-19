@@ -406,9 +406,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     }
 
     if (PWINDOW->m_bIsFullscreen) {
-        g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, FULLSCREEN_FULL, false);
-        g_pXWaylandManager->setWindowFullscreen(PWINDOW, PWINDOW->m_bIsFullscreen);
-        g_pCompositor->forceReportSizesToWindowsOnWorkspace(PWINDOW->m_iWorkspaceID);
+        g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
     }
 
     // Allow the renderer to catch the last frame.

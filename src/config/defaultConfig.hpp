@@ -83,6 +83,10 @@ gestures {
 #windowrule=pseudo,abc
 #windowrule=monitor 0,xyz
 
+# some nice mouse binds
+bindm=SUPER,mouse:272,movewindow
+bindm=SUPER,mouse:273,resizewindow
+
 # example binds
 bind=SUPER,Q,exec,kitty
 bind=SUPER,RETURN,exec,alacritty

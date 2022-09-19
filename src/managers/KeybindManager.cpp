@@ -589,7 +589,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         if (!*PALLOWWORKSPACECYCLES)
             PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
         
-    } else if (PCURRENTWORKSPACE->m_iID == workspaceToChangeTo)
+    } else if (PCURRENTWORKSPACE->m_iID == workspaceToChangeTo && !internal)
         return;
 
     // remove constraints 
@@ -840,9 +840,9 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
         for (auto& m : g_pCompositor->m_vMonitors)
             m->specialWorkspaceOpen = false;
+    } else {
+        g_pCompositor->focusWindow(PWINDOW);
     }
-
-    g_pCompositor->focusWindow(PWINDOW);
 
     PWINDOW->updateToplevel();
 }

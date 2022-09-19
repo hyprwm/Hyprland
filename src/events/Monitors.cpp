@@ -286,7 +286,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     pixman_region32_fini(&frameDamage);
     pixman_region32_fini(&damage);
 
-    wlr_output_commit(PMONITOR->output);
+    if (!wlr_output_commit(PMONITOR->output))
+        return;
 
     if (*PDAMAGEBLINK || *PNOVFR)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);

@@ -91,6 +91,14 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_vRenderOffset.warp();
         m_fAlpha.warp();
     }
+
+    // check LS-es
+    if (in) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            ls->alpha = m_bHasFullscreenWindow && m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 255.f;
+        }
+    }
 }
 
 void CWorkspace::setActive(bool on) {

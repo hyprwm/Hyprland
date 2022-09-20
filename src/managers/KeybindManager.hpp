@@ -64,6 +64,8 @@ private:
     uint32_t            m_uLastCode = 0;
     uint32_t            m_uLastMouseCode = 0;
 
+    bool                m_bIsMouseBindActive = false;
+
     int                 m_iPassPressed = -1; // used for pass
 
     CTimer              m_tScrollTimer;
@@ -76,6 +78,7 @@ private:
     xkb_state*          m_pXKBTranslationState = nullptr;
 
     void                updateXKBTranslationState();
+    void                ensureMouseBindState();
 
     // -------------- Dispatchers -------------- //
     static void         killActive(std::string);

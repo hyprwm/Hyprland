@@ -129,6 +129,19 @@ void CKeybindManager::updateXKBTranslationState() {
     m_pXKBTranslationState = xkb_state_new(PKEYMAP);
 }
 
+void CKeybindManager::ensureMouseBindState() {
+    if (!m_bIsMouseBindActive)
+        return;
+
+    if (g_pInputManager->currentlyDraggedWindow) {
+        g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
+        g_pInputManager->currentlyDraggedWindow = nullptr;
+        g_pInputManager->dragMode = MBIND_INVALID;
+    }
+
+    m_bIsMouseBindActive = false;
+}
+
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
     if (!g_pCompositor->m_bSessionActive) {
         m_dPressedKeycodes.clear();
@@ -160,6 +173,8 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
     m_uTimeLastMs = e->time_msec;
     m_uLastCode = KEYCODE;
     m_uLastMouseCode = 0;
+
+    ensureMouseBindState();
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -1587,11 +1602,15 @@ void CKeybindManager::mouse(std::string args) {
 
     if (TRUEARG == "movewindow") {
         if (PRESSED) {
+            g_pKeybindManager->m_bIsMouseBindActive = true;
+
             g_pInputManager->currentlyDraggedWindow = g_pCompositor->windowFromCursor();
             g_pInputManager->dragMode = MBIND_MOVE;
 
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
+            g_pKeybindManager->m_bIsMouseBindActive = false;
+
             if (g_pInputManager->currentlyDraggedWindow) {
                 g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
                 g_pInputManager->currentlyDraggedWindow = nullptr;
@@ -1600,11 +1619,15 @@ void CKeybindManager::mouse(std::string args) {
         }
     } else if (TRUEARG == "resizewindow") {
         if (PRESSED) {
+            g_pKeybindManager->m_bIsMouseBindActive = true;
+
             g_pInputManager->currentlyDraggedWindow = g_pCompositor->windowFromCursor();
             g_pInputManager->dragMode = MBIND_RESIZE;
 
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
+            g_pKeybindManager->m_bIsMouseBindActive = false;
+
             if (g_pInputManager->currentlyDraggedWindow) {
                 g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
                 g_pInputManager->currentlyDraggedWindow = nullptr;

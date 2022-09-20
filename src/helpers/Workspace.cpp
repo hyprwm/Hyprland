@@ -96,7 +96,8 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     if (in) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            ls->alpha = m_bHasFullscreenWindow && m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 255.f;
+            if (!ls->fadingOut)
+                ls->alpha = m_bHasFullscreenWindow && m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 255.f;
         }
     }
 }

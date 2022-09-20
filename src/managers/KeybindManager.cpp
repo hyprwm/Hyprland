@@ -1305,7 +1305,7 @@ void CKeybindManager::forceRendererReload(std::string args) {
 }
 
 void CKeybindManager::resizeActive(std::string args) {
-    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
+    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) || g_pCompositor->m_pLastWindow->m_bIsFullscreen)
         return;
 
     const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealSize.goalv());
@@ -1317,8 +1317,8 @@ void CKeybindManager::resizeActive(std::string args) {
 }
 
 void CKeybindManager::moveActive(std::string args) {
-    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow))
-        return;
+	if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) || g_pCompositor->m_pLastWindow->m_bIsFullscreen)
+		return;
 
     const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealPosition.goalv());
 
@@ -1337,6 +1337,9 @@ void CKeybindManager::moveWindow(std::string args) {
         return;
     }
 
+    if (PWINDOW->m_bIsFullscreen)
+        return;
+
     const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealPosition.goalv());
 
     g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PWINDOW->m_vRealPosition.goalv(), PWINDOW);
@@ -1354,7 +1357,10 @@ void CKeybindManager::resizeWindow(std::string args) {
         return;
     }
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealSize.goalv());
+	if (PWINDOW->m_bIsFullscreen)
+		return;
+
+	const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealSize.goalv());
 
     g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_vRealSize.goalv(), PWINDOW);
 

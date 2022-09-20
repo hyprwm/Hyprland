@@ -78,7 +78,7 @@ private:
     xkb_state*          m_pXKBTranslationState = nullptr;
 
     void                updateXKBTranslationState();
-    void                ensureMouseBindState();
+    bool                ensureMouseBindState();
 
     // -------------- Dispatchers -------------- //
     static void         killActive(std::string);

@@ -129,17 +129,22 @@ void CKeybindManager::updateXKBTranslationState() {
     m_pXKBTranslationState = xkb_state_new(PKEYMAP);
 }
 
-void CKeybindManager::ensureMouseBindState() {
+bool CKeybindManager::ensureMouseBindState() {
     if (!m_bIsMouseBindActive)
-        return;
+        return false;
 
     if (g_pInputManager->currentlyDraggedWindow) {
+        m_bIsMouseBindActive = false;
         g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
         g_pInputManager->currentlyDraggedWindow = nullptr;
         g_pInputManager->dragMode = MBIND_INVALID;
+
+        return true;
     }
 
     m_bIsMouseBindActive = false;
+
+    return false;
 }
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
@@ -174,7 +179,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
     m_uLastCode = KEYCODE;
     m_uLastMouseCode = 0;
 
-    ensureMouseBindState();
+    bool mouseBindWasActive = ensureMouseBindState();
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -212,7 +217,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         shadowKeybinds();
     }
 
-    return !found;
+    return !found && !mouseBindWasActive;
 }
 
 bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
@@ -251,6 +256,8 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     m_uLastCode = 0;
     m_uTimeLastMs = e->time_msec;
 
+    bool mouseBindWasActive = ensureMouseBindState();
+
     if (e->state == WLR_BUTTON_PRESSED) {
         found = g_pKeybindManager->handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, true, 0);
 
@@ -262,7 +269,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         shadowKeybinds();
     }
 
-    return !found;
+    return !found && !mouseBindWasActive;
 }
 
 int repeatKeyHandler(void* data) {

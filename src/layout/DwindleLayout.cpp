@@ -792,8 +792,10 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PNODE->workspaceID);
 
-    if (PWORKSPACE->m_bHasFullscreenWindow)
-        g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_FULL);
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PNODE->isGroupMember()) {
+        Debug::log(ERR, "Cannot enable group on fullscreen window");
+        return;
+    }
 
     if (PNODE->isGroupMember()) {
         // dissolve group

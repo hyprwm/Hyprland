@@ -45,7 +45,7 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 
     // get the group info
     SLayoutMessageHeader header;
-    header.pWindow = g_pCompositor->m_pLastWindow;
+    header.pWindow = m_pWindow;
 
     m_dwGroupMembers = std::any_cast<std::deque<CWindow*>>(g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "groupinfo"));
 

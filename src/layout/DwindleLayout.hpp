@@ -75,7 +75,7 @@ private:
     SDwindleNodeData*   getMasterNodeOnWorkspace(const int&);
 
     void                toggleWindowGroup(CWindow*);
-    void                switchGroupWindow(CWindow*, bool forward);
+    void                switchGroupWindow(CWindow*, bool forward, CWindow* to = nullptr);
     void                toggleSplit(CWindow*);
     std::deque<CWindow*> getGroupMembers(CWindow*);
 

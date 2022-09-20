@@ -934,7 +934,7 @@ std::deque<CWindow*> CHyprDwindleLayout::getGroupMembers(CWindow* pWindow) {
     return result;
 }
 
-void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
+void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward, CWindow* forceTo) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return; // reject
 
@@ -952,10 +952,18 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward) {
     else
         pNewNode = PNODE->pPreviousGroupMember;
 
+    if (forceTo) {
+        const auto NODETO = getNodeFromWindow(forceTo);
+
+        if (NODETO)
+            pNewNode = NODETO;
+    }
+
     PNODE->setGroupFocusedNode(pNewNode);
 
     pNewNode->position = PNODE->position;
     pNewNode->size = PNODE->size;
+    pNewNode->workspaceID = PNODE->workspaceID;
 
     applyNodeDataToWindow(pNewNode);
 
@@ -1007,26 +1015,101 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
 void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     // windows should be valid, insallah
 
-    const auto PNODE = getNodeFromWindow(pWindow);
-    const auto PNODE2 = getNodeFromWindow(pWindow2);
+    auto PNODE = getNodeFromWindow(pWindow);
+    auto PNODE2 = getNodeFromWindow(pWindow2);
 
-    if (!PNODE2 || !PNODE)
-        return;
+    if (!PNODE2 || !PNODE) {
+		return;
+	}
 
-    if (PNODE->workspaceID != PNODE2->workspaceID) {
-        std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
-        std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
-    }
+    SDwindleNodeData* ACTIVE1 = nullptr;
+	SDwindleNodeData* ACTIVE2 = nullptr;
 
-    // swap the windows and recalc
-    PNODE2->pWindow = pWindow;
-    PNODE->pWindow = pWindow2;
+	if (PNODE2->isGroupMember() || PNODE->isGroupMember()) {
 
-    // recalc the workspace
+        if (PNODE->workspaceID != PNODE2->workspaceID) {
+            Debug::log(ERR, "Groups are confined to a monitor");
+            return;
+        }
+
+        if (PNODE->isGroupMember()) {
+            ACTIVE1 = PNODE;
+            PNODE = PNODE->getGroupHead();
+		}
+
+		if (PNODE2->isGroupMember()) {
+            ACTIVE2 = PNODE2;
+			PNODE2 = PNODE2->getGroupHead();
+		}
+
+		if (PNODE2->pParent == PNODE->pParent) {
+			const auto PPARENT = PNODE->pParent;
+
+			if (PPARENT->children[0] == PNODE) {
+				PPARENT->children[0] = PNODE2;
+				PPARENT->children[1] = PNODE;
+			} else {
+				PPARENT->children[0] = PNODE;
+				PPARENT->children[1] = PNODE2;
+			}
+		} else {
+			if (PNODE->pParent) {
+				const auto PPARENT = PNODE->pParent;
+
+				if (PPARENT->children[0] == PNODE) {
+					PPARENT->children[0] = PNODE2;
+				} else {
+					PPARENT->children[1] = PNODE2;
+				}
+			}
+
+			if (PNODE2->pParent) {
+				const auto PPARENT = PNODE2->pParent;
+
+				if (PPARENT->children[0] == PNODE2) {
+					PPARENT->children[0] = PNODE;
+				} else {
+					PPARENT->children[1] = PNODE;
+				}
+			}
+		}
+
+		const auto PPARENTNODE2 = PNODE2->pParent;
+		PNODE2->pParent = PNODE->pParent;
+		PNODE->pParent = PPARENTNODE2;
+
+		std::swap(PNODE2->workspaceID, PNODE->workspaceID);
+	} else {
+		// swap the windows and recalc
+		PNODE2->pWindow = pWindow;
+		PNODE->pWindow = pWindow2;
+	}
+
+	if (PNODE->workspaceID != PNODE2->workspaceID) {
+		std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
+		std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
+	}
+
+	// recalc the workspace
     getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
     
-    if (PNODE2->workspaceID != PNODE->workspaceID)
+    if (PNODE2->workspaceID != PNODE->workspaceID) {
         getMasterNodeOnWorkspace(PNODE2->workspaceID)->recalcSizePosRecursive();
+    }
+
+	if (ACTIVE1) {
+		ACTIVE1->position = PNODE->position;
+		ACTIVE1->size = PNODE->size;
+		ACTIVE1->pWindow->m_vPosition = ACTIVE1->position;
+		ACTIVE1->pWindow->m_vSize = ACTIVE1->size;
+	}
+
+	if (ACTIVE2) {
+		ACTIVE2->position = PNODE2->position;
+		ACTIVE2->size = PNODE2->size;
+		ACTIVE2->pWindow->m_vPosition = ACTIVE2->position;
+		ACTIVE2->pWindow->m_vSize = ACTIVE2->size;
+	}
 }
 
 void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
@@ -1052,7 +1135,7 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
     else if (message == "togglesplit")
         toggleSplit(header.pWindow);
     else if (message == "groupinfo") {
-        auto res = getGroupMembers(g_pCompositor->m_pLastWindow);
+        auto res = getGroupMembers(header.pWindow ? header.pWindow : g_pCompositor->m_pLastWindow);
         return res;
     }
     

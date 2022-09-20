@@ -825,17 +825,13 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
     PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
-    PWINDOW->m_bIsFullscreen = false;
-
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
-        g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID)->m_bIsFullscreen = false;
-        PWORKSPACE->m_bHasFullscreenWindow = false;
-    }
 
     if (PWINDOW->m_bIsFullscreen) {
-        PWINDOW->m_bIsFullscreen = false;
-        PSAVEDPOS = PSAVEDPOS + Vector2D(10, 10);
-        PSAVEDSIZE = PSAVEDSIZE - Vector2D(20, 20);
+        g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
+    }
+
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_FULL);
     }
 
     // Hack: So that the layout doesnt find our window at the cursor

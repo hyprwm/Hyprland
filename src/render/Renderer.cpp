@@ -962,6 +962,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     Debug::log(ERR, "Custom resolution FAILED, falling back to preferred");
 
                     const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
+                    wl_list_for_each(mode, &pMonitor->output->modes, link) {
+                        if(mode > pMonitorRule-refreshRate)
+                            pMonitorRule->refreshRate = mode;
 
                     if (!PREFERREDMODE) {
                         Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f",
@@ -990,6 +993,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         }
     } else {
         const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
+        wl_list_for_each(mode, &pMonitor->output->modes, link) {
+            if(mode > pMonitorRule-refreshRate)
+                pMonitorRule->refreshRate = mode;
 
         if (!PREFERREDMODE) {
             Debug::log(ERR, "Monitor %s has NO PREFERRED MODE",

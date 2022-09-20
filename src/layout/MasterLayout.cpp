@@ -84,6 +84,13 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
         }
     }
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
+    }
+
     // recalc
     recalculateMonitor(pWindow->m_iMonitorID);
 }
@@ -93,6 +100,9 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
     if (!PNODE)
         return;
+
+    if (pWindow->m_bIsFullscreen)
+        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
     if (PNODE->isMaster) {
         // find new one

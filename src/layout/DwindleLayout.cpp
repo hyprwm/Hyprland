@@ -793,11 +793,10 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PNODE->workspaceID);
 
     if (PWORKSPACE->m_bHasFullscreenWindow)
-        fullscreenRequestForWindow(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), FULLSCREEN_FULL, false);
+        g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_FULL);
 
     if (PNODE->isGroupMember()) {
         // dissolve group
-
         const auto PHEAD = PNODE->getGroupHead();
 
         SDwindleNodeData* current = PNODE->pNextGroupMember;

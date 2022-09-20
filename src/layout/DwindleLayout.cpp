@@ -327,6 +327,13 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         return;
     }
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
+    }
+
     // if it's the first, it's easy. Make it fullscreen.
     if (!OPENINGON || OPENINGON->pWindow == pWindow) {
         PNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
@@ -447,6 +454,9 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
         Debug::log(ERR, "onWindowRemovedTiling node null?");
         return;
     }
+
+    if (pWindow->m_bIsFullscreen)
+        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
     // check if it was grouped
     if (PNODE->isGroupMember()) {

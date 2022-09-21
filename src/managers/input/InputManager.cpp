@@ -987,3 +987,22 @@ void CInputManager::disableAllKeyboards(bool virt) {
         k.active = false;
     }
 }
+
+void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
+    const auto PNEWDEV = &m_lTouchDevices.emplace_back();
+    PNEWDEV->pWlrDevice = pDevice;
+
+    wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
+
+    Debug::log(LOG, "New touch device added at %x", PNEWDEV);
+
+    PNEWDEV->hyprListener_destroy.initCallback(&pDevice->events.destroy, [&](void* owner, void* data) {
+        destroyTouchDevice((STouchDevice*)data);
+    }, PNEWDEV, "TouchDevice");
+}
+
+void CInputManager::destroyTouchDevice(STouchDevice* pDevice) {
+    Debug::log(LOG, "Touch device at %x removed", pDevice);
+
+    m_lTouchDevices.remove(*pDevice);
+}

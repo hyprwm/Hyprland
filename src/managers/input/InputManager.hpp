@@ -36,6 +36,8 @@ public:
     void            newKeyboard(wlr_input_device*);
     void            newVirtualKeyboard(wlr_input_device*);
     void            newMouse(wlr_input_device*, bool virt = false);
+    void            newTouchDevice(wlr_input_device*);
+    void            destroyTouchDevice(STouchDevice*);
     void            destroyKeyboard(SKeyboard*);
     void            destroyMouse(wlr_input_device*);
 
@@ -80,6 +82,9 @@ public:
 
     // idle inhibitors
     std::list<SIdleInhibitor> m_lIdleInhibitors;
+
+    // Touch devices
+    std::list<STouchDevice> m_lTouchDevices;
 
     void            newTabletTool(wlr_input_device*);
     void            newTabletPad(wlr_input_device*);

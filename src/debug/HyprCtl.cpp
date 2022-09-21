@@ -382,6 +382,23 @@ R"#(    {
         }
 
         // remove trailing comma
+        result.pop_back();
+        result += "\n],\n";
+
+        result += "\"touch\": [\n";
+
+        for (auto& d : g_pInputManager->m_lTouchDevices) {
+            result += getFormat(
+R"#(    {
+        "address": "0x%x",
+        "name": "%s"
+    },)#",
+                &d,
+                d.pWlrDevice ? d.pWlrDevice->name : ""
+            );
+        }
+
+        // remove trailing comma
         if (result[result.size() - 1] == ',')
             result.pop_back();
         result += "\n]\n";
@@ -414,6 +431,12 @@ R"#(    {
 
         for (auto& d : g_pInputManager->m_lTabletTools) {
             result += getFormat("\tTablet Tool at %x (belongs to %x)\n", &d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
+        }
+
+        result += "\n\nTouch:\n";
+
+        for (auto& d : g_pInputManager->m_lTouchDevices) {
+            result += getFormat("\tTouch Device at %x:\n\t\t%s\n", &d, d.pWlrDevice ? d.pWlrDevice->name : "");
         }
     }
 

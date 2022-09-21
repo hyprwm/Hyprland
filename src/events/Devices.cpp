@@ -72,7 +72,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             break;
         case WLR_INPUT_DEVICE_TOUCH:
             Debug::log(LOG, "Attached a touch device with name %s", DEVICE->name);
-            wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, DEVICE);
+            g_pInputManager->newTouchDevice(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET_TOOL:
             Debug::log(LOG, "Attached a tablet tool with name %s", DEVICE->name);

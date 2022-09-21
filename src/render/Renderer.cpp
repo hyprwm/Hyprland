@@ -924,7 +924,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->vecPosition = pMonitorRule->offset;
 
     // loop over modes and choose an appropriate one.
-    if (pMonitorRule->resolution != Vector2D() && pMonitorRule->resolution != Vector2D(-1,-1)) {
+    if (pMonitorRule->resolution != Vector2D() && pMonitorRule->resolution != Vector2D(-1,-1) && pMonitorRule->resolution != Vector2D(-1,-2)) {
         if (!wl_list_empty(&pMonitor->output->modes)) {
             wlr_output_mode* mode;
             bool found = false;
@@ -991,20 +991,35 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 float currentRefresh  = 0;
                 bool success = false;
 
-                wl_list_for_each(mode, &pMonitor->output->modes, link) {
-                    if(mode->width >= currentWidth && mode->height >= currentHeight && mode->refresh >= currentRefresh) {
-                    wlr_output_set_mode(pMonitor->output, mode);
-                        if (wlr_output_test(pMonitor->output)) {
-                            currentWidth = mode->width;
-                            currentHeight = mode->height;
-                            currentRefresh = mode->refresh;
-                            success = true;
-                        }
-                    }   
+                //(-1,-1) indicates a preference to refreshrate over resolution, (-1,-2) preference to resolution 
+                if(pMonitorRule->resolution == Vector2D(-1,-1)) {
+                    wl_list_for_each(mode, &pMonitor->output->modes, link) {
+                       if( ( mode->width >= currentWidth && mode->height >= currentHeight && mode->refresh >= ( currentRefresh - 1000.f ) ) || mode->refresh > ( currentRefresh + 3000.f ) ) {
+                       wlr_output_set_mode(pMonitor->output, mode);
+                           if (wlr_output_test(pMonitor->output)) {
+                               currentWidth = mode->width;
+                               currentHeight = mode->height;
+                               currentRefresh = mode->refresh;
+                               success = true;
+                           }
+                       }
+                    }
+                } else {
+                    wl_list_for_each(mode, &pMonitor->output->modes, link) {
+                       if( ( mode->width >= currentWidth && mode->height >= currentHeight && mode->refresh >= ( currentRefresh - 1000.f ) ) || ( mode->width > currentWidth && mode->height > currentHeight ) ) {
+                       wlr_output_set_mode(pMonitor->output, mode);
+                           if (wlr_output_test(pMonitor->output)) {
+                               currentWidth = mode->width;
+                               currentHeight = mode->height;
+                               currentRefresh = mode->refresh;
+                               success = true;
+                           }
+                       }
+                    }
                 }
 
                 if (!success) {
-                    Debug::log(LOG, "Monitor %s: REJECTED highest mode: %ix%i@%2f! Falling back to preferred.",
+                    Debug::log(LOG, "Monitor %s: REJECTED mode: %ix%i@%2f! Falling back to preferred.",
                                pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,
                                mode->width, mode->height, mode->refresh / 1000.f);
  
@@ -1027,8 +1042,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     pMonitor->vecSize = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
                 } else {
 
-                    Debug::log(LOG, "Monitor %s: Applying highest mode %ix%i@%imHz.",
-                               pMonitor->output->name, (int)currentWidth, (int)currentHeight, (int)currentRefresh,
+                    Debug::log(LOG, "Monitor %s: Applying highest mode %ix%i@%2f.",
+                               pMonitor->output->name, (int)currentWidth, (int)currentHeight, (int)currentRefresh / 1000.f,
                                mode->width, mode->height, mode->refresh / 1000.f);
 
                     pMonitor->refreshRate = currentRefresh / 1000.f;

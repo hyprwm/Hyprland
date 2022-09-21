@@ -20,7 +20,31 @@
       "aarch64-linux"
       "x86_64-linux"
     ];
-    pkgsFor = nixpkgs.legacyPackages;
+    pkgsFor = genSystems (system:
+      import nixpkgs {
+        inherit system;
+        overlays = [
+          (_: prev: {
+            libdrm = prev.libdrm.overrideAttrs (old: rec {
+              version = "2.4.113";
+              src = prev.fetchurl {
+                url = "https://dri.freedesktop.org/${old.pname}/${old.pname}-${version}.tar.xz";
+                sha256 = "sha256-f9frKWf2O+tGBvItUOJ32ZNIDQXvdd2Iqb2OZ3Mj5eE=";
+              };
+              mesonFlags =
+                [
+                  "-Dinstall-test-programs=true"
+                  "-Domap=enabled"
+                  "-Dcairo-tests=disabled"
+                ]
+                ++ lib.optionals prev.stdenv.hostPlatform.isAarch [
+                  "-Dtegra=enabled"
+                  "-Detnaviv=enabled"
+                ];
+            });
+          })
+        ];
+      });
     mkDate = longDate: (lib.concatStringsSep "-" [
       (__substring 0 4 longDate)
       (__substring 4 2 longDate)

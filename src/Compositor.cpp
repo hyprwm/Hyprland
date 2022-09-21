@@ -1608,6 +1608,11 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     if (!windowValidMapped(pWindow))
         return;
 
+    if (pWindow->m_bPinned) {
+        Debug::log(LOG, "Pinned windows cannot be fullscreen'd");
+        return;
+    }
+
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
 
     g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);

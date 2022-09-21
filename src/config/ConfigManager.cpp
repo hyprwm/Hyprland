@@ -703,6 +703,9 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     if (mouse)
         HANDLER = "mouse";
 
+    // to lower
+    std::transform(HANDLER.begin(), HANDLER.end(), HANDLER.begin(), ::tolower);
+
     const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(HANDLER);
 
     if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end()) {

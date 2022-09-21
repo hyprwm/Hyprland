@@ -322,3 +322,13 @@ struct SIMEPopup {
         return pSurface == other.pSurface;
     }
 };
+
+struct STouchDevice {
+    wlr_input_device* pWlrDevice = nullptr;
+
+    DYNLISTENER(destroy);
+
+    bool operator==(const STouchDevice& other) {
+        return pWlrDevice == other.pWlrDevice;
+    }
+};

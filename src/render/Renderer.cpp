@@ -924,7 +924,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->vecPosition = pMonitorRule->offset;
 
     // loop over modes and choose an appropriate one.
-    if (pMonitorRule->resolution != Vector2D()) {
+    if (pMonitorRule->resolution != Vector2D() && pMonitorRule->resolution != Vector2D(-1,-1)) {
         if (!wl_list_empty(&pMonitor->output->modes)) {
             wlr_output_mode* mode;
             bool found = false;
@@ -962,9 +962,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     Debug::log(ERR, "Custom resolution FAILED, falling back to preferred");
 
                     const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
-                    wl_list_for_each(mode, &pMonitor->output->modes, link) {
-                        if(mode > pMonitorRule-refreshRate)
-                            pMonitorRule->refreshRate = mode;
 
                     if (!PREFERREDMODE) {
                         Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f",
@@ -985,17 +982,61 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     Debug::log(LOG, "Set a custom mode %ix%i@%2f (mode not found in monitor modes)", (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
                 }
             }
-        } else {
-            wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (int)pMonitorRule->refreshRate * 1000);
-            pMonitor->vecSize = pMonitorRule->resolution;
+          }
+        } else if(pMonitorRule->resolution != Vector2D()) {
+            if (!wl_list_empty(&pMonitor->output->modes)) {
+                wlr_output_mode* mode;
+                float currentWidth = 0;
+                float currentHeight = 0;
+                float currentRefresh  = 0;
+                bool success = false;
 
-            Debug::log(LOG, "Setting custom mode for %s", pMonitor->output->name);
-        }
-    } else {
+                wl_list_for_each(mode, &pMonitor->output->modes, link) {
+                    if(mode->width >= currentWidth && mode->height >= currentHeight && mode->refresh >= currentRefresh) {
+                    wlr_output_set_mode(pMonitor->output, mode);
+                        if (wlr_output_test(pMonitor->output)) {
+                            currentWidth = mode->width;
+                            currentHeight = mode->height;
+                            currentRefresh = mode->refresh;
+                            success = true;
+                        }
+                    }   
+                }
+
+                if (!success) {
+                    Debug::log(LOG, "Monitor %s: REJECTED highest mode: %ix%i@%2f! Falling back to preferred.",
+                               pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,
+                               mode->width, mode->height, mode->refresh / 1000.f);
+ 
+                    const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
+
+                    if (!PREFERREDMODE) {
+                        Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f",
+                                   (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
+                        return true;
+                    }
+
+                    // Preferred is valid
+                    wlr_output_set_mode(pMonitor->output, PREFERREDMODE);
+
+                    Debug::log(ERR, "Monitor %s got an invalid requested mode: %ix%i@%2f, using the preferred one instead: %ix%i@%2f",
+                               pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,
+                               PREFERREDMODE->width, PREFERREDMODE->height, PREFERREDMODE->refresh / 1000.f);
+
+                    pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
+                    pMonitor->vecSize = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
+                } else {
+
+                    Debug::log(LOG, "Monitor %s: Applying highest mode %ix%i@%imHz.",
+                               pMonitor->output->name, (int)currentWidth, (int)currentHeight, (int)currentRefresh / 1000.f,
+                               mode->width, mode->height, mode->refresh);
+
+                    pMonitor->refreshRate = currentRefresh / 1000.f;
+                    pMonitor->vecSize = Vector2D(currentWidth, currentHeight);
+                }
+            }
+        } else {
         const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
-        wl_list_for_each(mode, &pMonitor->output->modes, link) {
-            if(mode > pMonitorRule-refreshRate)
-                pMonitorRule->refreshRate = mode;
 
         if (!PREFERREDMODE) {
             Debug::log(ERR, "Monitor %s has NO PREFERRED MODE",

@@ -962,11 +962,14 @@ void CKeybindManager::moveFocusTo(std::string args) {
         if (PLASTWINDOW->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && PLASTWINDOW->m_bIsFullscreen) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PLASTWINDOW->m_iWorkspaceID);
             const auto FSMODE = PWORKSPACE->m_efFullscreenMode;
-            g_pCompositor->setWindowFullscreen(PLASTWINDOW, false, FULLSCREEN_FULL);
+
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(PLASTWINDOW, false, FULLSCREEN_FULL);
 
             g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
 
-            g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
         } else {
             g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
             Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
@@ -1386,11 +1389,14 @@ void CKeybindManager::circleNext(std::string arg) {
         if (g_pCompositor->m_pLastWindow->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsFullscreen) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
             const auto FSMODE = PWORKSPACE->m_efFullscreenMode;
-            g_pCompositor->setWindowFullscreen(g_pCompositor->m_pLastWindow, false, FULLSCREEN_FULL);
+
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(g_pCompositor->m_pLastWindow, false, FULLSCREEN_FULL);
 
             g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
 
-            g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
         } else {
             g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
             Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;

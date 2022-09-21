@@ -1028,8 +1028,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 } else {
 
                     Debug::log(LOG, "Monitor %s: Applying highest mode %ix%i@%imHz.",
-                               pMonitor->output->name, (int)currentWidth, (int)currentHeight, (int)currentRefresh / 1000.f,
-                               mode->width, mode->height, mode->refresh);
+                               pMonitor->output->name, (int)currentWidth, (int)currentHeight, (int)currentRefresh,
+                               mode->width, mode->height, mode->refresh / 1000.f);
 
                     pMonitor->refreshRate = currentRefresh / 1000.f;
                     pMonitor->vecSize = Vector2D(currentWidth, currentHeight);
@@ -1054,6 +1054,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                                    mode->width, mode->height, mode->refresh / 1000.f);
                         continue;
                     }
+
 
                     Debug::log(LOG, "Monitor %s: requested %ix%i@%2f, found available mode: %ix%i@%imHz, applying.",
                                pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate,

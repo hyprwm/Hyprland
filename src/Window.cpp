@@ -97,8 +97,7 @@ void CWindow::updateWindowDecos() {
 pid_t CWindow::getPID() {
     pid_t PID = -1;
     if (!m_bIsX11) {
-        const auto CLIENT = wl_resource_get_client(m_uSurface.xdg->resource);
-        wl_client_get_credentials(CLIENT, &PID, nullptr, nullptr);
+        wl_client_get_credentials(wl_resource_get_client(m_uSurface.xdg->resource), &PID, nullptr, nullptr);
     } else {
         PID = m_uSurface.xwayland->pid;
     }
@@ -212,10 +211,9 @@ void CWindow::moveToWorkspace(int workspaceID) {
     if (m_iWorkspaceID != workspaceID) {
         m_iWorkspaceID = workspaceID;
 
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
-        if (PWORKSPACE) {
+        if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID); PWORKSPACE) {
             g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", this, PWORKSPACE->m_szName.c_str())});
-        } 
+        }
     }
 }
 

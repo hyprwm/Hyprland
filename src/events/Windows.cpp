@@ -233,8 +233,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto SIZEXSTR = VALUE.substr(0, VALUE.find(" "));
                     const auto SIZEYSTR = VALUE.substr(VALUE.find(" ") + 1);
 
-                    const auto SIZEX = !SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stoi(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x;
-                    const auto SIZEY = !SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stoi(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y;
+                    const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
+
+                    const auto SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, (double)20, PMONITOR->vecSize.x) : (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stoi(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x);
+                    const auto SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, (double)20, PMONITOR->vecSize.y) : (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stoi(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y);
 
                     Debug::log(LOG, "Rule size, applying to window %x", PWINDOW);
 

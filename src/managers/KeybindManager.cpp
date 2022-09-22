@@ -1600,7 +1600,7 @@ void CKeybindManager::swapActiveWorkspaces(std::string args) {
 }
 
 void CKeybindManager::pinActive(std::string args) {
-    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) || !g_pCompositor->m_pLastWindow->m_bIsFloating)
+    if (!g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) || !g_pCompositor->m_pLastWindow->m_bIsFloating || g_pCompositor->m_pLastWindow->m_bIsFullscreen)
         return;
 
     g_pCompositor->m_pLastWindow->m_bPinned = !g_pCompositor->m_pLastWindow->m_bPinned;

@@ -207,3 +207,15 @@ void Events::listener_touchEnd(wl_listener* listener, void* data) {
 void Events::listener_touchUpdate(wl_listener* listener, void* data) {
     g_pInputManager->onTouchMove((wlr_touch_motion_event*)data);
 }
+
+void Events::listener_touchFrame(wl_listener* listener, void* data) {
+    wlr_seat_touch_notify_frame(g_pCompositor->m_sSeat.seat);
+}
+
+void Events::listener_holdBegin(wl_listener* listener, void* data) {
+    g_pInputManager->onPointerHoldBegin((wlr_pointer_hold_begin_event*)data);
+}
+
+void Events::listener_holdEnd(wl_listener* listener, void* data) {
+    g_pInputManager->onPointerHoldEnd((wlr_pointer_hold_end_event*)data);
+}

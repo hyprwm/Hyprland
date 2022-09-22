@@ -142,7 +142,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:tap-to-click"].intValue = 1;
     configValues["input:touchpad:drag_lock"].intValue = 0;
 
-    configValues["binds:pass_mouse_when_bound"].intValue = 1;
+    configValues["binds:pass_mouse_when_bound"].intValue = 0;
     configValues["binds:scroll_event_delay"].intValue = 300;
     configValues["binds:workspace_back_and_forth"].intValue = 0;
     configValues["binds:allow_workspace_cycles"].intValue = 0;

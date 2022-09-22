@@ -152,4 +152,8 @@ namespace Events {
     LISTENER(touchBegin);
     LISTENER(touchEnd);
     LISTENER(touchUpdate);
+    LISTENER(touchFrame);
+
+    LISTENER(holdBegin);
+    LISTENER(holdEnd);
 };

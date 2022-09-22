@@ -551,7 +551,8 @@ void CKeybindManager::toggleActivePseudo(std::string args) {
 
     ACTIVEWINDOW->m_bIsPseudotiled = !ACTIVEWINDOW->m_bIsPseudotiled;
 
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(ACTIVEWINDOW);
+    if (!ACTIVEWINDOW->m_bIsFullscreen)
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(ACTIVEWINDOW);
 }
 
 void CKeybindManager::changeworkspace(std::string args) {

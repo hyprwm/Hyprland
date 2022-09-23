@@ -820,9 +820,17 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
             PWINDOW->m_bHidden = false;
         }
+	    
+	if (PHEAD->pPreviousGroupMember) {
+	    PHEAD->pPreviousGroupMember->pNextGroupMember = PHEAD->pNextGroupMember;
+	    PHEAD->pPreviousGroupMember = nullptr;
+	}
 
-        PHEAD->pPreviousGroupMember = nullptr;
-        PHEAD->pNextGroupMember = nullptr;
+	if (PHEAD->pNextGroupMember) {
+	    PHEAD->pNextGroupMember->pPreviousGroupMember = PHEAD->pPreviousGroupMember;
+	    PHEAD->pNextGroupMember = nullptr;
+	}
+
         onWindowRemoved(PHEAD->pWindow);
 
         for (auto& pw : toAddWindows) {

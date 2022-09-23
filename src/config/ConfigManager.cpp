@@ -460,6 +460,10 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 
     if (curitem.find("pref") == 0) {
         newrule.resolution = Vector2D();
+    } else if(curitem.find("highrr") == 0) {
+        newrule.resolution = Vector2D(-1,-1);
+    } else if(curitem.find("highres") == 0) {
+        newrule.resolution = Vector2D(-1,-2);
     } else {
         newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
         newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));

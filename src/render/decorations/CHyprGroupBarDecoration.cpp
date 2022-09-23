@@ -70,6 +70,9 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
     if (barsToDraw < 1 || m_pWindow->m_bHidden || !g_pCompositor->windowValidMapped(m_pWindow))
         return;
 
+    if (!m_pWindow->m_sSpecialRenderData.decorate)
+        return;
+
     const int PAD = 2; //2px
 
     const int BARW = (m_vLastWindowSize.x - PAD * (barsToDraw - 1)) / barsToDraw;

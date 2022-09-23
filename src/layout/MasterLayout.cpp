@@ -252,12 +252,14 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
         PWINDOW->m_sSpecialRenderData.rounding = false;
         PWINDOW->m_sSpecialRenderData.border = false;
+        PWINDOW->m_sSpecialRenderData.decorate = false;
 
         return;
     }
 
     PWINDOW->m_sSpecialRenderData.rounding = true;
     PWINDOW->m_sSpecialRenderData.border = true;
+    PWINDOW->m_sSpecialRenderData.decorate = true;
 
     const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? *PGAPSOUT : *PGAPSIN,
                                         DISPLAYTOP ? *PGAPSOUT : *PGAPSIN);

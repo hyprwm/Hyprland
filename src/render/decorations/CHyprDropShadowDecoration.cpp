@@ -56,6 +56,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     if (m_pWindow->m_cRealShadowColor.col() == CColor(0, 0, 0, 0))
         return; // don't draw invisible shadows
 
+    if (!m_pWindow->m_sSpecialRenderData.decorate)
+        return;
+
     static auto *const PSHADOWS = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
     static auto *const PSHADOWSIZE = &g_pConfigManager->getConfigValuePtr("decoration:shadow_range")->intValue;
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;

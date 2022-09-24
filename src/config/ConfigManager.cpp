@@ -939,6 +939,13 @@ void CConfigManager::handleBindWS(const std::string& command, const std::string&
     const auto WS = value.substr(0, value.find_first_of(','));
     const auto MON = value.substr(value.find_first_of(',') + 1);
 
+    const auto FOUND = std::find_if(boundWorkspaces.begin(), boundWorkspaces.end(), [&](const auto& other) { return other.first == WS; });
+
+    if (FOUND != boundWorkspaces.end()) {
+        FOUND->second = MON;
+        return;
+    }
+
     boundWorkspaces.push_back({WS, MON});
 }
 

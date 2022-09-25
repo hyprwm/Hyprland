@@ -4,7 +4,7 @@
 bool CFramebuffer::alloc(int w, int h) {
     bool firstAlloc = false;
     RASSERT((w > 1 && h > 1), "cannot alloc a FB with negative / zero size! (attempted %ix%i)", w, h);
-    
+
     if (m_iFb == (uint32_t)-1) {
         firstAlloc = true;
         glGenFramebuffers(1, &m_iFb);

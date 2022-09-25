@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
-    g_pCompositor = std::make_unique<CCompositor>(); 
+    g_pCompositor = std::make_unique<CCompositor>();
     g_pCompositor->explicitConfigPath = configPath;
 
     Debug::log(LOG, "Hyprland init finished.");

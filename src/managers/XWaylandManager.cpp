@@ -46,7 +46,7 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
         if (activate)
             wlr_xwayland_surface_restack(wlr_xwayland_surface_from_wlr_surface(pSurface), NULL, XCB_STACK_MODE_ABOVE);
     }
-        
+
 }
 
 void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
@@ -166,7 +166,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                     {
                         if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"])
                             pWindow->m_bX11ShouldntFocus = true;
-                        
+
                         pWindow->m_bNoInitialFocus = true;
                         return true;
                     }
@@ -196,7 +196,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
             return true;
     } else {
         const auto PSTATE = &pWindow->m_uSurface.xdg->toplevel->current;
-        
+
         if ((PSTATE->min_width != 0 && PSTATE->min_height != 0 && (PSTATE->min_width == PSTATE->max_width || PSTATE->min_height == PSTATE->max_height)) || pWindow->m_uSurface.xdg->toplevel->parent)
             return true;
     }
@@ -207,7 +207,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
 void CHyprXWaylandManager::moveXWaylandWindow(CWindow* pWindow, const Vector2D& pos) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
-        
+
     if (pWindow->m_bIsX11) {
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, pWindow->m_vRealSize.vec().x, pWindow->m_vRealSize.vec().y);
     }
@@ -222,7 +222,7 @@ void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {
             pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"] ||
             pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
             pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"]) {
-            
+
             pWindow->m_bX11DoesntWantBorders = true;
             return;
         }

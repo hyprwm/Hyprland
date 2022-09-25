@@ -58,7 +58,7 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
     if (disableTime && !*disableTime) {
         auto timet = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         const auto MILLIS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 1000;
-        
+
         ofs << std::put_time(std::localtime(&timet), "[%H:%M:%S:");
 
         if (MILLIS > 99)

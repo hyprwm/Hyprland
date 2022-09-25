@@ -288,7 +288,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
             if (*PFOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_pLastWindow)
                 wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
-                
+
             m_bLastFocusOnLS = false;
             return;  // don't enter any new surfaces
         } else {
@@ -372,7 +372,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
             break;
         default:
             break;
-    } 
+    }
 }
 
 void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
@@ -467,11 +467,11 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
         const auto PKEYBOARD = (SKeyboard*)owner;
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," +getActiveLayoutForKeyboard(PKEYBOARD)}, true); // force as this should ALWAYS be sent
-        
+
     }, PNEWKEYBOARD, "Keyboard");
 
     disableAllKeyboards(false);
-    
+
     m_pActiveKeyboard = PNEWKEYBOARD;
 
     PNEWKEYBOARD->active = true;
@@ -502,7 +502,7 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
         const auto PKEYBOARD = (SKeyboard*)owner;
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," +getActiveLayoutForKeyboard(PKEYBOARD)}, true); // force as this should ALWAYS be sent
-        
+
     }, PNEWKEYBOARD, "Keyboard");
 
     disableAllKeyboards(true);
@@ -599,7 +599,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
       } else {
         KEYMAP = xkb_keymap_new_from_file(CONTEXT, fopen(path.c_str(), "r"), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
       }
-    } 
+    }
 
     if (!KEYMAP) {
       KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -642,7 +642,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," +getActiveLayoutForKeyboard(pKeyboard)}, true); // force as this should ALWAYS be sent
 
     Debug::log(LOG, "Set the keyboard layout to %s and variant to %s for keyboard \"%s\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
-} 
+}
 
 void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
     m_lMice.emplace_back();
@@ -879,7 +879,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
                 }
             }
         }
-        
+
         wlr_pointer_constraint_v1_send_deactivated(pMouse->currentConstraint);
     }
 
@@ -969,7 +969,7 @@ std::string CInputManager::getActiveLayoutForKeyboard(SKeyboard* pKeyboard) {
         if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE)) {
             const auto LAYOUTNAME = xkb_keymap_layout_get_name(KEYMAP, i);
 
-            if (LAYOUTNAME) 
+            if (LAYOUTNAME)
                 return std::string(LAYOUTNAME);
             return "error";
         }

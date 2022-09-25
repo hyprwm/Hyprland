@@ -120,7 +120,7 @@ void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
     SXDGPopup* PPOPUP = (SXDGPopup*)owner;
 
     ASSERT(PPOPUP);
-    
+
     if (PPOPUP->parentWindow)
         Debug::log(LOG, "New popup created from XDG Window popup %x -> %s", PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
     else

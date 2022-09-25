@@ -67,7 +67,7 @@ namespace Events {
     LISTENER(mouseButton);
     LISTENER(mouseAxis);
     LISTENER(mouseFrame);
-    
+
     LISTENER(newInput);
 
     // Virt Ptr
@@ -77,7 +77,7 @@ namespace Events {
     DYNLISTENFUNC(keyboardKey);
     DYNLISTENFUNC(keyboardMod);
     DYNLISTENFUNC(keyboardDestroy);
-    
+
     DYNLISTENFUNC(commitConstraint);
     LISTENER(newConstraint);
     DYNLISTENFUNC(setConstraintRegion);

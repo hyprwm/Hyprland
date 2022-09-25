@@ -12,7 +12,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     m_iMonitorID = monitorID;
     m_szName = name;
     m_bIsSpecialWorkspace = special;
-    
+
     if (!special) {
         m_pWlrHandle = wlr_ext_workspace_handle_v1_create(PMONITOR->pWLRWorkspaceGroupHandle);
 

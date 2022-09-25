@@ -17,7 +17,7 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
     if (format == HyprCtl::FORMAT_JSON) {
         result += "[";
-        
+
         for (auto& m : g_pCompositor->m_vMonitors) {
             result += getFormat(
 R"#({
@@ -113,7 +113,7 @@ R"#({
             if (w->m_bIsMapped) {
                 result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\txwayland: %i\n\tpinned: %i\n\n",
                                 w.get(), w->m_szTitle.c_str(), (int)w->m_vRealPosition.vec().x, (int)w->m_vRealPosition.vec().y, (int)w->m_vRealSize.vec().x, (int)w->m_vRealSize.vec().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned);
-        
+
             }
         }
     }
@@ -214,12 +214,12 @@ R"#("%s": {
     "levels": {
 )#",
                 escapeJSONStrings(mon->szName).c_str()
-            ); 
+            );
 
             int layerLevel = 0;
             for (auto& level : mon->m_aLayerSurfaceLists) {
                 result += getFormat(
-R"#(        
+R"#(
         "%i": [
 )#",
                     layerLevel
@@ -264,7 +264,7 @@ R"#(                {
         result.pop_back();
 
         result += "\n}\n";
-        
+
     } else {
         for (auto& mon : g_pCompositor->m_vMonitors) {
             result += getFormat("Monitor %s:\n", mon->szName.c_str());
@@ -537,14 +537,14 @@ std::string dispatchKeyword(std::string in) {
 
     Debug::log(LOG, "Hyprctl: keyword %s : %s", COMMAND.c_str(), VALUE.c_str());
 
-    if (retval == "") 
+    if (retval == "")
         return "ok";
 
     return retval;
 }
 
 std::string reloadRequest(std::string request) {
-    
+
     const auto REQMODE = request.substr(request.find_last_of(' ') + 1);
 
     g_pConfigManager->m_bForceReload = true;
@@ -705,7 +705,7 @@ std::string getReply(std::string request) {
             }
 
             sepIndex++;
-            
+
             if (c == 'j')
                 format = HyprCtl::FORMAT_JSON;
         }

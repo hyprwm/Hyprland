@@ -59,7 +59,7 @@ void main() {
         }
     }
 
-    if (!done) {  
+    if (!done) {
         // distance to all straight bb borders
         float distanceT = pixCoord[1];
         float distanceB = fullSize[1] - pixCoord[1];

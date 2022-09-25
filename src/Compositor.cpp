@@ -278,7 +278,7 @@ void CCompositor::startCompositor() {
     //
     Debug::log(LOG, "Creating the CHyprError!");
     g_pHyprError = std::make_unique<CHyprError>();
-    
+
     Debug::log(LOG, "Creating the KeybindManager!");
     g_pKeybindManager = std::make_unique<CKeybindManager>();
 
@@ -542,7 +542,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
                 if (resultSurf)
                     return w->get();
             }
-        } 
+        }
     }
 
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
@@ -561,7 +561,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
                 if (resultSurf)
                     return w->get();
             }
-        } 
+        }
     }
 
     // for windows, we need to check their extensions too, first.
@@ -649,7 +649,7 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     RASSERT(!pWindow->m_bIsX11, "Cannot call vectorWindowToSurface on an X11 window!");
 
     const auto PSURFACE = pWindow->m_uSurface.xdg;
-    
+
     double subx, suby;
 
     // calc for oversized windows... fucking bullshit, again.
@@ -747,7 +747,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
 
-    // do pointer focus too                                     
+    // do pointer focus too
     const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.goalv();
     wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, POINTERLOCAL.x, POINTERLOCAL.y);
 
@@ -775,7 +775,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         g_pInputManager->m_sIMERelay.onKeyboardFocus(nullptr);
         return;
     }
-        
+
 
     const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);
 
@@ -865,7 +865,7 @@ bool CCompositor::isWorkspaceVisible(const int& w) {
     for (auto& m : m_vMonitors) {
         if (m->activeWorkspace == w)
             return true;
-        
+
         if (m->specialWorkspaceOpen && w == SPECIAL_WORKSPACE_ID)
             return true;
     }
@@ -1599,7 +1599,7 @@ bool CCompositor::workspaceIDOutOfBounds(const int& id) {
 
         if (w->m_iID < lowestID)
             lowestID = w->m_iID;
-        
+
         if (w->m_iID > highestID)
             highestID = w->m_iID;
     }
@@ -1619,7 +1619,7 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
 
     g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
-    
+
     // make all windows on the same workspace under the fullscreen window
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID) {
@@ -1635,7 +1635,7 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
         if (!ls->fadingOut)
             ls->alpha = pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL ? 0.f : 255.f;
     }
-    
+
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv(), true);
 
     forceReportSizesToWindowsOnWorkspace(pWindow->m_iWorkspaceID);
@@ -1662,7 +1662,7 @@ CWindow* CCompositor::getX11Parent(CWindow* pWindow) {
         if (w->m_uSurface.xwayland == pWindow->m_uSurface.xwayland->parent)
             return w.get();
     }
-    
+
     return nullptr;
 }
 

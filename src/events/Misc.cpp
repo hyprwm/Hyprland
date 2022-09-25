@@ -87,7 +87,7 @@ void Events::listener_requestDrag(wl_listener* listener, void* data) {
 }
 
 void Events::listener_startDrag(wl_listener* listener, void* data) {
-   
+
     if (g_pInputManager->m_sDrag.drag)
         return; // don't handle multiple drags
 
@@ -167,7 +167,7 @@ void Events::listener_commitDragIcon(void* owner, void* data) {
 
 void Events::listener_InhibitActivate(wl_listener* listener, void* data) {
     Debug::log(LOG, "Activated exclusive for %x.", g_pCompositor->m_sSeat.exclusiveClient);
-    
+
     g_pInputManager->refocus();
     g_pCompositor->m_sSeat.exclusiveClient = g_pCompositor->m_sWLRInhibitMgr->active_client;
 }
@@ -195,7 +195,7 @@ void Events::listener_powerMgrSetMode(wl_listener* listener, void* data) {
     const auto EVENT = (wlr_output_power_v1_set_mode_event*)data;
 
     wlr_output_enable(EVENT->output, EVENT->mode == 1);
-    
+
     if (!wlr_output_commit(EVENT->output))
         Debug::log(ERR, "Couldn't set power mode");
 }

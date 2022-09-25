@@ -301,7 +301,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_bIsX11) {
         PWINDOW->hyprListener_commitWindow.initCallback(&PWINDOW->m_uSurface.xdg->surface->events.commit, &Events::listener_commitWindow, PWINDOW, "XDG Window Late");
-        PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XDG Window Late");        
+        PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_newPopupXDG.initCallback(&PWINDOW->m_uSurface.xdg->events.new_popup, &Events::listener_newPopupXDG, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_requestMaximize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_maximize, &Events::listener_requestMaximize, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_minimize, &Events::listener_requestMinimize, PWINDOW, "XDG Window Late");
@@ -313,7 +313,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_activateX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_activate, &Events::listener_activateX11, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_configureX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_configure, &Events::listener_configureX11, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XWayland Window Late");
-        
+
         if (PWINDOW->m_iX11Type == 2)
             PWINDOW->hyprListener_setGeometryX11U.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_geometry, &Events::listener_unmanagedSetGeometry, PWINDOW, "XWayland Window Late");
     }
@@ -375,8 +375,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
-    
-    auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName; 
+
+    auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", getFormat("%x,%s,%s,%s", PWINDOW, workspaceID.c_str(), g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), PWINDOW->m_szTitle.c_str())});
 }
 
@@ -384,7 +384,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
-    
+
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x", PWINDOW)});
 
     if (!PWINDOW->m_bIsX11) {
@@ -458,7 +458,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %x", PWINDOW);
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
-    
+
     PWINDOW->m_pSurfaceTree = nullptr;
 
     PWINDOW->m_bFadingOut = true;
@@ -475,7 +475,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_bX11DoesntWantBorders)   // don't animate out if they weren't animated in.
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.vec() + Vector2D(0.01f, 0.01f);  // it has to be animated, otherwise onWindowPostCreateClose will ignore it
-    
+
     // anims
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
     PWINDOW->m_fAlpha = 0.f;
@@ -493,7 +493,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_bMappedX11 || PWINDOW->m_bHidden || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
         return;
 
-    g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);        
+    g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
 
     // Debug::log(LOG, "Window %x committed", PWINDOW); // SPAM!
 }
@@ -567,7 +567,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
     PWINDOW->updateToplevel();
 
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
-    
+
     g_pXWaylandManager->setWindowFullscreen(PWINDOW, PWINDOW->m_bIsFullscreen);
 }
 
@@ -645,7 +645,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
     if (abs(std::floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(std::floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 || abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
         Debug::log(LOG, "Unmanaged window %x requests geometry update to %i %i %i %i", PWINDOW, (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y, (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);
-        
+
         g_pHyprRenderer->damageWindow(PWINDOW);
         PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y));
 

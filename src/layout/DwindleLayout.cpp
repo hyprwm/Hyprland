@@ -139,7 +139,7 @@ SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const int& id) {
 
 void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool force) {
     // Don't set nodes, only windows.
-    if (pNode->isNode) 
+    if (pNode->isNode)
         return;
 
     CMonitor* PMONITOR = nullptr;
@@ -300,7 +300,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         // happens on reserved area
         if (!OPENINGON && g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID) > 0)
             OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
-            
+
     } else if (*PUSEACTIVE) {
         if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && !g_pCompositor->m_pLastWindow->m_bIsFloating && g_pCompositor->m_pLastWindow != pWindow && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsMapped) {
             OPENINGON = getNodeFromWindow(g_pCompositor->m_pLastWindow);
@@ -370,7 +370,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
         return;
     }
-    
+
     // If it's not, get the node under our cursor
 
     m_lDwindleNodesData.push_back(SDwindleNodeData());
@@ -413,7 +413,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             NEWPARENT->children[1] = PNODE;
         }
     }
-    
+
     // and update the previous parent if it exists
     if (OPENINGON->pParent) {
         if (OPENINGON->pParent->children[0] == OPENINGON) {
@@ -424,7 +424,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     }
 
     // Update the children
-    
+
 
     if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y) {
         // split left/right
@@ -473,7 +473,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
         if (PNODE->groupHead) {
             PNEXT->groupHead = true;
             PNEXT->pParent = PNODE->pParent;
-            
+
             if (PNODE->pParent) {
                 if (PNODE->pParent->children[0] == PNODE) {
                     PNODE->pParent->children[0] = PNEXT;
@@ -502,7 +502,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
             // means we dissolved the group
             recalculateMonitor(PNEXT->pWindow->m_iMonitorID);
         }
-        
+
         return;
     }
 
@@ -533,7 +533,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
     if (PSIBLING->pParent)
         PSIBLING->pParent->recalcSizePosRecursive();
-    else 
+    else
         PSIBLING->recalcSizePosRecursive();
 
     m_lDwindleNodesData.remove(*PPARENT);
@@ -809,7 +809,7 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
         PNODE->pWindow->m_bIsFloating = PHEAD->pWindow->m_bIsFloating;
 
         std::deque<CWindow*> toAddWindows;
-        
+
         const auto PWINDOWNODE = PNODE->pWindow;
         toAddWindows.push_back(PWINDOWNODE);
 
@@ -821,13 +821,13 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
             PWINDOW->m_bHidden = false;
         }
-	    
+
 	if (PHEAD->pPreviousGroupMember)
 	    PHEAD->pPreviousGroupMember->pNextGroupMember = PHEAD->pNextGroupMember;
 
 	if (PHEAD->pNextGroupMember)
 	    PHEAD->pNextGroupMember->pPreviousGroupMember = PHEAD->pPreviousGroupMember;
-    
+
 	PHEAD->pPreviousGroupMember = nullptr;
 	PHEAD->pNextGroupMember = nullptr;
 
@@ -921,7 +921,7 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 }
 
 std::deque<CWindow*> CHyprDwindleLayout::getGroupMembers(CWindow* pWindow) {
-    
+
     std::deque<CWindow*> result;
 
     if (!g_pCompositor->windowExists(pWindow))
@@ -985,7 +985,7 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward, CWind
     g_pCompositor->focusWindow(pNewNode->pWindow);
 
     pNewNode->pWindow->m_bIsFloating = PNODE->pWindow->m_bIsFloating;
-    
+
     if (PNODE->pWindow->m_bIsFullscreen) {
         PNODE->pWindow->m_bHidden = false;
         g_pCompositor->setWindowFullscreen(PNODE->pWindow, false, PWORKSPACE->m_efFullscreenMode);
@@ -1104,7 +1104,7 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
 
 	// recalc the workspace
     getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
-    
+
     if (PNODE2->workspaceID != PNODE->workspaceID) {
         getMasterNodeOnWorkspace(PNODE2->workspaceID)->recalcSizePosRecursive();
     }
@@ -1150,7 +1150,7 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         auto res = getGroupMembers(header.pWindow ? header.pWindow : g_pCompositor->m_pLastWindow);
         return res;
     }
-    
+
     return "";
 }
 

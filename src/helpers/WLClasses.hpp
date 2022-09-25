@@ -193,7 +193,7 @@ struct SDrag {
     bool            iconMapped = false;
 
     wlr_drag_icon*  dragIcon = nullptr;
-    
+
     Vector2D        pos;
 
     DYNLISTENER(destroyIcon);

@@ -125,7 +125,7 @@ public:
         switch (m_eVarType) {
             case AVARTYPE_FLOAT:
                 return m_fValue != m_fGoal;
-            case AVARTYPE_VECTOR: 
+            case AVARTYPE_VECTOR:
                 return m_vValue != m_vGoal;
             case AVARTYPE_COLOR:
                 return m_cValue != m_cGoal;

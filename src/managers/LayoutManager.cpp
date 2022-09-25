@@ -2,7 +2,7 @@
 
 IHyprLayout* CLayoutManager::getCurrentLayout() {
     switch (m_iCurrentLayoutID) {
-        case DWINDLE: 
+        case DWINDLE:
             return &m_cDwindleLayout;
         case MASTER:
             return &m_cMasterLayout;

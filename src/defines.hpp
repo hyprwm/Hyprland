@@ -28,7 +28,7 @@
 #define PIXMAN_DAMAGE_FOREACH(region) int rectsNum = 0; \
     const auto RECTSARR = pixman_region32_rectangles(region, &rectsNum); \
     for (int i = 0; i < rectsNum; ++i)
-    
+
 
 #define interface class
 

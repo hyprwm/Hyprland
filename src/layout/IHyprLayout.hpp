@@ -79,7 +79,7 @@ public:
     */
     virtual void        onEndDragWindow();
     /*
-        Called whenever the mouse moves, should the layout want to 
+        Called whenever the mouse moves, should the layout want to
         do anything with it.
         Useful for dragging.
     */
@@ -94,19 +94,19 @@ public:
 
     /*
         Called when a dispatcher requests a custom message
-        The layout is free to ignore. 
+        The layout is free to ignore.
         std::any is the reply. Can be empty.
     */
     virtual std::any    layoutMessage(SLayoutMessageHeader, std::string)  = 0;
 
-    /* 
+    /*
         Required to be handled, but may return just SWindowRenderLayoutHints()
         Called when the renderer requests any special draw flags for
         a specific window, e.g. border color for groups.
     */
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*) = 0;
 
-    /* 
+    /*
         Called when the user requests two windows to be swapped places.
         The layout is free to ignore.
     */

@@ -29,7 +29,7 @@ public:
     void            onMouseMoved(wlr_pointer_motion_event*);
     void            onMouseWarp(wlr_pointer_motion_absolute_event*);
     void            onMouseButton(wlr_pointer_button_event*);
-    void            onMouseWheel(wlr_pointer_axis_event*); 
+    void            onMouseWheel(wlr_pointer_axis_event*);
     void            onKeyboardKey(wlr_keyboard_key_event*, SKeyboard*);
     void            onKeyboardMod(void*, SKeyboard*);
 

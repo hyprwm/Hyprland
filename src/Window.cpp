@@ -48,7 +48,7 @@ wlr_box CWindow::getFullWindowBoundingBox() {
                         m_vRealPosition.vec().y - maxExtents.topLeft.y,
                         m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x,
                         m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
-    
+
     return finalBox;
 }
 
@@ -119,7 +119,7 @@ void CWindow::createToplevelHandle() {
         return; // don't create a toplevel
 
     m_phForeignToplevel = wlr_foreign_toplevel_handle_v1_create(g_pCompositor->m_sWLRToplevelMgr);
-    
+
     wlr_foreign_toplevel_handle_v1_set_app_id(m_phForeignToplevel, g_pXWaylandManager->getAppIDClass(this).c_str());
     wlr_foreign_toplevel_handle_v1_output_enter(m_phForeignToplevel, g_pCompositor->getMonitorFromID(m_iMonitorID)->output);
     wlr_foreign_toplevel_handle_v1_set_title(m_phForeignToplevel, m_szTitle.c_str());

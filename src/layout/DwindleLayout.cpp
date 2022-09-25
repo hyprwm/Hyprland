@@ -206,11 +206,11 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->m_sSpecialRenderData.border = true;
     PWINDOW->m_sSpecialRenderData.decorate = true;
 
-    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? *PGAPSOUT : *PGAPSIN,
-                                        DISPLAYTOP ? *PGAPSOUT : *PGAPSIN);
+    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? *PGAPSOUT / PMONITOR->scale : *PGAPSIN / PMONITOR->scale,
+                                        DISPLAYTOP ? *PGAPSOUT / PMONITOR->scale : *PGAPSIN / PMONITOR->scale);
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? *PGAPSOUT : *PGAPSIN,
-                                            DISPLAYBOTTOM ? *PGAPSOUT : *PGAPSIN);
+    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? *PGAPSOUT / PMONITOR->scale : *PGAPSIN / PMONITOR->scale,
+                                            DISPLAYBOTTOM ? *PGAPSOUT / PMONITOR->scale : *PGAPSIN / PMONITOR->scale);
 
     calcPos = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;

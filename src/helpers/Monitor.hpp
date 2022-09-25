@@ -43,7 +43,7 @@ public:
 
     // for the special workspace
     bool        specialWorkspaceOpen = false;
-    
+
     // Double-linked list because we need to have constant mem addresses for signals
     // We have to store pointers and use raw new/delete because they might be moved between them
     // and I am lazy

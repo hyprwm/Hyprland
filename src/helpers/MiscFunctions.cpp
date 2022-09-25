@@ -65,7 +65,7 @@ std::string absolutePath(const std::string& rawpath, const std::string& currentP
 void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
     ASSERT(pSignal);
     ASSERT(pListener);
-    
+
     wl_signal_add(pSignal, pListener);
 
     Debug::log(LOG, "Registered signal for owner %x: %x -> %x (owner: %s)", pOwner, pSignal, pListener, ownerString.c_str());
@@ -212,9 +212,9 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             while (remains != 0) {
                 if (remains < 0)
                     searchID--;
-                else 
+                else
                     searchID++;
-                
+
                 if (g_pCompositor->workspaceIDOutOfBounds(searchID)){
                     // means we need to wrap around
                     int lowestID = 99999;
@@ -233,7 +233,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
                     if (remains < 0)
                         searchID = highestID;
-                    else 
+                    else
                         searchID = lowestID;
                 }
 
@@ -262,7 +262,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 result = INT_MAX;
             }
             outName = std::to_string(result);
-        }        
+        }
     }
 
     return result;

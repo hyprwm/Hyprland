@@ -42,7 +42,7 @@ void main() {
     vec4 pixColor = v_color;
 
     bool done = false;
-    
+
     // check for edges
     if (pixCoord[0] < topLeft[0]) {
         if (pixCoord[1] < topLeft[1]) {

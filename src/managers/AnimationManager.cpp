@@ -167,7 +167,7 @@ void CAnimationManager::tick() {
             }
             case AVARDAMAGE_BORDER: {
                 RASSERT(PWINDOW, "Tried to AVARDAMAGE_BORDER a non-window AVAR!");
-                
+
                 // damage only the border.
                 static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
                 const auto ROUNDINGSIZE = *PROUNDING + 1;
@@ -222,7 +222,7 @@ void CAnimationManager::tick() {
                 break;
             }
         }
-        
+
 
         // set size and pos if valid, but only if damage policy entire (dont if border for example)
         if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)

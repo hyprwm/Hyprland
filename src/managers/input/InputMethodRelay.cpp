@@ -97,7 +97,7 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
     }, this, "IMERelay");
 
     hyprListener_IMENewPopup.initCallback(&m_pWLRIME->events.new_popup_surface, [&](void* owner, void* data) {
-        
+
         const auto PNEWPOPUP = &m_lIMEPopups.emplace_back();
 
         PNEWPOPUP->pSurface = (wlr_input_popup_surface_v2*)data;
@@ -120,7 +120,7 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
 }
 
 void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
-    if (!pPopup->pSurface->mapped)  
+    if (!pPopup->pSurface->mapped)
         return;
 
     // damage last known pos & size
@@ -404,7 +404,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
     for (auto& ti : m_lTextInputs) {
         if (ti.pPendingSurface) {
 
-            if (pSurface != ti.pPendingSurface) 
+            if (pSurface != ti.pPendingSurface)
                 setPendingSurface(&ti, nullptr);
 
         } else if (ti.pWlrInput->focused_surface) {

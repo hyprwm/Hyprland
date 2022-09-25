@@ -90,7 +90,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
     // draw the shadow
     wlr_box fullBox = {m_vLastWindowPos.x - m_seExtents.topLeft.x + 2, m_vLastWindowPos.y - m_seExtents.topLeft.y + 2, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x - 4, m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y - 4};
-    
+
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
 
@@ -111,7 +111,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
         wlr_box windowBox = {m_vLastWindowPos.x - pMonitor->vecPosition.x, m_vLastWindowPos.y - pMonitor->vecPosition.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
 
         scaleBox(&windowBox, pMonitor->scale);
-        
+
         if (windowBox.width < 1 || windowBox.height < 1) {
             glClearStencil(0);
             glClear(GL_STENCIL_BUFFER_BIT);

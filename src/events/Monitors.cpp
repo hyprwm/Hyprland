@@ -99,7 +99,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         Debug::log(WARN, "Attempted to render frame on inactive session!");
         return; // cannot draw on session inactive (different tty)
     }
-    
+
     if (!PMONITOR->m_bEnabled)
         return;
 
@@ -218,7 +218,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         if (PMONITOR->forceFullFrames > 10)
             PMONITOR->forceFullFrames = 0;
     }
-        
+
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.

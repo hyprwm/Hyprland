@@ -244,7 +244,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     if (layersurface->layerSurface->current.committed != 0) {
         if (layersurface->layer != layersurface->layerSurface->current.layer) {
-            
+
             for (auto it = PMONITOR->m_aLayerSurfaceLists[layersurface->layer].begin(); it != PMONITOR->m_aLayerSurfaceLists[layersurface->layer].end(); it++) {
                 if (it->get() == layersurface) {
                     PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].emplace_back(std::move(*it));

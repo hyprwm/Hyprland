@@ -243,7 +243,7 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
 
     bool found = false;
     if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
-        if (e->delta < 0) { 
+        if (e->delta < 0) {
             found = g_pKeybindManager->handleKeybinds(MODS, "mouse_down", 0, 0, true, 0);
         } else {
             found = g_pKeybindManager->handleKeybinds(MODS, "mouse_up", 0, 0, true, 0);
@@ -391,7 +391,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const int& 
         for (auto& pk : m_dPressedKeysyms) {
             if ((pk == KBKEY || pk == KBKEYUPPER)) {
                 shadow = true;
-                
+
                 if (pk == doesntHave && doesntHave != 0) {
                     shadow = false;
                     break;
@@ -609,7 +609,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         return;
     }
 
-    // Workspace_back_and_forth being enabled means that an attempt to switch to 
+    // Workspace_back_and_forth being enabled means that an attempt to switch to
     // the current workspace will instead switch to the previous.
     const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
     static auto *const PBACKANDFORTH = &g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth")->intValue;
@@ -624,11 +624,11 @@ void CKeybindManager::changeworkspace(std::string args) {
         static auto *const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
         if (!*PALLOWWORKSPACECYCLES)
             PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
-        
+
     } else if (PCURRENTWORKSPACE->m_iID == workspaceToChangeTo && !internal)
         return;
 
-    // remove constraints 
+    // remove constraints
     g_pInputManager->unconstrainMouse();
 
     // if it's not internal, we will unfocus to prevent stuck focus
@@ -699,7 +699,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             // warp and focus
             if (anotherMonitor)
                 g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
-            
+
             g_pCompositor->focusWindow(PWINDOW, g_pXWaylandManager->getWindowSurface(PWINDOW));
 
             if (g_pCompositor->cursorOnReservedArea()) // fix focus on bars etc
@@ -853,7 +853,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     // Hack: So that the layout doesnt find our window at the cursor
     PWINDOW->m_vPosition = Vector2D(-42069, -42069);
-    
+
     g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
     // and restore it
@@ -997,7 +997,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
         return;
     }
-    
+
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     if (PWINDOWTOCHANGETO) {
@@ -1147,7 +1147,7 @@ void CKeybindManager::moveCursorToCorner(std::string arg) {
 }
 
 void CKeybindManager::workspaceOpt(std::string args) {
-    
+
     // current workspace
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
@@ -1484,7 +1484,7 @@ void CKeybindManager::pass(std::string regexp) {
         else
             wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), 1, 1);
     }
-        
+
 
     wlr_keyboard_modifiers kbmods = {g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0};
     wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &kbmods);
@@ -1507,7 +1507,7 @@ void CKeybindManager::pass(std::string regexp) {
         } else {
             wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_PRESSED);
             wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_RELEASED);
-        }  
+        }
     }
 
     if (XWTOXW)
@@ -1553,7 +1553,7 @@ void CKeybindManager::dpms(std::string arg) {
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         wlr_output_enable(m->output, enable);
-        
+
         if (!wlr_output_commit(m->output)) {
             Debug::log(ERR, "Couldn't commit output %s", m->szName.c_str());
         }

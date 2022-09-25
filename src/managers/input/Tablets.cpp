@@ -66,7 +66,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER)
             wlr_tablet_v2_tablet_tool_notify_slider(PTOOL->wlrTabletToolV2, EVENT->slider);
 
-        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL) 
+        if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL)
             wlr_tablet_v2_tablet_tool_notify_wheel(PTOOL->wlrTabletToolV2, EVENT->wheel_delta, 0);
 
         if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_X)
@@ -95,7 +95,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         else {
             wlr_send_tablet_v2_tablet_tool_up(PTOOL->wlrTabletToolV2);
         }
-            
+
     }, PNEWTABLET, "Tablet");
 
     PNEWTABLET->hyprListener_Button.initCallback(&wlr_tablet_from_input_device(pDevice)->events.button, [](void* owner, void* data) {
@@ -104,7 +104,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
         const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
 
         wlr_tablet_v2_tablet_tool_notify_button(PTOOL->wlrTabletToolV2, (zwp_tablet_pad_v2_button_state)EVENT->button, (zwp_tablet_pad_v2_button_state)EVENT->state);
-            
+
     }, PNEWTABLET, "Tablet");
 
     PNEWTABLET->hyprListener_Proximity.initCallback(&wlr_tablet_from_input_device(pDevice)->events.proximity, [](void* owner, void* data) {
@@ -120,13 +120,13 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                 wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
                 PTOOL->pSurface = nullptr;
             }
-            
+
         } else {
             PTOOL->active = true;
             g_pInputManager->refocus();
             g_pInputManager->focusTablet(PTAB, EVENT->tool);
         }
-            
+
     }, PNEWTABLET, "Tablet");
 }
 

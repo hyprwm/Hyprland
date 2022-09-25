@@ -19,7 +19,7 @@
 #include <deque>
 
 const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
-    
+
 commands:
     monitors
     workspaces
@@ -36,7 +36,7 @@ commands:
     reload
     setcursor
     getoption
-    
+
 flags:
     -j -> output in JSON
     --batch -> execute a batch of commands, separated by ';'
@@ -198,7 +198,7 @@ void setcursorRequest(int argc, char** argv) {
 
 void batchRequest(std::string arg) {
     std::string rq = "[[BATCH]]" + arg.substr(arg.find_first_of(" ") + 1);
-    
+
     request(rq);
 }
 

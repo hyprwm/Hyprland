@@ -48,7 +48,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:no_cursor_warps"].intValue = 0;
 
     configValues["general:layout"].strValue = "dwindle";
-    
+
     configValues["misc:disable_hyprland_logo"].intValue = 0;
     configValues["misc:disable_splash_rendering"].intValue = 0;
     configValues["misc:no_vfr"].intValue = 1;
@@ -205,7 +205,7 @@ void CConfigManager::setDefaultAnimationVars() {
         // workspaces
         INITANIMCFG("specialWorkspace");
     }
-    
+
     // init the values
     animationConfig["global"] = {
         false,
@@ -236,7 +236,7 @@ void CConfigManager::setDefaultAnimationVars() {
 }
 
 void CConfigManager::init() {
-    
+
     loadConfigLoadVars();
 
     const char* const ENVHOME = getenv("HOME");
@@ -450,7 +450,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             return;
         }
 
-        if (std::find_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }) != m_dMonitorRules.end()) 
+        if (std::find_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }) != m_dMonitorRules.end())
             m_dMonitorRules.erase(std::remove_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }));
 
         m_dMonitorRules.push_back(newrule);
@@ -593,7 +593,7 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
 
     // anim name
     const auto ANIMNAME = curitem;
-    
+
     const auto PANIM = animationConfig.find(ANIMNAME);
 
     if (PANIM == animationConfig.end()) {
@@ -749,7 +749,7 @@ void CConfigManager::handleUnbind(const std::string& command, const std::string&
 }
 
 bool windowRuleValid(const std::string& RULE) {
-    return !(RULE != "float" 
+    return !(RULE != "float"
         && RULE != "tile"
         && RULE.find("opacity") != 0
         && RULE.find("move") != 0
@@ -875,7 +875,7 @@ void CConfigManager::handleDefaultWorkspace(const std::string& command, const st
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
-    if (submap == "reset") 
+    if (submap == "reset")
         m_szCurrentSubmap = "";
     else
         m_szCurrentSubmap = submap;
@@ -1051,9 +1051,9 @@ void CConfigManager::parseLine(std::string& line) {
 
         if (LASTSEP == std::string::npos || currentCategory.contains("device"))
             currentCategory = "";
-        else 
+        else
             currentCategory = currentCategory.substr(0, LASTSEP);
-        
+
         return;
     }
 
@@ -1078,7 +1078,7 @@ void CConfigManager::loadConfigLoadVars() {
     Debug::log(LOG, "Reloading the config!");
     parseError = "";       // reset the error
     currentCategory = "";  // reset the category
-    
+
     // reset all vars before loading
     setDefaultVars();
     m_dMonitorRules.clear();
@@ -1107,7 +1107,7 @@ void CConfigManager::loadConfigLoadVars() {
     }
 
     configPaths.push_back(CONFIGPATH);
- 
+
     std::ifstream ifs;
     ifs.open(CONFIGPATH);
 
@@ -1219,7 +1219,7 @@ void CConfigManager::loadConfigLoadVars() {
         // Force the compositor to fully re-render all monitors
         m->forceFullFrames = 2;
     }
-    
+
     // Reset no monitor reload
     m_bNoMonitorReload = false;
 }

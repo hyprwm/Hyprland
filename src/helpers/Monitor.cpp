@@ -31,7 +31,7 @@ void CMonitor::onConnect(bool noRule) {
 
                 if (!wlr_output_test(output))
                     continue;
-                
+
                 PREFSTATE = mode;
                 break;
             }
@@ -43,7 +43,7 @@ void CMonitor::onConnect(bool noRule) {
             Debug::log(WARN, "No mode found for disabled output %s", output->name);
 
         wlr_output_enable(output, 0);
-        
+
         if (!wlr_output_commit(output)) {
             Debug::log(ERR, "Couldn't commit disabled state on output %s", output->name);
         }
@@ -85,7 +85,7 @@ void CMonitor::onConnect(bool noRule) {
     if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end()){
         g_pCompositor->m_vMonitors.push_back(*m_pThisWrap);
     }
-    
+
     m_bEnabled = true;
 
     wlr_output_set_scale(output, monitorRule.scale);
@@ -115,9 +115,9 @@ void CMonitor::onConnect(bool noRule) {
     if (!pWLRWorkspaceGroupHandle) {
         pWLRWorkspaceGroupHandle = wlr_ext_workspace_group_handle_v1_create(g_pCompositor->m_sWLREXTWorkspaceMgr);
     }
-    
+
     wlr_ext_workspace_group_handle_v1_output_enter(pWLRWorkspaceGroupHandle, output);
-    
+
     setupDefaultWS(monitorRule);
 
     scale = monitorRule.scale;

@@ -3,5 +3,5 @@
 #include "../../Window.hpp"
 
 IHyprWindowDecoration::~IHyprWindowDecoration() {
-    
+
 }

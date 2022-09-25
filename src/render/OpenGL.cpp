@@ -517,7 +517,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     pixman_region32_copy(&damage, originalDamage);
     wlr_region_transform(&damage, &damage, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
     wlr_region_expand(&damage, &damage, pow(2, *PBLURPASSES) * *PBLURSIZE);
-   
+
     // helper
     const auto PMIRRORFB = &m_RenderData.pCurrentMonData->mirrorFB;
     const auto PMIRRORSWAPFB = &m_RenderData.pCurrentMonData->mirrorSwapFB;
@@ -581,7 +581,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     pixman_region32_t tempDamage;
     pixman_region32_init(&tempDamage);
     wlr_region_scale(&tempDamage, &damage, 1.f / 2.f);  // when DOWNscaling, we make the region twice as small because it's the TARGET
-   
+
     drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage);
 
     // and draw
@@ -663,7 +663,7 @@ void CHyprOpenGLImpl::preWindowPass() {
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->m_bHidden && w->m_bIsMapped && !w->m_bIsFloating) {
             hasWindows = true;
-            break;  
+            break;
         }
     }
 
@@ -1116,7 +1116,7 @@ void CHyprOpenGLImpl::renderMirrored() {
 void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const CAIROSURFACE) {
     cairo_select_font_face(CAIRO, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
-    const auto FONTSIZE = (int)(m_RenderData.pMonitor->vecPixelSize.y / 76); 
+    const auto FONTSIZE = (int)(m_RenderData.pMonitor->vecPixelSize.y / 76);
     cairo_set_font_size(CAIRO, FONTSIZE);
 
     cairo_set_source_rgba(CAIRO, 1.f, 1.f, 1.f, 0.32f);

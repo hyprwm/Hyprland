@@ -23,7 +23,7 @@ public:
     CColor operator* (const float& v) const {
         return CColor(r * v, g * v, b * v, a * v);
     }
-    
+
     bool operator==(const CColor& c2) const {
         return r == c2.r && g == c2.g && b == c2.b && a == c2.a;
     }

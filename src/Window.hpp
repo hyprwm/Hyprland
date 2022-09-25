@@ -15,7 +15,7 @@ struct SWindowSpecialRenderData {
     bool rounding = true;
     bool border = true;
     bool decorate = true;
-};  
+};
 
 struct SWindowAdditionalConfigData {
     std::string animationStyle = "";

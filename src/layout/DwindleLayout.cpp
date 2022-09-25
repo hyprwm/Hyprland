@@ -182,15 +182,16 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->m_vPosition = pNode->position;
 
     static auto *const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
+    float scaledBorderSize = *PBORDERSIZE / PMONITOR->scale;
 
-    auto calcPos = PWINDOW->m_vPosition + Vector2D(*PBORDERSIZE, *PBORDERSIZE);
-    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
+    auto calcPos = PWINDOW->m_vPosition + Vector2D(scaledBorderSize, scaledBorderSize);
+    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * scaledBorderSize, 2 * scaledBorderSize);
 
     const auto NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
 
     if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && (NODESONWORKSPACE == 1 || (pNode->isGroupMember() && pNode->getGroupMemberCount() == NODESONWORKSPACE))) {
-        PWINDOW->m_vRealPosition = calcPos - Vector2D(*PBORDERSIZE, *PBORDERSIZE);
-        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
+        PWINDOW->m_vRealPosition = calcPos - Vector2D(scaledBorderSize, scaledBorderSize);
+        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * scaledBorderSize, 2 * scaledBorderSize);
 
         PWINDOW->updateWindowDecos();
 

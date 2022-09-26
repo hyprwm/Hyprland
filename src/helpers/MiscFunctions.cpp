@@ -254,9 +254,9 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
         } else {
             if (g_pCompositor->m_pLastMonitor)
-                result = std::clamp((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1, INT_MAX);
+                result = std::max((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1);
             else if (isNumber(in))
-                result = std::clamp(std::stoi(in), 1, INT_MAX);
+                result = std::max(std::stoi(in), 1);
             else {
                 Debug::log(ERR, "Relative workspace on no mon!");
                 result = INT_MAX;

@@ -1171,6 +1171,8 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     const auto CAIRO = cairo_create(CAIROSURFACE);
 
+    cairo_scale(CAIRO, textureSize.x / pMonitor->vecTransformedSize.x, textureSize.y / pMonitor->vecTransformedSize.y);
+
     if (!*PNOSPLASH)
         renderSplash(CAIRO, CAIROSURFACE);
 

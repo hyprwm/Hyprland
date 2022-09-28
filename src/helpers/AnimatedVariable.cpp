@@ -59,5 +59,5 @@ void CAnimatedVariable::unregister() {
 }
 
 int CAnimatedVariable::getDurationLeftMs() {
-    return std::clamp((int)(m_pConfig->pValues->internalSpeed * 100) - (int)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - animationBegin).count(), 0, INT_MAX);
+    return std::max((int)(m_pConfig->pValues->internalSpeed * 100) - (int)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - animationBegin).count(), 0);
 }

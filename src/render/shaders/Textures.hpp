@@ -5,38 +5,38 @@
 inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVarName) -> std::string {
         return R"#(
 
-	// branchless baby!
-	vec2 pixCoord = v_texcoord - vec2(0.5);
-	pixCoord *= (vec2(lessThan(pixCoord, vec2(0.0))) * vec2(-2.0) + vec2(1.0)) * fullSize;
-	pixCoord -= (bottomRight - topLeft) * vec2(0.5);
+    // branchless baby!
+    vec2 pixCoord = v_texcoord - vec2(0.5);
+    pixCoord *= (vec2(lessThan(pixCoord, vec2(0.0))) * vec2(-2.0) + vec2(1.0)) * fullSize;
+    pixCoord -= (bottomRight - topLeft) * vec2(0.5);
 
-	if (all(greaterThan(pixCoord, vec2(0.0)))) {
+    if (all(greaterThan(pixCoord, vec2(0.0)))) {
 
-		if (ignoreCorners == 1)
-			discard;
+	if (ignoreCorners == 1)
+	    discard;
 
-		float dist = length(pixCoord);
+	float dist = length(pixCoord);
 
-		if (dist > radius)
-			discard;
+	if (dist > radius)
+	    discard;
 
-		if (primitiveMultisample == 1 && dist > radius - 1.0) {
-			float distances = 0.0;
-			if (length(pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-			if (length(pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-			if (length(pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-			if (length(pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
+	if (primitiveMultisample == 1 && dist > radius - 1.0) {
+	    float distances = 0.0;
+	    if (length(pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
+	    if (length(pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
+	    if (length(pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
+	    if (length(pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
 
-			if (distances == 0.0)
-				discard;
+	    if (distances == 0.0)
+		discard;
 
-			distances = distances / 4.0;
+	    distances = distances / 4.0;
 
-			)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
-		}
+	    )#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
+        }
 
-	}
-	)#";
+    }
+)#";
 };
 
 inline const std::string QUADVERTSRC = R"#(
@@ -67,13 +67,14 @@ uniform int primitiveMultisample;
 uniform int ignoreCorners;
 
 void main() {
-	vec4 pixColor = v_color;
 
-	if (radius > 0.0) {
-                )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
-	}
+    vec4 pixColor = v_color;
 
-	gl_FragColor = pixColor;
+    if (radius > 0.0) {
+	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    }
+
+    gl_FragColor = pixColor;
 })#";
 
 inline const std::string TEXVERTSRC = R"#(
@@ -83,8 +84,8 @@ attribute vec2 texcoord;
 varying vec2 v_texcoord;
 
 void main() {
-	gl_Position = vec4(proj * vec3(pos, 1.0), 1.0);
-	v_texcoord = texcoord;
+    gl_Position = vec4(proj * vec3(pos, 1.0), 1.0);
+    v_texcoord = texcoord;
 })#";
 
 // this is texture rendering!!
@@ -109,21 +110,21 @@ uniform int ignoreCorners;
 
 void main() {
 
-	vec4 pixColor = texture2D(tex, v_texcoord);
+    vec4 pixColor = texture2D(tex, v_texcoord);
 
-	if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
-		discard;
+    if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
+	discard;
 
 
-	if (applyTint == 1) {
-		pixColor[0] = pixColor[0] * tint[0];
-		pixColor[1] = pixColor[1] * tint[1];
-		pixColor[2] = pixColor[2] * tint[2];
-	}
+    if (applyTint == 1) {
+	pixColor[0] = pixColor[0] * tint[0];
+	pixColor[1] = pixColor[1] * tint[1];
+	pixColor[2] = pixColor[2] * tint[2];
+    }
 
-	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
-	gl_FragColor = pixColor * alpha;
+    gl_FragColor = pixColor * alpha;
 })#";
 
 inline const std::string TEXFRAGSRCRGBX = R"#(
@@ -147,20 +148,20 @@ uniform int ignoreCorners;
 
 void main() {
 
-	if (discardOpaque == 1 && alpha == 1.0)
-		discard;
+    if (discardOpaque == 1 && alpha == 1.0)
+	discard;
 
-	vec4 pixColor = vec4(texture2D(tex, v_texcoord).rgb, 1.0);
+    vec4 pixColor = vec4(texture2D(tex, v_texcoord).rgb, 1.0);
 
-	if (applyTint == 1) {
-		pixColor[0] = pixColor[0] * tint[0];
-		pixColor[1] = pixColor[1] * tint[1];
-		pixColor[2] = pixColor[2] * tint[2];
-	}
+    if (applyTint == 1) {
+	pixColor[0] = pixColor[0] * tint[0];
+	pixColor[1] = pixColor[1] * tint[1];
+	pixColor[2] = pixColor[2] * tint[2];
+    }
 
-	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
-	gl_FragColor = pixColor * alpha;
+    gl_FragColor = pixColor * alpha;
 })#";
 
 inline const std::string FRAGBLUR1 = R"#(
@@ -173,15 +174,15 @@ uniform float radius;
 uniform vec2 halfpixel;
 
 void main() {
-	vec2 uv = v_texcoord * 2.0;
+    vec2 uv = v_texcoord * 2.0;
 
-        vec4 sum = texture2D(tex, uv) * 4.0;
-        sum += texture2D(tex, uv - halfpixel.xy * radius);
-        sum += texture2D(tex, uv + halfpixel.xy * radius);
-        sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
-        sum += texture2D(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
+    vec4 sum = texture2D(tex, uv) * 4.0;
+    sum += texture2D(tex, uv - halfpixel.xy * radius);
+    sum += texture2D(tex, uv + halfpixel.xy * radius);
+    sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
+    sum += texture2D(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
 
-        gl_FragColor = sum / 8.0;
+    gl_FragColor = sum / 8.0;
 }
 )#";
 
@@ -195,19 +196,19 @@ uniform float radius;
 uniform vec2 halfpixel;
 
 void main() {
-	vec2 uv = v_texcoord / 2.0;
+    vec2 uv = v_texcoord / 2.0;
 
-        vec4 sum = texture2D(tex, uv + vec2(-halfpixel.x * 2.0, 0.0) * radius);
+    vec4 sum = texture2D(tex, uv + vec2(-halfpixel.x * 2.0, 0.0) * radius);
 
-        sum += texture2D(tex, uv + vec2(-halfpixel.x, halfpixel.y) * radius) * 2.0;
-        sum += texture2D(tex, uv + vec2(0.0, halfpixel.y * 2.0) * radius);
-        sum += texture2D(tex, uv + vec2(halfpixel.x, halfpixel.y) * radius) * 2.0;
-        sum += texture2D(tex, uv + vec2(halfpixel.x * 2.0, 0.0) * radius);
-        sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius) * 2.0;
-        sum += texture2D(tex, uv + vec2(0.0, -halfpixel.y * 2.0) * radius);
-        sum += texture2D(tex, uv + vec2(-halfpixel.x, -halfpixel.y) * radius) * 2.0;
+    sum += texture2D(tex, uv + vec2(-halfpixel.x, halfpixel.y) * radius) * 2.0;
+    sum += texture2D(tex, uv + vec2(0.0, halfpixel.y * 2.0) * radius);
+    sum += texture2D(tex, uv + vec2(halfpixel.x, halfpixel.y) * radius) * 2.0;
+    sum += texture2D(tex, uv + vec2(halfpixel.x * 2.0, 0.0) * radius);
+    sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius) * 2.0;
+    sum += texture2D(tex, uv + vec2(0.0, -halfpixel.y * 2.0) * radius);
+    sum += texture2D(tex, uv + vec2(-halfpixel.x, -halfpixel.y) * radius) * 2.0;
 
-        gl_FragColor = sum / 12.0;
+    gl_FragColor = sum / 12.0;
 }
 )#";
 
@@ -234,18 +235,19 @@ uniform int ignoreCorners;
 
 void main() {
 
-	vec4 pixColor = texture2D(texture0, v_texcoord);
+    vec4 pixColor = texture2D(texture0, v_texcoord);
 
-	if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
-		discard;
+    if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
+	discard;
 
-	if (applyTint == 1) {
-		pixColor[0] = pixColor[0] * tint[0];
-		pixColor[1] = pixColor[1] * tint[1];
-		pixColor[2] = pixColor[2] * tint[2];
-	}
+    if (applyTint == 1) {
+	pixColor[0] = pixColor[0] * tint[0];
+	pixColor[1] = pixColor[1] * tint[1];
+	pixColor[2] = pixColor[2] * tint[2];
+    }
 
-	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
-	gl_FragColor = pixColor * alpha;
-})#";
+    gl_FragColor = pixColor * alpha;
+}
+)#";

@@ -226,8 +226,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
-    renderdata.w = std::max(pWindow->m_vRealSize.vec().x, (double)5); // clamp the size to min 5,
-    renderdata.h = std::max(pWindow->m_vRealSize.vec().y, (double)5); // otherwise we'll have issues later with invalid boxes
+    renderdata.w = std::max(pWindow->m_vRealSize.vec().x, 5.0); // clamp the size to min 5,
+    renderdata.h = std::max(pWindow->m_vRealSize.vec().y, 5.0); // otherwise we'll have issues later with invalid boxes
     renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
     renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (pWindow->m_bPinned ? 1.f : (PWORKSPACE->m_fAlpha.fl() / 255.f));
     renderdata.alpha = pWindow->m_fActiveInactiveAlpha.fl();
@@ -492,8 +492,8 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
                 g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(0, 0);
 
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(
-                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x * ((double)pWindow->m_vRealSize.vec().x / ((double)geom.width / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x)),
-                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y * ((double)pWindow->m_vRealSize.vec().y / ((double)geom.height / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y)));
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x * (pWindow->m_vRealSize.vec().x / ((double)geom.width / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.x)),
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y * (pWindow->m_vRealSize.vec().y / ((double)geom.height / g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight.y)));
         }
     } else {
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);

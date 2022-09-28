@@ -170,7 +170,25 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
 }
 
 bool isNumber(const std::string& str, bool allowfloat) {
-    return std::ranges::all_of(str.begin(), str.end(), [&](char c) { return isdigit(c) != 0 || c == '-' || (allowfloat && c == '.'); });
+
+    std::string copy = str;
+    if (*copy.begin() == '-')
+        copy = copy.substr(1);
+
+    bool point = !allowfloat;
+    for (auto& c : copy) {
+        if (c == '.') {
+            if (point)
+                return false;
+            point = true;
+            break;
+        }
+
+        if (!std::isdigit(c))
+            return false;
+    }
+
+    return true;
 }
 
 bool isDirection(const std::string& arg) {

@@ -819,8 +819,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         return;
     }
 
-    auto PSAVEDSIZE = PWINDOW->m_vRealSize.vec();
-    auto PSAVEDPOS = PWINDOW->m_vRealPosition.vec();
+    auto PSAVEDSIZE = PWINDOW->m_vRealSize.goalv();
+    auto PSAVEDPOS = PWINDOW->m_vRealPosition.goalv();
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 

@@ -286,7 +286,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 if (PWORKSPACE)
                     result = PWORKSPACE->m_iID;
             }
-            
+
             outName = std::to_string(result);
         }
     }
@@ -295,8 +295,8 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 }
 
 float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2) {
-    const float DX = std::max((double)0, std::max(p1.x - vec.x, vec.x - p2.x));
-    const float DY = std::max((double)0, std::max(p1.y - vec.y, vec.y - p2.y));
+    const float DX = std::max({0.0, p1.x - vec.x, vec.x - p2.x});
+    const float DY = std::max({0.0, p1.y - vec.y, vec.y - p2.y});
     return DX * DX + DY * DY;
 }
 

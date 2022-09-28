@@ -1,3 +1,4 @@
+#include "Shaders.hpp"
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"

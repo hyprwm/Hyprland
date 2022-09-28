@@ -170,7 +170,25 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
 }
 
 bool isNumber(const std::string& str, bool allowfloat) {
-    return std::ranges::all_of(str.begin(), str.end(), [&](char c) { return isdigit(c) != 0 || c == '-' || (allowfloat && c == '.'); });
+
+    std::string copy = str;
+    if (*copy.begin() == '-')
+        copy = copy.substr(1);
+
+    bool point = !allowfloat;
+    for (auto& c : copy) {
+        if (c == '.') {
+            if (point)
+                return false;
+            point = true;
+            break;
+        }
+
+        if (!std::isdigit(c))
+            return false;
+    }
+
+    return true;
 }
 
 bool isDirection(const std::string& arg) {
@@ -192,7 +210,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         }
         outName = WORKSPACENAME;
     } else {
-        if (in[0] == 'm' || in[0] == 'e') {
+        if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';
 
             if (!g_pCompositor->m_pLastMonitor) {
@@ -253,14 +271,22 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             outName = g_pCompositor->getWorkspaceByID(currentID)->m_szName;
 
         } else {
-            if (g_pCompositor->m_pLastMonitor)
-                result = std::max((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1);
-            else if (isNumber(in))
+            if (in[0] == '+' || in[0] == '-') {
+                if (g_pCompositor->m_pLastMonitor)
+                    result = std::max((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1);
+                else {
+                    Debug::log(ERR, "Relative workspace on no mon!");
+                    result = INT_MAX;
+                }
+            } else if (isNumber(in))
                 result = std::max(std::stoi(in), 1);
             else {
-                Debug::log(ERR, "Relative workspace on no mon!");
-                result = INT_MAX;
+                // maybe name
+                const auto PWORKSPACE = g_pCompositor->getWorkspaceByName(in);
+                if (PWORKSPACE)
+                    result = PWORKSPACE->m_iID;
             }
+            
             outName = std::to_string(result);
         }
     }

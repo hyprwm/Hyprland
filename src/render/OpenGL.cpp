@@ -780,7 +780,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     if (*PBORDERSIZE < 1)
         return;
 
-    float scaledBorderSize = *PBORDERSIZE * m_RenderData.pMonitor->scale;
+    int scaledBorderSize = *PBORDERSIZE * m_RenderData.pMonitor->scale;
 
     if (round < 1) {
         // zero rounding, just lines

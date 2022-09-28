@@ -610,7 +610,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     const auto PNODE = getNodeFromWindow(PWINDOW);
 
     if (!PNODE) {
-        PWINDOW->m_vRealSize = Vector2D(std::clamp((PWINDOW->m_vRealSize.goalv() + pixResize).x, (double)20, (double)999999), std::clamp((PWINDOW->m_vRealSize.goalv() + pixResize).y, (double)20, (double)999999));
+      PWINDOW->m_vRealSize = Vector2D(std::max((PWINDOW->m_vRealSize.goalv() + pixResize).x, 20.0), std::max((PWINDOW->m_vRealSize.goalv() + pixResize).y, 20.0));
         PWINDOW->updateWindowDecos();
         return;
     }
@@ -647,11 +647,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     if (!PPARENT2) {
         if (PARENTSIDEBYSIDE) {
             allowedMovement.x *= 2.f / PPARENT->size.x;
-            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
+            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, 0.1, 1.9);
             PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
         } else {
             allowedMovement.y *= 2.f / PPARENT->size.y;
-            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
+            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, 0.1, 1.9);
             PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
         }
 
@@ -666,11 +666,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     if (!PPARENT2) {
         if (PARENTSIDEBYSIDE) {
             allowedMovement.x *= 2.f / PPARENT->size.x;
-            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
+            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, 0.1, 1.9);
             PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
         } else {
             allowedMovement.y *= 2.f / PPARENT->size.y;
-            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
+            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, 0.1, 1.9);
             PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
         }
 
@@ -684,8 +684,8 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     allowedMovement.x *= 2.f / SIDECONTAINER->size.x;
     allowedMovement.y *= 2.f / TOPCONTAINER->size.y;
 
-    SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, (double)0.1f, (double)1.9f);
-    TOPCONTAINER->splitRatio = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, (double)0.1f, (double)1.9f);
+    SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, 0.1, 1.9);
+    TOPCONTAINER->splitRatio = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, 0.1, 1.9);
     SIDECONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
     TOPCONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
 }

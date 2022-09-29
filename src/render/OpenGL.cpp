@@ -1114,18 +1114,19 @@ void CHyprOpenGLImpl::renderMirrored() {
     renderTexture(PFB->m_cTex, &monbox, 255.f, 0, false, false);
 }
 
-void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const CAIROSURFACE) {
+void CHyprOpenGLImpl::renderSplash(cairo_t *const CAIRO, cairo_surface_t *const CAIROSURFACE, double offsetY) {
     cairo_select_font_face(CAIRO, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
     const auto FONTSIZE = (int)(m_RenderData.pMonitor->vecPixelSize.y / 76);
     cairo_set_font_size(CAIRO, FONTSIZE);
 
-    cairo_set_source_rgba(CAIRO, 1.f, 1.f, 1.f, 0.32f);
+    cairo_set_source_rgba(CAIRO, 1.0, 1.0, 1.0, 0.32);
 
     cairo_text_extents_t textExtents;
     cairo_text_extents(CAIRO, g_pCompositor->m_szCurrentSplash.c_str(), &textExtents);
 
-    cairo_move_to(CAIRO, m_RenderData.pMonitor->vecPixelSize.x / 2.f - textExtents.width / 2.f, m_RenderData.pMonitor->vecPixelSize.y - textExtents.height - 1);
+    cairo_move_to(CAIRO, (m_RenderData.pMonitor->vecPixelSize.x - textExtents.width) / 2.0, m_RenderData.pMonitor->vecPixelSize.y - textExtents.height + offsetY);
+
     cairo_show_text(CAIRO, g_pCompositor->m_szCurrentSplash.c_str());
 
     cairo_surface_flush(CAIROSURFACE);
@@ -1167,13 +1168,37 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     PTEX->m_vSize = textureSize;
 
+    // calc the target box
+    const double MONRATIO = m_RenderData.pMonitor->vecTransformedSize.x / m_RenderData.pMonitor->vecTransformedSize.y;
+    const double WPRATIO = 1.77;
+
+    Vector2D origin;
+    double scale;
+
+    if (MONRATIO > WPRATIO) {
+        scale = m_RenderData.pMonitor->vecTransformedSize.x / PTEX->m_vSize.x;
+
+        origin.y = (m_RenderData.pMonitor->vecTransformedSize.y - PTEX->m_vSize.y * scale) / 2.0;
+    } else {
+        scale = m_RenderData.pMonitor->vecTransformedSize.y / PTEX->m_vSize.y;
+
+        origin.x = (m_RenderData.pMonitor->vecTransformedSize.x - PTEX->m_vSize.x * scale) / 2.0;
+    }
+
+    wlr_box box = {origin.x, origin.y, PTEX->m_vSize.x * scale, PTEX->m_vSize.y * scale};
+
+    m_mMonitorRenderResources[pMonitor].backgroundTexBox = box;
+
     // create a new one with cairo
     const auto CAIROSURFACE = cairo_image_surface_create_from_png(texPath.c_str());
-
     const auto CAIRO = cairo_create(CAIROSURFACE);
 
+    // scale it to fit the current monitor
+    cairo_scale(CAIRO, textureSize.x / pMonitor->vecTransformedSize.x, textureSize.y / pMonitor->vecTransformedSize.y);
+
+    // render splash on wallpaper
     if (!*PNOSPLASH)
-        renderSplash(CAIRO, CAIROSURFACE);
+        renderSplash(CAIRO, CAIROSURFACE, origin.y * WPRATIO / MONRATIO);
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
@@ -1188,28 +1213,6 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     cairo_surface_destroy(CAIROSURFACE);
     cairo_destroy(CAIRO);
-
-    // calc the target box
-
-    const float MONRATIO = m_RenderData.pMonitor->vecTransformedSize.x / m_RenderData.pMonitor->vecTransformedSize.y;
-    const float WPRATIO = 1.77f;
-
-    Vector2D origin;
-    float scale;
-
-    if (MONRATIO > WPRATIO) {
-        scale = m_RenderData.pMonitor->vecTransformedSize.x / PTEX->m_vSize.x;
-
-        origin.y = -(PTEX->m_vSize.y * scale - m_RenderData.pMonitor->vecTransformedSize.y) / 2.f / scale;
-    } else {
-        scale = m_RenderData.pMonitor->vecTransformedSize.y / PTEX->m_vSize.y;
-
-        origin.x = -(PTEX->m_vSize.x * scale - m_RenderData.pMonitor->vecTransformedSize.x) / 2.f / scale;
-    }
-
-    wlr_box box = {origin.x * scale, origin.y * scale, PTEX->m_vSize.x * scale, PTEX->m_vSize.y * scale};
-
-    m_mMonitorRenderResources[pMonitor].backgroundTexBox = box;
 
     Debug::log(LOG, "Background created for monitor %s", pMonitor->szName.c_str());
 }

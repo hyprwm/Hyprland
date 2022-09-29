@@ -705,7 +705,9 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED); // this will be rejected if there already is a fullscreen window
+    const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
+
+    g_pCompositor->setWindowFullscreen(PWINDOW, EV->maximized, FULLSCREEN_MAXIMIZED); // this will be rejected if there already is a fullscreen window
     
     wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
 }

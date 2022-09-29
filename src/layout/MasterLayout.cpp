@@ -241,14 +241,12 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     PWINDOW->m_vSize = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
-    float scaledBorderSize = *PBORDERSIZE / PMONITOR->scale;
-
-    auto calcPos = PWINDOW->m_vPosition + Vector2D(scaledBorderSize, scaledBorderSize);
-    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * scaledBorderSize, 2 * scaledBorderSize);
+    auto calcPos = PWINDOW->m_vPosition + Vector2D(*PBORDERSIZE, *PBORDERSIZE);
+    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
     if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1) {
-        PWINDOW->m_vRealPosition = calcPos - Vector2D(scaledBorderSize, scaledBorderSize);
-        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * scaledBorderSize, 2 * scaledBorderSize);
+        PWINDOW->m_vRealPosition = calcPos - Vector2D(*PBORDERSIZE, *PBORDERSIZE);
+        PWINDOW->m_vRealSize = calcSize + Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
         PWINDOW->updateWindowDecos();
 

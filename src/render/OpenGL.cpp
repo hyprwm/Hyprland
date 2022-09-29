@@ -774,27 +774,29 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     if (*PBORDERSIZE < 1)
         return;
 
+    int scaledBorderSize = *PBORDERSIZE * m_RenderData.pMonitor->scale;
+
     if (round < 1) {
         // zero rounding, just lines
-        wlr_box borderbox = {box->x - *PBORDERSIZE, box->y - *PBORDERSIZE, *PBORDERSIZE, box->height + 2 * *PBORDERSIZE};
+        wlr_box borderbox = {box->x - scaledBorderSize, box->y - scaledBorderSize, scaledBorderSize, box->height + 2 * scaledBorderSize};
         renderRect(&borderbox, col, 0); // left
-        borderbox = {box->x, box->y - (int)*PBORDERSIZE, box->width + (int)*PBORDERSIZE, (int)*PBORDERSIZE};
+        borderbox = {box->x, box->y - (int)scaledBorderSize, box->width + (int)scaledBorderSize, (int)scaledBorderSize};
         renderRect(&borderbox, col, 0);  // top
-        borderbox = {box->x + box->width, box->y, (int)*PBORDERSIZE, box->height + (int)*PBORDERSIZE};
+        borderbox = {box->x + box->width, box->y, (int)scaledBorderSize, box->height + (int)scaledBorderSize};
         renderRect(&borderbox, col, 0);  // right
-        borderbox = {box->x, box->y + box->height, box->width, (int)*PBORDERSIZE};
+        borderbox = {box->x, box->y + box->height, box->width, (int)scaledBorderSize};
         renderRect(&borderbox, col, 0);  // bottom
 
         return;
     }
 
     // adjust box
-    box->x -= *PBORDERSIZE;
-    box->y -= *PBORDERSIZE;
-    box->width += 2 * *PBORDERSIZE;
-    box->height += 2 * *PBORDERSIZE;
+    box->x -= scaledBorderSize;
+    box->y -= scaledBorderSize;
+    box->width += 2 * scaledBorderSize;
+    box->height += 2 * scaledBorderSize;
 
-    round += *PBORDERSIZE;
+    round += scaledBorderSize;
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
@@ -821,7 +823,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radius, round);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.thick, *PBORDERSIZE);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.thick, scaledBorderSize);
     glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.primitiveMultisample, *PMULTISAMPLE);
 
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);

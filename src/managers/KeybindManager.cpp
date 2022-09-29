@@ -948,6 +948,9 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     g_pEventManager->m_bIgnoreEvents = false;
 
+    // manually post event cuz it got ignored above
+    g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", PWINDOW, PWORKSPACE->m_szName.c_str())});
+
     g_pInputManager->refocus();
 }
 

@@ -1616,6 +1616,15 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
         return;
     }
 
+    const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
+
+    const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow && on) {
+        Debug::log(LOG, "Rejecting fullscreen ON on a fullscreen workspace");
+        return;
+    }
+
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
 
     g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
@@ -1628,8 +1637,6 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
                 w->m_fAlpha = pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL ? 0.f : 255.f;
         }
     }
-
-    const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
 
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         if (!ls->fadingOut)

@@ -133,8 +133,9 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
+    wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
+
     if (layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) { // don't focus if constrained
-        wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);

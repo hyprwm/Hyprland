@@ -1129,7 +1129,7 @@ void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
 
     const auto PNODE = getNodeFromWindow(pWindow);
 
-    if (!PNODE || !PNODE->pParent)
+    if (!PNODE || !PNODE->pParent || (PNODE->isGroupMember() && PNODE->getGroupMemberCount() == g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID)))
         return;
 
     PNODE->pParent->splitRatio = std::clamp(PNODE->pParent->splitRatio + ratio, 0.1f, 1.9f);

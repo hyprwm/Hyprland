@@ -6,6 +6,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
         return R"#(
 
     // branchless baby!
+    vec2 bottomRight = fullSize - radius;
     vec2 pixCoord = v_texcoord - vec2(0.5);
     pixCoord *= (vec2(lessThan(pixCoord, vec2(0.0))) * vec2(-2.0) + vec2(1.0)) * fullSize;
     pixCoord -= (bottomRight - topLeft) * vec2(0.5);
@@ -59,7 +60,6 @@ varying vec4 v_color;
 varying vec2 v_texcoord;
 
 uniform vec2 topLeft;
-uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
@@ -88,7 +88,6 @@ void main() {
     v_texcoord = texcoord;
 })#";
 
-// this is texture rendering!!
 inline const std::string TEXFRAGSRCRGBA = R"#(
 precision mediump float;
 varying vec2 v_texcoord; // is in 0-1
@@ -96,7 +95,6 @@ uniform sampler2D tex;
 uniform float alpha;
 
 uniform vec2 topLeft;
-uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
@@ -134,7 +132,6 @@ uniform sampler2D tex;
 uniform float alpha;
 
 uniform vec2 topLeft;
-uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
@@ -221,7 +218,6 @@ uniform samplerExternalOES texture0;
 uniform float alpha;
 
 uniform vec2 topLeft;
-uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 

@@ -152,7 +152,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shQUAD.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shQUAD.topLeft = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shQUAD.bottomRight = glGetUniformLocation(prog, "bottomRight");
     m_RenderData.pCurrentMonData->m_shQUAD.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shQUAD.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shQUAD.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
@@ -166,7 +165,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.posAttrib = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBA.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
     m_RenderData.pCurrentMonData->m_shRGBA.topLeft = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shRGBA.bottomRight = glGetUniformLocation(prog, "bottomRight");
     m_RenderData.pCurrentMonData->m_shRGBA.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBA.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shRGBA.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
@@ -182,7 +180,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBX.posAttrib = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBX.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
     m_RenderData.pCurrentMonData->m_shRGBX.topLeft = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shRGBX.bottomRight = glGetUniformLocation(prog, "bottomRight");
     m_RenderData.pCurrentMonData->m_shRGBX.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBX.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shRGBX.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
@@ -198,7 +195,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shEXT.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shEXT.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
     m_RenderData.pCurrentMonData->m_shEXT.topLeft = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shEXT.bottomRight = glGetUniformLocation(prog, "bottomRight");
     m_RenderData.pCurrentMonData->m_shEXT.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shEXT.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shEXT.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");

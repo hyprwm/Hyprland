@@ -1154,7 +1154,7 @@ void CCompositor::deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclud
     }
 }
 
-CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow) {
+CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow, bool focusableOnly) {
     bool gotToWindow = false;
     for (auto& w : m_vWindows) {
         if (w.get() != pWindow && !gotToWindow)
@@ -1165,19 +1165,19 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow) {
             continue;
         }
 
-        if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->m_bHidden)
+        if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->m_bHidden && (!focusableOnly || !w->m_bNoFocus))
             return w.get();
     }
 
     for (auto& w : m_vWindows) {
-        if (w.get() != pWindow && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->m_bHidden)
+        if (w.get() != pWindow && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->m_bHidden && (!focusableOnly || !w->m_bNoFocus))
             return w.get();
     }
 
     return nullptr;
 }
 
-CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow) {
+CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow, bool focusableOnly) {
     bool gotToWindow = false;
     for (auto it = m_vWindows.rbegin(); it != m_vWindows.rend(); it++) {
         if (it->get() != pWindow && !gotToWindow)
@@ -1188,12 +1188,12 @@ CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow) {
             continue;
         }
 
-        if ((*it)->m_iWorkspaceID == pWindow->m_iWorkspaceID && (*it)->m_bIsMapped && !(*it)->m_bHidden)
+        if ((*it)->m_iWorkspaceID == pWindow->m_iWorkspaceID && (*it)->m_bIsMapped && !(*it)->m_bHidden && (!focusableOnly || !(*it)->m_bNoFocus))
             return it->get();
     }
 
     for (auto it = m_vWindows.rbegin(); it != m_vWindows.rend(); it++) {
-        if (it->get() != pWindow && (*it)->m_iWorkspaceID == pWindow->m_iWorkspaceID && (*it)->m_bIsMapped && !(*it)->m_bHidden)
+        if (it->get() != pWindow && (*it)->m_iWorkspaceID == pWindow->m_iWorkspaceID && (*it)->m_bIsMapped && !(*it)->m_bHidden && (!focusableOnly || !(*it)->m_bNoFocus))
             return it->get();
     }
 

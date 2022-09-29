@@ -1003,7 +1003,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
     if (PWINDOWTOCHANGETO) {
         switchToWindow(PWINDOWTOCHANGETO);
     } else {
-        const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW);
+        const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
         if (PWINDOWNEXT) {
             switchToWindow(PWINDOWNEXT);
         }
@@ -1415,9 +1415,9 @@ void CKeybindManager::circleNext(std::string arg) {
     };
 
     if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
-        switchToWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow));
+        switchToWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow, true));
     else
-        switchToWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow));
+        switchToWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow, true));
 }
 
 void CKeybindManager::focusWindow(std::string regexp) {
@@ -1577,16 +1577,16 @@ void CKeybindManager::swapnext(std::string arg) {
     const auto PLASTCYCLED = g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow->m_pLastCycledWindow) && g_pCompositor->m_pLastWindow->m_pLastCycledWindow->m_iWorkspaceID == PLASTWINDOW->m_iWorkspaceID ? g_pCompositor->m_pLastWindow->m_pLastCycledWindow : nullptr;
 
     if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
-        toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTCYCLED ? PLASTCYCLED : PLASTWINDOW);
+        toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTCYCLED ? PLASTCYCLED : PLASTWINDOW, true);
     else
-        toSwap = g_pCompositor->getNextWindowOnWorkspace(PLASTCYCLED ? PLASTCYCLED : PLASTWINDOW);
+        toSwap = g_pCompositor->getNextWindowOnWorkspace(PLASTCYCLED ? PLASTCYCLED : PLASTWINDOW, true);
 
     // sometimes we may come back to ourselves.
     if (toSwap == PLASTWINDOW) {
         if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
-            toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW);
+            toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW), true;
         else
-            toSwap = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW);
+            toSwap = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
     }
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, toSwap);

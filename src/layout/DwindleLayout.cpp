@@ -520,6 +520,17 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
     PSIBLING->size = PPARENT->size;
     PSIBLING->pParent = PPARENT->pParent;
 
+    if (PSIBLING->isGroupMember()) {
+        // apply to all group members
+        SDwindleNodeData* current = PSIBLING->pNextGroupMember;
+
+        while (current != PSIBLING) {
+            current->position = PPARENT->position;
+            current->size = PPARENT->size;
+            current = current->pNextGroupMember;
+        }
+    }
+
     if (PPARENT->pParent != nullptr) {
         if (PPARENT->pParent->children[0] == PPARENT) {
             PPARENT->pParent->children[0] = PSIBLING;

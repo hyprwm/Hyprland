@@ -1102,7 +1102,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
         switch (dir) {
             case 'l':
                 if (STICKS(POSA.x, POSB.x + SIZEB.x)) {
-                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect = INTERSECTLEN;
                         longestIntersectWindow = w.get();
@@ -1111,7 +1111,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
                 break;
             case 'r':
                 if (STICKS(POSA.x + SIZEA.x, POSB.x)) {
-                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect = INTERSECTLEN;
                         longestIntersectWindow = w.get();
@@ -1121,7 +1121,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
             case 't':
             case 'u':
                 if (STICKS(POSA.y, POSB.y + SIZEB.y)) {
-                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect = INTERSECTLEN;
                         longestIntersectWindow = w.get();
@@ -1131,7 +1131,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
             case 'b':
             case 'd':
                 if (STICKS(POSA.y + SIZEA.y, POSB.y)) {
-                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect = INTERSECTLEN;
                         longestIntersectWindow = w.get();
@@ -1277,7 +1277,7 @@ CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
         switch (dir) {
             case 'l':
                 if (STICKS(POSA.x, POSB.x + SIZEB.x)) {
-                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect = INTERSECTLEN;
                         longestIntersectMonitor = m.get();
@@ -1286,7 +1286,7 @@ CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
                 break;
             case 'r':
                 if (STICKS(POSA.x + SIZEA.x, POSB.x)) {
-                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect = INTERSECTLEN;
                         longestIntersectMonitor = m.get();
@@ -1296,7 +1296,7 @@ CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
             case 't':
             case 'u':
                 if (STICKS(POSA.y, POSB.y + SIZEB.y)) {
-                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect = INTERSECTLEN;
                         longestIntersectMonitor = m.get();
@@ -1306,7 +1306,7 @@ CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
             case 'b':
             case 'd':
                 if (STICKS(POSA.y + SIZEA.y, POSB.y)) {
-                    const auto INTERSECTLEN = std::max((double)0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect = INTERSECTLEN;
                         longestIntersectMonitor = m.get();
@@ -1616,6 +1616,15 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
         return;
     }
 
+    const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
+
+    const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow && on) {
+        Debug::log(LOG, "Rejecting fullscreen ON on a fullscreen workspace");
+        return;
+    }
+
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
 
     g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
@@ -1628,8 +1637,6 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
                 w->m_fAlpha = pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL ? 0.f : 255.f;
         }
     }
-
-    const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
 
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         if (!ls->fadingOut)

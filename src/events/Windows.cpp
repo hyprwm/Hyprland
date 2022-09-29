@@ -235,8 +235,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
 
-                    const auto SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, (double)20, PMONITOR->vecSize.x) : (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stoi(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x);
-                    const auto SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, (double)20, PMONITOR->vecSize.y) : (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stoi(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y);
+                    const auto SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) : (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stoi(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
+                    const auto SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) : (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stoi(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
 
                     Debug::log(LOG, "Rule size, applying to window %x", PWINDOW);
 
@@ -253,8 +253,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto POSXSTR = VALUE.substr(0, VALUE.find(" "));
                     const auto POSYSTR = VALUE.substr(VALUE.find(" ") + 1);
 
-                    const auto POSX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.x;
-                    const auto POSY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01f * PMONITOR->vecSize.y;
+                    const auto POSX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x;
+                    const auto POSY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y;
 
                     Debug::log(LOG, "Rule move, applying to window %x", PWINDOW);
 
@@ -705,7 +705,10 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    // ignore
+    const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
+
+    g_pCompositor->setWindowFullscreen(PWINDOW, EV->maximized, FULLSCREEN_MAXIMIZED); // this will be rejected if there already is a fullscreen window
+    
     wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
 }
 

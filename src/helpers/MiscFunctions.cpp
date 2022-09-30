@@ -174,6 +174,9 @@ bool isNumber(const std::string& str, bool allowfloat) {
     std::string copy = str;
     if (*copy.begin() == '-')
         copy = copy.substr(1);
+    
+    if (copy.empty())
+        return false;
 
     bool point = !allowfloat;
     for (auto& c : copy) {

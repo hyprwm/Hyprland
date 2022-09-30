@@ -8,7 +8,6 @@
 
 #include <cairo/cairo.h>
 
-#include "Shaders.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
 #include "Framebuffer.hpp"

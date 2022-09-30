@@ -707,7 +707,7 @@ void Events::listener_requestMaximize(void* owner, void* data) {
 
     const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
 
-    g_pCompositor->setWindowFullscreen(PWINDOW, EV->maximized, FULLSCREEN_MAXIMIZED); // this will be rejected if there already is a fullscreen window
+    g_pCompositor->setWindowFullscreen(PWINDOW, EV ? EV->maximized : !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED); // this will be rejected if there already is a fullscreen window
     
     wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
 }

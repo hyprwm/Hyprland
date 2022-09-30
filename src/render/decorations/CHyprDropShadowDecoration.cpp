@@ -63,30 +63,15 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     static auto *const PSHADOWSIZE = &g_pConfigManager->getConfigValuePtr("decoration:shadow_range")->intValue;
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
     static auto *const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
-    static auto *const PSHADOWOFFSET = &g_pConfigManager->getConfigValuePtr("decoration:shadow_offset")->strValue;
+    static auto *const PSHADOWOFFSET = &g_pConfigManager->getConfigValuePtr("decoration:shadow_offset")->vecValue;
 
     if (*PSHADOWS != 1)
         return; // disabled
 
-    // get the real offset
-    Vector2D offset;
-    try {
-        if (const auto SPACEPOS = PSHADOWOFFSET->find(' '); SPACEPOS != std::string::npos) {
-            const auto X = PSHADOWOFFSET->substr(0, SPACEPOS);
-            const auto Y = PSHADOWOFFSET->substr(SPACEPOS + 1);
-
-            if (isNumber(X, true) && isNumber(Y, true)) {
-                offset = Vector2D(std::stof(X), std::stof(Y));
-            }
-        }
-    } catch (std::exception& e) {
-        return; // cannot parse
-    }
-
     const auto ROUNDING = !m_pWindow->m_sSpecialRenderData.rounding ? 0 : (m_pWindow->m_sAdditionalConfigData.rounding == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding);
 
     // update the extents
-    m_seExtents = {{*PSHADOWSIZE + 2 - offset.x, *PSHADOWSIZE + 2 - offset.y}, {*PSHADOWSIZE + 2 + offset.x, *PSHADOWSIZE + 2 + offset.y}};
+    m_seExtents = {{*PSHADOWSIZE + 2 - PSHADOWOFFSET->x, *PSHADOWSIZE + 2 - PSHADOWOFFSET->y}, {*PSHADOWSIZE + 2 + PSHADOWOFFSET->x, *PSHADOWSIZE + 2 + PSHADOWOFFSET->y}};
 
     // draw the shadow
     wlr_box fullBox = {m_vLastWindowPos.x - m_seExtents.topLeft.x + 2, m_vLastWindowPos.y - m_seExtents.topLeft.y + 2, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x - 4, m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y - 4};

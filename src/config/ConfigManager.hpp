@@ -20,9 +20,10 @@
 #define CREATEANIMCFG(name, parent) animationConfig[name] = {false, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
 
 struct SConfigValue {
-    int64_t intValue = -1;
-    float floatValue = -1;
+    int64_t intValue = -INT64_MAX;
+    float floatValue = -__FLT_MAX__;
     std::string strValue = "";
+    Vector2D vecValue = Vector2D(-__FLT_MAX__, -__FLT_MAX__);
 
     bool set = false; // used for device configs
 };

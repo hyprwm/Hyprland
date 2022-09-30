@@ -81,7 +81,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:shadow_range"].intValue = 4;
     configValues["decoration:shadow_render_power"].intValue = 3;
     configValues["decoration:shadow_ignore_window"].intValue = 1;
-    configValues["decoration:shadow_offset"].strValue = "0 0";
+    configValues["decoration:shadow_offset"].vecValue = Vector2D();
     configValues["decoration:col.shadow"].intValue = 0xee1a1a1a;
     configValues["decoration:col.shadow_inactive"].intValue = INT_MAX;
     configValues["decoration:dim_inactive"].intValue = 0;
@@ -292,7 +292,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
 
     CONFIGENTRY->set = true;
 
-    if (CONFIGENTRY->intValue != -1) {
+    if (CONFIGENTRY->intValue != -INT64_MAX) {
         try {
             if (VALUE.find("0x") == 0) {
                 // Values with 0x are hex
@@ -309,7 +309,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
             Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
         }
-    } else if (CONFIGENTRY->floatValue != -1) {
+    } else if (CONFIGENTRY->floatValue != -__FLT_MAX__) {
         try {
             CONFIGENTRY->floatValue = stof(VALUE);
         } catch (...) {
@@ -319,6 +319,23 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
     } else if (CONFIGENTRY->strValue != "") {
         try {
             CONFIGENTRY->strValue = VALUE;
+        } catch (...) {
+            Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+            parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
+        }
+    } else if (CONFIGENTRY->vecValue != Vector2D(-__FLT_MAX__, -__FLT_MAX__)) {
+        try {
+            if (const auto SPACEPOS = VALUE.find(' '); SPACEPOS != std::string::npos) {
+                const auto X = VALUE.substr(0, SPACEPOS);
+                const auto Y = VALUE.substr(SPACEPOS + 1);
+
+                if (isNumber(X, true) && isNumber(Y, true)) {
+                    CONFIGENTRY->vecValue = Vector2D(std::stof(X), std::stof(Y));
+                }
+            } else {
+                Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
+            }
         } catch (...) {
             Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";

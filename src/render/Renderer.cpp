@@ -36,18 +36,15 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
     rounding -= 1; // to fix a border issue
 
-    if (RDATA->surface && surface == RDATA->surface) {
-        if (wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 255.f) {
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
-        } else {
-            if (RDATA->blur)
-                g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
-            else
-                g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
-        }
-    }
-    else {
-        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
+    // TODO: this is purely cosmetic (the compiler will know to do this).
+    //       I write code like this too: adding stuff trying and end up with something that works,
+    //       but eventually somebody should look over it to make it's kind of readable (so i did!).
+    if (RDATA->surface && surface == RDATA->surface &&
+	!(wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 255.f) &&
+         RDATA->blur) {
+	g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding);
+    }else {
+	g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
     }
 
     wlr_surface_send_frame_done(surface, RDATA->when);

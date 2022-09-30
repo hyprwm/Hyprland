@@ -69,6 +69,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
         return; // disabled
 
     // get the real offset
+    // TODO: please tell me you didn't meant to do this every frame (in a try catch block???)
+    //  or is it optimized away? and did you check the assembly that it actually is?
     Vector2D offset;
     try {
         if (const auto SPACEPOS = PSHADOWOFFSET->find(' '); SPACEPOS != std::string::npos) {

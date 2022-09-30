@@ -320,6 +320,10 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
+    // TODO: can we early out here?
+    // if (!pixman_region32_not_empty(damage))
+    // 	return;
+
     float matrix[9];
     wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
 
@@ -356,6 +360,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.posAttrib);
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.texAttrib);
 
+    // TODO: or has it to be that late in the function?
     if (pixman_region32_not_empty(damage)) {
         PIXMAN_DAMAGE_FOREACH(damage) {
             const auto RECT = RECTSARR[i];
@@ -455,7 +460,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         glUniform1i(shader->applyTint, 0);
     }
 
-    glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    // TODO: ???
+    // glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
     const float verts[] = {
         m_RenderData.primarySurfaceUVBottomRight.x, m_RenderData.primarySurfaceUVTopLeft.y,      // top right
@@ -677,6 +683,13 @@ void CHyprOpenGLImpl::preWindowPass() {
 void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
+    // TODO: while those static const pointers to the data values look kind of clever,
+    //       it is an indirection for every config value every time for everything.
+    //       why not have it be values send to these functions and just read them?
+    //       And btw these auto keyword thing might make it easier to write, but
+    //       If you want people to contribute, it makes it more hard to read and understand for them!
+    //       I myself would use auto only if there is a real good reason for that (e.g. pointer to function that returns an array of
+    //       function pointers or something like that, or maybe unnamed structs in C)
     static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
     static auto *const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
     static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
@@ -690,6 +703,10 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     pixman_region32_t damage;
     pixman_region32_init(&damage);
     pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height);  // clip it to the box
+
+    // TODO(Dickby): can we early out here?
+    // if(!pixman_region32_not_empty(&damage))
+    // 	return;
 
     // amazing hack: the surface has an opaque region!
     pixman_region32_t inverseOpaque;
@@ -741,6 +758,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     // stencil done. Render everything.
     wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+    // TODO: or does it have to be here?
     if (pixman_region32_not_empty(&damage)) {
         // render our great blurred FB
         static auto *const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
@@ -777,6 +795,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto *const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
+    // TODO: pixman early out here?
     if (*PBORDERSIZE < 1)
         return;
 
@@ -838,6 +857,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib);
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib);
 
+    // TODO: or do we have to fill the whole shader data and then maybe do nothing?
     if (pixman_region32_not_empty(m_RenderData.pDamage)) {
         PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
             const auto RECT = RECTSARR[i];

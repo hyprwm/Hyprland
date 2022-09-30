@@ -91,7 +91,13 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     m_seExtents = {{*PSHADOWSIZE + 2 - offset.x, *PSHADOWSIZE + 2 - offset.y}, {*PSHADOWSIZE + 2 + offset.x, *PSHADOWSIZE + 2 + offset.y}};
 
     // draw the shadow
-    wlr_box fullBox = {m_vLastWindowPos.x - m_seExtents.topLeft.x + 2, m_vLastWindowPos.y - m_seExtents.topLeft.y + 2, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x - 4, m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y - 4};
+    // TODO: would it be ok if i break long lines like this, if i come across them?
+    //       It's so much more readable, and not everybody is working on a super wide screeen! PLEASE!
+    wlr_box fullBox = {
+	m_vLastWindowPos.x - m_seExtents.topLeft.x + 2,
+	m_vLastWindowPos.y - m_seExtents.topLeft.y + 2,
+	m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x - 4,
+	m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y - 4};
 
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;

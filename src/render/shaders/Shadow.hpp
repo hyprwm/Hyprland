@@ -14,26 +14,26 @@ uniform float radius;
 uniform float range;
 uniform float shadowPower;
 
-float pixAlphaRoundedDistance(float distanceToCorner) {
-     if (distanceToCorner > radius) {
-        return 0.0;
-    }
+float pixAlphaRoundedDistance(float distanceToRadiusCenter) {
+    float distanceToCorner = distanceToRadiusCenter - radius;
 
-    if (distanceToCorner > radius - range) {
-        return pow((range - (distanceToCorner - radius + range)) / range, shadowPower); // i think?
-    }
+    if (distanceToCorner > range)
+        return 0.0;
+
+    if (distanceToCorner > 0.0)
+        return 1.0 - pow(distanceToCorner / range, shadowPower);
 
     return 1.0;
 }
 
 void main() {
 
-	vec4 pixColor = v_color;
+    vec4 pixColor = v_color;
     float originalAlpha = pixColor[3];
 
     bool done = false;
 
-	vec2 pixCoord = fullSize * v_texcoord;
+    vec2 pixCoord = fullSize * v_texcoord;
 
     // ok, now we check the distance to a border.
 
@@ -66,17 +66,17 @@ void main() {
         float distanceL = pixCoord[0];
         float distanceR = fullSize[0] - pixCoord[0];
 
-        // get the smallest
-        float smallest = min(min(distanceT, distanceB), min(distanceL, distanceR));
+        // get the distance to the closest edge
+        float distanceToEdge = range - min(min(distanceT, distanceB), min(distanceL, distanceR));
 
-        if (smallest < range) {
-            pixColor[3] = pixColor[3] * pow((smallest / range), shadowPower);
+        if (distanceToEdge > 0.0) {
+            pixColor[3] *= 1.0 - pow(distanceToEdge / range, shadowPower);
         }
     }
 
-    if (pixColor[3] == 0.0) {
+    if (pixColor[3] == 0.0) { // TODO: is this necessary?
         discard; return;
     }
 
-	gl_FragColor = pixColor;
+    gl_FragColor = pixColor;
 })#";

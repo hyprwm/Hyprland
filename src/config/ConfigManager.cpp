@@ -79,7 +79,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:no_blur_on_oversized"].intValue = 0;
     configValues["decoration:drop_shadow"].intValue = 1;
     configValues["decoration:shadow_range"].intValue = 4;
-    configValues["decoration:shadow_render_power"].intValue = 3;
+    configValues["decoration:shadow_render_power"].floatValue = 0.5f;
     configValues["decoration:shadow_ignore_window"].intValue = 1;
     configValues["decoration:shadow_offset"].vecValue = Vector2D();
     configValues["decoration:col.shadow"].intValue = 0xee1a1a1a;

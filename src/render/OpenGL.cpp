@@ -455,8 +455,6 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         glUniform1i(shader->applyTint, 0);
     }
 
-    glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
     const float verts[] = {
         m_RenderData.primarySurfaceUVBottomRight.x, m_RenderData.primarySurfaceUVTopLeft.y,      // top right
         m_RenderData.primarySurfaceUVTopLeft.x, m_RenderData.primarySurfaceUVTopLeft.y,          // top left

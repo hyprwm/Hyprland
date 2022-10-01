@@ -58,6 +58,8 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:layers_hog_keyboard_focus"].intValue = 1;
     configValues["misc:animate_manual_resizes"].intValue = 0;
     configValues["misc:disable_autoreload"].intValue = 0;
+    configValues["misc:enable_swallow"].intValue = 0;
+    configValues["misc:swallow_regex"].strValue = STRVAL_EMPTY;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

@@ -354,3 +354,38 @@ void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
     // Identity
     mat[8] = 1.0f;
 }
+
+int64_t getPPIDof(int64_t pid) {
+    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    FILE* infile;
+
+    infile = fopen(dir.c_str(), "r");
+    if (!infile)
+        return 0;
+
+    char* line = nullptr;
+    size_t len = 0;
+    ssize_t len2 = 0;
+
+    std::string pidstr;
+
+    while ((len2 = getline(&line, &len, infile)) != -1) {
+        if (strstr(line, "PPid:")) {
+            pidstr = std::string(line, len2);
+            const auto tabpos = pidstr.find_last_of('\t');
+            if (tabpos != std::string::npos)
+                pidstr = pidstr.substr(tabpos);
+            break;
+        }
+    }
+
+    fclose(infile);
+    if (line)
+        free(line);
+
+    try {
+        return std::stoll(pidstr);
+    } catch (std::exception& e) {
+        return 0;
+    }
+}

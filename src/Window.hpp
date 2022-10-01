@@ -146,6 +146,9 @@ public:
     // animated tint
     CAnimatedVariable m_fDimPercent;
 
+    // swallowing
+    CWindow*          m_pSwallowed = nullptr;
+
     // for toplevel monitor events
     uint64_t          m_iLastToplevelMonitorID = -1;
     uint64_t          m_iLastSurfaceMonitorID = -1;

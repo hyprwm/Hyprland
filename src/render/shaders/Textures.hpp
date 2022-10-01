@@ -13,9 +13,6 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
     if (pixCoord.x + pixCoord.y > radius) {
 
-	if (ignoreCorners == 1)
-	    discard;
-
 	float dist = length(pixCoord);
 
 	if (dist > radius)
@@ -64,7 +61,6 @@ uniform vec2 fullSize;
 uniform float radius;
 
 uniform int primitiveMultisample;
-uniform int ignoreCorners;
 
 void main() {
 
@@ -104,7 +100,6 @@ uniform int applyTint;
 uniform vec3 tint;
 
 uniform int primitiveMultisample;
-uniform int ignoreCorners;
 
 void main() {
 
@@ -141,7 +136,6 @@ uniform int applyTint;
 uniform vec3 tint;
 
 uniform int primitiveMultisample;
-uniform int ignoreCorners;
 
 void main() {
 
@@ -227,7 +221,6 @@ uniform int applyTint;
 uniform vec3 tint;
 
 uniform int primitiveMultisample;
-uniform int ignoreCorners;
 
 void main() {
 

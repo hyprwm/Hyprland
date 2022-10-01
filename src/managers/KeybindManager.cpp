@@ -987,7 +987,15 @@ void CKeybindManager::moveFocusTo(std::string args) {
             g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
             Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
             g_pCompositor->warpCursorTo(middle);
-            g_pCompositor->m_pLastMonitor = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID); // update last monitor
+
+            if (PWINDOWTOCHANGETO->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID) {
+                // event
+                const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
+                const auto PNEWWS = g_pCompositor->getWorkspaceByID(PNEWMON->activeWorkspace);
+                g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", PNEWMON->szName + "," + PNEWWS->m_szName});
+
+                g_pCompositor->m_pLastMonitor = PNEWMON;
+            }
         }
     };
 

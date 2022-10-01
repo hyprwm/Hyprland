@@ -272,6 +272,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv();
+
+        g_pCompositor->moveWindowToTop(PWINDOW);
     }
     else {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);

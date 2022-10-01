@@ -548,9 +548,21 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
         wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
-        if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden && !(*w)->m_bX11ShouldntFocus && !(*w)->m_bPinned) {
-            if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))
+        if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden && !(*w)->m_bPinned) {
+            // OR windows should add focus to parent
+            if ((*w)->m_bX11ShouldntFocus && (*w)->m_iX11Type != 2)
+                continue;
+
+            if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y)) {
+
+                if ((*w)->m_iX11Type == 2) {
+                    // Override Redirect
+                    return g_pCompositor->m_pLastWindow; // we kinda trick everything here. 
+                                                         // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
+                }
+
                 return w->get();
+            }
 
             if (!(*w)->m_bIsX11) {
                 wlr_surface* resultSurf = nullptr;

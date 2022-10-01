@@ -49,6 +49,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto *const PINACTIVEALPHA = &g_pConfigManager->getConfigValuePtr("decoration:inactive_opacity")->floatValue;
     static auto *const PACTIVEALPHA = &g_pConfigManager->getConfigValuePtr("decoration:active_opacity")->floatValue;
     static auto *const PDIMSTRENGTH = &g_pConfigManager->getConfigValuePtr("decoration:dim_strength")->floatValue;
+    static auto *const PSWALLOW = &g_pConfigManager->getConfigValuePtr("misc:enable_swallow")->intValue;
+    static auto *const PSWALLOWREGEX = &g_pConfigManager->getConfigValuePtr("misc:swallow_regex")->strValue;
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
     const auto PWORKSPACE = PMONITOR->specialWorkspaceOpen ? g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
@@ -376,6 +378,46 @@ void Events::listener_mapWindow(void* owner, void* data) {
             g_pCompositor->focusWindow(nullptr);
     }
 
+    // verify swallowing
+    if (*PSWALLOW) {
+        // check parent
+        int ppid = getPPIDof(PWINDOW->getPID());
+
+        const auto PPPID = getPPIDof(ppid);
+
+        // why? no clue. Blame terminals.
+        if (PPPID > 2) {
+            ppid = PPPID;
+        }
+
+        if (ppid) {
+            // get window by pid
+            CWindow* found = nullptr;
+            for (auto& w : g_pCompositor->m_vWindows) {
+                if (!w->m_bIsMapped || w->m_bHidden)
+                    continue;
+
+                if (w->getPID() == ppid) {
+                    found = w.get();
+                    break;
+                }
+            }
+
+            if (found) {
+                // check if it's the window we want
+                std::regex rgx(*PSWALLOWREGEX);
+                if (std::regex_match(g_pXWaylandManager->getAppIDClass(found), rgx)) {
+                    // swallow
+                    PWINDOW->m_pSwallowed = found;
+
+                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(found);
+
+                    found->m_bHidden = true;
+                }
+            }
+        }
+    }
+
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
 
     auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
@@ -414,6 +456,13 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // Allow the renderer to catch the last frame.
     g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
+
+    // swallowing
+    if (PWINDOW->m_pSwallowed && g_pCompositor->windowExists(PWINDOW->m_pSwallowed)) {
+        PWINDOW->m_pSwallowed->m_bHidden = false;
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed);
+        PWINDOW->m_pSwallowed = nullptr;
+    }
 
     bool wasLastWindow = false;
 

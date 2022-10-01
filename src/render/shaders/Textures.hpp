@@ -7,11 +7,11 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
     // branchless baby!
     highp vec2 pixCoord = vec2(gl_FragCoord);
-    pixCoord -= topLeft + fullSize / vec2(2.0);
-    pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * vec2(-2.0) + vec2(1.0);
-    pixCoord -= fullSize * vec2(0.5) - vec2(radius);
+    pixCoord -= topLeft + fullSize * 0.5;
+    pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
+    pixCoord -= fullSize * 0.5 - radius;
 
-    if (all(greaterThan(pixCoord, vec2(0.0)))) {
+    if (pixCoord.x + pixCoord.y > radius) {
 
 	if (ignoreCorners == 1)
 	    discard;

@@ -120,13 +120,17 @@ void scaleBox(wlr_box* box, float scale) {
 }
 
 std::string removeBeginEndSpacesTabs(std::string str) {
-    while (str[0] == ' ' || str[0] == '\t') {
-        str = str.substr(1);
+    int countBefore = 0;
+    while (str[countBefore] == ' ' || str[countBefore] == '\t') {
+        countBefore++;
     }
 
-    while (str.length() != 0 && (str[str.length() - 1] == ' ' || str[str.length() - 1] == '\t')) {
-        str = str.substr(0, str.length() - 1);
+    int countAfter = 0;
+    while (str.length() != 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
+        countAfter++;
     }
+
+    str = str.substr(countBefore, str.length() - countBefore - countAfter);
 
     return str;
 }

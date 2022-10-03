@@ -639,7 +639,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     const auto ARGS = CVarList(value, 4);
 
-    if ((ARGS.size() < 4 && !mouse) || (ARGS.size() < 3 && mouse)) {
+    if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse)) {
         parseError = "bind: too few args";
         return;
     } else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse)) {

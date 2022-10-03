@@ -25,6 +25,9 @@ public:
 
 private:
 
+    void flushEvents();
+    void ensureFDsValid();
+
     std::mutex eventQueueMutex;
     std::deque<SHyprIPCEvent> m_dQueuedEvents;
 

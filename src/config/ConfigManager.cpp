@@ -405,35 +405,15 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     // get the monitor config
     SMonitorRule newrule;
 
-    std::string curitem = "";
+    const auto ARGS = CVarList(args);
 
-    std::string argZ = args;
+    newrule.name = ARGS[0];
 
-    auto nextItem = [&]() {
-        auto idx = argZ.find_first_of(',');
-
-        if (idx != std::string::npos) {
-            curitem = argZ.substr(0, idx);
-            argZ = argZ.substr(idx + 1);
-        } else {
-            curitem = argZ;
-            argZ = "";
-        }
-    };
-
-    nextItem();
-
-    newrule.name = curitem;
-
-    nextItem();
-
-    if (curitem == "disable" || curitem == "disabled" || curitem == "addreserved" || curitem == "transform") {
-        if (curitem == "disable" || curitem == "disabled")
+    if (ARGS[1] == "disable" || ARGS[1] == "disabled" || ARGS[1] == "addreserved" || ARGS[1] == "transform") {
+        if (ARGS[1] == "disable" || ARGS[1] == "disabled")
             newrule.disabled = true;
-        else if (curitem == "transform") {
-            nextItem();
-
-            wl_output_transform transform = (wl_output_transform)std::stoi(curitem);
+        else if (ARGS[1] == "transform") {
+            wl_output_transform transform = (wl_output_transform)std::stoi(ARGS[2]);
 
             // overwrite if exists
             for (auto& r : m_dMonitorRules) {
@@ -444,22 +424,14 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             }
 
             return;
-        } else if (curitem == "addreserved") {
-            nextItem();
+        } else if (ARGS[1] == "addreserved") {
+            int top = std::stoi(ARGS[2]);
 
-            int top = std::stoi(curitem);
+            int bottom = std::stoi(ARGS[3]);
 
-            nextItem();
+            int left = std::stoi(ARGS[4]);
 
-            int bottom = std::stoi(curitem);
-
-            nextItem();
-
-            int left = std::stoi(curitem);
-
-            nextItem();
-
-            int right = std::stoi(curitem);
+            int right = std::stoi(ARGS[5]);
 
             m_mAdditionalReservedAreas[newrule.name] = {top, bottom, left, right};
 
@@ -477,27 +449,25 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         return;
     }
 
-    if (curitem.find("pref") == 0) {
+    if (ARGS[1].find("pref") == 0) {
         newrule.resolution = Vector2D();
-    } else if(curitem.find("highrr") == 0) {
+    } else if (ARGS[1].find("highrr") == 0) {
         newrule.resolution = Vector2D(-1,-1);
-    } else if(curitem.find("highres") == 0) {
+    } else if (ARGS[1].find("highres") == 0) {
         newrule.resolution = Vector2D(-1,-2);
     } else {
-        newrule.resolution.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
-        newrule.resolution.y = stoi(curitem.substr(curitem.find_first_of('x') + 1, curitem.find_first_of('@')));
+        newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
+        newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
 
-        if (curitem.contains("@"))
-            newrule.refreshRate = stof(curitem.substr(curitem.find_first_of('@') + 1));
+        if (ARGS[1].contains("@"))
+            newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
     }
 
-    nextItem();
-
-    if (curitem.find("auto") == 0) {
+    if (ARGS[2].find("auto") == 0) {
         newrule.offset = Vector2D(-1, -1);
     } else {
-        newrule.offset.x = stoi(curitem.substr(0, curitem.find_first_of('x')));
-        newrule.offset.y = stoi(curitem.substr(curitem.find_first_of('x') + 1));
+        newrule.offset.x = stoi(ARGS[2].substr(0, ARGS[2].find_first_of('x')));
+        newrule.offset.y = stoi(ARGS[2].substr(ARGS[2].find_first_of('x') + 1));
 
         if (newrule.offset.x < 0 || newrule.offset.y < 0) {
             parseError = "invalid offset. Offset cannot be negative.";
@@ -505,27 +475,26 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         }
     }
 
-    nextItem();
-
-    newrule.scale = stof(curitem);
+    newrule.scale = stof(ARGS[3]);
 
     if (newrule.scale < 0.25f) {
         parseError = "not a valid scale.";
         newrule.scale = 1;
     }
 
-    nextItem();
+    int argno = 4;
 
-    while (curitem != "") {
-        if (curitem == "mirror") {
-            nextItem();
-            newrule.mirrorOf = curitem;
-            nextItem();
+    while (ARGS[argno] != "") {
+        if (ARGS[argno] == "mirror") {
+            newrule.mirrorOf = ARGS[argno + 1];
+            argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax");
-            parseError = "invalid syntax at \"" + curitem + "\"";
+            parseError = "invalid syntax at \"" + ARGS[argno] + "\"";
             return;
         }
+
+        argno++;
     }
 
     if (std::find_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }) != m_dMonitorRules.end())
@@ -535,44 +504,27 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 }
 
 void CConfigManager::handleBezier(const std::string& command, const std::string& args) {
-    std::string curitem = "";
+    const auto ARGS = CVarList(args);
 
-    std::string argZ = args;
+    std::string bezierName = ARGS[0];
 
-    auto nextItem = [&]() {
-        auto idx = argZ.find_first_of(',');
-
-        if (idx != std::string::npos) {
-            curitem = argZ.substr(0, idx);
-            argZ = argZ.substr(idx + 1);
-        } else {
-            curitem = argZ;
-            argZ = "";
-        }
-    };
-
-    nextItem();
-
-    std::string bezierName = curitem;
-
-    nextItem();
-    if (curitem == "")
+    if (ARGS[1] == "")
         parseError = "too few arguments";
-    float p1x = std::stof(curitem);
-    nextItem();
-    if (curitem == "")
+    float p1x = std::stof(ARGS[1]);
+
+    if (ARGS[2] == "")
         parseError = "too few arguments";
-    float p1y = std::stof(curitem);
-    nextItem();
-    if (curitem == "")
+    float p1y = std::stof(ARGS[2]);
+
+    if (ARGS[3] == "")
         parseError = "too few arguments";
-    float p2x = std::stof(curitem);
-    nextItem();
-    if (curitem == "")
+    float p2x = std::stof(ARGS[3]);
+
+    if (ARGS[4] == "")
         parseError = "too few arguments";
-    float p2y = std::stof(curitem);
-    nextItem();
-    if (curitem != "")
+    float p2y = std::stof(ARGS[4]);
+
+    if (ARGS[5] != "")
         parseError = "too many arguments";
 
     g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
@@ -590,28 +542,12 @@ void CConfigManager::setAnimForChildren(SAnimationPropertyConfig *const ANIM) {
 };
 
 void CConfigManager::handleAnimation(const std::string& command, const std::string& args) {
-    std::string curitem = "";
-
-    std::string argZ = args;
-
-    auto nextItem = [&]() {
-        auto idx = argZ.find_first_of(',');
-
-        if (idx != std::string::npos) {
-            curitem = argZ.substr(0, idx);
-            argZ = argZ.substr(idx + 1);
-        } else {
-            curitem = argZ;
-            argZ = "";
-        }
-    };
-
-    nextItem();
+    const auto ARGS = CVarList(args);
 
     // Master on/off
 
     // anim name
-    const auto ANIMNAME = curitem;
+    const auto ANIMNAME = ARGS[0];
 
     const auto PANIM = animationConfig.find(ANIMNAME);
 
@@ -623,20 +559,16 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
     PANIM->second.overriden = true;
     PANIM->second.pValues = &PANIM->second;
 
-    nextItem();
-
     // on/off
-    PANIM->second.internalEnabled = curitem == "1";
+    PANIM->second.internalEnabled = ARGS[1] == "1";
 
-    if (curitem != "0" && curitem != "1") {
+    if (ARGS[1] != "0" && ARGS[1] != "1") {
         parseError = "invalid animation on/off state";
     }
 
-    nextItem();
-
     // speed
-    if (isNumber(curitem, true)) {
-        PANIM->second.internalSpeed = std::stof(curitem);
+    if (isNumber(ARGS[2], true)) {
+        PANIM->second.internalSpeed = std::stof(ARGS[2]);
 
         if (PANIM->second.internalSpeed <= 0) {
             parseError = "invalid speed";
@@ -647,23 +579,19 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
         parseError = "invalid speed";
     }
 
-    nextItem();
-
     // curve
-    PANIM->second.internalBezier = curitem;
+    PANIM->second.internalBezier = ARGS[3];
 
-    if (!g_pAnimationManager->bezierExists(curitem)) {
+    if (!g_pAnimationManager->bezierExists(ARGS[3])) {
         parseError = "no such bezier";
         PANIM->second.internalBezier = "default";
     }
 
-    nextItem();
-
     // style
-    PANIM->second.internalStyle = curitem;
+    PANIM->second.internalStyle = ARGS[4];
 
-    if (curitem != "") {
-        const auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, curitem);
+    if (ARGS[4] != "") {
+        const auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
 
         if (ERR != "")
             parseError = ERR;
@@ -682,9 +610,9 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     bool release = false;
     bool repeat = false;
     bool mouse = false;
-    const auto ARGS = command.substr(4);
+    const auto BINDARGS = command.substr(4);
 
-    for (auto& arg : ARGS) {
+    for (auto& arg : BINDARGS) {
         if (arg == 'l') {
             locked = true;
         } else if (arg == 'r') {
@@ -709,19 +637,24 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         return;
     }
 
-    auto valueCopy = value;
+    const auto ARGS = CVarList(value);
 
-    const auto MOD = g_pKeybindManager->stringToModMask(valueCopy.substr(0, valueCopy.find_first_of(",")));
-    const auto MODSTR = valueCopy.substr(0, valueCopy.find_first_of(","));
-    valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
+    if ((ARGS.size() < 4 && !mouse) || (ARGS.size() < 3 && mouse)) {
+        parseError = "bind: too few args";
+        return;
+    } else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse)) {
+        parseError = "bind: too many args";
+        return;
+    }
 
-    const auto KEY = valueCopy.substr(0, valueCopy.find_first_of(","));
-    valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
+    const auto MOD = g_pKeybindManager->stringToModMask(ARGS[0]);
+    const auto MODSTR = ARGS[0];
 
-    auto HANDLER = valueCopy.substr(0, valueCopy.find_first_of(","));
-    valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
+    const auto KEY = ARGS[1];
 
-    const auto COMMAND = mouse ? HANDLER : valueCopy;
+    auto HANDLER = ARGS[2];
+
+    const auto COMMAND = mouse ? HANDLER : ARGS[3];
 
     if (mouse)
         HANDLER = "mouse";
@@ -757,12 +690,11 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 }
 
 void CConfigManager::handleUnbind(const std::string& command, const std::string& value) {
-    auto valueCopy = value;
+    const auto ARGS = CVarList(value);
 
-    const auto MOD = g_pKeybindManager->stringToModMask(valueCopy.substr(0, valueCopy.find_first_of(",")));
-    valueCopy = valueCopy.substr(valueCopy.find_first_of(",") + 1);
+    const auto MOD = g_pKeybindManager->stringToModMask(ARGS[0]);
 
-    const auto KEY = valueCopy;
+    const auto KEY = ARGS[1];
 
     g_pKeybindManager->removeKeybind(MOD, KEY);
 }
@@ -788,8 +720,8 @@ bool windowRuleValid(const std::string& RULE) {
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto RULE = value.substr(0, value.find_first_of(","));
-    const auto VALUE = value.substr(value.find_first_of(",") + 1);
+    const auto RULE = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(",")));
+    const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(",") + 1));
 
     // check rule and value
     if (RULE == "" || VALUE == "") {
@@ -845,6 +777,8 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 
         result = result.substr(0, min - pos);
 
+        result = removeBeginEndSpacesTabs(result);
+
         if (result.back() == ',')
             result.pop_back();
 
@@ -872,7 +806,7 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 
 void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
     if (value.find("remove,") == 0) {
-        const auto TOREMOVE = value.substr(7);
+        const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
         m_dBlurLSNamespaces.erase(std::remove(m_dBlurLSNamespaces.begin(), m_dBlurLSNamespaces.end(), TOREMOVE));
         return;
     }
@@ -881,13 +815,11 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
 }
 
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
-
-    const auto DISPLAY = value.substr(0, value.find_first_of(','));
-    const auto WORKSPACE = value.substr(value.find_first_of(',') + 1);
+    const auto ARGS = CVarList(value);
 
     for (auto& mr : m_dMonitorRules) {
-        if (mr.name == DISPLAY) {
-            mr.defaultWorkspace = WORKSPACE;
+        if (mr.name == ARGS[0]) {
+            mr.defaultWorkspace = ARGS[1];
             break;
         }
     }
@@ -955,17 +887,16 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
 }
 
 void CConfigManager::handleBindWS(const std::string& command, const std::string& value) {
-    const auto WS = value.substr(0, value.find_first_of(','));
-    const auto MON = value.substr(value.find_first_of(',') + 1);
+    const auto ARGS = CVarList(value);
 
-    const auto FOUND = std::find_if(boundWorkspaces.begin(), boundWorkspaces.end(), [&](const auto& other) { return other.first == WS; });
+    const auto FOUND = std::find_if(boundWorkspaces.begin(), boundWorkspaces.end(), [&](const auto& other) { return other.first == ARGS[0]; });
 
     if (FOUND != boundWorkspaces.end()) {
-        FOUND->second = MON;
+        FOUND->second = ARGS[1];
         return;
     }
 
-    boundWorkspaces.push_back({WS, MON});
+    boundWorkspaces.push_back({ARGS[0], ARGS[1]});
 }
 
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {

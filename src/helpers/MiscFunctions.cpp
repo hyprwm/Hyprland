@@ -331,6 +331,15 @@ void logSystemInfo() {
     Debug::log(LOG, "Node name: %s", unameInfo.nodename);
     Debug::log(LOG, "Release: %s", unameInfo.release);
     Debug::log(LOG, "Version: %s", unameInfo.version);
+    
+    Debug::log(NONE, "\n");
+
+    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
+    Debug::log(LOG, "GPU information:\n%s\n", GPUINFO.c_str());
+
+    if (GPUINFO.contains("NVIDIA")) {
+        Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
+    }
 
     // log etc
     Debug::log(LOG, "os-release:");

@@ -128,4 +128,5 @@ private:
     Vector2D                        m_vLastDragXY;
     Vector2D                        m_vBeginDragPositionXY;
     Vector2D                        m_vBeginDragSizeXY;
+    int                             m_iGrabbedCorner = 0;
 };

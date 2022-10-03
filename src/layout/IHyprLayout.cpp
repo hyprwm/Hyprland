@@ -151,6 +151,21 @@ void IHyprLayout::onBeginDragWindow() {
     m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize.goalv();
     m_vLastDragXY = m_vBeginDragXY;
 
+    // get the grab corner
+    if (m_vBeginDragXY.x < m_vBeginDragPositionXY.x + m_vBeginDragSizeXY.x / 2.0) {
+        // left
+        if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0)
+            m_iGrabbedCorner = 0;
+        else
+            m_iGrabbedCorner = 4;
+    } else {
+        // right
+        if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0)
+            m_iGrabbedCorner = 1;
+        else
+            m_iGrabbedCorner = 3;
+    }
+
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     // shadow to ignore any bound to MAIN_MOD
@@ -201,11 +216,32 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW);
 
+            // calc the new size and pos
+
+            Vector2D newSize = m_vBeginDragSizeXY;
+            Vector2D newPos = m_vBeginDragPositionXY;
+
+            if (m_iGrabbedCorner == 3) {
+                newSize = newSize + DELTA;
+            } else if (m_iGrabbedCorner == 0) {
+                newSize = newSize - DELTA;
+                newPos = newPos + DELTA;
+            } else if (m_iGrabbedCorner == 1) {
+                newSize = newSize + Vector2D(DELTA.x, -DELTA.y);
+                newPos = newPos + Vector2D(0, DELTA.y);
+            } else if (m_iGrabbedCorner == 4) {
+                newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
+                newPos = newPos + Vector2D(DELTA.x, 0);
+            }
+
+            newSize = newSize.clamp(Vector2D(20,20), MAXSIZE);
+
             if (*PANIMATE) {
-                DRAGGINGWINDOW->m_vRealSize = Vector2D(std::clamp(m_vBeginDragSizeXY.x + DELTA.x, 20.0, (double)MAXSIZE.x), std::clamp(m_vBeginDragSizeXY.y + DELTA.y, 20.0, (double)MAXSIZE.y));
+                DRAGGINGWINDOW->m_vRealSize = newSize;
+                DRAGGINGWINDOW->m_vRealPosition = newPos;
             } else {
-                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(m_vBeginDragSizeXY + DELTA);
-                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(Vector2D(std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().x, 20.0, (double)MAXSIZE.x), std::clamp(DRAGGINGWINDOW->m_vRealSize.vec().y, 20.0, (double)MAXSIZE.y)));
+                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(newSize);
+                DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(newPos);
             }
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());

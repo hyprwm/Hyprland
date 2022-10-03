@@ -72,12 +72,12 @@ struct SAnimationPropertyConfig {
 
 class CVarList {
 public:
-    CVarList(const std::string& in) {
+    CVarList(const std::string& in, long unsigned int lastArgNo = 0) {
         std::string curitem = "";
         std::string argZ = in;
 
         auto nextItem = [&]() {
-            auto idx = argZ.find_first_of(',');
+            auto idx = lastArgNo != 0 && m_vArgs.size() >= lastArgNo - 1 ? std::string::npos : argZ.find_first_of(',');
 
             if (idx != std::string::npos) {
                 curitem = argZ.substr(0, idx);

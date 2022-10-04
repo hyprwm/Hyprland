@@ -202,9 +202,9 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         m_dPressedKeycodes.push_back(KEYCODE);
         m_dPressedKeysyms.push_back(keysym);
 
-        found = g_pKeybindManager->handleKeybinds(MODS, "", keysym, 0, true, e->time_msec) || found;
+        found = handleKeybinds(MODS, "", keysym, 0, true, e->time_msec) || found;
 
-        found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE, true, e->time_msec) || found;
+        found = handleKeybinds(MODS, "", 0, KEYCODE, true, e->time_msec) || found;
 
         if (found)
             shadowKeybinds(keysym, KEYCODE);
@@ -219,9 +219,9 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         m_dPressedKeycodes.erase(std::remove(m_dPressedKeycodes.begin(), m_dPressedKeycodes.end(), KEYCODE), m_dPressedKeycodes.end());
         m_dPressedKeysyms.erase(std::remove(m_dPressedKeysyms.begin(), m_dPressedKeysyms.end(), keysym), m_dPressedKeysyms.end());
 
-        found = g_pKeybindManager->handleKeybinds(MODS, "", keysym, 0, false, e->time_msec) || found;
+        found = handleKeybinds(MODS, "", keysym, 0, false, e->time_msec) || found;
 
-        found = g_pKeybindManager->handleKeybinds(MODS, "", 0, KEYCODE, false, e->time_msec) || found;
+        found = handleKeybinds(MODS, "", 0, KEYCODE, false, e->time_msec) || found;
 
         shadowKeybinds();
     }
@@ -244,9 +244,9 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     bool found = false;
     if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
         if (e->delta < 0) {
-            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_down", 0, 0, true, 0);
+            found = handleKeybinds(MODS, "mouse_down", 0, 0, true, 0);
         } else {
-            found = g_pKeybindManager->handleKeybinds(MODS, "mouse_up", 0, 0, true, 0);
+            found = handleKeybinds(MODS, "mouse_up", 0, 0, true, 0);
         }
 
         if (found)
@@ -268,17 +268,21 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     bool mouseBindWasActive = ensureMouseBindState();
 
     if (e->state == WLR_BUTTON_PRESSED) {
-        found = g_pKeybindManager->handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, true, 0);
+        found = handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, true, 0);
 
         if (found)
             shadowKeybinds();
     } else {
-        found = g_pKeybindManager->handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, false, 0);
+        found = handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, false, 0);
 
         shadowKeybinds();
     }
 
     return !found && !mouseBindWasActive;
+}
+
+void CKeybindManager::onSwitchEvent(const std::string& switchName) {
+    handleKeybinds(0, "switch:" + switchName, 0, 0, true, 0);
 }
 
 int repeatKeyHandler(void* data) {

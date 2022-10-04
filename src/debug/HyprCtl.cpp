@@ -405,6 +405,24 @@ R"#(    {
         // remove trailing comma
         if (result[result.size() - 1] == ',')
             result.pop_back();
+        result += "\n],\n";
+
+        result += "\"switches\": [\n";
+
+        for (auto& d : g_pInputManager->m_lSwitches) {
+            result += getFormat(
+R"#(    {
+        "address": "0x%x",
+        "name": "%s"
+    },)#",
+                &d,
+                d.pWlrDevice ? d.pWlrDevice->name : ""
+            );
+        }
+
+        // remove trailing comma
+        if (result[result.size() - 1] == ',')
+            result.pop_back();
         result += "\n]\n";
 
         result += "}\n";
@@ -441,6 +459,12 @@ R"#(    {
 
         for (auto& d : g_pInputManager->m_lTouchDevices) {
             result += getFormat("\tTouch Device at %x:\n\t\t%s\n", &d, d.pWlrDevice ? d.pWlrDevice->name : "");
+        }
+
+        result += "\n\nSwitches:\n";
+
+        for (auto& d : g_pInputManager->m_lSwitches) {
+            result += getFormat("\tSwitch Device at %x:\n\t\t%s\n", &d, d.pWlrDevice ? d.pWlrDevice->name : "");
         }
     }
 

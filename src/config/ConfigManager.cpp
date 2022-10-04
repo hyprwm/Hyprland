@@ -137,6 +137,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:numlock_by_default"].intValue = 0;
     configValues["input:force_no_accel"].intValue = 0;
     configValues["input:float_switch_override_focus"].intValue = 1;
+    configValues["input:left_handed"].intValue = 0;
     configValues["input:touchpad:natural_scroll"].intValue = 0;
     configValues["input:touchpad:disable_while_typing"].intValue = 1;
     configValues["input:touchpad:clickfinger_behavior"].intValue = 0;
@@ -180,6 +181,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["middle_button_emulation"].intValue = 0;
     cfgValues["tap-to-click"].intValue = 1;
     cfgValues["drag_lock"].intValue = 0;
+    cfgValues["left_handed"].intValue = 0;
 }
 
 void CConfigManager::setDefaultAnimationVars() {

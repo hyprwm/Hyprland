@@ -692,6 +692,11 @@ void CInputManager::setMouseConfigs() {
             else
                 libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
 
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "left_handed") : g_pConfigManager->getInt("input:touchpad:left_handed")) == 0)
+                libinput_device_config_left_handed_set(LIBINPUTDEV, 0);
+            else
+                libinput_device_config_left_handed_set(LIBINPUTDEV, 1);
+
             if (libinput_device_config_middle_emulation_is_available(LIBINPUTDEV)) {  // middleclick on r+l mouse button pressed
                 if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "middle_button_emulation") : g_pConfigManager->getInt("input:touchpad:middle_button_emulation")) == 1)
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);

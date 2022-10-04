@@ -400,14 +400,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 if (w->getPID() == ppid) {
                     found.push_back(w.get());
-                    break;
                 }
             }
 
             if (found.size() > 1) {
                 for (auto& w : found) {
                     // try get the focus
-                    if (w == g_pCompositor->m_pLastWindow) {
+                    if (w == PFOCUSEDWINDOWPREV) {
                         finalFound = w;
                         break;
                     }

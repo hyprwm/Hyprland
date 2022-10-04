@@ -54,7 +54,6 @@ void main() {
 inline const std::string QUADFRAGSRC = R"#(
 precision mediump float;
 varying vec4 v_color;
-varying vec2 v_texcoord;
 
 uniform vec2 topLeft;
 uniform vec2 fullSize;

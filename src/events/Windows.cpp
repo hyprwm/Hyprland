@@ -392,27 +392,56 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         if (ppid) {
             // get window by pid
-            CWindow* found = nullptr;
+            std::vector<CWindow*> found;
+            CWindow* finalFound = nullptr;
             for (auto& w : g_pCompositor->m_vWindows) {
                 if (!w->m_bIsMapped || w->m_bHidden)
                     continue;
 
                 if (w->getPID() == ppid) {
-                    found = w.get();
+                    found.push_back(w.get());
                     break;
                 }
             }
 
-            if (found) {
+            if (found.size() > 1) {
+                for (auto& w : found) {
+                    // try get the focus
+                    if (w == g_pCompositor->m_pLastWindow) {
+                        finalFound = w;
+                        break;
+                    }
+                }
+
+                if (!finalFound) {
+                    // just get the closest (ws)
+                    for (auto& w : found) {
+                        if (w->m_iWorkspaceID == g_pCompositor->m_pLastMonitor->activeWorkspace) {
+                            finalFound = w;
+                            break;
+                        }
+                    }
+                }
+
+                if (!finalFound) {
+                    // what, just use 0
+                    finalFound = found[0];
+                }
+
+            } else if (found.size() == 1) {
+                finalFound = found[0];
+            }
+
+            if (finalFound) {
                 // check if it's the window we want
                 std::regex rgx(*PSWALLOWREGEX);
-                if (std::regex_match(g_pXWaylandManager->getAppIDClass(found), rgx)) {
+                if (std::regex_match(g_pXWaylandManager->getAppIDClass(finalFound), rgx)) {
                     // swallow
-                    PWINDOW->m_pSwallowed = found;
+                    PWINDOW->m_pSwallowed = finalFound;
 
-                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(found);
+                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(finalFound);
 
-                    found->m_bHidden = true;
+                    finalFound->m_bHidden = true;
                 }
             }
         }

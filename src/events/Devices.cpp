@@ -82,6 +82,10 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             Debug::log(LOG, "Attached a tablet pad with name %s", DEVICE->name);
             g_pInputManager->newTabletPad(DEVICE);
             break;
+        case WLR_INPUT_DEVICE_SWITCH:
+            Debug::log(LOG, "Attached a switch device with name %s", DEVICE->name);
+            g_pInputManager->newSwitch(DEVICE);
+            break;
         default:
             Debug::log(WARN, "Unrecognized input device plugged in: %s", DEVICE->name);
             break;

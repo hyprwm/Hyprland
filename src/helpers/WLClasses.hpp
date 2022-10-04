@@ -332,3 +332,14 @@ struct STouchDevice {
         return pWlrDevice == other.pWlrDevice;
     }
 };
+
+struct SSwitchDevice {
+    wlr_input_device* pWlrDevice = nullptr;
+
+    DYNLISTENER(destroy);
+    DYNLISTENER(toggle);
+
+    bool operator==(const SSwitchDevice& other) {
+        return pWlrDevice == other.pWlrDevice;
+    }
+};

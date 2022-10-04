@@ -1006,3 +1006,29 @@ void CInputManager::destroyTouchDevice(STouchDevice* pDevice) {
 
     m_lTouchDevices.remove(*pDevice);
 }
+
+void CInputManager::newSwitch(wlr_input_device* pDevice) {
+    const auto PNEWDEV = &m_lSwitches.emplace_back();
+    PNEWDEV->pWlrDevice = pDevice;
+
+    Debug::log(LOG, "New switch with name \"%s\" added", pDevice->name);
+
+    PNEWDEV->hyprListener_destroy.initCallback(&pDevice->events.destroy, [&](void* owner, void* data) {
+        destroySwitch((SSwitchDevice*)owner);
+    }, PNEWDEV, "SwitchDevice");
+
+    const auto PSWITCH = wlr_switch_from_input_device(pDevice);
+
+    PNEWDEV->hyprListener_toggle.initCallback(&PSWITCH->events.toggle, [&](void* owner, void* data) {
+        const auto PDEVICE = (SSwitchDevice*)owner;
+        const auto NAME = std::string(PDEVICE->pWlrDevice->name);
+
+        Debug::log(LOG, "Switch %s fired, triggering binds.", NAME.c_str());
+
+        g_pKeybindManager->onSwitchEvent(NAME);
+    }, PNEWDEV, "SwitchDevice");
+}
+
+void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
+    m_lSwitches.remove(*pDevice);
+}

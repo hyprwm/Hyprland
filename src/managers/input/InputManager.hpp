@@ -37,9 +37,11 @@ public:
     void            newVirtualKeyboard(wlr_input_device*);
     void            newMouse(wlr_input_device*, bool virt = false);
     void            newTouchDevice(wlr_input_device*);
+    void            newSwitch(wlr_input_device*);
     void            destroyTouchDevice(STouchDevice*);
     void            destroyKeyboard(SKeyboard*);
     void            destroyMouse(wlr_input_device*);
+    void            destroySwitch(SSwitchDevice*);
 
     void            constrainMouse(SMouse*, wlr_pointer_constraint_v1*);
     void            recheckConstraint(SMouse*);
@@ -88,6 +90,9 @@ public:
 
     // Touch devices
     std::list<STouchDevice> m_lTouchDevices;
+
+    // Switches
+    std::list<SSwitchDevice> m_lSwitches;
 
     void            newTabletTool(wlr_input_device*);
     void            newTabletPad(wlr_input_device*);

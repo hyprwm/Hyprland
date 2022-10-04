@@ -1640,7 +1640,7 @@ void CKeybindManager::mouse(std::string args) {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
-            g_pInputManager->currentlyDraggedWindow = g_pCompositor->windowFromCursor();
+            g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
             g_pInputManager->dragMode = MBIND_MOVE;
 
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
@@ -1657,7 +1657,7 @@ void CKeybindManager::mouse(std::string args) {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
-            g_pInputManager->currentlyDraggedWindow = g_pCompositor->windowFromCursor();
+            g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
             g_pInputManager->dragMode = MBIND_RESIZE;
 
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();

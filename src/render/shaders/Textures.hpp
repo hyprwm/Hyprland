@@ -3,140 +3,38 @@
 #include <string>
 
 inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVarName) -> std::string {
-    return R"#(
-		if (pixCoord[0] < topLeft[0]) {
-		// we're close left
-		if (pixCoord[1] < topLeft[1]) {
-			// top
+        return R"#(
 
-			if (ignoreCorners == 1) {
-				discard;
-				return;
-			}
+    // branchless baby!
+    highp vec2 pixCoord = vec2(gl_FragCoord);
+    pixCoord -= topLeft + fullSize * 0.5;
+    pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
+    pixCoord -= fullSize * 0.5 - radius;
 
-			float topLeftDistance = distance(topLeft, pixCoord);
+    if (pixCoord.x + pixCoord.y > radius) {
 
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(topLeft, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
+	float dist = length(pixCoord);
 
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
+	if (dist > radius)
+	    discard;
 
-					distances = distances / 4.0;
+	if (primitiveMultisample == 1 && dist > radius - 1.0) {
+	    float distances = 0.0;
+	    distances += float(length(pixCoord + vec2(0.25, 0.25)) < radius);
+	    distances += float(length(pixCoord + vec2(0.75, 0.25)) < radius);
+	    distances += float(length(pixCoord + vec2(0.25, 0.75)) < radius);
+	    distances += float(length(pixCoord + vec2(0.75, 0.75)) < radius);
 
-					)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
+	    if (distances == 0.0)
+		discard;
 
-			if (ignoreCorners == 1) {
-				discard;
-				return;
-			}
+	    distances /= 4.0;
 
-			float topLeftDistance = distance(vec2(topLeft[0], bottomRight[1]), pixCoord);
+	    )#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
+        }
 
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(topLeft[0], bottomRight[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
-				}
-			}
-		}
-	}
-	else if (pixCoord[0] > bottomRight[0]) {
-		// we're close right
-		if (pixCoord[1] < topLeft[1]) {
-			// top
-
-			if (ignoreCorners == 1) {
-				discard;
-				return;
-			}
-
-			float topLeftDistance = distance(vec2(bottomRight[0], topLeft[1]), pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(vec2(bottomRight[0], topLeft[1]), pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
-				}
-			}
-		} else if (pixCoord[1] > bottomRight[1]) {
-			// bottom
-
-			if (ignoreCorners == 1) {
-				discard;
-				return;
-			}
-
-			float topLeftDistance = distance(bottomRight, pixCoord);
-
-			if (topLeftDistance > radius - 1.0) {
-				if (primitiveMultisample == 0 && topLeftDistance > radius) {
-					discard;
-					return;
-				} else if (primitiveMultisample == 1) {
-					float distances = 0.0;
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.25)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.25, 0.75)) < radius) { distances = distances + 1.0; }
-					if (distance(bottomRight, pixCoord + vec2(0.75, 0.75)) < radius) { distances = distances + 1.0; }
-
-					if (distances == 0.0) {
-						discard;
-						return;
-					}
-
-					distances = distances / 4.0;
-
-					)#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
-				}
-			}
-		}
-	}
-	)#";
+    }
+)#";
 };
 
 inline const std::string QUADVERTSRC = R"#(
@@ -159,26 +57,20 @@ varying vec4 v_color;
 varying vec2 v_texcoord;
 
 uniform vec2 topLeft;
-uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
 uniform int primitiveMultisample;
-uniform int ignoreCorners;
 
 void main() {
-	if (radius == 0.0) {
-		gl_FragColor = v_color;
-		return;
-	}
 
-	vec4 pixColor = v_color;
+    vec4 pixColor = v_color;
 
-    vec2 pixCoord = fullSize * v_texcoord;
-
+    if (radius > 0.0) {
 	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    }
 
-	gl_FragColor = pixColor;
+    gl_FragColor = pixColor;
 })#";
 
 inline const std::string TEXVERTSRC = R"#(
@@ -188,8 +80,8 @@ attribute vec2 texcoord;
 varying vec2 v_texcoord;
 
 void main() {
-	gl_Position = vec4(proj * vec3(pos, 1.0), 1.0);
-	v_texcoord = texcoord;
+    gl_Position = vec4(proj * vec3(pos, 1.0), 1.0);
+    v_texcoord = texcoord;
 })#";
 
 inline const std::string TEXFRAGSRCRGBA = R"#(
@@ -199,7 +91,6 @@ uniform sampler2D tex;
 uniform float alpha;
 
 uniform vec2 topLeft;
-uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
@@ -209,29 +100,24 @@ uniform int applyTint;
 uniform vec3 tint;
 
 uniform int primitiveMultisample;
-uniform int ignoreCorners;
 
 void main() {
 
-	vec4 pixColor = texture2D(tex, v_texcoord);
+    vec4 pixColor = texture2D(tex, v_texcoord);
 
-	if (discardOpaque == 1 && pixColor[3] * alpha == 1.0) {
-		discard;
-		return;
-	}
+    if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
+	discard;
 
-	if (applyTint == 1) {
-		pixColor[0] = pixColor[0] * tint[0];
-		pixColor[1] = pixColor[1] * tint[1];
-		pixColor[2] = pixColor[2] * tint[2];
-	}
 
-	vec2 pixCoord = fullSize * v_texcoord;
+    if (applyTint == 1) {
+	pixColor[0] = pixColor[0] * tint[0];
+	pixColor[1] = pixColor[1] * tint[1];
+	pixColor[2] = pixColor[2] * tint[2];
+    }
 
-	)#" + ROUNDED_SHADER_FUNC("pixColor") +
-                                          R"#(
+    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
-	gl_FragColor = pixColor * alpha;
+    gl_FragColor = pixColor * alpha;
 })#";
 
 inline const std::string TEXFRAGSRCRGBX = R"#(
@@ -241,7 +127,6 @@ uniform sampler2D tex;
 uniform float alpha;
 
 uniform vec2 topLeft;
-uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
@@ -251,29 +136,23 @@ uniform int applyTint;
 uniform vec3 tint;
 
 uniform int primitiveMultisample;
-uniform int ignoreCorners;
 
 void main() {
 
-	if (discardOpaque == 1 && alpha == 1.0) {
-		discard;
-		return;
-	}
+    if (discardOpaque == 1 && alpha == 1.0)
+	discard;
 
-	vec4 pixColor = vec4(texture2D(tex, v_texcoord).rgb, 1.0);
+    vec4 pixColor = vec4(texture2D(tex, v_texcoord).rgb, 1.0);
 
-	if (applyTint == 1) {
-		pixColor[0] = pixColor[0] * tint[0];
-		pixColor[1] = pixColor[1] * tint[1];
-		pixColor[2] = pixColor[2] * tint[2];
-	}
+    if (applyTint == 1) {
+	pixColor[0] = pixColor[0] * tint[0];
+	pixColor[1] = pixColor[1] * tint[1];
+	pixColor[2] = pixColor[2] * tint[2];
+    }
 
-	vec2 pixCoord = fullSize * v_texcoord;
+    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
-	)#" + ROUNDED_SHADER_FUNC("pixColor") +
-                                          R"#(
-
-	gl_FragColor = pixColor * alpha;
+    gl_FragColor = pixColor * alpha;
 })#";
 
 inline const std::string FRAGBLUR1 = R"#(
@@ -286,13 +165,14 @@ uniform float radius;
 uniform vec2 halfpixel;
 
 void main() {
-	vec2 uv = v_texcoord * 2.0;
+    vec2 uv = v_texcoord * 2.0;
 
     vec4 sum = texture2D(tex, uv) * 4.0;
     sum += texture2D(tex, uv - halfpixel.xy * radius);
     sum += texture2D(tex, uv + halfpixel.xy * radius);
     sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
     sum += texture2D(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
+
     gl_FragColor = sum / 8.0;
 }
 )#";
@@ -307,7 +187,7 @@ uniform float radius;
 uniform vec2 halfpixel;
 
 void main() {
-	vec2 uv = v_texcoord / 2.0;
+    vec2 uv = v_texcoord / 2.0;
 
     vec4 sum = texture2D(tex, uv + vec2(-halfpixel.x * 2.0, 0.0) * radius);
 
@@ -332,7 +212,6 @@ uniform samplerExternalOES texture0;
 uniform float alpha;
 
 uniform vec2 topLeft;
-uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
 
@@ -342,27 +221,22 @@ uniform int applyTint;
 uniform vec3 tint;
 
 uniform int primitiveMultisample;
-uniform int ignoreCorners;
 
 void main() {
 
-	vec4 pixColor = texture2D(texture0, v_texcoord);
+    vec4 pixColor = texture2D(texture0, v_texcoord);
 
-	if (discardOpaque == 1 && pixColor[3] * alpha == 1.0) {
-		discard;
-		return;
-	}
+    if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
+	discard;
 
-	if (applyTint == 1) {
-		pixColor[0] = pixColor[0] * tint[0];
-		pixColor[1] = pixColor[1] * tint[1];
-		pixColor[2] = pixColor[2] * tint[2];
-	}
+    if (applyTint == 1) {
+	pixColor[0] = pixColor[0] * tint[0];
+	pixColor[1] = pixColor[1] * tint[1];
+	pixColor[2] = pixColor[2] * tint[2];
+    }
 
-	vec2 pixCoord = fullSize * v_texcoord;
+    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
-	)#" + ROUNDED_SHADER_FUNC("pixColor") +
-                                         R"#(
-
-	gl_FragColor = pixColor * alpha;
-})#";
+    gl_FragColor = pixColor * alpha;
+}
+)#";

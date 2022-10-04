@@ -1,3 +1,4 @@
+#include "Shaders.hpp"
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
@@ -152,7 +153,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shQUAD.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shQUAD.topLeft = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shQUAD.bottomRight = glGetUniformLocation(prog, "bottomRight");
     m_RenderData.pCurrentMonData->m_shQUAD.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shQUAD.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shQUAD.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
@@ -166,7 +166,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.posAttrib = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBA.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
     m_RenderData.pCurrentMonData->m_shRGBA.topLeft = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shRGBA.bottomRight = glGetUniformLocation(prog, "bottomRight");
     m_RenderData.pCurrentMonData->m_shRGBA.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBA.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shRGBA.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
@@ -182,7 +181,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBX.posAttrib = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBX.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
     m_RenderData.pCurrentMonData->m_shRGBX.topLeft = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shRGBX.bottomRight = glGetUniformLocation(prog, "bottomRight");
     m_RenderData.pCurrentMonData->m_shRGBX.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBX.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shRGBX.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
@@ -198,7 +196,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shEXT.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shEXT.discardOpaque = glGetUniformLocation(prog, "discardOpaque");
     m_RenderData.pCurrentMonData->m_shEXT.topLeft = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shEXT.bottomRight = glGetUniformLocation(prog, "bottomRight");
     m_RenderData.pCurrentMonData->m_shEXT.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shEXT.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shEXT.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
@@ -338,15 +335,13 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix);
     glUniform4f(m_RenderData.pCurrentMonData->m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
-    const auto TOPLEFT = Vector2D(round, round);
-    const auto BOTTOMRIGHT = Vector2D(box->width - round, box->height - round);
+    const auto TOPLEFT = Vector2D(box->x, box->y);
     const auto FULLSIZE = Vector2D(box->width, box->height);
 
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
     glUniform2f(m_RenderData.pCurrentMonData->m_shQUAD.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shQUAD.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
     glUniform2f(m_RenderData.pCurrentMonData->m_shQUAD.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
     glUniform1f(m_RenderData.pCurrentMonData->m_shQUAD.radius, round);
     glUniform1i(m_RenderData.pCurrentMonData->m_shQUAD.primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
@@ -442,9 +437,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
-    glUniform2f(shader->topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(shader->bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(shader->fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform2f(shader->topLeft, pBox->x, pBox->y);
+    glUniform2f(shader->fullSize, pBox->width, pBox->height);
     glUniform1f(shader->radius, round);
     glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 

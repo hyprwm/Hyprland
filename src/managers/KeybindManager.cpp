@@ -988,7 +988,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
             Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
             g_pCompositor->warpCursorTo(middle);
 
-            if (PWINDOWTOCHANGETO->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID) {
+            if (PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
                 // event
                 const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
                 const auto PNEWWS = g_pCompositor->getWorkspaceByID(PNEWMON->activeWorkspace);

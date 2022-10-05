@@ -662,7 +662,7 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
         Debug::log(LOG, "New mouse has libinput sens %.2f (%.2f) with accel profile %i (%i)", libinput_device_config_accel_get_speed(LIBINPUTDEV), libinput_device_config_accel_get_default_speed(LIBINPUTDEV), libinput_device_config_accel_get_profile(LIBINPUTDEV), libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
     }
 
-    setMouseConfigs();
+    setPointerConfigs();
 
     PMOUSE->hyprListener_destroyMouse.initCallback(&mouse->events.destroy, &Events::listener_destroyMouse, PMOUSE, "Mouse");
 
@@ -675,11 +675,11 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
     Debug::log(LOG, "New mouse created, pointer WLR: %x", mouse);
 }
 
-void CInputManager::setMouseConfigs() {
+void CInputManager::setPointerConfigs() {
     for (auto& m : m_lMice) {
-        const auto PMOUSE = &m;
+        const auto PPOINTER = &m;
 
-        auto devname = PMOUSE->name;
+        auto devname = PPOINTER->name;
         transform(devname.begin(), devname.end(), devname.begin(), ::tolower);
 
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
@@ -702,6 +702,21 @@ void CInputManager::setMouseConfigs() {
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);
                 else
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
+            }
+
+            const auto SCROLLMETHOD = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "scroll_method") : g_pConfigManager->getString("input:scroll_method");
+            if (SCROLLMETHOD == "" || SCROLLMETHOD == STRVAL_EMPTY) {
+                libinput_device_config_scroll_set_method(LIBINPUTDEV, libinput_device_config_scroll_get_default_method(LIBINPUTDEV));
+            } else if (SCROLLMETHOD == "no_scroll") {
+                libinput_device_config_scroll_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_SCROLL_NO_SCROLL);
+            } else if (SCROLLMETHOD == "2fg") {
+                libinput_device_config_scroll_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_SCROLL_2FG);
+            } else if (SCROLLMETHOD == "edge") {
+                libinput_device_config_scroll_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_SCROLL_EDGE);
+            } else if (SCROLLMETHOD == "on_button_down") {
+                libinput_device_config_scroll_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN);
+            } else {
+                Debug::log(WARN, "Scroll method unknown");
             }
 
             if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "drag_lock") : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
@@ -728,9 +743,19 @@ void CInputManager::setMouseConfigs() {
             }
 
             const auto LIBINPUTSENS = std::clamp((HASCONFIG ? g_pConfigManager->getDeviceFloat(devname, "sensitivity") : g_pConfigManager->getFloat("input:sensitivity")), -1.f, 1.f);
-
-            libinput_device_config_accel_set_profile(LIBINPUTDEV, LIBINPUT_CONFIG_ACCEL_PROFILE_NONE);
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
+
+            const auto ACCELPROFILE = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "accel_profile") : g_pConfigManager->getString("input:accel_profile");
+
+            if (ACCELPROFILE == "" || ACCELPROFILE == STRVAL_EMPTY) {
+                libinput_device_config_accel_set_profile(LIBINPUTDEV, libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
+            } else if (ACCELPROFILE == "adaptive") {
+                libinput_device_config_accel_set_profile(LIBINPUTDEV, LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE);
+            } else if (ACCELPROFILE == "flat") {
+                libinput_device_config_accel_set_profile(LIBINPUTDEV, LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT);
+            } else {
+                Debug::log(WARN, "Unknown acceleration profile, falling back to default");
+            } 
 
             Debug::log(LOG, "Applied config to mouse %s, sens %.2f", m.name.c_str(), LIBINPUTSENS);
         }

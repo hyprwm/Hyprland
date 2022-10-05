@@ -135,7 +135,7 @@ public:
     SConfigValue*       getConfigValuePtr(std::string);
     SConfigValue*       getConfigValuePtrSafe(std::string);
 
-    SMonitorRule        getMonitorRuleFor(std::string);
+    SMonitorRule        getMonitorRuleFor(std::string, std::string displayName = "");
 
     CMonitor*           getBoundMonitorForWS(std::string);
 

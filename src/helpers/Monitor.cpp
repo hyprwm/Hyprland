@@ -9,7 +9,7 @@ void CMonitor::onConnect(bool noRule) {
     szName = output->name;
 
     // get monitor rule that matches
-    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(output->name);
+    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(output->name, output->description ? output->description : "");
 
     hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this);
     hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this);
@@ -297,7 +297,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         pMirrorOf = nullptr;
 
         // set rule
-        const auto RULE = g_pConfigManager->getMonitorRuleFor(this->szName);
+        const auto RULE = g_pConfigManager->getMonitorRuleFor(this->szName, this->output->description ? this->output->description : "");
 
         vecPosition = RULE.offset;
 

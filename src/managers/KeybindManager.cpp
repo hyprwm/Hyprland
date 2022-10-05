@@ -423,14 +423,26 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     if (!(keysym >= XKB_KEY_XF86Switch_VT_1 && keysym <= XKB_KEY_XF86Switch_VT_12))
         return false;
 
-    const auto PSESSION = wlr_backend_get_session(g_pCompositor->m_sWLRBackend);
-    if (PSESSION) {
+    if (g_pCompositor->m_sWLRSession) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
-        if (PSESSION->vtnr == TTY)
-            return false; // don't do anything.
+        // vtnr is bugged for some reason.
+        const std::string TTYSTR = execAndGet("head -n 1 /sys/devices/virtual/tty/tty0/active").substr(3);
+        int ttynum = 0;
+        try {
+            ttynum = std::stoll(TTYSTR);
+        } catch (std::exception e) {
+            ; // oops?
+        }
 
-        wlr_session_change_vt(PSESSION, TTY);
+        if (ttynum == TTY)
+            return false;
+
+        Debug::log(LOG, "Switching from VT %i to VT %i", ttynum, TTY);
+
+        if (!wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY))
+            return false; // probably same session
+
         g_pCompositor->m_bSessionActive = false;
 
         for (auto& m : g_pCompositor->m_vMonitors) {

@@ -1582,6 +1582,8 @@ void CKeybindManager::dpms(std::string arg) {
 
         wlr_output_enable(m->output, enable);
 
+        m->dpmsStatus = enable;
+
         if (!wlr_output_commit(m->output)) {
             Debug::log(ERR, "Couldn't commit output %s", m->szName.c_str());
         }

@@ -1568,9 +1568,18 @@ void CKeybindManager::toggleOpaque(std::string unused) {
 }
 
 void CKeybindManager::dpms(std::string arg) {
-    bool enable = arg == "on";
+    bool enable = arg.find("on") == 0;
+    std::string port = "";
+
+    if (arg.find_first_of(' ') != std::string::npos) {
+        port = arg.substr(arg.find_first_of(' ') + 1);
+    }
 
     for (auto& m : g_pCompositor->m_vMonitors) {
+
+        if (!port.empty() && m->szName != port)
+            continue;
+
         wlr_output_enable(m->output, enable);
 
         if (!wlr_output_commit(m->output)) {

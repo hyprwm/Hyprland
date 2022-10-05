@@ -125,6 +125,7 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:workspaces"].intValue = 1;
 
     configValues["input:sensitivity"].floatValue = 0.f;
+    configValues["input:accel_profile"].strValue = STRVAL_EMPTY;
     configValues["input:kb_file"].strValue = STRVAL_EMPTY;
     configValues["input:kb_layout"].strValue = "us";
     configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
@@ -138,6 +139,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:force_no_accel"].intValue = 0;
     configValues["input:float_switch_override_focus"].intValue = 1;
     configValues["input:left_handed"].intValue = 0;
+    configValues["input:scroll_method"].strValue = STRVAL_EMPTY;
     configValues["input:touchpad:natural_scroll"].intValue = 0;
     configValues["input:touchpad:disable_while_typing"].intValue = 1;
     configValues["input:touchpad:clickfinger_behavior"].intValue = 0;
@@ -166,6 +168,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     auto& cfgValues = deviceConfigs[dev];
 
     cfgValues["sensitivity"].floatValue = 0.f;
+    cfgValues["accel_profile"].strValue = STRVAL_EMPTY;
     cfgValues["kb_file"].strValue = STRVAL_EMPTY;
     cfgValues["kb_layout"].strValue = "us";
     cfgValues["kb_variant"].strValue = STRVAL_EMPTY;
@@ -182,6 +185,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["tap-to-click"].intValue = 1;
     cfgValues["drag_lock"].intValue = 0;
     cfgValues["left_handed"].intValue = 0;
+    cfgValues["scroll_method"].strValue = STRVAL_EMPTY;
 }
 
 void CConfigManager::setDefaultAnimationVars() {
@@ -1126,7 +1130,7 @@ void CConfigManager::loadConfigLoadVars() {
     // Update the keyboard layout to the cfg'd one if this is not the first launch
     if (!isFirstLaunch) {
         g_pInputManager->setKeyboardLayout();
-        g_pInputManager->setMouseConfigs();
+        g_pInputManager->setPointerConfigs();
     }
 
     // Calculate the internal vars
@@ -1411,7 +1415,7 @@ void CConfigManager::dispatchExecOnce() {
 
     // set input, fixes some certain issues
     g_pInputManager->setKeyboardLayout();
-    g_pInputManager->setMouseConfigs();
+    g_pInputManager->setPointerConfigs();
 
     // set ws names again
     for (auto& ws : g_pCompositor->m_vWorkspaces) {

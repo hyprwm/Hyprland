@@ -1300,7 +1300,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(std::string name, std::string dis
     SMonitorRule* found = nullptr;
 
     for (auto& r : m_dMonitorRules) {
-        if (r.name == name) {
+        if (r.name == name || (r.name.find("desc:") == 0 && (r.name.substr(5) == displayName || r.name.substr(5) == removeBeginEndSpacesTabs(displayName.substr(0, displayName.find_first_of('(')))))) {
             found = &r;
             break;
         }
@@ -1312,7 +1312,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(std::string name, std::string dis
     Debug::log(WARN, "No rule found for %s, trying to use the first.", name.c_str());
 
     for (auto& r : m_dMonitorRules) {
-        if (r.name == "" || (r.name.find("desc:") == 0 && r.name.substr(5) == displayName)) {
+        if (r.name == "") {
             found = &r;
             break;
         }

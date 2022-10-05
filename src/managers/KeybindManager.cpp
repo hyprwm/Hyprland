@@ -425,7 +425,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
     const auto PSESSION = wlr_backend_get_session(g_pCompositor->m_sWLRBackend);
     if (PSESSION) {
-        const int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
+        const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
         if (PSESSION->vtnr == TTY)
             return false; // don't do anything.

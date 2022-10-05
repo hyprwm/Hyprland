@@ -692,7 +692,7 @@ void CInputManager::setMouseConfigs() {
             else
                 libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "left_handed") : g_pConfigManager->getInt("input:touchpad:left_handed")) == 0)
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "left_handed") : g_pConfigManager->getInt("input:left_handed")) == 0)
                 libinput_device_config_left_handed_set(LIBINPUTDEV, 0);
             else
                 libinput_device_config_left_handed_set(LIBINPUTDEV, 1);

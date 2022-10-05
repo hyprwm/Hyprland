@@ -1296,7 +1296,7 @@ void CConfigManager::setString(std::string v, std::string val) {
     configValues[v].strValue = val;
 }
 
-SMonitorRule CConfigManager::getMonitorRuleFor(std::string name) {
+SMonitorRule CConfigManager::getMonitorRuleFor(std::string name, std::string displayName) {
     SMonitorRule* found = nullptr;
 
     for (auto& r : m_dMonitorRules) {
@@ -1312,7 +1312,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(std::string name) {
     Debug::log(WARN, "No rule found for %s, trying to use the first.", name.c_str());
 
     for (auto& r : m_dMonitorRules) {
-        if (r.name == "") {
+        if (r.name == "" || (r.name.find("desc:") == 0 && r.name.substr(5) == displayName)) {
             found = &r;
             break;
         }
@@ -1424,7 +1424,7 @@ void CConfigManager::performMonitorReload() {
     bool overAgain = false;
 
     for (auto& m : g_pCompositor->m_vRealMonitors) {
-        auto rule = getMonitorRuleFor(m->szName);
+        auto rule = getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
 
         // ensure mirror
         m->setMirror(rule.mirrorOf);
@@ -1477,7 +1477,7 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
 
 void CConfigManager::ensureDPMS() {
     for (auto& rm : g_pCompositor->m_vRealMonitors) {
-        auto rule = getMonitorRuleFor(rm->szName);
+        auto rule = getMonitorRuleFor(rm->szName, rm->output->description ? rm->output->description : "");
 
         if (rule.disabled == rm->m_bEnabled) {
 	        rm->m_pThisWrap = &rm;

@@ -37,6 +37,8 @@ public:
     bool        scheduledRecalc = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
 
+    bool        dpmsStatus = true;
+
     // mirroring
     CMonitor*   pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;

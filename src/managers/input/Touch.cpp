@@ -2,7 +2,10 @@
 #include "../../Compositor.hpp"
 
 void CInputManager::onTouchDown(wlr_touch_down_event* e) {
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, g_pCompositor->m_pLastMonitor->vecPosition.x + e->x * g_pCompositor->m_pLastMonitor->vecSize.x, g_pCompositor->m_pLastMonitor->vecPosition.y + e->y * g_pCompositor->m_pLastMonitor->vecSize.y);
+    auto PMONITOR = g_pCompositor->getMonitorFromName(e->touch->output_name ? e->touch->output_name : "");
+    PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor;
+
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
 
     refocus();
 

@@ -250,6 +250,8 @@ void CCompositor::cleanup() {
     m_vWorkspaces.clear();
     m_vWindows.clear();
 
+    m_bIsShuttingDown = true;
+
     for (auto& m : m_vMonitors) {
         g_pHyprOpenGL->destroyMonitorResources(m.get());
 
@@ -257,14 +259,14 @@ void CCompositor::cleanup() {
         wlr_output_commit(m->output);
     }
 
+    m_vMonitors.clear();
+
     if (g_pXWaylandManager->m_sWLRXWayland) {
         wlr_xwayland_destroy(g_pXWaylandManager->m_sWLRXWayland);
         g_pXWaylandManager->m_sWLRXWayland = nullptr;
     }
 
     wl_display_terminate(m_sWLDisplay);
-
-    m_bIsShuttingDown = true;
 
     g_pKeybindManager->spawn("sleep 5 && kill -9 " + std::to_string(m_iHyprlandPID));  // this is to prevent that random "freezing"
                                                                                        // the PID should not be reused.

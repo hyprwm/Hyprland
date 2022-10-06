@@ -41,7 +41,7 @@ R"#({
 },)#",
                 m->ID,
                 escapeJSONStrings(m->szName).c_str(),
-                escapeJSONStrings(m->output->description ? m->output->description : ""),
+                escapeJSONStrings(m->output->description ? m->output->description : "").c_str(),
                 (int)m->vecPixelSize.x, (int)m->vecPixelSize.y,
                 m->refreshRate,
                 (int)m->vecPosition.x, (int)m->vecPosition.y,

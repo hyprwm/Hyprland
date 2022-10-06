@@ -711,6 +711,7 @@ bool windowRuleValid(const std::string& RULE) {
         && RULE.find("opacity") != 0
         && RULE.find("move") != 0
         && RULE.find("size") != 0
+        && RULE.find("minsize") != 0
         && RULE.find("pseudo") != 0
         && RULE.find("monitor") != 0
         && RULE != "nofocus"

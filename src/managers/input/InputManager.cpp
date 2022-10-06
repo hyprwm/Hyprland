@@ -435,12 +435,17 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
+    static auto *const PSCROLLFACTOR = &g_pConfigManager->getConfigValuePtr("input:touchpad:scroll_factor")->floatValue;
+
+    auto factor = (*PSCROLLFACTOR <= 0.f || e->source != WLR_AXIS_SOURCE_FINGER ? 1.f : *PSCROLLFACTOR);
+
     bool passEvent = g_pKeybindManager->onAxisEvent(e);
 
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
     if (passEvent) {
-        wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, e->delta, e->delta_discrete, e->source);
+        wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta,
+            std::round(factor * e->delta_discrete), e->source);
     }
 }
 

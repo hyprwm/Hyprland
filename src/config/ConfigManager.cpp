@@ -146,6 +146,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:middle_button_emulation"].intValue = 0;
     configValues["input:touchpad:tap-to-click"].intValue = 1;
     configValues["input:touchpad:drag_lock"].intValue = 0;
+    configValues["input:touchpad:scroll_factor"].floatValue = 1.f;
 
     configValues["binds:pass_mouse_when_bound"].intValue = 0;
     configValues["binds:scroll_event_delay"].intValue = 300;

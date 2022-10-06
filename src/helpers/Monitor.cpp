@@ -140,7 +140,7 @@ void CMonitor::onConnect(bool noRule) {
 
 void CMonitor::onDisconnect() {
 
-    if (!m_bEnabled)
+    if (!m_bEnabled || g_pCompositor->m_bIsShuttingDown)
         return;
 
     // Cleanup everything. Move windows back, snap cursor, shit.

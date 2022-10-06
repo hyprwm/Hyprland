@@ -379,6 +379,11 @@ void CConfigManager::handleRawExec(const std::string& command, const std::string
     if (child == 0) {
         // run in child
         grandchild = fork();
+
+        sigset_t set;
+        sigemptyset(&set);
+        sigprocmask(SIG_SETMASK, &set, NULL);
+
         if (grandchild == 0) {
             // run in grandchild
             close(socket[0]);

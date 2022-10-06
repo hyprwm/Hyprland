@@ -500,6 +500,11 @@ void CKeybindManager::spawn(std::string args) {
     }
     if (child == 0) {
         // run in child
+
+        sigset_t set;
+        sigemptyset(&set);
+        sigprocmask(SIG_SETMASK, &set, NULL);
+
         grandchild = fork();
         if (grandchild == 0) {
             // run in grandchild

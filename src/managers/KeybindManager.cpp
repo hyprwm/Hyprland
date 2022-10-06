@@ -428,10 +428,10 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         // vtnr is bugged for some reason.
         const std::string TTYSTR = execAndGet("head -n 1 /sys/devices/virtual/tty/tty0/active").substr(3);
-        int ttynum = 0;
+        unsigned int ttynum = 0;
         try {
             ttynum = std::stoll(TTYSTR);
-        } catch (std::exception e) {
+        } catch (std::exception &e) {
             ; // oops?
         }
 

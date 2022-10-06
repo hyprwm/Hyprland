@@ -166,6 +166,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
         } else if (r.szRule == "pin") {
             PWINDOW->m_bPinned = true;
+        } else if (r.szRule == "noanim") {
+            PWINDOW->m_sAdditionalConfigData.forceNoAnims = true;
         } else if (r.szRule.find("rounding") == 0) {
             try {
                 PWINDOW->m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));

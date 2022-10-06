@@ -721,6 +721,7 @@ bool windowRuleValid(const std::string& RULE) {
         && RULE != "forceinput"
         && RULE != "fullscreen"
         && RULE != "pin"
+        && RULE != "noanim"
         && RULE.find("animation") != 0
         && RULE.find("rounding") != 0
         && RULE.find("workspace") != 0);

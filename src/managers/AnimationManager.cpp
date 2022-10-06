@@ -21,12 +21,12 @@ void CAnimationManager::addBezierWithName(std::string name, const Vector2D& p1, 
 
 void CAnimationManager::tick() {
 
-    bool animationsDisabled = false;
+    bool animGlobalDisabled = false;
 
     static auto *const PANIMENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
 
     if (!*PANIMENABLED)
-        animationsDisabled = true;
+        animGlobalDisabled = true;
 
     static auto *const  PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto *const  PSHADOWSENABLED   = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
@@ -56,11 +56,13 @@ void CAnimationManager::tick() {
         const auto PWORKSPACE = (CWorkspace*)av->m_pWorkspace;
         const auto PLAYER = (SLayerSurface*)av->m_pLayer;
         CMonitor* PMONITOR = nullptr;
+        bool animationsDisabled = animGlobalDisabled;
 
         wlr_box WLRBOXPREV = {0,0,0,0};
         if (PWINDOW) {
             WLRBOXPREV = PWINDOW->getFullWindowBoundingBox();
             PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+            animationsDisabled = animationsDisabled || PWINDOW->m_sAdditionalConfigData.forceNoAnims;
         } else if (PWORKSPACE) {
             PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};

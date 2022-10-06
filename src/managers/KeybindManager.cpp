@@ -423,6 +423,9 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     if (!(keysym >= XKB_KEY_XF86Switch_VT_1 && keysym <= XKB_KEY_XF86Switch_VT_12))
         return false;
 
+    // beyond this point, return true to not handle anything else.
+    // we'll avoid printing shit to active windows.
+
     if (g_pCompositor->m_sWLRSession) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
@@ -436,12 +439,12 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         }
 
         if (ttynum == TTY)
-            return false;
+            return true;
 
         Debug::log(LOG, "Switching from VT %i to VT %i", ttynum, TTY);
 
         if (!wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY))
-            return false; // probably same session
+            return true; // probably same session
 
         g_pCompositor->m_bSessionActive = false;
 
@@ -455,7 +458,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         return true;
     }
 
-    return false;
+    return true;
 }
 
 bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {

@@ -248,6 +248,15 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 
+    // clip box for animated offsets
+    if (const auto OFFVEC = PWORKSPACE->m_vRenderOffset.vec(); OFFVEC != Vector2D()) {
+        g_pHyprOpenGL->m_RenderData.clipBox = {(int)OFFVEC.x, (int)OFFVEC.y, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y };
+        
+        scaleBox(&g_pHyprOpenGL->m_RenderData.clipBox, pMonitor->scale);
+    } else {
+        g_pHyprOpenGL->m_RenderData.clipBox = {0, 0, 0, 0};
+    }
+
     // render window decorations first, if not fullscreen full
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
@@ -289,6 +298,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     }
 
     g_pHyprOpenGL->m_pCurrentWindow = nullptr;
+    g_pHyprOpenGL->m_RenderData.clipBox = { 0, 0, 0, 0 };
 }
 
 void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time) {

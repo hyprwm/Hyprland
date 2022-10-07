@@ -67,6 +67,8 @@ struct SCurrentRenderData {
 
     Vector2D    primarySurfaceUVTopLeft = Vector2D(-1, -1);
     Vector2D    primarySurfaceUVBottomRight = Vector2D(-1, -1);
+
+    wlr_box     clipBox = {};
 };
 
 class CHyprOpenGLImpl {

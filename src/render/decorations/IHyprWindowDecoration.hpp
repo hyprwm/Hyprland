@@ -22,7 +22,7 @@ public:
 
     virtual SWindowDecorationExtents getWindowDecorationExtents() = 0;
 
-    virtual void draw(CMonitor*, float a) = 0;
+    virtual void draw(CMonitor*, float a, const Vector2D& offset = Vector2D()) = 0;
 
     virtual eDecorationType getDecorationType() = 0;
 

@@ -10,7 +10,7 @@ public:
 
     virtual SWindowDecorationExtents getWindowDecorationExtents();
 
-    virtual void draw(CMonitor*, float a);
+    virtual void draw(CMonitor*, float a, const Vector2D& offset);
 
     virtual eDecorationType getDecorationType();
 

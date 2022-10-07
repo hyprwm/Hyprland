@@ -249,19 +249,37 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 
     // clip box for animated offsets
-    if (const auto OFFVEC = PWORKSPACE->m_vRenderOffset.vec(); OFFVEC != Vector2D()) {
-        g_pHyprOpenGL->m_RenderData.clipBox = {(int)OFFVEC.x, (int)OFFVEC.y, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y };
-        
-        scaleBox(&g_pHyprOpenGL->m_RenderData.clipBox, pMonitor->scale);
-    } else {
-        g_pHyprOpenGL->m_RenderData.clipBox = {0, 0, 0, 0};
+    Vector2D offset;
+    if (PWORKSPACE->m_vRenderOffset.vec().x != 0) {
+        const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+        const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().x / PWSMON->vecSize.x;
+        const auto WINBB = pWindow->getFullWindowBoundingBox();
+
+        if (WINBB.x < PWSMON->vecPosition.x) {
+            offset.x = (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
+        } else if (WINBB.x > PWSMON->vecPosition.x + PWSMON->vecSize.x) {
+            offset.x = (WINBB.x - PWSMON->vecPosition.x + PWSMON->vecSize.x) * PROGRESS;
+        }
+    } else if (PWORKSPACE->m_vRenderOffset.vec().y) {
+        const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+        const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().y / PWSMON->vecSize.y;
+        const auto WINBB = pWindow->getFullWindowBoundingBox();
+
+        if (WINBB.y < PWSMON->vecPosition.y) {
+            offset.y = (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
+        } else if (WINBB.y > PWSMON->vecPosition.y + PWSMON->vecSize.y) {
+            offset.y = (WINBB.y - PWSMON->vecPosition.y + PWSMON->vecSize.y) * PROGRESS;
+        }
     }
+
+    renderdata.x += offset.x;
+    renderdata.y += offset.y;
 
     // render window decorations first, if not fullscreen full
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
         if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) for (auto& wd : pWindow->m_dWindowDecorations)
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f, offset);
 
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 

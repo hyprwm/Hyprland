@@ -53,6 +53,7 @@ public:
 
     void            setKeyboardLayout();
     void            setPointerConfigs();
+    void            setTouchDeviceConfigs();
 
     void            updateDragIcon();
     void            updateCapabilities(wlr_input_device*);

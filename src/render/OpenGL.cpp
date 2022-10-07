@@ -443,17 +443,17 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glUniform1f(shader->alpha, alpha / 255.f);
     glUniform1i(shader->discardOpaque, (int)discardOpaque);
 
-    // round is in px
-    // so we need to do some maf
+    wlr_box transformedBox;
+    wlr_box_transform(&transformedBox, pBox, wlr_output_transform_invert(m_RenderData.pMonitor->transform),
+		      m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
 
-    const auto TOPLEFT = Vector2D(round, round);
-    const auto BOTTOMRIGHT = Vector2D(pBox->width - round, pBox->height - round);
-    const auto FULLSIZE = Vector2D(pBox->width, pBox->height);
+    const auto TOPLEFT = Vector2D(transformedBox.x, transformedBox.y);
+    const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     // Rounded corners
-    glUniform2f(shader->topLeft, pBox->x, pBox->y);
-    glUniform2f(shader->fullSize, pBox->width, pBox->height);
+    glUniform2f(shader->topLeft, TOPLEFT.x, TOPLEFT.y);
+    glUniform2f(shader->fullSize, FULLSIZE.x ,FULLSIZE.y);
     glUniform1f(shader->radius, round);
     glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 

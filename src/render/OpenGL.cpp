@@ -1289,6 +1289,9 @@ void CHyprOpenGLImpl::clearWithTex() {
 void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorFB.release();
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].primaryFB.release();
+    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorSwapFB.release();
+    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].monitorMirrorFB.release();
+    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].blurFB.release();
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].stencilTex.destroyTexture();
     g_pHyprOpenGL->m_mMonitorBGTextures[pMonitor].destroyTexture();
     g_pHyprOpenGL->m_mMonitorRenderResources.erase(pMonitor);

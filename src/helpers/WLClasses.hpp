@@ -326,6 +326,8 @@ struct SIMEPopup {
 struct STouchDevice {
     wlr_input_device* pWlrDevice = nullptr;
 
+    std::string name = "";
+
     DYNLISTENER(destroy);
 
     bool operator==(const STouchDevice& other) {

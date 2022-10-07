@@ -1027,6 +1027,13 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     const auto PNEWDEV = &m_lTouchDevices.emplace_back();
     PNEWDEV->pWlrDevice = pDevice;
 
+    try {
+        PNEWDEV->name = std::string(pDevice->name);
+    } catch(std::exception& e) {
+        Debug::log(ERR, "Touch Device had no name???"); // logic error
+    }
+
+    setTouchDeviceConfigs();
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
 
     Debug::log(LOG, "New touch device added at %x", PNEWDEV);
@@ -1034,6 +1041,50 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     PNEWDEV->hyprListener_destroy.initCallback(&pDevice->events.destroy, [&](void* owner, void* data) {
         destroyTouchDevice((STouchDevice*)data);
     }, PNEWDEV, "TouchDevice");
+}
+
+void CInputManager::setTouchDeviceConfigs() {
+    // The rotation matrices.
+    // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
+    const float MATRICES[4][6] = {
+       {
+        1, 0, 0,
+        0, 1, 0
+       },
+       {
+        0, -1, 1,
+        1, 0, 0
+       },
+       {
+        -1, 0, 1,
+        0, -1, 1
+       },
+       {
+        0, 1, 0,
+        -1, 0, 1
+       }
+    };
+    const int NB_MATRICES = 4;
+    for (auto& m : m_lTouchDevices) {
+        const auto PTOUCHDEV = &m;
+
+        auto devname = PTOUCHDEV->name;
+        transform(devname.begin(), devname.end(), devname.begin(), ::tolower);
+
+        const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
+
+        if (HASCONFIG)
+            Debug::log(LOG, "Touch Screen %s has config", devname.c_str());
+        else
+            Debug::log(LOG, "Touch Screen %s has no config", devname.c_str());
+
+        if (wlr_input_device_is_libinput(m.pWlrDevice)) {
+            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
+
+            const int ROTATION = ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "td_rotation") : g_pConfigManager->getInt("input:touchdevice:td_rotation")) % NB_MATRICES + NB_MATRICES) % NB_MATRICES;
+            libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+        }
+    }
 }
 
 void CInputManager::destroyTouchDevice(STouchDevice* pDevice) {

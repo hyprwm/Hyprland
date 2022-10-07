@@ -351,11 +351,27 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.posAttrib);
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.texAttrib);
 
-    if (pixman_region32_not_empty(damage)) {
-        PIXMAN_DAMAGE_FOREACH(damage) {
-            const auto RECT = RECTSARR[i];
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
+        pixman_region32_t damageClip;
+        pixman_region32_init(&damageClip);
+        pixman_region32_intersect_rect(&damageClip, damage, m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height);
+
+        if (pixman_region32_not_empty(&damageClip)) {
+            PIXMAN_DAMAGE_FOREACH(&damageClip) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        pixman_region32_fini(&damageClip);
+    } else {
+        if (pixman_region32_not_empty(damage)) {
+            PIXMAN_DAMAGE_FOREACH(damage) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
         }
     }
 
@@ -467,11 +483,27 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
 
-    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-            const auto RECT = RECTSARR[i];
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
+        pixman_region32_t damageClip;
+        pixman_region32_init(&damageClip);
+        pixman_region32_intersect_rect(&damageClip, damage, m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height);
+
+        if (pixman_region32_not_empty(&damageClip)) {
+            PIXMAN_DAMAGE_FOREACH(&damageClip) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        pixman_region32_fini(&damageClip);
+    } else {
+        if (pixman_region32_not_empty(damage)) {
+            PIXMAN_DAMAGE_FOREACH(damage) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
         }
     }
 
@@ -832,11 +864,27 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib);
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib);
 
-    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-            const auto RECT = RECTSARR[i];
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
+        pixman_region32_t damageClip;
+        pixman_region32_init(&damageClip);
+        pixman_region32_intersect_rect(&damageClip, m_RenderData.pDamage, m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height);
+
+        if (pixman_region32_not_empty(&damageClip)) {
+            PIXMAN_DAMAGE_FOREACH(&damageClip) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        pixman_region32_fini(&damageClip);
+    } else {
+        if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+            PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
         }
     }
 
@@ -1074,11 +1122,27 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib);
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib);
 
-    if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-        PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-            const auto RECT = RECTSARR[i];
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
+        pixman_region32_t damageClip;
+        pixman_region32_init(&damageClip);
+        pixman_region32_intersect_rect(&damageClip, m_RenderData.pDamage, m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height);
+
+        if (pixman_region32_not_empty(&damageClip)) {
+            PIXMAN_DAMAGE_FOREACH(&damageClip) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        pixman_region32_fini(&damageClip);
+    } else {
+        if (pixman_region32_not_empty(m_RenderData.pDamage)) {
+            PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+                const auto RECT = RECTSARR[i];
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
         }
     }
 

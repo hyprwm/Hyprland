@@ -63,7 +63,7 @@ void CHyprGroupBarDecoration::damageEntire() {
     g_pHyprRenderer->damageBox(&dm);
 }
 
-void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
+void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     // get how many bars we will draw
     int barsToDraw = m_dwGroupMembers.size();
 
@@ -80,7 +80,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
     int xoff = 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
-        wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x, m_vLastWindowPos.y - m_seExtents.topLeft.y - pMonitor->vecPosition.y, BARW, 3};
+        wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x, m_vLastWindowPos.y - m_seExtents.topLeft.y - pMonitor->vecPosition.y + offset.y, BARW, 3};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;

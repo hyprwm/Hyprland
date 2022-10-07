@@ -48,7 +48,7 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
     }
 }
 
-void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
+void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;
@@ -78,6 +78,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
+
+    fullBox.x += offset.x;
+    fullBox.y += offset.y;
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return; // don't draw invisible shadows

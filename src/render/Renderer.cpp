@@ -1159,9 +1159,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         wlr_output_enable_adaptive_sync(pMonitor->output, 0);
     }
 
-    // update renderer
-    g_pHyprOpenGL->destroyMonitorResources(pMonitor);
-
     if (!wlr_output_commit(pMonitor->output)) {
         Debug::log(ERR, "Couldn't commit output named %s", pMonitor->output->name);
         return true;
@@ -1192,6 +1189,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
 
     wlr_output_enable(pMonitor->output, true);
+
+    // update renderer (here because it will call rollback, so we cannot do this before committing)
+    g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 
     // updato wlroots
     Events::listener_change(nullptr, nullptr);

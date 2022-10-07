@@ -1287,6 +1287,8 @@ void CHyprOpenGLImpl::clearWithTex() {
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
+    wlr_output_attach_render(pMonitor->output, nullptr);
+
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorFB.release();
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].primaryFB.release();
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorSwapFB.release();
@@ -1298,4 +1300,6 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprOpenGL->m_mMonitorBGTextures.erase(pMonitor);
 
     Debug::log(LOG, "Monitor %s -> destroyed all render data", pMonitor->szName.c_str());
+
+    wlr_output_rollback(pMonitor->output);
 }

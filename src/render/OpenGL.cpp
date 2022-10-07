@@ -674,6 +674,8 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     renderTextureInternalWithDamage(POUTFB->m_cTex, &wholeMonitor, 255, &fakeDamage, 0, false, true, false);
     m_bEndFrame = false;
 
+    pixman_region32_fini(&fakeDamage);
+
     m_RenderData.pCurrentMonData->primaryFB.bind();
 
     m_RenderData.pCurrentMonData->blurFBDirty = false;

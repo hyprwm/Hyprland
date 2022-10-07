@@ -310,7 +310,8 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
 }
 
 void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
-    renderRectWithDamage(box, col, m_RenderData.pDamage, round);
+    if(pixman_region32_not_empty(m_RenderData.pDamage))
+	renderRectWithDamage(box, col, m_RenderData.pDamage, round);
 }
 
 void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixman_region32_t* damage, int round) {
@@ -364,15 +365,13 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
             }
         }
 
-        pixman_region32_fini(&damageClip);
+	pixman_region32_fini(&damageClip);
     } else {
-        if (pixman_region32_not_empty(damage)) {
-            PIXMAN_DAMAGE_FOREACH(damage) {
-                const auto RECT = RECTSARR[i];
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
+	PIXMAN_DAMAGE_FOREACH(damage) {
+	    const auto RECT = RECTSARR[i];
+	    scissor(&RECT);
+	    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
     }
 
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.posAttrib);
@@ -398,6 +397,9 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float al
 void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA, bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
+
+    if (!pixman_region32_not_empty(m_RenderData.pDamage))
+	return;
 
     static auto *const PDIMINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:dim_inactive")->intValue;
 
@@ -496,15 +498,13 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
             }
         }
 
-        pixman_region32_fini(&damageClip);
+	pixman_region32_fini(&damageClip);
     } else {
-        if (pixman_region32_not_empty(damage)) {
-            PIXMAN_DAMAGE_FOREACH(damage) {
-                const auto RECT = RECTSARR[i];
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
+	PIXMAN_DAMAGE_FOREACH(damage) {
+	    const auto RECT = RECTSARR[i];
+	    scissor(&RECT);
+	    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
     }
 
     glDisableVertexAttribArray(shader->posAttrib);
@@ -709,15 +709,18 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     static auto *const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
     static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
 
-    if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
-        renderTexture(tex, pBox, a, round, false, true);
-        return;
-    }
-
     // make a damage region for this window
     pixman_region32_t damage;
     pixman_region32_init(&damage);
     pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height);  // clip it to the box
+
+    if(!pixman_region32_not_empty(&damage))
+	return;
+
+    if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
+        renderTexture(tex, pBox, a, round, false, true);
+        return;
+    }
 
     // amazing hack: the surface has an opaque region!
     pixman_region32_t inverseOpaque;
@@ -769,21 +772,19 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     // stencil done. Render everything.
     wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-    if (pixman_region32_not_empty(&damage)) {
-        // render our great blurred FB
-        static auto *const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
-        m_bEndFrame = true; // fix transformed
-        renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, false);
-        m_bEndFrame = false;
+    // render our great blurred FB
+    static auto *const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
+    m_bEndFrame = true; // fix transformed
+    renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, false);
+    m_bEndFrame = false;
 
-        // render the window, but clear stencil
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
+    // render the window, but clear stencil
+    glClearStencil(0);
+    glClear(GL_STENCIL_BUFFER_BIT);
 
-        // draw window
-        glDisable(GL_STENCIL_TEST);
-        renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true, true);
-    }
+    // draw window
+    glDisable(GL_STENCIL_TEST);
+    renderTextureInternalWithDamage(tex, pBox, a, &damage, round, false, false, true, true);
 
     glStencilMask(-1);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
@@ -801,6 +802,9 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
 void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
+
+    if (!pixman_region32_not_empty(m_RenderData.pDamage))
+	return;
 
     static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto *const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
@@ -879,15 +883,13 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
             }
         }
 
-        pixman_region32_fini(&damageClip);
+	pixman_region32_fini(&damageClip);
     } else {
-        if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-            PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-                const auto RECT = RECTSARR[i];
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
+	PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+	    const auto RECT = RECTSARR[i];
+	    scissor(&RECT);
+	    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
     }
 
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib);
@@ -1083,6 +1085,9 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     RASSERT((box->width > 0 && box->height > 0), "Tried to render shadow with width/height < 0!");
     RASSERT(m_pCurrentWindow, "Tried to render shadow without a window!");
 
+    if (!pixman_region32_not_empty(m_RenderData.pDamage))
+	return;
+
     static auto *const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->intValue;
 
     const auto SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
@@ -1137,15 +1142,13 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
             }
         }
 
-        pixman_region32_fini(&damageClip);
+	pixman_region32_fini(&damageClip);
     } else {
-        if (pixman_region32_not_empty(m_RenderData.pDamage)) {
-            PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-                const auto RECT = RECTSARR[i];
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
+	PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+	    const auto RECT = RECTSARR[i];
+	    scissor(&RECT);
+	    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
     }
 
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib);

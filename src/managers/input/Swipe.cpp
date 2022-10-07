@@ -42,6 +42,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     static auto *const PSWIPEPERC = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_cancel_ratio")->floatValue;
     static auto *const PSWIPEDIST = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
     static auto *const PSWIPEFORC = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_min_speed_to_force")->intValue;
+    const bool VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert";
 
     // commit
     std::string wsname = "";
@@ -64,10 +65,16 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         } else {
             if (m_sActiveSwipe.delta < 0) {
                 // to left
-                PWORKSPACEL->m_vRenderOffset = Vector2D({-m_sActiveSwipe.pMonitor->vecSize.x, 0});
+                if (VERTANIMS)
+                    PWORKSPACEL->m_vRenderOffset = Vector2D({0, -m_sActiveSwipe.pMonitor->vecSize.y});
+                else
+                    PWORKSPACEL->m_vRenderOffset = Vector2D({-m_sActiveSwipe.pMonitor->vecSize.x, 0});
             } else {
                 // to right
-                PWORKSPACER->m_vRenderOffset = Vector2D({m_sActiveSwipe.pMonitor->vecSize.x, 0});
+                if (VERTANIMS)
+                    PWORKSPACER->m_vRenderOffset = Vector2D({0, m_sActiveSwipe.pMonitor->vecSize.y});
+                else
+                    PWORKSPACER->m_vRenderOffset = Vector2D({m_sActiveSwipe.pMonitor->vecSize.x, 0});
             }
 
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D();
@@ -84,7 +91,10 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         PWORKSPACEL->m_fAlpha.setValueAndWarp(255.f);
 
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(m_sActiveSwipe.pMonitor->vecSize.x, 0);
+        if (VERTANIMS)
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, m_sActiveSwipe.pMonitor->vecSize.y);
+        else
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(m_sActiveSwipe.pMonitor->vecSize.x, 0);
         m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
 
         g_pInputManager->unconstrainMouse();
@@ -102,7 +112,10 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         PWORKSPACER->m_fAlpha.setValueAndWarp(255.f);
 
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-m_sActiveSwipe.pMonitor->vecSize.x, 0);
+        if (VERTANIMS)
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, -m_sActiveSwipe.pMonitor->vecSize.y);
+        else
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-m_sActiveSwipe.pMonitor->vecSize.x, 0);
         m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
 
         g_pInputManager->unconstrainMouse();
@@ -135,7 +148,9 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     static auto *const PSWIPEDIST = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
     static auto *const PSWIPEINVR = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_invert")->intValue;
 
-    m_sActiveSwipe.delta += *PSWIPEINVR ? -e->dx : e->dx;
+    const bool VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert";
+
+    m_sActiveSwipe.delta += VERTANIMS ? (*PSWIPEINVR ? -e->dy : e->dy) : (*PSWIPEINVR ? -e->dx : e->dx);
 
     m_sActiveSwipe.avgSpeed = (m_sActiveSwipe.avgSpeed * m_sActiveSwipe.speedPoints + abs(e->dx)) / (m_sActiveSwipe.speedPoints + 1);
     m_sActiveSwipe.speedPoints++;
@@ -171,8 +186,13 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
             PWORKSPACER->m_fAlpha.setValueAndWarp(0.f);
         }
 
-        PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x - m_sActiveSwipe.pMonitor->vecSize.x, 0));
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
+        if (VERTANIMS) {
+            PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y - m_sActiveSwipe.pMonitor->vecSize.y));
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y));
+        } else {
+            PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x - m_sActiveSwipe.pMonitor->vecSize.x, 0));
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
+        }
 
         g_pCompositor->updateWorkspaceWindowDecos(workspaceIDLeft);
     } else {
@@ -193,8 +213,13 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
             PWORKSPACEL->m_fAlpha.setValueAndWarp(0.f);
         }
 
-        PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x + m_sActiveSwipe.pMonitor->vecSize.x, 0));
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((- m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
+        if (VERTANIMS) {
+            PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y + m_sActiveSwipe.pMonitor->vecSize.y));
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y));
+        } else {
+            PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x + m_sActiveSwipe.pMonitor->vecSize.x, 0));
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
+        }
 
         g_pCompositor->updateWorkspaceWindowDecos(workspaceIDRight);
     }

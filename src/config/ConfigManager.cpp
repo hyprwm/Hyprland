@@ -147,7 +147,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:tap-to-click"].intValue = 1;
     configValues["input:touchpad:drag_lock"].intValue = 0;
     configValues["input:touchpad:scroll_factor"].floatValue = 1.f;
-    configValues["input:touchdevice:td_rotation"].intValue = 0;
+    configValues["input:touchdevice:transform"].intValue = 0;
 
     configValues["binds:pass_mouse_when_bound"].intValue = 0;
     configValues["binds:scroll_event_delay"].intValue = 300;
@@ -188,7 +188,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["drag_lock"].intValue = 0;
     cfgValues["left_handed"].intValue = 0;
     cfgValues["scroll_method"].strValue = STRVAL_EMPTY;
-    cfgValues["td_rotation"].intValue = 0;
+    cfgValues["transform"].intValue = 0;
 }
 
 void CConfigManager::setDefaultAnimationVars() {

@@ -1044,27 +1044,41 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 }
 
 void CInputManager::setTouchDeviceConfigs() {
-    // The rotation matrices.
     // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
-    const float MATRICES[4][6] = {
-       {
+    const float MATRICES[8][6] = {
+       { // normal
         1, 0, 0,
         0, 1, 0
        },
-       {
+       { // rotation 90°
         0, -1, 1,
         1, 0, 0
        },
-       {
+       { // rotation 180°
         -1, 0, 1,
         0, -1, 1
        },
-       {
+       { // rotation 270°
         0, 1, 0,
+        -1, 0, 1
+       },
+       { // flipped
+        -1, 0, 1,
+        0, 1, 0
+       },
+       { // flipped + rotation 90°
+        0, 1, 0,
+        1, 0, 0
+       },
+       { // flipped + rotation 180°
+        1, 0, 0,
+        0, -1, 1
+       },
+       { // flipped + rotation 270°
+        0, -1, 1,
         -1, 0, 1
        }
     };
-    const int NB_MATRICES = 4;
     for (auto& m : m_lTouchDevices) {
         const auto PTOUCHDEV = &m;
 
@@ -1073,15 +1087,10 @@ void CInputManager::setTouchDeviceConfigs() {
 
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
-        if (HASCONFIG)
-            Debug::log(LOG, "Touch Screen %s has config", devname.c_str());
-        else
-            Debug::log(LOG, "Touch Screen %s has no config", devname.c_str());
-
         if (wlr_input_device_is_libinput(m.pWlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
 
-            const int ROTATION = ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "td_rotation") : g_pConfigManager->getInt("input:touchdevice:td_rotation")) % NB_MATRICES + NB_MATRICES) % NB_MATRICES;
+            const int ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
         }
     }

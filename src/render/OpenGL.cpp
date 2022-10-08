@@ -335,8 +335,12 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix);
     glUniform4f(m_RenderData.pCurrentMonData->m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
-    const auto TOPLEFT = Vector2D(box->x, box->y);
-    const auto FULLSIZE = Vector2D(box->width, box->height);
+    wlr_box transformedBox;
+    wlr_box_transform(&transformedBox, box, wlr_output_transform_invert(m_RenderData.pMonitor->transform),
+		      m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
+
+    const auto TOPLEFT = Vector2D(transformedBox.x, transformedBox.y);
+    const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 

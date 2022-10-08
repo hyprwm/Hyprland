@@ -1083,9 +1083,9 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     RASSERT((box->width > 0 && box->height > 0), "Tried to render shadow with width/height < 0!");
     RASSERT(m_pCurrentWindow, "Tried to render shadow without a window!");
 
-    static auto *const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->intValue;
+    static auto *const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->floatValue;
 
-    const auto SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
+    const auto SHADOWPOWER = std::max(*PSHADOWPOWER , 0.0f); // TODO: we should do that only once at startup and if the config changed
 
     const auto col = m_pCurrentWindow->m_cRealShadowColor.col();
 
@@ -1114,7 +1114,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glUniform2f(m_RenderData.pCurrentMonData->m_shSHADOW.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
     glUniform2f(m_RenderData.pCurrentMonData->m_shSHADOW.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
     glUniform2f(m_RenderData.pCurrentMonData->m_shSHADOW.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shSHADOW.radius, range + round);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shSHADOW.radius, round);
     glUniform1f(m_RenderData.pCurrentMonData->m_shSHADOW.range, range);
     glUniform1f(m_RenderData.pCurrentMonData->m_shSHADOW.shadowPower, SHADOWPOWER);
 

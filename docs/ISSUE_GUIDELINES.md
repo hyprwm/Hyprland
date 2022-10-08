@@ -58,6 +58,6 @@ coredumpctl info [PID]
 where `[PID]` is the PID you remembered.
 
 ## Obtaining the debug Hyprland coredump
-1. Compile Hyprland with debug flags turn on
+1. [Compile Hyprland with debug mode](http://wiki.hyprland.org/Contributing-and-Debugging/#build-in-debug-mode)
 2. `coredumpctl debug [PID]`(see above)
 3. Wait until the `gdb` appears, then do `bt -full`

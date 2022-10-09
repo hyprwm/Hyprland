@@ -323,7 +323,6 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -412,7 +411,6 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
 
     CShader* shader = nullptr;
 
@@ -840,7 +838,6 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1096,7 +1093,6 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

@@ -178,7 +178,7 @@ bool isNumber(const std::string& str, bool allowfloat) {
     std::string copy = str;
     if (*copy.begin() == '-')
         copy = copy.substr(1);
-    
+
     if (copy.empty())
         return false;
 
@@ -331,7 +331,7 @@ void logSystemInfo() {
     Debug::log(LOG, "Node name: %s", unameInfo.nodename);
     Debug::log(LOG, "Release: %s", unameInfo.release);
     Debug::log(LOG, "Version: %s", unameInfo.version);
-    
+
     Debug::log(NONE, "\n");
 
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
@@ -357,8 +357,8 @@ void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
     // Rotation + reflection
     mat[0] = x * t[0];
     mat[1] = x * t[1];
-    mat[3] = y * -t[3];
-    mat[4] = y * -t[4];
+    mat[3] = y * t[3];
+    mat[4] = y * t[4];
 
     // Translation
     mat[2] = -copysign(1.0f, mat[0] + mat[1]);

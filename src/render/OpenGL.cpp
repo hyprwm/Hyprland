@@ -528,7 +528,6 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_transpose(glMatrix, glMatrix);
 
     // get the config settings
     static auto *const PBLURSIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
@@ -1278,7 +1277,15 @@ void CHyprOpenGLImpl::clearWithTex() {
     static auto *const PRENDERTEX = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
 
     if (!*PRENDERTEX) {
-        renderTexture(m_mMonitorBGTextures[m_RenderData.pMonitor], &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox, 255, 0);
+        auto TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
+
+        if (TEXIT == m_mMonitorBGTextures.end()) {
+            createBGTextureForMonitor(m_RenderData.pMonitor);
+            TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
+        }
+
+        if (TEXIT != m_mMonitorBGTextures.end())
+            renderTexture(TEXIT->second, &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox, 255, 0);
     }
 }
 

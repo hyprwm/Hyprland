@@ -178,19 +178,23 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
     if (subsurface->pChild) {
         const auto PNODE = subsurface->pChild;
 
-        int lx = 0, ly = 0;
-        addSurfaceGlobalOffset(PNODE, &lx, &ly);
+        const auto IT = std::find_if(SubsurfaceTree::surfaceTreeNodes.begin(), SubsurfaceTree::surfaceTreeNodes.end(), [&](const SSurfaceTreeNode& other) { return &other == PNODE; });
 
-        wlr_box extents = {lx, ly, 0, 0};
-        if (PNODE->pSurface) {
-            extents.width = PNODE->pSurface->current.width;
-            extents.height = PNODE->pSurface->current.height;
+        if (IT != SubsurfaceTree::surfaceTreeNodes.end()) {
+            int lx = 0, ly = 0;
+            addSurfaceGlobalOffset(PNODE, &lx, &ly);
 
-            g_pHyprRenderer->damageBox(&extents);
+            wlr_box extents = {lx, ly, 0, 0};
+            if (PNODE->pSurface) {
+                extents.width = PNODE->pSurface->current.width;
+                extents.height = PNODE->pSurface->current.height;
+
+                g_pHyprRenderer->damageBox(&extents);
+            }
+
+            // SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
+            // subsurface->pChild = nullptr;
         }
-
-        //SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
-        //subsurface->pChild = nullptr;
     }
 }
 

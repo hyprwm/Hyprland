@@ -61,6 +61,7 @@ where `[PID]` is the PID you remembered.
 In very rare cases, the normal coredump would not be enough.
 Only then, you could try obtaining the debug coredump.
 1. [Compile Hyprland with debug mode](http://wiki.hyprland.org/Contributing-and-Debugging/#build-in-debug-mode)
+1. Reproduce the crash in debug mode.
 2. `env DEBUGINFOD_URLS="https://debuginfod.archlinux.org/" coredumpctl debug [PID]`(see above)
 3. Wait until the `gdb` appears`, then do:
 4. `set pagination off`

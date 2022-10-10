@@ -93,19 +93,19 @@ wlr-output-power-management-unstable-v1-protocol.o: wlr-output-power-management-
 
 legacyrenderer:
 	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:STRING=true -H./ -B./build -G Ninja
-	cmake --build ./build --config Release --target all -j $(nproc)
+	cmake --build ./build --config Release --target all -j$(shell nproc)
 
 legacyrendererdebug:
 	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:STRING=true -H./ -B./build -G Ninja
-	cmake --build ./build --config Release --target all -j $(nproc)
+	cmake --build ./build --config Release --target all -j$(shell nproc)
 
 release:
 	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja
-	cmake --build ./build --config Release --target all -j $(nproc)
+	cmake --build ./build --config Release --target all -j$(shell nproc)
 
 debug:
 	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -H./ -B./build -G Ninja
-	cmake --build ./build --config Debug --target all -j $(nproc)
+	cmake --build ./build --config Debug --target all -j$(shell nproc)
 
 clear:
 	rm -rf build
@@ -137,7 +137,7 @@ install:
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
 	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
-	
+
 cleaninstall:
 	make clear
 	make fixwlr

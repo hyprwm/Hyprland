@@ -63,6 +63,6 @@ Only then, you could try obtaining the debug coredump.
 1. [Compile Hyprland with debug mode](http://wiki.hyprland.org/Contributing-and-Debugging/#build-in-debug-mode)
 1. Reproduce the crash in debug mode.
 2. `env DEBUGINFOD_URLS="https://debuginfod.archlinux.org/" coredumpctl debug [PID]`(see above)
-3. Wait until the `gdb` appears`, then do:
-4. `set pagination off`
+3. Wait until the `gdb` appears
+4. If gdb asks you `press y to continue without paging?` say no.
 5. `bt -full`

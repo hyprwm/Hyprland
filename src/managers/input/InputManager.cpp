@@ -1045,7 +1045,7 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 
 void CInputManager::setTouchDeviceConfigs() {
     // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
-    const float MATRICES[8][6] = {
+    static const float MATRICES[8][6] = {
        { // normal
         1, 0, 0,
         0, 1, 0

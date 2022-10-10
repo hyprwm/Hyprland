@@ -62,8 +62,9 @@ In very rare cases, the normal coredump would not be enough.
 Only then, you could try obtaining the debug coredump.
 1. [Compile Hyprland with debug mode](http://wiki.hyprland.org/Contributing-and-Debugging/#build-in-debug-mode)
 > Note: the config file will be in `$HOME/.config/hypr/hyprlandd.conf`
-1. Reproduce the crash in debug mode.
-2. `env DEBUGINFOD_URLS="https://debuginfod.archlinux.org/" coredumpctl debug [PID]`(see above)
-3. Wait until the `(gdb)` appears
-4. If gdb asks you `press y to continue without paging?` Type `Y`
-5. `bt -full`
+
+2. Reproduce the crash in debug mode.
+3. `env DEBUGINFOD_URLS="https://debuginfod.archlinux.org/" coredumpctl debug [PID]`(see above)
+4. Wait until the `(gdb)` appears
+5. If gdb asks you `press y to continue without paging?` Type `Y`
+6. `bt -full`

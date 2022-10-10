@@ -323,16 +323,13 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
-
-    wlr_matrix_transpose(glMatrix, glMatrix);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shQUAD.program);
 
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix);
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_TRUE, glMatrix);
     glUniform4f(m_RenderData.pCurrentMonData->m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
     wlr_box transformedBox;
@@ -414,9 +411,6 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
-
-    wlr_matrix_transpose(glMatrix, glMatrix);
 
     CShader* shader = nullptr;
 
@@ -444,7 +438,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     glUseProgram(shader->program);
 
-    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
+    glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix);
     glUniform1i(shader->tex, 0);
     glUniform1f(shader->alpha, alpha / 255.f);
     glUniform1i(shader->discardOpaque, (int)discardOpaque);
@@ -534,8 +528,6 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
-    wlr_matrix_transpose(glMatrix, glMatrix);
 
     // get the config settings
     static auto *const PBLURSIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
@@ -570,7 +562,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
         glUseProgram(pShader->program);
 
         // prep two shaders
-        glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
+        glUniformMatrix3fv(pShader->proj, 1, GL_TRUE, glMatrix);
         glUniform1f(pShader->radius, *PBLURSIZE * (a / 255.f));  // this makes the blursize change with a
         if (pShader == &m_RenderData.pCurrentMonData->m_shBLUR1)
             glUniform2f(m_RenderData.pCurrentMonData->m_shBLUR1.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
@@ -845,16 +837,13 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
-
-    wlr_matrix_transpose(glMatrix, glMatrix);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shBORDER1.program);
 
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_TRUE, glMatrix);
     glUniform4f(m_RenderData.pCurrentMonData->m_shBORDER1.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
     const auto TOPLEFT = Vector2D(round, round);
@@ -1103,16 +1092,13 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
-    wlr_matrix_multiply(glMatrix, matrixFlip180, glMatrix);
-
-    wlr_matrix_transpose(glMatrix, glMatrix);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shSHADOW.program);
 
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_TRUE, glMatrix);
     glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
 
     const auto TOPLEFT = Vector2D(range + round, range + round);

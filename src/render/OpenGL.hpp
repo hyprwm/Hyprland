@@ -12,11 +12,6 @@
 #include "Texture.hpp"
 #include "Framebuffer.hpp"
 
-inline const float matrixFlip180[] = {
-	1.0f, 0.0f, 0.0f,
-	0.0f, -1.0f, 0.0f,
-	0.0f, 0.0f, 1.0f,
-};
 inline const float fullVerts[] = {
     1, 0,  // top right
     0, 0,  // top left

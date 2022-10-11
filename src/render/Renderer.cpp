@@ -169,6 +169,12 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
         pWorkspaceWindow = w.get();
     }
 
+    if (!pWorkspaceWindow) {
+        // ?? happens sometimes...
+        pWorkspace->m_bHasFullscreenWindow = false;
+        return; // this will produce one blank frame. Oh well.
+    }
+
     // then render windows over fullscreen.
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID != pWorkspaceWindow->m_iWorkspaceID || (!w->m_bCreatedOverFullscreen && !w->m_bPinned) || !w->m_bIsMapped)

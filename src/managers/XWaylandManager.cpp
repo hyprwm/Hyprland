@@ -17,6 +17,8 @@ CHyprXWaylandManager::CHyprXWaylandManager() {
         setenv("DISPLAY", m_sWLRXWayland->display_name, 1);
 
         Debug::log(LOG, "CHyprXWaylandManager started on display %s", m_sWLRXWayland->display_name);
+    } else {
+        unsetenv("DISPLAY"); // unset DISPLAY so that X11 apps do not try to start on a different/invalid DISPLAY
     }
 }
 

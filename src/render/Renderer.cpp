@@ -955,8 +955,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     wlr_output_set_scale(pMonitor->output, pMonitorRule->scale);
     pMonitor->scale = pMonitorRule->scale;
 
-    pMonitor->vecPosition = pMonitorRule->offset;
-
     // loop over modes and choose an appropriate one.
     if (pMonitorRule->resolution != Vector2D() && pMonitorRule->resolution != Vector2D(-1,-1) && pMonitorRule->resolution != Vector2D(-1,-2)) {
         if (!wl_list_empty(&pMonitor->output->modes)) {
@@ -1175,7 +1173,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->vecSize = (Vector2D(x, y) / pMonitor->scale).floor();
     pMonitor->vecTransformedSize = Vector2D(x,y);
 
-    if (pMonitorRule->offset == Vector2D(-1, -1)) {
+    if (pMonitorRule->offset == Vector2D(-1, -1) && pMonitor->vecPosition == Vector2D(-1, -1)) {
         // let's find manually a sensible position for it, to the right.
         Vector2D finalPos;
 
@@ -1189,6 +1187,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         }
 
         pMonitor->vecPosition = finalPos;
+    } else if (pMonitorRule->offset != Vector2D(-1, -1)) {
+        pMonitor->vecPosition = pMonitorRule->offset;
     }
 
     if (!pMonitor->isMirror())

@@ -499,7 +499,7 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 R"#({
     "branch": "%s",
     "commit": "%s",
-    "dirty": %s
+    "dirty": %s,
     "commit_message": "%s",
     "flags": [)#", GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str());
 

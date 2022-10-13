@@ -361,6 +361,10 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
     if (!pWindow->m_vRealPosition.isBeingAnimated() && !pWindow->m_vRealSize.isBeingAnimated())
         return;
 
+    // if the animation is disabled and we are leaving, ignore the anim to prevent the snapshot being fucked
+    if (!pWindow->m_vRealPosition.m_pConfig->pValues->internalEnabled)
+        return;
+
     if (pWindow->m_sAdditionalConfigData.animationStyle != "") {
         // the window has config'd special anim
         if (pWindow->m_sAdditionalConfigData.animationStyle.find("slide") == 0) {

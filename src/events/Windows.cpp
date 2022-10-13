@@ -147,6 +147,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 requestedWorkspace = WORKSPACERQ;
             }
 
+            if (requestedWorkspace == PWORKSPACE->m_szName || requestedWorkspace == "name:" + PWORKSPACE->m_szName)
+                requestedWorkspace = "";
+
             Debug::log(LOG, "Rule workspace matched by window %x, %s applied.", PWINDOW, r.szValue.c_str());
         } else if (r.szRule.find("float") == 0) {
             PWINDOW->m_bIsFloating = true;

@@ -610,16 +610,20 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         internal = true;
     } else if (args.find("previous") == 0) {
-        const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(
-            g_pCompositor->m_pLastMonitor->activeWorkspace);
+        const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
         // Do nothing if there's no previous workspace, otherwise switch to it.
         if (PCURRENTWORKSPACE->m_iPrevWorkspaceID == -1) {
             Debug::log(LOG, "No previous workspace to change to");
             return;
-        }
-        else {
+        } else {
             workspaceToChangeTo = PCURRENTWORKSPACE->m_iPrevWorkspaceID;
+            
+            if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo); PWORKSPACETOCHANGETO)
+                workspaceName = PWORKSPACETOCHANGETO->m_szName;
+            else
+                workspaceName = std::to_string(workspaceToChangeTo);
+
             isSwitchingToPrevious = true;
 
             // If the previous workspace ID isn't reset, cycles can form when continually going

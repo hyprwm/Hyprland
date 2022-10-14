@@ -188,7 +188,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["drag_lock"].intValue = 0;
     cfgValues["left_handed"].intValue = 0;
     cfgValues["scroll_method"].strValue = STRVAL_EMPTY;
-    cfgValues["transform"].intValue = 0;
+    cfgValues["touch_transform"].intValue = 0;
 }
 
 void CConfigManager::setDefaultAnimationVars() {

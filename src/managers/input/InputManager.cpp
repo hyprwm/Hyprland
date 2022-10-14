@@ -1090,7 +1090,7 @@ void CInputManager::setTouchDeviceConfigs() {
         if (wlr_input_device_is_libinput(m.pWlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
 
-            const int ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
+            const int ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "touch_transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
         }
     }

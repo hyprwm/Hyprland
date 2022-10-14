@@ -328,6 +328,8 @@ struct STouchDevice {
 
     std::string name = "";
 
+    std::string boundOutput = "";
+
     DYNLISTENER(destroy);
 
     bool operator==(const STouchDevice& other) {

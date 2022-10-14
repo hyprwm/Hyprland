@@ -35,6 +35,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto *const PHOGFOCUS = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
     static auto *const PFLOATBEHAVIOR = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
 
+    m_pFoundSurfaceToFocus = nullptr;
+    m_pFoundLSToFocus = nullptr;
+    m_pFoundWindowToFocus = nullptr;
+
     if (!g_pCompositor->m_bReadyToProcess)
         return;
 
@@ -159,7 +163,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         // only check floating because tiled cant be over fullscreen
         for (auto w = g_pCompositor->m_vWindows.rbegin(); w != g_pCompositor->m_vWindows.rend(); w++) {
             wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
-            if ((((*w)->m_bIsFloating && (*w)->m_bIsMapped && ((*w)->m_bCreatedOverFullscreen || (*w)->m_bPinned)) || ((*w)->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->m_bHidden) {
+            if ((((*w)->m_bIsFloating && (*w)->m_bIsMapped && ((*w)->m_bCreatedOverFullscreen || (*w)->m_bPinned)) || ((*w)->m_iWorkspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden()) {
                 pFoundWindow = (*w).get();
 
                 if (!pFoundWindow->m_bIsX11) {
@@ -264,9 +268,16 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
     }
 
+    // set the values for use
+    if (refocus) {
+        m_pFoundLSToFocus = pFoundLayerSurface;
+        m_pFoundWindowToFocus = pFoundWindow;
+        m_pFoundSurfaceToFocus = foundSurface;
+    }
+
     if (pFoundWindow) {
         if (*PFOLLOWMOUSE != 1 && !refocus) {
-            if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR) {
+            if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR) {
                 // enter if change floating style
                 if (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
@@ -396,7 +407,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
                 refocus();
 
             // if clicked on a floating window make it top
-            if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_bIsFloating)
+            if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
                 g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
 
             break;
@@ -415,7 +426,7 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
         case WLR_BUTTON_PRESSED: {
             const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
-            if (!g_pCompositor->windowValidMapped(PWINDOW)){
+            if (!PWINDOW) {
                 Debug::log(ERR, "Cannot kill invalid window!");
                 break;
             }

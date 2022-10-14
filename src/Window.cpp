@@ -244,3 +244,20 @@ void CWindow::removeDecorationByType(eDecorationType type) {
 
     updateWindowDecos();
 }
+
+void CWindow::onUnmap() {
+    if (g_pCompositor->m_pLastWindow == this)
+        g_pCompositor->m_pLastWindow = nullptr;
+}
+
+void CWindow::setHidden(bool hidden) {
+    m_bHidden = hidden;
+
+    if (hidden) {
+        onUnmap();
+    }
+}
+
+bool CWindow::isHidden() {
+    return m_bHidden;
+}

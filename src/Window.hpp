@@ -118,9 +118,6 @@ public:
     Vector2D        m_vOriginalClosedPos; // these will be used for calculations later on in
     Vector2D        m_vOriginalClosedSize; // drawing the closing animations
 
-    // For hidden windows and stuff
-    bool            m_bHidden = false;
-
     // For pinned (sticky) windows
     bool            m_bPinned = false;
 
@@ -172,4 +169,12 @@ public:
     void            updateSurfaceOutputs();
     void            moveToWorkspace(int);
     CWindow*        X11TransientFor();
+    void            onUnmap();
+    void            setHidden(bool hidden);
+    bool            isHidden();
+
+private:
+    // For hidden windows and stuff
+    bool            m_bHidden = false;
+
 };

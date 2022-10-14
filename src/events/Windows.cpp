@@ -250,7 +250,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->m_vRealSize = Vector2D(SIZEX, SIZEY);
                     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
-                    PWINDOW->m_bHidden = false;
+                    PWINDOW->setHidden(false);
                 } catch (...) {
                     Debug::log(LOG, "Rule size failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }
@@ -265,7 +265,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->m_vRealSize = SIZE;
                     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
-                    PWINDOW->m_bHidden = false;
+                    PWINDOW->setHidden(false);
                 } catch (...) {
                     Debug::log(LOG, "Rule minsize failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }
@@ -282,7 +282,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->m_vRealPosition = Vector2D(POSX, POSY) + PMONITOR->vecPosition;
 
-                    PWINDOW->m_bHidden = false;
+                    PWINDOW->setHidden(false);
                 } catch (...) {
                     Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }
@@ -423,7 +423,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 std::vector<CWindow*> found;
                 CWindow* finalFound = nullptr;
                 for (auto& w : g_pCompositor->m_vWindows) {
-                    if (!w->m_bIsMapped || w->m_bHidden)
+                    if (!w->m_bIsMapped || w->isHidden())
                         continue;
 
                     if (w->getPID() == ppid) {
@@ -451,7 +451,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                         g_pLayoutManager->getCurrentLayout()->onWindowRemoved(finalFound);
 
-                        finalFound->m_bHidden = true;
+                        finalFound->setHidden(true);
                     }
                 }
             }
@@ -499,7 +499,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // swallowing
     if (PWINDOW->m_pSwallowed && g_pCompositor->windowExists(PWINDOW->m_pSwallowed)) {
-        PWINDOW->m_pSwallowed->m_bHidden = false;
+        PWINDOW->m_pSwallowed->setHidden(false);
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed);
         PWINDOW->m_pSwallowed = nullptr;
     }
@@ -532,7 +532,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         if (PWORKSPACE->m_bHasFullscreenWindow && ((!PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bCreatedOverFullscreen) || !PWINDOW->m_bIsFloating))
             PWINDOWCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
-        if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->m_bHidden || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+        if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
             PWINDOWCANDIDATE = nullptr;
 
         Debug::log(LOG, "On closed window, new focused candidate is %x", PWINDOWCANDIDATE);
@@ -546,6 +546,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     } else {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
     }
+
+    // update lastwindow after focus
+    PWINDOW->onUnmap();
 
     Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %x", PWINDOW);
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
@@ -581,7 +584,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    if (!PWINDOW->m_bMappedX11 || PWINDOW->m_bHidden || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
+    if (!PWINDOW->m_bMappedX11 || PWINDOW->isHidden() || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
         return;
 
     g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
@@ -641,7 +644,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         return;
     }
 
-    if (PWINDOW->m_bHidden)
+    if (PWINDOW->isHidden())
         return;
 
     if (!PWINDOW->m_bIsX11) {
@@ -696,9 +699,9 @@ void Events::listener_configureX11(void* owner, void* data) {
     }
 
     if (E->width > 1 && E->height > 1)
-        PWINDOW->m_bHidden = false;
+        PWINDOW->setHidden(false);
     else
-        PWINDOW->m_bHidden = true;
+        PWINDOW->setHidden(true);
 
     PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(E->x, E->y));
     PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(E->width, E->height));
@@ -723,16 +726,16 @@ void Events::listener_configureX11(void* owner, void* data) {
 void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    if (!PWINDOW->m_bMappedX11 || PWINDOW->m_bHidden)
+    if (!PWINDOW->m_bMappedX11)
         return;
 
     const auto POS = PWINDOW->m_vRealPosition.goalv();
     const auto SIZ = PWINDOW->m_vRealSize.goalv();
 
     if (PWINDOW->m_uSurface.xwayland->width > 1 && PWINDOW->m_uSurface.xwayland->height > 1)
-        PWINDOW->m_bHidden = false;
+        PWINDOW->setHidden(false);
     else
-        PWINDOW->m_bHidden = true;
+        PWINDOW->setHidden(true);
 
     if (abs(std::floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(std::floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 || abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
         Debug::log(LOG, "Unmanaged window %x requests geometry update to %i %i %i %i", PWINDOW, (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y, (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);

@@ -67,7 +67,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     // get how many bars we will draw
     int barsToDraw = m_dwGroupMembers.size();
 
-    if (barsToDraw < 1 || m_pWindow->m_bHidden || !g_pCompositor->windowValidMapped(m_pWindow))
+    if (barsToDraw < 1 || m_pWindow->isHidden() || !g_pCompositor->windowValidMapped(m_pWindow))
         return;
 
     if (!m_pWindow->m_sSpecialRenderData.decorate)

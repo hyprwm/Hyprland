@@ -153,7 +153,7 @@ void CAnimationManager::tick() {
                     g_pHyprRenderer->damageWindow(PWINDOW);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
-                        if (!w->m_bIsMapped || w->m_bHidden)
+                        if (!w->m_bIsMapped || w->isHidden())
                             continue;
 
                         if (w->m_iWorkspaceID != PWORKSPACE->m_iID)

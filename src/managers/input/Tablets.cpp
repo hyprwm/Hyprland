@@ -219,7 +219,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool motion) {
     const auto PTOOL = g_pInputManager->ensureTabletToolPresent(pTool);
 
-    if (const auto PWINDOW = g_pCompositor->m_pLastWindow; g_pCompositor->windowValidMapped(PWINDOW)) {
+    if (const auto PWINDOW = g_pCompositor->m_pLastWindow; PWINDOW) {
         const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
 
         const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();

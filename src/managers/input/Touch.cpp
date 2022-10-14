@@ -15,33 +15,48 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     refocus();
 
-    m_sTouchData.touchFocusWindow = nullptr;
+    m_sTouchData.touchFocusWindow = m_pFoundWindowToFocus;
+    m_sTouchData.touchFocusSurface = m_pFoundSurfaceToFocus;
+    m_sTouchData.touchFocusLS = m_pFoundLSToFocus;
 
-    if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow)) {
-        Vector2D local;
-        if (g_pCompositor->m_pLastWindow->m_bIsX11) {
-            local = g_pInputManager->getMouseCoordsInternal() - g_pCompositor->m_pLastWindow->m_vRealPosition.goalv();
+    Vector2D local;
+
+    if (m_sTouchData.touchFocusWindow) {
+        if (m_sTouchData.touchFocusWindow->m_bIsX11) {
+            local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition.goalv();
         } else {
-            g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), g_pCompositor->m_pLastWindow, local);
+            g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow, local);
         }
 
         m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
+    } else if (m_sTouchData.touchFocusLS) {
+        local = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_sTouchData.touchFocusLS->geometry.x, m_sTouchData.touchFocusLS->geometry.y) - g_pCompositor->m_pLastMonitor->vecPosition;
 
-        wlr_seat_touch_notify_down(g_pCompositor->m_sSeat.seat, g_pCompositor->m_pLastFocus, e->time_msec, e->touch_id, local.x, local.y);
-
-        m_sTouchData.touchFocusWindow = g_pCompositor->m_pLastWindow;
+        m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
+    } else {
+        return; // oops, nothing found.
     }
+
+    wlr_seat_touch_notify_down(g_pCompositor->m_sSeat.seat, m_sTouchData.touchFocusSurface, e->time_msec, e->touch_id, local.x, local.y);
 }
 
 void CInputManager::onTouchUp(wlr_touch_up_event* e){
-    if (m_sTouchData.touchFocusWindow) {
+    if (m_sTouchData.touchFocusSurface) {
         wlr_seat_touch_notify_up(g_pCompositor->m_sSeat.seat, e->time_msec, e->touch_id);
     }
 }
 
 void CInputManager::onTouchMove(wlr_touch_motion_event* e){
-    if (g_pCompositor->windowValidMapped(m_sTouchData.touchFocusWindow)) {
+    if (m_sTouchData.touchFocusWindow && g_pCompositor->windowValidMapped(m_sTouchData.touchFocusWindow)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusWindow->m_iMonitorID);
+
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
+
+        const auto local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchSurfaceOrigin;
+
+        wlr_seat_touch_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, e->touch_id, local.x, local.y);
+    } else if (m_sTouchData.touchFocusLS) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusLS->monitorID);
 
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
 

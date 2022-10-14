@@ -25,3 +25,5 @@ hyprctl/hyprctl
 gmon.out
 *.out
 *.tar.gz
+
+PKGBUILD

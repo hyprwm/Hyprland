@@ -642,7 +642,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
     bool has = false;
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == pMonitor->activeWorkspace && w->m_bIsMapped && !w->m_bHidden && !w->m_bIsFloating) {
+        if (w->m_iWorkspaceID == pMonitor->activeWorkspace && w->m_bIsMapped && !w->isHidden() && !w->m_bIsFloating) {
             has = true;
             break;
         }
@@ -685,7 +685,7 @@ void CHyprOpenGLImpl::preWindowPass() {
 
     bool hasWindows = false;
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->m_bHidden && w->m_bIsMapped && !w->m_bIsFloating) {
+        if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && !w->m_bIsFloating) {
             hasWindows = true;
             break;
         }

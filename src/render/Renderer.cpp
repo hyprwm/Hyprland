@@ -215,7 +215,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
 }
 
 void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode) {
-    if (pWindow->m_bHidden)
+    if (pWindow->isHidden())
         return;
 
     if (pWindow->m_bFadingOut) {
@@ -383,7 +383,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // Non-floating main
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
 
         if (w->m_bIsFloating)
@@ -401,7 +401,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // Non-floating popup
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
 
         if (w->m_bIsFloating)
@@ -419,7 +419,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // floating on top
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
 
         if (!w->m_bIsFloating)
@@ -437,7 +437,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // and then special
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_bHidden && !w->m_bIsMapped && !w->m_bFadingOut)
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
 
         if (w->m_iWorkspaceID != SPECIAL_WORKSPACE_ID)

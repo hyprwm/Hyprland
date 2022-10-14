@@ -69,7 +69,7 @@ SDwindleNodeData* SDwindleNodeData::getGroupVisible() {
     SDwindleNodeData* current = this->pNextGroupMember;
 
     while (current != this) {
-        if (!current->pWindow->m_bHidden) {
+        if (!current->pWindow->isHidden()) {
             return current;
         }
 
@@ -83,11 +83,11 @@ void SDwindleNodeData::setGroupFocusedNode(SDwindleNodeData* pMember) {
     SDwindleNodeData* current = this->pNextGroupMember;
 
     while (current != this) {
-        current->pWindow->m_bHidden = current != pMember;
+        current->pWindow->setHidden(current != pMember);
         current = current->pNextGroupMember;
     }
 
-    this->pWindow->m_bHidden = pMember != this;
+    this->pWindow->setHidden(pMember != this);
 }
 
 int SDwindleNodeData::getGroupMemberCount() {
@@ -301,7 +301,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             OPENINGON = getFirstNodeOnWorkspace(PMONITOR->activeWorkspace);
 
     } else if (*PUSEACTIVE) {
-        if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && !g_pCompositor->m_pLastWindow->m_bIsFloating && g_pCompositor->m_pLastWindow != pWindow && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsMapped) {
+        if (g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFloating && g_pCompositor->m_pLastWindow != pWindow && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsMapped) {
             OPENINGON = getNodeFromWindow(g_pCompositor->m_pLastWindow);
         } else {
             OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
@@ -491,7 +491,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
         }
 
         PNEXT->setGroupFocusedNode(PNEXT);
-        PNEXT->pWindow->m_bHidden = false;
+        PNEXT->pWindow->setHidden(false);
 
         m_lDwindleNodesData.remove(*PNODE);
 
@@ -829,7 +829,7 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
 
             toAddWindows.push_back(PWINDOW);
 
-            PWINDOW->m_bHidden = false;
+            PWINDOW->setHidden(false);
         }
 
 	if (PHEAD->pPreviousGroupMember)
@@ -997,9 +997,9 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward, CWind
     pNewNode->pWindow->m_bIsFloating = PNODE->pWindow->m_bIsFloating;
 
     if (PNODE->pWindow->m_bIsFullscreen) {
-        PNODE->pWindow->m_bHidden = false;
+        PNODE->pWindow->setHidden(false);
         g_pCompositor->setWindowFullscreen(PNODE->pWindow, false, PWORKSPACE->m_efFullscreenMode);
-        PNODE->pWindow->m_bHidden = true;
+        PNODE->pWindow->setHidden(true);
         g_pCompositor->setWindowFullscreen(pNewNode->pWindow, true, PWORKSPACE->m_efFullscreenMode);
 
         pNewNode->pWindow->m_vRealSize.warp();
@@ -1181,7 +1181,7 @@ std::string CHyprDwindleLayout::getLayoutName() {
 
 void CHyprDwindleLayout::onEnable() {
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_bIsFloating || !w->m_bMappedX11 || !w->m_bIsMapped || w->m_bHidden)
+        if (w->m_bIsFloating || !w->m_bMappedX11 || !w->m_bIsMapped || w->isHidden())
             continue;
 
         onWindowCreatedTiling(w.get());

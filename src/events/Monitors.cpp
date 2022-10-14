@@ -227,8 +227,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     if (PMONITOR->isMirror()) {
         g_pHyprOpenGL->renderMirrored();
-
-        Debug::log(LOG, "Mirror frame");
     } else {
         g_pHyprOpenGL->clear(CColor(17, 17, 17, 255));
         g_pHyprOpenGL->clearWithTex();  // will apply the hypr "wallpaper"

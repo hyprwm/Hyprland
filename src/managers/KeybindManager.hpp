@@ -120,6 +120,7 @@ private:
     static void         swapActiveWorkspaces(std::string);
     static void         pinActive(std::string);
     static void         mouse(std::string);
+    static void         bringActiveToTop(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

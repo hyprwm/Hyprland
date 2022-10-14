@@ -44,6 +44,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["swapactiveworkspaces"]      = swapActiveWorkspaces;
     m_mDispatchers["pin"]                       = pinActive;
     m_mDispatchers["mouse"]                     = mouse;
+    m_mDispatchers["bringactivetotop"]          = bringActiveToTop;
 
     m_tScrollTimer.reset();
 }
@@ -1722,4 +1723,9 @@ void CKeybindManager::mouse(std::string args) {
             }
         }
     }
+}
+
+void CKeybindManager::bringActiveToTop(std::string args) {
+    if (g_pCompositor->windowValidMapped(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_bIsFloating)
+        g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
 }

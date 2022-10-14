@@ -20,35 +20,11 @@
       "aarch64-linux"
       "x86_64-linux"
     ];
-    pkgsFor = genSystems (system:
-      import nixpkgs {
-        inherit system;
-        overlays = [
-          (_: prev: {
-            libdrm = prev.libdrm.overrideAttrs (old: rec {
-              version = "2.4.113";
-              src = prev.fetchurl {
-                url = "https://dri.freedesktop.org/${old.pname}/${old.pname}-${version}.tar.xz";
-                sha256 = "sha256-f9frKWf2O+tGBvItUOJ32ZNIDQXvdd2Iqb2OZ3Mj5eE=";
-              };
-              mesonFlags =
-                [
-                  "-Dinstall-test-programs=true"
-                  "-Domap=enabled"
-                  "-Dcairo-tests=disabled"
-                ]
-                ++ lib.optionals prev.stdenv.hostPlatform.isAarch [
-                  "-Dtegra=enabled"
-                  "-Detnaviv=enabled"
-                ];
-            });
-          })
-        ];
-      });
+    pkgsFor = nixpkgs.legacyPackages;
     mkDate = longDate: (lib.concatStringsSep "-" [
-      (__substring 0 4 longDate)
-      (__substring 4 2 longDate)
-      (__substring 6 2 longDate)
+      (builtins.substring 0 4 longDate)
+      (builtins.substring 4 2 longDate)
+      (builtins.substring 6 2 longDate)
     ]);
   in {
     overlays.default = _: prev: rec {
@@ -58,7 +34,7 @@
       };
       hyprland = prev.callPackage ./nix/default.nix {
         stdenv = prev.gcc12Stdenv;
-        version = "0.15.0beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
+        version = "0.15.3beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
       };
       hyprland-debug = hyprland.override {debug = true;};

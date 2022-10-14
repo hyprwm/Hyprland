@@ -147,6 +147,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:tap-to-click"].intValue = 1;
     configValues["input:touchpad:drag_lock"].intValue = 0;
     configValues["input:touchpad:scroll_factor"].floatValue = 1.f;
+    configValues["input:touchdevice:transform"].intValue = 0;
 
     configValues["binds:pass_mouse_when_bound"].intValue = 0;
     configValues["binds:scroll_event_delay"].intValue = 300;
@@ -187,6 +188,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["drag_lock"].intValue = 0;
     cfgValues["left_handed"].intValue = 0;
     cfgValues["scroll_method"].strValue = STRVAL_EMPTY;
+    cfgValues["touch_transform"].intValue = 0;
 }
 
 void CConfigManager::setDefaultAnimationVars() {
@@ -1139,6 +1141,7 @@ void CConfigManager::loadConfigLoadVars() {
     if (!isFirstLaunch) {
         g_pInputManager->setKeyboardLayout();
         g_pInputManager->setPointerConfigs();
+        g_pInputManager->setTouchDeviceConfigs();
     }
 
     // Calculate the internal vars
@@ -1424,6 +1427,7 @@ void CConfigManager::dispatchExecOnce() {
     // set input, fixes some certain issues
     g_pInputManager->setKeyboardLayout();
     g_pInputManager->setPointerConfigs();
+    g_pInputManager->setTouchDeviceConfigs();
 
     // set ws names again
     for (auto& ws : g_pCompositor->m_vWorkspaces) {

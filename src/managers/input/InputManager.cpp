@@ -1027,6 +1027,13 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     const auto PNEWDEV = &m_lTouchDevices.emplace_back();
     PNEWDEV->pWlrDevice = pDevice;
 
+    try {
+        PNEWDEV->name = std::string(pDevice->name);
+    } catch(std::exception& e) {
+        Debug::log(ERR, "Touch Device had no name???"); // logic error
+    }
+
+    setTouchDeviceConfigs();
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
 
     Debug::log(LOG, "New touch device added at %x", PNEWDEV);
@@ -1034,6 +1041,59 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     PNEWDEV->hyprListener_destroy.initCallback(&pDevice->events.destroy, [&](void* owner, void* data) {
         destroyTouchDevice((STouchDevice*)data);
     }, PNEWDEV, "TouchDevice");
+}
+
+void CInputManager::setTouchDeviceConfigs() {
+    // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
+    static const float MATRICES[8][6] = {
+       { // normal
+        1, 0, 0,
+        0, 1, 0
+       },
+       { // rotation 90°
+        0, -1, 1,
+        1, 0, 0
+       },
+       { // rotation 180°
+        -1, 0, 1,
+        0, -1, 1
+       },
+       { // rotation 270°
+        0, 1, 0,
+        -1, 0, 1
+       },
+       { // flipped
+        -1, 0, 1,
+        0, 1, 0
+       },
+       { // flipped + rotation 90°
+        0, 1, 0,
+        1, 0, 0
+       },
+       { // flipped + rotation 180°
+        1, 0, 0,
+        0, -1, 1
+       },
+       { // flipped + rotation 270°
+        0, -1, 1,
+        -1, 0, 1
+       }
+    };
+    for (auto& m : m_lTouchDevices) {
+        const auto PTOUCHDEV = &m;
+
+        auto devname = PTOUCHDEV->name;
+        transform(devname.begin(), devname.end(), devname.begin(), ::tolower);
+
+        const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
+
+        if (wlr_input_device_is_libinput(m.pWlrDevice)) {
+            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
+
+            const int ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "touch_transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
+            libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+        }
+    }
 }
 
 void CInputManager::destroyTouchDevice(STouchDevice* pDevice) {

@@ -13,7 +13,13 @@ self: {
   };
 in {
   options.wayland.windowManager.hyprland = {
-    enable = lib.mkEnableOption "hyprland wayland compositor";
+    enable = lib.mkEnableOption lib.mdDoc ''
+      ${cfg.package.meta.description}
+
+      <https://wiki.hyprland.org>
+    '';
+
+    ### NIX ###
 
     package = lib.mkOption {
       type = types.nullOr types.package;
@@ -30,20 +36,21 @@ in {
       '';
     };
 
+    ### INIT ###
+
     systemdIntegration = lib.mkOption {
       type = types.bool;
       default = pkgs.stdenv.isLinux;
-      description = ''
-        Whether to enable <filename>hyprland-session.target</filename> on
-        hyprland startup. This links to <filename>graphical-session.target</filename>.
+      description = lib.mdDoc ''
+        Whether to enable `hyprland-session.target` on
+        hyprland startup. This links to `graphical-session.target`.
         Some important environment variables will be imported to systemd
-        and dbus user environment before reaching the target, including
-        <itemizedlist>
-          <listitem><para><literal>DISPLAY</literal></para></listitem>
-          <listitem><para><literal>WAYLAND_DISPLAY</literal></para></listitem>
-          <listitem><para><literal>HYPRLAND_INSTANCE_SIGNATURE</literal></para></listitem>
-          <listitem><para><literal>XDG_CURRENT_DESKTOP</literal></para></listitem>
-        </itemizedlist>
+        and dbus user environment before reaching the target, including:
+
+        - DISPLAY
+        - WAYLAND_DISPLAY
+        - HYPRLAND_INSTANCE_SIGNATURE
+        - XDG_CURRENT_DESKTOP
       '';
     };
 
@@ -51,14 +58,14 @@ in {
       enable = lib.mkOption {
         type = types.bool;
         default = true;
-        description = ''
+        description = lib.mdDoc ''
           Enable XWayland.
         '';
       };
       hidpi = lib.mkOption {
         type = types.bool;
         default = false;
-        description = ''
+        description = lib.mdDoc ''
           Enable HiDPI XWayland.
         '';
       };
@@ -69,7 +76,7 @@ in {
       default = false;
       defaultText = lib.literalExpression "false";
       example = lib.literalExpression "true";
-      description = ''
+      description = lib.mdDoc ''
         Patch wlroots for better Nvidia support.
       '';
     };
@@ -77,7 +84,7 @@ in {
     recommendedEnvironment = lib.mkOption {
       type = types.bool;
       default = true;
-      description = ''
+      description = lib.mdDoc ''
         Whether to set the recommended environment variables.
       '';
       # example = lib.literalExpression "";
@@ -92,6 +99,8 @@ in {
       '';
       # example = lib.literalExpression "";
     };
+
+    ### CONFIG ###
 
     extraConfig = lib.mkOption {
       type = types.nullOr types.lines;
@@ -108,11 +117,13 @@ in {
       default = false;
       defaultText = lib.literalExpression "false";
       example = lib.literalExpression "true";
-      description = ''
+      description = lib.mdDoc ''
         Whether to disable automatically reloading Hyprland's configuration when
         rebuilding the Home Manager profile.
       '';
     };
+
+    ### GENERAL ###
 
     config.general = {
       sensitivity = lib.mkOption {
@@ -166,7 +177,7 @@ in {
         type = types.singleLineStr;
         default = "0xFFFFFFFF";
         description = lib.mdDoc ''
-          The color of the border on an inactive window, in 0xAARRGGBB format.
+          The color of the border on an inactive window, in `0xAARRGGBB` format.
 
           *Renamed from: `col.inactive_border`*
         '';
@@ -176,7 +187,7 @@ in {
         type = types.singleLineStr;
         default = "0xFFFFFFFF";
         description = lib.mdDoc ''
-          The color of the border on an active window, in 0xAARRGGBB format.
+          The color of the border on an active window, in `0xAARRGGBB` format.
 
           *Renamed from: `col.active_border`*
         '';
@@ -258,7 +269,9 @@ in {
 
     xdg.configFile."hypr/hyprland.conf" = {
       text = lib.concatStringsSep "" [
-        (lib.optionalString (
+        ### INIT ###
+        (
+          lib.optionalString (
             # check if any init options are enabled
             lib.any (x: x) [
               cfg.systemdIntegration
@@ -270,12 +283,15 @@ in {
               exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
               exec-once=systemctl --user start hyprland-session.target
             '')}
-          '')
+          ''
+        )
+        ### EXTRA INIT ##
         (lib.optionalString (cfg.extraInitConfig != null) ''
           ### EXTRA INIT ###
 
           ${cfg.extraInitConfig}
         '')
+        ### GENERAL ###
         (with cfg.config.general; ''
           ### GENERAL ###
 

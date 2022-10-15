@@ -367,31 +367,19 @@ in {
     };
 
     xdg.configFile."hypr/hyprland.conf" = {
-      text = lib.concatStringsSep "" [
+      text = ''
         ### INIT ###
-        (
-          lib.optionalString (
-            # check if any init options are enabled
-            lib.any (x: x) [
-              cfg.systemdIntegration
-            ]
-          ) ''
-            ### INIT ###
 
-            ${(lib.optionalString cfg.systemdIntegration ''
-              exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
-              exec-once=systemctl --user start hyprland-session.target
-            '')}
-          ''
-        )
-        ### EXTRA INIT ##
-        (lib.optionalString (cfg.extraInitConfig != null) ''
-          ### EXTRA INIT ###
+        ${(lib.optionalString cfg.systemdIntegration ''
+          exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+          exec-once=systemctl --user start hyprland-session.target
+        '')}
 
-          ${cfg.extraInitConfig}
-        '')
-        ### GENERAL ###
-        (with cfg.config.general; ''
+        ### EXTRA INIT ###
+
+        ${cfg.extraInitConfig}
+
+        ${(with cfg.config.general; ''
           ### GENERAL ###
 
           general {
@@ -408,9 +396,9 @@ in {
             no_cursor_warps = ${lib.boolToString no_cursor_warps}
             apply_sens_to_raw = ${lib.boolToString apply_sens_to_raw}
           }
-        '')
-        ### DECORATION ###
-        (with cfg.config.decoration; ''
+        '')}
+
+        ${(with cfg.config.decoration; ''
           ### DECORATION ###
 
           decoration {
@@ -434,14 +422,14 @@ in {
             dim_inactive = ${lib.boolToString dim_inactive}
             dim_strength = ${toString dim_strength}
           }
-        '')
-        ### ECTRA CONFIG ###
-        (lib.optionalString (cfg.extraConfig != null) ''
+        '')}
+
+        ${(lib.optionalString (cfg.extraConfig != null) ''
           ### EXTRA CONFIG ###
 
           ${cfg.extraConfig}
-        '')
-      ];
+        '')}
+      '';
 
       onChange = let
         hyprlandPackage =

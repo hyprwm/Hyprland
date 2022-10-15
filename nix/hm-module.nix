@@ -47,17 +47,6 @@ in {
       '';
     };
 
-    disableAutoreload = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      defaultText = lib.literalExpression "false";
-      example = lib.literalExpression "true";
-      description = ''
-        Whether to disable automatically reloading Hyprland's configuration when
-        rebuilding the Home Manager profile.
-      '';
-    };
-
     xwayland = {
       enable = lib.mkOption {
         type = types.bool;
@@ -85,15 +74,47 @@ in {
       '';
     };
 
-    config.general = {
-      # NOTHING = lib.mkOption {
-      #   type = ;
-      #   default = ;
-      #   description = lib.mdDoc ''
+    recommendedEnvironment = lib.mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Whether to set the recommended environment variables.
+      '';
+      # example = lib.literalExpression "";
+    };
 
-      #   '';
-      #   # example = lib.literalExpression "";
-      # };
+    extraInitConfig = lib.mkOption {
+      type = types.nullOr types.lines;
+      default = null;
+      description = lib.mdDoc ''
+        Extra configuration to be prepended to the top of
+        `~/.config/hypr/hyprland.conf` (after module's generated init).
+      '';
+      # example = lib.literalExpression "";
+    };
+
+    extraConfig = lib.mkOption {
+      type = types.nullOr types.lines;
+      default = null;
+      description = lib.mdDoc ''
+        Extra configuration lines to append to the bottom of
+        `~/.config/hypr/hyprland.conf`.
+      '';
+      # example = lib.literalExpression "";
+    };
+
+    disableAutoreload = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      defaultText = lib.literalExpression "false";
+      example = lib.literalExpression "true";
+      description = ''
+        Whether to disable automatically reloading Hyprland's configuration when
+        rebuilding the Home Manager profile.
+      '';
+    };
+
+    config.general = {
       sensitivity = lib.mkOption {
         type = types.float;
         default = 1.0;
@@ -217,35 +238,6 @@ in {
       };
     };
 
-    extraInitConfig = lib.mkOption {
-      type = types.nullOr types.lines;
-      default = null;
-      description = lib.mdDoc ''
-        Extra configuration to be prepended to the top of
-        `~/.config/hypr/hyprland.conf` (after module's generated init).
-      '';
-      # example = lib.literalExpression "";
-    };
-
-    extraConfig = lib.mkOption {
-      type = types.nullOr types.lines;
-      default = null;
-      description = lib.mdDoc ''
-        Extra configuration lines to append to the bottom of
-        `~/.config/hypr/hyprland.conf`.
-      '';
-      # example = lib.literalExpression "";
-    };
-
-    recommendedEnvironment = lib.mkOption {
-      type = types.bool;
-      default = true;
-      description = ''
-        Whether to set the recommended environment variables.
-      '';
-      # example = lib.literalExpression "";
-    };
-
     imports = [
       (
         lib.mkRenamedOptionModule
@@ -265,7 +257,7 @@ in {
     };
 
     xdg.configFile."hypr/hyprland.conf" = {
-      text = lib.concatStringsSep "\n" [
+      text = lib.concatStringsSep "" [
         (lib.optionalString (
             # check if any init options are enabled
             lib.any (x: x) [

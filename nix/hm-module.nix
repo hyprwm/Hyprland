@@ -16,7 +16,7 @@ in {
     enable = lib.mkEnableOption "hyprland wayland compositor";
 
     package = lib.mkOption {
-      type = with lib.types; nullOr package;
+      type = types.nullOr types.package;
       default = defaultHyprlandPackage;
       description = ''
         Hyprland package to use. Will override the 'xwayland' option.
@@ -31,7 +31,7 @@ in {
     };
 
     systemdIntegration = lib.mkOption {
-      type = lib.types.bool;
+      type = types.bool;
       default = pkgs.stdenv.isLinux;
       description = ''
         Whether to enable <filename>hyprland-session.target</filename> on
@@ -60,14 +60,14 @@ in {
 
     xwayland = {
       enable = lib.mkOption {
-        type = lib.types.bool;
+        type = types.bool;
         default = true;
         description = ''
           Enable XWayland.
         '';
       };
       hidpi = lib.mkOption {
-        type = lib.types.bool;
+        type = types.bool;
         default = false;
         description = ''
           Enable HiDPI XWayland.
@@ -218,21 +218,21 @@ in {
     };
 
     extraConfig = lib.mkOption {
-      type = lib.types.lines;
+      type = types.lines;
       default = "";
       description = lib.mdDoc ''
-        Extra configuration lines to add to `~/.config/hypr/hyprland.conf`.
+        Extra configuration lines to append to the bottom of
+        `~/.config/hypr/hyprland.conf`.
       '';
     };
 
     recommendedEnvironment = lib.mkOption {
-      type = lib.types.bool;
+      type = types.bool;
       default = true;
-      defaultText = lib.literalExpression "true";
-      example = lib.literalExpression "false";
       description = ''
         Whether to set the recommended environment variables.
       '';
+      # example = lib.literalExpression "";
     };
 
     imports = [

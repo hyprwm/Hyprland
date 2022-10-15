@@ -18,11 +18,11 @@ in {
     package = lib.mkOption {
       type = types.nullOr types.package;
       default = defaultHyprlandPackage;
-      description = ''
+      description = lib.mdDoc ''
         Hyprland package to use. Will override the 'xwayland' option.
 
         Defaults to the one provided by the flake. Set it to
-        <literal>pkgs.hyprland</literal> to use the one provided by nixpkgs or
+        `pkgs.hyprland` to use the one provided by *nixpkgs* or
         if you have an overlay.
 
         Set to null to not add any Hyprland package to your path. This should
@@ -217,13 +217,24 @@ in {
       };
     };
 
+    extraInitConfig = lib.mkOption {
+      type = types.nullOr types.lines;
+      default = null;
+      description = lib.mdDoc ''
+        Extra configuration to be prepended to the top of
+        `~/.config/hypr/hyprland.conf` (after module's generated init).
+      '';
+      # example = lib.literalExpression "";
+    };
+
     extraConfig = lib.mkOption {
-      type = types.lines;
-      default = "";
+      type = types.nullOr types.lines;
+      default = null;
       description = lib.mdDoc ''
         Extra configuration lines to append to the bottom of
         `~/.config/hypr/hyprland.conf`.
       '';
+      # example = lib.literalExpression "";
     };
 
     recommendedEnvironment = lib.mkOption {
@@ -254,17 +265,28 @@ in {
     };
 
     xdg.configFile."hypr/hyprland.conf" = {
-      text = ''
-        ### ENVIRONMENT INIT ###
+      text = lib.concatStringsSep "\n" [
+        (lib.optionalString (
+            # check if any init options are enabled
+            lib.any (x: x) [
+              cfg.systemdIntegration
+            ]
+          ) ''
+            ### INIT ###
 
-        ${(lib.optionalString cfg.systemdIntegration ''
-          exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
-          exec-once=systemctl --user start hyprland-session.target
-        '')}
+            ${(lib.optionalString cfg.systemdIntegration ''
+              exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+              exec-once=systemctl --user start hyprland-session.target
+            '')}
+          '')
+        (lib.optionalString (cfg.extraInitConfig != null) ''
+          ### EXTRA INIT ###
 
-        ### GENERAL ###
+          ${cfg.extraInitConfig}
+        '')
+        (with cfg.config.general; ''
+          ### GENERAL ###
 
-        ${with cfg.config.general; ''
           general {
             sensitivity = ${toString sensitivity}
             border_size =  ${toString border_size}
@@ -279,12 +301,13 @@ in {
             no_cursor_warps = ${lib.boolToString no_cursor_warps}
             apply_sens_to_raw = ${lib.boolToString apply_sens_to_raw}
           }
-        ''}
+        '')
+        (lib.optionalString (cfg.extraConfig != null) ''
+          ### EXTRA CONFIG ###
 
-        ### EXTRA CONFIG ###
-
-        ${cfg.extraConfig}
-      '';
+          ${cfg.extraConfig}
+        '')
+      ];
 
       onChange = let
         hyprlandPackage =

@@ -269,6 +269,21 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 } catch (...) {
                     Debug::log(LOG, "Rule minsize failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
                 }
+            } else if (r.szRule.find("maxsize") == 0) {
+                try {
+                    const auto VALUE = r.szRule.substr(r.szRule.find(" ") + 1);
+                    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(" "));
+                    const auto SIZEYSTR = VALUE.substr(VALUE.find(" ") + 1);
+
+                    const auto SIZE = Vector2D(std::min((double)std::stoll(SIZEXSTR), PWINDOW->m_vRealSize.goalv().x), std::min((double)std::stoll(SIZEYSTR), PWINDOW->m_vRealSize.goalv().y));
+
+                    PWINDOW->m_vRealSize = SIZE;
+                    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
+
+                    PWINDOW->setHidden(false);
+                } catch (...) {
+                    Debug::log(LOG, "Rule maxsize failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str());
+                }
             } else if (r.szRule.find("move") == 0) {
                 try {
                     const auto VALUE = r.szRule.substr(r.szRule.find(" ") + 1);

@@ -13,11 +13,11 @@ self: {
   };
 in {
   options.wayland.windowManager.hyprland = {
-    enable = lib.mkEnableOption lib.mdDoc ''
+    enable = lib.mkEnableOption (lib.mdDoc ''
       ${cfg.package.meta.description}
 
       <https://wiki.hyprland.org>
-    '';
+    '');
 
     ### NIX ###
 
@@ -138,7 +138,7 @@ in {
         # example = lib.literalExpression "";
       };
       border_size = lib.mkOption {
-        type = types.ints.positive;
+        type = types.ints.unsigned;
         default = 1;
         description = lib.mdDoc ''
           The thickness of the window border, in pixels.
@@ -154,7 +154,7 @@ in {
         # example = lib.literalExpression "";
       };
       gaps_inside = lib.mkOption {
-        type = types.ints.positive;
+        type = types.ints.unsigned;
         default = 5;
         description = lib.mdDoc ''
           Gap thickness between window edges, in pixels.
@@ -164,7 +164,7 @@ in {
         # example = lib.literalExpression "";
       };
       gaps_outside = lib.mkOption {
-        type = types.ints.positive;
+        type = types.ints.unsigned;
         default = 20;
         description = lib.mdDoc ''
           Padding on the perimeter of the monitor, in pixels.
@@ -249,6 +249,105 @@ in {
       };
     };
 
+    config.decoration = {
+      rounding = lib.mkOption {
+        type = types.ints.unsigned;
+        default = 0;
+        description = lib.mdDoc '''';
+      };
+      multisample_edges = lib.mkOption {
+        type = types.bool;
+        default = true;
+        description = lib.mdDoc '''';
+      };
+      active_opacity = lib.mkOption {
+        type = types.float;
+        default = 1.0;
+        description = lib.mdDoc '''';
+      };
+      inactive_opacity = lib.mkOption {
+        type = types.float;
+        default = 1.0;
+        description = lib.mdDoc '''';
+      };
+      fullscreen_opacity = lib.mkOption {
+        type = types.float;
+        default = 1.0;
+        description = lib.mdDoc '''';
+      };
+      blur = lib.mkOption {
+        type = types.bool;
+        default = true;
+        description = lib.mdDoc '''';
+      };
+      blur_size = lib.mkOption {
+        type = types.ints.positive;
+        default = 8;
+        description = lib.mdDoc '''';
+      };
+      blur_passes = lib.mkOption {
+        type = types.ints.positive;
+        default = 1;
+        description = lib.mdDoc '''';
+      };
+      blur_ignore_opacity = lib.mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc '''';
+      };
+      blur_new_optimizations = lib.mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc '''';
+      };
+      drop_shadow = lib.mkOption {
+        type = types.bool;
+        default = true;
+        description = lib.mdDoc '''';
+      };
+      shadow_range = lib.mkOption {
+        type = types.ints.unsigned;
+        default = 4;
+        description = lib.mdDoc '''';
+      };
+      shadow_render_power = lib.mkOption {
+        type = types.ints.unsigned;
+        default = 3;
+        description = lib.mdDoc '''';
+      };
+      shadow_ignore_window = lib.mkOption {
+        type = types.bool;
+        default = true;
+        description = lib.mdDoc '''';
+      };
+      shadow_color = lib.mkOption {
+        type = types.singleLineStr;
+        default = "0xee1a1a1a";
+        description = lib.mdDoc '''';
+      };
+      shadow_inactive_color = lib.mkOption {
+        type = types.nullOr types.singleLineStr;
+        default = null;
+        description = lib.mdDoc '''';
+      };
+      shadow_offset = lib.mkOption {
+        # TODO tuple
+        type = types.listOf types.int;
+        default = [0 0];
+        description = lib.mdDoc '''';
+      };
+      dim_inactive = lib.mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc '''';
+      };
+      dim_strength = lib.mkOption {
+        type = types.float;
+        default = 0.5;
+        description = lib.mdDoc '''';
+      };
+    };
+
     imports = [
       (
         lib.mkRenamedOptionModule
@@ -310,6 +409,33 @@ in {
             apply_sens_to_raw = ${lib.boolToString apply_sens_to_raw}
           }
         '')
+        ### DECORATION ###
+        (with cfg.config.decoration; ''
+          ### DECORATION ###
+
+          decoration {
+            rounding = ${toString rounding}
+            multisample_edges =  ${lib.boolToString multisample_edges}
+            active_opacity = ${toString active_opacity}
+            inactive_opacity = ${toString inactive_opacity}
+            fullscreen_opacity = ${toString fullscreen_opacity}
+            blur = ${lib.boolToString blur}
+            blur_size = ${toString blur_size}
+            blur_passes = ${toString blur_passes}
+            blur_ignore_opacity = ${lib.boolToString blur_ignore_opacity}
+            blur_new_optimizations = ${lib.boolToString blur_new_optimizations}
+            drop_shadow = ${lib.boolToString drop_shadow}
+            shadow_range = ${toString shadow_range}
+            shadow_render_power = ${toString shadow_render_power}
+            shadow_ignore_window = ${lib.boolToString shadow_ignore_window}
+            col.shadow = ${shadow_color}
+            col.shadow_inactive = ${shadow_inactive_color}
+            shadow_offset = [${toString shadow_offset}]
+            dim_inactive = ${lib.boolToString dim_inactive}
+            dim_strength = ${toString dim_strength}
+          }
+        '')
+        ### ECTRA CONFIG ###
         (lib.optionalString (cfg.extraConfig != null) ''
           ### EXTRA CONFIG ###
 

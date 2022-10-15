@@ -277,7 +277,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (pFoundWindow) {
         if (*PFOLLOWMOUSE != 1 && !refocus) {
-            if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR) {
+            if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow && ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
                 if (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);

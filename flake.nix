@@ -129,7 +129,7 @@
     formatter = genSystems (system: pkgsFor.${system}.alejandra);
 
     nixosModules.default = import ./nix/module.nix inputs;
-    homeManagerModules.default = import ./nix/hm-module.nix self;
+    homeManagerModules.default = import ./nix/hm-module self;
   };
 
   nixConfig = {

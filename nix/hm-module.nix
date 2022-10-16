@@ -123,7 +123,7 @@ in {
       '';
     };
 
-    ### GENERAL ###
+    ### CONFIG: GENERAL ###
 
     config.general = {
       sensitivity = lib.mkOption {
@@ -249,6 +249,8 @@ in {
       };
     };
 
+    ### CONFIG: DECORATION ###
+
     config.decoration = {
       rounding = lib.mkOption {
         type = types.ints.unsigned;
@@ -349,6 +351,8 @@ in {
       };
     };
 
+    ### CONFIG: ANIMATIONS ###
+
     config.animations = {
       enable = lib.mkEnableOption "animations";
 
@@ -420,6 +424,114 @@ in {
         #     easeInOutQuad = [0.45 0 0.55 1];
         #   }
         # '';
+      };
+    };
+
+    ### CONFIG: INPUT ###
+
+    config.input = {
+      keyboard = {
+        layout = lib.mkOption {
+          type = types.singleLineStr;
+          default = "us";
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        variant = lib.mkOption {
+          type = types.nullOr types.singleLineStr;
+          default = null;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        model = lib.mkOption {
+          type = types.nullOr types.singleLineStr;
+          default = null;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        options = lib.mkOption {
+          type = types.nullOr types.singleLineStr;
+          default = null;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        rules = lib.mkOption {
+          type = types.nullOr types.singleLineStr;
+          default = null;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        file = lib.mkOption {
+          type = types.nullOr types.singleLineStr;
+          default = null;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+      };
+
+      follow_mouse = lib.mkOption {
+        type = types.enum [0 1 2 3];
+        default = 1;
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      float_switch_override_focus = lib.mkOption {
+        type = types.enum [0 1 2];
+        default = 1;
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      # repeat_rate = ${toString repeat_rate}
+      repeat_rate = lib.mkOption {
+        type = types.ints.positive;
+        default = 25;
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      natural_scroll = lib.mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      numlock_by_default = lib.mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      force_no_accel = lib.mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      sensitivity = lib.mkOption {
+        type = types.float;
+        default = 0.0;
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      left_handed = lib.mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      accel_profile = lib.mkOption {
+        # TODO why is the default `[EMPTY]`?
+        type = types.enum ["adaptive" "flat"];
+        default = "adaptive";
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
+      };
+      scroll_method = lib.mkOption {
+        # TODO why is the default `[EMPTY]`?
+        type = types.enum ["2fg" "edge" "on_button_down" "no_scroll"];
+        # type = types.nullOr (types.enum ["2fg" "edge" "on_button_down" "no_scroll"]);
+        default = "2fg";
+        description = lib.mdDoc ''description'';
+        example = lib.literalExpression '''';
       };
     };
 
@@ -541,6 +653,29 @@ in {
             ''
         )}
 
+        ${(with cfg.config.input; ''
+          ### INPUT ###
+
+          input {
+            kb_layout = ${toString keyboard.layout}
+            kb_variant = ${toString keyboard.variant}
+            kb_model = ${toString keyboard.model}
+            kb_options = ${toString keyboard.options}
+            kb_rules = ${toString keyboard.rules}
+            kb_file = ${toString keyboard.file}
+            follow_mouse = ${toString follow_mouse}
+            float_switch_override_focus = ${toString float_switch_override_focus}
+            repeat_rate = ${toString repeat_rate}
+            natural_scroll = ${lib.boolToString natural_scroll}
+            numlock_by_default = ${lib.boolToString numlock_by_default}
+            force_no_accel = ${lib.boolToString force_no_accel}
+            sensitivity = ${toString sensitivity}
+            left_handed = ${lib.boolToString left_handed}
+            accel_profile = ${toString accel_profile}
+            scroll_method = ${toString scroll_method}
+          }
+        '')}
+
         ${(lib.optionalString (cfg.extraConfig != null) ''
           ### EXTRA CONFIG ###
 
@@ -565,7 +700,7 @@ in {
 
     systemd.user.targets.hyprland-session = lib.mkIf cfg.systemdIntegration {
       Unit = {
-        Description = "hyprland compositor session";
+        Description = cfg.package.meta.description;
         Documentation = ["man:systemd.special(7)"];
         BindsTo = ["graphical-session.target"];
         Wants = ["graphical-session-pre.target"];

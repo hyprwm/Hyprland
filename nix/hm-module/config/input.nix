@@ -20,8 +20,14 @@
   repeat_rate = lib.mkOption {
     type = types.ints.positive;
     default = 25;
-    description = lib.mdDoc ''description'';
-    example = lib.literalExpression '''';
+  };
+  repeat_delay = lib.mkOption {
+    type = types.ints.positive;
+    default = 600;
+    description = lib.mdDoc ''
+      Delay before considering a held key a repeating event.
+    '';
+    # example = lib.literalExpression '''';
   };
   natural_scroll = lib.mkOption {
     type = types.bool;

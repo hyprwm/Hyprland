@@ -113,6 +113,7 @@ in ''
       follow_mouse = ${toString follow_mouse}
       float_switch_override_focus = ${toString float_switch_override_focus}
       repeat_rate = ${toString repeat_rate}
+      repeat_delay = ${toString repeat_delay}
       natural_scroll = ${lib.boolToString natural_scroll}
       numlock_by_default = ${lib.boolToString numlock_by_default}
       force_no_accel = ${lib.boolToString force_no_accel}

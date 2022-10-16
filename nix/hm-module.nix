@@ -469,6 +469,51 @@ in {
         };
       };
 
+      touchpad = {
+        disable_while_typing = lib.mkOption {
+          type = types.bool;
+          default = true;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        natural_scroll = lib.mkOption {
+          type = types.bool;
+          default = false;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        clickfinger_behavior = lib.mkOption {
+          type = types.bool;
+          default = false;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        middle_button_emulation = lib.mkOption {
+          type = types.bool;
+          default = false;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        tap_to_click = lib.mkOption {
+          type = types.bool;
+          default = false;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        drag_lock = lib.mkOption {
+          type = types.bool;
+          default = false;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        scroll_factor = lib.mkOption {
+          type = types.float;
+          default = 1.0;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+      };
+
       follow_mouse = lib.mkOption {
         type = types.enum [0 1 2 3];
         default = 1;
@@ -481,7 +526,6 @@ in {
         description = lib.mdDoc ''description'';
         example = lib.literalExpression '''';
       };
-      # repeat_rate = ${toString repeat_rate}
       repeat_rate = lib.mkOption {
         type = types.ints.positive;
         default = 25;
@@ -673,6 +717,15 @@ in {
             left_handed = ${lib.boolToString left_handed}
             accel_profile = ${toString accel_profile}
             scroll_method = ${toString scroll_method}
+
+            touchpad {
+              disable_while_typing = ${lib.boolToString touchpad.disable_while_typing}
+              natural_scroll = ${lib.boolToString touchpad.natural_scroll}
+              clickfinger_behavior = ${lib.boolToString touchpad.clickfinger_behavior}
+              tap-to-click = ${lib.boolToString touchpad.tap_to_click}
+              drag_lock = ${lib.boolToString touchpad.drag_lock}
+              scroll_factor = ${toString touchpad.scroll_factor}
+            }
           }
         '')}
 

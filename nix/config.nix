@@ -145,9 +145,63 @@ in ''
     }
   '')}
 
-  ${(lib.optionalString (cfg.extraConfig != null) ''
-    ### EXTRA CONFIG ###
+  # https://regex101.com/r/qvXGZJ/1
+  # https://regex101.com/r/ZYB9sk/1
 
-    ${cfg.extraConfig}
+  ${(with cfg.config.misc; ''
+    # <https://wiki.hyprland.org/Configuring/Variables/#misc>
+    misc {
+      disable_hyprland_logo = ${lib.boolToString disable_hyprland_logo}
+      disable_splash_rendering = ${lib.boolToString disable_splash_rendering}
+      no_vfr = ${lib.boolToString no_vfr}
+      damage_entire_on_snapshot = ${lib.boolToString damage_entire_on_snapshot}
+      mouse_move_enables_dpms = ${lib.boolToString mouse_move_enables_dpms}
+      always_follow_on_dnd = ${lib.boolToString always_follow_on_dnd}
+      layers_hog_keyboard_focus = ${lib.boolToString layers_hog_keyboard_focus}
+      animate_manual_resizes = ${lib.boolToString animate_manual_resizes}
+      disable_autoreload = ${lib.boolToString disable_autoreload}
+      enable_swallow = ${lib.boolToString enable_swallow}
+      swallow_regex = ${swallow_regex}
+    }
   '')}
+
+  ${(with cfg.config.binds; ''
+    # <https://wiki.hyprland.org/Configuring/Variables/#binds>
+    binds {
+      pass_mouse_when_bound = ${lib.boolToString pass_mouse_when_bound}
+      scroll_event_delay = ${toString scroll_event_delay}
+      workspace_back_and_forth = ${lib.boolToString workspace_back_and_forth}
+      allow_workspace_cycles = ${lib.boolToString allow_workspace_cycles}
+    }
+  '')}
+
+
+  ${(with cfg.config.dwindle; ''
+    # <https://wiki.hyprland.org/Configuring/Dwindle-Layout/>
+    dwindle {
+      pseudotile = ${lib.boolToString pseudotile}
+      col.group_border = ${toString group_border_color}
+      col.group_border_active = ${toString group_border_active_color}
+      force_split = ${toString force_split}
+      preserve_split = ${lib.boolToString preserve_split}
+      special_scale_factor = ${toString special_scale_factor}
+      split_width_multiplier = ${toString split_width_multiplier}
+      no_gaps_when_only = ${lib.boolToString no_gaps_when_only}
+      use_active_for_splits = ${lib.boolToString use_active_for_splits}
+    }
+  '')}
+
+  ${(with cfg.config.debug; ''
+    # <https://wiki.hyprland.org/Configuring/Variables/#debug>
+    debug {
+      overlay = ${lib.boolToString overlay}
+      damage_blink = ${lib.boolToString damage_blink}
+      disable_logs = ${lib.boolToString disable_logs}
+      disable_time = ${lib.boolToString disable_time}
+    }
+  '')}
+
+  ### EXTRA CONFIG ###
+
+  ${toString cfg.extraConfig}
 ''

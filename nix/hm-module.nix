@@ -469,6 +469,7 @@ in {
         };
       };
 
+      # TODO touchdevice <https://wiki.hyprland.org/Configuring/Variables/#touchdevice>
       touchpad = {
         disable_while_typing = lib.mkOption {
           type = types.bool;
@@ -576,6 +577,47 @@ in {
         default = "2fg";
         description = lib.mdDoc ''description'';
         example = lib.literalExpression '''';
+      };
+    };
+
+    config.gestures = {
+      workspace_swipe = {
+        enable = lib.mkOption {
+          type = types.bool;
+          default = false;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        fingers = lib.mkOption {
+          type = types.ints.positive;
+          default = 3;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        distance = lib.mkOption {
+          type = types.ints.unsigned;
+          default = 300;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        invert = lib.mkOption {
+          type = types.bool;
+          default = true;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        min_speed_to_force = lib.mkOption {
+          type = types.ints.unsigned;
+          default = 30;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
+        cancel_ratio = lib.mkOption {
+          type = types.float;
+          default = 0.5;
+          description = lib.mdDoc ''description'';
+          example = lib.literalExpression '''';
+        };
       };
     };
 
@@ -726,6 +768,19 @@ in {
               drag_lock = ${lib.boolToString touchpad.drag_lock}
               scroll_factor = ${toString touchpad.scroll_factor}
             }
+          }
+        '')}
+
+        ${(with cfg.config.gestures; ''
+          ### GESTURES ###
+
+          gestures {
+            workspace_swipe = ${lib.boolToString workspace_swipe.enable}
+            workspace_swipe_fingers = ${toString workspace_swipe.fingers}
+            workspace_swipe_distance = ${toString workspace_swipe.distance}
+            workspace_swipe_invert = ${lib.boolToString workspace_swipe.invert}
+            workspace_swipe_min_speed_to_force = ${toString workspace_swipe.min_speed_to_force}
+            workspace_swipe_cancel_ratio = ${toString workspace_swipe.cancel_ratio}
           }
         '')}
 

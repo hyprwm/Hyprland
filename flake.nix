@@ -34,7 +34,7 @@
       };
       hyprland = prev.callPackage ./nix/default.nix {
         stdenv = prev.gcc12Stdenv;
-        version = "0.15.3beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
+        version = "0.16.0beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
       };
       hyprland-debug = hyprland.override {debug = true;};

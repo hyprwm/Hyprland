@@ -115,6 +115,9 @@ CCompositor::CCompositor() {
     m_sWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, 24);
     wlr_xcursor_manager_load(m_sWLRXCursorMgr, 1);
 
+    if (const auto XCURSORENV = getenv("XCURSOR_SIZE"); !XCURSORENV || std::string(XCURSORENV).empty())
+        setenv("XCURSOR_SIZE", "24", true);
+
     m_sSeat.seat = wlr_seat_create(m_sWLDisplay, "seat0");
 
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);

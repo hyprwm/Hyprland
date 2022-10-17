@@ -65,6 +65,11 @@ decoration {
     blur_size = 3
     blur_passes = 1
     blur_new_optimizations = on
+
+    drop_shadow = yes
+    shadow_range = 4
+    shadow_render_power = 3
+    col.shadow = rgba(1a1a1aee)
 }
 
 animations {
@@ -83,7 +88,8 @@ animations {
 
 dwindle {
     # See https://wiki.hyprland.org/Configuring/Dwindle-Layout/ for more
-    pseudotile = false
+    pseudotile = yes # master switch for pseudotiling. Enabling is bound to mainMod + P in the keybinds section below
+    preserve_split = yes # you probably want this
 }
 
 master {
@@ -119,7 +125,8 @@ bind = $mainMod, M, exit,
 bind = $mainMod, E, exec, dolphin
 bind = $mainMod, V, togglefloating, 
 bind = $mainMod, R, exec, wofi --show drun
-bind = $mainMod, P, pseudo, 
+bind = $mainMod, P, pseudo, # dwindle
+bind = $mainMod, J, togglesplit, # dwindle
 
 # Move focus with mainMod + arrow keys
 bind = $mainMod, left, movefocus, l

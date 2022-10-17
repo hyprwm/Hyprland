@@ -73,7 +73,7 @@ void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox)
     if (pWindow->m_bIsX11) {
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
 
-        if (SIZEHINTS) {
+        if (SIZEHINTS && pWindow->m_iX11Type != 2) {
             pbox->x = SIZEHINTS->x;
             pbox->y = SIZEHINTS->y;
             pbox->width = SIZEHINTS->width;

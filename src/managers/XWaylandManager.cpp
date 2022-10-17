@@ -71,10 +71,19 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
 
 void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox) {
     if (pWindow->m_bIsX11) {
-        pbox->x = pWindow->m_uSurface.xwayland->x;
-        pbox->y = pWindow->m_uSurface.xwayland->y;
-        pbox->width = pWindow->m_uSurface.xwayland->width;
-        pbox->height = pWindow->m_uSurface.xwayland->height;
+        const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
+
+        if (SIZEHINTS) {
+            pbox->x = SIZEHINTS->x;
+            pbox->y = SIZEHINTS->y;
+            pbox->width = SIZEHINTS->width;
+            pbox->height = SIZEHINTS->height;
+        } else {
+            pbox->x = pWindow->m_uSurface.xwayland->x;
+            pbox->y = pWindow->m_uSurface.xwayland->y;
+            pbox->width = pWindow->m_uSurface.xwayland->width;
+            pbox->height = pWindow->m_uSurface.xwayland->height;
+        }
     } else {
         wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, pbox);
     }

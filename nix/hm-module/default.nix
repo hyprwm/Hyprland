@@ -132,6 +132,7 @@ in {
       {misc = import ./config/misc.nix {inherit lib types;};}
       {binds = import ./config/binds.nix {inherit lib types;};}
       {debug = import ./config/debug.nix {inherit lib types;};}
+      {windowRules = import ./config/windowrules.nix {inherit lib types;};}
     ];
 
     imports = [

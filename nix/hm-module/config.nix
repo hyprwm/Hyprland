@@ -7,7 +7,7 @@
   millisToDecis = x: x / 100;
   bezierString = name: points: ''
     bezier = ${name}, ${
-      lib.concatStringsSep "," (map toString points)
+      lib.concatStringsSep ", " (map toString points)
     }
   '';
   animationString = event: {
@@ -89,12 +89,12 @@ in ''
 
       ### BEZIER CURVES ###
       # <https://wiki.hyprland.org/Configuring/Animations/#curves>
-      ${lib.concatStringsSep "  "
+      ${lib.concatStringsSep " "
       (lib.mapAttrsToList bezierString bezier_curve)}
 
       ### ANIMATIONS ###
       # <https://wiki.hyprland.org/Configuring/Animations/>
-      ${lib.concatStringsSep "  "
+      ${lib.concatStringsSep " "
       (lib.mapAttrsToList animationString animation)}
     }
   '')}
@@ -200,6 +200,10 @@ in ''
       disable_logs = ${lib.boolToString disable_logs}
       disable_time = ${lib.boolToString disable_time}
     }
+  '')}
+
+  ${(with cfg.config.windowRules; ''
+    ${toString (lib.concatStringsSep "\n" rules)}
   '')}
 
   ### EXTRA CONFIG ###

@@ -203,7 +203,13 @@ in ''
   '')}
 
   ${(with cfg.config.windowRules; ''
+    ### WINDOW RULES ###
+
     ${toString (lib.concatStringsSep "\n" rules)}
+
+    ### WINDOW RULE GROUPS ###
+
+    ${toString (lib.concatStringsSep "\n" ruleGroups)}
   '')}
 
   ### EXTRA CONFIG ###

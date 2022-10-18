@@ -2,7 +2,7 @@
 {
   lib,
   types,
-}: {
+} @ args: {
   # TODO touchdevice <https://wiki.hyprland.org/Configuring/Variables/#touchdevice>
 
   follow_mouse = lib.mkOption {
@@ -136,4 +136,7 @@
     description = lib.mdDoc ''description'';
     example = lib.literalExpression '''';
   };
+
+  keyboard = import ./keyboard.nix args;
+  touchpad = import ./touchpad.nix args;
 }

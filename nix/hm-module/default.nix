@@ -120,20 +120,18 @@ in {
       '';
     };
 
-    config = lib.foldl' lib.recursiveUpdate {} [
-      {general = import ./config/general.nix {inherit lib types;};}
-      {dwindle = import ./config/dwindle.nix {inherit lib types;};}
-      {input = import ./config/input.nix {inherit lib types;};}
-      {input.keyboard = import ./config/keyboard.nix {inherit lib types;};}
-      {input.touchpad = import ./config/touchpad.nix {inherit lib types;};}
-      {decoration = import ./config/decoration.nix {inherit lib types;};}
-      {gestures = import ./config/gestures.nix {inherit lib types;};}
-      {animations = import ./config/animations.nix {inherit lib types;};}
-      {misc = import ./config/misc.nix {inherit lib types;};}
-      {binds = import ./config/binds.nix {inherit lib types;};}
-      {debug = import ./config/debug.nix {inherit lib types;};}
-      {windowRules = import ./config/windowrules.nix {inherit lib types;};}
-    ];
+    config = builtins.mapAttrs (_: p: import p {inherit lib types;}) {
+      general = ./config/general.nix;
+      dwindle = ./config/dwindle.nix;
+      input = ./config/input.nix;
+      decoration = ./config/decoration.nix;
+      gestures = ./config/gestures.nix;
+      animations = ./config/animations.nix;
+      misc = ./config/misc.nix;
+      binds = ./config/binds.nix;
+      debug = ./config/debug.nix;
+      windowRules = ./config/windowrules.nix;
+    };
 
     imports = [
       (

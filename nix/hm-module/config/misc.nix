@@ -73,10 +73,10 @@
       See the option's `apply` attribute:
 
       ```nix
-        apply = lib.mapNullable (x: "^(''${lib.concatStringsSep "|" x})");
+        apply = lib.mapNullable (x: "^(''${lib.concatStringsSep "|" x})$");
       ```
     '';
     example = lib.literalExpression ''["Alacritty" "dolphin" "Steam"]'';
-    apply = lib.mapNullable (x: "^(${lib.concatStringsSep "|" x})");
+    apply = lib.mapNullable (x: "^(${lib.concatStringsSep "|" x})$");
   };
 }

@@ -136,13 +136,13 @@ in {
           ];
         }
         {
-          rules = ["opacity ${opacity.high} ${opacity.high}"];
+          rules = ["opacity ''${opacity.high} ''${opacity.high}"];
           group = [
             discord
           ];
         }
         {
-          rules = ["opacity ${opacity.mid} ${opacity.mid}"];
+          rules = ["opacity ''${opacity.mid} ''${opacity.mid}"];
           group = [
             printerConfig
             audioControl
@@ -153,7 +153,7 @@ in {
           ];
         }
         {
-          rules = ["opacity ${opacity.low} ${opacity.low}"];
+          rules = ["opacity ''${opacity.low} ''${opacity.low}"];
           group = [
             calculator
           ];

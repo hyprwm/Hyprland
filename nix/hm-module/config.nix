@@ -24,8 +24,8 @@
       no_border_on_floating = ${lib.boolToString no_border_on_floating}
       gaps_in = ${toString gaps_inside}
       gaps_out = ${toString gaps_outside}
-      col.inactive_border = ${inactive_border_color}
       col.active_border = ${active_border_color}
+      col.inactive_border = ${inactive_border_color}
       cursor_inactive_timeout = ${toString cursor_inactive_timeout}
       damage_tracking = ${toString damage_tracking}
       layout = ${toString layout}
@@ -52,8 +52,8 @@
       shadow_range = ${toString shadow_range}
       shadow_render_power = ${toString shadow_render_power}
       shadow_ignore_window = ${lib.boolToString shadow_ignore_window}
-      col.shadow = ${shadow_color}
-      col.shadow_inactive = ${shadow_inactive_color}
+      col.shadow = ${active_shadow_color}
+      col.shadow_inactive = ${inactive_shadow_color}
       shadow_offset = [${toString shadow_offset}]
       dim_inactive = ${lib.boolToString dim_inactive}
       dim_strength = ${toString dim_strength}
@@ -160,8 +160,8 @@
     # <https://wiki.hyprland.org/Configuring/Dwindle-Layout/>
     dwindle {
       pseudotile = ${lib.boolToString pseudotile}
-      col.group_border = ${toString group_border_color}
-      col.group_border_active = ${toString group_border_active_color}
+      col.group_border_active = ${toString active_group_border_color}
+      col.group_border = ${toString inactive_group_border_color}
       force_split = ${toString force_split}
       preserve_split = ${lib.boolToString preserve_split}
       special_scale_factor = ${toString special_scale_factor}

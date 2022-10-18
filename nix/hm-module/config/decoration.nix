@@ -72,13 +72,13 @@
     default = true;
     description = lib.mdDoc '''';
   };
-  shadow_color = lib.mkOption {
+  active_shadow_color = lib.mkOption {
     type = types.singleLineStr;
     # TODO colors
     default = "0xee1a1a1a";
     description = lib.mdDoc '''';
   };
-  shadow_inactive_color = lib.mkOption {
+  inactive_shadow_color = lib.mkOption {
     type = types.nullOr types.singleLineStr;
     default = null;
     description = lib.mdDoc '''';

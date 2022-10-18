@@ -3,28 +3,7 @@
   types,
   pkgs,
   cfg,
-}: let
-  millisToDecis = x: x / 100;
-  bezierString = name: points: ''
-    bezier = ${name}, ${
-      lib.concatStringsSep ", " (map toString points)
-    }
-  '';
-  animationString = event: {
-    enable ? true,
-    duration,
-    curve ? "default",
-    style ? null,
-  }: ''
-    animation = ${event}, ${
-      if enable
-      then "1"
-      else "0"
-    }, ${
-      toString (millisToDecis duration)
-    }, ${curve}${lib.optionalString (style != null) ", ${style}"}
-  '';
-in ''
+}: ''
   ### INIT ###
 
   ${(lib.optionalString cfg.systemdIntegration ''
@@ -89,13 +68,13 @@ in ''
 
       ### BEZIER CURVES ###
       # <https://wiki.hyprland.org/Configuring/Animations/#curves>
-      ${lib.concatStringsSep " "
-      (lib.mapAttrsToList bezierString bezier_curve)}
+
+      ${bezierCurve}
 
       ### ANIMATIONS ###
       # <https://wiki.hyprland.org/Configuring/Animations/>
-      ${lib.concatStringsSep " "
-      (lib.mapAttrsToList animationString animation)}
+
+      ${animation}
     }
   '')}
 
@@ -205,11 +184,11 @@ in ''
   ${(with cfg.config.windowRules; ''
     ### WINDOW RULES ###
 
-    ${toString (lib.concatStringsSep "\n" rules)}
+    ${rules}
 
     ### WINDOW RULE GROUPS ###
 
-    ${toString (lib.concatStringsSep "\n" ruleGroups)}
+    ${ruleGroups}
   '')}
 
   ### EXTRA CONFIG ###

@@ -56,6 +56,7 @@ in {
         lib.concatLists
         compileRules
         stringifyRules
+        (lib.concatStringsSep "\n")
       ];
   };
   ruleGroups = lib.mkOption {
@@ -71,6 +72,7 @@ in {
         lib.concatLists
         compileRules
         stringifyRules
+        (lib.concatStringsSep "\n")
       ];
   };
 }

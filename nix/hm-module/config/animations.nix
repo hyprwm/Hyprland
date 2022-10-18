@@ -1,7 +1,30 @@
 {
   lib,
   types,
-}: {
+}: let
+  millisToDecis = x: x / 100;
+
+  stringifyAnimation = event: {
+    enable ? true,
+    duration,
+    curve ? "default",
+    style ? null,
+  }: ''
+    animation = ${event}, ${
+      if enable
+      then "1"
+      else "0"
+    }, ${
+      toString (millisToDecis duration)
+    }, ${curve}${lib.optionalString (style != null) ", ${style}"}
+  '';
+
+  stringifyBezier = name: points: ''
+    bezier = ${name}, ${
+      lib.concatStringsSep ", " (map toString points)
+    }
+  '';
+in {
   enable = lib.mkEnableOption "animations";
 
   animation = lib.mkOption {
@@ -18,9 +41,11 @@
         }
       }
     '';
+    apply = x:
+      lib.concatStringsSep "  " (lib.mapAttrsToList stringifyAnimation x);
   };
 
-  bezier_curve = lib.mkOption {
+  bezierCurve = lib.mkOption {
     type = types.attrsOf (
       types.listOf (types.oneOf [types.float types.int])
     );
@@ -61,16 +86,18 @@
       easeInOutBack = [0.68 (-0.6) 0.32 1.6];
     };
     description = lib.mdDoc '''';
-    # example = lib.literalExpression ''
-    #   {
-    #     easeInSine = [0.12 0 0.39 0];
-    #     easeOutSine = [0.61 1 0.88 1];
-    #     easeInOutSine = [0.37 0 0.63 1];
+    example = lib.literalExpression ''
+      {
+        easeInSine = [0.12 0 0.39 0];
+        easeOutSine = [0.61 1 0.88 1];
+        easeInOutSine = [0.37 0 0.63 1];
 
-    #     easeInQuad = [0.11 0 0.5 0];
-    #     easeOutQuad = [0.5 1 0.89 1];
-    #     easeInOutQuad = [0.45 0 0.55 1];
-    #   }
-    # '';
+        easeInQuad = [0.11 0 0.5 0];
+        easeOutQuad = [0.5 1 0.89 1];
+        easeInOutQuad = [0.45 0 0.55 1];
+      }
+    '';
+    apply = x:
+      lib.concatStringsSep "  " (lib.mapAttrsToList stringifyBezier x);
   };
 }

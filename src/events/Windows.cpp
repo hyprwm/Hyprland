@@ -484,7 +484,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x", PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x,%i", PWINDOW, PWINDOW->m_iWorkspaceID)});
 
     if (!PWINDOW->m_bIsX11) {
         Debug::log(LOG, "Unregistered late callbacks XDG");

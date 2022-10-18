@@ -63,9 +63,20 @@
     example = lib.literalExpression "";
   };
   swallow_regex = lib.mkOption {
-    type = types.nullOr types.singleLineStr;
-    default = null; # TODO [EMPTY]
-    description = lib.mdDoc '''';
-    example = lib.literalExpression "\"^(Alacritty|dolphin|Steam)$\"";
+    type = types.nullOr (types.listOf types.singleLineStr);
+    default = null;
+    description = lib.mdDoc ''
+      Window classes to match when checking if a newly created window should
+      swallow the parent.
+
+      Either `null` or a list of regular expressions matching class names.
+      See the option's `apply` attribute:
+
+      ```nix
+        apply = lib.mapNullable (x: "^(''${lib.concatStringsSep "|" x})");
+      ```
+    '';
+    example = lib.literalExpression ''["Alacritty" "dolphin" "Steam"]'';
+    apply = lib.mapNullable (x: "^(${lib.concatStringsSep "|" x})");
   };
 }

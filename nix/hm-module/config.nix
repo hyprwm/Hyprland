@@ -162,7 +162,7 @@ in ''
       animate_manual_resizes = ${lib.boolToString animate_manual_resizes}
       disable_autoreload = ${lib.boolToString disable_autoreload}
       enable_swallow = ${lib.boolToString enable_swallow}
-      swallow_regex = ${swallow_regex}
+      swallow_regex = ${toString swallow_regex}
     }
   '')}
 

@@ -37,8 +37,6 @@ void Events::listener_change(wl_listener* listener, void* data) {
         CONFIGHEAD->state.mode = m->output->current_mode;
         CONFIGHEAD->state.x = m->vecPosition.x;
         CONFIGHEAD->state.y = m->vecPosition.y;
-
-        wlr_output_set_custom_mode(m->output, m->vecPixelSize.x, m->vecPixelSize.y, (int)(round(m->refreshRate * 1000)));
     }
 
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);

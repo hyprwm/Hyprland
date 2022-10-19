@@ -125,7 +125,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
         if (w->m_iWorkspaceID != pMonitor->activeWorkspace)
             continue;
 
-        if (w->m_fAlpha.fl() == 0.f)
+        if (w->m_fAlpha.fl() == 0.f || !w->m_bFadingOut)
             continue;
 
         if (w->m_bIsFullscreen || w->m_bIsFloating)

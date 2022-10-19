@@ -975,8 +975,13 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
+    const auto BLURLSSTATUS = pLayer->forceBlur;
+    pLayer->forceBlur = false;
+
     // draw the layer
     g_pHyprRenderer->renderLayer(pLayer, PMONITOR, &now);
+
+    pLayer->forceBlur = BLURLSSTATUS;
 
     // TODO: WARN:
     // revise if any stencil-requiring rendering is done to the layers.

@@ -208,7 +208,12 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     if (g_pInputManager->dragMode == MBIND_MOVE) {
-        DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
+
+        if (*PANIMATE) {
+            DRAGGINGWINDOW->m_vRealPosition = m_vBeginDragPositionXY + DELTA;
+        } else {
+            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
+        }
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
     } else if (g_pInputManager->dragMode == MBIND_RESIZE) {

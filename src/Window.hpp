@@ -24,6 +24,8 @@ struct SWindowAdditionalConfigData {
     bool forceOpaque = false;
     bool forceAllowsInput = false;
     bool forceNoAnims = false;
+    bool forceNoBorder = false;
+    bool forceNoShadow = false;
 };
 
 class CWindow {

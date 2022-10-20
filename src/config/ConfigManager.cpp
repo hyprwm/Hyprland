@@ -753,6 +753,8 @@ bool windowRuleValid(const std::string& RULE) {
         && RULE.find("monitor") != 0
         && RULE != "nofocus"
         && RULE != "noblur"
+        && RULE != "noshadow"
+        && RULE != "noborder"
         && RULE != "center"
         && RULE != "opaque"
         && RULE != "forceinput"

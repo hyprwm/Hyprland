@@ -557,6 +557,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
                 g_pInputManager->refocus();
             else
                 g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+        } else {
+            g_pInputManager->refocus();
         }
     } else {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");

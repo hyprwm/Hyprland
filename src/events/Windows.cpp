@@ -161,6 +161,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bNoFocus = true;
         } else if (r.szRule == "noblur") {
             PWINDOW->m_sAdditionalConfigData.forceNoBlur = true;
+        } else if (r.szRule == "noborder") {
+            PWINDOW->m_sAdditionalConfigData.forceNoBorder = true;
+        } else if (r.szRule == "noshadow") {
+            PWINDOW->m_sAdditionalConfigData.forceNoShadow = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen = true;
         } else if (r.szRule == "opaque") {

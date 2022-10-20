@@ -169,6 +169,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             requestsFullscreen = true;
         } else if (r.szRule == "opaque") {
             PWINDOW->m_sAdditionalConfigData.forceOpaque = true;
+        } else if (r.szRule == "windowdance") {
+            PWINDOW->m_sAdditionalConfigData.windowDanceCompat = true;
         } else if (r.szRule == "forceinput") {
             PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
         } else if (r.szRule == "pin") {
@@ -737,7 +739,8 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     PWINDOW->m_bCreatedOverFullscreen = true;
 
-    g_pInputManager->refocus();
+    if (!PWINDOW->m_sAdditionalConfigData.windowDanceCompat)
+        g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 

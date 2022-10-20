@@ -740,7 +740,7 @@ void Events::listener_configureX11(void* owner, void* data) {
     PWINDOW->m_bCreatedOverFullscreen = true;
 
     if (!PWINDOW->m_sAdditionalConfigData.windowDanceCompat)
-    g_pInputManager->refocus();
+        g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 

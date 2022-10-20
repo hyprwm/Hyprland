@@ -183,7 +183,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
 
     m_sActiveSwipe.delta = std::clamp(m_sActiveSwipe.delta, (double)-*PSWIPEDIST, (double)*PSWIPEDIST);
 
-    if (((m_sActiveSwipe.pWorkspaceBegin->m_iID == workspaceIDLeft || m_sActiveSwipe.pWorkspaceBegin->m_iID == workspaceIDRight) && *PSWIPENEW && (m_sActiveSwipe.delta < 0)) || (m_sActiveSwipe.delta > 0 && g_pCompositor->getWindowsOnWorkspace(m_sActiveSwipe.pWorkspaceBegin->m_iID) == 0)) {
+    if (((m_sActiveSwipe.pWorkspaceBegin->m_iID == workspaceIDLeft || m_sActiveSwipe.pWorkspaceBegin->m_iID == workspaceIDRight) && *PSWIPENEW && (m_sActiveSwipe.delta < 0)) || (m_sActiveSwipe.delta > 0 && g_pCompositor->getWindowsOnWorkspace(m_sActiveSwipe.pWorkspaceBegin->m_iID) == 0 && workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID)) {
         m_sActiveSwipe.delta = 0;
         return;
     }

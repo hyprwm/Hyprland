@@ -23,6 +23,7 @@ struct SWindowAdditionalConfigData {
     bool forceNoBlur = false;
     bool forceOpaque = false;
     bool forceAllowsInput = false;
+    bool windowDanceCompat = false;
     bool forceNoAnims = false;
     bool forceNoBorder = false;
     bool forceNoShadow = false;

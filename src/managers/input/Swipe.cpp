@@ -151,7 +151,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
     // apply alpha
     for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow ? 0.f : 255.f;
+        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 255.f;
     }
 }
 

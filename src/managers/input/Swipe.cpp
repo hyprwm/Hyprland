@@ -218,10 +218,14 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     } else {
         if (workspaceIDRight < m_sActiveSwipe.pWorkspaceBegin->m_iID) {
             if (*PSWIPENEW) {
+                g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
+
                 if (VERTANIMS)
                     m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y));
                 else
                     m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
+
+                g_pCompositor->updateWorkspaceWindowDecos(m_sActiveSwipe.pWorkspaceBegin->m_iID);
                 return;
             }
             m_sActiveSwipe.delta = 0;

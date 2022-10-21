@@ -214,16 +214,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
             if (requestedWorkspace.contains("silent")) {
                 workspaceSilent = true;
                 shouldFocus = false;
-            }
 
-            requestedWorkspace = requestedWorkspace.substr(0, requestedWorkspace.find_first_of(' '));
+                requestedWorkspace = requestedWorkspace.substr(0, requestedWorkspace.find_first_of(' '));
+            }
 
             if (!shouldFocus && requestedWorkspace == std::to_string(PMONITOR->activeWorkspace))
                 shouldFocus = true;
+        }
 
-            if (requestedWorkspace == "special") {
-                workspaceSilent = true;
-            }
+        if (requestedWorkspace == "special") {
+            workspaceSilent = true;
         }
 
         if (!workspaceSilent) {

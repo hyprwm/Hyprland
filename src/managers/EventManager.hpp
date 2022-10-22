@@ -31,7 +31,7 @@ private:
     std::mutex eventQueueMutex;
     std::deque<SHyprIPCEvent> m_dQueuedEvents;
 
-    std::deque<int> m_dAcceptedSocketFDs;
+    std::deque<std::pair<int, wl_event_source*>> m_dAcceptedSocketFDs;
 };
 
 inline std::unique_ptr<CEventManager> g_pEventManager;

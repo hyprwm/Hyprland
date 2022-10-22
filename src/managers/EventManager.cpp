@@ -18,6 +18,23 @@
 CEventManager::CEventManager() {
 }
 
+int fdHandleWrite(int fd, uint32_t mask, void* data) {
+    if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP) {
+        // remove, hanged up
+        const auto ACCEPTEDFDS = (std::deque<std::pair<int, wl_event_source*>>*)data;
+        for (auto it = ACCEPTEDFDS->begin(); it != ACCEPTEDFDS->end(); ) {
+            if (it->first == fd) {
+                wl_event_source_remove(it->second); // remove this fd listener
+                it = ACCEPTEDFDS->erase(it);
+            } else {
+                it++;
+            }
+        }
+    }
+
+    return 0;
+}
+
 void CEventManager::startThread() {
     m_tThread = std::thread([&]() {
         const auto SOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -46,12 +63,14 @@ void CEventManager::startThread() {
 
             if (ACCEPTEDCONNECTION > 0) {
                 // new connection!
-                m_dAcceptedSocketFDs.push_back(ACCEPTEDCONNECTION);
 
                 int flagsNew = fcntl(ACCEPTEDCONNECTION, F_GETFL, 0);
                 fcntl(ACCEPTEDCONNECTION, F_SETFL, flagsNew | O_NONBLOCK);
 
                 Debug::log(LOG, "Socket 2 accepted a new client at FD %d", ACCEPTEDCONNECTION);
+
+                // add to event loop so we can close it when we need to
+                m_dAcceptedSocketFDs.push_back({ACCEPTEDCONNECTION, wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, WL_EVENT_READABLE, fdHandleWrite, &m_dAcceptedSocketFDs)});
             }
 
             ensureFDsValid();
@@ -68,7 +87,7 @@ void CEventManager::ensureFDsValid() {
 
     // pong if all FDs valid
     for (auto it = m_dAcceptedSocketFDs.begin(); it != m_dAcceptedSocketFDs.end();) {
-        auto sizeRead = recv(*it, &readBuf, 1024, 0);
+        auto sizeRead = recv(it->first, &readBuf, 1024, 0);
 
         if (sizeRead != 0) {
             it++;
@@ -90,7 +109,7 @@ void CEventManager::flushEvents() {
     for (auto& ev : m_dQueuedEvents) {
         std::string eventString = (ev.event + ">>" + ev.data).substr(0, 1022) + "\n";
         for (auto& fd : m_dAcceptedSocketFDs) {
-            write(fd, eventString.c_str(), eventString.length());
+            write(fd.first, eventString.c_str(), eventString.length());
         }
     }
 

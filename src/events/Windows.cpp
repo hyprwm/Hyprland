@@ -602,6 +602,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
+
+    // force report all sizes (QT sometimes has an issue with this)
+    g_pCompositor->forceReportSizesToWindowsOnWorkspace(PWINDOW->m_iWorkspaceID);
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {

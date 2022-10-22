@@ -151,6 +151,7 @@ public:
     bool                m_bForceReload = false;
     bool                m_bNoMonitorReload = false;
     void                ensureDPMS();
+    void                ensureVRR();
 
     std::string         parseKeyword(const std::string&, const std::string&, bool dynamic = false);
 

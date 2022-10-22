@@ -136,6 +136,9 @@ void CMonitor::onConnect(bool noRule) {
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
+
+    // ensure VRR (will enable if necessary)
+    g_pConfigManager->ensureVRR();
 }
 
 void CMonitor::onDisconnect() {

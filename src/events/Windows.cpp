@@ -700,7 +700,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
 
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(E->surface);
 
-    if (!PWINDOW)
+    if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow)
         return;
 
     g_pCompositor->focusWindow(PWINDOW);
@@ -715,7 +715,7 @@ void Events::listener_activateX11(void* owner, void* data) {
 
     Debug::log(LOG, "X11 Activate request for window %x", PWINDOW);
 
-    if (!*PFOCUSONACTIVATE || PWINDOW->m_iX11Type != 1)
+    if (!*PFOCUSONACTIVATE || PWINDOW->m_iX11Type != 1 || PWINDOW == g_pCompositor->m_pLastWindow)
         return;
 
     g_pCompositor->focusWindow(PWINDOW);

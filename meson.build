@@ -20,8 +20,8 @@ endif
 
 GIT_BRANCH = run_command('git', 'rev-parse', '--abbrev-ref', 'HEAD', check: false).stdout().strip()
 GIT_COMMIT_HASH = run_command('git', 'rev-parse', 'HEAD', check: false).stdout().strip()
-GIT_COMMIT_MESSAGE = run_command('bash', '-c', 'git show | head -n 5 | tail -n 1', check: false).stdout().strip()
-GIT_DIRTY = run_command('bash', '-c', 'git diff-index --quiet HEAD -- || echo "dirty"', check: false).stdout().strip()
+GIT_COMMIT_MESSAGE = run_command('sh', '-c', 'git show | head -n 5 | tail -n 1', check: false).stdout().strip()
+GIT_DIRTY = run_command('sh', '-c', 'git diff-index --quiet HEAD -- || echo "dirty"', check: false).stdout().strip()
 
 add_project_arguments(
   [

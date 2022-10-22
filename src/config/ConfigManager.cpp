@@ -60,6 +60,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:disable_autoreload"].intValue = 0;
     configValues["misc:enable_swallow"].intValue = 0;
     configValues["misc:swallow_regex"].strValue = STRVAL_EMPTY;
+    configValues["misc:focus_on_activate"].intValue = 1;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

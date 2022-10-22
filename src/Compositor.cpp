@@ -170,6 +170,8 @@ CCompositor::CCompositor() {
     m_sWLRTextInputMgr = wlr_text_input_manager_v3_create(m_sWLDisplay);
 
     m_sWLRIMEMgr = wlr_input_method_manager_v2_create(m_sWLDisplay);
+
+    m_sWLRActivation = wlr_xdg_activation_v1_create(m_sWLDisplay);
 }
 
 CCompositor::~CCompositor() {
@@ -226,6 +228,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLROutputPowerMgr->events.set_mode, &Events::listen_powerMgrSetMode, m_sWLROutputPowerMgr, "PowerMgr");
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
+    addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
 
     if(m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");

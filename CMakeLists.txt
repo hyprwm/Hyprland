@@ -22,13 +22,13 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process(
-    COMMAND bash -c "git show ${GIT_COMMIT_HASH} | head -n 5 | tail -n 1"
+    COMMAND sh -c "git show ${GIT_COMMIT_HASH} | head -n 5 | tail -n 1"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_MESSAGE
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process(
-    COMMAND bash -c "git diff-index --quiet HEAD -- || echo \"dirty\""
+    COMMAND sh -c "git diff-index --quiet HEAD -- || echo \"dirty\""
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_DIRTY
     OUTPUT_STRIP_TRAILING_WHITESPACE)

@@ -42,6 +42,7 @@ namespace Events {
 
     // Surface XDG (window)
     LISTENER(newXDGSurface);
+    LISTENER(activateXDG);
 
     // Window events
     DYNLISTENFUNC(commitWindow);
@@ -87,7 +88,6 @@ namespace Events {
     LISTENER(requestMouse);
     LISTENER(requestSetSel);
     LISTENER(requestSetPrimarySel);
-    DYNLISTENFUNC(activate);
 
     // outputMgr
     LISTENER(outputMgrApply);

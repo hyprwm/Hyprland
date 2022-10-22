@@ -20,7 +20,20 @@
       "aarch64-linux"
       "x86_64-linux"
     ];
-    pkgsFor = nixpkgs.legacyPackages;
+
+    pkgsFor = genSystems (system: import nixpkgs {
+      inherit system;
+      overlays = [(_: prev: {
+        wayland-protocols = prev.wayland-protocols.overrideAttrs (old: rec {
+          version = "1.27";
+          src = prev.fetchurl {
+            url = "https://gitlab.freedesktop.org/wayland/${old.pname}/-/releases/${version}/downloads/${old.pname}-${version}.tar.xz";
+            hash = "sha256-kEbxCkJdTioAlloDrPtrP7V1pWUDrHLCuGghxpZTN1w=";
+          };
+        });
+      })];
+    });
+
     mkDate = longDate: (lib.concatStringsSep "-" [
       (builtins.substring 0 4 longDate)
       (builtins.substring 4 2 longDate)

@@ -241,6 +241,8 @@ void CCompositor::cleanup() {
     if (!m_sWLDisplay || m_bIsShuttingDown)
         return;
 
+    m_bIsShuttingDown = true;
+
     m_pLastFocus = nullptr;
     m_pLastWindow = nullptr;
 
@@ -255,8 +257,6 @@ void CCompositor::cleanup() {
 
     m_vWorkspaces.clear();
     m_vWindows.clear();
-
-    m_bIsShuttingDown = true;
 
     for (auto& m : m_vMonitors) {
         g_pHyprOpenGL->destroyMonitorResources(m.get());

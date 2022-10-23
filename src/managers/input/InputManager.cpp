@@ -39,7 +39,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     m_pFoundLSToFocus = nullptr;
     m_pFoundWindowToFocus = nullptr;
 
-    if (!g_pCompositor->m_bReadyToProcess)
+    if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown)
         return;
 
     if (!g_pCompositor->m_sSeat.mouse) {

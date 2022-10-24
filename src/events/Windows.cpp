@@ -114,6 +114,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool workspaceSilent = false;
     bool requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen || (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen);
     bool shouldFocus = true;
+    bool workspaceSpecial = false;
 
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {
@@ -223,6 +224,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         }
 
         if (requestedWorkspace == "special") {
+            workspaceSpecial = true;
             workspaceSilent = true;
         }
 
@@ -231,6 +233,44 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
             PWINDOW->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
             PWINDOW->m_iWorkspaceID = g_pCompositor->m_pLastMonitor->activeWorkspace;
+        }
+    }
+
+    if (workspaceSilent) {
+        // get the workspace
+
+        auto PWORKSPACE = g_pCompositor->getWorkspaceByString(requestedWorkspace);
+
+        if (!PWORKSPACE) {
+            std::string workspaceName = "";
+            int workspaceID = 0;
+            
+            if (requestedWorkspace.find("name:") == 0) {
+                workspaceName = requestedWorkspace.substr(5);
+                workspaceID = g_pCompositor->getNextAvailableNamedWorkspace();
+            } else if (workspaceSpecial) {
+                workspaceName = "";
+                workspaceID = SPECIAL_WORKSPACE_ID;
+            } else {
+                try {
+                    workspaceID = std::stoi(requestedWorkspace);
+                } catch (...) {
+                    workspaceID = -1;
+                    Debug::log(ERR, "Invalid workspace requested in workspace silent rule!");
+                }
+
+                if (workspaceID < 1) {
+                    workspaceID = -1; // means invalid
+                }
+            }
+
+            if (workspaceID != -1)
+                PWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PWINDOW->m_iMonitorID, workspaceName);
+        }
+
+        if (PWORKSPACE) {
+            PWINDOW->m_iWorkspaceID = PWORKSPACE->m_iID;
+            PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
         }
     }
 
@@ -317,8 +357,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv();
 
         g_pCompositor->moveWindowToTop(PWINDOW);
-    }
-    else {
+    } else {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
         // Set the pseudo size here too so that it doesnt end up being 0x0
@@ -333,7 +372,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bX11ShouldntFocus = false;
     }
 
-    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2) {
+    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2 && !workspaceSilent) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(*PDIMSTRENGTH);
@@ -370,32 +409,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     const auto TIMER = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, setAnimToMove, PWINDOW);
     wl_event_source_timer_update(TIMER, PWINDOW->m_vRealPosition.getDurationLeftMs() + 5);
-
-    if (workspaceSilent) {
-        // move the window
-        const auto OLDWORKSPACE = PWINDOW->m_iWorkspaceID;
-
-        if (g_pCompositor->m_pLastWindow == PWINDOW) {
-            if (requestedWorkspace != "special") {
-                g_pKeybindManager->m_mDispatchers["movetoworkspacesilent"](requestedWorkspace);
-            } else {
-                g_pKeybindManager->m_mDispatchers["movetoworkspace"]("special");
-            }
-        } else {
-            // yes this is fucking weird no clue why this won't work for everyone
-            std::stringstream stream;
-            stream << std::hex << (uintptr_t)PWINDOW;
-            std::string hexStr(stream.str());
-
-            if (requestedWorkspace != "special") {
-                g_pKeybindManager->m_mDispatchers["movetoworkspacesilent"](requestedWorkspace + ",address:0x" + hexStr);
-            } else {
-                g_pKeybindManager->m_mDispatchers["movetoworkspace"]("special,address:0x" + hexStr);
-            }
-        }
-
-        g_pCompositor->forceReportSizesToWindowsOnWorkspace(OLDWORKSPACE);
-    }
 
     if (requestsFullscreen) {
         // fix fullscreen on requested (basically do a switcheroo)

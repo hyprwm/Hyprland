@@ -166,6 +166,7 @@ public:
     Vector2D                parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void                    forceReportSizesToWindowsOnWorkspace(const int&);
     bool                    cursorOnReservedArea();
+    CWorkspace*             createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
 
     std::string             explicitConfigPath;
 

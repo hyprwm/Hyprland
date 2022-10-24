@@ -26,6 +26,9 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
     } else {
         onWindowRemovedTiling(pWindow);
     }
+
+    if (pWindow == m_pLastTiledWindow)
+        m_pLastTiledWindow = nullptr;
 }
 
 void IHyprLayout::onWindowRemovedFloating(CWindow* pWindow) {
@@ -311,6 +314,9 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         // fix pseudo leaving artifacts
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
+
+        if (pWindow == g_pCompositor->m_pLastWindow)
+            m_pLastTiledWindow = pWindow;
     } else {
         pWindow->m_vSize = pWindow->m_vRealSize.vec();
         pWindow->m_vPosition = pWindow->m_vRealPosition.vec();
@@ -325,6 +331,9 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
         pWindow->m_sSpecialRenderData.rounding = true;
+
+        if (pWindow == m_pLastTiledWindow)
+            m_pLastTiledWindow = nullptr;
     }
 
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
@@ -346,4 +355,48 @@ void IHyprLayout::moveActiveWindow(const Vector2D& delta, CWindow* pWindow) {
     PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goalv() + delta;
 
     g_pHyprRenderer->damageWindow(PWINDOW);
+}
+
+void IHyprLayout::onWindowFocusChange(CWindow* pNewFocus) {
+    m_pLastTiledWindow = pNewFocus && !pNewFocus->m_bIsFloating ? pNewFocus : m_pLastTiledWindow;
+}
+
+CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
+    // although we don't expect nullptrs here, let's verify jic
+    if (!pWindow)
+        return nullptr;
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    // first of all, if this is a fullscreen workspace,
+    if (PWORKSPACE->m_bHasFullscreenWindow)
+        return g_pCompositor->getFullscreenWindowOnWorkspace(pWindow->m_iWorkspaceID);
+
+    if (pWindow->m_bIsFloating) {
+        // the window was floating, let's try the last tiled window.
+
+        if (m_pLastTiledWindow && m_pLastTiledWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID)
+            return m_pLastTiledWindow;
+
+        // if we don't, let's try to find any window that is in the middle
+        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f); PWINDOWCANDIDATE)
+            return PWINDOWCANDIDATE;
+
+        // if not, floating window
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus)
+                return w.get();
+        }
+
+        // if there is no candidate, too bad
+        return nullptr;
+    }
+
+    // if it was a tiled window, we first try to find the window that will replace it.
+    const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
+
+    if (!PWINDOWCANDIDATE || pWindow == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+        return nullptr;
+
+    return PWINDOWCANDIDATE;
 }

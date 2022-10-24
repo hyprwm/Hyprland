@@ -75,7 +75,7 @@ public:
 
     const char*             m_szWLDisplaySocket;
     std::string             m_szInstanceSignature = "";
-    std::string             m_szCurrentSplash = "error";
+    std::string             m_szCurrentSplash   = "error";
 
     std::vector<std::shared_ptr<CMonitor>>      m_vMonitors;
     std::vector<std::shared_ptr<CMonitor>>      m_vRealMonitors; // for all monitors, even those turned off
@@ -90,17 +90,17 @@ public:
     void                    startCompositor();
     void                    cleanup();
 
-    wlr_surface*            m_pLastFocus = nullptr;
-    CWindow*                m_pLastWindow = nullptr;
-    CMonitor*               m_pLastMonitor = nullptr;
+    wlr_surface*            m_pLastFocus        = nullptr;
+    CWindow*                m_pLastWindow       = nullptr;
+    CMonitor*               m_pLastMonitor      = nullptr;
 
     SSeat                   m_sSeat;
 
-    bool                    m_bReadyToProcess = false;
-    bool                    m_bSessionActive = true;
-    bool                    m_bDPMSStateON = true;
-    bool                    m_bUnsafeState = false; // unsafe state is when there is no monitors.
-    bool                    m_bIsShuttingDown = false;
+    bool                    m_bReadyToProcess   = false;
+    bool                    m_bSessionActive    = true;
+    bool                    m_bDPMSStateON      = true;
+    bool                    m_bUnsafeState      = false; // unsafe state is when there is no monitors.
+    bool                    m_bIsShuttingDown   = false;
     std::deque<uint64_t>    m_dProcessPIDsOnShutdown; // stores PIDs of apps to kill later when shutting down
 
     // ------------------------------------------------- //

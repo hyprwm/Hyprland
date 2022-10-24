@@ -123,10 +123,22 @@ public:
     */
     virtual std::string  getLayoutName() = 0;
 
+    /*
+        Called for getting the next candidate for a focus
+    */
+    virtual CWindow*     getNextWindowCandidate(CWindow*);
+
+    /*
+        Internal: called when window focus changes
+    */
+    virtual void         onWindowFocusChange(CWindow*);
+
 private:
     Vector2D                        m_vBeginDragXY;
     Vector2D                        m_vLastDragXY;
     Vector2D                        m_vBeginDragPositionXY;
     Vector2D                        m_vBeginDragSizeXY;
     int                             m_iGrabbedCorner = 0;
+
+    CWindow*                        m_pLastTiledWindow = nullptr;
 };

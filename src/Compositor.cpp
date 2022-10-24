@@ -723,6 +723,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
 
+        g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
+
         m_pLastFocus = nullptr;
         return;
     }
@@ -773,6 +775,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
+
+    g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
 
     if (pWindow->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_activated(pWindow->m_phForeignToplevel, true);

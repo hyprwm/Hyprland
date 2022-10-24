@@ -548,13 +548,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // refocus on a new window if needed
     if (wasLastWindow) {
-        auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f);
-
-        if (PWORKSPACE->m_bHasFullscreenWindow && ((!PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bCreatedOverFullscreen) || !PWINDOW->m_bIsFloating))
-            PWINDOWCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-
-        if (!PWINDOWCANDIDATE || PWINDOW == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
-            PWINDOWCANDIDATE = nullptr;
+        const auto PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
 
         Debug::log(LOG, "On closed window, new focused candidate is %x", PWINDOWCANDIDATE);
 

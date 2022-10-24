@@ -1153,7 +1153,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         }
     }
 
-    wlr_output_enable_adaptive_sync(pMonitor->output, 0); // disabled here, will be tested in CConfigManager::ensureVRR()
+    pMonitor->vrrActive = pMonitor->output->pending.adaptive_sync_enabled;  // disabled here, will be tested in CConfigManager::ensureVRR()
 
     wlr_output_set_transform(pMonitor->output, pMonitorRule->transform);
     pMonitor->transform = pMonitorRule->transform;

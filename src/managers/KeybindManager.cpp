@@ -897,7 +897,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     // and restore it
     if (PWINDOW->m_bIsFloating) {
-        PWINDOW->m_vRealSize.setValue(PSAVEDSIZE);
+        PWINDOW->m_vRealSize.setValueAndWarp(PSAVEDSIZE);
         PWINDOW->m_vRealPosition.setValueAndWarp(PSAVEDPOS - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
     }

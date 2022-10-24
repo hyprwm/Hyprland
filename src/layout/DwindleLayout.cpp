@@ -281,6 +281,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     const auto PNODE = &m_lDwindleNodesData.back();
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
     static auto *const PUSEACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:use_active_for_splits")->intValue;
 
@@ -293,7 +294,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     SDwindleNodeData* OPENINGON;
     const auto MONFROMCURSOR = g_pCompositor->getMonitorFromCursor();
 
-    if (PMONITOR->ID == MONFROMCURSOR->ID && (PNODE->workspaceID == PMONITOR->activeWorkspace || (PNODE->workspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && !*PUSEACTIVE) {
+    if (PWORKSPACE->m_pSplitPreselWindow != nullptr) {
+            OPENINGON = getNodeFromWindow(PWORKSPACE->m_pSplitPreselWindow);
+    } else if (PMONITOR->ID == MONFROMCURSOR->ID && (PNODE->workspaceID == PMONITOR->activeWorkspace || (PNODE->workspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && !*PUSEACTIVE) {
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
 
         // happens on reserved area
@@ -328,8 +331,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
         return;
     }
-
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
@@ -385,32 +386,61 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     const auto PWIDTHMULTIPLIER = &g_pConfigManager->getConfigValuePtr("dwindle:split_width_multiplier")->floatValue;
 
     // if cursor over first child, make it first, etc
-    const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * *PWIDTHMULTIPLIER;
+    bool SIDEBYSIDE;
+    switch (PWORKSPACE->m_cSplitPreselDirection) {
+        case 'l':
+        case 'r':
+                SIDEBYSIDE = true;
+                break;
+        case 'u':
+        case 'd':
+        case 't':
+        case 'b':
+                SIDEBYSIDE = false;
+                break;
+        default:
+                SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * *PWIDTHMULTIPLIER;
+    }
     NEWPARENT->splitTop = !SIDEBYSIDE;
 
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     const auto PFORCESPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
 
-    if (*PFORCESPLIT == 0) {
-        if ((SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y + NEWPARENT->size.y))
-        || (!SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f))) {
-            // we are hovering over the first node, make PNODE first.
+    switch (PWORKSPACE->m_cSplitPreselDirection) {
+        case 'l':
+        case 'u':
+        case 't':
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;
-        } else {
-            // we are hovering over the second node, make PNODE second.
+            break;
+        case 'r':
+        case 'd':
+        case 'b':
             NEWPARENT->children[0] = OPENINGON;
             NEWPARENT->children[1] = PNODE;
-        }
-    } else {
-        if (*PFORCESPLIT == 1) {
-            NEWPARENT->children[1] = OPENINGON;
-            NEWPARENT->children[0] = PNODE;
-        } else {
-            NEWPARENT->children[0] = OPENINGON;
-            NEWPARENT->children[1] = PNODE;
-        }
+            break;
+        default:
+            if (*PFORCESPLIT == 0) {
+                if ((SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y + NEWPARENT->size.y))
+                || (!SIDEBYSIDE && VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f))) {
+                    // we are hovering over the first node, make PNODE first.
+                    NEWPARENT->children[1] = OPENINGON;
+                    NEWPARENT->children[0] = PNODE;
+                } else {
+                    // we are hovering over the second node, make PNODE second.
+                    NEWPARENT->children[0] = OPENINGON;
+                    NEWPARENT->children[1] = PNODE;
+                }
+            } else {
+                if (*PFORCESPLIT == 1) {
+                    NEWPARENT->children[1] = OPENINGON;
+                    NEWPARENT->children[0] = PNODE;
+                } else {
+                    NEWPARENT->children[0] = OPENINGON;
+                    NEWPARENT->children[1] = PNODE;
+                }
+            }
     }
 
     // and update the previous parent if it exists
@@ -446,6 +476,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
+
+    PWORKSPACE->m_pSplitPreselWindow = nullptr;
+    PWORKSPACE->m_cSplitPreselDirection = '\0';
 }
 
 void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {

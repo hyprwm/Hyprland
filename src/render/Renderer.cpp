@@ -323,6 +323,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     g_pHyprOpenGL->m_RenderData.clipBox = { 0, 0, 0, 0 };
 }
 
+void CHyprRenderer::renderSplitPresel(/** TODO **/) {
+    // TODO
+}
+
 void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time) {
     if (pLayer->fadingOut) {
         g_pHyprOpenGL->renderSnapshot(&pLayer);
@@ -415,6 +419,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
         // render the bad boy
         renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_POPUP);
+    }
+
+    if (PWORKSPACE->m_pSplitPreselWindow) {
+        renderSplitPresel(/** TODO **/);
     }
 
     // floating on top

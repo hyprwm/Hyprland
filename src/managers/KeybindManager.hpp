@@ -121,6 +121,7 @@ private:
     static void         pinActive(std::string);
     static void         mouse(std::string);
     static void         bringActiveToTop(std::string);
+    static void         splitPresel(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

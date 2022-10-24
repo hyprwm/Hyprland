@@ -45,6 +45,10 @@ public:
     bool            m_bDefaultFloating = false;
     bool            m_bDefaultPseudo = false;
 
+    // split preselection
+    CWindow*        m_pSplitPreselWindow = nullptr;
+    char            m_cSplitPreselDirection = '\0';
+
     void            startAnim(bool in, bool left, bool instant = false);
     void            setActive(bool on);
 

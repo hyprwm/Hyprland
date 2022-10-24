@@ -45,6 +45,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pin"]                       = pinActive;
     m_mDispatchers["mouse"]                     = mouse;
     m_mDispatchers["bringactivetotop"]          = bringActiveToTop;
+    m_mDispatchers["splitpresel"]               = splitPresel;
 
     m_tScrollTimer.reset();
 }
@@ -1716,4 +1717,26 @@ void CKeybindManager::mouse(std::string args) {
 void CKeybindManager::bringActiveToTop(std::string args) {
     if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
         g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
+}
+
+void CKeybindManager::splitPresel(std::string args) {
+        char dir = args[0];
+        const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+        const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PLASTWINDOW->m_iWorkspaceID);
+
+        if (!isDirection(args)) {
+                Debug::log(ERR, "Cannot preselect split direction %c, unsupported direction. Supported: l,r,u/t,d/b", dir);
+                return;
+        }
+
+        if (PCURRENTWORKSPACE->m_pSplitPreselWindow != PLASTWINDOW || PCURRENTWORKSPACE->m_cSplitPreselDirection != dir) {
+                PCURRENTWORKSPACE->m_pSplitPreselWindow = PLASTWINDOW;
+                PCURRENTWORKSPACE->m_cSplitPreselDirection = dir;
+                Debug::log(ERR, "Preset set");
+        }
+        else {
+                PCURRENTWORKSPACE->m_pSplitPreselWindow = nullptr;
+                PCURRENTWORKSPACE->m_cSplitPreselDirection = '\0';
+            Debug::log(ERR, "Preset unset");
+        }
 }

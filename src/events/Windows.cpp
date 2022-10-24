@@ -375,13 +375,14 @@ void Events::listener_mapWindow(void* owner, void* data) {
         // move the window
         const auto OLDWORKSPACE = PWINDOW->m_iWorkspaceID;
 
-        if (g_pCompositor->m_pLastWindow == PWINDOW) {
-            if (requestedWorkspace != "special")
-                g_pKeybindManager->m_mDispatchers["movetoworkspacesilent"](requestedWorkspace);
-            else
-                g_pKeybindManager->m_mDispatchers["movetoworkspace"]("special");
+        std::stringstream stream;
+        stream << std::hex << (uintptr_t)PWINDOW;
+        std::string hexStr(stream.str());
+
+        if (requestedWorkspace != "special") {
+            g_pKeybindManager->m_mDispatchers["movetoworkspacesilent"](requestedWorkspace + ",address:0x" + hexStr);
         } else {
-            Debug::log(ERR, "Tried to set workspace silent rule to a nofocus window!");
+            g_pKeybindManager->m_mDispatchers["movetoworkspace"]("special,address:0x" + hexStr);
         }
 
         g_pCompositor->forceReportSizesToWindowsOnWorkspace(OLDWORKSPACE);

@@ -311,7 +311,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     } else {
         if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
-            g_pCompositor->m_pLastWindow = nullptr; // reset last window as we have a full focus on a LS
         }
 
         if (pFoundLayerSurface)

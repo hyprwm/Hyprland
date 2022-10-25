@@ -62,8 +62,10 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
     else
         wlr_xdg_toplevel_set_activated(pWindow->m_uSurface.xdg->toplevel, activate);
 
-    g_pCompositor->m_pLastFocus = getWindowSurface(pWindow);
-    g_pCompositor->m_pLastWindow = pWindow;
+    if (activate) {
+        g_pCompositor->m_pLastFocus = getWindowSurface(pWindow);
+        g_pCompositor->m_pLastWindow = pWindow;
+    }
 
     if (!pWindow->m_bPinned)
         g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID)->m_pLastFocusedWindow = pWindow;

@@ -1878,14 +1878,21 @@ bool CCompositor::cursorOnReservedArea() {
 
 CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, const std::string& name) {
     const auto NAME = name == "" ? std::to_string(id) : name;
-    const auto PWORKSPACE = m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(monid, NAME, id == SPECIAL_WORKSPACE_ID)).get();
+    auto monID = monid;
+
+    // check if bound
+    if (const auto PMONITOR = g_pConfigManager->getBoundMonitorForWS(NAME); PMONITOR) {
+        monID = PMONITOR->ID;
+    }
+
+    const auto PWORKSPACE = m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(monID, NAME, id == SPECIAL_WORKSPACE_ID)).get();
 
     // We are required to set the name here immediately
     if (id != SPECIAL_WORKSPACE_ID)
         wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, NAME.c_str());
 
     PWORKSPACE->m_iID = id;
-    PWORKSPACE->m_iMonitorID = monid;
+    PWORKSPACE->m_iMonitorID = monID;
 
     return PWORKSPACE;
 }

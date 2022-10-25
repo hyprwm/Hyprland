@@ -1016,13 +1016,26 @@ void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equals
 
 void CConfigManager::parseLine(std::string& line) {
     // first check if its not a comment
-    const auto COMMENTSTART = line.find_first_of('#');
-    if (COMMENTSTART == 0)
+    if (line[0] == '#')
         return;
 
-    // now, cut the comment off
-    if (COMMENTSTART != std::string::npos)
-        line = line.substr(0, COMMENTSTART);
+    // now, cut the comment off. ## is an escape.
+    for (long unsigned int i = 1; i < line.length(); ++i) {
+        if (line[i] == '#') {
+            if (i + 1 < line.length() && line[i + 1] != '#') {
+                line = line.substr(0, i);
+                break; // no need to parse more
+            }
+
+            i++;
+        }
+    }
+
+    size_t startPos = 0;
+    while ((startPos = line.find("##", startPos)) != std::string::npos) {
+        line.replace(startPos, 2, "#");
+        startPos++;
+    }
 
     // remove shit at the beginning
     while (line[0] == ' ' || line[0] == '\t') {

@@ -199,8 +199,29 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     // refocus if needed
     if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus) {
+        
+        Vector2D surfaceCoords;
+        SLayerSurface* pFoundLayerSurface = nullptr;
+        wlr_surface* foundSurface = nullptr;
+
         g_pCompositor->m_pLastFocus = nullptr;
-        g_pInputManager->refocus();
+
+        // find LS-es to focus
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
+
+        if (!foundSurface)
+            foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
+
+
+        if (!foundSurface) {
+            // if there isn't any, focus the last window
+            const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+            g_pCompositor->focusWindow(nullptr);
+            g_pCompositor->focusWindow(PLASTWINDOW);
+        } else {
+            // otherwise, full refocus
+            g_pInputManager->refocus();
+        }
     }
 
     wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};

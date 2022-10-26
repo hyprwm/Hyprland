@@ -80,6 +80,7 @@ void request(std::string arg) {
         return;
     }
 
+    std::string reply = "";
     char buffer[8192] = {0};
 
     sizeWritten = read(SERVERSOCKET, buffer, 8192);
@@ -89,9 +90,20 @@ void request(std::string arg) {
         return;
     }
 
+    reply += std::string(buffer, sizeWritten);
+
+    while (sizeWritten == 8192) {
+        sizeWritten = read(SERVERSOCKET, buffer, 8192);
+        if (sizeWritten < 0) {
+            std::cout << "Couldn't read (5)";
+            return;
+        }
+        reply += std::string(buffer, sizeWritten);
+    }
+
     close(SERVERSOCKET);
 
-    std::cout << std::string(buffer);
+    std::cout << reply;
 }
 
 void requestHyprpaper(std::string arg) {

@@ -36,6 +36,7 @@ commands:
     reload
     setcursor
     getoption
+    cursorpos
 
 flags:
     -j -> output in JSON
@@ -278,6 +279,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/devices")) request(fullRequest);
     else if (fullRequest.contains("/reload")) request(fullRequest);
     else if (fullRequest.contains("/getoption")) request(fullRequest);
+    else if (fullRequest.contains("/cursorpos")) request(fullRequest);
     else if (fullRequest.contains("/setcursor")) setcursorRequest(argc, argv);
     else if (fullRequest.contains("/dispatch")) dispatchRequest(argc, argv);
     else if (fullRequest.contains("/keyword")) keywordRequest(argc, argv);

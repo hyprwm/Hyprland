@@ -601,6 +601,23 @@ std::string splashRequest() {
     return g_pCompositor->m_szCurrentSplash;
 }
 
+std::string cursorPosRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal().floor();
+
+    if (format == HyprCtl::FORMAT_NORMAL) {
+        return getFormat("%i, %i", (int)CURSORPOS.x, (int)CURSORPOS.y);
+    } else {
+        return getFormat(R"#(
+{
+    "x": %i,
+    "y": %i
+}
+)#", (int)CURSORPOS.x, (int)CURSORPOS.y);
+    }
+
+    return "error";
+}
+
 std::string getReply(std::string);
 
 std::string dispatchBatch(std::string request) {
@@ -767,6 +784,8 @@ std::string getReply(std::string request) {
         return devicesRequest(format);
     else if (request == "splash")
         return splashRequest();
+    else if (request == "cursorpos")
+        return cursorPosRequest(format);
     else if (request.find("dispatch") == 0)
         return dispatchRequest(request);
     else if (request.find("keyword") == 0)

@@ -336,12 +336,28 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto POSXSTR = VALUE.substr(0, VALUE.find(" "));
                     const auto POSYSTR = VALUE.substr(VALUE.find(" ") + 1);
 
-                    const auto POSX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x;
-                    const auto POSY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y;
+                    int posX = 0;
+                    int posY = 0;
+
+                    if (POSXSTR.find("100%-") == 0) {
+                        const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+                        const auto POSXRAW = POSXSTR.substr(5);
+                        posX = PMONITOR->vecSize.x - (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stoi(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
+                    } else {
+                        posX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x;
+                    }
+
+                    if (POSYSTR.find("100%-") == 0) {
+                        const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+                        const auto POSYRAW = POSYSTR.substr(5);
+                        posY = PMONITOR->vecSize.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stoi(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
+                    } else {
+                        posY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y;
+                    }
 
                     Debug::log(LOG, "Rule move, applying to window %x", PWINDOW);
 
-                    PWINDOW->m_vRealPosition = Vector2D(POSX, POSY) + PMONITOR->vecPosition;
+                    PWINDOW->m_vRealPosition = Vector2D(posX, posY) + PMONITOR->vecPosition;
 
                     PWINDOW->setHidden(false);
                 } catch (...) {

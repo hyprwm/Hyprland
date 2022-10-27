@@ -11,7 +11,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor;
 
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
 
     refocus();
 

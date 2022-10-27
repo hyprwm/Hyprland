@@ -18,7 +18,7 @@ executable('Hyprland', src,
     xcb_dep,
 
     dependency('pixman-1'),
-    dependency('GL'),
+    dependency('GL', 'opengl'),
     dependency('threads')
   ],
   install : true

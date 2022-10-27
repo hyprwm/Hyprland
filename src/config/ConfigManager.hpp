@@ -38,6 +38,7 @@ struct SMonitorRule {
     bool        disabled = false;
     wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
     std::string mirrorOf = "";
+    bool        enable10bit = false;
 };
 
 struct SMonitorAdditionalReservedArea {

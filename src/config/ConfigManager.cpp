@@ -532,6 +532,9 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         if (ARGS[argno] == "mirror") {
             newrule.mirrorOf = ARGS[argno + 1];
             argno++;
+        } else if (ARGS[argno] == "bitdepth") {
+            newrule.enable10bit = ARGS[argno + 1] == "10";
+            argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax");
             parseError = "invalid syntax at \"" + ARGS[argno] + "\"";

@@ -131,6 +131,8 @@ struct SMouse {
 
     bool        virt = false;
 
+    bool        connected = false; // means connected to the cursor
+
     DYNLISTENER(commitConstraint);
     DYNLISTENER(destroyMouse);
 

@@ -193,6 +193,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["scroll_method"].strValue = STRVAL_EMPTY;
     cfgValues["touch_transform"].intValue = 0;
     cfgValues["touch_output"].strValue = STRVAL_EMPTY;
+    cfgValues["enabled"].intValue = 1; // only for mice / touchpads
 }
 
 void CConfigManager::setDefaultAnimationVars() {

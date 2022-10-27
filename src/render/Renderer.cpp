@@ -950,7 +950,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             && DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1)
             && pMonitor->scale == pMonitorRule->scale
             && ((DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1)) || pMonitorRule->offset == Vector2D(-1, -1))
-            && pMonitor->transform == pMonitorRule->transform) {
+            && pMonitor->transform == pMonitorRule->transform
+            && pMonitorRule->enable10bit == pMonitor->enabled10bit) {
 
         Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());
         return true;
@@ -1159,6 +1160,31 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->transform = pMonitorRule->transform;
 
     pMonitor->vecPixelSize = pMonitor->vecSize;
+
+    if (pMonitorRule->enable10bit) {
+        // try 10b RGB
+        wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XRGB2101010);
+        pMonitor->enabled10bit = true;
+
+        if (!wlr_output_test(pMonitor->output)) {
+            Debug::log(ERR, "Output %s -> 10 bit enabled, but failed format DRM_FORMAT_XRGB2101010. Trying BGR.", pMonitor->output->name);
+
+            wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XBGR2101010);
+
+            if (!wlr_output_test(pMonitor->output)) {
+                Debug::log(ERR, "Output %s -> 10 bit enabled, but failed format DRM_FORMAT_XBGR2101010. Falling back to 8 bit.", pMonitor->output->name);
+
+                wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XRGB8888);
+            } else {
+                Debug::log(LOG, "10bit format DRM_FORMAT_XBGR2101010 succeeded for output %s", pMonitor->output->name);
+            }
+        } else {
+            Debug::log(LOG, "10bit format DRM_FORMAT_XRGB2101010 succeeded for output %s", pMonitor->output->name);
+        }
+    } else {
+        wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XRGB8888);
+        pMonitor->enabled10bit = false;
+    }
 
     if (!wlr_output_commit(pMonitor->output)) {
         Debug::log(ERR, "Couldn't commit output named %s", pMonitor->output->name);

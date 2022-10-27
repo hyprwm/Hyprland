@@ -100,6 +100,8 @@ extern "C" {
 #include <wlr/types/wlr_touch.h>
 #include <wlr/types/wlr_switch.h>
 
+#include <drm_fourcc.h>
+
 #ifndef NO_XWAYLAND
 #include <wlr/xwayland.h>
 #include <X11/Xproto.h>

@@ -45,6 +45,7 @@ void Events::listener_requestSetSel(wl_listener* listener, void* data) {
 }
 
 void Events::listener_readyXWayland(wl_listener* listener, void* data) {
+#ifndef NO_XWAYLAND
     const auto XCBCONNECTION = xcb_connect(g_pXWaylandManager->m_sWLRXWayland->display_name, NULL);
     const auto ERR = xcb_connection_has_error(XCBCONNECTION);
     if (ERR) {
@@ -72,6 +73,7 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
     }
 
     xcb_disconnect(XCBCONNECTION);
+#endif
 }
 
 void Events::listener_requestDrag(wl_listener* listener, void* data) {

@@ -62,7 +62,7 @@ jobs:
         run: |
           sed -i 's/SigLevel    = Required DatabaseOptional/SigLevel    = Optional TrustAll/' /etc/pacman.conf
           pacman --noconfirm --noprogressbar -Syyu
-          pacman --noconfirm --noprogressbar -Sy glslang libepoxy libfontenc libxcvt libxfont2 libxkbfile vulkan-headers vulkan-validation-layers xcb-util-errors xcb-util-renderutil xcb-util-wm xorg-fonts-encodings xorg-server-common xorg-setxkbmap xorg-xkbcomp xorg-xwayland git go clang lld libc++ pkgconf meson ninja wayland wayland-protocols libinput libxkbcommon pixman glm libdrm libglvnd cairo pango systemd scdoc base-devel seatd
+          pacman --noconfirm --noprogressbar -Sy glslang libepoxy libfontenc libxcvt libxfont2 libxkbfile vulkan-headers vulkan-validation-layers git go clang lld libc++ pkgconf meson ninja wayland wayland-protocols libinput libxkbcommon pixman glm libdrm libglvnd cairo pango systemd scdoc base-devel seatd cmake 
       - name: Checkout Hyprland
         uses: actions/checkout@v3
         with:
@@ -73,13 +73,23 @@ jobs:
             -Ddefault_library=static
       - name: Compile
         run: ninja -C obj-x86_64-pc-linux-gnu
-#       - name: Compress artifacts
-#         run: |
-#           mkdir x86_64-pc-linux-gnu
-#           DESTDIR=$PWD/x86_64-pc-linux-gnu meson install -C obj-x86_64-pc-linux-gnu --tags runtime
-#           tar -cvf x86_64-pc-linux-gnu.tar.xz x86_64-pc-linux-gnu
-#       - name: Upload artifacts
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: Build artifacts (x86_64-pc-linux-gnu)
-#           path: x86_64-pc-linux-gnu.tar.xz
+
+  noxwayland:
+    name: "Build Hyprland in pure Wayland (Arch)"
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux
+    steps:
+      - name: Download dependencies
+        run: |
+          sed -i 's/SigLevel    = Required DatabaseOptional/SigLevel    = Optional TrustAll/' /etc/pacman.conf
+          pacman --noconfirm --noprogressbar -Syyu
+          pacman --noconfirm --noprogressbar -Sy glslang libepoxy libfontenc libxcvt libxfont2 libxkbfile vulkan-headers vulkan-validation-layers git cmake go clang lld libc++ pkgconf meson ninja wayland wayland-protocols libinput libxkbcommon pixman glm libdrm libglvnd cairo pango systemd scdoc base-devel seatd
+      - name: Checkout Hyprland
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Configure
+        run: mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DNO_XWAYLAND:STRING=true -H./ -B./build -G Ninja 
+      - name: Compile
+        run: make config && make release

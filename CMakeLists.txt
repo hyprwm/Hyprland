@@ -5,7 +5,7 @@ project(Hyprland
 
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
-message(STATUS "Configuring Hyprland!")
+message(STATUS "Gathering git info")
 
 # Get git info
 # hash and branch
@@ -35,14 +35,25 @@ execute_process(
 #
 #
 
+IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message(STATUS "Configuring Hyprland in Debug with CMake")
+    add_definitions( -DHYPRLAND_DEBUG )
+ELSE()
+    add_compile_options( -O3 )
+    message(STATUS "Configuring Hyprland in Release with CMake")
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+
 include_directories(. PRIVATE "subprojects/wlroots/include/")
 include_directories(. PRIVATE "subprojects/wlroots/build/include/")
 add_compile_options(-std=c++23 -DWLR_USE_UNSTABLE )
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing)
+
+message(STATUS "Checking deps...")
+
 find_package(Threads REQUIRED)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo pango pangocairo libdrm egl xkbcommon libinput xcb) # we do not check for wlroots, as we provide it ourselves
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo pango pangocairo libdrm egl xkbcommon libinput) # we do not check for wlroots, as we provide it ourselves
 
 file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
@@ -56,15 +67,11 @@ ENDIF(LEGACY_RENDERER MATCHES true)
 IF(NO_XWAYLAND MATCHES true)
     message(STATUS "Using the NO_XWAYLAND flag, disabling XWayland!")
     add_definitions( -DNO_XWAYLAND )
-ENDIF(NO_XWAYLAND MATCHES true)
-
-IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-    message(STATUS "Configuring Hyprland in Debug with CMake!")
-    add_definitions( -DHYPRLAND_DEBUG )
 ELSE()
-    add_compile_options( -O3 )
-    message(STATUS "Configuring Hyprland in Release with CMake!")
-ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
+    pkg_check_modules(xcbdep REQUIRED xcb)
+    target_link_libraries(Hyprland xcb)
+ENDIF(NO_XWAYLAND MATCHES true)
 
 target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 target_compile_definitions(Hyprland PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
@@ -76,6 +83,8 @@ target_link_libraries(Hyprland rt)
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
+message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland PkgConfig::deps)
 
@@ -90,6 +99,8 @@ target_link_libraries(Hyprland
 )
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message(STATUS "Setting debug flags")
+
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -no-pie -fno-builtin")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg -no-pie -fno-builtin")
     SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg -no-pie -fno-builtin")

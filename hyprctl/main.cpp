@@ -158,11 +158,12 @@ void requestHyprpaper(std::string arg) {
     std::cout << std::string(buffer);
 }
 
-void dispatchRequest(int argc, char** argv) {
+int dispatchRequest(int argc, char** argv) {
 
     if (argc < 4) {
-        std::cout << "dispatch requires 2 params";
-        return;
+        std::cout << "Usage: hyprctl dispatch <dispatcher> <arg>\n\
+            Execute a hyprland keybind dispatcher with the given argument";
+        return 1;
     }
 
     std::string rq = "/dispatch";
@@ -171,12 +172,14 @@ void dispatchRequest(int argc, char** argv) {
         rq += " " + std::string(argv[i]);
 
     request(rq);
+    return 0;
 }
 
-void keywordRequest(int argc, char** argv) {
+int keywordRequest(int argc, char** argv) {
     if (argc < 4) {
-        std::cout << "keyword requires 2 params";
-        return;
+        std::cout << "Usage: hyprctl keyword <keyword> <arg>\n\
+            Execute a hyprland keyword with the given argument";
+        return 1;
     }
 
     std::string rq = "/keyword";
@@ -185,28 +188,33 @@ void keywordRequest(int argc, char** argv) {
         rq += " " + std::string(argv[i]);
 
     request(rq);
+    return 0;
 }
 
-void hyprpaperRequest(int argc, char** argv) {
+int hyprpaperRequest(int argc, char** argv) {
     if (argc < 4) {
-        std::cout << "hyprpaper requires 2 params";
-        return;
+        std::cout << "Usage: hyprctl hyprpaper <command> <arg>\n\
+            Execute a hyprpaper command with the given argument";
+        return 1;
     }
 
     std::string rq = std::string(argv[2]) + " " + std::string(argv[3]);
 
     requestHyprpaper(rq);
+    return 0;
 }
 
-void setcursorRequest(int argc, char** argv) {
+int setcursorRequest(int argc, char** argv) {
     if (argc < 4) {
-        std::cout << "setcursor requires 2 params";
-        return;
+        std::cout << "Usage: hyprctl setcursor <theme> <size>\n\
+            Sets the cursor theme for everything except GTK and reloads the cursor";
+        return 1;
     }
 
     std::string rq = "setcursor " + std::string(argv[2]) + " " + std::string(argv[3]);
 
     request(rq);
+    return 0;
 }
 
 void batchRequest(std::string arg) {
@@ -266,6 +274,8 @@ int main(int argc, char** argv) {
     fullRequest.pop_back(); // remove trailing space
 
     fullRequest = fullArgs + "/" + fullRequest;
+    
+    int exitStatus = 0;
 
     if (fullRequest.contains("/--batch")) batchRequest(fullRequest);
     else if (fullRequest.contains("/monitors")) request(fullRequest);
@@ -280,10 +290,10 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/reload")) request(fullRequest);
     else if (fullRequest.contains("/getoption")) request(fullRequest);
     else if (fullRequest.contains("/cursorpos")) request(fullRequest);
-    else if (fullRequest.contains("/setcursor")) setcursorRequest(argc, argv);
-    else if (fullRequest.contains("/dispatch")) dispatchRequest(argc, argv);
-    else if (fullRequest.contains("/keyword")) keywordRequest(argc, argv);
-    else if (fullRequest.contains("/hyprpaper")) hyprpaperRequest(argc, argv);
+    else if (fullRequest.contains("/setcursor")) exitStatus = setcursorRequest(argc, argv);
+    else if (fullRequest.contains("/dispatch")) exitStatus = dispatchRequest(argc, argv);
+    else if (fullRequest.contains("/keyword")) exitStatus = keywordRequest(argc, argv);
+    else if (fullRequest.contains("/hyprpaper")) exitStatus = hyprpaperRequest(argc, argv);
     else if (fullRequest.contains("/--help")) printf("%s", USAGE.c_str());
     else {
         printf("%s\n", USAGE.c_str());
@@ -291,5 +301,5 @@ int main(int argc, char** argv) {
     }
 
     printf("\n");
-    return 0;
+    return exitStatus;
 }

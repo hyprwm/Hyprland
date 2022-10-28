@@ -752,7 +752,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     if (windowValidMapped(PLASTWINDOW)) {
         updateWindowAnimatedDecorationValues(PLASTWINDOW);
 
-        g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
+        if (!pWindow->m_bIsX11 || pWindow->m_iX11Type == 1)
+            g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
 
         if (PLASTWINDOW->m_phForeignToplevel)
             wlr_foreign_toplevel_handle_v1_set_activated(PLASTWINDOW->m_phForeignToplevel, false);

@@ -301,7 +301,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
         const auto PINPUT = (STextInput*)owner;
 
         if (!g_pInputManager->m_sIMERelay.m_pWLRIME) {
-            Debug::log(ERR, "Enabling TextInput on no IME!");
+            Debug::log(WARN, "Enabling TextInput on no IME!");
             return;
         }
 
@@ -317,12 +317,12 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
         const auto PINPUT = (STextInput*)owner;
 
         if (!g_pInputManager->m_sIMERelay.m_pWLRIME) {
-            Debug::log(ERR, "Committing TextInput on no IME!");
+            Debug::log(WARN, "Committing TextInput on no IME!");
             return;
         }
 
         if (!PINPUT->pWlrInput->current_enabled) {
-            Debug::log(ERR, "Disabled TextInput commit?");
+            Debug::log(WARN, "Disabled TextInput commit?");
             return;
         }
 
@@ -335,7 +335,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
         const auto PINPUT = (STextInput*)owner;
 
         if (!g_pInputManager->m_sIMERelay.m_pWLRIME) {
-            Debug::log(ERR, "Disabling TextInput on no IME!");
+            Debug::log(WARN, "Disabling TextInput on no IME!");
             return;
         }
 
@@ -352,7 +352,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
         const auto PINPUT = (STextInput*)owner;
 
         if (!g_pInputManager->m_sIMERelay.m_pWLRIME) {
-            Debug::log(ERR, "Disabling TextInput on no IME!");
+            Debug::log(WARN, "Disabling TextInput on no IME!");
             return;
         }
 

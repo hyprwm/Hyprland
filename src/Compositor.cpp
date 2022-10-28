@@ -1275,6 +1275,11 @@ bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
     return false;
 }
 
+void checkFocusSurfaceIter(wlr_surface* pSurface, int x, int y, void* data) {
+    auto pair = (std::pair<wlr_surface*, bool>*)data;
+    pair->second = pair->second || pSurface == pair->first;
+}
+
 CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
     if (!pMouse->currentConstraint)
         return nullptr;
@@ -1282,11 +1287,18 @@ CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
     const auto PSURFACE = pMouse->currentConstraint->surface;
 
     for (auto& w : m_vWindows) {
-        if (PSURFACE == g_pXWaylandManager->getWindowSurface(w.get())) {
-            if (!w->m_bIsX11 && w->m_bIsMapped && !w->isHidden())
-                continue;
+        if (w->isHidden() || !w->m_bMappedX11 || !w->m_bIsMapped || !g_pXWaylandManager->getWindowSurface(w.get()))
+            continue;
 
-            return w.get();
+        if (w->m_bIsX11) {
+            if (PSURFACE == g_pXWaylandManager->getWindowSurface(w.get()))
+                return w.get();
+        } else {
+            std::pair<wlr_surface*, bool> check = {PSURFACE, false};
+            wlr_surface_for_each_surface(w->m_uSurface.xdg->surface, checkFocusSurfaceIter, &check);
+
+            if (check.second)
+                return w.get();
         }
     }
 

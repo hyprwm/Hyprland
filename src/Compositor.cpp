@@ -779,6 +779,14 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     if (pWindow->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_activated(pWindow->m_phForeignToplevel, true);
+
+    if (!pWindow->m_bIsX11) {
+        const auto PCONSTRAINT = wlr_pointer_constraints_v1_constraint_for_surface(m_sWLRPointerConstraints, pWindow->m_uSurface.xdg->surface, m_sSeat.seat);
+
+        if (PCONSTRAINT)
+            g_pInputManager->constrainMouse(m_sSeat.mouse, PCONSTRAINT);
+    }
+    
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {

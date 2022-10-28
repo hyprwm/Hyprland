@@ -715,6 +715,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         if (windowValidMapped(PLASTWINDOW)) {
             updateWindowAnimatedDecorationValues(PLASTWINDOW);
 
+            g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
+
             if (PLASTWINDOW->m_phForeignToplevel)
                 wlr_foreign_toplevel_handle_v1_set_activated(PLASTWINDOW->m_phForeignToplevel, false);
         }
@@ -750,10 +752,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     if (windowValidMapped(PLASTWINDOW)) {
         updateWindowAnimatedDecorationValues(PLASTWINDOW);
 
-        if (PLASTWINDOW->m_bIsX11) {
-            wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
-            wlr_seat_pointer_clear_focus(m_sSeat.seat);
-        }
+        g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
 
         if (PLASTWINDOW->m_phForeignToplevel)
             wlr_foreign_toplevel_handle_v1_set_activated(PLASTWINDOW->m_phForeignToplevel, false);
@@ -788,7 +787,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         return;  // Don't focus when already focused on this.
 
     // Unfocus last surface if should
-    if (m_pLastFocus && ((m_sSeat.seat->keyboard_state.focused_surface && wlr_surface_is_xdg_surface(m_pLastFocus)) || !pSurface))
+    if (m_pLastFocus && !pWindowOwner)
         g_pXWaylandManager->activateSurface(m_pLastFocus, false);
 
     if (!pSurface) {

@@ -413,6 +413,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_activateX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_activate, &Events::listener_activateX11, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_configureX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_configure, &Events::listener_configureX11, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XWayland Window Late");
+        PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_minimize, &Events::listener_requestMinimize, PWINDOW, "Xwayland Window Late");
+        PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_maximize, &Events::listener_requestMaximize, PWINDOW, "Xwayland Window Late");
 
         if (PWINDOW->m_iX11Type == 2)
             PWINDOW->hyprListener_setGeometryX11U.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_geometry, &Events::listener_unmanagedSetGeometry, PWINDOW, "XWayland Window Late");
@@ -548,6 +550,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_configureX11.removeCallback();
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
         PWINDOW->hyprListener_setGeometryX11U.removeCallback();
+        PWINDOW->hyprListener_requestMaximize.removeCallback();
+        PWINDOW->hyprListener_requestMinimize.removeCallback();
     }
 
     if (PWINDOW->m_bIsFullscreen) {
@@ -714,14 +718,15 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
 
         wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
     } else {
-        g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_FULL);
+        if (!PWINDOW->m_uSurface.xwayland->mapped)
+            return;
+
+        g_pCompositor->setWindowFullscreen(PWINDOW, PWINDOW->m_uSurface.xwayland->fullscreen, FULLSCREEN_FULL);
     }
 
     PWINDOW->updateToplevel();
 
     Debug::log(LOG, "Window %x fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
-
-    g_pXWaylandManager->setWindowFullscreen(PWINDOW, PWINDOW->m_bIsFullscreen);
 }
 
 void Events::listener_activateXDG(wl_listener* listener, void* data) {
@@ -775,7 +780,7 @@ void Events::listener_configureX11(void* owner, void* data) {
         return;
     }
 
-    if (!PWINDOW->m_uSurface.xwayland->mapped) {
+    if (!PWINDOW->m_uSurface.xwayland->mapped || !PWINDOW->m_bMappedX11) {
         wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
         return;
     }
@@ -882,15 +887,35 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
+    Debug::log(LOG, "Maximize request for %x", PWINDOW);
 
-    g_pCompositor->setWindowFullscreen(PWINDOW, EV ? EV->maximized : !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED); // this will be rejected if there already is a fullscreen window
-    
-    wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
+    if (!PWINDOW->m_bIsX11) {
+        const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
+
+        g_pCompositor->setWindowFullscreen(PWINDOW, EV ? EV->maximized : !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);  // this will be rejected if there already is a fullscreen window
+
+        wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
+    } else {
+        if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
+            return;
+
+        g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);
+    }
 }
 
 void Events::listener_requestMinimize(void* owner, void* data) {
-    // ignore
+    const auto PWINDOW = (CWindow*)owner;
+
+    Debug::log(LOG, "Minimize request for %x", PWINDOW);
+
+   // if (PWINDOW->m_bIsX11) {
+     //   if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
+       //     return;
+
+       // const auto E = (wlr_xwayland_minimize_event*)data;
+
+      //  wlr_xwayland_surface_set_minimized(PWINDOW->m_uSurface.xwayland, E->minimize && g_pCompositor->m_pLastWindow != PWINDOW); // fucking DXVK
+   // }
 }
 
 void Events::listener_requestMove(void* owner, void* data) {

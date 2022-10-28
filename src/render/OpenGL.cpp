@@ -133,18 +133,6 @@ void CHyprOpenGLImpl::end() {
 
         clear(CColor(11, 11, 11, 255));
 
-        if (m_RenderData.pCurrentMonData->primaryFB.m_cTex.m_iTexID == 0) {
-            Debug::log(ERR, "Couldn't end() frame (primary FB tex null???)");
-
-            // this apparently sometimes happens during lid switches... for some people?
-            // release all resources, will be recalc'd
-            destroyMonitorResources(m_RenderData.pMonitor);
-
-            m_RenderData.pMonitor = nullptr;
-            m_iWLROutputFb = 0;
-            return;
-        }
-
         m_bEndFrame = true;
 
         renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 255.f, 0);

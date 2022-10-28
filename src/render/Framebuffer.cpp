@@ -74,6 +74,7 @@ void CFramebuffer::release() {
 
     m_cTex.m_iTexID = 0;
     m_iFb = -1;
+    m_Size = Vector2D();
 }
 
 CFramebuffer::~CFramebuffer() {

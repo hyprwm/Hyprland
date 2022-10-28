@@ -53,11 +53,13 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
 
 void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
     if (pWindow->m_bIsX11) {
-        if (pWindow->m_uSurface.xwayland->minimized)
-            wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
 
+        if (activate) {
+            wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
+            wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
+        }
+        
         wlr_xwayland_surface_activate(pWindow->m_uSurface.xwayland, activate);
-        wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
     }
     else
         wlr_xdg_toplevel_set_activated(pWindow->m_uSurface.xdg->toplevel, activate);

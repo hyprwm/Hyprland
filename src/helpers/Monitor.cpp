@@ -134,7 +134,7 @@ void CMonitor::onConnect(bool noRule) {
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
 
     // ensure VRR (will enable if necessary)
-    g_pConfigManager->ensureVRR();
+    g_pConfigManager->ensureVRR(this);
 }
 
 void CMonitor::onDisconnect() {

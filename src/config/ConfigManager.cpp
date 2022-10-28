@@ -1553,10 +1553,10 @@ void CConfigManager::ensureDPMS() {
     }
 }
 
-void CConfigManager::ensureVRR() {
+void CConfigManager::ensureVRR(CMonitor* pMonitor) {
     static auto *const PNOVRR = &getConfigValuePtr("misc:no_vfr")->intValue;
-    
-    for (auto& m : g_pCompositor->m_vMonitors) {
+
+    auto ensureVRRForDisplay = [&](CMonitor* m) -> void {
         if (!*PNOVRR && !m->vrrActive) {
             // Adaptive sync (VRR)
             wlr_output_enable_adaptive_sync(m->output, 1);
@@ -1584,6 +1584,15 @@ void CConfigManager::ensureVRR() {
 
             Debug::log(LOG, "VRR ensured on %s -> false", m->output->name);
         }
+    };
+
+    if (pMonitor) {
+        ensureVRRForDisplay(pMonitor);
+        return;
+    }
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        ensureVRRForDisplay(m.get());
     }
 }
 

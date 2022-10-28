@@ -1422,9 +1422,6 @@ void CKeybindManager::resizeWindow(std::string args) {
 }
 
 void CKeybindManager::circleNext(std::string arg) {
-    if (!g_pCompositor->m_pLastWindow)
-        return;
-
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
         if (PWINDOWTOCHANGETO == g_pCompositor->m_pLastWindow || !PWINDOWTOCHANGETO)
             return;
@@ -1446,6 +1443,17 @@ void CKeybindManager::circleNext(std::string arg) {
             g_pCompositor->warpCursorTo(middle);
         }
     };
+
+    if (!g_pCompositor->m_pLastWindow) {
+        // if we have a clear focus, find the first window and get the next focusable.
+        if (g_pCompositor->getWindowsOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace) > 0) {
+            const auto PWINDOW = g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace), true);
+
+            switchToWindow(PWINDOW);
+        }
+
+        return;
+    }
 
     if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
         switchToWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow, true));

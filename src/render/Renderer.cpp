@@ -1221,7 +1221,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     // updato wlroots
     if (!pMonitor->isMirror()) {
-        wlr_box box = {0, 0, 0, 0};
+        wlr_box box = {-UINT16_MAX, -UINT16_MAX, 0, 0};
         wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &box);
 
         if (!DELTALESSTHAN(box.x, pMonitor->vecPosition.x, 1) || !DELTALESSTHAN(box.y, pMonitor->vecPosition.y, 1)) {

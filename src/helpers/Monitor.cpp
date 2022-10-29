@@ -151,6 +151,9 @@ void CMonitor::onDisconnect() {
         }
     }
 
+    if (g_pCompositor->m_pLastMonitor == this)
+        g_pCompositor->m_pLastMonitor = BACKUPMON;
+
     // remove mirror
     if (pMirrorOf) {
         pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));

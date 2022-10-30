@@ -1576,7 +1576,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
     if (nextWorkspaceOnMonitorID == -1) {
         nextWorkspaceOnMonitorID = 1;
 
-        while (getWorkspaceByID(nextWorkspaceOnMonitorID))
+        while (getWorkspaceByID(nextWorkspaceOnMonitorID) || [&]() -> bool { const auto B = g_pConfigManager->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID)); return B && B != POLDMON; }())
             nextWorkspaceOnMonitorID++;
 
         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new %d", nextWorkspaceOnMonitorID);

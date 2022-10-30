@@ -728,13 +728,13 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
         return "no such option";
 
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL)
-        return getFormat("option %s\n\tint: %i\n\tfloat: %f\n\tstr: \"%s\"", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str());
+        return getFormat("option %s\n\tint: %lld\n\tfloat: %f\n\tstr: \"%s\"", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str());
     else {
         return getFormat(
 R"#(
 {
     "option": "%s",
-    "int": %i,
+    "int": %lld,
     "float": %f,
     "str": "%s"
 }

@@ -62,7 +62,6 @@ in
           git
           libdrm
           libinput
-          libxcb
           libxkbcommon
           mesa
           pango
@@ -70,9 +69,8 @@ in
           wayland-protocols
           wayland-scanner
           (wlroots.override {inherit enableXWayland hidpiXWayland nvidiaPatches;})
-          xcbutilwm
         ]
-        ++ lib.optional enableXWayland xwayland;
+        ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland];
 
       mesonBuildType =
         if debug

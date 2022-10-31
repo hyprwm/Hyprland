@@ -756,6 +756,7 @@ bool windowRuleValid(const std::string& RULE) {
         && RULE.find("maxsize") != 0
         && RULE.find("pseudo") != 0
         && RULE.find("monitor") != 0
+        && RULE.find("idleinhibit") != 0
         && RULE != "nofocus"
         && RULE != "noblur"
         && RULE != "noshadow"

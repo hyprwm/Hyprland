@@ -49,6 +49,27 @@ void CInputManager::recheckIdleInhibitorStatus() {
         }
     }
 
+    // check manual user-set inhibitors
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_eIdleInhibitMode == IDLEINHIBIT_NONE)
+            continue;
+
+        if (w->m_eIdleInhibitMode == IDLEINHIBIT_ALWAYS) {
+            wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, false);
+            return;
+        }
+
+        if (w->m_eIdleInhibitMode == IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w.get())) {
+            wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, false);
+            return;
+        }
+
+        if (w->m_eIdleInhibitMode == IDLEINHIBIT_FULLSCREEN && w->m_bIsFullscreen && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID)) {
+            wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, false);
+            return;
+        }
+    }
+
     wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, true);
     return;
 }

@@ -7,6 +7,13 @@
 #include "render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
 
+enum eIdleInhibitMode {
+    IDLEINHIBIT_NONE = 0,
+    IDLEINHIBIT_ALWAYS,
+    IDLEINHIBIT_FULLSCREEN,
+    IDLEINHIBIT_FOCUS
+};
+
 struct SWindowSpecialRenderData {
     float alpha = 1.f;
     float alphaInactive = -1.f; // -1 means unset
@@ -153,6 +160,9 @@ public:
     // for toplevel monitor events
     uint64_t          m_iLastToplevelMonitorID = -1;
     uint64_t          m_iLastSurfaceMonitorID = -1;
+
+    // for idle inhibiting windows
+    eIdleInhibitMode  m_eIdleInhibitMode = IDLEINHIBIT_NONE;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

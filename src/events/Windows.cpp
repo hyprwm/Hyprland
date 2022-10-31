@@ -201,6 +201,20 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else if (r.szRule.find("animation") == 0) {
             auto STYLE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
             PWINDOW->m_sAdditionalConfigData.animationStyle = STYLE;
+        } else if (r.szRule.find("idleinhibit") == 0) {
+            auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+
+            if (IDLERULE == "none") {
+                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_NONE;
+            } else if (IDLERULE == "always") {
+                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_ALWAYS;
+            } else if (IDLERULE == "focus") {
+                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_FOCUS;
+            } else if (IDLERULE == "fullscreen") {
+                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
+            } else {
+                Debug::log(ERR, "Rule idleinhibit: unknown mode %s", IDLERULE.c_str());
+            }
         }
     }
 

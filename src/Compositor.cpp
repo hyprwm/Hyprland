@@ -728,6 +728,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
         m_pLastFocus = nullptr;
+
+        g_pInputManager->recheckIdleInhibitorStatus();
         return;
     }
 
@@ -787,7 +789,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         if (PCONSTRAINT)
             g_pInputManager->constrainMouse(m_sSeat.mouse, PCONSTRAINT);
     }
-    
+
+    g_pInputManager->recheckIdleInhibitorStatus();
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
@@ -1691,6 +1694,8 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv(), true);
 
     forceReportSizesToWindowsOnWorkspace(pWindow->m_iWorkspaceID);
+
+    g_pInputManager->recheckIdleInhibitorStatus();
 }
 
 void CCompositor::moveUnmanagedX11ToWindows(CWindow* pWindow) {

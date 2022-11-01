@@ -558,6 +558,21 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         switchToWindow(PWINDOW);
 
         return 0;
+
+
+    } else if (message == "focusmaster") {
+
+        const auto PWINDOW = header.pWindow;
+        const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
+
+        if (!PMASTER || PMASTER->pWindow == PWINDOW)
+            return 0;
+
+        switchToWindow(PMASTER->pWindow);
+
+        return 0;
+
+
     } else if (message == "cyclenext") {
         const auto PWINDOW = header.pWindow;
 

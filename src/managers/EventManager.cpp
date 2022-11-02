@@ -72,8 +72,6 @@ void CEventManager::startThread() {
                 // add to event loop so we can close it when we need to
                 m_dAcceptedSocketFDs.push_back({ACCEPTEDCONNECTION, wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, WL_EVENT_READABLE, fdHandleWrite, &m_dAcceptedSocketFDs)});
             }
-
-            ensureFDsValid();
         }
 
         close(SOCKET);
@@ -82,28 +80,7 @@ void CEventManager::startThread() {
     m_tThread.detach();
 }
 
-void CEventManager::ensureFDsValid() {
-    static char readBuf[1024] = {0};
-
-    // pong if all FDs valid
-    for (auto it = m_dAcceptedSocketFDs.begin(); it != m_dAcceptedSocketFDs.end();) {
-        auto sizeRead = recv(it->first, &readBuf, 1024, 0);
-
-        if (sizeRead != 0) {
-            it++;
-            continue;
-        }
-
-        // invalid!
-        Debug::log(LOG, "Removed invalid socket (2) FD: %d", *it);
-        it = m_dAcceptedSocketFDs.erase(it);
-    }
-}
-
 void CEventManager::flushEvents() {
-
-    ensureFDsValid();
-    
     eventQueueMutex.lock();
 
     for (auto& ev : m_dQueuedEvents) {

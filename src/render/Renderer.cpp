@@ -846,7 +846,7 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
     if (g_pCompositor->m_bUnsafeState || pMonitor->isMirror())
         return;
 
-    wlr_box damageBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
+    wlr_box damageBox = { 0, 0, INT16_MAX, INT16_MAX };
     pMonitor->addDamage(&damageBox);
 
     static auto *const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;

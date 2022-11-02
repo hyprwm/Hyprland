@@ -25,15 +25,9 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     Debug::log(WARN, "!RENDERER: Using the legacy GLES2 renderer!");
     #endif
 
-    // End shaders
-
     pixman_region32_init(&m_rOriginalDamageRegion);
 
-    // End
-
     RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
-
-    // Done!
 }
 
 GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag) {

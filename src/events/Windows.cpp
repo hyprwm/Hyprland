@@ -65,8 +65,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_iX11Type == 2)
         g_pCompositor->moveUnmanagedX11ToWindows(PWINDOW);
 
-    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
-
     // Set all windows tiled regardless of anything
     g_pXWaylandManager->setWindowStyleTiled(PWINDOW, WLR_EDGE_LEFT | WLR_EDGE_RIGHT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM);
 
@@ -538,6 +536,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", getFormat("%x,%s,%s,%s", PWINDOW, workspaceID.c_str(), g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), PWINDOW->m_szTitle.c_str())});
+
+    // recalc the values for this window
+    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {

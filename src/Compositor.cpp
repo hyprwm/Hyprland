@@ -831,7 +831,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     else
         Debug::log(LOG, "Set keyboard focus to surface %x", pSurface);
 
-    g_pXWaylandManager->activateSurface(pSurface, false);
+    g_pXWaylandManager->activateSurface(pSurface, true);
     m_pLastFocus = pSurface;
 }
 

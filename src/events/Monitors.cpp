@@ -232,11 +232,11 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
 
         // if correct monitor draw hyprerror
-        if (PMONITOR->ID == 0)
+        if (PMONITOR == g_pCompositor->m_vMonitors.front().get())
             g_pHyprError->draw();
 
         // for drawing the debug overlay
-        if (PMONITOR->ID == 0 && *PDEBUGOVERLAY == 1) {
+        if (PMONITOR == g_pCompositor->m_vMonitors.front().get() && *PDEBUGOVERLAY == 1) {
             startRenderOverlay = std::chrono::high_resolution_clock::now();
             g_pDebugOverlay->draw();
             endRenderOverlay = std::chrono::high_resolution_clock::now();
@@ -291,7 +291,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;
         g_pDebugOverlay->renderData(PMONITOR, µs);
-        if (PMONITOR->ID == 0) {
+        if (PMONITOR == g_pCompositor->m_vMonitors.front().get()) {
             const float µsNoOverlay = µs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - startRenderOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(PMONITOR, µsNoOverlay);
         } else {

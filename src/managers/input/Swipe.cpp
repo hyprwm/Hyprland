@@ -51,7 +51,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     auto workspaceIDLeft = getWorkspaceIDFromString("m-1", wsname);
     auto workspaceIDRight = getWorkspaceIDFromString("m+1", wsname);
 
-    if ((workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID || workspaceIDRight == workspaceIDLeft) && *PSWIPENEW) {
+    if ((workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID || (workspaceIDRight == workspaceIDLeft && workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID)) && *PSWIPENEW) {
         workspaceIDRight = m_sActiveSwipe.pWorkspaceBegin->m_iID > 0 ? m_sActiveSwipe.pWorkspaceBegin->m_iID + 1 : 1;
     }
 

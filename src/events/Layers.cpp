@@ -31,14 +31,16 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
         WLRLAYERSURFACE->output = PMONITOR->output;
     }
 
-    const auto PMONITOR = (CMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
+    auto PMONITOR = (CMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
+
+    if (!WLRLAYERSURFACE->output || !PMONITOR || PMONITOR->pMirrorOf) {
+        PMONITOR = g_pCompositor->m_vMonitors.front().get();
+        WLRLAYERSURFACE->output = PMONITOR->output; // TODO: current mon
+    }
+
     SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].emplace_back(std::make_unique<SLayerSurface>()).get();
 
     layerSurface->szNamespace = WLRLAYERSURFACE->_namespace;
-
-    if (!WLRLAYERSURFACE->output) {
-        WLRLAYERSURFACE->output = g_pCompositor->m_vMonitors.front()->output;  // TODO: current mon
-    }
 
     layerSurface->hyprListener_commitLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.commit, &Events::listener_commitLayerSurface, layerSurface, "layerSurface");
     layerSurface->hyprListener_destroyLayerSurface.initCallback(&WLRLAYERSURFACE->events.destroy, &Events::listener_destroyLayerSurface, layerSurface, "layerSurface");

@@ -544,6 +544,9 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     if (message == "swapwithmaster") {
         const auto PWINDOW = header.pWindow;
 
+        if (!PWINDOW)
+            return 0;
+
         if (!isWindowTiled(PWINDOW))
             return 0;
 
@@ -559,6 +562,10 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         return 0;
     } else if (message == "focusmaster") {
         const auto PWINDOW = header.pWindow;
+
+        if (!PWINDOW)
+            return 0;
+
         const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
 
         if (!PMASTER || PMASTER->pWindow == PWINDOW)
@@ -570,9 +577,15 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     } else if (message == "cyclenext") {
         const auto PWINDOW = header.pWindow;
 
+        if (!PWINDOW)
+            return 0;
+
         switchToWindow(getNextWindow(PWINDOW, true));
     } else if (message == "cycleprev") {
         const auto PWINDOW = header.pWindow;
+
+        if (!PWINDOW)
+            return 0;
 
         switchToWindow(getNextWindow(PWINDOW, false));
     } else if (message == "swapnext") {

@@ -781,6 +781,13 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         return;
     }
 
+    if (RULE == "unset") {
+        std::erase_if(m_dWindowRules, [&] (const SWindowRule& other) {
+            return other.szValue == VALUE;
+        });
+        return;
+    }
+
     // verify we support a rule
     if (!windowRuleValid(RULE)) {
         Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
@@ -795,7 +802,7 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     const auto RULE = value.substr(0, value.find_first_of(","));
     const auto VALUE = value.substr(value.find_first_of(",") + 1);
 
-    if (!windowRuleValid(RULE)) {
+    if (!windowRuleValid(RULE) && RULE != "unset") {
         Debug::log(ERR, "Invalid rulev2 found: %s", RULE.c_str());
         parseError = "Invalid rulev2 found: " + RULE;
         return;
@@ -852,6 +859,33 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 
     if (FLOATPOS != std::string::npos) {
         rule.bFloating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
+    }
+
+    if (RULE == "unset") {
+        std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
+            if (!other.v2) {
+                return other.szClass == rule.szClass && !rule.szClass.empty();
+            } else {
+                if (!rule.szClass.empty() && rule.szClass != other.szClass) {
+                    return false;
+                }
+
+                if (!rule.szTitle.empty() && rule.szTitle != other.szTitle) {
+                    return false;
+                }
+
+                if (rule.bX11 != -1 && rule.bX11 != other.bX11) {
+                    return false;
+                }
+
+                if (rule.bFloating != -1 && rule.bFloating != other.bFloating) {
+                    return false;
+                }
+
+                return true;
+            }
+        });
+        return;
     }
 
     m_dWindowRules.push_back(rule);

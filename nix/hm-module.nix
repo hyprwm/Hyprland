@@ -102,9 +102,7 @@ in {
     xdg.configFile."hypr/hyprland.conf" = {
       text =
         (lib.optionalString cfg.systemdIntegration ''
-          exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd \
-            DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && \
-            systemctl --user start hyprland-session.target
+          exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && systemctl --user start hyprland-session.target
         '')
         + cfg.extraConfig;
 

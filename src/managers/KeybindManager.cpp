@@ -722,6 +722,10 @@ void CKeybindManager::changeworkspace(std::string args) {
         if (anotherMonitor) {
             Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
             g_pCompositor->warpCursorTo(middle);
+
+            // event for focusedmon, as we changed.
+            g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", PMONITOR->szName + "," + PWORKSPACETOCHANGETO->m_szName});
+            g_pCompositor->m_pLastMonitor = PMONITOR;
         }
 
         // set active and deactivate all other in wlr
@@ -1135,7 +1139,7 @@ void CKeybindManager::alterSplitRatio(std::string args) {
 void CKeybindManager::focusMonitor(std::string arg) {
     const auto PMONITOR = g_pCompositor->getMonitorFromString(arg);
 
-    if (!PMONITOR)
+    if (!PMONITOR || PMONITOR == g_pCompositor->m_pLastMonitor)
         return;
 
     changeworkspace("[internal]" + std::to_string(PMONITOR->activeWorkspace));

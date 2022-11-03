@@ -6,6 +6,8 @@
 
 #include "wlrunstable/wlr_ext_workspace_v1.hpp"
 
+#include <utility>
+
 #ifndef NDEBUG
 #ifdef HYPRLAND_DEBUG
 #define ISDEBUG true

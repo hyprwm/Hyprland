@@ -147,6 +147,9 @@ private:
     wlr_surface*    m_pFoundSurfaceToFocus = nullptr;
     SLayerSurface*  m_pFoundLSToFocus = nullptr;
     CWindow*        m_pFoundWindowToFocus = nullptr;
+
+    // swipe
+    void            beginWorkspaceSwipe();
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

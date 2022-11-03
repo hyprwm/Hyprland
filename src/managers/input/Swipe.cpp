@@ -19,6 +19,10 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
     if (onMonitor < 2 && !*PSWIPENEW)
         return; // disallow swiping when there's 1 workspace on a monitor
 
+    beginWorkspaceSwipe();
+}
+
+void CInputManager::beginWorkspaceSwipe() {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
     Debug::log(LOG, "Starting a swipe from %s", PWORKSPACE->m_szName.c_str());
@@ -162,6 +166,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     static auto *const PSWIPEDIST = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
     static auto *const PSWIPEINVR = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_invert")->intValue;
     static auto *const PSWIPENEW  = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
+    static auto *const PSWIPEFOREVER = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_forever")->intValue;
 
     const bool VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert";
 
@@ -258,4 +263,11 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
 
     g_pCompositor->updateWorkspaceWindowDecos(m_sActiveSwipe.pWorkspaceBegin->m_iID);
+
+    if (*PSWIPEFOREVER) {
+        if (abs(m_sActiveSwipe.delta) >= *PSWIPEDIST) {
+            onSwipeEnd(nullptr);
+            beginWorkspaceSwipe();
+        }
+    }
 }

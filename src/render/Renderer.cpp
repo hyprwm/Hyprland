@@ -560,8 +560,16 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
 
         commandForCfg += std::to_string(head->state.x) + "x" + std::to_string(head->state.y) + "," + std::to_string(head->state.scale);
 
-        if (!test)
+        if (!test) {
             g_pConfigManager->parseKeyword("monitor", commandForCfg, true);
+
+            std::string transformStr = std::string(OUTPUT->name) + ",transform," + std::to_string((int)OUTPUT->transform);
+
+            const auto PMONITOR = g_pCompositor->getMonitorFromName(OUTPUT->name);
+
+            if (!PMONITOR || OUTPUT->transform != PMONITOR->transform)
+                g_pConfigManager->parseKeyword("monitor", transformStr);
+        }
 
         noError = wlr_output_test(OUTPUT);
 

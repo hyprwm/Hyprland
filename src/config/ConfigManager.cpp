@@ -420,7 +420,7 @@ void CConfigManager::handleRawExec(const std::string& command, const std::string
             // run in grandchild
             close(socket[0]);
             close(socket[1]);
-            execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
+            execl("/bin/sh", "/bin/sh", "-c", toExec.c_str(), nullptr);
             // exit grandchild
             _exit(0);
         }

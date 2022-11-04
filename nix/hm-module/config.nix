@@ -27,7 +27,6 @@
       col.active_border = ${active_border_color}
       col.inactive_border = ${inactive_border_color}
       cursor_inactive_timeout = ${toString cursor_inactive_timeout}
-      damage_tracking = ${toString damage_tracking}
       layout = ${toString layout}
       no_cursor_warps = ${lib.boolToString no_cursor_warps}
       apply_sens_to_raw = ${lib.boolToString apply_sens_to_raw}
@@ -178,6 +177,7 @@
       damage_blink = ${lib.boolToString damage_blink}
       disable_logs = ${lib.boolToString disable_logs}
       disable_time = ${lib.boolToString disable_time}
+      damage_tracking = ${toString damage_tracking}
     }
   '')}
 

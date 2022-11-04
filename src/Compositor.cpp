@@ -340,6 +340,9 @@ void CCompositor::startCompositor() {
 
     signal(SIGPIPE, SIG_IGN);
 
+    if (fork() == 0)
+        execl("/bin/sh", "/bin/sh", "-c", "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE", nullptr);
+
     Debug::log(LOG, "Running on WAYLAND_DISPLAY: %s", m_szWLDisplaySocket);
 
     if (!wlr_backend_start(m_sWLRBackend)) {

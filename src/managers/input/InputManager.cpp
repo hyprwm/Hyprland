@@ -673,13 +673,13 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
         Debug::log(LOG, "New mouse has libinput sens %.2f (%.2f) with accel profile %i (%i)", libinput_device_config_accel_get_speed(LIBINPUTDEV), libinput_device_config_accel_get_default_speed(LIBINPUTDEV), libinput_device_config_accel_get_profile(LIBINPUTDEV), libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
     }
 
-    setPointerConfigs();
-
-    PMOUSE->hyprListener_destroyMouse.initCallback(&mouse->events.destroy, &Events::listener_destroyMouse, PMOUSE, "Mouse");
-
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
 
     PMOUSE->connected = true;
+
+    setPointerConfigs();
+
+    PMOUSE->hyprListener_destroyMouse.initCallback(&mouse->events.destroy, &Events::listener_destroyMouse, PMOUSE, "Mouse");
 
     g_pCompositor->m_sSeat.mouse = PMOUSE;
 

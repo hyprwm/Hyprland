@@ -70,8 +70,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
-    bool didConstraintOnCursor = false;
-
     // constraints
     // All constraints TODO: multiple mice?
     if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
@@ -104,21 +102,21 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                     wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, newConstrainedCoords.x, newConstrainedCoords.y);
 
                     mouseCoords = newConstrainedCoords;
-
-                    didConstraintOnCursor = true;
                 }
             } else {
                 if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
                     g_pCompositor->m_sSeat.mouse->constraintActive = true;
-                    if (CONSTRAINTWINDOW->m_bIsX11) {
-                        foundSurface = g_pXWaylandManager->getWindowSurface(CONSTRAINTWINDOW);
-                        surfacePos = CONSTRAINTWINDOW->m_vRealPosition.vec();
-                    } else {
-                        g_pCompositor->vectorWindowToSurface(mouseCoords, CONSTRAINTWINDOW, surfaceCoords);
-                    }
-                    pFoundWindow = CONSTRAINTWINDOW;
                 }
             }
+
+            if (CONSTRAINTWINDOW->m_bIsX11) {
+                foundSurface = g_pXWaylandManager->getWindowSurface(CONSTRAINTWINDOW);
+                surfacePos = CONSTRAINTWINDOW->m_vRealPosition.vec();
+            } else {
+                g_pCompositor->vectorWindowToSurface(mouseCoords, CONSTRAINTWINDOW, surfaceCoords);
+            }
+
+            pFoundWindow = CONSTRAINTWINDOW;
         }
     }
 
@@ -126,9 +124,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     updateDragIcon();
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
-
-    if (didConstraintOnCursor)
-        return; // don't process when cursor constrained
 
     if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
         g_pCompositor->m_pLastMonitor = PMONITOR;

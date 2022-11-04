@@ -38,6 +38,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     m_pFoundSurfaceToFocus = nullptr;
     m_pFoundLSToFocus = nullptr;
     m_pFoundWindowToFocus = nullptr;
+    wlr_surface* foundSurface = nullptr;
+    Vector2D surfaceCoords;
+    Vector2D surfacePos = Vector2D(-1337, -1337);
+    CWindow* pFoundWindow = nullptr;
+    SLayerSurface* pFoundLayerSurface = nullptr;
 
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown)
         return;
@@ -105,7 +110,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             } else {
                 if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
                     g_pCompositor->m_sSeat.mouse->constraintActive = true;
-                    didConstraintOnCursor = true;
+                    if (CONSTRAINTWINDOW->m_bIsX11) {
+                        foundSurface = g_pXWaylandManager->getWindowSurface(CONSTRAINTWINDOW);
+                        surfacePos = CONSTRAINTWINDOW->m_vRealPosition.vec();
+                    } else {
+                        g_pCompositor->vectorWindowToSurface(mouseCoords, CONSTRAINTWINDOW, surfaceCoords);
+                    }
+                    pFoundWindow = CONSTRAINTWINDOW;
                 }
             }
         }
@@ -115,9 +126,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     updateDragIcon();
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
-
-    // focus
-    wlr_surface* foundSurface = nullptr;
 
     if (didConstraintOnCursor)
         return; // don't process when cursor constrained
@@ -133,11 +141,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         // event
         g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", PMONITOR->szName + "," + ACTIVEWORKSPACE->m_szName});
     }
-
-    Vector2D surfaceCoords;
-    Vector2D surfacePos = Vector2D(-1337, -1337);
-    CWindow* pFoundWindow = nullptr;
-    SLayerSurface* pFoundLayerSurface = nullptr;
 
     // overlay is above fullscreen
     if (!foundSurface)

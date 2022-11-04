@@ -133,6 +133,11 @@ struct wlr_xwayland_surface_configure_event {
     uint16_t mask;  // xcb_config_window_t
 };
 
+struct wlr_xwayland_minimize_event {
+    struct wlr_xwayland_surface *surface;
+    bool minimize;
+};
+
 inline void wlr_xwayland_destroy(wlr_xwayland*) { }
 
 inline void wlr_xwayland_surface_configure(wlr_xwayland_surface*, int, int, int, int) { }

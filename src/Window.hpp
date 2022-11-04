@@ -183,6 +183,7 @@ public:
     void            moveToWorkspace(int);
     CWindow*        X11TransientFor();
     void            onUnmap();
+    void            onMap();
     void            setHidden(bool hidden);
     bool            isHidden();
 

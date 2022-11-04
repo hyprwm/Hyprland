@@ -236,6 +236,12 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         return;
     }
 
+    if (PWINDOW->m_bIsFullscreen) {
+        PWINDOW->m_vRealSize = PMONITOR->vecSize;
+        PWINDOW->m_vRealPosition = PMONITOR->vecPosition;
+        return;
+    }
+
     static auto *const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("master:no_gaps_when_only")->intValue;
 
     PWINDOW->m_vSize = pNode->size;

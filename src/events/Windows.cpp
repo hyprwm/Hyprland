@@ -74,6 +74,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // checks if the window wants borders and sets the appriopriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
 
+    // registers the animated vars and stuff
+    PWINDOW->onMap();
+
     const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(PWINDOW);
 
     if (!PWINDOWSURFACE) {
@@ -110,7 +113,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(PWINDOW);
     std::string requestedWorkspace = "";
     bool workspaceSilent = false;
-    bool requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen || (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen);
+    bool requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen || (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen) || (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->fullscreen);
     bool shouldFocus = true;
     bool workspaceSpecial = false;
 
@@ -622,9 +625,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
     }
 
-    // update lastwindow after focus
-    PWINDOW->onUnmap();
-
     Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %x", PWINDOW);
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
 
@@ -657,6 +657,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // force report all sizes (QT sometimes has an issue with this)
     g_pCompositor->forceReportSizesToWindowsOnWorkspace(PWINDOW->m_iWorkspaceID);
+
+    // update lastwindow after focus
+    PWINDOW->onUnmap();
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {
@@ -789,7 +792,7 @@ void Events::listener_configureX11(void* owner, void* data) {
     g_pHyprRenderer->damageWindow(PWINDOW);
 
     if (!PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen) {
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.vec());
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv(), true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(PWINDOW);
         return;
@@ -839,6 +842,12 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         PWINDOW->setHidden(false);
     else
         PWINDOW->setHidden(true);
+
+    if (PWINDOW->m_bIsFullscreen || !PWINDOW->m_bIsFloating) {
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv(), true);
+        g_pHyprRenderer->damageWindow(PWINDOW);
+        return;
+    }
 
     if (abs(std::floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(std::floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 || abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
         Debug::log(LOG, "Unmanaged window %x requests geometry update to %i %i %i %i", PWINDOW, (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y, (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);
@@ -923,14 +932,14 @@ void Events::listener_requestMinimize(void* owner, void* data) {
 
     Debug::log(LOG, "Minimize request for %x", PWINDOW);
 
-   // if (PWINDOW->m_bIsX11) {
-     //   if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
-       //     return;
+    if (PWINDOW->m_bIsX11) {
+        if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
+            return;
 
-       // const auto E = (wlr_xwayland_minimize_event*)data;
+        const auto E = (wlr_xwayland_minimize_event*)data;
 
-      //  wlr_xwayland_surface_set_minimized(PWINDOW->m_uSurface.xwayland, E->minimize && g_pCompositor->m_pLastWindow != PWINDOW); // fucking DXVK
-   // }
+        wlr_xwayland_surface_set_minimized(PWINDOW->m_uSurface.xwayland, E->minimize && g_pCompositor->m_pLastWindow != PWINDOW); // fucking DXVK
+    }
 }
 
 void Events::listener_requestMove(void* owner, void* data) {

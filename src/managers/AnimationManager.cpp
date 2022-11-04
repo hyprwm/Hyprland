@@ -33,6 +33,8 @@ void CAnimationManager::tick() {
 
     const auto DEFAULTBEZIER = m_mBezierCurves.find("default");
 
+    std::vector<CAnimatedVariable*> animationEndedVars;
+
     for (auto& av : m_lAnimatedVariables) {
 
         // first of all, check if we need to update it at all
@@ -225,13 +227,21 @@ void CAnimationManager::tick() {
             }
         }
 
-
         // set size and pos if valid, but only if damage policy entire (dont if border for example)
         if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
         // manually schedule a frame
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+
+        // check if we did not finish animating. If so, trigger onAnimationEnd.
+        if (!av->isBeingAnimated())
+            animationEndedVars.push_back(av);
+    }
+
+    // do it here, because if this alters the animation vars deque we would be in trouble above.
+    for (auto& ave : animationEndedVars) {
+        ave->onAnimationEnd();
     }
 }
 

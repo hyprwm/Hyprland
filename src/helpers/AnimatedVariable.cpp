@@ -12,8 +12,6 @@ void CAnimatedVariable::create(ANIMATEDVARTYPE type, SAnimationPropertyConfig* p
     m_pConfig = pAnimConfig;
     m_pWindow = pWindow;
 
-    g_pAnimationManager->m_lAnimatedVariables.push_back(this);
-
     m_bDummy = false;
 }
 
@@ -56,6 +54,10 @@ CAnimatedVariable::~CAnimatedVariable() {
 
 void CAnimatedVariable::unregister() {
     g_pAnimationManager->m_lAnimatedVariables.remove(this);
+}
+
+void CAnimatedVariable::registerVar() {
+    g_pAnimationManager->m_lAnimatedVariables.push_back(this);
 }
 
 int CAnimatedVariable::getDurationLeftMs() {

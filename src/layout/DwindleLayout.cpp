@@ -178,6 +178,12 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         return;
     }
 
+    if (PWINDOW->m_bIsFullscreen) {
+        PWINDOW->m_vRealSize = PMONITOR->vecSize;
+        PWINDOW->m_vRealPosition = PMONITOR->vecPosition;
+        return;
+    }
+
     PWINDOW->m_vSize = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 

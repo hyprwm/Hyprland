@@ -3,7 +3,7 @@
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
 
 CWindow::CWindow() {
-    m_vRealPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*) this, AVARDAMAGE_ENTIRE);
+    m_vRealPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
     m_vRealSize.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
     m_cRealBorderColor.create(AVARTYPE_COLOR, g_pConfigManager->getAnimationPropertyConfig("border"), (void*)this, AVARDAMAGE_BORDER);
     m_fAlpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), (void*)this, AVARDAMAGE_ENTIRE);
@@ -245,9 +245,31 @@ void CWindow::removeDecorationByType(eDecorationType type) {
     updateWindowDecos();
 }
 
+void unregisterVar(void* ptr) {
+    ((CAnimatedVariable*)ptr)->unregister();
+}
+
 void CWindow::onUnmap() {
     if (g_pCompositor->m_pLastWindow == this)
         g_pCompositor->m_pLastWindow = nullptr;
+
+    m_vRealPosition.setCallbackOnEnd(unregisterVar);
+    m_vRealSize.setCallbackOnEnd(unregisterVar);
+    m_cRealBorderColor.setCallbackOnEnd(unregisterVar);
+    m_fActiveInactiveAlpha.setCallbackOnEnd(unregisterVar);
+    m_fAlpha.setCallbackOnEnd(unregisterVar);
+    m_cRealShadowColor.setCallbackOnEnd(unregisterVar);
+    m_fDimPercent.setCallbackOnEnd(unregisterVar);
+}
+
+void CWindow::onMap() {
+    m_vRealPosition.registerVar();
+    m_vRealSize.registerVar();
+    m_cRealBorderColor.registerVar();
+    m_fActiveInactiveAlpha.registerVar();
+    m_fAlpha.registerVar();
+    m_cRealShadowColor.registerVar();
+    m_fDimPercent.registerVar();
 }
 
 void CWindow::setHidden(bool hidden) {

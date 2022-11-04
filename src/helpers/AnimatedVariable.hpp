@@ -32,6 +32,7 @@ public:
     ~CAnimatedVariable();
 
     void unregister();
+    void registerVar();
 
     // gets the current vector value (real time)
     const Vector2D& vec() const {
@@ -167,6 +168,16 @@ public:
 
     int getDurationLeftMs();
 
+    /*  sets a function to be ran when the animation finishes.
+        if an animation is not running, runs instantly.
+        will remove the callback when ran.                      */
+    void setCallbackOnEnd(std::function<void(void* thisptr)> func) {
+        m_fEndCallback = func;
+
+        if (!isBeingAnimated())
+            onAnimationEnd();
+    }
+
 private:
 
     Vector2D        m_vValue = Vector2D(0,0);
@@ -194,6 +205,16 @@ private:
 
     ANIMATEDVARTYPE     m_eVarType      = AVARTYPE_INVALID;
     AVARDAMAGEPOLICY    m_eDamagePolicy = AVARDAMAGE_INVALID;
+
+    std::function<void(void* thisptr)> m_fEndCallback;
+
+    // methods
+    void onAnimationEnd() {
+        if (m_fEndCallback) {
+            m_fEndCallback(this);
+            m_fEndCallback = nullptr; // reset
+        }
+    }
 
     friend class CAnimationManager;
     friend class CWorkspace;

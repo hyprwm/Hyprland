@@ -109,7 +109,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("debug:damage_tracking")->intValue;
     static auto *const PDAMAGEBLINK = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
     static auto *const PNOVFR = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
-    static auto *const PNODIRECTSCANOUT = &g_pConfigManager->getConfigValuePtr("general:no_direct_scanout")->intValue;
+    static auto *const PNODIRECTSCANOUT = &g_pConfigManager->getConfigValuePtr("misc:no_direct_scanout")->intValue;
 
     static int damageBlinkCleanup = 0; // because double-buffered
 

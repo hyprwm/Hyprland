@@ -44,8 +44,6 @@ void CConfigManager::setDefaultVars() {
     configValues["general:cursor_inactive_timeout"].intValue = 0;
     configValues["general:no_cursor_warps"].intValue = 0;
 
-    configValues["general:no_direct_scanout"].intValue = 0;
-
     configValues["general:layout"].strValue = "dwindle";
 
     configValues["misc:disable_hyprland_logo"].intValue = 0;
@@ -60,6 +58,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:enable_swallow"].intValue = 0;
     configValues["misc:swallow_regex"].strValue = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue = 0;
+    configValues["misc:no_direct_scanout"].intValue = 0;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

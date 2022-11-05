@@ -44,6 +44,8 @@ void CConfigManager::setDefaultVars() {
     configValues["general:cursor_inactive_timeout"].intValue = 0;
     configValues["general:no_cursor_warps"].intValue = 0;
 
+    configValues["general:no_direct_scanout"].intValue = 0;
+
     configValues["general:layout"].strValue = "dwindle";
 
     configValues["misc:disable_hyprland_logo"].intValue = 0;

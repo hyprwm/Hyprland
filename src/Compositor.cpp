@@ -73,7 +73,15 @@ CCompositor::CCompositor() {
         throw std::runtime_error("wlr_gles2_renderer_create_with_drm_fd() failed!");
     }
 
-    wlr_renderer_init_wl_display(m_sWLRRenderer, m_sWLDisplay);
+    wlr_renderer_init_wl_shm(m_sWLRRenderer, m_sWLDisplay);
+
+    if (wlr_renderer_get_dmabuf_texture_formats(m_sWLRRenderer)) {
+        if (wlr_renderer_get_drm_fd(m_sWLRRenderer) >= 0) {
+            wlr_drm_create(m_sWLDisplay, m_sWLRRenderer);
+        }
+
+        m_sWLRLinuxDMABuf = wlr_linux_dmabuf_v1_create(m_sWLDisplay, m_sWLRRenderer);
+    }
 
     m_sWLRAllocator = wlr_allocator_autocreate(m_sWLRBackend, m_sWLRRenderer);
 
@@ -1699,6 +1707,9 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     forceReportSizesToWindowsOnWorkspace(pWindow->m_iWorkspaceID);
 
     g_pInputManager->recheckIdleInhibitorStatus();
+
+    // DMAbuf stuff for direct scanout
+    g_pHyprRenderer->setWindowScanoutMode(pWindow);
 }
 
 void CCompositor::moveUnmanagedX11ToWindows(CWindow* pWindow) {

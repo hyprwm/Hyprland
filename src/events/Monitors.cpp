@@ -109,6 +109,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("debug:damage_tracking")->intValue;
     static auto *const PDAMAGEBLINK = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
     static auto *const PNOVFR = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
+    static auto *const PNODIRECTSCANOUT = &g_pConfigManager->getConfigValuePtr("general:no_direct_scanout")->intValue;
 
     static int damageBlinkCleanup = 0; // because double-buffered
 
@@ -152,6 +153,16 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (PMONITOR->scheduledRecalc) {
         PMONITOR->scheduledRecalc = false;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+    }
+
+    // Direct scanout first
+    if (!*PNODIRECTSCANOUT) {
+        if (g_pHyprRenderer->attemptDirectScanout(PMONITOR)) {
+            return;
+        } else if (g_pHyprRenderer->m_pLastScanout) {
+            Debug::log(LOG, "Left a direct scanout.");
+            g_pHyprRenderer->m_pLastScanout = nullptr;
+        }
     }
 
     timespec now;

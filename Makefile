@@ -188,7 +188,7 @@ config:
 
 	make fixwlr
 
-	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release
+	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release -Dwerror=false -Dexamples=false
 	cd subprojects/wlroots && ninja -C build/
 
 	cd subprojects/wlroots && ninja -C build/ install

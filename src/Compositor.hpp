@@ -70,6 +70,7 @@ public:
     wlr_input_method_manager_v2*     m_sWLRIMEMgr;
     wlr_text_input_manager_v3*       m_sWLRTextInputMgr;
     wlr_xdg_activation_v1*           m_sWLRActivation;
+    wlr_linux_dmabuf_v1*             m_sWLRLinuxDMABuf;
     // ------------------------------------------------- //
 
 

@@ -1,5 +1,6 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
+#include "linux-dmabuf-unstable-v1-protocol.h"
 
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE = wlr_surface_get_texture(surface);
@@ -531,6 +532,150 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }
+}
+
+void countSubsurfacesIter(wlr_surface* pSurface, int x, int y, void* data) {
+    *(int*)data += 1;
+}
+
+bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
+
+    if (!PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || g_pCompositor->m_sSeat.exclusiveClient)
+        return false;
+
+    const auto PCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+
+    if (!PCANDIDATE)
+        return false; // ????
+
+    if (PCANDIDATE->m_fAlpha.fl() != 255.f || PCANDIDATE->m_fActiveInactiveAlpha.fl() != 1.f || PWORKSPACE->m_fAlpha.fl() != 255.f)
+        return false;
+
+    if (PCANDIDATE->m_vRealSize.vec() != pMonitor->vecSize || PCANDIDATE->m_vRealPosition.vec() != pMonitor->vecPosition || PCANDIDATE->m_vRealPosition.isBeingAnimated() || PCANDIDATE->m_vRealSize.isBeingAnimated())
+        return false;
+
+    if (!pMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty())
+        return false;
+
+    for (auto& topls : pMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        if (topls->alpha.fl() != 0.f)
+            return false;
+    }
+
+    // check if it did not open any subsurfaces or shit
+    int surfaceCount = 0;
+    if (PCANDIDATE->m_bIsX11) {
+        surfaceCount = 1;
+
+        // check opaque
+        if (PCANDIDATE->m_uSurface.xwayland->has_alpha)
+            return false;
+    } else {
+        wlr_xdg_surface_for_each_surface(PCANDIDATE->m_uSurface.xdg, countSubsurfacesIter, &surfaceCount);
+        wlr_xdg_surface_for_each_popup_surface(PCANDIDATE->m_uSurface.xdg, countSubsurfacesIter, &surfaceCount);
+
+        if (!PCANDIDATE->m_uSurface.xdg->surface->opaque)
+            return false;
+    }
+
+    if (surfaceCount != 1)
+        return false;
+
+    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+
+    if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
+        return false;
+
+    // finally, we should be GTG.
+    wlr_output_attach_buffer(pMonitor->output, &PSURFACE->buffer->base);
+
+    if (!wlr_output_test(pMonitor->output)) {
+        Debug::log(ERR, "Direct scanout test failed for %x", PCANDIDATE);
+        return false;
+    }
+
+    wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, PSURFACE, pMonitor->output);
+
+    if (wlr_output_commit(pMonitor->output)) {
+        if (!m_pLastScanout) {
+            m_pLastScanout = PCANDIDATE;
+            Debug::log(LOG, "Entered a direct scanout to %x: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
+        }
+    } else {
+        Debug::log(ERR, "Direct scanout failed for %x: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
+        m_pLastScanout = nullptr;
+        return false;
+    }
+
+    return true;
+}
+
+void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
+    if (!g_pCompositor->m_sWLRLinuxDMABuf)
+        return;
+
+    if (!pWindow->m_bIsFullscreen) {
+        wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, g_pXWaylandManager->getWindowSurface(pWindow), nullptr);
+        Debug::log(LOG, "Scanout mode OFF set for %x", pWindow);
+        return;
+    }
+
+    const auto RENDERERDRMFD = wlr_renderer_get_drm_fd(g_pCompositor->m_sWLRRenderer);
+    const auto BACKENDDRMFD = wlr_backend_get_drm_fd(g_pCompositor->m_sWLRBackend);
+
+    if (RENDERERDRMFD < 0 || BACKENDDRMFD < 0)
+        return;
+
+    auto deviceIDFromFD = [](int fd, unsigned long* deviceID) -> bool {
+        struct stat stat;
+        if (fstat(fd, &stat) != 0) {
+            return false;
+        }
+        *deviceID = stat.st_rdev;
+        return true;
+    };
+
+    unsigned long rendererDevice, scanoutDevice;
+    if (!deviceIDFromFD(RENDERERDRMFD, &rendererDevice) || !deviceIDFromFD(BACKENDDRMFD, &scanoutDevice))
+        return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    const auto POUTPUTFORMATS = wlr_output_get_primary_formats(PMONITOR->output, WLR_BUFFER_CAP_DMABUF);
+    if (!POUTPUTFORMATS)
+        return;
+
+    const auto PRENDERERFORMATS = wlr_renderer_get_dmabuf_texture_formats(g_pCompositor->m_sWLRRenderer);
+    wlr_drm_format_set scanoutFormats = { 0 };
+
+    if (!wlr_drm_format_set_intersect(&scanoutFormats, POUTPUTFORMATS, PRENDERERFORMATS))
+        return;
+
+    const wlr_linux_dmabuf_feedback_v1_tranche TRANCHES[] = {
+        {
+            .target_device = scanoutDevice,
+            .flags = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
+            .formats = &scanoutFormats
+        }, {
+            .target_device = rendererDevice,
+            .formats = PRENDERERFORMATS
+        }
+    };
+
+    const wlr_linux_dmabuf_feedback_v1 FEEDBACK = {
+        .main_device = rendererDevice,
+        .tranches_len = sizeof(TRANCHES) / sizeof(TRANCHES[0]),
+        .tranches = TRANCHES
+    };
+
+    if (!wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, g_pXWaylandManager->getWindowSurface(pWindow), &FEEDBACK)) {
+        Debug::log(ERR, "Error in scanout mode setting: wlr_linux_dmabuf_v1_set_surface_feedback returned false.");
+    }
+
+    wlr_drm_format_set_finish(&scanoutFormats);
+
+    Debug::log(LOG, "Scanout mode ON set for %x", pWindow);
 }
 
 void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {

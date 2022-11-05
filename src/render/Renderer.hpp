@@ -44,8 +44,12 @@ public:
     void                calculateUVForWindowSurface(CWindow*, wlr_surface*, bool main = false);
 
     bool                m_bWindowRequestedCursorHide = false;
+    CWindow*            m_pLastScanout = nullptr;
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
+
+    bool                attemptDirectScanout(CMonitor*);
+    void                setWindowScanoutMode(CWindow*);
 
 private:
     void                arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);

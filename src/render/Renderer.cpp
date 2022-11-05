@@ -1347,6 +1347,13 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->vecSize = (Vector2D(x, y) / pMonitor->scale).floor();
     pMonitor->vecTransformedSize = Vector2D(x,y);
 
+    if (pMonitor->createdByUser) {
+        wlr_box transformedBox = { 0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y };
+        wlr_box_transform(&transformedBox, &transformedBox, wlr_output_transform_invert(pMonitor->output->transform), (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+
+        pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
+    }
+
     if (pMonitorRule->offset == Vector2D(-1, -1) && pMonitor->vecPosition == Vector2D(-1, -1)) {
         // let's find manually a sensible position for it, to the right.
         Vector2D finalPos;

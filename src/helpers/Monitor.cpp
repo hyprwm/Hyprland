@@ -8,6 +8,9 @@ void CMonitor::onConnect(bool noRule) {
 
     szName = output->name;
 
+    if (!wlr_backend_is_drm(output->backend))
+        createdByUser = true; // should be true. WL, X11 and Headless backends should be addable / removable
+
     // get monitor rule that matches
     SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(output->name, output->description ? output->description : "");
 

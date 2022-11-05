@@ -217,6 +217,21 @@ int setcursorRequest(int argc, char** argv) {
     return 0;
 }
 
+int outputRequest(int argc, char** argv) {
+    if (argc < 4) {
+        std::cout << "Usage: hyprctl output <mode> <name>\n\
+            creates / destroys a fake output\n\
+            with create, name is the backend name to use (available: auto, x11, wayland, headless)\n\
+            with destroy, name is the output name to destroy";
+        return 1;
+    }
+
+    std::string rq = "output " + std::string(argv[2]) + " " + std::string(argv[3]);
+
+    request(rq);
+    return 0;
+}
+
 void batchRequest(std::string arg) {
     std::string rq = "[[BATCH]]" + arg.substr(arg.find_first_of(" ") + 1);
 
@@ -290,6 +305,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/reload")) request(fullRequest);
     else if (fullRequest.contains("/getoption")) request(fullRequest);
     else if (fullRequest.contains("/cursorpos")) request(fullRequest);
+    else if (fullRequest.contains("/output")) exitStatus = outputRequest(argc, argv);
     else if (fullRequest.contains("/setcursor")) exitStatus = setcursorRequest(argc, argv);
     else if (fullRequest.contains("/dispatch")) exitStatus = dispatchRequest(argc, argv);
     else if (fullRequest.contains("/keyword")) exitStatus = keywordRequest(argc, argv);

@@ -40,6 +40,7 @@ public:
     bool        dpmsStatus = true;
     bool        vrrActive = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
     bool        enabled10bit = false; // as above, this can be TRUE even if 10 bit failed.
+    bool        createdByUser = false;
 
     // mirroring
     CMonitor*   pMirrorOf = nullptr;

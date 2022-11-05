@@ -180,6 +180,15 @@ CCompositor::CCompositor() {
     m_sWLRIMEMgr = wlr_input_method_manager_v2_create(m_sWLDisplay);
 
     m_sWLRActivation = wlr_xdg_activation_v1_create(m_sWLDisplay);
+
+    m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLDisplay);
+
+    if (!m_sWLRHeadlessBackend) {
+        Debug::log(CRIT, "Couldn't create the headless backend");
+        throw std::runtime_error("wlr_headless_backend_create() failed!");
+    }
+
+    wlr_multi_backend_add(m_sWLRBackend, m_sWLRHeadlessBackend);
 }
 
 CCompositor::~CCompositor() {

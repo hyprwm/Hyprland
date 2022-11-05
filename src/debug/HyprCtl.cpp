@@ -743,6 +743,86 @@ R"#(
     }
 }
 
+void createOutputIter(wlr_backend* backend, void* data) {
+    const auto DATA = (std::pair<std::string, bool>*)data;
+
+    if (DATA->second)
+        return;
+
+    if (DATA->first.empty() || DATA->first == "auto") {
+        if (wlr_backend_is_wl(backend)) {
+            wlr_wl_output_create(backend);
+            DATA->second = true;
+        } else if (wlr_backend_is_x11(backend)) {
+            wlr_x11_output_create(backend);
+            DATA->second = true;
+        } else if (wlr_backend_is_headless(backend)) {
+            wlr_headless_add_output(backend, 1920, 1080);
+            DATA->second = true;
+        }
+    } else {
+        if (wlr_backend_is_wl(backend) && DATA->first == "wayland") {
+            wlr_wl_output_create(backend);
+            DATA->second = true;
+        } else if (wlr_backend_is_x11(backend) && DATA->first == "x11") {
+            wlr_x11_output_create(backend);
+            DATA->second = true;
+        } else if (wlr_backend_is_headless(backend) && DATA->first == "headless") {
+            wlr_headless_add_output(backend, 1920, 1080);
+            DATA->second = true;
+        }
+    }
+}
+
+std::string dispatchOutput(std::string request) {
+    std::string curitem = "";
+
+    auto nextItem = [&]() {
+        auto idx = request.find_first_of(' ');
+
+        if (idx != std::string::npos) {
+            curitem = request.substr(0, idx);
+            request = request.substr(idx + 1);
+        } else {
+            curitem = request;
+            request = "";
+        }
+
+        curitem = removeBeginEndSpacesTabs(curitem);
+    };
+
+    nextItem();
+    nextItem();
+
+    const auto MODE = curitem;
+
+    nextItem();
+
+    const auto NAME = curitem;
+
+    if (MODE == "create" || MODE == "add") {
+        std::pair<std::string, bool> result = { NAME, false };
+
+        wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, createOutputIter, &result);
+
+        if (!result.second)
+            return "no backend replied to the request";
+
+    } else if (MODE == "destroy" || MODE == "remove") {
+        const auto PMONITOR = g_pCompositor->getMonitorFromName(NAME);
+
+        if (!PMONITOR)
+            return "output not found";
+
+        if (!PMONITOR->createdByUser)
+            return "cannot remove a real display. Use the monitor keyword.";
+
+        wlr_output_destroy(PMONITOR->output);
+    }
+
+    return "ok";
+}
+
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
@@ -786,6 +866,8 @@ std::string getReply(std::string request) {
         return splashRequest();
     else if (request == "cursorpos")
         return cursorPosRequest(format);
+    else if (request.find("output") == 0)
+        return dispatchOutput(request);
     else if (request.find("dispatch") == 0)
         return dispatchRequest(request);
     else if (request.find("keyword") == 0)

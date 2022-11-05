@@ -99,10 +99,15 @@ extern "C" {
 #include <wlr/types/wlr_text_input_v3.h>
 #include <wlr/types/wlr_touch.h>
 #include <wlr/types/wlr_switch.h>
+#include <wlr/config.h>
+#include <wlr/backend/headless.h>
+#include <wlr/backend/multi.h>
+#include <wlr/backend/wayland.h>
 
 #include <drm_fourcc.h>
 
 #ifndef NO_XWAYLAND
+#include <wlr/backend/x11.h>
 #include <wlr/xwayland.h>
 #include <X11/Xproto.h>
 #endif

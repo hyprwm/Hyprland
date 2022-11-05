@@ -200,6 +200,7 @@ private:
     SAnimationPropertyConfig* m_pConfig = nullptr;
 
     bool            m_bDummy = true;
+    bool            m_bIsRegistered = false;
 
     std::chrono::system_clock::time_point animationBegin;
 

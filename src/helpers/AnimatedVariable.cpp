@@ -54,10 +54,13 @@ CAnimatedVariable::~CAnimatedVariable() {
 
 void CAnimatedVariable::unregister() {
     g_pAnimationManager->m_lAnimatedVariables.remove(this);
+    m_bIsRegistered = false;
 }
 
 void CAnimatedVariable::registerVar() {
-    g_pAnimationManager->m_lAnimatedVariables.push_back(this);
+    if (!m_bIsRegistered)
+        g_pAnimationManager->m_lAnimatedVariables.push_back(this);
+    m_bIsRegistered = true;
 }
 
 int CAnimatedVariable::getDurationLeftMs() {

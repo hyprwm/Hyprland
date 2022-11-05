@@ -275,8 +275,8 @@ void CWindow::onMap() {
 void CWindow::setHidden(bool hidden) {
     m_bHidden = hidden;
 
-    if (hidden) {
-        onUnmap();
+    if (hidden && g_pCompositor->m_pLastWindow == this) {
+        g_pCompositor->m_pLastWindow = nullptr;
     }
 }
 

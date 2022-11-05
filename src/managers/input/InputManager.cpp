@@ -72,7 +72,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // constraints
     // All constraints TODO: multiple mice?
-    if (g_pCompositor->m_sSeat.mouse->currentConstraint) {
+    if (g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient) {
         // XWayland windows sometimes issue constraints weirdly.
         // TODO: We probably should search their parent. wlr_xwayland_surface->parent
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);

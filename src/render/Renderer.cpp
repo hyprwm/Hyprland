@@ -591,7 +591,6 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     wlr_output_attach_buffer(pMonitor->output, &PSURFACE->buffer->base);
 
     if (!wlr_output_test(pMonitor->output)) {
-        Debug::log(ERR, "Direct scanout test failed for %x", PCANDIDATE);
         return false;
     }
 
@@ -603,7 +602,6 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
             Debug::log(LOG, "Entered a direct scanout to %x: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
         }
     } else {
-        Debug::log(ERR, "Direct scanout failed for %x: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
         m_pLastScanout = nullptr;
         return false;
     }

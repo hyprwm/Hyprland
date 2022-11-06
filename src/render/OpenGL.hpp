@@ -12,6 +12,8 @@
 #include "Texture.hpp"
 #include "Framebuffer.hpp"
 
+class CHyprRenderer;
+
 inline const float fullVerts[] = {
     1, 0,  // top right
     0, 0,  // top left
@@ -144,6 +146,8 @@ private:
     void                    renderSplash(cairo_t *const, cairo_surface_t *const, double);
 
     void                    preBlurForCurrentMonitor();
+
+    friend class CHyprRenderer;
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

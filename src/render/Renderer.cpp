@@ -232,8 +232,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
     if (ignorePosition) {
-        renderdata.x = 0;
-        renderdata.y = 0;
+        renderdata.x = pMonitor->vecPosition.x;
+        renderdata.y = pMonitor->vecPosition.y;
     }
 
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
@@ -304,7 +304,9 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = {0, 0};
                 g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = { pWindow->m_vRealSize.m_vBegun.x / pMonitor->vecPixelSize.x, pWindow->m_vRealSize.m_vBegun.y / pMonitor->vecPixelSize.y};
 
+                g_pHyprOpenGL->m_bEndFrame = true;
                 g_pHyprOpenGL->renderTexture(PFB->second.m_cTex, &box, (1.f - pWindow->m_vRealSize.getPercent()) * 84.f, 0, false, true);
+                g_pHyprOpenGL->m_bEndFrame = false;
 
                 g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
                 g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);

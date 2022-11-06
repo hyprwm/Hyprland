@@ -613,6 +613,11 @@ void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
     if (!g_pCompositor->m_sWLRLinuxDMABuf)
         return;
 
+    static auto *const PENABLED = &g_pConfigManager->getConfigValuePtr("misc:enable_drm_scanout_flags")->intValue;
+
+    if (!*PENABLED)
+        return;
+
     if (!pWindow->m_bIsFullscreen) {
         wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, g_pXWaylandManager->getWindowSurface(pWindow), nullptr);
         Debug::log(LOG, "Scanout mode OFF set for %x", pWindow);

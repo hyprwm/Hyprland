@@ -594,6 +594,9 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
         return false;
     }
 
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    wlr_surface_send_frame_done(PSURFACE, &now);
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, PSURFACE, pMonitor->output);
 
     if (wlr_output_commit(pMonitor->output)) {

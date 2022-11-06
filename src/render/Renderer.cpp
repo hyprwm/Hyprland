@@ -261,33 +261,34 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     // clip box for animated offsets
     Vector2D offset;
-    if (PWORKSPACE->m_vRenderOffset.vec().x != 0) {
-        const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
-        const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().x / PWSMON->vecSize.x;
-        const auto WINBB = pWindow->getFullWindowBoundingBox();
+    if (!ignorePosition) {
+        if (PWORKSPACE->m_vRenderOffset.vec().x != 0) {
+            const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+            const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().x / PWSMON->vecSize.x;
+            const auto WINBB = pWindow->getFullWindowBoundingBox();
 
-        if (WINBB.x < PWSMON->vecPosition.x) {
-            offset.x = (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
-        } else if (WINBB.x > PWSMON->vecPosition.x + PWSMON->vecSize.x) {
-            offset.x = (WINBB.x - PWSMON->vecPosition.x + PWSMON->vecSize.x) * PROGRESS;
-        }
-    } else if (PWORKSPACE->m_vRenderOffset.vec().y) {
-        const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
-        const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().y / PWSMON->vecSize.y;
-        const auto WINBB = pWindow->getFullWindowBoundingBox();
+            if (WINBB.x < PWSMON->vecPosition.x) {
+                offset.x = (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
+            } else if (WINBB.x > PWSMON->vecPosition.x + PWSMON->vecSize.x) {
+                offset.x = (WINBB.x - PWSMON->vecPosition.x + PWSMON->vecSize.x) * PROGRESS;
+            }
+        } else if (PWORKSPACE->m_vRenderOffset.vec().y) {
+            const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+            const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().y / PWSMON->vecSize.y;
+            const auto WINBB = pWindow->getFullWindowBoundingBox();
 
-        if (WINBB.y < PWSMON->vecPosition.y) {
-            offset.y = (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
-        } else if (WINBB.y > PWSMON->vecPosition.y + PWSMON->vecSize.y) {
-            offset.y = (WINBB.y - PWSMON->vecPosition.y + PWSMON->vecSize.y) * PROGRESS;
+            if (WINBB.y < PWSMON->vecPosition.y) {
+                offset.y = (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
+            } else if (WINBB.y > PWSMON->vecPosition.y + PWSMON->vecSize.y) {
+                offset.y = (WINBB.y - PWSMON->vecPosition.y + PWSMON->vecSize.y) * PROGRESS;
+            }
         }
+
+        renderdata.x += offset.x;
+        renderdata.y += offset.y;
     }
-
-    renderdata.x += offset.x;
-    renderdata.y += offset.y;
-
+    
     // render window decorations first, if not fullscreen full
-
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
         if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) for (auto& wd : pWindow->m_dWindowDecorations)
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f, offset);
@@ -298,7 +299,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             const auto PFB = g_pHyprOpenGL->m_mWindowResizeFramebuffers.find(pWindow);
 
             if (PFB != g_pHyprOpenGL->m_mWindowResizeFramebuffers.end() && PFB->second.isAllocated()) {
-                wlr_box box = {renderdata.x, renderdata.y, renderdata.w, renderdata.h};
+                wlr_box box = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
 
                 // adjust UV (remove when I figure out how to change the size of the fb)
                 g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = {0, 0};

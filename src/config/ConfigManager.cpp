@@ -105,6 +105,7 @@ void CConfigManager::setDefaultVars() {
     configValues["master:no_gaps_when_only"].intValue = 0;
 
     configValues["animations:enabled"].intValue = 1;
+    configValues["animations:use_resize_transitions"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;
     configValues["animations:curve"].strValue = "default";
     configValues["animations:windows_style"].strValue = STRVAL_EMPTY;

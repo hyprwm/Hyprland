@@ -21,6 +21,7 @@ class CAnimationManager;
 class CWorkspace;
 struct SLayerSurface;
 struct SAnimationPropertyConfig;
+class CHyprRenderer;
 
 class CAnimatedVariable {
 public:
@@ -68,18 +69,24 @@ public:
         m_vGoal = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun = m_vValue;
+
+        onAnimationBegin();
     }
 
     void operator=(const float& v) {
         m_fGoal = v;
         animationBegin = std::chrono::system_clock::now();
         m_fBegun = m_fValue;
+
+        onAnimationBegin();
     }
 
     void operator=(const CColor& v) {
         m_cGoal = v;
         animationBegin = std::chrono::system_clock::now();
         m_cBegun = m_cValue;
+
+        onAnimationBegin();
     }
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
@@ -87,6 +94,8 @@ public:
         m_vValue = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun = m_vValue;
+
+        onAnimationBegin();
     }
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
@@ -94,6 +103,8 @@ public:
         m_fValue = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun = m_vValue;
+
+        onAnimationBegin();
     }
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
@@ -101,6 +112,8 @@ public:
         m_cValue = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun = m_vValue;
+
+        onAnimationBegin();
     }
 
     // Sets the actual value and goal
@@ -139,7 +152,7 @@ public:
         return false; // just so that the warning is suppressed
     }
 
-    void warp() {
+    void warp(bool endCallback = true) {
         switch (m_eVarType) {
             case AVARTYPE_FLOAT: {
                 m_fValue = m_fGoal;
@@ -156,6 +169,9 @@ public:
             default:
                 UNREACHABLE();
         }
+
+        if (endCallback)
+            onAnimationEnd();
     }
 
     void setConfig(SAnimationPropertyConfig* pConfig) {
@@ -168,14 +184,25 @@ public:
 
     int getDurationLeftMs();
 
+    /* returns the spent (completion) % */
+    float getPercent();
+
     /*  sets a function to be ran when the animation finishes.
         if an animation is not running, runs instantly.
-        will remove the callback when ran.                      */
-    void setCallbackOnEnd(std::function<void(void* thisptr)> func) {
+        if "remove" is set to true, will remove the callback when ran. */
+    void setCallbackOnEnd(std::function<void(void* thisptr)> func, bool remove = true) {
         m_fEndCallback = func;
+        m_bRemoveEndAfterRan = remove;
 
         if (!isBeingAnimated())
             onAnimationEnd();
+    }
+
+    /*  sets a function to be ran when an animation is started.
+        if "remove" is set to true, will remove the callback when ran. */
+    void setCallbackOnBegin(std::function<void(void* thisptr)> func, bool remove = true) {
+        m_fBeginCallback = func;
+        m_bRemoveBeginAfterRan = remove;
     }
 
 private:
@@ -207,17 +234,30 @@ private:
     ANIMATEDVARTYPE     m_eVarType      = AVARTYPE_INVALID;
     AVARDAMAGEPOLICY    m_eDamagePolicy = AVARDAMAGE_INVALID;
 
+    bool            m_bRemoveEndAfterRan = true;
+    bool            m_bRemoveBeginAfterRan = true;
     std::function<void(void* thisptr)> m_fEndCallback;
+    std::function<void(void* thisptr)> m_fBeginCallback;
 
     // methods
     void onAnimationEnd() {
         if (m_fEndCallback) {
             m_fEndCallback(this);
-            m_fEndCallback = nullptr; // reset
+            if (m_bRemoveEndAfterRan)
+                m_fEndCallback = nullptr;  // reset
+        }
+    }
+
+    void onAnimationBegin() {
+        if (m_fBeginCallback) {
+            m_fBeginCallback(this);
+            if (m_bRemoveBeginAfterRan)
+                m_fBeginCallback = nullptr;  // reset
         }
     }
 
     friend class CAnimationManager;
     friend class CWorkspace;
     friend struct SLayerSurface;
+    friend class CHyprRenderer;
 };

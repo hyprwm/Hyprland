@@ -260,6 +260,8 @@ void CWindow::onUnmap() {
     m_fAlpha.setCallbackOnEnd(unregisterVar);
     m_cRealShadowColor.setCallbackOnEnd(unregisterVar);
     m_fDimPercent.setCallbackOnEnd(unregisterVar);
+
+    m_vRealSize.setCallbackOnBegin(nullptr);
 }
 
 void CWindow::onMap() {
@@ -270,6 +272,13 @@ void CWindow::onMap() {
     m_fAlpha.registerVar();
     m_cRealShadowColor.registerVar();
     m_fDimPercent.registerVar();
+
+    m_vRealSize.setCallbackOnEnd([&] (void* ptr) {
+        g_pHyprOpenGL->onWindowResizeEnd(this);
+    }, false);
+    m_vRealSize.setCallbackOnBegin([&] (void* ptr) {
+        g_pHyprOpenGL->onWindowResizeStart(this);
+    }, false);
 }
 
 void CWindow::setHidden(bool hidden) {

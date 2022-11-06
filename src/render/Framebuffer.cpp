@@ -27,7 +27,6 @@ bool CFramebuffer::alloc(int w, int h) {
         glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cTex.m_iTexID, 0);
 
-
         // TODO: Allow this with gles2
         #ifndef GLES2
         if (m_pStencilTex) {
@@ -79,4 +78,8 @@ void CFramebuffer::release() {
 
 CFramebuffer::~CFramebuffer() {
     release();
+}
+
+bool CFramebuffer::isAllocated() {
+    return m_iFb != (GLuint)-1;
 }

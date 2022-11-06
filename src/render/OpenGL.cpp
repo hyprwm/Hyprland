@@ -905,6 +905,61 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
+void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFramebuffer) {
+    // we trust the window is valid.
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    wlr_output_attach_render(PMONITOR->output, nullptr);
+
+    // we need to "damage" the entire monitor
+    // so that we render the entire window
+    // this is temporary, doesnt mess with the actual wlr damage
+    pixman_region32_t fakeDamage;
+    pixman_region32_init(&fakeDamage);
+    pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
+
+    begin(PMONITOR, &fakeDamage, true);
+
+    clear(CColor(0, 0, 0, 0));  // JIC
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    // this is a hack but it works :P
+    // we need to disable blur or else we will get a black background, as the shader
+    // will try to copy the bg to apply blur.
+    // this isn't entirely correct, but like, oh well.
+    // small todo: maybe make this correct? :P
+    const auto BLURVAL = g_pConfigManager->getInt("decoration:blur");
+    g_pConfigManager->setInt("decoration:blur", 0);
+
+    // TODO: how can we make this the size of the window? setting it to window's size makes the entire screen render with the wrong res forever more. odd.
+    glViewport(0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+
+    pFramebuffer->m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
+
+    pFramebuffer->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+
+    pFramebuffer->bind();
+
+    clear(CColor(0, 0, 0, 0));  // JIC
+
+    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, false, RENDER_PASS_ALL, true);
+
+    g_pConfigManager->setInt("decoration:blur", BLURVAL);
+
+// restore original fb
+#ifndef GLES2
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);
+#else
+    glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
+#endif
+    end();
+
+    pixman_region32_fini(&fakeDamage);
+
+    wlr_output_rollback(PMONITOR->output);
+}
+
 void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
@@ -919,7 +974,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     begin(PMONITOR, &fakeDamage, true);
 
-    clear(CColor(0,0,0,0)); // JIC
+    clear(CColor(0, 0, 0, 0));  // JIC
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -932,10 +987,9 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     const auto BLURVAL = g_pConfigManager->getInt("decoration:blur");
     g_pConfigManager->setInt("decoration:blur", 0);
 
-    // render onto the window fb
-    const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
+    glViewport(0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
 
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
+    const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
 
     PFRAMEBUFFER->m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
 
@@ -949,12 +1003,12 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     g_pConfigManager->setInt("decoration:blur", BLURVAL);
 
-    // restore original fb
-    #ifndef GLES2
+// restore original fb
+#ifndef GLES2
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);
-    #else
+#else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
-    #endif
+#endif
     end();
 
     pixman_region32_fini(&fakeDamage);
@@ -1012,6 +1066,32 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     pixman_region32_fini(&fakeDamage);
 
     wlr_output_rollback(PMONITOR->output);
+}
+
+void CHyprOpenGLImpl::onWindowResizeStart(CWindow* pWindow) {
+    static auto *const PTRANSITIONS = &g_pConfigManager->getConfigValuePtr("animations:use_resize_transitions")->intValue;
+    static auto *const PENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
+
+    if (!*PTRANSITIONS || !*PENABLED)
+        return;
+
+    if (pWindow->m_vRealSize.vec().x < 5 || pWindow->m_vRealSize.vec().y < 5)
+        return;
+
+    // make a fb and render a snapshot
+    const auto PFRAMEBUFFER = &m_mWindowResizeFramebuffers[pWindow];
+    makeRawWindowSnapshot(pWindow, PFRAMEBUFFER);
+}
+
+void CHyprOpenGLImpl::onWindowResizeEnd(CWindow* pWindow) {
+    static auto *const PTRANSITIONS = &g_pConfigManager->getConfigValuePtr("animations:use_resize_transitions")->intValue;
+    static auto *const PENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
+
+    if (!*PTRANSITIONS || !*PENABLED)
+        return;
+
+    // remove the fb
+    m_mWindowResizeFramebuffers.erase(pWindow);
 }
 
 void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {

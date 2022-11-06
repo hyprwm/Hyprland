@@ -42,16 +42,12 @@ void CAnimationManager::tick() {
             continue;
 
         if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {
-            av->warp();
+            av->warp(false);
             continue;
         }
 
-        // get speed
-        const auto SPEED = av->m_pConfig->pValues->internalSpeed;
-
         // get the spent % (0 - 1)
-        const auto DURATIONPASSED = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - av->animationBegin).count();
-        const float SPENT = std::clamp((DURATIONPASSED / 100.f) / SPEED, 0.f, 1.f);
+        const float SPENT = av->getPercent();
 
         // window stuff
         const auto PWINDOW = (CWindow*)av->m_pWindow;
@@ -80,12 +76,12 @@ void CAnimationManager::tick() {
             case AVARTYPE_FLOAT: {
                 // for disabled anims just warp
                 if (av->m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
-                    av->warp();
+                    av->warp(false);
                     break;
                 }
 
                 if (SPENT >= 1.f) {
-                    av->warp();
+                    av->warp(false);
                     break;
                 }
 
@@ -101,12 +97,12 @@ void CAnimationManager::tick() {
             case AVARTYPE_VECTOR: {
                 // for disabled anims just warp
                 if (av->m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
-                    av->warp();
+                    av->warp(false);
                     break;
                 }
 
                 if (SPENT >= 1.f) {
-                    av->warp();
+                    av->warp(false);
                     break;
                 }
 
@@ -122,12 +118,12 @@ void CAnimationManager::tick() {
             case AVARTYPE_COLOR: {
                 // for disabled anims just warp
                 if (av->m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
-                    av->warp();
+                    av->warp(false);
                     break;
                 }
 
                 if (SPENT >= 1.f) {
-                    av->warp();
+                    av->warp(false);
                     break;
                 }
 
@@ -297,7 +293,7 @@ void CAnimationManager::animationPopin(CWindow* pWindow, bool close, float minPe
 }
 
 void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool close) {
-    pWindow->m_vRealSize.warp();  // size we preserve in slide
+    pWindow->m_vRealSize.warp(false);  // size we preserve in slide
 
     const auto GOALPOS = pWindow->m_vRealPosition.goalv();
     const auto GOALSIZE = pWindow->m_vRealSize.goalv();

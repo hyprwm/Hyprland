@@ -12,6 +12,7 @@ public:
     void bind();
     void release();
     void reset();
+    bool isAllocated();
 
     Vector2D        m_Position;
     Vector2D        m_Size;

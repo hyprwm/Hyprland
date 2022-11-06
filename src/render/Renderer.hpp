@@ -54,7 +54,7 @@ public:
 private:
     void                arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
     void                renderWorkspaceWithFullscreenWindow(CMonitor*, CWorkspace*, timespec*);
-    void                renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode);
+    void                renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false);
     void                renderLayer(SLayerSurface*, CMonitor*, timespec*);
     void                renderDragIcon(CMonitor*, timespec*);
     void                renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);

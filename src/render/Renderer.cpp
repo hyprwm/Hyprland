@@ -215,7 +215,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
         g_pHyprError->draw();
 }
 
-void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode) {
+void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition) {
     if (pWindow->isHidden())
         return;
 
@@ -227,9 +227,15 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     const auto REALPOS = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
-    static const auto PNOFLOATINGBORDERS = &g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue;
+    static auto *const PNOFLOATINGBORDERS = &g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue;
+    static auto *const PTRANSITIONS = &g_pConfigManager->getConfigValuePtr("animations:use_resize_transitions")->intValue;
 
     SRenderData renderdata = {pMonitor->output, time, REALPOS.x, REALPOS.y};
+    if (ignorePosition) {
+        renderdata.x = 0;
+        renderdata.y = 0;
+    }
+
     renderdata.surface = g_pXWaylandManager->getWindowSurface(pWindow);
     renderdata.w = std::max(pWindow->m_vRealSize.vec().x, 5.0); // clamp the size to min 5,
     renderdata.h = std::max(pWindow->m_vRealSize.vec().y, 5.0); // otherwise we'll have issues later with invalid boxes
@@ -287,6 +293,23 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f, offset);
 
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+
+        if (*PTRANSITIONS && !ignorePosition /* ignorePosition probably means we are rendering the snapshot rn */) {
+            const auto PFB = g_pHyprOpenGL->m_mWindowResizeFramebuffers.find(pWindow);
+
+            if (PFB != g_pHyprOpenGL->m_mWindowResizeFramebuffers.end() && PFB->second.isAllocated()) {
+                wlr_box box = {renderdata.x, renderdata.y, renderdata.w, renderdata.h};
+
+                // adjust UV (remove when I figure out how to change the size of the fb)
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = {0, 0};
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = { pWindow->m_vRealSize.m_vBegun.x / pMonitor->vecPixelSize.x, pWindow->m_vRealSize.m_vBegun.y / pMonitor->vecPixelSize.y};
+
+                g_pHyprOpenGL->renderTexture(PFB->second.m_cTex, &box, (1.f - pWindow->m_vRealSize.getPercent()) * 84.f, 0, false, true);
+
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);
+                g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+            }
+        }
 
         if (renderdata.decorate && pWindow->m_sSpecialRenderData.border) {
             static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;

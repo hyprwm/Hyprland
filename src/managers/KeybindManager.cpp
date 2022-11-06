@@ -581,9 +581,7 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
 }
 
 void CKeybindManager::centerWindow(std::string args) {
-    CWindow* PWINDOW = nullptr;
-
-    PWINDOW = g_pCompositor->m_pLastWindow;
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!PWINDOW || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;
@@ -591,6 +589,7 @@ void CKeybindManager::centerWindow(std::string args) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
     PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f;
+    PWINDOW->m_vPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vSize / 2.f;
 }
 
 void CKeybindManager::toggleActivePseudo(std::string args) {

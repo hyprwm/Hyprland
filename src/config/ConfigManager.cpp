@@ -1071,7 +1071,7 @@ void CConfigManager::parseLine(std::string& line) {
     }
 
     size_t startPos = 0;
-    while (startPos < line.length() - 1 && (startPos = line.find("##", startPos)) != std::string::npos) {
+    while ((startPos = line.find("##", startPos)) != std::string::npos && startPos < line.length() - 1 && startPos > 0) {
         line.replace(startPos, 2, "#");
         startPos++;
     }

@@ -164,8 +164,7 @@ void CAnimationManager::tick() {
                         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
                 }
                 break;
-            }
-            case AVARDAMAGE_BORDER: {
+            } case AVARDAMAGE_BORDER: {
                 RASSERT(PWINDOW, "Tried to AVARDAMAGE_BORDER a non-window AVAR!");
 
                 // damage only the border.

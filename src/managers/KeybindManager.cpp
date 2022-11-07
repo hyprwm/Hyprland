@@ -589,7 +589,7 @@ void CKeybindManager::centerWindow(std::string args) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
     PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f;
-    PWINDOW->m_vPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vSize / 2.f;
+    PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.goalv();
 }
 
 void CKeybindManager::toggleActivePseudo(std::string args) {

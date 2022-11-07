@@ -165,7 +165,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         return true;
     }
 
-    if (pKeyboard->isVirtual)
+    if (pKeyboard->isVirtual && g_pInputManager->shouldIgnoreVirtualKeyboard(pKeyboard))
         return true;
 
     if (!m_pXKBTranslationState) {

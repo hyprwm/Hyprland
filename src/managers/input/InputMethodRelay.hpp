@@ -3,6 +3,8 @@
 #include "../../defines.hpp"
 #include "../../helpers/WLClasses.hpp"
 
+class CInputManager;
+
 class CInputMethodRelay {
 public:
     CInputMethodRelay();
@@ -45,4 +47,5 @@ private:
     void        createNewTextInput(wlr_text_input_v3*);
 
     friend class CHyprRenderer;
+    friend class CInputManager;
 };

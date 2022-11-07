@@ -1,4 +1,4 @@
-globber = run_command('find', '-name', '*.cpp', check: true)
+globber = run_command('find', '.', '-name', '*.cpp', check: true)
 src = globber.stdout().strip().split('\n')
 
 executable('Hyprland', src,

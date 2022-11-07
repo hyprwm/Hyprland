@@ -5,6 +5,31 @@
 #include <sys/utsname.h>
 #include <iomanip>
 
+#if defined(__DragonFly__) || defined(__FreeBSD__) || \
+  defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__)
+# include <sys/sysctl.h>
+# if defined(__DragonFly__)
+#  include <sys/kinfo.h>      // struct kinfo_proc
+# elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#  include <sys/user.h>       // struct kinfo_proc
+# endif
+
+# if defined(__NetBSD__)
+#  undef KERN_PROC
+#  define KERN_PROC KERN_PROC2
+#  define KINFO_PROC struct kinfo_proc2
+# else
+#  define KINFO_PROC struct kinfo_proc
+# endif
+# if defined(__DragonFly__)
+#  define KP_PPID(kp) kp.kp_ppid
+# elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#  define KP_PPID(kp) kp.ki_ppid
+# else
+#  define KP_PPID(kp) kp.p_ppid
+# endif
+#endif
+
 static const float transforms[][9] = {{
 		1.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f,
@@ -369,6 +394,25 @@ void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
 }
 
 int64_t getPPIDof(int64_t pid) {
+#if defined(KERN_PROC_PID)
+    int mib[] = {
+        CTL_KERN,
+        KERN_PROC,
+        KERN_PROC_PID,
+        (int)pid,
+# if defined(__NetBSD__) || defined(__OpenBSD__)
+        sizeof(KINFO_PROC),
+        1,
+# endif
+    };
+    u_int miblen = sizeof(mib) / sizeof(mib[0]);
+    KINFO_PROC kp;
+    size_t sz = sizeof(KINFO_PROC);
+    if (sysctl(mib, miblen, &kp, &sz, NULL, 0) != -1)
+        return KP_PPID(kp);
+
+    return 0;
+#else
     std::string dir = "/proc/" + std::to_string(pid) + "/status";
     FILE* infile;
 
@@ -401,4 +445,5 @@ int64_t getPPIDof(int64_t pid) {
     } catch (std::exception& e) {
         return 0;
     }
+#endif
 }

@@ -84,6 +84,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:shadow_render_power"].intValue = 3;
     configValues["decoration:shadow_ignore_window"].intValue = 1;
     configValues["decoration:shadow_offset"].vecValue = Vector2D();
+    configValues["decoration:shadow_scale"].floatValue = 1.f;
     configValues["decoration:col.shadow"].intValue = 0xee1a1a1a;
     configValues["decoration:col.shadow_inactive"].intValue = INT_MAX;
     configValues["decoration:dim_inactive"].intValue = 0;

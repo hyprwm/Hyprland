@@ -120,6 +120,9 @@ public:
 
     CWindow*        m_pFollowOnDnDBegin = nullptr;
 
+    // for virtual keyboards: whether we should respect them as normal ones
+    bool            shouldIgnoreVirtualKeyboard(SKeyboard*);
+
 private:
 
     // for click behavior override

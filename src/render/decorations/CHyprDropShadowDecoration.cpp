@@ -81,15 +81,17 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
 
+    const float SHADOWSCALE = std::clamp(*PSHADOWSCALE, 0.f, 1.f);
+
     // scale the box in relation to the center of the box
-    const Vector2D NEWSIZE = Vector2D { fullBox.width, fullBox.height } * *PSHADOWSCALE;
+    const Vector2D NEWSIZE = Vector2D { fullBox.width, fullBox.height } * SHADOWSCALE;
     fullBox.width = NEWSIZE.x;
     fullBox.height = NEWSIZE.y;
 
     if (PSHADOWOFFSET->x < 0) {
         fullBox.x += PSHADOWOFFSET->x;
     } else if (PSHADOWOFFSET->x > 0) {
-        fullBox.x = m_vLastWindowPos.x + m_vLastWindowSize.x - fullBox.width + (*PSHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->x - pMonitor->vecPosition.x;
+        fullBox.x = m_vLastWindowPos.x + m_vLastWindowSize.x - fullBox.width + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->x - pMonitor->vecPosition.x;
     } else {
         fullBox.x += ((m_vLastWindowSize.x + 2.0 * *PSHADOWSIZE) - NEWSIZE.x) / 2.0;
     }
@@ -97,7 +99,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (PSHADOWOFFSET->y < 0) {
         fullBox.y += PSHADOWOFFSET->y;
     } else if (PSHADOWOFFSET->y > 0) {
-        fullBox.y = m_vLastWindowPos.y + m_vLastWindowSize.y - fullBox.height + (*PSHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->y - pMonitor->vecPosition.y;
+        fullBox.y = m_vLastWindowPos.y + m_vLastWindowSize.y - fullBox.height + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->y - pMonitor->vecPosition.y;
     } else {
         fullBox.y += ((m_vLastWindowSize.y + 2.0 * *PSHADOWSIZE) - NEWSIZE.y) / 2.0;
     }

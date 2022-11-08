@@ -121,6 +121,8 @@
       workspace_swipe_invert = ${lib.boolToString workspace_swipe.invert}
       workspace_swipe_min_speed_to_force = ${toString workspace_swipe.min_speed_to_force}
       workspace_swipe_cancel_ratio = ${toString workspace_swipe.cancel_ratio}
+      workspace_swipe_create_new = ${lib.boolToString workspace_swipe.create_new}
+      workspace_swipe_forever = ${lib.boolToString workspace_swipe.forever}
     }
   '')}
 

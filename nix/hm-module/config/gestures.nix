@@ -39,5 +39,17 @@
       description = lib.mdDoc ''description'';
       example = lib.literalExpression '''';
     };
+    create_new = lib.mkOption {
+      type = types.bool;
+      default = true;
+      description = lib.mdDoc ''description'';
+      example = lib.literalExpression '''';
+    };
+    forever = lib.mkOption {
+      type = types.bool;
+      default = false;
+      description = lib.mdDoc ''description'';
+      example = lib.literalExpression '''';
+    };
   };
 }

@@ -52,9 +52,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         return;
     }
 
-    if (g_pCompositor->m_sSeat.mouse->virt)
-        return; // don't refocus on virt
-
     if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS) {
         // enable dpms
         g_pKeybindManager->dpms("on");
@@ -861,6 +858,10 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
 	}
 }
 
+bool CInputManager::shouldIgnoreVirtualKeyboard(SKeyboard* pKeyboard) {
+    return !pKeyboard || (m_sIMERelay.m_pKeyboardGrab && wl_resource_get_client(m_sIMERelay.m_pKeyboardGrab->pWlrKbGrab->resource) == wl_resource_get_client(wlr_input_device_get_virtual_keyboard(pKeyboard->keyboard)->resource));
+}
+
 void CInputManager::refocus() {
     mouseMoveUnified(0, true);
 }
@@ -1002,7 +1003,7 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
     uint32_t finalMask = 0;
 
     for (auto& kb : m_lKeyboards) {
-        if (kb.isVirtual)
+        if (kb.isVirtual && shouldIgnoreVirtualKeyboard(&kb))
             continue;
 
         finalMask |= wlr_keyboard_get_modifiers(wlr_keyboard_from_input_device(kb.keyboard));

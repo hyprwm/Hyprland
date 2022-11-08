@@ -66,6 +66,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     static auto *const PSHADOWSIZE = &g_pConfigManager->getConfigValuePtr("decoration:shadow_range")->intValue;
     static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
     static auto *const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
+    static auto *const PSHADOWSCALE = &g_pConfigManager->getConfigValuePtr("decoration:shadow_scale")->floatValue;
     static auto *const PSHADOWOFFSET = &g_pConfigManager->getConfigValuePtr("decoration:shadow_offset")->vecValue;
 
     if (*PSHADOWS != 1)
@@ -73,22 +74,45 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
     const auto ROUNDING = !m_pWindow->m_sSpecialRenderData.rounding ? 0 : (m_pWindow->m_sAdditionalConfigData.rounding == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding);
 
-    // update the extents
-    m_seExtents = {{*PSHADOWSIZE + 2 - PSHADOWOFFSET->x, *PSHADOWSIZE + 2 - PSHADOWOFFSET->y}, {*PSHADOWSIZE + 2 + PSHADOWOFFSET->x, *PSHADOWSIZE + 2 + PSHADOWOFFSET->y}};
-
     // draw the shadow
-    wlr_box fullBox = {m_vLastWindowPos.x - m_seExtents.topLeft.x + 2, m_vLastWindowPos.y - m_seExtents.topLeft.y + 2, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x - 4, m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y - 4};
+    wlr_box fullBox = { m_vLastWindowPos.x - *PSHADOWSIZE, m_vLastWindowPos.y - *PSHADOWSIZE,
+                        m_vLastWindowSize.x + 2.0 * *PSHADOWSIZE, m_vLastWindowSize.y + 2.0 * *PSHADOWSIZE };
 
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
 
-    fullBox.x += offset.x;
-    fullBox.y += offset.y;
+    const float SHADOWSCALE = std::clamp(*PSHADOWSCALE, 0.f, 1.f);
+
+    // scale the box in relation to the center of the box
+    const Vector2D NEWSIZE = Vector2D { fullBox.width, fullBox.height } * SHADOWSCALE;
+    fullBox.width = NEWSIZE.x;
+    fullBox.height = NEWSIZE.y;
+
+    if (PSHADOWOFFSET->x < 0) {
+        fullBox.x += PSHADOWOFFSET->x;
+    } else if (PSHADOWOFFSET->x > 0) {
+        fullBox.x = m_vLastWindowPos.x + m_vLastWindowSize.x - fullBox.width + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->x - pMonitor->vecPosition.x;
+    } else {
+        fullBox.x += ((m_vLastWindowSize.x + 2.0 * *PSHADOWSIZE) - NEWSIZE.x) / 2.0;
+    }
+
+    if (PSHADOWOFFSET->y < 0) {
+        fullBox.y += PSHADOWOFFSET->y;
+    } else if (PSHADOWOFFSET->y > 0) {
+        fullBox.y = m_vLastWindowPos.y + m_vLastWindowSize.y - fullBox.height + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->y - pMonitor->vecPosition.y;
+    } else {
+        fullBox.y += ((m_vLastWindowSize.y + 2.0 * *PSHADOWSIZE) - NEWSIZE.y) / 2.0;
+    }
+
+    m_seExtents = { { m_vLastWindowPos.x - fullBox.x + pMonitor->vecPosition.x + 2,
+                    m_vLastWindowPos.y - fullBox.y + pMonitor->vecPosition.y + 2},
+                    { fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_pWindow->m_vRealPosition.vec().x - m_pWindow->m_vRealSize.vec().x + 2,
+                    fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_pWindow->m_vRealPosition.vec().y - m_pWindow->m_vRealSize.vec().y + 2} };
 
     if (fullBox.width < 1 || fullBox.height < 1)
-        return; // don't draw invisible shadows
+        return;  // don't draw invisible shadows
 
-    g_pHyprOpenGL->scissor((wlr_box *)nullptr);
+    g_pHyprOpenGL->scissor((wlr_box*)nullptr);
 
     if (*PSHADOWIGNOREWINDOW) {
         glEnable(GL_STENCIL_TEST);

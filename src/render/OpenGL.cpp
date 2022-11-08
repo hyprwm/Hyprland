@@ -1236,13 +1236,13 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
             }
         }
 
-	pixman_region32_fini(&damageClip);
+	    pixman_region32_fini(&damageClip);
     } else {
-	PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-	    const auto RECT = RECTSARR[i];
-	    scissor(&RECT);
-	    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	}
+	    PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+	        const auto RECT = RECTSARR[i];
+	        scissor(&RECT);
+	        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	    }
     }
 
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib);

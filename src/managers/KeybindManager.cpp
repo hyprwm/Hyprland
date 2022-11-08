@@ -16,6 +16,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pseudo"]                    = toggleActivePseudo;
     m_mDispatchers["movefocus"]                 = moveFocusTo;
     m_mDispatchers["movewindow"]                = moveActiveTo;
+    m_mDispatchers["centerwindow"]              = centerWindow;
     m_mDispatchers["togglegroup"]               = toggleGroup;
     m_mDispatchers["changegroupactive"]         = changeGroupActive;
     m_mDispatchers["togglesplit"]               = toggleSplit;
@@ -164,7 +165,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         return true;
     }
 
-    if (pKeyboard->isVirtual)
+    if (pKeyboard->isVirtual && g_pInputManager->shouldIgnoreVirtualKeyboard(pKeyboard))
         return true;
 
     if (!m_pXKBTranslationState) {
@@ -579,6 +580,18 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
     g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
 }
 
+void CKeybindManager::centerWindow(std::string args) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
+        return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+
+    PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f;
+    PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.goalv();
+}
+
 void CKeybindManager::toggleActivePseudo(std::string args) {
     const auto ACTIVEWINDOW = g_pCompositor->m_pLastWindow;
 
@@ -617,7 +630,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             return;
         } else {
             workspaceToChangeTo = PCURRENTWORKSPACE->m_iPrevWorkspaceID;
-            
+
             if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo); PWORKSPACETOCHANGETO)
                 workspaceName = PWORKSPACETOCHANGETO->m_szName;
             else
@@ -650,7 +663,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         const auto PPREVWORKSPACE = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->m_iPrevWorkspaceID);
 
         workspaceToChangeTo = PCURRENTWORKSPACE->m_iPrevWorkspaceID;
-        
+
         if (PPREVWORKSPACE)
             workspaceName = PPREVWORKSPACE->m_szName;
         else

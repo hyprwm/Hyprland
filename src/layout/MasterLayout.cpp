@@ -20,6 +20,16 @@ int CHyprMasterLayout::getNodesOnWorkspace(const int& ws) {
     return no;
 }
 
+int CHyprMasterLayout::getMastersOnWorkspace(const int& ws) {
+    int no = 0;
+    for (auto& n : m_lMasterNodesData) {
+        if (n.workspaceID == ws && n.isMaster)
+            no++;
+    }
+
+    return no;
+}
+
 std::string CHyprMasterLayout::getLayoutName() {
     return "Master";
 }
@@ -104,7 +114,9 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
     if (pWindow->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
-    if (PNODE->isMaster) {
+    const auto MASTERSLEFT = getMastersOnWorkspace(PNODE->workspaceID);
+
+    if (PNODE->isMaster && MASTERSLEFT < 2) {
         // find new one
         for (auto& nd : m_lMasterNodesData) {
             if (!nd.isMaster) {
@@ -115,6 +127,15 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
     }
 
     m_lMasterNodesData.remove(*PNODE);
+
+    if (getMastersOnWorkspace(PNODE->workspaceID) == getNodesOnWorkspace(PNODE->workspaceID) && MASTERSLEFT > 1) {
+        for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
+            if (it->workspaceID == PNODE->workspaceID) {
+                it->isMaster = false;
+                break;
+            }
+        }
+    }
 
     recalculateMonitor(pWindow->m_iMonitorID);
 }
@@ -169,27 +190,35 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if (!PMASTERNODE)
         return;
 
+    const auto MASTERS = getMastersOnWorkspace(PWORKSPACE->m_iID);
+
     if (getNodesOnWorkspace(PWORKSPACE->m_iID) < 2) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x, PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else {
-        PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
-        PMASTERNODE->size = Vector2D((PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) * PMASTERNODE->percMaster, PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+        int masterno = 0;
+        const float HEIGHTOFMASTER = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y;
+
+        for (auto& n : m_lMasterNodesData) {
+            if (n.workspaceID == PWORKSPACE->m_iID && n.isMaster) {
+                n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(0, masterno * (HEIGHTOFMASTER / MASTERS));
+                n.size = Vector2D((PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) * PMASTERNODE->percMaster, HEIGHTOFMASTER / MASTERS);
+
+                masterno++;
+
+                applyNodeDataToWindow(&n);
+            }
+        }
     }
 
-    const auto SLAVESIZE = 1.f / (getNodesOnWorkspace(PWORKSPACE->m_iID) - 1) * (PMASTERNODE->size.y);
+    const auto SLAVESIZE = 1.f / (getNodesOnWorkspace(PWORKSPACE->m_iID) - MASTERS) * (PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
     int slavesDone = 0;
 
     for (auto& nd : m_lMasterNodesData) {
-        if (nd.workspaceID != PWORKSPACE->m_iID)
+        if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
             continue;
-
-        if (nd == *PMASTERNODE) {
-            applyNodeDataToWindow(PMASTERNODE);
-            continue;
-        }
 
         nd.position = Vector2D(PMASTERNODE->size.x + PMASTERNODE->position.x, slavesDone * SLAVESIZE + PMASTERNODE->position.y);
         nd.size = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PMONITOR->vecReservedTopLeft.x - PMASTERNODE->size.x, SLAVESIZE);
@@ -618,6 +647,64 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
             g_pCompositor->focusWindow(header.pWindow);
         }
+    } else if (message == "addmaster") {
+        if (!g_pCompositor->windowValidMapped(header.pWindow))
+            return 0;
+
+        if (header.pWindow->m_bIsFloating)
+            return 0;
+
+        const auto PNODE   = getNodeFromWindow(header.pWindow);
+
+        const auto WINDOWS = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto MASTERS = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
+
+        if (MASTERS + 2 > WINDOWS)
+            return 0;
+
+        if (!PNODE || PNODE->isMaster) {
+            // first non-master node
+            for (auto& n : m_lMasterNodesData) {
+                if (n.workspaceID == header.pWindow->m_iWorkspaceID && !n.isMaster) {
+                    n.isMaster = true;
+                    break;
+                }
+            }
+        } else {
+            PNODE->isMaster = true;
+        }
+
+        recalculateMonitor(header.pWindow->m_iMonitorID);
+
+    } else if (message == "removemaster") {
+
+        if (!g_pCompositor->windowValidMapped(header.pWindow))
+            return 0;
+
+        if (header.pWindow->m_bIsFloating)
+            return 0;
+
+        const auto PNODE = getNodeFromWindow(header.pWindow);
+
+        const auto WINDOWS = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto MASTERS = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
+
+        if (WINDOWS < 2 || MASTERS < 2)
+            return 0;
+
+        if (!PNODE || !PNODE->isMaster) {
+            // first non-master node
+            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
+                if (it->workspaceID == header.pWindow->m_iWorkspaceID && it->isMaster) {
+                    it->isMaster = false;
+                    break;
+                }
+            }
+        } else {
+            PNODE->isMaster = false;
+        }
+
+        recalculateMonitor(header.pWindow->m_iMonitorID);
     }
 
     return 0;

@@ -183,10 +183,13 @@ void IHyprLayout::onEndDragWindow() {
 
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;
+        g_pInputManager->refocus();
         changeWindowFloatingMode(DRAGGINGWINDOW);
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
+
+    g_pCompositor->focusWindow(DRAGGINGWINDOW);
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {

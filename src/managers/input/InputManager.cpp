@@ -294,7 +294,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             m_bLastFocusOnLS = false;
             return;  // don't enter any new surfaces
         } else {
-            if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || (refocus && *PFOLLOWMOUSE != 3))
+            if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus)
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
 
@@ -387,12 +387,16 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     // notify the keybind manager
     static auto *const PPASSMOUSE = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
     const auto PASS = g_pKeybindManager->onMouseEvent(e);
+    static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
 
     if (!PASS && !*PPASSMOUSE)
         return;
 
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
+            if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
+                break;
+
             if (!g_pCompositor->m_sSeat.mouse->currentConstraint)
                 refocus();
 

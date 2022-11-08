@@ -273,7 +273,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 if (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
-            } else if (*PFOLLOWMOUSE == 2) {
+            } else if (*PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
@@ -294,7 +294,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             m_bLastFocusOnLS = false;
             return;  // don't enter any new surfaces
         } else {
-            if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus)
+            if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || (refocus && *PFOLLOWMOUSE != 3))
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
 

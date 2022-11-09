@@ -299,11 +299,11 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         pWindow->moveToWorkspace(PNEWMON->activeWorkspace);
 
         // save real pos cuz the func applies the default 5,5 mid
-        const auto PSAVEDPOS = pWindow->m_vRealPosition.vec();
-        const auto PSAVEDSIZE = pWindow->m_vRealSize.vec();
+        const auto PSAVEDPOS = pWindow->m_vRealPosition.goalv();
+        const auto PSAVEDSIZE = pWindow->m_vRealSize.goalv();
 
         // if the window is pseudo, update its size
-        pWindow->m_vPseudoSize = pWindow->m_vRealSize.vec();
+        pWindow->m_vPseudoSize = pWindow->m_vRealSize.goalv();
 
         pWindow->m_vLastFloatingSize = PSAVEDSIZE;
 
@@ -321,15 +321,15 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         if (pWindow == g_pCompositor->m_pLastWindow)
             m_pLastTiledWindow = pWindow;
     } else {
-        pWindow->m_vSize = pWindow->m_vRealSize.vec();
-        pWindow->m_vPosition = pWindow->m_vRealPosition.vec();
-
         onWindowRemovedTiling(pWindow);
 
         g_pCompositor->moveWindowToTop(pWindow);
 
-        pWindow->m_vRealPosition = pWindow->m_vRealPosition.vec() + (pWindow->m_vRealSize.vec() - pWindow->m_vLastFloatingSize) / 2.f;
+        pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f;
         pWindow->m_vRealSize = pWindow->m_vLastFloatingSize;
+
+        pWindow->m_vSize = pWindow->m_vRealSize.goalv();
+        pWindow->m_vPosition = pWindow->m_vRealPosition.goalv();
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 

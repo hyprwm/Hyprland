@@ -565,9 +565,12 @@ void countSubsurfacesIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
+    if (!pMonitor->mirrors.empty())
+        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
 
-    if (!PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || g_pCompositor->m_sSeat.exclusiveClient)
+    if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || g_pCompositor->m_sSeat.exclusiveClient)
         return false;
 
     const auto PCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);

@@ -71,14 +71,19 @@ struct SAnimationPropertyConfig {
     SAnimationPropertyConfig* pParentAnimation = nullptr;
 };
 
+struct SExecRequestedRule {
+    std::string     szRule = "";
+    uint64_t        iPid = 0;
+};
+
 class CVarList {
 public:
-    CVarList(const std::string& in, long unsigned int lastArgNo = 0) {
+    CVarList(const std::string& in, long unsigned int lastArgNo = 0, const char separator = ',') {
         std::string curitem = "";
         std::string argZ = in;
 
         auto nextItem = [&]() {
-            auto idx = lastArgNo != 0 && m_vArgs.size() >= lastArgNo - 1 ? std::string::npos : argZ.find_first_of(',');
+            auto idx = lastArgNo != 0 && m_vArgs.size() >= lastArgNo - 1 ? std::string::npos : argZ.find_first_of(separator);
 
             if (idx != std::string::npos) {
                 curitem = argZ.substr(0, idx);
@@ -109,7 +114,13 @@ public:
         return m_vArgs[idx];
     }
 
-private:
+    // for range-based loops
+    std::vector<std::string>::iterator begin() { return m_vArgs.begin(); }
+    std::vector<std::string>::const_iterator begin() const { return m_vArgs.begin(); }
+    std::vector<std::string>::iterator end() { return m_vArgs.end(); }
+    std::vector<std::string>::const_iterator end() const { return m_vArgs.end(); }
+
+  private:
     std::vector<std::string> m_vArgs;
 };
 
@@ -160,6 +171,8 @@ public:
 
     SAnimationPropertyConfig* getAnimationPropertyConfig(const std::string&);
 
+    void                addExecRule(SExecRequestedRule);
+
     std::string                                   configCurrentPath;
 
 private:
@@ -178,6 +191,8 @@ private:
     std::string m_szCurrentSubmap = ""; // For storing the current keybind submap
 
     std::vector<std::pair<std::string, std::string>> boundWorkspaces;
+
+    std::vector<SExecRequestedRule>               execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 
     bool isFirstLaunch = true;  // For exec-once
 

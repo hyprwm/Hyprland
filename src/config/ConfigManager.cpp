@@ -1490,6 +1490,19 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         returns.push_back(rule);
     }
 
+    const auto PID = pWindow->getPID();
+    bool anyExecFound = false;
+
+    for (auto& er : execRequestedRules) {
+        if (er.iPid == PID) {
+            returns.push_back({er.szRule, "execRule"});
+            anyExecFound = true;
+        }
+    }
+
+    if (anyExecFound) // remove exec rules to unclog searches in the future, why have the garbage here.
+        execRequestedRules.erase(std::remove_if(execRequestedRules.begin(), execRequestedRules.end(), [&](const SExecRequestedRule& other) { return other.iPid == PID; }));
+
     return returns;
 }
 
@@ -1645,4 +1658,8 @@ CMonitor* CConfigManager::getBoundMonitorForWS(std::string wsname) {
     }
 
     return nullptr;
+}
+
+void CConfigManager::addExecRule(SExecRequestedRule rule) {
+    execRequestedRules.push_back(rule);
 }

@@ -227,7 +227,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
             continue;
 
-        nd.position = Vector2D(PMASTERNODE->size.x + PMASTERNODE->position.x, nextY);
+        nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(PMASTERNODE->percMaster * PMONITOR->vecSize.x, nextY);
         float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
         if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
             HEIGHT = heightLeft * 0.9f;

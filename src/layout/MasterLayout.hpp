@@ -15,6 +15,8 @@ struct SMasterNodeData {
     Vector2D position;
     Vector2D size;
 
+    float percSize = 1.f; // size multiplier for resizing children
+
     int workspaceID = -1;
 
     bool operator==(const SMasterNodeData& rhs) {

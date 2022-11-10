@@ -168,8 +168,11 @@ int dispatchRequest(int argc, char** argv) {
 
     std::string rq = "/dispatch";
 
-    for(int i = 2; i < argc; i++)
+    for(int i = 2; i < argc; i++) {
+        if (!strcmp(argv[i], "--"))
+            continue;
         rq += " " + std::string(argv[i]);
+    }
 
     request(rq);
     return 0;
@@ -253,6 +256,7 @@ bool isNumber(const std::string& str, bool allowfloat) {
 
 int main(int argc, char** argv) {
     int bflag = 0, sflag = 0, index, c;
+    bool parseArgs = true;
 
     if (argc < 2) {
         printf("%s\n", USAGE.c_str());
@@ -264,7 +268,12 @@ int main(int argc, char** argv) {
     const auto ARGS = splitArgs(argc, argv);
 
     for (auto i = 0; i < ARGS.size(); ++i) {
-        if (ARGS[i][0] == '-' && !isNumber(ARGS[i], true) /* For stuff like -2 */) {
+        if (ARGS[i] == "--") {
+            // Stop parsing arguments after --
+            parseArgs = false;
+            continue;
+        }
+        if (parseArgs && (ARGS[i][0] == '-') && !isNumber(ARGS[i], true) /* For stuff like -2 */) {
             // parse
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";

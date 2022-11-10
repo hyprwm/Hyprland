@@ -1435,7 +1435,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         returns.push_back(rule);
     }
 
-    const auto PID = pWindow->getPID();
+    const uint64_t PID = pWindow->getPID();
     bool anyExecFound = false;
 
     for (auto& er : execRequestedRules) {

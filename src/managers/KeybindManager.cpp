@@ -483,6 +483,17 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 // Dispatchers
 
 void CKeybindManager::spawn(std::string args) {
+
+    args = removeBeginEndSpacesTabs(args);
+
+    std::string RULES = "";
+
+    if (args[0] == '[') {
+        // we have exec rules
+        RULES = args.substr(1, args.substr(1).find_first_of(']'));
+        args = args.substr(args.find_first_of(']') + 1);
+    }
+
     if (g_pXWaylandManager->m_sWLRXWayland)
         args = "WAYLAND_DISPLAY=" + std::string(g_pCompositor->m_szWLDisplaySocket) + " DISPLAY=" + std::string(g_pXWaylandManager->m_sWLRXWayland->display_name) + " " + args;
     else
@@ -535,7 +546,18 @@ void CKeybindManager::spawn(std::string args) {
         Debug::log(LOG, "Fail to create the second fork");
         return;
     }
+
     Debug::log(LOG, "Process Created with pid %d", grandchild);
+
+    if (!RULES.empty()) {
+        const auto RULESLIST = CVarList(RULES, 0, ';');
+
+        for (auto& r : RULESLIST) {
+            g_pConfigManager->addExecRule({r, (unsigned long)grandchild});
+        }
+
+        Debug::log(LOG, "Applied %i rule arguments for exec.", RULESLIST.size());
+    }
 }
 
 void CKeybindManager::killActive(std::string args) {

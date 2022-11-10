@@ -1536,7 +1536,40 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 }
 
 CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
-    if (isNumber(name)) {
+    if (name[0] == '+' || name[0] == '-') {
+        // relative
+        const auto OFFSET = name[0] == '-' ? name : name.substr(1);
+
+        if (!isNumber(OFFSET)) {
+            Debug::log(ERR, "Error in getMonitorFromString: Not a number in relative.");
+            return nullptr;
+        }
+
+        int offsetLeft = std::stoi(OFFSET) % m_vMonitors.size(); // no need to cycle more
+
+        int currentPlace = 0;
+        for (int i = 0; i < (int)m_vMonitors.size(); i++) {
+            if (m_vMonitors[i].get() == m_pLastMonitor) {
+                currentPlace = i;
+                break;
+            }
+        }
+
+        currentPlace += offsetLeft;
+
+        if (currentPlace < 0) {
+            currentPlace = m_vMonitors.size() - currentPlace;
+        } else {
+            currentPlace = currentPlace % m_vMonitors.size();
+        }
+
+        if (currentPlace != std::clamp(currentPlace, 0, (int)m_vMonitors.size())) {
+            Debug::log(WARN, "Error in getMonitorFromString: Vaxry's code sucks.");
+            currentPlace = std::clamp(currentPlace, 0, (int)m_vMonitors.size());
+        }
+
+        return m_vMonitors[currentPlace].get();
+    } else if (isNumber(name)) {
         // change by ID
         int monID = -1;
         try {

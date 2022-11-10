@@ -145,6 +145,9 @@ void scaleBox(wlr_box* box, float scale) {
 }
 
 std::string removeBeginEndSpacesTabs(std::string str) {
+    if (str.empty())
+        return str;
+
     int countBefore = 0;
     while (str[countBefore] == ' ' || str[countBefore] == '\t') {
         countBefore++;

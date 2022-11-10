@@ -7,6 +7,7 @@
 #include <functional>
 
 class CInputManager;
+class CConfigManager;
 
 struct SKeybind {
     std::string       key = "";
@@ -125,6 +126,7 @@ private:
 
     friend class CCompositor;
     friend class CInputManager;
+    friend class CConfigManager;
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

@@ -251,6 +251,8 @@ std::deque<std::string> splitArgs(int argc, char** argv) {
 }
 
 bool isNumber(const std::string& str, bool allowfloat) {
+    if (str.empty())
+        return false;
     return std::ranges::all_of(str.begin(), str.end(), [&](char c) { return isdigit(c) != 0 || c == '-' || (allowfloat && c == '.'); });
 }
 

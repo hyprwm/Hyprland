@@ -14,6 +14,7 @@
   mesa,
   mount,
   pango,
+  pciutils,
   wayland,
   wayland-protocols,
   wayland-scanner,
@@ -68,6 +69,7 @@ in
           wayland
           wayland-protocols
           wayland-scanner
+          pciutils
           (wlroots.override {inherit enableXWayland hidpiXWayland nvidiaPatches;})
         ]
         ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland];

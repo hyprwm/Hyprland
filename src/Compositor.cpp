@@ -1415,7 +1415,9 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     if (RENDERDATA.isBorderColor)
         pWindow->m_cRealBorderColor = RENDERDATA.borderColor;
     else
-        pWindow->m_cRealBorderColor = CColor(pWindow == m_pLastWindow ? *ACTIVECOL : *INACTIVECOL);
+        pWindow->m_cRealBorderColor = CColor(pWindow == m_pLastWindow ?
+                                                        (pWindow->m_sSpecialRenderData.activeBorderColor >= 0 ? pWindow->m_sSpecialRenderData.activeBorderColor : *ACTIVECOL) :
+                                                        (pWindow->m_sSpecialRenderData.inactiveBorderColor >= 0 ? pWindow->m_sSpecialRenderData.inactiveBorderColor : *INACTIVECOL));
 
 
     // opacity

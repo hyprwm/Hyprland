@@ -216,6 +216,20 @@ void Events::listener_mapWindow(void* owner, void* data) {
             } else {
                 Debug::log(ERR, "Rule idleinhibit: unknown mode %s", IDLERULE.c_str());
             }
+        } else if (r.szRule.find("bordercolor") == 0) {
+            try {
+                std::string colorPart = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+
+                if (colorPart.contains(' ')) {
+                    // we have a comma, 2 values
+                    PWINDOW->m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
+                    PWINDOW->m_sSpecialRenderData.inactiveBorderColor = configStringToInt(colorPart.substr(colorPart.find_first_of(' ') + 1));
+                } else {
+                    PWINDOW->m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
+                }
+            } catch(std::exception& e) {
+                Debug::log(ERR, "BorderColor rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
+            }
         }
     }
 
@@ -259,7 +273,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         if (!PWORKSPACE) {
             std::string workspaceName = "";
             int workspaceID = 0;
-            
+
             if (requestedWorkspace.find("name:") == 0) {
                 workspaceName = requestedWorkspace.substr(5);
                 workspaceID = g_pCompositor->getNextAvailableNamedWorkspace();

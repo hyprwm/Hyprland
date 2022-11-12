@@ -115,6 +115,8 @@ public:
 
     CInputMethodRelay m_sIMERelay;
 
+    void            updateKeyboardsLeds(wlr_input_device* pKeyboard);
+
     // for shared mods
     uint32_t        accumulateModsFromAllKBs();
 

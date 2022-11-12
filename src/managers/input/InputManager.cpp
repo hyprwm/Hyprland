@@ -818,6 +818,31 @@ void CInputManager::destroyMouse(wlr_input_device* mouse) {
         unconstrainMouse();
 }
 
+
+void CInputManager::updateKeyboardsLeds(wlr_input_device* pKeyboard) {    
+    auto keyboard = wlr_keyboard_from_input_device(pKeyboard);
+    
+    if (keyboard->xkb_state == NULL) {
+		return;
+	}
+
+	uint32_t leds = 0;
+	for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
+		if (xkb_state_led_index_is_active(keyboard->xkb_state,
+				keyboard->led_indexes[i])) {
+			leds |= (1 << i);
+		}
+	}
+    
+    for (auto& kb : m_lKeyboards) {
+        if ((kb.isVirtual && shouldIgnoreVirtualKeyboard(&kb)) || kb.keyboard == pKeyboard)
+            continue;
+
+        wlr_keyboard_led_update(wlr_keyboard_from_input_device(kb.keyboard), leds);
+    }
+}
+
+
 void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
     bool passEvent = g_pKeybindManager->onKeyEvent(e, pKeyboard);
 
@@ -834,6 +859,8 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
             wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
             wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e->time_msec, e->keycode, e->state);
         }
+
+        updateKeyboardsLeds(pKeyboard->keyboard);
     }
 }
 
@@ -852,6 +879,8 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
         wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
         wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &MODS);
     }
+
+    updateKeyboardsLeds(pKeyboard->keyboard);
 
     const auto PWLRKB = wlr_keyboard_from_input_device(pKeyboard->keyboard);
 

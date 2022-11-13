@@ -450,3 +450,39 @@ int64_t getPPIDof(int64_t pid) {
     }
 #endif
 }
+
+int64_t configStringToInt(const std::string& VALUE) {
+    if (VALUE.find("0x") == 0) {
+        // Values with 0x are hex
+        const auto VALUEWITHOUTHEX = VALUE.substr(2);
+        return stol(VALUEWITHOUTHEX, nullptr, 16);
+    } else if (VALUE.find("rgba(") == 0 && VALUE.find(")") == VALUE.length() - 1) {
+        const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
+
+        if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
+            Debug::log(WARN, "invalid length %i for rgba", VALUEWITHOUTFUNC.length());
+            throw std::invalid_argument("rgba() expects length of 8 characters (4 bytes)");
+        }
+
+        const auto RGBA = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
+
+        // now we need to RGBA -> ARGB. The config holds ARGB only.
+        return (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
+    } else if (VALUE.find("rgb(") == 0 && VALUE.find(")") == VALUE.length() - 1) {
+        const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
+
+        if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {
+            Debug::log(WARN, "invalid length %i for rgb", VALUEWITHOUTFUNC.length());
+            throw std::invalid_argument("rgb() expects length of 6 characters (3 bytes)");
+        }
+
+        const auto RGB = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
+
+        return RGB + 0xFF000000; // 0xFF for opaque
+    } else if (VALUE.find("true") == 0 || VALUE.find("on") == 0 || VALUE.find("yes") == 0) {
+        return 1;
+    } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
+        return 0;
+    }
+    return stol(VALUE);
+}

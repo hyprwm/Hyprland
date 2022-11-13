@@ -312,45 +312,10 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
 
     if (CONFIGENTRY->intValue != -INT64_MAX) {
         try {
-            if (VALUE.find("0x") == 0) {
-                // Values with 0x are hex
-                const auto VALUEWITHOUTHEX = VALUE.substr(2);
-                CONFIGENTRY->intValue = stol(VALUEWITHOUTHEX, nullptr, 16);
-            } else if (VALUE.find("rgba(") == 0 && VALUE.find(")") == VALUE.length() - 1) {
-                const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
-
-                if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
-                    Debug::log(WARN, "invalid length %i for rgba", VALUEWITHOUTFUNC.length());
-                    parseError = "rgba() expects length of 8 characters (4 bytes)";
-                    return;
-                }
-
-                const auto RGBA = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
-
-                // now we need to RGBA -> ARGB. The config holds ARGB only.
-                CONFIGENTRY->intValue = (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
-            } else if (VALUE.find("rgb(") == 0 && VALUE.find(")") == VALUE.length() - 1) {
-                const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
-
-                if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {
-                    Debug::log(WARN, "invalid length %i for rgb", VALUEWITHOUTFUNC.length());
-                    parseError = "rgb() expects length of 6 characters (3 bytes)";
-                    return;
-                }
-
-                const auto RGB = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
-
-                CONFIGENTRY->intValue = RGB + 0xFF000000; // 0xFF for opaque
-            } else if (VALUE.find("true") == 0 || VALUE.find("on") == 0 || VALUE.find("yes") == 0) {
-                CONFIGENTRY->intValue = 1;
-            } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
-                CONFIGENTRY->intValue = 0;
-            }
-            else
-                CONFIGENTRY->intValue = stol(VALUE);
-        } catch (...) {
+            CONFIGENTRY->intValue = configStringToInt(VALUE);
+        } catch (std::exception& e) {
             Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
-            parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
+            parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. " + e.what();
         }
     } else if (CONFIGENTRY->floatValue != -__FLT_MAX__) {
         try {
@@ -717,7 +682,8 @@ bool windowRuleValid(const std::string& RULE) {
         && RULE != "windowdance"
         && RULE.find("animation") != 0
         && RULE.find("rounding") != 0
-        && RULE.find("workspace") != 0);
+        && RULE.find("workspace") != 0
+        && RULE.find("bordercolor") != 0);
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {

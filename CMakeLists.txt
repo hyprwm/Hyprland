@@ -22,7 +22,7 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process(
-    COMMAND sh -c "git show ${GIT_COMMIT_HASH} | head -n 5 | tail -n 1 | sed -s 's/#//g'"
+    COMMAND sh -c "git show ${GIT_COMMIT_HASH} | head -n 5 | tail -n 1 | sed -s 's/#|\"//g'"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_MESSAGE
     OUTPUT_STRIP_TRAILING_WHITESPACE)

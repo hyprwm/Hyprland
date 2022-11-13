@@ -68,14 +68,9 @@ R"#({
     return result;
 }
 
-std::string clientsRequest(HyprCtl::eHyprCtlOutputFormat format) {
-    std::string result = "";
+static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat format) {
     if (format == HyprCtl::FORMAT_JSON) {
-        result += "[";
-
-        for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped) {
-                result += getFormat(
+        return getFormat(
 R"#({
     "address": "0x%x",
     "at": [%i, %i],
@@ -94,20 +89,34 @@ R"#({
     "fullscreen": %s,
     "fullscreenMode": %i
 },)#",
-                    w.get(),
+                    w,
                     (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
                     (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y,
                     w->m_iWorkspaceID, escapeJSONStrings(w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID))).c_str(),
                     ((int)w->m_bIsFloating == 1 ? "true" : "false"),
                     w->m_iMonitorID,
-                    escapeJSONStrings(g_pXWaylandManager->getAppIDClass(w.get())).c_str(),
-                    escapeJSONStrings(g_pXWaylandManager->getTitle(w.get())).c_str(),
+                    escapeJSONStrings(g_pXWaylandManager->getAppIDClass(w)).c_str(),
+                    escapeJSONStrings(g_pXWaylandManager->getTitle(w)).c_str(),
                     w->getPID(),
                     ((int)w->m_bIsX11 == 1 ? "true" : "false"),
                     (w->m_bPinned ? "true" : "false"),
                     (w->m_bIsFullscreen ? "true" : "false"),
                     (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0)
                 );
+    } else {
+        return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\txwayland: %i\n\tpinned: %i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\n",
+                         w, w->m_szTitle.c_str(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y, (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w).c_str(), g_pXWaylandManager->getTitle(w).c_str(), w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen, (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0));
+    }
+}
+
+std::string clientsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (w->m_bIsMapped) {
+                result += getWindowData(w.get(), format);
             }
         }
 
@@ -119,9 +128,7 @@ R"#({
     } else {
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped) {
-                result += getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\txwayland: %i\n\tpinned: %i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\n",
-                                w.get(), w->m_szTitle.c_str(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y, (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID, (w->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() : std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()), (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w.get()).c_str(), g_pXWaylandManager->getTitle(w.get()).c_str(), w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen, (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0));
-
+                result += getWindowData(w.get(), format);
             }
         }
     }
@@ -175,39 +182,7 @@ std::string activeWindowRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return format == HyprCtl::FORMAT_JSON ? "{}" : "Invalid";
-
-    if (format == HyprCtl::FORMAT_JSON) {
-        return getFormat(
-R"#({
-    "address": "0x%x",
-    "at": [%i, %i],
-    "size": [%i, %i],
-    "workspace": {
-        "id": %i,
-        "name": "%s"
-    },
-    "floating": %s,
-    "monitor": %i,
-    "class": "%s",
-    "title": "%s",
-    "pid": %i,
-    "xwayland": %s
-})#",
-            PWINDOW,
-            (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y,
-            (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y,
-            PWINDOW->m_iWorkspaceID, escapeJSONStrings(PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName).c_str(),
-            ((int)PWINDOW->m_bIsFloating == 1 ? "true" : "false"),
-            PWINDOW->m_iMonitorID,
-            escapeJSONStrings(g_pXWaylandManager->getAppIDClass(PWINDOW)).c_str(),
-            escapeJSONStrings(g_pXWaylandManager->getTitle(PWINDOW)).c_str(),
-            PWINDOW->getPID(),
-            ((int)PWINDOW->m_bIsX11 == 1 ? "true" : "false")
-        );
-    } else {
-        return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\txwayland: %i\n\n",
-                            PWINDOW, PWINDOW->m_szTitle.c_str(), (int)PWINDOW->m_vRealPosition.vec().x, (int)PWINDOW->m_vRealPosition.vec().y, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y, PWINDOW->m_iWorkspaceID, (PWINDOW->m_iWorkspaceID == -1 ? "" : g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_szName.c_str()), (int)PWINDOW->m_bIsFloating, (int)PWINDOW->m_iMonitorID, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), g_pXWaylandManager->getTitle(PWINDOW).c_str(), PWINDOW->getPID(), (int)PWINDOW->m_bIsX11);
-    }
+    return getWindowData(PWINDOW, format);
 }
 
 std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {

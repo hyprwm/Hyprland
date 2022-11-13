@@ -131,7 +131,7 @@ all:
 install:
 	make clear
 	make fixwlr
-	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.11032 /usr/lib/ && cd ../..
+	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
 	make protocols
 	make release
 	cd hyprctl && make all && cd ..
@@ -151,7 +151,7 @@ install:
 cleaninstall:
 	make clear
 	make fixwlr
-	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.11032 /usr/lib/ && cd ../..
+	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
 	make protocols
 	make release
 	cd hyprctl && make all && cd ..
@@ -171,7 +171,7 @@ uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
 	rm -f ${PREFIX}/bin/Hyprland
 	rm -f ${PREFIX}/bin/hyprctl
-	rm -f /usr/lib/libwlroots.so.11032
+	rm -f /usr/lib/libwlroots.so.12032
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/man/man1/Hyprland.1
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1
@@ -179,7 +179,7 @@ uninstall:
 protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o wlr-output-power-management-unstable-v1-protocol.o linux-dmabuf-unstable-v1-protocol.o
 
 fixwlr:
-	sed -i -E 's/(soversion = 11)([^032]|$$)/soversion = 11032/g' subprojects/wlroots/meson.build
+	sed -i -E 's/(soversion = 12)([^032]|$$)/soversion = 12032/g' subprojects/wlroots/meson.build
 
 	rm -rf ./subprojects/wlroots/build
 

@@ -89,7 +89,7 @@ message(STATUS "Setting link libraries")
 target_link_libraries(Hyprland PkgConfig::deps)
 
 target_link_libraries(Hyprland
-        ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.11032 # wlroots is provided by us
+        ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us
         pixman-1
         OpenGL
         GLESv2

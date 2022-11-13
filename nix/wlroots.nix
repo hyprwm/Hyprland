@@ -6,6 +6,7 @@
   xwayland,
   fetchpatch,
   lib,
+  hwdata,
   hidpiXWayland ? true,
   enableXWayland ? true,
   nvidiaPatches ? false,
@@ -51,6 +52,7 @@ assert (lib.assertMsg (hidpiXWayland -> enableXWayland) ''
           ''
           else ""
         );
+      buildInputs = old.buildInputs ++ [hwdata];
     }))
   .override {
     xwayland = xwayland.overrideAttrs (old: {

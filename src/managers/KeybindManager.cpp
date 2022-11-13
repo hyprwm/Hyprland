@@ -1,5 +1,7 @@
 #include "KeybindManager.hpp"
 
+#include <fcntl.h>
+#include <paths.h>
 #include <regex>
 
 CKeybindManager::CKeybindManager() {
@@ -526,6 +528,25 @@ void CKeybindManager::spawn(std::string args) {
             // run in grandchild
             close(socket[0]);
             close(socket[1]);
+            close(STDOUT_FILENO);
+            close(STDERR_FILENO);
+
+            int devnull = open(_PATH_DEVNULL, O_WRONLY);
+            if (devnull == -1) {
+                Debug::log(LOG, "Unable to open /dev/null for writing");
+                return;
+            }
+
+            if (dup2(devnull, STDOUT_FILENO) == -1) {
+                Debug::log(LOG, "Unable to duplicate /dev/null to stdout");
+                return;
+            }
+            if (dup2(devnull, STDERR_FILENO) == -1) {
+                Debug::log(LOG, "Unable to duplicate /dev/null to stderr");
+                return;
+            }
+
+            close(devnull);
             execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
             // exit grandchild
             _exit(0);

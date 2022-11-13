@@ -182,7 +182,13 @@ std::string activeWindowRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return format == HyprCtl::FORMAT_JSON ? "{}" : "Invalid";
-    return getWindowData(PWINDOW, format);
+
+    auto result = getWindowData(PWINDOW, format);
+    
+    if (format == HyprCtl::FORMAT_JSON)
+        result.pop_back();
+
+    return result;
 }
 
 std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {

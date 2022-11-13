@@ -484,6 +484,5 @@ int64_t configStringToInt(const std::string& VALUE) {
     } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
         return 0;
     }
-    else
-        return stol(VALUE);
+    return stol(VALUE);
 }

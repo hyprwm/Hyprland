@@ -187,10 +187,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
         } else if (r.szRule.find("opacity") == 0) {
             try {
-                std::string alphaPart = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+                std::string alphaPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
 
                 if (alphaPart.contains(' ')) {
-                    // we have a comma, 2 values
+                    // we have a space, 2 values
                     PWINDOW->m_sSpecialRenderData.alpha = std::stof(alphaPart.substr(0, alphaPart.find_first_of(' ')));
                     PWINDOW->m_sSpecialRenderData.alphaInactive = std::stof(alphaPart.substr(alphaPart.find_first_of(' ') + 1));
                 } else {
@@ -218,10 +218,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
         } else if (r.szRule.find("bordercolor") == 0) {
             try {
-                std::string colorPart = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+                std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
 
                 if (colorPart.contains(' ')) {
-                    // we have a comma, 2 values
+                    // we have a space, 2 values
                     PWINDOW->m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
                     PWINDOW->m_sSpecialRenderData.inactiveBorderColor = configStringToInt(colorPart.substr(colorPart.find_first_of(' ') + 1));
                 } else {

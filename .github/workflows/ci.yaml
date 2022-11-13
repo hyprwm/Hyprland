@@ -41,7 +41,7 @@ jobs:
           cp ./LICENSE hyprland/
           cp build/Hyprland hyprland/
           cp hyprctl/hyprctl hyprland/
-          cp subprojects/wlroots/build/libwlroots.so.11032 hyprland/
+          cp subprojects/wlroots/build/libwlroots.so.12032 hyprland/
           cp build/Hyprland hyprland/
           cp -r example/ hyprland/
           cp -r assets/ hyprland/

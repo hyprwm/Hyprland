@@ -1465,7 +1465,7 @@ void CKeybindManager::circleNext(std::string arg) {
         if (PWINDOWTOCHANGETO == g_pCompositor->m_pLastWindow || !PWINDOWTOCHANGETO)
             return;
 
-        if (g_pCompositor->m_pLastWindow->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsFullscreen) {
+        if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsFullscreen) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
             const auto FSMODE = PWORKSPACE->m_efFullscreenMode;
 

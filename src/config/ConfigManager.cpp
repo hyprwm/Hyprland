@@ -732,8 +732,12 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     const auto CLASSPOS = VALUE.find("class:");
     const auto X11POS   = VALUE.find("xwayland:");
     const auto FLOATPOS = VALUE.find("floating:");
+    const auto FULLSCREENPOS = VALUE.find("fullscreen:");
+    const auto PINNEDPOS = VALUE.find("pinned:");
 
-    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos) {
+    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos &&
+        X11POS == std::string::npos && FLOATPOS == std::string::npos &&
+        FULLSCREENPOS == std::string::npos && PINNEDPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: %s", VALUE.c_str());
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -748,6 +752,8 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         if (CLASSPOS > pos && CLASSPOS < min) min = CLASSPOS;
         if (X11POS > pos && X11POS < min) min = X11POS;
         if (FLOATPOS > pos && FLOATPOS < min) min = FLOATPOS;
+        if (FULLSCREENPOS > pos && FULLSCREENPOS < min) min = FULLSCREENPOS;
+        if (PINNEDPOS > pos && PINNEDPOS < min) min = PINNEDPOS;
 
         result = result.substr(0, min - pos);
 
@@ -775,6 +781,14 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         rule.bFloating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
     }
 
+    if (FULLSCREENPOS != std::string::npos) {
+        rule.bFullscreen = extract(FULLSCREENPOS + 11) == "1" ? 1 : 0;
+    }
+
+    if (PINNEDPOS != std::string::npos) {
+        rule.bPinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
+    }
+
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
             if (!other.v2) {
@@ -793,6 +807,14 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
                 }
 
                 if (rule.bFloating != -1 && rule.bFloating != other.bFloating) {
+                    return false;
+                }
+
+                if (rule.bFullscreen != -1 && rule.bFullscreen != other.bFullscreen) {
+                    return false;
+                }
+
+                if (rule.bPinned != -1 && rule.bPinned != other.bPinned) {
                     return false;
                 }
 
@@ -1387,6 +1409,16 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 
                 if (rule.bFloating != -1) {
                     if (pWindow->m_bIsFloating != rule.bFloating)
+                        continue;
+                }
+
+                if (rule.bFullscreen != -1) {
+                    if (pWindow->m_bIsFullscreen != rule.bFullscreen)
+                        continue;
+                }
+
+                if (rule.bPinned != -1) {
+                    if (pWindow->m_bPinned != rule.bPinned)
                         continue;
                 }
             } catch (...) {

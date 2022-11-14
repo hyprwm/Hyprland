@@ -161,12 +161,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsPseudotiled = true;
         } else if (r.szRule.find("nofocus") == 0) {
             PWINDOW->m_bNoFocus = true;
-        } else if (r.szRule == "noblur") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBlur = true;
-        } else if (r.szRule == "noborder") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBorder = true;
-        } else if (r.szRule == "noshadow") {
-            PWINDOW->m_sAdditionalConfigData.forceNoShadow = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen = true;
         } else if (r.szRule == "opaque") {
@@ -179,27 +173,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bPinned = true;
         } else if (r.szRule == "noanim") {
             PWINDOW->m_sAdditionalConfigData.forceNoAnims = true;
-        } else if (r.szRule.find("rounding") == 0) {
-            try {
-                PWINDOW->m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-            } catch (std::exception& e) {
-                Debug::log(ERR, "Rounding rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
-            }
-        } else if (r.szRule.find("opacity") == 0) {
-            try {
-                std::string alphaPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-
-                if (alphaPart.contains(' ')) {
-                    // we have a space, 2 values
-                    PWINDOW->m_sSpecialRenderData.alpha = std::stof(alphaPart.substr(0, alphaPart.find_first_of(' ')));
-                    PWINDOW->m_sSpecialRenderData.alphaInactive = std::stof(alphaPart.substr(alphaPart.find_first_of(' ') + 1));
-                } else {
-                    PWINDOW->m_sSpecialRenderData.alpha = std::stof(alphaPart);
-                }
-            } catch(std::exception& e) {
-                Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
-            }
-        } else if (r.szRule.find("animation") == 0) {
+        }  else if (r.szRule.find("animation") == 0) {
             auto STYLE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
             PWINDOW->m_sAdditionalConfigData.animationStyle = STYLE;
         } else if (r.szRule.find("idleinhibit") == 0) {
@@ -216,21 +190,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             } else {
                 Debug::log(ERR, "Rule idleinhibit: unknown mode %s", IDLERULE.c_str());
             }
-        } else if (r.szRule.find("bordercolor") == 0) {
-            try {
-                std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-
-                if (colorPart.contains(' ')) {
-                    // we have a space, 2 values
-                    PWINDOW->m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
-                    PWINDOW->m_sSpecialRenderData.inactiveBorderColor = configStringToInt(colorPart.substr(colorPart.find_first_of(' ') + 1));
-                } else {
-                    PWINDOW->m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
-                }
-            } catch(std::exception& e) {
-                Debug::log(ERR, "BorderColor rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
-            }
         }
+        PWINDOW->applyDynamicRule(r);
     }
 
     // disallow tiled pinned

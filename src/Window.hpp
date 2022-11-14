@@ -39,6 +39,19 @@ struct SWindowAdditionalConfigData {
     bool windowDanceCompat = false;
 };
 
+struct SWindowRule {
+    std::string szRule;
+    std::string szValue;
+
+    bool v2 = false;
+    std::string szTitle;
+    std::string szClass;
+    int bX11 = -1; // -1 means "ANY"
+    int bFloating = -1;
+    int bFullscreen = -1;
+    int bPinned = -1;
+};
+
 class CWindow {
 public:
     CWindow();
@@ -189,6 +202,8 @@ public:
     void            onMap();
     void            setHidden(bool hidden);
     bool            isHidden();
+    void            applyDynamicRule(const SWindowRule& r);
+    void            updateDynamicRules();
 
 private:
     // For hidden windows and stuff

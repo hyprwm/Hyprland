@@ -1732,6 +1732,9 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
 
     g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
 
+    pWindow->updateDynamicRules();
+    g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
+
     // make all windows on the same workspace under the fullscreen window
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID) {

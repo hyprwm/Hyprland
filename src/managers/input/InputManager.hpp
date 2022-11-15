@@ -125,7 +125,13 @@ public:
     // for virtual keyboards: whether we should respect them as normal ones
     bool            shouldIgnoreVirtualKeyboard(SKeyboard*);
 
+    // for special cursors that we choose
+    void            setCursorImageUntilUnset(std::string);
+    void            unsetCursorImage();
+
 private:
+
+    bool            m_bCursorImageOverriden = false;
 
     // for click behavior override
     eClickBehaviorMode m_ecbClickBehavior = CLICKMODE_DEFAULT;

@@ -134,6 +134,8 @@ void IHyprLayout::onBeginDragWindow() {
         return;
     }
 
+    g_pInputManager->setCursorImageUntilUnset("hand1");
+
     DRAGGINGWINDOW->m_vRealPosition.setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
     DRAGGINGWINDOW->m_vRealSize.setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
@@ -180,6 +182,8 @@ void IHyprLayout::onEndDragWindow() {
 
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW))
         return;
+
+    g_pInputManager->unsetCursorImage();
 
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;

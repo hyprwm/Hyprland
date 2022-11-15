@@ -9,9 +9,9 @@ jobs:
     - name: Clone repository
       uses: actions/checkout@v3
     - name: Install nix
-      uses: cachix/install-nix-action@v17
+      uses: cachix/install-nix-action@v18
       with:
-        install_url: https://releases.nixos.org/nix/nix-2.8.0/install
+        install_url: https://nixos.org/nix/install
         extra_nix_config: |
           auto-optimise-store = true
           experimental-features = nix-command flakes

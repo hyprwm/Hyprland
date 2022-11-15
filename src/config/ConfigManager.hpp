@@ -48,17 +48,6 @@ struct SMonitorAdditionalReservedArea {
     int         right = 0;
 };
 
-struct SWindowRule {
-    std::string szRule;
-    std::string szValue;
-
-    bool v2 = false;
-    std::string szTitle;
-    std::string szClass;
-    int bX11 = -1; // -1 means "ANY"
-    int bFloating = -1;
-};
-
 struct SAnimationPropertyConfig {
     bool            overriden = true;
 

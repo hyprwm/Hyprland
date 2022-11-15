@@ -339,6 +339,10 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
         g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
     }
 
+    if (m_bCursorImageOverriden) {
+        return;
+    }
+
     if (m_ecbClickBehavior == CLICKMODE_KILL) {
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
         return;
@@ -1183,4 +1187,18 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
 
 void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
     m_lSwitches.remove(*pDevice);
+}
+
+void CInputManager::setCursorImageUntilUnset(std::string name) {
+    wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, name.c_str(), g_pCompositor->m_sWLRCursor);
+    m_bCursorImageOverriden = true;
+}
+
+void CInputManager::unsetCursorImage() {
+    if (!m_bCursorImageOverriden)
+        return;
+
+    m_bCursorImageOverriden = false;
+    if (!g_pHyprRenderer->m_bWindowRequestedCursorHide)
+        wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
 }

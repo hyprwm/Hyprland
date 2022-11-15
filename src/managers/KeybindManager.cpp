@@ -599,6 +599,8 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
 
     PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
 
+    PWINDOW->updateDynamicRules();
+
     g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
 }
 
@@ -1706,6 +1708,9 @@ void CKeybindManager::pinActive(std::string args) {
 
     g_pCompositor->m_pLastWindow->m_bPinned = !g_pCompositor->m_pLastWindow->m_bPinned;
     g_pCompositor->m_pLastWindow->m_iWorkspaceID = g_pCompositor->getMonitorFromID(g_pCompositor->m_pLastWindow->m_iMonitorID)->activeWorkspace;
+
+    g_pCompositor->m_pLastWindow->updateDynamicRules();
+    g_pCompositor->updateWindowAnimatedDecorationValues(g_pCompositor->m_pLastWindow);
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
 

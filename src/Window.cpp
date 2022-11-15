@@ -292,3 +292,73 @@ void CWindow::setHidden(bool hidden) {
 bool CWindow::isHidden() {
     return m_bHidden;
 }
+
+void CWindow::applyDynamicRule(const SWindowRule& r) {
+    if (r.szRule == "noblur") {
+        m_sAdditionalConfigData.forceNoBlur = true;
+    } else if (r.szRule == "noborder") {
+        m_sAdditionalConfigData.forceNoBorder = true;
+    } else if (r.szRule == "noshadow") {
+        m_sAdditionalConfigData.forceNoShadow = true;
+    } else if (r.szRule == "opaque") {
+        m_sAdditionalConfigData.forceOpaque = true;
+    } else if (r.szRule.find("rounding") == 0) {
+        try {
+            m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+        } catch (std::exception& e) {
+            Debug::log(ERR, "Rounding rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
+        }
+    } else if (r.szRule.find("opacity") == 0) {
+        try {
+            std::string alphaPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+
+            if (alphaPart.contains(' ')) {
+                // we have a space, 2 values
+                m_sSpecialRenderData.alpha = std::stof(alphaPart.substr(0, alphaPart.find_first_of(' ')));
+                m_sSpecialRenderData.alphaInactive = std::stof(alphaPart.substr(alphaPart.find_first_of(' ') + 1));
+            } else {
+                m_sSpecialRenderData.alpha = std::stof(alphaPart);
+            }
+        } catch(std::exception& e) {
+            Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
+        }
+        } else if (r.szRule == "noanim") {
+            m_sAdditionalConfigData.forceNoAnims = true;
+        }  else if (r.szRule.find("animation") == 0) {
+            auto STYLE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+            m_sAdditionalConfigData.animationStyle = STYLE;
+        } else if (r.szRule.find("bordercolor") == 0) {
+        try {
+            std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+
+            if (colorPart.contains(' ')) {
+                // we have a space, 2 values
+                m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
+                m_sSpecialRenderData.inactiveBorderColor = configStringToInt(colorPart.substr(colorPart.find_first_of(' ') + 1));
+            } else {
+                m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
+            }
+        } catch(std::exception& e) {
+            Debug::log(ERR, "BorderColor rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
+        }
+    }
+}
+
+void CWindow::updateDynamicRules() {
+    m_sSpecialRenderData.activeBorderColor = -1;
+    m_sSpecialRenderData.inactiveBorderColor = -1;
+    m_sSpecialRenderData.alpha = 1.f;
+    m_sSpecialRenderData.alphaInactive = -1.f;
+    m_sAdditionalConfigData.forceNoBlur = false;
+    m_sAdditionalConfigData.forceNoBorder = false;
+    m_sAdditionalConfigData.forceNoShadow = false;
+    m_sAdditionalConfigData.forceOpaque = false;
+    m_sAdditionalConfigData.forceNoAnims = false;
+    m_sAdditionalConfigData.animationStyle = "";
+    m_sAdditionalConfigData.rounding = -1;
+
+    const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
+    for (auto& r : WINDOWRULES) {
+        applyDynamicRule(r);
+    }
+}

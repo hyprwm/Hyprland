@@ -163,19 +163,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bNoFocus = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen = true;
-        } else if (r.szRule == "opaque") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaque = true;
         } else if (r.szRule == "windowdance") {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat = true;
         } else if (r.szRule == "forceinput") {
             PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
         } else if (r.szRule == "pin") {
             PWINDOW->m_bPinned = true;
-        } else if (r.szRule == "noanim") {
-            PWINDOW->m_sAdditionalConfigData.forceNoAnims = true;
-        }  else if (r.szRule.find("animation") == 0) {
-            auto STYLE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
-            PWINDOW->m_sAdditionalConfigData.animationStyle = STYLE;
         } else if (r.szRule.find("idleinhibit") == 0) {
             auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
@@ -713,6 +706,8 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
     if (PWINDOW == g_pCompositor->m_pLastWindow) // if it's the active, let's post an event to update others
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle});
 
+    PWINDOW->updateDynamicRules();
+    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
     PWINDOW->updateToplevel();
 
     Debug::log(LOG, "Window %x set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());

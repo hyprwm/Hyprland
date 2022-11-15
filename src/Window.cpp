@@ -300,6 +300,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.forceNoBorder = true;
     } else if (r.szRule == "noshadow") {
         m_sAdditionalConfigData.forceNoShadow = true;
+    } else if (r.szRule == "opaque") {
+        m_sAdditionalConfigData.forceOpaque = true;
     } else if (r.szRule.find("rounding") == 0) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -320,7 +322,12 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         } catch(std::exception& e) {
             Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
         }
-    } else if (r.szRule.find("bordercolor") == 0) {
+        } else if (r.szRule == "noanim") {
+            m_sAdditionalConfigData.forceNoAnims = true;
+        }  else if (r.szRule.find("animation") == 0) {
+            auto STYLE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+            m_sAdditionalConfigData.animationStyle = STYLE;
+        } else if (r.szRule.find("bordercolor") == 0) {
         try {
             std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
 
@@ -345,6 +352,9 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceNoBlur = false;
     m_sAdditionalConfigData.forceNoBorder = false;
     m_sAdditionalConfigData.forceNoShadow = false;
+    m_sAdditionalConfigData.forceOpaque = false;
+    m_sAdditionalConfigData.forceNoAnims = false;
+    m_sAdditionalConfigData.animationStyle = "";
     m_sAdditionalConfigData.rounding = -1;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);

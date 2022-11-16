@@ -104,13 +104,13 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         fullBox.y += ((m_vLastWindowSize.y + 2.0 * *PSHADOWSIZE) - NEWSIZE.y) / 2.0;
     }
 
-    fullBox.x += offset.x;
-    fullBox.y += offset.y;
-
     m_seExtents = { { m_vLastWindowPos.x - fullBox.x - pMonitor->vecPosition.x + 2,
                     m_vLastWindowPos.y - fullBox.y - pMonitor->vecPosition.y + 2},
-                    { fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_pWindow->m_vRealPosition.vec().x - m_pWindow->m_vRealSize.vec().x + 2,
-                    fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_pWindow->m_vRealPosition.vec().y - m_pWindow->m_vRealSize.vec().y + 2} };
+                    { fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
+                    fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_vLastWindowPos.y - m_vLastWindowSize.y + 2} };
+
+    fullBox.x += offset.x;
+    fullBox.y += offset.y;
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return;  // don't draw invisible shadows

@@ -261,7 +261,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     // clip box for animated offsets
     Vector2D offset;
-    if (!ignorePosition) {
+    if (!ignorePosition && pWindow->m_bIsFloating) {
         if (PWORKSPACE->m_vRenderOffset.vec().x != 0) {
             const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().x / PWSMON->vecSize.x;
@@ -269,8 +269,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             if (WINBB.x < PWSMON->vecPosition.x) {
                 offset.x = (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
-            } else if (WINBB.x > PWSMON->vecPosition.x + PWSMON->vecSize.x) {
-                offset.x = (WINBB.x - PWSMON->vecPosition.x + PWSMON->vecSize.x) * PROGRESS;
+            } else if (WINBB.x + WINBB.width > PWSMON->vecPosition.x + PWSMON->vecSize.x) {
+                offset.x = (WINBB.x + WINBB.width - PWSMON->vecPosition.x - PWSMON->vecSize.x) * PROGRESS;
             }
         } else if (PWORKSPACE->m_vRenderOffset.vec().y) {
             const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
@@ -279,8 +279,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             if (WINBB.y < PWSMON->vecPosition.y) {
                 offset.y = (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
-            } else if (WINBB.y > PWSMON->vecPosition.y + PWSMON->vecSize.y) {
-                offset.y = (WINBB.y - PWSMON->vecPosition.y + PWSMON->vecSize.y) * PROGRESS;
+            } else if (WINBB.y + WINBB.height > PWSMON->vecPosition.y + PWSMON->vecSize.y) {
+                offset.y = (WINBB.y + WINBB.width - PWSMON->vecPosition.y - PWSMON->vecSize.y) * PROGRESS;
             }
         }
 

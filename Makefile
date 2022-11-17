@@ -124,9 +124,12 @@ clear:
 	rm -rf ./subprojects/wlroots/build
 
 all:
-	make config
+	make clear
+	make fixwlr
+	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
+	make protocols
 	make release
-	cd ./hyprctl && make all && cd ..
+	cd hyprctl && make all && cd ..
 
 install:
 	make clear

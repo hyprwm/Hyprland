@@ -755,7 +755,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         }
 
         // If the monitor is not the one our cursor's at, warp to it.
-        const bool anotherMonitor = PMONITOR != g_pCompositor->getMonitorFromCursor();
+        const bool anotherMonitor = PMONITOR != g_pCompositor->m_pLastMonitor;
         if (anotherMonitor) {
             Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
             g_pCompositor->warpCursorTo(middle);
@@ -812,6 +812,8 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     const auto PWORKSPACE = g_pCompositor->createNewWorkspace(workspaceToChangeTo, PMONITOR->ID, workspaceName);
 
+    const bool ANOTHERMONITOR = PMONITOR == g_pCompositor->m_pLastMonitor;
+
     if (!isSwitchingToPrevious)
         // Remember previous workspace.
         PWORKSPACE->m_iPrevWorkspaceID = OLDWORKSPACE;
@@ -849,8 +851,16 @@ void CKeybindManager::changeworkspace(std::string args) {
     // focus (clears the last)
     g_pInputManager->refocus();
 
-    // Event
+    // Events
     g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACE->m_szName});
+    if (ANOTHERMONITOR) {
+        Vector2D middle = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f;
+        g_pCompositor->warpCursorTo(middle);
+
+        // event for focusedmon, as we changed.
+        g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", PMONITOR->szName + "," + PWORKSPACE->m_szName});
+        g_pCompositor->m_pLastMonitor = PMONITOR;
+    }
 
     Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }

@@ -20,7 +20,6 @@ void CMonitor::onConnect(bool noRule) {
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
 
-        wlr_output_enable_adaptive_sync(output, 1);
         wlr_output_set_scale(output, 1);
         wlr_output_set_transform(output, WL_OUTPUT_TRANSFORM_NORMAL);
 

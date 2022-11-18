@@ -265,6 +265,16 @@ void CWindow::onUnmap() {
 }
 
 void CWindow::onMap() {
+
+    // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
+    m_vRealPosition.resetAllCallbacks();
+    m_vRealSize.resetAllCallbacks();
+    m_cRealBorderColor.resetAllCallbacks();
+    m_fActiveInactiveAlpha.resetAllCallbacks();
+    m_fAlpha.resetAllCallbacks();
+    m_cRealShadowColor.resetAllCallbacks();
+    m_fDimPercent.resetAllCallbacks();
+
     m_vRealPosition.registerVar();
     m_vRealSize.registerVar();
     m_cRealBorderColor.registerVar();

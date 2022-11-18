@@ -888,7 +888,11 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
         if ((*it)->fadingOut || !(*it)->layerSurface || ((*it)->layerSurface && !(*it)->layerSurface->mapped) || (*it)->alpha.fl() == 0.f)
             continue;
 
-        const auto SURFACEAT = wlr_layer_surface_v1_surface_at((*it)->layerSurface, pos.x - (*it)->geometry.x, pos.y - (*it)->geometry.y, &sCoords->x, &sCoords->y);
+        auto SURFACEAT = wlr_layer_surface_v1_surface_at((*it)->layerSurface, pos.x - (*it)->geometry.x, pos.y - (*it)->geometry.y, &sCoords->x, &sCoords->y);
+
+        if (!SURFACEAT && VECINRECT(pos, (*it)->geometry.x, (*it)->geometry.y, (*it)->geometry.x + (*it)->geometry.width, (*it)->geometry.y + (*it)->geometry.height)) {
+            SURFACEAT = (*it)->layerSurface->surface;
+        }
 
         if (SURFACEAT) {
             *ppLayerSurfaceFound = it->get();

@@ -205,6 +205,14 @@ public:
         m_bRemoveBeginAfterRan = remove;
     }
 
+    /*  resets all callbacks. Does not call any. */
+    void resetAllCallbacks() {
+        m_fBeginCallback = nullptr;
+        m_fEndCallback = nullptr;
+        m_bRemoveBeginAfterRan = false;
+        m_bRemoveEndAfterRan = false;
+    }
+
 private:
 
     Vector2D        m_vValue = Vector2D(0,0);

@@ -1143,6 +1143,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     wlr_output_set_scale(pMonitor->output, pMonitorRule->scale);
     pMonitor->scale = pMonitorRule->scale;
 
+    wlr_output_set_transform(pMonitor->output, pMonitorRule->transform);
+    pMonitor->transform = pMonitorRule->transform;
+
     // loop over modes and choose an appropriate one.
     if (pMonitorRule->resolution != Vector2D() && pMonitorRule->resolution != Vector2D(-1,-1) && pMonitorRule->resolution != Vector2D(-1,-2)) {
         if (!wl_list_empty(&pMonitor->output->modes)) {
@@ -1339,9 +1342,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     pMonitor->vrrActive = pMonitor->output->pending.adaptive_sync_enabled;  // disabled here, will be tested in CConfigManager::ensureVRR()
 
-    wlr_output_set_transform(pMonitor->output, pMonitorRule->transform);
-    pMonitor->transform = pMonitorRule->transform;
-
     pMonitor->vecPixelSize = pMonitor->vecSize;
 
     if (pMonitorRule->enable10bit) {
@@ -1404,14 +1404,11 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecPosition = pMonitorRule->offset;
     }
 
-    wlr_output_enable(pMonitor->output, true);
-
     // update renderer (here because it will call rollback, so we cannot do this before committing)
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 
     // updato wlroots
     wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
-    Events::listener_change(nullptr, nullptr);
 
     // updato us
     arrangeLayersForMonitor(pMonitor->ID);

@@ -89,10 +89,8 @@ void CMonitor::onConnect(bool noRule) {
     }
 
     m_bEnabled = true;
-
-    wlr_output_set_scale(output, monitorRule.scale);
+    
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, monitorRule.scale);
-    wlr_output_set_transform(output, WL_OUTPUT_TRANSFORM_NORMAL);  // TODO: support other transforms
 
     // create it in the arr
     vecPosition = monitorRule.offset;

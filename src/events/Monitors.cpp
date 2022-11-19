@@ -66,13 +66,6 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         }
     }
 
-    if (PNEWMONITORWRAP && PNEWMONITORWRAP->get()->m_bEnabled) {
-        Debug::log(LOG, "Connected an enabled monitor???");
-        g_pConfigManager->m_bWantsMonitorReload = true;
-        g_pCompositor->scheduleFrameForMonitor(PNEWMONITORWRAP->get());
-        return;
-    }
-
     if (!PNEWMONITORWRAP) {
         Debug::log(LOG, "Adding completely new monitor.");
         PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
@@ -326,8 +319,8 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     CMonitor* pMonitor = nullptr;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
-        if (m->szName == OUTPUT->name) {
+    for (auto& m : g_pCompositor->m_vRealMonitors) {
+        if (m->output == OUTPUT) {
             pMonitor = m.get();
             break;
         }

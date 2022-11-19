@@ -3,8 +3,8 @@
 #include "../Compositor.hpp"
 
 void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
-    *lx += node->pSurface->sx;
-    *ly += node->pSurface->sy;
+    *lx += node->pSurface->current.dx;
+    *ly += node->pSurface->current.dy;
 
     if (node->offsetfn) {
         // This is the root node

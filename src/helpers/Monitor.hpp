@@ -56,7 +56,7 @@ public:
 
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);
-    DYNLISTENER(monitorMode);
+    DYNLISTENER(monitorStateRequest);
 
     // hack: a group = workspaces on a monitor.
     // I don't really care lol :P

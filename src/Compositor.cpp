@@ -53,7 +53,7 @@ CCompositor::CCompositor() {
     wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
     //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
-    m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay);
+    m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);
 
     if (!m_sWLRBackend) {
         Debug::log(CRIT, "m_sWLRBackend was NULL!");
@@ -132,7 +132,7 @@ CCompositor::CCompositor() {
 
     m_sWLRIdle = wlr_idle_create(m_sWLDisplay);
 
-    m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay);
+    m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay, 4);
 
     m_sWLRServerDecoMgr = wlr_server_decoration_manager_create(m_sWLDisplay);
     m_sWLRXDGDecoMgr = wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
@@ -172,8 +172,6 @@ CCompositor::CCompositor() {
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
     m_sWLRPointerGestures = wlr_pointer_gestures_v1_create(m_sWLDisplay);
-
-    m_sWLRSession = wlr_backend_get_session(m_sWLRBackend);
 
     m_sWLRTextInputMgr = wlr_text_input_manager_v3_create(m_sWLDisplay);
 

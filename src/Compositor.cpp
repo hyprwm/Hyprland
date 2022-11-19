@@ -1801,6 +1801,9 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
     if ((m_sWLRSession && !m_sWLRSession->active) || !m_bSessionActive)
         return;
 
+    if (!pMonitor->m_bEnabled)
+        return;
+
     wlr_output_schedule_frame(pMonitor->output);
 }
 

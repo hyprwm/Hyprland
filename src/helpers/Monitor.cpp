@@ -142,6 +142,8 @@ void CMonitor::onDisconnect() {
     if (!m_bEnabled || g_pCompositor->m_bIsShuttingDown)
         return;
 
+    Debug::log(LOG, "onDisconnect called for %s", output->name);
+
     // Cleanup everything. Move windows back, snap cursor, shit.
     CMonitor* BACKUPMON = nullptr;
     for (auto& m : g_pCompositor->m_vMonitors) {

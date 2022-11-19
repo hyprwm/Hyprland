@@ -1479,13 +1479,13 @@ void CConfigManager::performMonitorReload() {
     for (auto& m : g_pCompositor->m_vRealMonitors) {
         auto rule = getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
 
-        // ensure mirror
-        m->setMirror(rule.mirrorOf);
-
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
             overAgain = true;
             break;
         }
+
+        // ensure mirror
+        m->setMirror(rule.mirrorOf);
 
         g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
     }

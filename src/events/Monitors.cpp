@@ -66,6 +66,13 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         }
     }
 
+    if (PNEWMONITORWRAP && PNEWMONITORWRAP->get()->m_bEnabled) {
+        Debug::log(LOG, "Connected an enabled monitor???");
+        g_pConfigManager->m_bWantsMonitorReload = true;
+        g_pCompositor->scheduleFrameForMonitor(PNEWMONITORWRAP->get());
+        return;
+    }
+
     if (!PNEWMONITORWRAP) {
         Debug::log(LOG, "Adding completely new monitor.");
         PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
@@ -88,6 +95,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         g_pCompositor->m_bReadyToProcess = true;
         g_pCompositor->m_bUnsafeState = false;
     }
+
+    g_pConfigManager->m_bWantsMonitorReload = true;
+    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR);
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {
@@ -326,11 +336,14 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     if (!pMonitor)
         return;
 
+    Debug::log(LOG, "Destroy called for monitor %s", pMonitor->output->name);
+
     pMonitor->onDisconnect();
 
     // cleanup if not unsafe
-
     if (!g_pCompositor->m_bUnsafeState) {
+        Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->output->name);
+
         g_pCompositor->m_vRealMonitors.erase(std::remove_if(g_pCompositor->m_vRealMonitors.begin(), g_pCompositor->m_vRealMonitors.end(), [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; }));
 
         if (pMostHzMonitor == pMonitor) {

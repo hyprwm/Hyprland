@@ -1371,7 +1371,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     if (!wlr_output_commit(pMonitor->output)) {
         Debug::log(ERR, "Couldn't commit output named %s", pMonitor->output->name);
-        return true;
     }
 
     int x, y;

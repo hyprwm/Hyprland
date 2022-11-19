@@ -47,11 +47,7 @@ in {
       systemPackages = lib.optional (cfg.package != null) cfg.package;
 
       sessionVariables = mkIf cfg.recommendedEnvironment {
-        GDK_BACKEND = "wayland,x11";
-        _JAVA_AWT_WM_NONREPARENTING = "1";
         NIXOS_OZONE_WL = "1";
-        XCURSOR_SIZE = "24";
-        XDG_SESSION_TYPE = "wayland";
       };
     };
     fonts.enableDefaultFonts = mkDefault true;

@@ -92,11 +92,7 @@ in {
       ++ lib.optional cfg.xwayland.enable pkgs.xwayland;
 
     home.sessionVariables = lib.mkIf cfg.recommendedEnvironment {
-      GDK_BACKEND = "wayland,x11";
-      _JAVA_AWT_WM_NONREPARENTING = "1";
       NIXOS_OZONE_WL = "1";
-      XCURSOR_SIZE = toString config.home.pointerCursor.size or "24";
-      XDG_SESSION_TYPE = "wayland";
     };
 
     xdg.configFile."hypr/hyprland.conf" = {

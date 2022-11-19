@@ -19,6 +19,8 @@ int main(int argc, char** argv) {
     for (auto i = 0; i < argc; ++i)
         cmd += std::string(i == 0 ? "" : " ") + argv[i];
     setenv("HYPRLAND_CMD", cmd.c_str(), 1);
+    setenv("XDG_BACKEND", "wayland", 1);
+    setenv("_JAVA_AWT_WM_NONREPARENTING", "1", 0);
 
     // parse some args
     std::string configPath;

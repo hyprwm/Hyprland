@@ -327,7 +327,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         setupDefaultWS(RULE);
 
-        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, output, (int)vecPosition.x, (int)vecPosition.y);
+        g_pHyprRenderer->applyMonitorRule(this, (SMonitorRule*)&RULE, true); // will apply the offset and stuff
     } else {
         CMonitor* BACKUPMON = nullptr;
         for (auto& m : g_pCompositor->m_vMonitors) {

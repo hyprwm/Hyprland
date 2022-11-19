@@ -3,8 +3,16 @@
 #include "../Compositor.hpp"
 
 void CMonitor::onConnect(bool noRule) {
-    if (m_bEnabled)
+    hyprListener_monitorDestroy.removeCallback();
+    hyprListener_monitorFrame.removeCallback();
+    hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this);
+    hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this);
+
+    if (m_bEnabled) {
+        wlr_output_enable(output, 1);
+        wlr_output_commit(output);
         return;
+    }
 
     szName = output->name;
 
@@ -13,9 +21,6 @@ void CMonitor::onConnect(bool noRule) {
 
     // get monitor rule that matches
     SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(output->name, output->description ? output->description : "");
-
-    hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this);
-    hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this);
 
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {

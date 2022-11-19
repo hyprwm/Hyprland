@@ -130,15 +130,15 @@ void CMonitor::onConnect(bool noRule) {
     forceFullFrames = 3;  // force 3 full frames to make sure there is no blinking due to double-buffering.
     //
 
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
+
     if (!g_pCompositor->m_pLastMonitor)  // set the last monitor if it isnt set yet
-        g_pCompositor->m_pLastMonitor = this;
+        g_pCompositor->setActiveMonitor(this);
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
     g_pHyprRenderer->arrangeLayersForMonitor(ID);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
 
     // ensure VRR (will enable if necessary)
     g_pConfigManager->ensureVRR(this);
@@ -161,7 +161,7 @@ void CMonitor::onDisconnect() {
     }
 
     if (g_pCompositor->m_pLastMonitor == this)
-        g_pCompositor->m_pLastMonitor = BACKUPMON;
+        g_pCompositor->setActiveMonitor(BACKUPMON);
 
     // remove mirror
     if (pMirrorOf) {
@@ -365,6 +365,6 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
             g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](const auto& other) { return other.get() == this; }));
         }
 
-        g_pCompositor->m_pLastMonitor = g_pCompositor->m_vMonitors.front().get();
+        g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
     }
 }

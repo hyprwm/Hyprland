@@ -123,15 +123,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
     if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
-        g_pCompositor->m_pLastMonitor = PMONITOR;
+        g_pCompositor->setActiveMonitor(PMONITOR);
 
         // set active workspace and deactivate all other in wlr
         const auto ACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
         g_pCompositor->deactivateAllWLRWorkspaces(ACTIVEWORKSPACE->m_pWlrHandle);
         ACTIVEWORKSPACE->setActive(true);
-
-        // event
-        g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", PMONITOR->szName + "," + ACTIVEWORKSPACE->m_szName});
     }
 
     // overlay is above fullscreen

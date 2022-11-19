@@ -169,6 +169,7 @@ public:
     void                    forceReportSizesToWindowsOnWorkspace(const int&);
     bool                    cursorOnReservedArea();
     CWorkspace*             createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
+    void                    setActiveMonitor(CMonitor*);
 
     std::string             explicitConfigPath;
 

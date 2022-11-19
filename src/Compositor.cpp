@@ -1874,7 +1874,7 @@ void CCompositor::warpCursorTo(const Vector2D& pos) {
 
     const auto PMONITORNEW = getMonitorFromVector(pos);
     if (PMONITORNEW != m_pLastMonitor)
-        m_pLastMonitor = PMONITORNEW;
+        setActiveMonitor(PMONITORNEW);
 }
 
 SLayerSurface* CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {
@@ -1986,4 +1986,14 @@ CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, con
     PWORKSPACE->m_iMonitorID = monID;
 
     return PWORKSPACE;
+}
+
+void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
+    if (m_pLastMonitor == pMonitor)
+        return;
+
+    const auto PWORKSPACE = getWorkspaceByID(pMonitor->activeWorkspace);
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", pMonitor->szName + "," + PWORKSPACE->m_szName});
+    m_pLastMonitor = pMonitor;
 }

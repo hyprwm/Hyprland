@@ -89,6 +89,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 Vector2D hint = { PCONSTRAINT->current.cursor_hint.x, PCONSTRAINT->current.cursor_hint.y };
 
                 wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x + hint.x, CONSTRAINTPOS.y + hint.y);
+
+                return; // don't process anything else, the cursor is locked. The surface should not receive any further events.
+                        // these are usually FPS games. They will use the relative motion.
             } else {
                 // we restrict the cursor to the confined region
                 if (!pixman_region32_contains_point(&PCONSTRAINT->region, mouseCoords.x - CONSTRAINTPOS.x, mouseCoords.y - CONSTRAINTPOS.y, nullptr)) {

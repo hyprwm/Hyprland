@@ -408,6 +408,8 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         return;
     }
 
+    CWindow* lastWindow = nullptr;
+
     // Non-floating main
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
@@ -421,10 +423,19 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
         if (!shouldRenderWindow(w.get(), PMONITOR))
             continue;
+        
+        // render active window after all others of this pass
+        if (w.get() == g_pCompositor->m_pLastWindow) {
+            lastWindow = w.get();
+            continue;
+        }
 
         // render the bad boy
         renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_MAIN);
     }
+
+    if (lastWindow)
+        renderWindow(lastWindow, PMONITOR, time, true, RENDER_PASS_MAIN);
 
     // Non-floating popup
     for (auto& w : g_pCompositor->m_vWindows) {

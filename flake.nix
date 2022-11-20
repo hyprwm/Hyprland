@@ -21,12 +21,29 @@
       "x86_64-linux"
     ];
 
-    pkgsFor = genSystems (system: import nixpkgs {
-      inherit system;
-      overlays = [(_: prev: {
-        hwdata = prev.callPackage ./nix/hwdata.nix {};
-      })];
-    });
+    pkgsFor = genSystems (system:
+      import nixpkgs {
+        inherit system;
+        overlays = [
+          (_: prev: {
+            hwdata = prev.callPackage ./nix/hwdata.nix {};
+            libdrm = prev.libdrm.overrideAttrs (old: rec {
+              version = "2.4.114";
+              src = prev.fetchurl {
+                url = "https://dri.freedesktop.org/${old.pname}/${old.pname}-${version}.tar.xz";
+                sha256 = "sha256-MEnPhDpH0S5e7vvDvjSW14L6CfQjRr8Lfe/j0eWY0CY=";
+              };
+            });
+            wayland-protocols = prev.wayland-protocols.overrideAttrs (old: rec {
+              version = "1.29";
+              src = prev.fetchurl {
+                url = "https://gitlab.freedesktop.org/wayland/${old.pname}/-/releases/${version}/downloads/${old.pname}-${version}.tar.xz";
+                hash = "sha256-4l6at1rHNnBN3v6S6PmshzC+q29WTbYvetaVu6T/ntg=";
+              };
+            });
+          })
+        ];
+      });
 
     mkDate = longDate: (lib.concatStringsSep "-" [
       (builtins.substring 0 4 longDate)

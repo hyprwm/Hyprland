@@ -893,6 +893,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     auto PSAVEDSIZE = PWINDOW->m_vRealSize.goalv();
     auto PSAVEDPOS = PWINDOW->m_vRealPosition.goalv();
+    const bool WASFULLSCREEN = PWINDOW->m_bIsFullscreen;
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
@@ -910,14 +911,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         return;
     }
 
-    OLDWORKSPACE->m_bHasFullscreenWindow = false;
-
     PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
     PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
-
-    if (PWINDOW->m_bIsFullscreen) {
-        g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
-    }
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_FULL);
@@ -933,6 +928,10 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWINDOW->m_vRealSize.setValueAndWarp(PSAVEDSIZE);
         PWINDOW->m_vRealPosition.setValueAndWarp(PSAVEDPOS - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition + g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
+    }
+
+    if (WASFULLSCREEN) {
+        g_pCompositor->setWindowFullscreen(PWINDOW, true, OLDWORKSPACE->m_efFullscreenMode);
     }
 
     // undo the damage if we are moving to the special workspace

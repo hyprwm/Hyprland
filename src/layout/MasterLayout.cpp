@@ -590,8 +590,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return;
 
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
-        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, middle.x, middle.y);
+        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f);
     };
 
     if (message == "swapwithmaster") {
@@ -605,12 +604,21 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
 
-        if (!PMASTER || PMASTER->pWindow == PWINDOW)
+        if (!PMASTER)
             return 0;
 
-        switchWindows(PWINDOW, PMASTER->pWindow);
-
-        switchToWindow(PWINDOW);
+        if (PMASTER->pWindow != PWINDOW) {
+            switchWindows(PWINDOW, PMASTER->pWindow);
+            switchToWindow(PWINDOW);
+        } else {
+            for (auto& n : m_lMasterNodesData) {
+                if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
+                    switchWindows(n.pWindow, PMASTER->pWindow);
+                    switchToWindow(n.pWindow);
+                    break;
+                }
+            }
+        }
 
         return 0;
     } else if (message == "focusmaster") {
@@ -621,10 +629,19 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
 
-        if (!PMASTER || PMASTER->pWindow == PWINDOW)
+        if (!PMASTER)
             return 0;
 
-        switchToWindow(PMASTER->pWindow);
+        if (PMASTER->pWindow != PWINDOW)
+            switchToWindow(PMASTER->pWindow);
+        else {
+            for (auto& n : m_lMasterNodesData) {
+                if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
+                    switchToWindow(n.pWindow);
+                    break;
+                }
+            }
+        }
 
         return 0;
     } else if (message == "cyclenext") {

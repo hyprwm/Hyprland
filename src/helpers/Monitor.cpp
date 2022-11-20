@@ -5,8 +5,10 @@
 void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
+    hyprListener_monitorStateRequest.removeCallback();
     hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this);
     hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this);
+    hyprListener_monitorStateRequest.initCallback(&output->events.request_state, &Events::listener_monitorStateRequest, this);
 
     if (m_bEnabled) {
         wlr_output_enable(output, 1);
@@ -128,15 +130,15 @@ void CMonitor::onConnect(bool noRule) {
     forceFullFrames = 3;  // force 3 full frames to make sure there is no blinking due to double-buffering.
     //
 
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
+
     if (!g_pCompositor->m_pLastMonitor)  // set the last monitor if it isnt set yet
-        g_pCompositor->m_pLastMonitor = this;
+        g_pCompositor->setActiveMonitor(this);
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
     g_pHyprRenderer->arrangeLayersForMonitor(ID);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
 
     // ensure VRR (will enable if necessary)
     g_pConfigManager->ensureVRR(this);
@@ -159,7 +161,7 @@ void CMonitor::onDisconnect() {
     }
 
     if (g_pCompositor->m_pLastMonitor == this)
-        g_pCompositor->m_pLastMonitor = BACKUPMON;
+        g_pCompositor->setActiveMonitor(BACKUPMON);
 
     // remove mirror
     if (pMirrorOf) {
@@ -183,7 +185,7 @@ void CMonitor::onDisconnect() {
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
 
-        hyprListener_monitorMode.removeCallback();
+        hyprListener_monitorStateRequest.removeCallback();
         hyprListener_monitorDestroy.removeCallback();
 
         g_pCompositor->m_bUnsafeState = true;
@@ -325,7 +327,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         setupDefaultWS(RULE);
 
-        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, output, (int)vecPosition.x, (int)vecPosition.y);
+        g_pHyprRenderer->applyMonitorRule(this, (SMonitorRule*)&RULE, true); // will apply the offset and stuff
     } else {
         CMonitor* BACKUPMON = nullptr;
         for (auto& m : g_pCompositor->m_vMonitors) {
@@ -363,6 +365,6 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
             g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](const auto& other) { return other.get() == this; }));
         }
 
-        g_pCompositor->m_pLastMonitor = g_pCompositor->m_vMonitors.front().get();
+        g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
     }
 }

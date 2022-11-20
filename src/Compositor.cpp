@@ -53,7 +53,7 @@ CCompositor::CCompositor() {
     wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
     //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
-    m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay);
+    m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);
 
     if (!m_sWLRBackend) {
         Debug::log(CRIT, "m_sWLRBackend was NULL!");
@@ -132,7 +132,7 @@ CCompositor::CCompositor() {
 
     m_sWLRIdle = wlr_idle_create(m_sWLDisplay);
 
-    m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay);
+    m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay, 4);
 
     m_sWLRServerDecoMgr = wlr_server_decoration_manager_create(m_sWLDisplay);
     m_sWLRXDGDecoMgr = wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
@@ -172,8 +172,6 @@ CCompositor::CCompositor() {
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
     m_sWLRPointerGestures = wlr_pointer_gestures_v1_create(m_sWLDisplay);
-
-    m_sWLRSession = wlr_backend_get_session(m_sWLRBackend);
 
     m_sWLRTextInputMgr = wlr_text_input_manager_v3_create(m_sWLDisplay);
 
@@ -1876,7 +1874,7 @@ void CCompositor::warpCursorTo(const Vector2D& pos) {
 
     const auto PMONITORNEW = getMonitorFromVector(pos);
     if (PMONITORNEW != m_pLastMonitor)
-        m_pLastMonitor = PMONITORNEW;
+        setActiveMonitor(PMONITORNEW);
 }
 
 SLayerSurface* CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {
@@ -1988,4 +1986,14 @@ CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, con
     PWORKSPACE->m_iMonitorID = monID;
 
     return PWORKSPACE;
+}
+
+void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
+    if (m_pLastMonitor == pMonitor)
+        return;
+
+    const auto PWORKSPACE = getWorkspaceByID(pMonitor->activeWorkspace);
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", pMonitor->szName + "," + PWORKSPACE->m_szName});
+    m_pLastMonitor = pMonitor;
 }

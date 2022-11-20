@@ -354,3 +354,10 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
         }
     }
 }
+
+void Events::listener_monitorStateRequest(void* owner, void* data) {
+    const auto PMONITOR = (CMonitor*)owner;
+    const auto E = (wlr_output_event_request_state*)data;
+
+    wlr_output_commit_state(PMONITOR->output, E->state);
+}

@@ -73,6 +73,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         // XWayland windows sometimes issue constraints weirdly.
         // TODO: We probably should search their parent. wlr_xwayland_surface->parent
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+        const auto PCONSTRAINT = g_pCompositor->m_sSeat.mouse->currentConstraint;
 
         if (!CONSTRAINTWINDOW) {
             unconstrainMouse();
@@ -82,27 +83,23 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             const auto CONSTRAINTPOS = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
             const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) : CONSTRAINTWINDOW->m_vRealSize.vec();
 
-            if (!VECINRECT(mouseCoords, CONSTRAINTPOS.x, CONSTRAINTPOS.y, CONSTRAINTPOS.x + CONSTRAINTSIZE.x - 1.0, CONSTRAINTPOS.y + CONSTRAINTSIZE.y - 1.0)) {
-                if (g_pCompositor->m_sSeat.mouse->constraintActive) {
-                    Vector2D newConstrainedCoords = mouseCoords;
+            if (g_pCompositor->m_sSeat.mouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
+                // we just snap the cursor to where it should be.
 
-                    if (mouseCoords.x < CONSTRAINTPOS.x)
-                        newConstrainedCoords.x = CONSTRAINTPOS.x;
-                    else if (mouseCoords.x >= CONSTRAINTPOS.x + CONSTRAINTSIZE.x)
-                        newConstrainedCoords.x = CONSTRAINTPOS.x + CONSTRAINTSIZE.x - 1.0;
+                Vector2D hint = { PCONSTRAINT->current.cursor_hint.x, PCONSTRAINT->current.cursor_hint.y };
 
-                    if (mouseCoords.y < CONSTRAINTPOS.y)
-                        newConstrainedCoords.y = CONSTRAINTPOS.y;
-                    else if (mouseCoords.y >= CONSTRAINTPOS.y + CONSTRAINTSIZE.y)
-                        newConstrainedCoords.y = CONSTRAINTPOS.y + CONSTRAINTSIZE.y - 1.0;
-
-                    wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, newConstrainedCoords.x, newConstrainedCoords.y);
-
-                    mouseCoords = newConstrainedCoords;
-                }
+                wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x + hint.x, CONSTRAINTPOS.y + hint.y);
             } else {
-                if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
-                    g_pCompositor->m_sSeat.mouse->constraintActive = true;
+                // we restrict the cursor to the confined region
+                if (!pixman_region32_contains_point(&PCONSTRAINT->region, mouseCoords.x - CONSTRAINTPOS.x, mouseCoords.y - CONSTRAINTPOS.y, nullptr)) {
+                    if (g_pCompositor->m_sSeat.mouse->constraintActive) {
+                        wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, NULL, mouseCoords.x, mouseCoords.y);
+                        mouseCoords = getMouseCoordsInternal();
+                    }
+                } else {
+                    if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
+                        g_pCompositor->m_sSeat.mouse->constraintActive = true;
+                    }
                 }
             }
 

@@ -59,6 +59,13 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     auto POS = m_vPosition;
     auto SIZE = m_vSize;
 
+    if (m_bIsFullscreen) {
+        POS = PMONITOR->vecPosition;
+        SIZE = PMONITOR->vecSize;
+
+        return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
+    }
+
     if (DELTALESSTHAN(POS.y - PMONITOR->vecPosition.y, PMONITOR->vecReservedTopLeft.y, 1)) {
         POS.y = PMONITOR->vecPosition.y;
         SIZE.y += PMONITOR->vecReservedTopLeft.y;

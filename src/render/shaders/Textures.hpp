@@ -13,24 +13,24 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
     if (pixCoord.x + pixCoord.y > radius) {
 
-	float dist = length(pixCoord);
+	    float dist = length(pixCoord);
 
-	if (dist > radius)
-	    discard;
+	    if (dist > radius)
+	        discard;
 
-	if (primitiveMultisample == 1 && dist > radius - 1.0) {
-	    float distances = 0.0;
-	    distances += float(length(pixCoord + vec2(0.25, 0.25)) < radius);
-	    distances += float(length(pixCoord + vec2(0.75, 0.25)) < radius);
-	    distances += float(length(pixCoord + vec2(0.25, 0.75)) < radius);
-	    distances += float(length(pixCoord + vec2(0.75, 0.75)) < radius);
+	    if (primitiveMultisample == 1 && dist > radius - 1.0) {
+	        float distances = 0.0;
+	        distances += float(length(pixCoord + vec2(0.25, 0.25)) < radius);
+	        distances += float(length(pixCoord + vec2(0.75, 0.25)) < radius);
+	        distances += float(length(pixCoord + vec2(0.25, 0.75)) < radius);
+	        distances += float(length(pixCoord + vec2(0.75, 0.75)) < radius);
 
-	    if (distances == 0.0)
-		discard;
+	        if (distances == 0.0)
+		        discard;
 
-	    distances /= 4.0;
+	        distances /= 4.0;
 
-	    )#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
+	        )#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
         }
 
     }

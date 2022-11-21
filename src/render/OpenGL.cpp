@@ -809,7 +809,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
     if (!pixman_region32_not_empty(m_RenderData.pDamage) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBorder))
-	return;
+	    return;
 
     static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto *const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
@@ -860,12 +860,15 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
 #endif
     glUniform4f(m_RenderData.pCurrentMonData->m_shBORDER1.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
 
-    const auto TOPLEFT = Vector2D(round, round);
-    const auto BOTTOMRIGHT = Vector2D(box->width - round, box->height - round);
-    const auto FULLSIZE = Vector2D(box->width, box->height);
+    wlr_box transformedBox;
+    wlr_box_transform(&transformedBox, box, wlr_output_transform_invert(m_RenderData.pMonitor->transform),
+                      m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
+
+    const auto TOPLEFT = Vector2D(transformedBox.x, transformedBox.y);
+    const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    //glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radius, round);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.thick, scaledBorderSize);
@@ -890,13 +893,13 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
             }
         }
 
-	pixman_region32_fini(&damageClip);
+	    pixman_region32_fini(&damageClip);
     } else {
-	PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
-	    const auto RECT = RECTSARR[i];
-	    scissor(&RECT);
-	    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	}
+	    PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
+	        const auto RECT = RECTSARR[i];
+	        scissor(&RECT);
+	        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	    }
     }
 
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib);

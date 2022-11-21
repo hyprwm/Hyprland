@@ -779,7 +779,11 @@ void CInputManager::setPointerConfigs() {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT);
             } else {
                 Debug::log(WARN, "Unknown acceleration profile, falling back to default");
-            } 
+            }
+
+            const auto SCROLLBUTTON = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "scroll_button") : g_pConfigManager->getInt("input:scroll_button");
+
+            libinput_device_config_scroll_set_button(LIBINPUTDEV, SCROLLBUTTON == 0 ? libinput_device_config_scroll_get_default_button(LIBINPUTDEV) : SCROLLBUTTON);
 
             Debug::log(LOG, "Applied config to mouse %s, sens %.2f", m.name.c_str(), LIBINPUTSENS);
         }

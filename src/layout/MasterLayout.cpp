@@ -366,7 +366,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* p
     double delta = pixResize.x / PMONITOR->vecSize.x;
 
     for (auto& n : m_lMasterNodesData) {
-        if (n.isMaster)
+        if (n.isMaster && n.workspaceID == PMONITOR->activeWorkspace)
             n.percMaster = std::clamp(n.percMaster + delta, 0.05, 0.95);
     }
 

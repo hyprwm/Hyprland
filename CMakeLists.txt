@@ -45,7 +45,8 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 include_directories(. PRIVATE "subprojects/wlroots/include/")
 include_directories(. PRIVATE "subprojects/wlroots/build/include/")
-add_compile_options(-std=c++23 -DWLR_USE_UNSTABLE )
+set(CMAKE_CXX_STANDARD 23)
+add_compile_options(-DWLR_USE_UNSTABLE)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing)
 
 message(STATUS "Checking deps...")

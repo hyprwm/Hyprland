@@ -119,7 +119,6 @@ public:
     pixman_region32_t m_rOriginalDamageRegion; // used for storing the pre-expanded region
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
-    std::unordered_map<CWindow*, CFramebuffer> m_mWindowResizeFramebuffers;
     std::unordered_map<SLayerSurface*, CFramebuffer> m_mLayerFramebuffers;
     std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
     std::unordered_map<CMonitor*, CTexture> m_mMonitorBGTextures;

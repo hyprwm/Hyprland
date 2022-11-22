@@ -1072,29 +1072,11 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 }
 
 void CHyprOpenGLImpl::onWindowResizeStart(CWindow* pWindow) {
-    static auto *const PTRANSITIONS = &g_pConfigManager->getConfigValuePtr("animations:use_resize_transitions")->intValue;
-    static auto *const PENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
 
-    if (!*PTRANSITIONS || !*PENABLED)
-        return;
-
-    if (pWindow->m_vRealSize.vec().x < 5 || pWindow->m_vRealSize.vec().y < 5)
-        return;
-
-    // make a fb and render a snapshot
-    const auto PFRAMEBUFFER = &m_mWindowResizeFramebuffers[pWindow];
-    makeRawWindowSnapshot(pWindow, PFRAMEBUFFER);
 }
 
 void CHyprOpenGLImpl::onWindowResizeEnd(CWindow* pWindow) {
-    static auto *const PTRANSITIONS = &g_pConfigManager->getConfigValuePtr("animations:use_resize_transitions")->intValue;
-    static auto *const PENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
 
-    if (!*PTRANSITIONS || !*PENABLED)
-        return;
-
-    // remove the fb
-    m_mWindowResizeFramebuffers.erase(pWindow);
 }
 
 void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {

@@ -1008,6 +1008,8 @@ void CHyprDwindleLayout::switchGroupWindow(CWindow* pWindow, bool forward, CWind
 
     pNewNode->pWindow->updateWindowDecos();
     PNODE->pWindow->updateWindowDecos();
+
+    g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID));
 }
 
 SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow) {

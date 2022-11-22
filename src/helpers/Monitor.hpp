@@ -42,6 +42,9 @@ public:
     bool        enabled10bit = false; // as above, this can be TRUE even if 10 bit failed.
     bool        createdByUser = false;
 
+    // will attempt DS
+    CWindow*    solitaryClient = nullptr; // used for stuff like tearing / VRR
+
     // mirroring
     CMonitor*   pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;
@@ -68,6 +71,7 @@ public:
     void        onDisconnect();
     void        addDamage(pixman_region32_t* rg);
     void        addDamage(wlr_box* box);
+    void        forceDamageEntire();
     void        setMirror(const std::string&);
     bool        isMirror();
 

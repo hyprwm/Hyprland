@@ -72,6 +72,7 @@ public:
     wlr_xdg_activation_v1*           m_sWLRActivation;
     wlr_linux_dmabuf_v1*             m_sWLRLinuxDMABuf;
     wlr_backend*                     m_sWLRHeadlessBackend;
+    wlr_tearing_control_manager_v1*  m_sWLRTearingMgr;
     // ------------------------------------------------- //
 
 

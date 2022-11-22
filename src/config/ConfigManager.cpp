@@ -681,6 +681,7 @@ bool windowRuleValid(const std::string& RULE) {
         && RULE != "pin"
         && RULE != "noanim"
         && RULE != "windowdance"
+        && RULE != "immediate"
         && RULE.find("animation") != 0
         && RULE.find("rounding") != 0
         && RULE.find("workspace") != 0

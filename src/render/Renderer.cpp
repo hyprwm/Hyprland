@@ -556,6 +556,8 @@ void countSubsurfacesIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
+    pMonitor->solitaryClient = nullptr;
+
     if (!pMonitor->mirrors.empty())
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
@@ -609,6 +611,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 
     // finally, we should be GTG.
     wlr_output_attach_buffer(pMonitor->output, &PSURFACE->buffer->base);
+    pMonitor->solitaryClient = PCANDIDATE;
 
     if (!wlr_output_test(pMonitor->output)) {
         return false;
@@ -620,10 +623,8 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, PSURFACE, pMonitor->output);
 
     if (wlr_output_commit(pMonitor->output)) {
-        if (!m_pLastScanout) {
+        if (!m_pLastScanout)
             m_pLastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to %x: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
-        }
     } else {
         m_pLastScanout = nullptr;
         return false;

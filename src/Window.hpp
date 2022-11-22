@@ -37,6 +37,7 @@ struct SWindowAdditionalConfigData {
     bool forceNoBorder = false;
     bool forceNoShadow = false;
     bool windowDanceCompat = false;
+    bool forceTearing = false;
 };
 
 struct SWindowRule {
@@ -180,6 +181,9 @@ public:
     // for idle inhibiting windows
     eIdleInhibitMode  m_eIdleInhibitMode = IDLEINHIBIT_NONE;
 
+    // tearing hints
+    bool              m_bTearingHint = false;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) {
         return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize && m_bFadingOut == rhs.m_bFadingOut;
@@ -204,6 +208,7 @@ public:
     bool            isHidden();
     void            applyDynamicRule(const SWindowRule& r);
     void            updateDynamicRules();
+    bool            shouldImmediate();
 
 private:
     // For hidden windows and stuff

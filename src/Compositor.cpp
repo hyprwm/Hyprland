@@ -179,6 +179,8 @@ CCompositor::CCompositor() {
 
     m_sWLRActivation = wlr_xdg_activation_v1_create(m_sWLDisplay);
 
+    m_sWLRTearingMgr = wlr_tearing_control_manager_v1_create(m_sWLDisplay, 1);
+
     m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLDisplay);
 
     if (!m_sWLRHeadlessBackend) {
@@ -244,6 +246,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
+    addWLSignal(&m_sWLRTearingMgr->events.new_object, &Events::listen_tearingNew, m_sWLRTearingMgr, "TearingMgr");
 
     if(m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
@@ -1759,6 +1762,8 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
 
     // DMAbuf stuff for direct scanout
     g_pHyprRenderer->setWindowScanoutMode(pWindow);
+
+    g_pHyprRenderer->damageMonitor(PMONITOR);
 }
 
 void CCompositor::moveUnmanagedX11ToWindows(CWindow* pWindow) {

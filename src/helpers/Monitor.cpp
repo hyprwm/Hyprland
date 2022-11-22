@@ -229,10 +229,16 @@ void CMonitor::onDisconnect() {
 }
 
 void CMonitor::addDamage(pixman_region32_t* rg) {
+    if (solitaryClient) // when there is a solitary client, we adjust to its commits.
+        return;
+
     wlr_output_damage_add(damage, rg);
 }
 
 void CMonitor::addDamage(wlr_box* box) {
+    if (solitaryClient)
+        return;
+
     wlr_output_damage_add_box(damage, box);
 }
 

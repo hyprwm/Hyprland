@@ -157,4 +157,9 @@ namespace Events {
 
     LISTENER(holdBegin);
     LISTENER(holdEnd);
+
+    // Tearing
+    LISTENER(tearingNew);
+    DYNLISTENFUNC(tearingSet);
+    DYNLISTENFUNC(tearingDestroy);
 };

@@ -224,6 +224,18 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
         }
     }
 
+    // check window if X11, we have a special case
+    if (pNode->pWindowOwner) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(pNode->pWindowOwner->m_iMonitorID);
+
+        if (PMONITOR->solitaryClient == pNode->pWindowOwner && pNode->pWindowOwner->shouldImmediate()) {
+            // TODO: we should do an asynchronous flip here. wlr patch needed.
+            listener_monitorFrame(PMONITOR, pNode->pWindowOwner);
+
+            Debug::log(LOG, "damage commit!");
+        }
+    }
+
     g_pHyprRenderer->damageSurface(pNode->pSurface, lx, ly);
 }
 

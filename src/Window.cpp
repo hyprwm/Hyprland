@@ -379,3 +379,8 @@ void CWindow::updateDynamicRules() {
         applyDynamicRule(r);
     }
 }
+
+bool CWindow::shouldImmediate() {
+    return false; // safeguard. Disabled for now.
+    return m_bTearingHint == 1 || m_sAdditionalConfigData.forceTearing;
+}

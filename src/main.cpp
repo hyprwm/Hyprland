@@ -23,6 +23,7 @@ int main(int argc, char** argv) {
     setenv("_JAVA_AWT_WM_NONREPARENTING", "1", 0);
 
     // parse some args
+    bool logWlr = false;
     std::string configPath;
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--i-am-really-stupid"))
@@ -30,6 +31,8 @@ int main(int argc, char** argv) {
         else if ((!strcmp(argv[i], "-c") || !strcmp(argv[i], "--config")) && argc >= i + 2) {
             configPath = std::string(argv[++i]);
             Debug::log(LOG, "Using config location %s.", configPath.c_str());
+        } else if (!strcmp(argv[i], "--log-wlr")) {
+            logWlr = true;
         } else {
             std::cout << "Hyprland usage: Hyprland [arg [...]].\n\nArguments:\n" <<
                 "--help         -h | Show this help message\n" <<
@@ -53,7 +56,7 @@ int main(int argc, char** argv) {
     std::cout << "Welcome to Hyprland!\n";
 
     const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");
-    if (LOGWLR && std::string(LOGWLR) == "1")
+    if ((LOGWLR && std::string(LOGWLR) == "1") || logWlr)
         wlr_log_init(WLR_DEBUG, Debug::wlrLog);
 
     // let's init the compositor.

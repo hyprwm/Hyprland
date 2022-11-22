@@ -51,6 +51,8 @@ public:
     bool                attemptDirectScanout(CMonitor*);
     void                setWindowScanoutMode(CWindow*);
 
+    std::list<STearingController> m_lTearingControllers;
+
 private:
     void                arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
     void                renderWorkspaceWithFullscreenWindow(CMonitor*, CWorkspace*, timespec*);

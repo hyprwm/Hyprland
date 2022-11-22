@@ -183,6 +183,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             } else {
                 Debug::log(ERR, "Rule idleinhibit: unknown mode %s", IDLERULE.c_str());
             }
+        } else if (r.szRule == "immediate") {
+            PWINDOW->m_sAdditionalConfigData.forceTearing = true;
         }
         PWINDOW->applyDynamicRule(r);
     }
@@ -659,12 +661,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    if (!PWINDOW->m_bMappedX11 || PWINDOW->isHidden() || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
+    if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden())
         return;
 
     g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
-
-    // Debug::log(LOG, "Window %x committed", PWINDOW); // SPAM!
 }
 
 void Events::listener_destroyWindow(void* owner, void* data) {

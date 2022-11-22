@@ -168,6 +168,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         }
     }
 
+    // check if we have a solitary client. If so, reject any draws not queued by our client (passed in data)
+    if (PMONITOR->solitaryClient && data != PMONITOR->solitaryClient && PMONITOR->solitaryClient->shouldImmediate())
+        return;
+
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
@@ -186,6 +190,12 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (!wlr_output_damage_attach_render(PMONITOR->damage, &hasChanged, &damage)){
         Debug::log(ERR, "Couldn't attach render to display %s ???", PMONITOR->szName.c_str());
         return;
+    }
+
+    if (PMONITOR->solitaryClient) {
+        // force damage
+        hasChanged = true;
+        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x * 10, (int)PMONITOR->vecTransformedSize.y * 10);
     }
 
     // we need to cleanup fading out when rendering the appropriate context

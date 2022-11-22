@@ -1992,6 +1992,11 @@ void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
     if (m_pLastMonitor == pMonitor)
         return;
 
+    if (!pMonitor) {
+        m_pLastMonitor = nullptr;
+        return;
+    }
+
     const auto PWORKSPACE = getWorkspaceByID(pMonitor->activeWorkspace);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", pMonitor->szName + "," + PWORKSPACE->m_szName});

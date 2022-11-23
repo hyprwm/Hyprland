@@ -244,6 +244,13 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             result = WORKSPACE->m_iID;
         }
         outName = WORKSPACENAME;
+    } else if (in.find("empty") == 0) {
+        int id = 0;
+        while (++id < INT_MAX) {
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
+            if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0))
+                return id;
+        }
     } else {
         if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';

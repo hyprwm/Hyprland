@@ -318,7 +318,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
     } else if (r.szRule == "noshadow") {
         m_sAdditionalConfigData.forceNoShadow = true;
     } else if (r.szRule == "opaque") {
-        m_sAdditionalConfigData.forceOpaque = true;
+        if (!m_sAdditionalConfigData.forceOpaqueOverriden)
+            m_sAdditionalConfigData.forceOpaque = true;
     } else if (r.szRule.find("rounding") == 0) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -369,7 +370,8 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceNoBlur = false;
     m_sAdditionalConfigData.forceNoBorder = false;
     m_sAdditionalConfigData.forceNoShadow = false;
-    m_sAdditionalConfigData.forceOpaque = false;
+    if (!m_sAdditionalConfigData.forceOpaqueOverriden)
+        m_sAdditionalConfigData.forceOpaque = false;
     m_sAdditionalConfigData.forceNoAnims = false;
     m_sAdditionalConfigData.animationStyle = "";
     m_sAdditionalConfigData.rounding = -1;

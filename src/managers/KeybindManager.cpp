@@ -1622,6 +1622,7 @@ void CKeybindManager::toggleOpaque(std::string unused) {
         return;
 
     PWINDOW->m_sAdditionalConfigData.forceOpaque = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
+    PWINDOW->m_sAdditionalConfigData.forceOpaqueOverriden = true;
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 }

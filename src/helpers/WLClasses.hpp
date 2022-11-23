@@ -146,6 +146,9 @@ struct SConstraint {
     SMouse* pMouse = nullptr;
     wlr_pointer_constraint_v1* constraint = nullptr;
 
+    // HACK: Store last mouse position
+    double x,y;
+
     DYNLISTENER(setConstraintRegion);
     DYNLISTENER(destroyConstraint);
 

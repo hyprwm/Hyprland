@@ -105,6 +105,10 @@ void Events::listener_newConstraint(wl_listener* listener, void* data) {
     CONSTRAINT->pMouse = g_pCompositor->m_sSeat.mouse;
     CONSTRAINT->constraint = PCONSTRAINT;
 
+    // HACK: Store last mouse pos
+    CONSTRAINT->x = g_pCompositor->m_sWLRCursor->x;
+    CONSTRAINT->y = g_pCompositor->m_sWLRCursor->y;
+
     CONSTRAINT->hyprListener_destroyConstraint.initCallback(&PCONSTRAINT->events.destroy, &Events::listener_destroyConstraint, CONSTRAINT, "Constraint");
     CONSTRAINT->hyprListener_setConstraintRegion.initCallback(&PCONSTRAINT->events.set_region, &Events::listener_setConstraintRegion, CONSTRAINT, "Constraint");
 
@@ -128,10 +132,9 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
 
                 wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->constraint->current.cursor_hint.x, PCONSTRAINT->constraint->current.cursor_hint.y);
             } else {
-                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
-                                PCONSTRAINT->constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.vec().x, PCONSTRAINT->constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.vec().y);
-
-                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->constraint->current.cursor_hint.x, PCONSTRAINT->constraint->current.cursor_hint.y);
+                // HACK: Warp to last position (cursor_hint.xy is always (0, 0))
+                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PCONSTRAINT->x, PCONSTRAINT->y);
+                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->x - PWINDOW->m_vRealPosition.vec().x, PCONSTRAINT->y - PWINDOW->m_vRealPosition.vec().y);
             }
         }
 

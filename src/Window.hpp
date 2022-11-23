@@ -32,6 +32,7 @@ struct SWindowAdditionalConfigData {
     int rounding = -1; // -1 means no
     bool forceNoBlur = false;
     bool forceOpaque = false;
+    bool forceOpaqueOverriden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
     bool forceAllowsInput = false;
     bool forceNoAnims = false;
     bool forceNoBorder = false;

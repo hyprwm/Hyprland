@@ -729,7 +729,7 @@ void CInputManager::setPointerConfigs() {
             }
 
             const auto SCROLLMETHOD = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "scroll_method") : g_pConfigManager->getString("input:scroll_method");
-            if (SCROLLMETHOD == "" || SCROLLMETHOD == STRVAL_EMPTY) {
+            if (SCROLLMETHOD == "") {
                 libinput_device_config_scroll_set_method(LIBINPUTDEV, libinput_device_config_scroll_get_default_method(LIBINPUTDEV));
             } else if (SCROLLMETHOD == "no_scroll") {
                 libinput_device_config_scroll_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_SCROLL_NO_SCROLL);
@@ -771,7 +771,7 @@ void CInputManager::setPointerConfigs() {
 
             const auto ACCELPROFILE = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "accel_profile") : g_pConfigManager->getString("input:accel_profile");
 
-            if (ACCELPROFILE == "" || ACCELPROFILE == STRVAL_EMPTY) {
+            if (ACCELPROFILE == "") {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
             } else if (ACCELPROFILE == "adaptive") {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE);

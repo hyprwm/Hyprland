@@ -25,6 +25,8 @@ struct STouchData {
     Vector2D touchSurfaceOrigin;
 };
 
+class CKeybindManager;
+
 class CInputManager {
 public:
 
@@ -161,6 +163,8 @@ private:
 
     // swipe
     void            beginWorkspaceSwipe();
+
+    friend class CKeybindManager;
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

@@ -707,6 +707,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     // remove constraints
     g_pInputManager->unconstrainMouse();
 
+    g_pInputManager->m_bEmptyFocusCursorSet = false;
+
     // if it's not internal, we will unfocus to prevent stuck focus
     if (!internal)
         g_pCompositor->focusWindow(nullptr);

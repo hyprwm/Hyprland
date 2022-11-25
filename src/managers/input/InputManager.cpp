@@ -218,7 +218,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
             else
                 wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
-
+                
             m_bEmptyFocusCursorSet = true;
         }
 

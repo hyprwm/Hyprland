@@ -1134,6 +1134,9 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
 		ACTIVE2->pWindow->m_vPosition = ACTIVE2->position;
 		ACTIVE2->pWindow->m_vSize = ACTIVE2->size;
 	}
+
+    g_pHyprRenderer->damageWindow(pWindow);
+    g_pHyprRenderer->damageWindow(pWindow2);
 }
 
 void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {

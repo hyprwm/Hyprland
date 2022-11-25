@@ -498,6 +498,9 @@ void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     recalculateMonitor(pWindow->m_iMonitorID);
     if (PNODE2->workspaceID != PNODE->workspaceID)
         recalculateMonitor(pWindow2->m_iMonitorID);
+
+    g_pHyprRenderer->damageWindow(pWindow);
+    g_pHyprRenderer->damageWindow(pWindow2);
 }
 
 void CHyprMasterLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {

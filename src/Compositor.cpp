@@ -1726,7 +1726,7 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     }
 
     if (pWindow->m_bNoFullscreen) {
-        Debug::log(LOG, "Window Rule prevents fullscreen");
+        Debug::log(LOG, "Window has NoFulscreen rule!");
         return;
     }
 

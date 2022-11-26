@@ -48,6 +48,7 @@ inline const std::vector<std::string> SPLASHES = {
     "Ding ding pch n daa, bam-ba-ba-re-bam baram bom bom baba-bam-bam-bommm",
     "Súbeme la radio que esta es mi canción",
     "I'm beggin', beggin' you",
+    "Never Gonna Give You Up",
     //
     "Join the discord server!",
     "Thanks ThatOneCalculator!",

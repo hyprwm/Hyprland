@@ -52,7 +52,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto *const PSWALLOW = &g_pConfigManager->getConfigValuePtr("misc:enable_swallow")->intValue;
     static auto *const PSWALLOWREGEX = &g_pConfigManager->getConfigValuePtr("misc:swallow_regex")->strValue;
 
-    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+    auto PMONITOR = g_pCompositor->m_pLastMonitor;
     const auto PWORKSPACE = PMONITOR->specialWorkspaceOpen ? g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
@@ -133,7 +133,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 }
 
                 PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
-                g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->m_iMonitorID));
+                if (PWINDOW->m_iMonitorID != PMONITOR->ID) {
+                    g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->m_iMonitorID));
+                    PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+                }
 
                 Debug::log(ERR, "Rule monitor, applying to window %x -> mon: %i, workspace: %i", PWINDOW, PWINDOW->m_iMonitorID, PWINDOW->m_iWorkspaceID);
             } catch (std::exception& e) {
@@ -218,6 +221,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
             PWINDOW->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
             PWINDOW->m_iWorkspaceID = g_pCompositor->m_pLastMonitor->activeWorkspace;
+
+            PMONITOR = g_pCompositor->m_pLastMonitor;
         }
     }
 

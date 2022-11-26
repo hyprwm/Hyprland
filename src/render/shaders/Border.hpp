@@ -23,7 +23,24 @@ vec4 getColorForCoord(vec2 normalizedCoord) {
     if (gradientLength < 2)
         return gradient[0];
 
-    float sine = sin(angle);
+    float finalAng = 0.0;
+
+    if (angle > 4.71 /* 270 deg */) {
+        normalizedCoord[1] = 1.0 - normalizedCoord[1];
+        finalAng = 6.28 - angle;
+    } else if (angle > 3.14 /* 180 deg */) {
+        normalizedCoord[0] = 1.0 - normalizedCoord[0];
+        normalizedCoord[1] = 1.0 - normalizedCoord[1];
+        finalAng = angle - 3.14;
+    } else if (angle > 1.57 /* 90 deg */) {
+        normalizedCoord[0] = 1.0 - normalizedCoord[0];
+        finalAng = 3.14 - angle;
+    } else {
+        finalAng = angle;
+    }
+
+    float sine = sin(finalAng);
+
     float progress = (normalizedCoord[1] * sine + normalizedCoord[0] * (1.0 - sine)) * float(gradientLength - 1);
     int bottom = int(floor(progress));
     int top = bottom + 1;

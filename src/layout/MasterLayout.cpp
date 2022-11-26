@@ -111,6 +111,10 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
     if (!PNODE)
         return;
 
+    pWindow->m_sSpecialRenderData.rounding = true;
+    pWindow->m_sSpecialRenderData.border = true;
+    pWindow->m_sSpecialRenderData.decorate = true;
+
     if (pWindow->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 

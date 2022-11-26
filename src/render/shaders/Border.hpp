@@ -10,6 +10,7 @@ varying vec2 v_texcoord;
 
 uniform vec2 topLeft;
 uniform vec2 fullSize;
+uniform vec2 fullSizeUntransformed;
 uniform float radius;
 uniform float thick;
 uniform int primitiveMultisample;
@@ -51,7 +52,7 @@ vec4 getColorForCoord(vec2 normalizedCoord) {
 void main() {
 
     highp vec2 pixCoord = vec2(gl_FragCoord);
-    vec2 originalPixCoord = fullSize * v_texcoord;
+    vec2 originalPixCoord = fullSizeUntransformed * v_texcoord;
 
     vec4 pixColor = getColorForCoord(v_texcoord);
     pixColor[3] *= alpha;
@@ -96,9 +97,9 @@ void main() {
     if (!done) {
         // distance to all straight bb borders
         float distanceT = originalPixCoord[1];
-        float distanceB = fullSize[1] - originalPixCoord[1];
+        float distanceB = fullSizeUntransformed[1] - originalPixCoord[1];
         float distanceL = originalPixCoord[0];
-        float distanceR = fullSize[0] - originalPixCoord[0];
+        float distanceR = fullSizeUntransformed[0] - originalPixCoord[0];
 
         // get the smallest
         float smallest = min(min(distanceT, distanceB), min(distanceL, distanceR));

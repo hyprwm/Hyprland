@@ -19,6 +19,7 @@ public:
     GLint topLeft;
     GLint bottomRight;
     GLint fullSize;
+    GLint fullSizeUntransformed;
     GLint radius;
     GLint primitiveMultisample;
 

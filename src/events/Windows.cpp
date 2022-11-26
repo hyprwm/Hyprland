@@ -161,6 +161,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsPseudotiled = true;
         } else if (r.szRule.find("nofocus") == 0) {
             PWINDOW->m_bNoFocus = true;
+        } else if (r.szRule.find("nofullscreen") == 0) {
+            PWINDOW->m_bNoFullscreen = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen = true;
         } else if (r.szRule == "windowdance") {

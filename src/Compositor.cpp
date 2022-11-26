@@ -1725,6 +1725,11 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
         return;
     }
 
+    if (pWindow->m_bNoFullscreen) {
+        Debug::log(LOG, "Window Rule prevents fullscreen");
+        return;
+    }
+
     const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
 
     const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);

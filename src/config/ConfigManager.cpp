@@ -678,6 +678,7 @@ bool windowRuleValid(const std::string& RULE) {
         && RULE != "opaque"
         && RULE != "forceinput"
         && RULE != "fullscreen"
+        && RULE != "nofullscreen"
         && RULE != "pin"
         && RULE != "noanim"
         && RULE != "windowdance"

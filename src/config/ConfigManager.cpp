@@ -399,7 +399,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                 break;
             }
             default: {
-                break;
+                UNREACHABLE();
             }
         }
     }

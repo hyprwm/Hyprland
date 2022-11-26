@@ -53,6 +53,7 @@ Try it out and report bugs / suggestions!
 - `wlr_ext` workspaces protocol support
 - Dual Kawase blur
 - Drop shadows
+- Gradient borders
 - Fully dynamic workspaces
 - Closely follows `wlroots-git`
 - Global keybinds passed to your apps of choice
@@ -150,9 +151,9 @@ Try it out and report bugs / suggestions!
 <!----------------------------------{ Images }--------------------------------->
 
 [Stars Preview]: https://starchart.cc/vaxerski/Hyprland.svg
-[Preview A]: https://i.imgur.com/pC6YF1Y.png
-[Preview B]: https://i.imgur.com/NbrTnZH.png
-[Preview C]: https://i.imgur.com/sCafdKQ.png
+[Preview A]: https://i.ibb.co/B3GJg28/20221126-20h53m26s-grim.png
+[Preview B]: https://i.imgur.com/pC6YF1Y.png
+[Preview C]: https://i.imgur.com/NbrTnZH.png
 
 
 <!----------------------------------{ Badges }--------------------------------->

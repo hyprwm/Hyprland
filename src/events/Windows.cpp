@@ -723,22 +723,22 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         return;
     }
 
-    if (PWINDOW->isHidden())
+    if (PWINDOW->isHidden() || PWINDOW->m_bNoFullscreenRequest) {
         return;
-    if (!PWINDOW->m_bNoFullscreenRequest) {
-        if (!PWINDOW->m_bIsX11) {
-            const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
+    }
 
-            if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
-                g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
+    if (!PWINDOW->m_bIsX11) {
+        const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 
-            wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
-        } else {
-            if (!PWINDOW->m_uSurface.xwayland->mapped)
-                return;
+        if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
+            g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
 
-            g_pCompositor->setWindowFullscreen(PWINDOW, PWINDOW->m_uSurface.xwayland->fullscreen, FULLSCREEN_FULL);
-        }
+        wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
+    } else {
+        if (!PWINDOW->m_uSurface.xwayland->mapped)
+            return;
+
+        g_pCompositor->setWindowFullscreen(PWINDOW, PWINDOW->m_uSurface.xwayland->fullscreen, FULLSCREEN_FULL);
     }
 
     PWINDOW->updateToplevel();
@@ -910,20 +910,22 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
+    if (PWINDOW->m_bNoFullscreenRequest) {
+      return;
+    }
+
     Debug::log(LOG, "Maximize request for %x", PWINDOW);
-    if (!PWINDOW->m_bNoFullscreenRequest) {
-        if (!PWINDOW->m_bIsX11) {
-            const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
+    if (!PWINDOW->m_bIsX11) {
+        const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
 
-            g_pCompositor->setWindowFullscreen(PWINDOW, EV ? EV->maximized : !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);  // this will be rejected if there already is a fullscreen window
+        g_pCompositor->setWindowFullscreen(PWINDOW, EV ? EV->maximized : !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);  // this will be rejected if there already is a fullscreen window
 
-            wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
-        } else {
-            if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
-                return;
+        wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
+    } else {
+        if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
+            return;
 
-            g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);
-        }
+        g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);
     }
 }
 

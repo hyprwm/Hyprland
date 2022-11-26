@@ -52,7 +52,8 @@ vec4 getColorForCoord(vec2 normalizedCoord) {
 void main() {
 
     highp vec2 pixCoord = vec2(gl_FragCoord);
-    vec2 originalPixCoord = fullSizeUntransformed * v_texcoord;
+    highp vec2 originalPixCoord = v_texcoord;
+    originalPixCoord *= fullSizeUntransformed;
 
     vec4 pixColor = getColorForCoord(v_texcoord);
     pixColor[3] *= alpha;

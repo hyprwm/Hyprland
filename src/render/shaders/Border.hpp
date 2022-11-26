@@ -17,6 +17,7 @@ uniform int primitiveMultisample;
 uniform vec4 gradient[10];
 uniform int gradientLength;
 uniform float angle;
+uniform float alpha;
 
 vec4 getColorForCoord(vec2 normalizedCoord) {
     if (gradientLength < 2)
@@ -36,6 +37,7 @@ void main() {
     vec2 originalPixCoord = fullSize * v_texcoord;
 
     vec4 pixColor = getColorForCoord(v_texcoord);
+    pixColor[3] *= alpha;
 
     bool done = false;
 

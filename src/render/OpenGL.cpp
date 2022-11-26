@@ -242,6 +242,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shBORDER1.gradient = glGetUniformLocation(prog, "gradient");
     m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength = glGetUniformLocation(prog, "gradientLength");
     m_RenderData.pCurrentMonData->m_shBORDER1.angle = glGetUniformLocation(prog, "angle");
+    m_RenderData.pCurrentMonData->m_shBORDER1.alpha = glGetUniformLocation(prog, "alpha");
 
     m_RenderData.pCurrentMonData->m_bShadersInitialized = true;
 
@@ -846,19 +847,13 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     wlr_matrix_transpose(glMatrix, glMatrix);
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
 #endif
-    
-    // TODO: make gradients already in 0 ... 1 and just pass vec.data(), alpha in shader
-    float* gradientValues = (float*)malloc(sizeof(float) * grad.m_vColors.size() * 4);
-    for (size_t i = 0; i < grad.m_vColors.size(); ++i) {
-        gradientValues[i * 4] = grad.m_vColors[i].r / 255.f;
-        gradientValues[i * 4 + 1] = grad.m_vColors[i].g / 255.f;
-        gradientValues[i * 4 + 2] = grad.m_vColors[i].b / 255.f;
-        gradientValues[i * 4 + 3] = grad.m_vColors[i].a / 255.f * a;
-    }
 
-    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad.m_vColors.size(), gradientValues);
+    static_assert(sizeof(CColor) == 4 * sizeof(float)); // otherwise the line below this will fail
+
+    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad.m_vColors.size(), (float*)grad.m_vColors.data());
     glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength, grad.m_vColors.size());
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle, grad.m_fAngle);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);
 
     wlr_box transformedBox;
     wlr_box_transform(&transformedBox, box, wlr_output_transform_invert(m_RenderData.pMonitor->transform),
@@ -906,8 +901,6 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib);
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-    free(gradientValues);
 
     // fix back box
     box->x += scaledBorderSize;

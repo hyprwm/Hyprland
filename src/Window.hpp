@@ -131,8 +131,9 @@ public:
     bool            m_bNoFocus = false;
     bool            m_bNoInitialFocus = false;
 
-    // initial fullscreen
+    // initial fullscreen and fullscreen disabled
     bool            m_bWantsInitialFullscreen = false;
+    bool            m_bNoFullscreenRequest = false;
 
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 

@@ -164,6 +164,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsPseudotiled = true;
         } else if (r.szRule.find("nofocus") == 0) {
             PWINDOW->m_bNoFocus = true;
+        } else if (r.szRule.find("nofullscreenrequest") == 0) {
+            PWINDOW->m_bNoFullscreenRequest = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen = true;
         } else if (r.szRule == "windowdance") {
@@ -442,7 +444,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto TIMER = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, setAnimToMove, PWINDOW);
     wl_event_source_timer_update(TIMER, PWINDOW->m_vRealPosition.getDurationLeftMs() + 5);
 
-    if (requestsFullscreen) {
+    if (requestsFullscreen && !PWINDOW->m_bNoFullscreenRequest) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWORKSPACE->m_bHasFullscreenWindow) {
             const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
@@ -726,7 +728,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         return;
     }
 
-    if (PWINDOW->isHidden())
+    if (PWINDOW->isHidden() || PWINDOW->m_bNoFullscreenRequest)
         return;
 
     if (!PWINDOW->m_bIsX11) {
@@ -912,8 +914,10 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    Debug::log(LOG, "Maximize request for %x", PWINDOW);
+    if (PWINDOW->m_bNoFullscreenRequest)
+        return;
 
+    Debug::log(LOG, "Maximize request for %x", PWINDOW);
     if (!PWINDOW->m_bIsX11) {
         const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
 

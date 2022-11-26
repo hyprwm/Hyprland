@@ -300,14 +300,20 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             float rounding = renderdata.dontRound ? 0 : renderdata.rounding == -1 ? *PROUNDING : renderdata.rounding;
             rounding *= pMonitor->scale;
 
-            auto col = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor.col();
-            col.a *= renderdata.fadeAlpha * renderdata.alpha / 255.f;
+            auto grad = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor;
+            const bool ANIMATED = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.isBeingAnimated();
+            float a1 = renderdata.fadeAlpha * renderdata.alpha / 255.f * (ANIMATED ? g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.fl() : 1.f);
 
             wlr_box windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
 
             scaleBox(&windowBox, pMonitor->scale);
 
-            g_pHyprOpenGL->renderBorder(&windowBox, col, rounding);
+            g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, a1);
+
+            if (ANIMATED) {
+                float a2 = 1.f - a1;
+                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, rounding, a2);
+            }
         }
     }
 

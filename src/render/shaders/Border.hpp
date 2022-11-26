@@ -14,12 +14,28 @@ uniform float radius;
 uniform float thick;
 uniform int primitiveMultisample;
 
+uniform vec4 gradient[10];
+uniform int gradientLength;
+uniform float angle;
+
+vec4 getColorForCoord(vec2 normalizedCoord) {
+    if (gradientLength < 2)
+        return gradient[0];
+
+    float sine = sin(angle);
+    float progress = (normalizedCoord[1] * sine + normalizedCoord[0] * (1.0 - sine)) * float(gradientLength - 1);
+    int bottom = int(floor(progress));
+    int top = bottom + 1;
+
+    return gradient[top] * (progress - float(bottom)) + gradient[bottom] * (float(top) - progress);
+}
+
 void main() {
 
     highp vec2 pixCoord = vec2(gl_FragCoord);
     vec2 originalPixCoord = fullSize * v_texcoord;
 
-    vec4 pixColor = v_color;
+    vec4 pixColor = getColorForCoord(v_texcoord);
 
     bool done = false;
 
@@ -27,7 +43,7 @@ void main() {
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoord -= fullSize * 0.5 - radius;
 
-    if (min(pixCoord.x, pixCoord.y) > 0.0) {
+    if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
 
 	    float dist = length(pixCoord);
 

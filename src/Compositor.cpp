@@ -1407,8 +1407,8 @@ void CCompositor::updateAllWindowsAnimatedDecorationValues() {
 
 void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     // optimization
-    static int64_t* ACTIVECOL = &g_pConfigManager->getConfigValuePtr("general:col.active_border")->intValue;
-    static int64_t* INACTIVECOL = &g_pConfigManager->getConfigValuePtr("general:col.inactive_border")->intValue;
+    static auto *const ACTIVECOL = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.active_border")->data.get();
+    static auto *const INACTIVECOL = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.inactive_border")->data.get();
     static auto *const PINACTIVEALPHA = &g_pConfigManager->getConfigValuePtr("decoration:inactive_opacity")->floatValue;
     static auto *const PACTIVEALPHA = &g_pConfigManager->getConfigValuePtr("decoration:active_opacity")->floatValue;
     static auto *const PFULLSCREENALPHA = &g_pConfigManager->getConfigValuePtr("decoration:fullscreen_opacity")->floatValue;
@@ -1416,14 +1416,25 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     static auto *const PSHADOWCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow_inactive")->intValue;
     static auto *const PDIMSTRENGTH = &g_pConfigManager->getConfigValuePtr("decoration:dim_strength")->floatValue;
 
+    auto setBorderColor = [&] (CGradientValueData grad) -> void {
+
+        if (grad == pWindow->m_cRealBorderColor)
+            return;
+
+        pWindow->m_cRealBorderColorPrevious = pWindow->m_cRealBorderColor;
+        pWindow->m_cRealBorderColor = grad;
+        pWindow->m_fBorderAnimationProgress.setValueAndWarp(0.f);
+        pWindow->m_fBorderAnimationProgress = 1.f;
+    };
+
     // border
     const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
     if (RENDERDATA.isBorderColor)
-        pWindow->m_cRealBorderColor = RENDERDATA.borderColor;
+        setBorderColor(RENDERDATA.borderColor);
     else
-        pWindow->m_cRealBorderColor = CColor(pWindow == m_pLastWindow ?
-                                                        (pWindow->m_sSpecialRenderData.activeBorderColor >= 0 ? pWindow->m_sSpecialRenderData.activeBorderColor : *ACTIVECOL) :
-                                                        (pWindow->m_sSpecialRenderData.inactiveBorderColor >= 0 ? pWindow->m_sSpecialRenderData.inactiveBorderColor : *INACTIVECOL));
+        setBorderColor(pWindow == m_pLastWindow ?
+                                            (pWindow->m_sSpecialRenderData.activeBorderColor >= 0 ? CGradientValueData(pWindow->m_sSpecialRenderData.activeBorderColor) : *ACTIVECOL) :
+                                            (pWindow->m_sSpecialRenderData.inactiveBorderColor >= 0 ? CGradientValueData(pWindow->m_sSpecialRenderData.inactiveBorderColor) : *INACTIVECOL));
 
 
     // opacity

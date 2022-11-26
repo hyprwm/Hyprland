@@ -132,7 +132,7 @@ public:
 
     // initial fullscreen and fullscreen disabled
     bool            m_bWantsInitialFullscreen = false;
-    bool            m_bNoFullscreen = false;
+    bool            m_bNoFullscreenRequest = false;
 
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 

@@ -161,8 +161,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsPseudotiled = true;
         } else if (r.szRule.find("nofocus") == 0) {
             PWINDOW->m_bNoFocus = true;
-        } else if (r.szRule.find("nofullscreen") == 0) {
-            PWINDOW->m_bNoFullscreen = true;
+        } else if (r.szRule.find("nofullscreenrequest") == 0) {
+            PWINDOW->m_bNoFullscreenRequest = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen = true;
         } else if (r.szRule == "windowdance") {
@@ -439,7 +439,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto TIMER = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, setAnimToMove, PWINDOW);
     wl_event_source_timer_update(TIMER, PWINDOW->m_vRealPosition.getDurationLeftMs() + 5);
 
-    if (requestsFullscreen) {
+    if (requestsFullscreen && !PWINDOW->m_bNoFullscreenRequest) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWORKSPACE->m_bHasFullscreenWindow) {
             const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
@@ -725,19 +725,20 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
 
     if (PWINDOW->isHidden())
         return;
+    if (!PWINDOW->m_bNoFullscreenRequest) {
+        if (!PWINDOW->m_bIsX11) {
+            const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 
-    if (!PWINDOW->m_bIsX11) {
-        const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
+            if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
+                g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
 
-        if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
-            g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
+            wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
+        } else {
+            if (!PWINDOW->m_uSurface.xwayland->mapped)
+                return;
 
-        wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
-    } else {
-        if (!PWINDOW->m_uSurface.xwayland->mapped)
-            return;
-
-        g_pCompositor->setWindowFullscreen(PWINDOW, PWINDOW->m_uSurface.xwayland->fullscreen, FULLSCREEN_FULL);
+            g_pCompositor->setWindowFullscreen(PWINDOW, PWINDOW->m_uSurface.xwayland->fullscreen, FULLSCREEN_FULL);
+        }
     }
 
     PWINDOW->updateToplevel();
@@ -910,18 +911,19 @@ void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
     Debug::log(LOG, "Maximize request for %x", PWINDOW);
+    if (!PWINDOW->m_bNoFullscreenRequest) {
+        if (!PWINDOW->m_bIsX11) {
+            const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
 
-    if (!PWINDOW->m_bIsX11) {
-        const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
+            g_pCompositor->setWindowFullscreen(PWINDOW, EV ? EV->maximized : !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);  // this will be rejected if there already is a fullscreen window
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, EV ? EV->maximized : !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);  // this will be rejected if there already is a fullscreen window
+            wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
+        } else {
+            if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
+                return;
 
-        wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
-    } else {
-        if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
-            return;
-
-        g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);
+            g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);
+        }
     }
 }
 

@@ -126,6 +126,8 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
 void Events::listener_destroyDrag(void* owner, void* data) {
     Debug::log(LOG, "Drag destroyed.");
 
+    static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+
     if (g_pInputManager->m_sDrag.drag && g_pInputManager->m_sDrag.dragIcon && g_pInputManager->m_sDrag.dragIcon->surface)
         g_pHyprRenderer->damageBox(g_pInputManager->m_sDrag.pos.x - 2, g_pInputManager->m_sDrag.pos.y - 2, g_pInputManager->m_sDrag.dragIcon->surface->current.width + 4, g_pInputManager->m_sDrag.dragIcon->surface->current.height + 4);
 
@@ -135,7 +137,7 @@ void Events::listener_destroyDrag(void* owner, void* data) {
 
     g_pInputManager->refocus();
 
-    if (g_pInputManager->m_pFollowOnDnDBegin)
+    if (g_pInputManager->m_pFollowOnDnDBegin && *PFOLLOWMOUSE != 1)
         g_pCompositor->focusWindow(g_pInputManager->m_pFollowOnDnDBegin);
 
     g_pInputManager->m_pFollowOnDnDBegin = nullptr;

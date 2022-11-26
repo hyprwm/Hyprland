@@ -79,3 +79,5 @@
 #endif
 
 #define SPECIAL_WORKSPACE_ID -99
+
+#define PI 3.14159265358979

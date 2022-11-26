@@ -6,6 +6,7 @@
 #include "helpers/AnimatedVariable.hpp"
 #include "render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
+#include "config/ConfigDataValues.hpp"
 
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
@@ -136,7 +137,9 @@ public:
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 
     // Animated border
-    CAnimatedVariable m_cRealBorderColor;
+    CGradientValueData m_cRealBorderColor = {0};
+    CGradientValueData m_cRealBorderColorPrevious = {0};
+    CAnimatedVariable  m_fBorderAnimationProgress;
 
     // Fade in-out
     CAnimatedVariable m_fAlpha;

@@ -11,6 +11,9 @@
 #include <iostream>
 
 CConfigManager::CConfigManager() {
+    configValues["general:col.active_border"].data = std::make_shared<CGradientValueData>(0xffffffff);
+    configValues["general:col.inactive_border"].data = std::make_shared<CGradientValueData>(0xff444444);
+
     setDefaultVars();
     setDefaultAnimationVars();
 
@@ -39,8 +42,8 @@ void CConfigManager::setDefaultVars() {
     configValues["general:no_border_on_floating"].intValue = 0;
     configValues["general:gaps_in"].intValue = 5;
     configValues["general:gaps_out"].intValue = 20;
-    configValues["general:col.active_border"].intValue = 0xffffffff;
-    configValues["general:col.inactive_border"].intValue = 0xff444444;
+    ((CGradientValueData*)configValues["general:col.active_border"].data.get())->reset(0xffffffff);
+    ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
     configValues["general:cursor_inactive_timeout"].intValue = 0;
     configValues["general:no_cursor_warps"].intValue = 0;
 
@@ -348,6 +351,56 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         } catch (...) {
             Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
+        }
+    } else if (CONFIGENTRY->data.get() != nullptr) {
+
+        switch (CONFIGENTRY->data->getDataType()) {
+            case CVD_TYPE_GRADIENT: {
+                
+                CVarList varlist(VALUE, 0, ' ');
+
+                CGradientValueData* data = (CGradientValueData*)CONFIGENTRY->data.get();
+                data->m_vColors.clear();
+
+                for (auto& var : varlist) {
+                    if (var.find("deg") != std::string::npos) {
+                        // last arg
+                        try {
+                            data->m_fAngle = std::stoi(var.substr(0, var.find("deg"))) * (PI / 180.0); // radians
+                        } catch (...) {
+                            Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                            parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
+                        }
+
+                        break;
+                    }
+
+                    if (data->m_vColors.size() >= 10) {
+                        Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                        parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. Max colors in a gradient is 10.";
+                        break;
+                    }
+
+                    try {
+                        data->m_vColors.push_back(configStringToInt(var));
+                    } catch (std::exception& e) {
+                        Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                        parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. " + e.what();
+                    }
+                }
+
+                if (data->m_vColors.size() == 0) {
+                    Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                    parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. No colors provided.";
+
+                    data->m_vColors.push_back(0); // transparent
+                }
+
+                break;
+            }
+            default: {
+                break;
+            }
         }
     }
 }
@@ -1606,4 +1659,8 @@ CMonitor* CConfigManager::getBoundMonitorForWS(std::string wsname) {
 
 void CConfigManager::addExecRule(SExecRequestedRule rule) {
     execRequestedRules.push_back(rule);
+}
+
+ICustomConfigValueData::~ICustomConfigValueData() {
+    ; // empty
 }

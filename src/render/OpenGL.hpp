@@ -68,6 +68,8 @@ struct SCurrentRenderData {
     wlr_box     clipBox = {};
 };
 
+class CGradientValueData;
+
 class CHyprOpenGLImpl {
 public:
 
@@ -82,7 +84,7 @@ public:
     void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool allowCustomUV = false);
     void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0);
     void    renderRoundedShadow(wlr_box*, int round, int range, float a = 1.0);
-    void    renderBorder(wlr_box*, const CColor&, int round);
+    void    renderBorder(wlr_box*, const CGradientValueData&, int round, float a = 1.0);
 
     void    makeWindowSnapshot(CWindow*);
     void    makeRawWindowSnapshot(CWindow*, CFramebuffer*);

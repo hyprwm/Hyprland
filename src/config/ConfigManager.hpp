@@ -13,6 +13,7 @@
 #include "../Window.hpp"
 
 #include "defaultConfig.hpp"
+#include "ConfigDataValues.hpp"
 
 #define STRVAL_EMPTY "[[EMPTY]]"
 
@@ -24,6 +25,7 @@ struct SConfigValue {
     float floatValue = -__FLT_MAX__;
     std::string strValue = "";
     Vector2D vecValue = Vector2D(-__FLT_MAX__, -__FLT_MAX__);
+    std::shared_ptr<ICustomConfigValueData> data;
 
     bool set = false; // used for device configs
 };

@@ -32,6 +32,10 @@ public:
     GLint applyTint;
     GLint tint;
 
+    GLint gradient;
+    GLint gradientLength;
+    GLint angle;
+
     GLint getUniformLocation(const std::string&);
 
 private:

@@ -709,7 +709,7 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
         return "no such option";
 
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL)
-        return getFormat("option %s\n\tint: %lld\n\tfloat: %f\n\tstr: \"%s\"", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str());
+        return getFormat("option %s\n\tint: %lld\n\tfloat: %f\n\tstr: \"%s\"\n\tdata: %x", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str(), PCFGOPT->data.get());
     else {
         return getFormat(
 R"#(
@@ -717,9 +717,10 @@ R"#(
     "option": "%s",
     "int": %lld,
     "float": %f,
-    "str": "%s"
+    "str": "%s",
+    "data": "0x%x"
 }
-)#", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str()
+)#", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str(), PCFGOPT->data.get()
         );
     }
 }

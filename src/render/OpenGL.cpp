@@ -239,7 +239,9 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shBORDER1.fullSize = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shBORDER1.radius = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shBORDER1.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
-    m_RenderData.pCurrentMonData->m_shBORDER1.color = glGetUniformLocation(prog, "color");
+    m_RenderData.pCurrentMonData->m_shBORDER1.gradient = glGetUniformLocation(prog, "gradient");
+    m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength = glGetUniformLocation(prog, "gradientLength");
+    m_RenderData.pCurrentMonData->m_shBORDER1.angle = glGetUniformLocation(prog, "angle");
 
     m_RenderData.pCurrentMonData->m_bShadersInitialized = true;
 
@@ -804,7 +806,7 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
     counter++;
 }
 
-void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
+void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad, int round, float a) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
@@ -819,27 +821,13 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
 
     int scaledBorderSize = *PBORDERSIZE * m_RenderData.pMonitor->scale;
 
-    if (round < 1) {
-        // zero rounding, just lines
-        wlr_box borderbox = {box->x - scaledBorderSize, box->y - scaledBorderSize, scaledBorderSize, box->height + 2 * scaledBorderSize};
-        renderRect(&borderbox, col, 0); // left
-        borderbox = {box->x, box->y - (int)scaledBorderSize, box->width + (int)scaledBorderSize, (int)scaledBorderSize};
-        renderRect(&borderbox, col, 0);  // top
-        borderbox = {box->x + box->width, box->y, (int)scaledBorderSize, box->height + (int)scaledBorderSize};
-        renderRect(&borderbox, col, 0);  // right
-        borderbox = {box->x, box->y + box->height, box->width, (int)scaledBorderSize};
-        renderRect(&borderbox, col, 0);  // bottom
-
-        return;
-    }
-
     // adjust box
     box->x -= scaledBorderSize;
     box->y -= scaledBorderSize;
     box->width += 2 * scaledBorderSize;
     box->height += 2 * scaledBorderSize;
 
-    round += scaledBorderSize;
+    round += round == 0 ? 0 : scaledBorderSize;
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0, m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
@@ -858,7 +846,19 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     wlr_matrix_transpose(glMatrix, glMatrix);
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
 #endif
-    glUniform4f(m_RenderData.pCurrentMonData->m_shBORDER1.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
+    
+    // TODO: make gradients already in 0 ... 1 and just pass vec.data(), alpha in shader
+    float* gradientValues = (float*)malloc(sizeof(float) * grad.m_vColors.size() * 4);
+    for (size_t i = 0; i < grad.m_vColors.size(); ++i) {
+        gradientValues[i * 4] = grad.m_vColors[i].r / 255.f;
+        gradientValues[i * 4 + 1] = grad.m_vColors[i].g / 255.f;
+        gradientValues[i * 4 + 2] = grad.m_vColors[i].b / 255.f;
+        gradientValues[i * 4 + 3] = grad.m_vColors[i].a / 255.f * a;
+    }
+
+    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad.m_vColors.size(), gradientValues);
+    glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength, grad.m_vColors.size());
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle, grad.m_fAngle);
 
     wlr_box transformedBox;
     wlr_box_transform(&transformedBox, box, wlr_output_transform_invert(m_RenderData.pMonitor->transform),
@@ -906,6 +906,14 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CColor& col, int round) {
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib);
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+    free(gradientValues);
+
+    // fix back box
+    box->x += scaledBorderSize;
+    box->y += scaledBorderSize;
+    box->width -= 2 * scaledBorderSize;
+    box->height -= 2 * scaledBorderSize;
 }
 
 void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFramebuffer) {

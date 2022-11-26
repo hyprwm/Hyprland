@@ -728,9 +728,8 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         return;
     }
 
-    if (PWINDOW->isHidden() || PWINDOW->m_bNoFullscreenRequest) {
+    if (PWINDOW->isHidden() || PWINDOW->m_bNoFullscreenRequest)
         return;
-    }
 
     if (!PWINDOW->m_bIsX11) {
         const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
@@ -915,9 +914,8 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    if (PWINDOW->m_bNoFullscreenRequest) {
-      return;
-    }
+    if (PWINDOW->m_bNoFullscreenRequest)
+        return;
 
     Debug::log(LOG, "Maximize request for %x", PWINDOW);
     if (!PWINDOW->m_bIsX11) {

@@ -852,7 +852,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
 
     glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad.m_vColors.size(), (float*)grad.m_vColors.data());
     glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength, grad.m_vColors.size());
-    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle, grad.m_fAngle);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle, (int)(grad.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);
 
     wlr_box transformedBox;

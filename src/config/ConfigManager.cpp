@@ -382,7 +382,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                     }
 
                     try {
-                        data->m_vColors.push_back(configStringToInt(var));
+                        data->m_vColors.push_back(CColor(configStringToInt(var)) * (1.f / 255.f));
                     } catch (std::exception& e) {
                         Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
                         parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. " + e.what();

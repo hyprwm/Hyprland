@@ -380,8 +380,17 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
         return g_pCompositor->getFullscreenWindowOnWorkspace(pWindow->m_iWorkspaceID);
 
     if (pWindow->m_bIsFloating) {
-        // the window was floating, let's try the last tiled window.
 
+        // find whether there is a floating window below this one
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus && !w->m_bNoFocus) {
+                if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x, w->m_vPosition.y + w->m_vSize.y)) {
+                    return w.get();
+                }
+            }
+        }
+
+        // let's try the last tiled window.
         if (m_pLastTiledWindow && m_pLastTiledWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID)
             return m_pLastTiledWindow;
 

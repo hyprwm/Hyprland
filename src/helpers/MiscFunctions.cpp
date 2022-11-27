@@ -234,7 +234,18 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     int result = INT_MAX;
     if (in.find("special") == 0) {
         outName = "special";
-        return SPECIAL_WORKSPACE_ID;
+
+        if (in.length() > 8) {
+            const auto NAME = in.substr(8);
+
+            const auto WS = g_pCompositor->getWorkspaceByName("special:" + NAME);
+            
+            outName = "special:" + NAME;
+
+            return WS ? WS->m_iID : g_pCompositor->getNewSpecialID();
+        }
+
+        return SPECIAL_WORKSPACE_START;
     } else if (in.find("name:") == 0) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
         const auto WORKSPACE = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
@@ -281,7 +292,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                     int highestID = -99999;
 
                     for (auto& w : g_pCompositor->m_vWorkspaces) {
-                        if (w->m_iID == SPECIAL_WORKSPACE_ID)
+                        if (g_pCompositor->isWorkspaceSpecial(w->m_iID))
                             continue;
 
                         if (w->m_iID < lowestID)
@@ -297,7 +308,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                         searchID = lowestID;
                 }
 
-                if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(searchID); PWORKSPACE && PWORKSPACE->m_iID != SPECIAL_WORKSPACE_ID) {
+                if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(searchID); PWORKSPACE && !PWORKSPACE->m_bIsSpecialWorkspace) {
                     if (onAllMonitors || PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
                         currentID = PWORKSPACE->m_iID;
 

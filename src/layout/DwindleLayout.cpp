@@ -144,9 +144,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     CMonitor* PMONITOR = nullptr;
 
-    if (pNode->workspaceID == SPECIAL_WORKSPACE_ID) {
+    if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
         for (auto& m : g_pCompositor->m_vMonitors) {
-            if (m->specialWorkspaceOpen) {
+            if (m->specialWorkspaceID == pNode->workspaceID) {
                 PMONITOR = m.get();
                 break;
             }
@@ -188,7 +188,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     const auto NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
 
-    if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && (NODESONWORKSPACE == 1 || (pNode->isGroupMember() && pNode->getGroupMemberCount() == NODESONWORKSPACE) || (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
+    if (*PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) && (NODESONWORKSPACE == 1 || (pNode->isGroupMember() && pNode->getGroupMemberCount() == NODESONWORKSPACE) || (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
         PWINDOW->m_vRealPosition = calcPos - Vector2D(*PBORDERSIZE, *PBORDERSIZE);
         PWINDOW->m_vRealSize = calcSize + Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
@@ -238,7 +238,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         }
     }
 
-    if (PWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID) {
+    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID)) {
         // if special, we adjust the coords a bit
         static auto *const PSCALEFACTOR = &g_pConfigManager->getConfigValuePtr("dwindle:special_scale_factor")->floatValue;
 
@@ -293,7 +293,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     SDwindleNodeData* OPENINGON;
     const auto MONFROMCURSOR = g_pCompositor->getMonitorFromCursor();
 
-    if (PMONITOR->ID == MONFROMCURSOR->ID && (PNODE->workspaceID == PMONITOR->activeWorkspace || (PNODE->workspaceID == SPECIAL_WORKSPACE_ID && PMONITOR->specialWorkspaceOpen)) && !*PUSEACTIVE) {
+    if (PMONITOR->ID == MONFROMCURSOR->ID && (PNODE->workspaceID == PMONITOR->activeWorkspace || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->specialWorkspaceID)) && !*PUSEACTIVE) {
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
 
         // happens on reserved area
@@ -567,8 +567,8 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    if (PMONITOR->specialWorkspaceOpen) {
-        const auto TOPNODE = getMasterNodeOnWorkspace(SPECIAL_WORKSPACE_ID);
+    if (PMONITOR->specialWorkspaceID) {
+        const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->specialWorkspaceID);
 
         if (TOPNODE && PMONITOR) {
             TOPNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
@@ -709,7 +709,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
 
-    if (on == pWindow->m_bIsFullscreen || pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+    if (on == pWindow->m_bIsFullscreen || g_pCompositor->isWorkspaceSpecial(pWindow->m_iWorkspaceID))
         return; // ignore
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);

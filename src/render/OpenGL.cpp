@@ -750,7 +750,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     }
 
         //                                                                        vvv TODO: layered blur fbs?
-    const bool USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating && m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID && m_pCurrentWindow->m_iWorkspaceID != SPECIAL_WORKSPACE_ID);
+    const bool USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating && m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID && !g_pCompositor->isWorkspaceSpecial(m_pCurrentWindow->m_iWorkspaceID));
 
     const auto POUTFB = USENEWOPTIMIZE ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
 

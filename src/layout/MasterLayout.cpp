@@ -153,8 +153,8 @@ void CHyprMasterLayout::recalculateMonitor(const int& monid) {
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    if (PMONITOR->specialWorkspaceOpen) {
-        calculateWorkspace(SPECIAL_WORKSPACE_ID);
+    if (PMONITOR->specialWorkspaceID) {
+        calculateWorkspace(PMONITOR->specialWorkspaceID);
     }
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
@@ -248,9 +248,9 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
 void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     CMonitor* PMONITOR = nullptr;
 
-    if (pNode->workspaceID == SPECIAL_WORKSPACE_ID) {
+    if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
         for (auto& m : g_pCompositor->m_vMonitors) {
-            if (m->specialWorkspaceOpen) {
+            if (m->specialWorkspaceID == pNode->workspaceID) {
                 PMONITOR = m.get();
                 break;
             }
@@ -289,7 +289,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto calcPos = PWINDOW->m_vPosition + Vector2D(*PBORDERSIZE, *PBORDERSIZE);
     auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
-    if (*PNOGAPSWHENONLY && PWINDOW->m_iWorkspaceID != SPECIAL_WORKSPACE_ID && (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 || (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
+    if (*PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) && (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 || (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
         PWINDOW->m_vRealPosition = calcPos - Vector2D(*PBORDERSIZE, *PBORDERSIZE);
         PWINDOW->m_vRealSize = calcSize + Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
@@ -315,7 +315,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     calcPos = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
 
-    if (PWINDOW->m_iWorkspaceID == SPECIAL_WORKSPACE_ID) {
+    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID)) {
         static auto *const PSCALEFACTOR = &g_pConfigManager->getConfigValuePtr("master:special_scale_factor")->floatValue;
 
         PWINDOW->m_vRealPosition = calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f;
@@ -395,7 +395,7 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
 
-    if (on == pWindow->m_bIsFullscreen || pWindow->m_iWorkspaceID == SPECIAL_WORKSPACE_ID)
+    if (on == pWindow->m_bIsFullscreen || g_pCompositor->isWorkspaceSpecial(pWindow->m_iWorkspaceID))
         return;  // ignore
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);

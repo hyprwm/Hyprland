@@ -170,6 +170,8 @@ public:
     bool                    cursorOnReservedArea();
     CWorkspace*             createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
     void                    setActiveMonitor(CMonitor*);
+    bool                    isWorkspaceSpecial(const int&);
+    int                     getNewSpecialID();
 
     std::string             explicitConfigPath;
 

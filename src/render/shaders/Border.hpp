@@ -55,8 +55,7 @@ void main() {
     highp vec2 originalPixCoord = v_texcoord;
     originalPixCoord *= fullSizeUntransformed;
 
-    vec4 pixColor = getColorForCoord(v_texcoord);
-    pixColor[3] *= alpha;
+    vec4 pixColor = vec4(1.0, 1.0, 1.0, 1.0);
 
     bool done = false;
 
@@ -111,6 +110,9 @@ void main() {
 
     if (pixColor[3] == 0.0)
         discard;
+
+    pixColor = getColorForCoord(v_texcoord) * pixColor[3];
+    pixColor[3] *= alpha;
 
     gl_FragColor = pixColor;
 }

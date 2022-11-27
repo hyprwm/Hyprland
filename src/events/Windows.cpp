@@ -53,10 +53,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto *const PSWALLOWREGEX = &g_pConfigManager->getConfigValuePtr("misc:swallow_regex")->strValue;
 
     auto PMONITOR = g_pCompositor->m_pLastMonitor;
-    const auto PWORKSPACE = PMONITOR->specialWorkspaceOpen ? g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    const auto PWORKSPACE = PMONITOR->specialWorkspaceID ? g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     PWINDOW->m_iMonitorID = PMONITOR->ID;
     PWINDOW->m_bMappedX11 = true;
-    PWINDOW->m_iWorkspaceID = PMONITOR->specialWorkspaceOpen ? SPECIAL_WORKSPACE_ID : PMONITOR->activeWorkspace;
+    PWINDOW->m_iWorkspaceID = PMONITOR->specialWorkspaceID ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
     PWINDOW->m_bIsMapped = true;
     PWINDOW->m_bReadyToDelete = false;
     PWINDOW->m_bFadingOut = false;
@@ -211,9 +211,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 shouldFocus = true;
         }
 
-        if (requestedWorkspace == "special") {
+        if (requestedWorkspace.find("special" == 0)) {
             workspaceSpecial = true;
-            workspaceSilent = true;
         }
 
         if (!workspaceSilent) {
@@ -240,7 +239,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 workspaceID = g_pCompositor->getNextAvailableNamedWorkspace();
             } else if (workspaceSpecial) {
                 workspaceName = "";
-                workspaceID = SPECIAL_WORKSPACE_ID;
+                workspaceID = getWorkspaceIDFromString(requestedWorkspace, workspaceName);
             } else {
                 try {
                     workspaceID = std::stoi(requestedWorkspace);

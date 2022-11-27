@@ -78,6 +78,6 @@
 #define GIT_DIRTY "?"
 #endif
 
-#define SPECIAL_WORKSPACE_ID -99
+#define SPECIAL_WORKSPACE_START -99
 
 #define PI 3.14159265358979

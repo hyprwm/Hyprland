@@ -133,6 +133,10 @@ public:
     */
     virtual void         onWindowFocusChange(CWindow*);
 
+    /*
+      Add virtual descontruct fiunc
+    */
+    virtual ~IHyprLayout()=0;
 private:
     Vector2D                        m_vBeginDragXY;
     Vector2D                        m_vLastDragXY;

@@ -416,3 +416,6 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
 
     return PWINDOWCANDIDATE;
 }
+
+IHyprLayout::~IHyprLayout() {
+}

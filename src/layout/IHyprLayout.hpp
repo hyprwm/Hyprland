@@ -16,6 +16,7 @@ enum eFullscreenMode : uint8_t;
 
 interface IHyprLayout {
 public:
+    virtual ~IHyprLayout() = 0;
     virtual void        onEnable() = 0;
     virtual void        onDisable() = 0;
 

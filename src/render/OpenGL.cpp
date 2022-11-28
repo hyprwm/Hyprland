@@ -705,24 +705,26 @@ void CHyprOpenGLImpl::preWindowPass() {
         if (pWindow->m_sAdditionalConfigData.forceNoBlur)
             return false;
 
-        if (g_pXWaylandManager->getWindowSurface(pWindow)->opaque)
+        const auto PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+
+        if (PSURFACE->opaque)
             return false;
 
         pixman_region32_t inverseOpaque;
         pixman_region32_init(&inverseOpaque);
-        if (a == 255.f) {
-            pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-            pixman_region32_copy(&inverseOpaque, &pSurface->current.opaque);
-            pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
-            pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &monbox);
-            pixman_region32_intersect(&inverseOpaque, &damage, &inverseOpaque);
-        } else {
-            pixman_region32_copy(&inverseOpaque, &damage);
-        }
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+        const float A = pWindow->m_fAlpha.fl() * pWindow->m_fActiveInactiveAlpha.fl() * PWORKSPACE->m_fAlpha.fl() / 255.f;
 
-        if (!pixman_region32_not_empty(&inverseOpaque)) {
-            pixman_region32_fini(&inverseOpaque);
-            return false;
+        if (A >= 255.f) {
+            pixman_box32_t surfbox = {0, 0, PSURFACE->current.width, PSURFACE->current.height};
+            pixman_region32_copy(&inverseOpaque, &PSURFACE->current.opaque);
+            pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &surfbox);
+            pixman_region32_intersect_rect(&inverseOpaque, &inverseOpaque, 0, 0, PSURFACE->current.width, PSURFACE->current.height);
+
+            if (!pixman_region32_not_empty(&inverseOpaque)) {
+                pixman_region32_fini(&inverseOpaque);
+                return false;
+            }
         }
 
         pixman_region32_fini(&inverseOpaque);
@@ -773,23 +775,21 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     // amazing hack: the surface has an opaque region!
     pixman_region32_t inverseOpaque;
     pixman_region32_init(&inverseOpaque);
-    if (a == 255.f) {
-        pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+    if (a >= 255.f) {
+        pixman_box32_t surfbox = {0, 0, pSurface->current.width, pSurface->current.height};
         pixman_region32_copy(&inverseOpaque, &pSurface->current.opaque);
-        pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
-        pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &monbox);
-        pixman_region32_intersect(&inverseOpaque, &damage, &inverseOpaque);
-    } else {
-        pixman_region32_copy(&inverseOpaque, &damage);
-    }
+        pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &surfbox);
+        pixman_region32_intersect_rect(&inverseOpaque, &inverseOpaque, 0, 0, pSurface->current.width, pSurface->current.height);
 
-    if (!pixman_region32_not_empty(&inverseOpaque)) {
-        renderTexture(tex, pBox, a, round, false, true); // reject blurring a fully opaque window
-        pixman_region32_fini(&inverseOpaque);
-        return;
+        if (!pixman_region32_not_empty(&inverseOpaque)) {
+            pixman_region32_fini(&inverseOpaque);
+            renderTexture(tex, pBox, a, round, false, true);
+            return;
+        }
     }
+    pixman_region32_fini(&inverseOpaque);
 
-        //                                                                        vvv TODO: layered blur fbs?
+    //                                                                        vvv TODO: layered blur fbs?
     const bool USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating && m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID && !g_pCompositor->isWorkspaceSpecial(m_pCurrentWindow->m_iWorkspaceID));
 
     const auto POUTFB = USENEWOPTIMIZE ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);

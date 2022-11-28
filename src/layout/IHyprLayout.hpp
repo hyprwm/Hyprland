@@ -16,6 +16,7 @@ enum eFullscreenMode : uint8_t;
 
 interface IHyprLayout {
 public:
+    virtual ~IHyprLayout() = 0;
     virtual void        onEnable() = 0;
     virtual void        onDisable() = 0;
 
@@ -133,10 +134,6 @@ public:
     */
     virtual void         onWindowFocusChange(CWindow*);
 
-    /*
-      Add virtual descontruct fiunc
-    */
-    virtual ~IHyprLayout()=0;
 private:
     Vector2D                        m_vBeginDragXY;
     Vector2D                        m_vLastDragXY;

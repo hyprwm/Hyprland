@@ -983,6 +983,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         currentCategory = "";
     }
 
+    int needsLayoutRecalc = COMMAND == "monitor"; // 0 - no, 1 - yes, 2 - maybe
+
     if (COMMAND == "exec") {
         if (isFirstLaunch) {
             firstExecRequests.push_back(VALUE);
@@ -1006,16 +1008,22 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "submap") handleSubmap(COMMAND, VALUE);
     else if (COMMAND == "blurls") handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind") handleBindWS(COMMAND, VALUE);
-    else
+    else {
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
+        needsLayoutRecalc = 2;
+    }
 
     if (dynamic) {
         std::string retval = parseError;
         parseError = "";
 
-        // invalidate layouts jic
-        for (auto& m : g_pCompositor->m_vMonitors)
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+        // invalidate layouts if they changed
+        if (needsLayoutRecalc) {
+            if (needsLayoutRecalc == 1 || VALUE.find("gaps_") || VALUE.find("dwindle:") == 0 || VALUE.find("master:") == 0) {
+                for (auto& m : g_pCompositor->m_vMonitors)
+                    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+            }
+        }
 
         // Update window border colors
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();

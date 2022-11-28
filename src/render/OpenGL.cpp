@@ -648,8 +648,9 @@ void CHyprOpenGLImpl::markBlurDirtyForMonitor(CMonitor* pMonitor) {
 
 void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
     static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+    static auto *const PBLUR = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
-    if (!*PBLURNEWOPTIMIZE || !m_mMonitorRenderResources[pMonitor].blurFBDirty)
+    if (!*PBLURNEWOPTIMIZE || !m_mMonitorRenderResources[pMonitor].blurFBDirty || !*PBLUR)
         return;
 
     bool has = false;
@@ -692,13 +693,51 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
 void CHyprOpenGLImpl::preWindowPass() {
     static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+    static auto *const PBLUR = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
-    if (!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE)
+    if (!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE || !*PBLUR)
         return;
+
+    auto windowShouldBeBlurred = [&] (CWindow* pWindow) -> bool {
+        if (!pWindow)
+            return false;
+
+        if (pWindow->m_sAdditionalConfigData.forceNoBlur)
+            return false;
+
+        if (g_pXWaylandManager->getWindowSurface(pWindow)->opaque)
+            return false;
+
+        pixman_region32_t inverseOpaque;
+        pixman_region32_init(&inverseOpaque);
+        if (a == 255.f) {
+            pixman_box32_t monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+            pixman_region32_copy(&inverseOpaque, &pSurface->current.opaque);
+            pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
+            pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &monbox);
+            pixman_region32_intersect(&inverseOpaque, &damage, &inverseOpaque);
+        } else {
+            pixman_region32_copy(&inverseOpaque, &damage);
+        }
+
+        if (!pixman_region32_not_empty(&inverseOpaque)) {
+            pixman_region32_fini(&inverseOpaque);
+            return false;
+        }
+
+        pixman_region32_fini(&inverseOpaque);
+
+        return true;
+    };
 
     bool hasWindows = false;
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && !w->m_bIsFloating) {
+
+            // check if window is valid
+            if (!windowShouldBeBlurred(w.get()))
+                continue;
+            
             hasWindows = true;
             break;
         }
@@ -724,7 +763,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height);  // clip it to the box
 
     if(!pixman_region32_not_empty(&damage))
-	return;
+	    return;
 
     if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
         renderTexture(tex, pBox, a, round, false, true);
@@ -746,6 +785,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     if (!pixman_region32_not_empty(&inverseOpaque)) {
         renderTexture(tex, pBox, a, round, false, true); // reject blurring a fully opaque window
+        pixman_region32_fini(&inverseOpaque);
         return;
     }
 

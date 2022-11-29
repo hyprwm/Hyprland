@@ -786,12 +786,21 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
             renderTexture(tex, pBox, a, round, false, true);
             return;
         }
+    } else {
+        pixman_region32_init_rect(&inverseOpaque, 0, 0, pBox->width, pBox->height);
     }
 
     //                                                                        vvv TODO: layered blur fbs?
     const bool USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating && m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID && !g_pCompositor->isWorkspaceSpecial(m_pCurrentWindow->m_iWorkspaceID));
 
-    const auto POUTFB = USENEWOPTIMIZE ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
+    CFramebuffer* POUTFB = nullptr;
+    if (!USENEWOPTIMIZE) {
+        pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
+
+        POUTFB = blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
+    } else {
+        POUTFB = &m_RenderData.pCurrentMonData->blurFB;
+    }
 
     pixman_region32_fini(&inverseOpaque);
 

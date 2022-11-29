@@ -73,13 +73,13 @@ void main() {
 	    if (primitiveMultisample == 1 && (dist > radius - 1.0 || dist < radius - thick + 1.0)) {
 	        float distances = 0.0;
             float len = length(pixCoord + vec2(0.25, 0.25));
-	        distances += float(len < radius + 0.5 && len > radius - thick);
+	        distances += float(len < radius && len > radius - thick);
             len = length(pixCoord + vec2(0.75, 0.25));
-            distances += float(len < radius + 0.5 && len > radius - thick);
+            distances += float(len < radius && len > radius - thick);
             len = length(pixCoord + vec2(0.25, 0.75));
-            distances += float(len < radius + 0.5 && len > radius - thick);
+            distances += float(len < radius && len > radius - thick);
             len = length(pixCoord + vec2(0.75, 0.75));
-            distances += float(len < radius + 0.5 && len > radius - thick);
+            distances += float(len < radius && len > radius - thick);
 
 	        if (distances == 0.0)
 		        discard;

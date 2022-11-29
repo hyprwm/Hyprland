@@ -787,7 +787,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
             return;
         }
     }
-    pixman_region32_fini(&inverseOpaque);
 
     //                                                                        vvv TODO: layered blur fbs?
     const bool USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating && m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID && !g_pCompositor->isWorkspaceSpecial(m_pCurrentWindow->m_iWorkspaceID));

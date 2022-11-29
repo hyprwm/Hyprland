@@ -86,7 +86,7 @@ void main() {
 
 	        distances /= 4.0;
 
-	        pixColor = pixColor * distances;
+	        pixColor[3] *= distances;
         } else if (dist > radius || dist < radius - thick)
             discard;
 
@@ -111,8 +111,9 @@ void main() {
     if (pixColor[3] == 0.0)
         discard;
 
-    pixColor = getColorForCoord(v_texcoord) * pixColor[3];
-    pixColor[3] *= alpha;
+    float pixColor3 = pixColor[3];
+    pixColor = getColorForCoord(v_texcoord);
+    pixColor[3] *= alpha * pixColor3;
 
     gl_FragColor = pixColor;
 }

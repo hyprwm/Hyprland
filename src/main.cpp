@@ -5,10 +5,6 @@
 #include "init/initHelpers.hpp"
 #include <iostream>
 
-// I am a bad bad boy and have used some global vars here,
-// just for this file
-bool ignoreSudo = false;
-
 int main(int argc, char** argv) {
 
     if (!getenv("XDG_RUNTIME_DIR"))
@@ -24,6 +20,7 @@ int main(int argc, char** argv) {
 
     // parse some args
     std::string configPath;
+    bool ignoreSudo = false;
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--i-am-really-stupid"))
             ignoreSudo = true;

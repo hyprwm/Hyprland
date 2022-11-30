@@ -6,7 +6,6 @@
 
 ![Badge Workflow] 
 [![Badge License]][License] 
-![Badge Lines] 
 ![Badge Language] 
 [![Badge Pull Requests]][Pull Requests] 
 [![Badge Issues]][Issues] 
@@ -40,32 +39,28 @@ Hyprland is still in pretty early development compared to some other Wayland com
 
 Although Hyprland is pretty stable, it may have some bugs.
 
-### Help Wanted
-
-Hyprland needs testers! <br/>
-Try it out and report bugs / suggestions!
-
 # Features
 
 - Easily expandable and readable codebase
 - Config reloaded instantly upon saving
 - Custom bezier curve based animations
-- `wlr_ext` workspaces protocol support
 - Dual Kawase blur
 - Drop shadows
+- Rounded corners
 - Gradient borders
 - Fully dynamic workspaces
 - Closely follows `wlroots-git`
 - Global keybinds passed to your apps of choice
+- A lot of customization
 - Bundled wlroots
 - Window/layer fade in/out
 - Tiling/pseudotiling/floating/fullscreen windows
 - Switching workspaces between window modes on the fly
-- Special workspace (scratchpad)
+- Special workspaces (scratchpads)
 - Window/monitor rules
 - Socket-based IPC
+- `wlr_ext` workspaces protocol support
 - Event system for bash scripts
-- Rounded corners
 - Full damage tracking
 - Docks support
 - Drawing tablet support

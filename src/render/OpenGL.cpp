@@ -30,12 +30,22 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 }
 
-GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag) {
+GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
     auto vertCompiled = compileShader(GL_VERTEX_SHADER, vert);
-    RASSERT(vertCompiled, "Compiling shader failed. VERTEX NULL! Shader source:\n\n%s", vert.c_str());
+    if (dynamic) {
+        if (vertCompiled == 0)
+            return 0;
+    } else {
+        RASSERT(vertCompiled, "Compiling shader failed. VERTEX NULL! Shader source:\n\n%s", vert.c_str());
+    }
 
     auto fragCompiled = compileShader(GL_FRAGMENT_SHADER, frag);
-    RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT NULL! Shader source:\n\n%s", frag.c_str());
+    if (dynamic) {
+        if (fragCompiled == 0)
+            return 0;
+    } else {
+        RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT NULL! Shader source:\n\n%s", frag.c_str());
+    }
 
     auto prog = glCreateProgram();
     glAttachShader(prog, vertCompiled);
@@ -49,12 +59,17 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
 
     GLint ok;
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
-    RASSERT(ok != GL_FALSE, "createProgram() failed! GL_LINK_STATUS not OK!");
+    if (dynamic) {
+        if (ok == GL_FALSE)
+            return 0;
+    } else {
+        RASSERT(ok != GL_FALSE, "createProgram() failed! GL_LINK_STATUS not OK!");
+    }
 
     return prog;
 }
 
-GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src) {
+GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool dynamic) {
     auto shader = glCreateShader(type);
 
     auto shaderSource = src.c_str();
@@ -64,7 +79,12 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src) {
 
     GLint ok;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
-    RASSERT(ok != GL_FALSE, "compileShader() failed! GL_COMPILE_STATUS not OK!");
+    if (dynamic) {
+        if (ok == GL_FALSE)
+            return 0;
+    } else {
+        RASSERT(ok != GL_FALSE, "compileShader() failed! GL_COMPILE_STATUS not OK!");
+    }
 
     return shader;
 }
@@ -112,6 +132,11 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, pixman_region32_t* pDamage, bool
     m_RenderData.pDamage = pDamage;
 
     m_bFakeFrame = fake;
+
+    if (m_bReloadScreenShader) {
+        m_bReloadScreenShader = false;
+        applyScreenShader(g_pConfigManager->getString("decoration:screen_shader"));
+    }
 }
 
 void CHyprOpenGLImpl::end() {
@@ -128,9 +153,11 @@ void CHyprOpenGLImpl::end() {
         clear(CColor(11, 11, 11, 255));
 
         m_bEndFrame = true;
+        m_bApplyFinalShader = true;
 
         renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 255.f, 0);
 
+        m_bApplyFinalShader = false;
         m_bEndFrame = false;
     }
 
@@ -248,6 +275,35 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_bShadersInitialized = true;
 
     Debug::log(LOG, "Shaders initialized successfully.");
+}
+
+void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
+
+    m_sFinalScreenShader.destroy();
+
+    if (path == "" || path == STRVAL_EMPTY)
+        return;
+
+    std::ifstream infile(absolutePath(path, std::string(getenv("HOME")) + "/.config/hypr"));
+
+    if (!infile.good()) {
+        g_pConfigManager->addParseError("Screen shader parser: Screen shader path not found");
+        return;
+    }
+
+    std::string fragmentShader((std::istreambuf_iterator<char>(infile)), (std::istreambuf_iterator<char>()));
+
+    m_sFinalScreenShader.program = createProgram(TEXVERTSRC, fragmentShader, true);
+    
+    if (!m_sFinalScreenShader.program) {
+        g_pConfigManager->addParseError("Screen shader parser: Screen shader parse failed");
+        return;
+    }
+
+    m_sFinalScreenShader.proj = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
+    m_sFinalScreenShader.tex = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
+    m_sFinalScreenShader.texAttrib = glGetAttribLocation(m_sFinalScreenShader.program, "texcoord");
+    m_sFinalScreenShader.posAttrib = glGetAttribLocation(m_sFinalScreenShader.program, "pos");
 }
 
 void CHyprOpenGLImpl::clear(const CColor& color) {
@@ -420,18 +476,25 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-    switch (tex.m_iType) {
-        case TEXTURE_RGBA:
-            shader = &m_RenderData.pCurrentMonData->m_shRGBA;
-            break;
-        case TEXTURE_RGBX:
-            shader = &m_RenderData.pCurrentMonData->m_shRGBX;
-            break;
-        case TEXTURE_EXTERNAL:
-            shader = &m_RenderData.pCurrentMonData->m_shEXT;
-            break;
-        default:
-            RASSERT(false, "tex.m_iTarget unsupported!");
+    bool usingFinalShader = false;
+
+    if (m_bApplyFinalShader && m_sFinalScreenShader.program) {
+        shader = &m_sFinalScreenShader;
+        usingFinalShader = true;
+    } else {
+        switch (tex.m_iType) {
+            case TEXTURE_RGBA:
+                shader = &m_RenderData.pCurrentMonData->m_shRGBA;
+                break;
+            case TEXTURE_RGBX:
+                shader = &m_RenderData.pCurrentMonData->m_shRGBX;
+                break;
+            case TEXTURE_EXTERNAL:
+                shader = &m_RenderData.pCurrentMonData->m_shEXT;
+                break;
+            default:
+                RASSERT(false, "tex.m_iTarget unsupported!");
+        }
     }
 
     glActiveTexture(GL_TEXTURE0);
@@ -448,8 +511,10 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
 #endif
     glUniform1i(shader->tex, 0);
-    glUniform1f(shader->alpha, alpha / 255.f);
-    glUniform1i(shader->discardOpaque, (int)discardOpaque);
+    if (!usingFinalShader) {
+        glUniform1f(shader->alpha, alpha / 255.f);
+        glUniform1i(shader->discardOpaque, (int)discardOpaque);
+    }
 
     wlr_box transformedBox;
     wlr_box_transform(&transformedBox, pBox, wlr_output_transform_invert(m_RenderData.pMonitor->transform),
@@ -459,18 +524,20 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
     static auto *const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
-    // Rounded corners
-    glUniform2f(shader->topLeft, TOPLEFT.x, TOPLEFT.y);
-    glUniform2f(shader->fullSize, FULLSIZE.x ,FULLSIZE.y);
-    glUniform1f(shader->radius, round);
-    glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
+    if (!usingFinalShader) {
+        // Rounded corners
+        glUniform2f(shader->topLeft, TOPLEFT.x, TOPLEFT.y);
+        glUniform2f(shader->fullSize, FULLSIZE.x, FULLSIZE.y);
+        glUniform1f(shader->radius, round);
+        glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 
-    if (allowDim && m_pCurrentWindow && *PDIMINACTIVE && m_pCurrentWindow != g_pCompositor->m_pLastWindow) {
-        glUniform1i(shader->applyTint, 1);
-        const auto DIM = m_pCurrentWindow->m_fDimPercent.fl();
-        glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
-    } else {
-        glUniform1i(shader->applyTint, 0);
+        if (allowDim && m_pCurrentWindow && *PDIMINACTIVE && m_pCurrentWindow != g_pCompositor->m_pLastWindow) {
+            glUniform1i(shader->applyTint, 1);
+            const auto DIM = m_pCurrentWindow->m_fDimPercent.fl();
+            glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
+        } else {
+            glUniform1i(shader->applyTint, 0);
+        }
     }
 
     const float verts[] = {
@@ -504,13 +571,13 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
             }
         }
 
-	pixman_region32_fini(&damageClip);
+	    pixman_region32_fini(&damageClip);
     } else {
-	PIXMAN_DAMAGE_FOREACH(damage) {
-	    const auto RECT = RECTSARR[i];
-	    scissor(&RECT);
-	    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	}
+	    PIXMAN_DAMAGE_FOREACH(damage) {
+	        const auto RECT = RECTSARR[i];
+	        scissor(&RECT);
+	        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	    }
     }
 
     glDisableVertexAttribArray(shader->posAttrib);

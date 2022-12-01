@@ -39,6 +39,8 @@ public:
 
     GLint getUniformLocation(const std::string&);
 
+    void destroy();
+
 private:
     std::unordered_map<std::string, GLint> m_muUniforms;
 };

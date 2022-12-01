@@ -92,6 +92,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:col.shadow_inactive"].intValue = INT_MAX;
     configValues["decoration:dim_inactive"].intValue = 0;
     configValues["decoration:dim_strength"].floatValue = 0.5f;
+    configValues["decoration:screen_shader"].strValue = STRVAL_EMPTY;
 
     configValues["dwindle:pseudotile"].intValue = 0;
     configValues["dwindle:col.group_border"].intValue = 0x66777700;
@@ -402,6 +403,21 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                 UNREACHABLE();
             }
         }
+    }
+
+    if (COMMAND == "decoration:screen_shader") {
+        const auto PATH = absolutePath(VALUE, configCurrentPath);
+
+        configPaths.push_back(PATH);
+
+        struct stat fileStat;
+        int err = stat(PATH.c_str(), &fileStat);
+        if (err != 0) {
+            Debug::log(WARN, "Error at ticking config at %s, error %i: %s", PATH.c_str(), err, strerror(err));
+            return;
+        }
+
+        configModifyTimes[PATH] = fileStat.st_mtime;
     }
 }
 
@@ -1230,6 +1246,9 @@ void CConfigManager::loadConfigLoadVars() {
     // Calculate the internal vars
     configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);
 
+    if (!isFirstLaunch)
+        g_pHyprOpenGL->m_bReloadScreenShader = true;
+
     // parseError will be displayed next frame
     if (parseError != "")
         g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(255, 50, 50, 255));
@@ -1652,6 +1671,8 @@ SAnimationPropertyConfig* CConfigManager::getAnimationPropertyConfig(const std::
 void CConfigManager::addParseError(const std::string& err) {
     if (parseError == "")
         parseError = err;
+
+    g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(255, 50, 50, 255));
 }
 
 CMonitor* CConfigManager::getBoundMonitorForWS(std::string wsname) {

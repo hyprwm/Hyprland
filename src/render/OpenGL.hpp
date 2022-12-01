@@ -111,10 +111,14 @@ public:
     void    onWindowResizeStart(CWindow*);
     void    onWindowResizeEnd(CWindow*);
 
+    void    applyScreenShader(const std::string& path);
+
     SCurrentRenderData m_RenderData;
 
     GLint  m_iCurrentOutputFb = 0;
     GLint  m_iWLROutputFb = 0;
+
+    bool   m_bReloadScreenShader = true; // at launch it can be set
 
     CWindow* m_pCurrentWindow = nullptr; // hack to get the current rendered window
 
@@ -134,9 +138,12 @@ private:
 
     bool                    m_bFakeFrame = false;
     bool                    m_bEndFrame = false;
+    bool                    m_bApplyFinalShader = false;
 
-    GLuint                  createProgram(const std::string&, const std::string&);
-    GLuint                  compileShader(const GLuint&, std::string);
+    CShader                 m_sFinalScreenShader;
+
+    GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
+    GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false);
     void                    createBGTextureForMonitor(CMonitor*);
     void                    initShaders();
 

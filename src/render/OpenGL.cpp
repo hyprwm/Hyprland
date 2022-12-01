@@ -31,7 +31,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 }
 
 GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
-    auto vertCompiled = compileShader(GL_VERTEX_SHADER, vert);
+    auto vertCompiled = compileShader(GL_VERTEX_SHADER, vert, dynamic);
     if (dynamic) {
         if (vertCompiled == 0)
             return 0;
@@ -39,7 +39,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
         RASSERT(vertCompiled, "Compiling shader failed. VERTEX NULL! Shader source:\n\n%s", vert.c_str());
     }
 
-    auto fragCompiled = compileShader(GL_FRAGMENT_SHADER, frag);
+    auto fragCompiled = compileShader(GL_FRAGMENT_SHADER, frag, dynamic);
     if (dynamic) {
         if (fragCompiled == 0)
             return 0;

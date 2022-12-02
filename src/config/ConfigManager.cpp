@@ -77,6 +77,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:blur_passes"].intValue = 1;
     configValues["decoration:blur_ignore_opacity"].intValue = 0;
     configValues["decoration:blur_new_optimizations"].intValue = 1;
+    configValues["decoration:blur_xray"].intValue = 0;
     configValues["decoration:active_opacity"].floatValue = 1;
     configValues["decoration:inactive_opacity"].floatValue = 1;
     configValues["decoration:fullscreen_opacity"].floatValue = 1;

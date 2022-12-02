@@ -266,11 +266,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
                 damageBlinkCleanup = 0;
         }
 
-        wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
-
-        wlr_output_render_software_cursors(PMONITOR->output, NULL);
-
-        wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+        if (wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y)) {
+            wlr_output_render_software_cursors(PMONITOR->output, NULL);
+            wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+        }
     }
 
     g_pHyprOpenGL->end();

@@ -191,6 +191,12 @@ void Events::listener_sessionActive(wl_listener* listener, void* data) {
     Debug::log(LOG, "Session got activated!");
 
     g_pCompositor->m_bSessionActive = true;
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        g_pCompositor->scheduleFrameForMonitor(m.get());
+    }
+
+    g_pConfigManager->m_bWantsMonitorReload = true;
 }
 
 void Events::listener_powerMgrSetMode(wl_listener* listener, void* data) {

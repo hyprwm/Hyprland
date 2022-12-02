@@ -403,6 +403,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bX11ShouldntFocus = false;
     }
 
+    // check LS focus grab
+    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
+    if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.keyboard_interactive)
+        PWINDOW->m_bNoInitialFocus = true;
+
     if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2 && !workspaceSilent) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);

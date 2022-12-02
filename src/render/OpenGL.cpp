@@ -715,6 +715,7 @@ void CHyprOpenGLImpl::markBlurDirtyForMonitor(CMonitor* pMonitor) {
 
 void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
     static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+    static auto *const PBLURXRAY = &g_pConfigManager->getConfigValuePtr("decoration:blur_xray")->intValue;
     static auto *const PBLUR = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
     if (!*PBLURNEWOPTIMIZE || !m_mMonitorRenderResources[pMonitor].blurFBDirty || !*PBLUR)
@@ -723,7 +724,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
     bool has = false;
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == pMonitor->activeWorkspace && w->m_bIsMapped && !w->isHidden() && !w->m_bIsFloating) {
+        if (w->m_iWorkspaceID == pMonitor->activeWorkspace && w->m_bIsMapped && !w->isHidden() && (!w->m_bIsFloating || *PBLURXRAY)) {
             has = true;
             break;
         }
@@ -760,6 +761,7 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
 void CHyprOpenGLImpl::preWindowPass() {
     static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+    static auto *const PBLURXRAY = &g_pConfigManager->getConfigValuePtr("decoration:blur_xray")->intValue;
     static auto *const PBLUR = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
     if (!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE || !*PBLUR)
@@ -801,7 +803,7 @@ void CHyprOpenGLImpl::preWindowPass() {
 
     bool hasWindows = false;
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && !w->m_bIsFloating) {
+        if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && (!w->m_bIsFloating || *PBLURXRAY)) {
 
             // check if window is valid
             if (!windowShouldBeBlurred(w.get()))
@@ -825,6 +827,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
     static auto *const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
     static auto *const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+    static auto *const PBLURXRAY = &g_pConfigManager->getConfigValuePtr("decoration:blur_xray")->intValue;
 
     // make a damage region for this window
     pixman_region32_t damage;
@@ -858,7 +861,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     }
 
     //                                                                        vvv TODO: layered blur fbs?
-    const bool USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating && m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID && !g_pCompositor->isWorkspaceSpecial(m_pCurrentWindow->m_iWorkspaceID));
+    const bool USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && m_pCurrentWindow && (!m_pCurrentWindow->m_bIsFloating || *PBLURXRAY) && m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID && !g_pCompositor->isWorkspaceSpecial(m_pCurrentWindow->m_iWorkspaceID));
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {

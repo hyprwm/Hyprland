@@ -1263,9 +1263,8 @@ void CConfigManager::loadConfigLoadVars() {
     // and they'll be taken care of in the newMonitor event
     // ignore if nomonitorreload is set
     if (!isFirstLaunch && !m_bNoMonitorReload) {
-        m_bWantsMonitorReload = true;
-
         // check
+        performMonitorReload();
         ensureDPMS();
         ensureVRR();
     }
@@ -1575,6 +1574,9 @@ void CConfigManager::performMonitorReload() {
 
     if (overAgain)
         performMonitorReload();
+
+    if (!g_pCompositor->m_vMonitors.empty()) // reset unsafe state if we have monitors
+        g_pCompositor->m_bUnsafeState = false;
 
     m_bWantsMonitorReload = false;
 }

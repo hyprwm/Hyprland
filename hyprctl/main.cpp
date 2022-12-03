@@ -37,14 +37,22 @@ commands:
     setcursor
     getoption
     cursorpos
+    switchxkblayout
 
 flags:
     -j -> output in JSON
     --batch -> execute a batch of commands, separated by ';'
 )#";
 
-void request(std::string arg) {
+void request(std::string arg, int minArgs = 0) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
+
+    if (ARGS < minArgs) {
+        std::cout << "Not enough arguments, expected at least " << minArgs;
+        return;
+    }
 
     if (SERVERSOCKET < 0) {
         std::cout << "Couldn't open a socket (1)";
@@ -316,6 +324,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/reload")) request(fullRequest);
     else if (fullRequest.contains("/getoption")) request(fullRequest);
     else if (fullRequest.contains("/cursorpos")) request(fullRequest);
+    else if (fullRequest.contains("/switchxkblayout")) request(fullRequest, 2);
     else if (fullRequest.contains("/output")) exitStatus = outputRequest(argc, argv);
     else if (fullRequest.contains("/setcursor")) exitStatus = setcursorRequest(argc, argv);
     else if (fullRequest.contains("/dispatch")) exitStatus = dispatchRequest(argc, argv);

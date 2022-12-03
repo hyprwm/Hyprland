@@ -1333,13 +1333,10 @@ SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
 SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val) {
     std::lock_guard<std::mutex> lg(configmtx);
 
-    auto devcopy = dev;
-    std::replace(devcopy.begin(), devcopy.end(), ' ', '-');
-
-    const auto it = deviceConfigs.find(devcopy);
+    const auto it = deviceConfigs.find(dev);
 
     if (it == deviceConfigs.end()) {
-        Debug::log(ERR, "getConfigValueSafeDevice: No device config for %s found???", devcopy.c_str());
+        Debug::log(ERR, "getConfigValueSafeDevice: No device config for %s found???", dev.c_str());
         return SConfigValue();
     }
 

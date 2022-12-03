@@ -686,6 +686,51 @@ std::string dispatchSetCursor(std::string request) {
     return "ok";
 }
 
+std::string switchXKBLayoutRequest(std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    const auto KB = vars[1];
+    const auto CMD = vars[2];
+
+    // get kb
+    const auto PKEYBOARD = std::find_if(g_pInputManager->m_lKeyboards.begin(), g_pInputManager->m_lKeyboards.end(), [&] (const SKeyboard& other) { return other.name == g_pInputManager->deviceNameToInternalString(KB); });
+
+    if (PKEYBOARD == g_pInputManager->m_lKeyboards.end())
+        return "device not found";
+
+    const auto PWLRKEYBOARD = wlr_keyboard_from_input_device(PKEYBOARD->keyboard);
+    const auto LAYOUTS = xkb_keymap_num_layouts(PWLRKEYBOARD->keymap);
+    xkb_layout_index_t activeLayout = 0;
+    while (activeLayout < LAYOUTS) {
+        if (xkb_state_layout_index_is_active(PWLRKEYBOARD->xkb_state, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE))
+            break;
+
+        activeLayout++;
+    }
+
+    if (CMD == "next") {
+        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked, activeLayout > LAYOUTS ? 0 : activeLayout + 1);
+    } else if (CMD == "prev") {
+        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked, activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
+    } else {
+        
+        int requestedLayout = 0;
+        try {
+            requestedLayout = std::stoi(CMD);
+        } catch (std::exception& e) {
+            return "invalid arg 2";
+        }
+
+        if (requestedLayout < 0 || (uint64_t)requestedLayout > LAYOUTS - 1) {
+            return "layout idx out of range of " + std::to_string(LAYOUTS);
+        }
+
+        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked, requestedLayout);      
+    }
+
+    return "ok";
+}
+
 std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
     std::string curitem = "";
 
@@ -851,6 +896,8 @@ std::string getReply(std::string request) {
         return splashRequest();
     else if (request == "cursorpos")
         return cursorPosRequest(format);
+    else if (request.find("switchxkblayout") == 0)
+        return switchXKBLayoutRequest(request);
     else if (request.find("output") == 0)
         return dispatchOutput(request);
     else if (request.find("dispatch") == 0)

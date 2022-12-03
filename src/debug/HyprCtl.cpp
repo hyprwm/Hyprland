@@ -548,6 +548,9 @@ std::string dispatchKeyword(std::string in) {
 
     if (COMMAND.contains("general:layout"))
         g_pLayoutManager->switchToLayout(g_pConfigManager->getString("general:layout"));  // update layout
+    
+    if (COMMAND.contains("decoration:screen_shader"))
+        g_pHyprOpenGL->m_bReloadScreenShader = true;
 
     Debug::log(LOG, "Hyprctl: keyword %s : %s", COMMAND.c_str(), VALUE.c_str());
 

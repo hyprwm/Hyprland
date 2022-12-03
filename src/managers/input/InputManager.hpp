@@ -132,6 +132,7 @@ public:
     void            unsetCursorImage();
 
     std::string     deviceNameToInternalString(std::string);
+    std::string     getNameForNewDevice(std::string);
 
 private:
 

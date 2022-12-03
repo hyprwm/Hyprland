@@ -465,7 +465,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     PNEWKEYBOARD->keyboard = keyboard;
 
     try {
-        PNEWKEYBOARD->name = deviceNameToInternalString(keyboard->name);
+        PNEWKEYBOARD->name = getNameForNewDevice(keyboard->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Keyboard had no name???");  // logic error
     }
@@ -501,7 +501,7 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
     PNEWKEYBOARD->isVirtual = true;
 
     try {
-        PNEWKEYBOARD->name = deviceNameToInternalString(keyboard->name);
+        PNEWKEYBOARD->name = getNameForNewDevice(keyboard->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Keyboard had no name???");  // logic error
     }
@@ -661,7 +661,7 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
     PMOUSE->mouse = mouse;
     PMOUSE->virt = virt;
     try {
-        PMOUSE->name = deviceNameToInternalString(mouse->name);
+        PMOUSE->name = getNameForNewDevice(mouse->name);
     } catch(std::exception& e) {
         Debug::log(ERR, "Mouse had no name???"); // logic error
     }
@@ -1082,7 +1082,7 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     PNEWDEV->pWlrDevice = pDevice;
 
     try {
-        PNEWDEV->name = deviceNameToInternalString(pDevice->name);
+        PNEWDEV->name = getNameForNewDevice(pDevice->name);
     } catch(std::exception& e) {
         Debug::log(ERR, "Touch Device had no name???"); // logic error
     }
@@ -1203,4 +1203,30 @@ std::string CInputManager::deviceNameToInternalString(std::string in) {
     std::replace(in.begin(), in.end(), ' ', '-');
     std::transform(in.begin(), in.end(), in.begin(), ::tolower);
     return in;
+}
+
+std::string CInputManager::getNameForNewDevice(std::string internalName) {
+
+    auto proposedNewName = deviceNameToInternalString(internalName);
+    int dupeno = 0;
+
+    while (std::find_if(m_lKeyboards.begin(), m_lKeyboards.end(), [&] (const SKeyboard& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_lKeyboards.end())
+        dupeno++;
+
+    while (std::find_if(m_lMice.begin(), m_lMice.end(), [&] (const SMouse& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_lMice.end())
+        dupeno++;
+
+    while (std::find_if(m_lTouchDevices.begin(), m_lTouchDevices.end(), [&] (const STouchDevice& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_lTouchDevices.end())
+        dupeno++;
+
+    while (std::find_if(m_lTabletPads.begin(), m_lTabletPads.end(), [&] (const STabletPad& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_lTabletPads.end())
+        dupeno++;
+
+    while (std::find_if(m_lTablets.begin(), m_lTablets.end(), [&] (const STablet& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_lTablets.end())
+        dupeno++;
+
+    while (std::find_if(m_lTabletTools.begin(), m_lTabletTools.end(), [&] (const STabletTool& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_lTabletTools.end())
+        dupeno++;
+
+    return proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno)));
 }

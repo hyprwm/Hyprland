@@ -94,9 +94,6 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
 }
 
 static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat format) {
-    SLayoutMessageHeader header;
-    header.pWindow = w;
-
     if (format == HyprCtl::FORMAT_JSON) {
         return getFormat(
 R"#({

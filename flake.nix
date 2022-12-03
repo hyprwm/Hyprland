@@ -86,6 +86,12 @@
           self.packages.${system}.hyprland
         ];
       };
+      wlroots-ready = default.overrideAttrs (oldAttrs: {
+        name = "hyprland-shell-wlroots-ready";
+        buildInputs = oldAttrs.buildInputs ++ [
+          self.packages.${system}.wlroots-hyprland
+        ];
+      });
     });
 
     formatter = genSystems (system: pkgsFor.${system}.alejandra);

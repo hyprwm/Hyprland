@@ -131,6 +131,8 @@ public:
     void            setCursorImageUntilUnset(std::string);
     void            unsetCursorImage();
 
+    std::string     deviceNameToInternalString(std::string);
+
 private:
 
     bool            m_bCursorImageOverriden = false;

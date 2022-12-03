@@ -5,7 +5,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     const auto PNEWTABLET = &m_lTablets.emplace_back();
 
     try {
-        PNEWTABLET->name = std::string(pDevice->name);
+        PNEWTABLET->name = deviceNameToInternalString(pDevice->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Tablet had no name???");  // logic error
     }
@@ -158,7 +158,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
     const auto PNEWPAD = &m_lTabletPads.emplace_back();
 
     try {
-        PNEWPAD->name = std::string(pDevice->name);
+        PNEWPAD->name = deviceNameToInternalString(pDevice->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Pad had no name???");  // logic error
     }

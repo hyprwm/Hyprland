@@ -465,7 +465,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     PNEWKEYBOARD->keyboard = keyboard;
 
     try {
-        PNEWKEYBOARD->name = std::string(keyboard->name);
+        PNEWKEYBOARD->name = deviceNameToInternalString(keyboard->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Keyboard had no name???");  // logic error
     }
@@ -501,7 +501,7 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
     PNEWKEYBOARD->isVirtual = true;
 
     try {
-        PNEWKEYBOARD->name = std::string(keyboard->name);
+        PNEWKEYBOARD->name = deviceNameToInternalString(keyboard->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Keyboard had no name???");  // logic error
     }
@@ -538,7 +538,6 @@ void CInputManager::setKeyboardLayout() {
 
 void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     auto devname = pKeyboard->name;
-    transform(devname.begin(), devname.end(), devname.begin(), ::tolower);
 
     const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
@@ -662,7 +661,7 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
     PMOUSE->mouse = mouse;
     PMOUSE->virt = virt;
     try {
-        PMOUSE->name = std::string(mouse->name);
+        PMOUSE->name = deviceNameToInternalString(mouse->name);
     } catch(std::exception& e) {
         Debug::log(ERR, "Mouse had no name???"); // logic error
     }
@@ -693,7 +692,6 @@ void CInputManager::setPointerConfigs() {
         const auto PPOINTER = &m;
 
         auto devname = PPOINTER->name;
-        transform(devname.begin(), devname.end(), devname.begin(), ::tolower);
 
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
@@ -1084,7 +1082,7 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     PNEWDEV->pWlrDevice = pDevice;
 
     try {
-        PNEWDEV->name = std::string(pDevice->name);
+        PNEWDEV->name = deviceNameToInternalString(pDevice->name);
     } catch(std::exception& e) {
         Debug::log(ERR, "Touch Device had no name???"); // logic error
     }
@@ -1138,18 +1136,15 @@ void CInputManager::setTouchDeviceConfigs() {
     for (auto& m : m_lTouchDevices) {
         const auto PTOUCHDEV = &m;
 
-        auto devname = PTOUCHDEV->name;
-        transform(devname.begin(), devname.end(), devname.begin(), ::tolower);
-
-        const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
+        const auto HASCONFIG = g_pConfigManager->deviceConfigExists(PTOUCHDEV->name);
 
         if (wlr_input_device_is_libinput(m.pWlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
 
-            const int ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "touch_transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
+            const int ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "touch_transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
-            const auto OUTPUT = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "touch_output") : g_pConfigManager->getString("input:touchdevice:output");
+            const auto OUTPUT = HASCONFIG ? g_pConfigManager->getDeviceString(PTOUCHDEV->name, "touch_output") : g_pConfigManager->getString("input:touchdevice:output");
             if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY)
                 PTOUCHDEV->boundOutput = OUTPUT;
             else
@@ -1202,4 +1197,10 @@ void CInputManager::unsetCursorImage() {
     m_bCursorImageOverriden = false;
     if (!g_pHyprRenderer->m_bWindowRequestedCursorHide)
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+}
+
+std::string CInputManager::deviceNameToInternalString(std::string in) {
+    std::replace(in.begin(), in.end(), ' ', '-');
+    std::transform(in.begin(), in.end(), in.begin(), ::tolower);
+    return in;
 }

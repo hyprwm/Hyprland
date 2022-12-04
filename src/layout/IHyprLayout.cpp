@@ -186,7 +186,8 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->unsetCursorImage();
 
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
-        DRAGGINGWINDOW->m_bIsFloating = false;
+        static auto *const PFLOATONMOVE = &g_pConfigManager->getConfigValuePtr("misc:float_on_move")->intValue;
+        DRAGGINGWINDOW->m_bIsFloating = *PFLOATONMOVE;
         g_pInputManager->refocus();
         changeWindowFloatingMode(DRAGGINGWINDOW);
     }

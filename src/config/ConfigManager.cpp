@@ -62,6 +62,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:swallow_regex"].strValue = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue = 0;
     configValues["misc:no_direct_scanout"].intValue = 0;
+    configValues["misc:float_on_move"].intValue = 0;
 
     configValues["debug:int"].intValue = 0;
     configValues["debug:log_damage"].intValue = 0;

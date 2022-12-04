@@ -26,7 +26,6 @@
         inherit system;
         overlays = [
           (_: prev: {
-            hwdata = prev.callPackage ./nix/hwdata.nix {};
             libdrm = prev.libdrm.overrideAttrs (old: rec {
               version = "2.4.114";
               src = prev.fetchurl {
@@ -75,7 +74,7 @@
         default = self.packages.${system}.hyprland;
       });
 
-    devShells = genSystems (system: rec {
+    devShells = genSystems (system: {
       default = pkgsFor.${system}.mkShell.override {stdenv = pkgsFor.${system}.gcc12Stdenv;} {
         name = "hyprland-shell";
         nativeBuildInputs = with pkgsFor.${system}; [

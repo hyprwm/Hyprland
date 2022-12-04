@@ -902,7 +902,7 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
     if (value.find("remove,") == 0) {
         const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
-        m_dBlurLSNamespaces.erase(std::remove(m_dBlurLSNamespaces.begin(), m_dBlurLSNamespaces.end(), TOREMOVE));
+        std::erase_if(m_dBlurLSNamespaces, [&] (const auto& other) { return other == TOREMOVE; });
         return;
     }
 

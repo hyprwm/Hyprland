@@ -70,6 +70,7 @@ struct SRenderData {
 
     // for blurring
     bool blur = false;
+    bool blockBlurOptimization = false;
 
     // only for windows, not popups
     bool squishOversized = true;

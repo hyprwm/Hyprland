@@ -7,6 +7,11 @@
       url = "gitlab:wlroots/wlroots?host=gitlab.freedesktop.org";
       flake = false;
     };
+
+    xdph = {
+      url = "github:hyprwm/xdg-desktop-portal-hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
@@ -92,7 +97,7 @@
 
     formatter = genSystems (system: pkgsFor.${system}.alejandra);
 
-    nixosModules.default = import ./nix/module.nix self;
+    nixosModules.default = import ./nix/module.nix inputs;
     homeManagerModules.default = import ./nix/hm-module.nix self;
   };
 

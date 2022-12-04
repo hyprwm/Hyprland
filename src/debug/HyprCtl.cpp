@@ -121,7 +121,7 @@ R"#({
     "fullscreen": %s,
     "fullscreenMode": %i,
     "grouped": [%s],
-    "swallowing": "0x%x"
+    "swallowing": %s
 },)#",
                     w,
                     (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
@@ -137,7 +137,7 @@ R"#({
                     (w->m_bIsFullscreen ? "true" : "false"),
                     (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
                     getGroupedData(w, format).c_str(),
-                    w->m_pSwallowed
+                    (w->m_pSwallowed ? getFormat("\"0x%x\"", w->m_pSwallowed).c_str() : "null")
                 );
     } else {
         return getFormat("Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\txwayland: %i\n\tpinned: %i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\tgrouped: %s\n\tswallowing: %x\n\n",

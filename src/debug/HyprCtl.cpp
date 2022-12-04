@@ -413,7 +413,7 @@ R"#(    {
         result += "}\n";
 
     } else {
-        result += "mice:\n";
+        result += "Mice:\n";
 
         for (auto& m : g_pInputManager->m_lMice) {
             result += getFormat("\tMouse at %x:\n\t\t%s\n\t\t\tdefault speed: %f\n", &m, m.name.c_str(), (wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f));

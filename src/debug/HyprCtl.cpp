@@ -92,7 +92,7 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
             result << comma;
 
         // all other user-visible addresses are int-sized
-        result << std::hex << *(int*)(&gw);
+        result << std::hex << *(int*)&gw;
     }
     if (isJson)
         result << "\"";

@@ -274,6 +274,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     g_pHyprOpenGL->end();
 
+    g_pProtocolManager->m_pToplevelExportProtocolManager->onMonitorRender(PMONITOR); // dispatch any toplevel sharing
+
     // calc frame damage
     pixman_region32_t frameDamage;
     pixman_region32_init(&frameDamage);

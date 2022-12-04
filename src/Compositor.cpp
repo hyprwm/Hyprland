@@ -326,6 +326,9 @@ void CCompositor::startCompositor() {
     Debug::log(LOG, "Creating the XWaylandManager!");
     g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
 
+    Debug::log(LOG, "Creating the ProtocolManager!");
+    g_pProtocolManager = std::make_unique<CProtocolManager>();
+
     Debug::log(LOG, "Creating the EventManager!");
     g_pEventManager = std::make_unique<CEventManager>();
     g_pEventManager->startThread();
@@ -903,6 +906,15 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
 CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
     for (auto& w : m_vWindows) {
         if (g_pXWaylandManager->getWindowSurface(w.get()) == pSurface)
+            return w.get();
+    }
+
+    return nullptr;
+}
+
+CWindow* CCompositor::getWindowFromHandle(uint32_t handle) {
+    for (auto& w : m_vWindows) {
+        if ((uintptr_t)w.get() == (uintptr_t)handle)
             return w.get();
     }
 

@@ -1,5 +1,5 @@
 # Copied from https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/programs/sway.nix
-self: {
+inputs: {
   config,
   lib,
   pkgs,
@@ -23,7 +23,7 @@ in {
 
     package = mkOption {
       type = types.nullOr types.package;
-      default = self.packages.${pkgs.system}.default;
+      default = inputs.self.packages.${pkgs.system}.default;
       defaultText = literalExpression "<Hyprland flake>.packages.<system>.default";
       example = literalExpression "<Hyprland flake>.packages.<system>.default.override { }";
       description = ''
@@ -60,7 +60,8 @@ in {
     services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) cfg.package;
     xdg.portal = {
       enable = mkDefault true;
-      extraPortals = [pkgs.xdg-desktop-portal-wlr];
+      # xdg-desktop-portal-hyprland
+      extraPortals = [inputs.xdph.packages.${pkgs.system}.default];
     };
   };
 }

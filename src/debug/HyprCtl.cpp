@@ -79,10 +79,9 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
     if (groupMembers.empty())
         return isJson ? "" : "0";
 
-    const auto comma = isJson ? "\", \"0x" : ",";
+    const auto comma = isJson ? ", " : ",";
+    const auto fmt = isJson ? "\"0x%x\"" : "%x";
     std::ostringstream result;
-    if (isJson)
-        result << "\"0x";
 
     bool first = true;
     for (auto& gw : groupMembers) {
@@ -91,11 +90,8 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
         else
             result << comma;
 
-        // all other user-visible addresses are int-sized
-        result << std::hex << *(int*)&gw;
+        result << getFormat(fmt, gw);
     }
-    if (isJson)
-        result << "\"";
 
     return result.str();
 }

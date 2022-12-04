@@ -69,17 +69,20 @@ R"#({
 }
 
 static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat format) {
+    const bool isJson = format == HyprCtl::FORMAT_JSON;
     if (g_pLayoutManager->getCurrentLayout()->getLayoutName() != "dwindle")
-        return format == HyprCtl::FORMAT_JSON ? "" : "0";
+        return isJson ? "" : "0";
 
     SLayoutMessageHeader header;
     header.pWindow = w;
     const auto groupMembers = std::any_cast<std::deque<CWindow*>>(g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "groupinfo"));
     if (groupMembers.empty())
-        return format == HyprCtl::FORMAT_JSON ? "" : "0";
+        return isJson ? "" : "0";
 
-    const auto comma = format == HyprCtl::FORMAT_JSON ? ", " : ",";
+    const auto comma = isJson ? "\", \"0x" : ",";
     std::ostringstream result;
+    if (isJson)
+        result << "\"0x";
 
     bool first = true;
     for (auto& gw : groupMembers) {
@@ -87,8 +90,12 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
             first = false;
         else
             result << comma;
-        result << gw->getPID();
+
+        // all other user-visible addresses are int-sized
+        result << std::hex << *(int*)(&gw);
     }
+    if (isJson)
+        result << "\"";
 
     return result.str();
 }

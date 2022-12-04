@@ -267,9 +267,12 @@ void CToplevelExportProtocolManager::onMonitorRender(CMonitor* pMonitor) {
     
     // share frame if correct output
     for (auto& f : m_vFramesAwaitingWrite) {
-        if (!g_pHyprRenderer->shouldRenderWindow(f->pWindow, pMonitor))
-            continue;
+        wlr_box geometry = { f->pWindow->m_vRealPosition.vec().x, f->pWindow->m_vRealPosition.vec().y,
+                             f->pWindow->m_vRealSize.vec().x, f->pWindow->m_vRealSize.vec().y };
 
+        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
+            continue;
+        
         shareFrame(f);
     }
 }

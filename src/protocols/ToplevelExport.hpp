@@ -46,12 +46,13 @@ public:
 
     void        bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
     void        captureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, uint32_t handle);
-    void        removeClient(SToplevelClient* client);
-    void        removeFrame(SToplevelFrame* frame);
+    void        removeClient(SToplevelClient* client, bool force = false);
+    void        removeFrame(SToplevelFrame* frame, bool force = false);
     void        copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);
 
     void        onMonitorRender(CMonitor* pMonitor);
     void        displayDestroy();
+    void        onWindowUnmap(CWindow* pWindow);
 
 private:
     wl_global*                  m_pGlobal = nullptr;

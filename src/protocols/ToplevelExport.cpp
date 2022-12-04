@@ -77,14 +77,16 @@ SToplevelFrame* frameFromResource(wl_resource* resource) {
     return (SToplevelFrame*)wl_resource_get_user_data(resource);
 }
 
-void CToplevelExportProtocolManager::removeClient(SToplevelClient* client) {
-    if (!client || client->ref <= 0)
-        return;
+void CToplevelExportProtocolManager::removeClient(SToplevelClient* client, bool force) {
+    if (!force) {
+        if (!client || client->ref <= 0)
+            return;
 
-    if (--client->ref != 0)
-        return;
+        if (--client->ref != 0)
+            return;
+    }
 
-    m_lClients.remove(*client);
+    m_lClients.remove(*client); // TODO: this doesn't get cleaned up after sharing app exits???
 }
 
 void handleManagerResourceDestroy(wl_resource* resource) {
@@ -119,13 +121,15 @@ void handleFrameResourceDestroy(wl_resource* resource) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->removeFrame(PFRAME);
 }
 
-void CToplevelExportProtocolManager::removeFrame(SToplevelFrame* frame) {
+void CToplevelExportProtocolManager::removeFrame(SToplevelFrame* frame, bool force) {
     if (!frame)
         return;
 
+    std::erase_if(m_vFramesAwaitingWrite, [&] (const auto& other) { return other == frame; });
+
     wl_resource_set_user_data(frame->resource, nullptr);
     wlr_buffer_unlock(frame->buffer);
-    removeClient(frame->client);
+    removeClient(frame->client, force);
     m_lFrames.remove(*frame);
 }
 
@@ -134,23 +138,25 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
 
     const auto PWINDOW = g_pCompositor->getWindowFromHandle(handle);
 
-    if (!PWINDOW) {
-        Debug::log(ERR, "Client requested sharing of window handle %x which does not exist!", handle);
-        hyprland_toplevel_export_frame_v1_send_failed(resource);
-        return;
-    }
-
-    if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden()) {
-        Debug::log(ERR, "Client requested sharing of window handle %x which is not shareable!", handle);
-        hyprland_toplevel_export_frame_v1_send_failed(resource);
-        return;
-    }
-
     // create a frame
     const auto PFRAME = &m_lFrames.emplace_back();
     PFRAME->overlayCursor = !!overlay_cursor;
     PFRAME->resource = wl_resource_create(client, &hyprland_toplevel_export_frame_v1_interface, wl_resource_get_version(resource), frame);
     PFRAME->pWindow = PWINDOW;
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "Client requested sharing of window handle %x which does not exist!", handle);
+        hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
+        removeFrame(PFRAME);
+        return;
+    }
+
+    if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden()) {
+        Debug::log(ERR, "Client requested sharing of window handle %x which is not shareable!", handle);
+        hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
+        removeFrame(PFRAME);
+        return;
+    }
 
     if (!PFRAME->resource) {
         Debug::log(ERR, "Couldn't alloc frame for sharing! (no memory)");
@@ -264,9 +270,15 @@ void CToplevelExportProtocolManager::onMonitorRender(CMonitor* pMonitor) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 
+    std::vector<SToplevelFrame*> framesToRemove;
     
     // share frame if correct output
     for (auto& f : m_vFramesAwaitingWrite) {
+        if (!f->pWindow) {
+            framesToRemove.push_back(f);
+            continue;
+        }
+
         wlr_box geometry = { f->pWindow->m_vRealPosition.vec().x, f->pWindow->m_vRealPosition.vec().y,
                              f->pWindow->m_vRealSize.vec().x, f->pWindow->m_vRealSize.vec().y };
 
@@ -274,17 +286,21 @@ void CToplevelExportProtocolManager::onMonitorRender(CMonitor* pMonitor) {
             continue;
         
         shareFrame(f);
+
+        framesToRemove.push_back(f);
+    }
+
+    for (auto& f : framesToRemove) {
+        removeFrame(f);
     }
 }
 
 void CToplevelExportProtocolManager::shareFrame(SToplevelFrame* frame) {
-    if (!frame->buffer)
+    if (!frame->buffer) {
         return;
+    }
 
     // TODO: damage
-
-    // remove this frame from awaiting.
-    std::erase_if(m_vFramesAwaitingWrite, [&] (const SToplevelFrame* other) { return other == frame; });
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -293,13 +309,11 @@ void CToplevelExportProtocolManager::shareFrame(SToplevelFrame* frame) {
     if (frame->bufferCap == WLR_BUFFER_CAP_DMABUF) {
         if (!copyFrameDmabuf(frame)) {
             hyprland_toplevel_export_frame_v1_send_failed(frame->resource);
-            removeFrame(frame);
             return;
         }
     } else {
         if (!copyFrameShm(frame, &now)) {
             hyprland_toplevel_export_frame_v1_send_failed(frame->resource);
-            removeFrame(frame);
             return;
         }
     }
@@ -309,7 +323,6 @@ void CToplevelExportProtocolManager::shareFrame(SToplevelFrame* frame) {
     uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
     uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
     hyprland_toplevel_export_frame_v1_send_ready(frame->resource, tvSecHi, tvSecLo, now.tv_nsec);
-    removeFrame(frame);
 }
 
 bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespec* now) {
@@ -359,4 +372,11 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SToplevelFrame* frame) {
     // todo
     Debug::log(ERR, "DMABUF copying not impl'd!");
     return false;
+}
+
+void CToplevelExportProtocolManager::onWindowUnmap(CWindow* pWindow) {
+    for (auto& f : m_lFrames) {
+        if (f.pWindow == pWindow)
+            f.pWindow = nullptr;
+    }
 }

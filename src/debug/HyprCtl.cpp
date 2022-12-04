@@ -289,7 +289,7 @@ R"#(    {
         "defaultSpeed": %f
     },)#",
                 &m,
-                escapeJSONStrings(m.mouse->name).c_str(),
+                escapeJSONStrings(m.name).c_str(),
                 wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f
             );
         }
@@ -314,7 +314,7 @@ R"#(    {
         "main": %s
     },)#",
                 &k,
-                escapeJSONStrings(k.keyboard->name).c_str(),
+                escapeJSONStrings(k.name).c_str(),
                 escapeJSONStrings(k.currentRules.rules).c_str(),
                 escapeJSONStrings(k.currentRules.model).c_str(),
                 escapeJSONStrings(k.currentRules.layout).c_str(),
@@ -343,7 +343,7 @@ R"#(    {
     },)#",
                 &d,
                 d.pTabletParent,
-                escapeJSONStrings(d.pTabletParent ? d.pTabletParent->wlrDevice ? d.pTabletParent->wlrDevice->name : "" : "").c_str()
+                escapeJSONStrings(d.pTabletParent ? d.pTabletParent->name : "").c_str()
             );
         }
 
@@ -354,7 +354,7 @@ R"#(    {
         "name": "%s"
     },)#",
                 &d,
-                escapeJSONStrings(d.wlrDevice ? d.wlrDevice->name : "").c_str()
+                escapeJSONStrings(d.name).c_str()
             );
         }
 
@@ -383,7 +383,7 @@ R"#(    {
         "name": "%s"
     },)#",
                 &d,
-                d.pWlrDevice ? d.pWlrDevice->name : ""
+                d.name.c_str()
             );
         }
 
@@ -416,24 +416,24 @@ R"#(    {
         result += "mice:\n";
 
         for (auto& m : g_pInputManager->m_lMice) {
-            result += getFormat("\tMouse at %x:\n\t\t%s\n\t\t\tdefault speed: %f\n", &m, m.mouse->name, (wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f));
+            result += getFormat("\tMouse at %x:\n\t\t%s\n\t\t\tdefault speed: %f\n", &m, m.name.c_str(), (wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f));
         }
 
         result += "\n\nKeyboards:\n";
 
         for (auto& k : g_pInputManager->m_lKeyboards) {
             const auto KM = g_pInputManager->getActiveLayoutForKeyboard(&k);
-            result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n\t\t\tactive keymap: %s\n\t\t\tmain: %s\n", &k, k.keyboard->name, k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(), k.currentRules.options.c_str(), KM.c_str(), (k.active ? "yes" : "no"));
+            result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n\t\t\tactive keymap: %s\n\t\t\tmain: %s\n", &k, k.name.c_str(), k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(), k.currentRules.options.c_str(), KM.c_str(), (k.active ? "yes" : "no"));
         }
 
         result += "\n\nTablets:\n";
 
         for (auto& d : g_pInputManager->m_lTabletPads) {
-            result += getFormat("\tTablet Pad at %x (belongs to %x -> %s)\n", &d, d.pTabletParent, d.pTabletParent ? d.pTabletParent->wlrDevice ? d.pTabletParent->wlrDevice->name : "" : "");
+            result += getFormat("\tTablet Pad at %x (belongs to %x -> %s)\n", &d, d.pTabletParent, d.pTabletParent ? d.pTabletParent->name.c_str() : "");
         }
 
         for (auto& d : g_pInputManager->m_lTablets) {
-            result += getFormat("\tTablet at %x:\n\t\t%s\n", &d, d.wlrDevice ? d.wlrDevice->name : "");
+            result += getFormat("\tTablet at %x:\n\t\t%s\n", &d, d.name.c_str());
         }
 
         for (auto& d : g_pInputManager->m_lTabletTools) {
@@ -443,7 +443,7 @@ R"#(    {
         result += "\n\nTouch:\n";
 
         for (auto& d : g_pInputManager->m_lTouchDevices) {
-            result += getFormat("\tTouch Device at %x:\n\t\t%s\n", &d, d.pWlrDevice ? d.pWlrDevice->name : "");
+            result += getFormat("\tTouch Device at %x:\n\t\t%s\n", &d, d.name.c_str());
         }
 
         result += "\n\nSwitches:\n";

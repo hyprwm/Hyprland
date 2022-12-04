@@ -54,7 +54,7 @@ message(STATUS "Checking deps...")
 find_package(Threads REQUIRED)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo pango pangocairo libdrm egl xkbcommon libinput) # we do not check for wlroots, as we provide it ourselves
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo pango pangocairo libdrm libsystemd egl xkbcommon libinput) # we do not check for wlroots, as we provide it ourselves
 
 file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
@@ -73,6 +73,15 @@ ELSE()
     pkg_check_modules(xcbdep REQUIRED xcb)
     target_link_libraries(Hyprland xcb)
 ENDIF(NO_XWAYLAND MATCHES true)
+
+IF(NO_SYSTEMD MATCHES false)
+    message(STATUS "SYSTEMD support is requested (NO_SYSTEMD not defined) checking deps...")
+    IF(NOT SYSTEMD_FOUND)
+        message(FATAL_ERROR "ERROR: Systemd not found")
+    ENDIF(NOT SYSTEMD_FOUND)
+    add_definitions( -DUSES_SYSTEMD )
+    target_link_libraries(Hyprland libsystemd)
+ENDIF(USES_SYSTEMD MATCHES true)
 
 target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 target_compile_definitions(Hyprland PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")

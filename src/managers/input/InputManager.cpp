@@ -378,13 +378,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
 }
 
 void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
-    const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
-
-    if (!PKEYBOARD) {  // ???
-        Debug::log(ERR, "No active keyboard in processMouseDownNormal??");
-        return;
-    }
-
+    
     // notify the keybind manager
     static auto *const PPASSMOUSE = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
     const auto PASS = g_pKeybindManager->onMouseEvent(e);

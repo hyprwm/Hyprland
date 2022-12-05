@@ -341,7 +341,9 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 255));
 
     // render client at 0,0
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(frame->pWindow); // block the feedback to avoid spamming the surface if it's visible
     g_pHyprRenderer->renderWindow(frame->pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     // copy pixels
     const auto PFORMAT = get_gles2_format_from_drm(format);

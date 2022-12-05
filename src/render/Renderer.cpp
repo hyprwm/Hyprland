@@ -51,9 +51,10 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
     }
 
-    wlr_surface_send_frame_done(surface, RDATA->when);
-
-    wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
+    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+        wlr_surface_send_frame_done(surface, RDATA->when);
+        wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->output);
+    }
 
     // reset the UV, we might've set it above
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft = Vector2D(-1, -1);

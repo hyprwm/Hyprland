@@ -3,7 +3,14 @@ wayland_protos = dependency('wayland-protocols',
 	fallback: 'wayland-protocols',
 	default_options: ['tests=false'],
 )
+
+hyprland_protos = dependency('hyprland-protocols',
+	version: '>=0.1',
+  fallback: 'hyprland-protocols',
+)
+
 wl_protocol_dir = wayland_protos.get_variable('pkgdatadir')
+hl_protocol_dir = hyprland_protos.get_variable('pkgdatadir')
 
 wayland_scanner_dep = dependency('wayland-scanner', native: true)
 wayland_scanner = find_program(
@@ -19,7 +26,8 @@ protocols = [
   ['ext-workspace-unstable-v1.xml'],
   ['pointer-constraints-unstable-v1.xml'],
   ['tablet-unstable-v2.xml'],
-  ['idle.xml']
+  ['idle.xml'],
+  [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml']
 ]
 wl_protos_src = []
 wl_protos_headers = []

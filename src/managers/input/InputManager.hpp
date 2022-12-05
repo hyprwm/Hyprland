@@ -60,7 +60,7 @@ public:
     void            setTouchDeviceConfigs();
 
     void            updateDragIcon();
-    void            updateCapabilities(wlr_input_device*);
+    void            updateCapabilities();
 
     void            setClickMode(eClickBehaviorMode);
     eClickBehaviorMode getClickMode();

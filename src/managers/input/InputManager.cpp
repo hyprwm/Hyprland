@@ -1014,24 +1014,20 @@ void Events::listener_commitConstraint(void* owner, void* data) {
     //g_pInputManager->recheckConstraint((SMouse*)owner);
 }
 
-void CInputManager::updateCapabilities(wlr_input_device* pDev) {
-    // TODO: this is dumb
+void CInputManager::updateCapabilities() {
+    uint32_t caps = 0;
 
-    switch (pDev->type) {
-        case WLR_INPUT_DEVICE_KEYBOARD:
-            m_uiCapabilities |= WL_SEAT_CAPABILITY_KEYBOARD;
-            break;
-        case WLR_INPUT_DEVICE_POINTER:
-            m_uiCapabilities |= WL_SEAT_CAPABILITY_POINTER;
-            break;
-        case WLR_INPUT_DEVICE_TOUCH:
-            m_uiCapabilities |= WL_SEAT_CAPABILITY_TOUCH;
-            break;
-        default:
-            break;
-    }
+    if (!m_lKeyboards.empty())
+        caps |= WL_SEAT_CAPABILITY_KEYBOARD;
+    if (!m_lMice.empty())
+        caps |= WL_SEAT_CAPABILITY_POINTER;
+    if (!m_lTouchDevices.empty())
+        caps |= WL_SEAT_CAPABILITY_TOUCH;
+    if (!m_lTabletTools.empty())
+        caps |= WL_SEAT_CAPABILITY_POINTER;
 
-    wlr_seat_set_capabilities(g_pCompositor->m_sSeat.seat, m_uiCapabilities);
+    wlr_seat_set_capabilities(g_pCompositor->m_sSeat.seat, caps);
+    m_uiCapabilities = caps;
 }
 
 uint32_t CInputManager::accumulateModsFromAllKBs() {

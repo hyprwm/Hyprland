@@ -91,7 +91,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             break;
     }
 
-    g_pInputManager->updateCapabilities(DEVICE);
+    g_pInputManager->updateCapabilities();
 }
 
 void Events::listener_newConstraint(wl_listener* listener, void* data) {

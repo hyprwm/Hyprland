@@ -76,7 +76,7 @@ public:
     // ------------------------------------------------- //
 
 
-    const char*             m_szWLDisplaySocket;
+    std::string             m_szWLDisplaySocket = "";
     std::string             m_szInstanceSignature = "";
     std::string             m_szCurrentSplash   = "error";
 

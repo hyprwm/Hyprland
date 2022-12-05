@@ -15,6 +15,7 @@
 #include "managers/KeybindManager.hpp"
 #include "managers/AnimationManager.hpp"
 #include "managers/EventManager.hpp"
+#include "managers/ProtocolManager.hpp"
 #include "debug/HyprDebugOverlay.hpp"
 #include "helpers/Monitor.hpp"
 #include "helpers/Workspace.hpp"
@@ -126,6 +127,7 @@ public:
     CMonitor*               getMonitorFromOutput(wlr_output*);
     CWindow*                getWindowForPopup(wlr_xdg_popup*);
     CWindow*                getWindowFromSurface(wlr_surface*);
+    CWindow*                getWindowFromHandle(uint32_t);
     bool                    isWorkspaceVisible(const int&);
     CWorkspace*             getWorkspaceByID(const int&);
     CWorkspace*             getWorkspaceByName(const std::string&);

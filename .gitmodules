@@ -1,3 +1,6 @@
 [submodule "wlroots"]
 	path = subprojects/wlroots
 	url = https://gitlab.freedesktop.org/wlroots/wlroots.git
+[submodule "subprojects/hyprland-protocols"]
+	path = subprojects/hyprland-protocols
+	url = https://github.com/hyprwm/hyprland-protocols

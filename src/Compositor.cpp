@@ -920,8 +920,9 @@ CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
 
 CWindow* CCompositor::getWindowFromHandle(uint32_t handle) {
     for (auto& w : m_vWindows) {
-        if ((uintptr_t)w.get() == (uintptr_t)handle)
+        if ((uint32_t)(((uint64_t)w.get()) & 0xFFFFFFFF) == handle) {
             return w.get();
+        }
     }
 
     return nullptr;

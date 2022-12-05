@@ -12,6 +12,11 @@
       url = "github:hyprwm/xdg-desktop-portal-hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    hyprland-protocols = {
+      url = "github:hyprwm/hyprland-protocols";
+      flake = false;
+    };
   };
 
   outputs = inputs @ {
@@ -64,6 +69,7 @@
         stdenv = prev.gcc12Stdenv;
         version = "0.18.0beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
+        inherit (inputs) hyprland-protocols;
       };
       hyprland-debug = hyprland.override {debug = true;};
       hyprland-no-hidpi = hyprland.override {hidpiXWayland = false;};

@@ -556,6 +556,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x", PWINDOW)});
 
+    g_pProtocolManager->m_pToplevelExportProtocolManager->onWindowUnmap(PWINDOW);
+
     if (!PWINDOW->m_bIsX11) {
         Debug::log(LOG, "Unregistered late callbacks XDG");
         PWINDOW->hyprListener_commitWindow.removeCallback();

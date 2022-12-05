@@ -97,6 +97,7 @@ target_link_libraries(Hyprland
         pthread
         ${CMAKE_THREAD_LIBS_INIT}
         ${CMAKE_SOURCE_DIR}/ext-workspace-unstable-v1-protocol.o
+        ${CMAKE_SOURCE_DIR}/hyprland-toplevel-export-v1-protocol.o
 )
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)

@@ -249,6 +249,11 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     renderdata.blur = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
     renderdata.pWindow = pWindow;
 
+    if (ignoreAllGeometry) {
+        renderdata.alpha = 1.f;
+        renderdata.fadeAlpha = 255.f;
+    }
+
     // apply window special data
     if (pWindow->m_sSpecialRenderData.alphaInactive == -1)
         renderdata.alpha *= pWindow->m_sSpecialRenderData.alpha;

@@ -46,6 +46,7 @@ public:
     void                calculateUVForWindowSurface(CWindow*, wlr_surface*, bool main = false);
 
     bool                m_bWindowRequestedCursorHide = false;
+    bool                m_bBlockSurfaceFeedback = false;
     CWindow*            m_pLastScanout = nullptr;
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);

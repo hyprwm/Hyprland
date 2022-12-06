@@ -18,10 +18,10 @@
 #define ISDEBUG false
 #endif
 
-#define LISTENER(name) void listener_##name(wl_listener*, void*); inline wl_listener listen_##name = { .notify = listener_##name };
-#define DYNLISTENFUNC(name) void listener_##name(void*, void*);
-#define DYNLISTENER(name) CHyprWLListener hyprListener_##name;
-#define DYNMULTILISTENER(name) wl_listener listen_##name;
+#define LISTENER(name) void listener_##name(wl_listener*, void*); inline wl_listener listen_##name = { .notify = listener_##name }
+#define DYNLISTENFUNC(name) void listener_##name(void*, void*)
+#define DYNLISTENER(name) CHyprWLListener hyprListener_##name
+#define DYNMULTILISTENER(name) wl_listener listen_##name
 
 #define VECINRECT(vec, x1, y1, x2, y2) (vec.x >= (x1) && vec.x <= (x2) && vec.y >= (y1) && vec.y <= (y2))
 

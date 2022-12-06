@@ -17,7 +17,7 @@ jobs:
 
       - name: Create tarball with submodules
         id: tar
-        run: tar -czv --owner=0 --group=0 --no-same-owner --no-same-permissions -f source.tar.gz *
+        run: mkdir hyprland-source; mv ./* ./hyprland-source; tar -czv --owner=0 --group=0 --no-same-owner --no-same-permissions -f source.tar.gz *
 
       - id: whatrelease
         name: Get latest release

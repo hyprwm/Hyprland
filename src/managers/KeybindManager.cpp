@@ -899,9 +899,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
-    g_pKeybindManager->changeworkspace(args);
-
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
     if (PWORKSPACE == OLDWORKSPACE) {
         Debug::log(LOG, "Not moving to workspace because it didn't change.");
@@ -909,8 +907,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     }
 
     if (!PWORKSPACE) {
-        Debug::log(ERR, "Workspace null in moveActiveToWorkspace?");
-        return;
+        // create
+        PWORKSPACE = g_pCompositor->createNewWorkspace(WORKSPACEID, OLDWORKSPACE->m_iMonitorID, workspaceName);
     }
 
     PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
@@ -936,16 +934,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         g_pCompositor->setWindowFullscreen(PWINDOW, true, OLDWORKSPACE->m_efFullscreenMode);
     }
 
-    // undo the damage if we are moving to the special workspace
-    if (g_pCompositor->isWorkspaceSpecial(WORKSPACEID)) {
-        changeworkspace("[internal]" + std::to_string(OLDWORKSPACE->m_iID));
-        OLDWORKSPACE->startAnim(true, true, true);
-        toggleSpecialWorkspace(workspaceName.length() > 7 ? workspaceName.substr(8) : workspaceName /* remove special: */);
-        g_pCompositor->getWorkspaceByID(WORKSPACEID)->startAnim(false, false, true);
-
-        for (auto& m : g_pCompositor->m_vMonitors)
-            m->specialWorkspaceID = 0;
-    } else {
+    if (!g_pCompositor->isWorkspaceSpecial(WORKSPACEID)) {
+        g_pKeybindManager->changeworkspace(args);
         g_pCompositor->focusWindow(PWINDOW);
     }
 

@@ -92,7 +92,7 @@ void CToplevelExportProtocolManager::removeClient(SToplevelClient* client, bool 
 void handleManagerResourceDestroy(wl_resource* resource) {
     const auto PCLIENT = clientFromResource(resource);
 
-    g_pProtocolManager->m_pToplevelExportProtocolManager->removeClient(PCLIENT);
+    g_pProtocolManager->m_pToplevelExportProtocolManager->removeClient(PCLIENT, true);
 }
 
 void CToplevelExportProtocolManager::bindManager(wl_client* client, void* data, uint32_t version, uint32_t id) {
@@ -215,22 +215,26 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
     if (!PFRAME->pWindow->m_bIsMapped || PFRAME->pWindow->isHidden()) {
         Debug::log(ERR, "Client requested sharing of window handle %x which is not shareable (2)!", PFRAME->pWindow);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
+        removeFrame(PFRAME);
         return;
     }
 
     const auto PBUFFER = wlr_buffer_from_resource(buffer);
     if (!PBUFFER) {
         wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
+        removeFrame(PFRAME);
         return;
     }
 
     if (PBUFFER->width != PFRAME->box.width || PBUFFER->height != PFRAME->box.height) {
         wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
+        removeFrame(PFRAME);
         return;
     }
 
     if (PFRAME->buffer) {
         wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_ALREADY_USED, "frame already used");
+        removeFrame(PFRAME);
         return;
     }
 
@@ -243,6 +247,7 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
 
         if (dmabufAttrs.format != PFRAME->dmabufFormat) {
             wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
+            removeFrame(PFRAME);
             return;
         }
     } else if (wlr_buffer_begin_data_ptr_access(PBUFFER, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &wlrBufferAccessData, &wlrBufferAccessFormat, &wlrBufferAccessStride)) {
@@ -250,13 +255,16 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
 
         if (wlrBufferAccessFormat != PFRAME->shmFormat) {
             wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
+            removeFrame(PFRAME);
             return;
         } else if ((int)wlrBufferAccessStride != PFRAME->shmStride) {
             wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
+            removeFrame(PFRAME);
             return;
         }
     } else {
         wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer type");
+        removeFrame(PFRAME);
         return;
     }
 

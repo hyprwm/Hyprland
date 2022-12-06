@@ -937,6 +937,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (!g_pCompositor->isWorkspaceSpecial(WORKSPACEID)) {
         g_pKeybindManager->changeworkspace(args);
         g_pCompositor->focusWindow(PWINDOW);
+    } else {
+        g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
     }
 
     PWINDOW->updateToplevel();
@@ -1317,6 +1319,8 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 
 void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
+    static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+
     std::string workspaceName = "";
     int workspaceID = getWorkspaceIDFromString("special:" + args, workspaceName);
 
@@ -1331,7 +1335,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     }
 
     bool requestedWorkspaceIsAlreadyOpen = false;
-    int specialOpenOnMonitor = g_pCompositor->m_pLastMonitor->specialWorkspaceID;
+    const auto PMONITOR = *PFOLLOWMOUSE == 1 ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->m_pLastMonitor;
+    int specialOpenOnMonitor = PMONITOR->specialWorkspaceID;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         if (m->specialWorkspaceID == workspaceID) {
@@ -1348,12 +1353,12 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor
 
-        g_pCompositor->m_pLastMonitor->specialWorkspaceID = 0;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+        PMONITOR->specialWorkspaceID = 0;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 
         g_pCompositor->getWorkspaceByID(workspaceID)->startAnim(false, false);
 
-        if (const auto PWINDOW = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace)->getLastFocusedWindow(); PWINDOW)
+        if (const auto PWINDOW = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->getLastFocusedWindow(); PWINDOW)
             g_pCompositor->focusWindow(PWINDOW);
         else
             g_pInputManager->refocus();
@@ -1361,9 +1366,9 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         // already open on another monitor
 
         if (specialOpenOnMonitor) {
-            g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->specialWorkspaceID)->startAnim(false, false);
-            g_pCompositor->m_pLastMonitor->specialWorkspaceID = 0;
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+            g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID)->startAnim(false, false);
+            PMONITOR->specialWorkspaceID = 0;
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
         }
 
         // move to current
@@ -1372,8 +1377,9 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
         POLDMON->specialWorkspaceID = 0;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
-        g_pCompositor->m_pLastMonitor->specialWorkspaceID = workspaceID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+        PMONITOR->specialWorkspaceID = workspaceID;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        PSPECIALWORKSPACE->m_iMonitorID = PMONITOR->ID;
 
         if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); PWINDOW)
             g_pCompositor->focusWindow(PWINDOW);
@@ -1383,23 +1389,23 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         // not open anywhere
 
         if (specialOpenOnMonitor) {
-            g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->specialWorkspaceID)->startAnim(false, false);
-            g_pCompositor->m_pLastMonitor->specialWorkspaceID = 0;
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+            g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID)->startAnim(false, false);
+            PMONITOR->specialWorkspaceID = 0;
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
         }
 
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
         if (!PSPECIALWORKSPACE) {
             // ??? happens sometimes...?
-            PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, g_pCompositor->m_pLastMonitor->ID, workspaceName);
+            PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
         }
 
-        g_pCompositor->m_pLastMonitor->specialWorkspaceID = workspaceID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+        PMONITOR->specialWorkspaceID = workspaceID;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 
+        PSPECIALWORKSPACE->m_iMonitorID = PMONITOR->ID;
         PSPECIALWORKSPACE->startAnim(true, true);
-        PSPECIALWORKSPACE->m_iMonitorID = g_pCompositor->m_pLastMonitor->ID;
 
         if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); PWINDOW)
             g_pCompositor->focusWindow(PWINDOW);

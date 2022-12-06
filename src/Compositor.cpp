@@ -1446,11 +1446,11 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     // border
     const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
     if (RENDERDATA.isBorderColor)
-        setBorderColor(RENDERDATA.borderColor);
+        setBorderColor(RENDERDATA.borderColor * (1.f / 255.f));
     else
         setBorderColor(pWindow == m_pLastWindow ?
-                                            (pWindow->m_sSpecialRenderData.activeBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor)  * (1.f / 255.f)) : *ACTIVECOL) :
-                                            (pWindow->m_sSpecialRenderData.inactiveBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor)  * (1.f / 255.f)) : *INACTIVECOL));
+                                            (pWindow->m_sSpecialRenderData.activeBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor) * (1.f / 255.f)) : *ACTIVECOL) :
+                                            (pWindow->m_sSpecialRenderData.inactiveBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor) * (1.f / 255.f)) : *INACTIVECOL));
 
 
     // opacity

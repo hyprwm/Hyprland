@@ -336,6 +336,16 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
     }
 
+    // last fail-safe to avoid duplicate fullscreens
+    if ((!OPENINGON || OPENINGON->pWindow == pWindow) && getNodesOnWorkspace(PNODE->workspaceID) > 1) {
+        for (auto& node : m_lDwindleNodesData) {
+            if (node.workspaceID == PNODE->workspaceID && node.pWindow != pWindow) {
+                OPENINGON = &node;
+                break;
+            }
+        }
+    }
+
     // if it's the first, it's easy. Make it fullscreen.
     if (!OPENINGON || OPENINGON->pWindow == pWindow) {
         PNODE->position = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;

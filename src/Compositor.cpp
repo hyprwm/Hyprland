@@ -366,7 +366,7 @@ void CCompositor::startCompositor() {
     if (m_sWLRSession /* Session-less Hyprland usually means a nest, don't update the env in that case */ && fork() == 0)
         execl("/bin/sh", "/bin/sh", "-c", "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE", nullptr);
 
-    Debug::log(LOG, "Running on WAYLAND_DISPLAY: %s", m_szWLDisplaySocket);
+    Debug::log(LOG, "Running on WAYLAND_DISPLAY: %s", m_szWLDisplaySocket.c_str());
 
     if (!wlr_backend_start(m_sWLRBackend)) {
         Debug::log(CRIT, "Backend did not start!");

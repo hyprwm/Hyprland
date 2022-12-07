@@ -930,9 +930,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
     }
 
-    if (WASFULLSCREEN) {
+    if (WASFULLSCREEN)
         g_pCompositor->setWindowFullscreen(PWINDOW, true, OLDWORKSPACE->m_efFullscreenMode);
-    }
 
     if (!g_pCompositor->isWorkspaceSpecial(WORKSPACEID)) {
         g_pKeybindManager->changeworkspace(args);

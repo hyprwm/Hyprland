@@ -21,6 +21,9 @@ void IHyprLayout::onWindowCreated(CWindow* pWindow) {
 }
 
 void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
+    if (pWindow->m_bIsFullscreen)
+        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
+
     if (pWindow->m_bIsFloating) {
         onWindowRemovedFloating(pWindow);
     } else {

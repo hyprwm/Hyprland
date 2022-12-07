@@ -438,7 +438,7 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
 void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
     if (windowExists(pWindow) && !pWindow->m_bFadingOut){
         if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
-            m_dUnmanagedX11Windows.erase(std::remove_if(m_dUnmanagedX11Windows.begin(), m_dUnmanagedX11Windows.end(), [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; }));
+            std::erase_if(m_dUnmanagedX11Windows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
         }
 
         // if X11, also check its children
@@ -449,16 +449,16 @@ void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
                     continue;
 
                 if (w->m_pX11Parent == pWindow)
-                    m_vWindows.erase(std::remove_if(m_vWindows.begin(), m_vWindows.end(), [&](std::unique_ptr<CWindow>& el) { return el.get() == w.get(); }));
+                    std::erase_if(m_vWindows, [&](std::unique_ptr<CWindow>& el) { return el.get() == w.get(); });
             }
 
             for (auto& w : m_dUnmanagedX11Windows) {
                 if (w->m_pX11Parent == pWindow)
-                    m_dUnmanagedX11Windows.erase(std::remove_if(m_dUnmanagedX11Windows.begin(), m_dUnmanagedX11Windows.end(), [&](std::unique_ptr<CWindow>& el) { return el.get() == w.get(); }));
+                    std::erase_if(m_dUnmanagedX11Windows, [&](std::unique_ptr<CWindow>& el) { return el.get() == w.get(); });
             }
         }
 
-        m_vWindows.erase(std::remove_if(m_vWindows.begin(), m_vWindows.end(), [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; }));
+        std::erase_if(m_vWindows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
     }
 }
 
@@ -1068,8 +1068,9 @@ void CCompositor::cleanupFadingOut(const int& monid) {
 
             g_pHyprOpenGL->m_mWindowFramebuffers[w].release();
             g_pHyprOpenGL->m_mWindowFramebuffers.erase(w);
+            w->m_bFadingOut = false;
             removeWindowFromVectorSafe(w);
-            m_vWindowsFadingOut.erase(std::remove(m_vWindowsFadingOut.begin(), m_vWindowsFadingOut.end(), w));
+            std::erase(m_vWindowsFadingOut, w);
 
             Debug::log(LOG, "Cleanup: destroyed a window");
 

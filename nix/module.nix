@@ -50,12 +50,21 @@ in {
         NIXOS_OZONE_WL = "1";
       };
     };
+
     fonts.enableDefaultFonts = mkDefault true;
     hardware.opengl.enable = mkDefault true;
+
+    # enable cachix
+    nix.settings = {
+      substituters = ["https://hyprland.cachix.org"];
+      trusted-public-keys = ["hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="];
+    };
+
     programs = {
       dconf.enable = mkDefault true;
       xwayland.enable = mkDefault true;
     };
+
     security.polkit.enable = true;
     services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) cfg.package;
     xdg.portal = {

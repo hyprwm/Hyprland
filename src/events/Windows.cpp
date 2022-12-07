@@ -170,6 +170,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             requestsFullscreen = true;
         } else if (r.szRule == "windowdance") {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat = true;
+        } else if (r.szRule == "nomaxsize") {
+            PWINDOW->m_sAdditionalConfigData.noMaxSize = true;
         } else if (r.szRule == "forceinput") {
             PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
         } else if (r.szRule == "pin") {

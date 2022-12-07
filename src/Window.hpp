@@ -39,6 +39,7 @@ struct SWindowAdditionalConfigData {
     bool forceNoBorder = false;
     bool forceNoShadow = false;
     bool windowDanceCompat = false;
+    bool noMaxSize = false;
 };
 
 struct SWindowRule {

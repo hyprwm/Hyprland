@@ -286,6 +286,8 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 validWSes.push_back(ws->m_iID);
             }
 
+            std::sort(validWSes.begin(), validWSes.end());
+
             // get the offset
             remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 

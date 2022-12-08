@@ -911,6 +911,9 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
 
 CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
     for (auto& w : m_vWindows) {
+        if (!w->m_bIsMapped || w->m_bFadingOut || !w->m_bMappedX11)
+            continue;
+
         if (g_pXWaylandManager->getWindowSurface(w.get()) == pSurface)
             return w.get();
     }

@@ -1581,7 +1581,8 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
             return nullptr;
         }
 
-        int offsetLeft = std::stoi(OFFSET) % m_vMonitors.size(); // no need to cycle more
+        int offsetLeft = std::stoi(OFFSET);
+        offsetLeft = offsetLeft < 0 ? -((-offsetLeft) % m_vMonitors.size()) : offsetLeft % m_vMonitors.size();
 
         int currentPlace = 0;
         for (int i = 0; i < (int)m_vMonitors.size(); i++) {

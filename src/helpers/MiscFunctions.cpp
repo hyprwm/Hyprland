@@ -277,51 +277,39 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
             // result now has +/- what we should move on mon
             int remains = (int)result;
-            int currentID = g_pCompositor->m_pLastMonitor->activeWorkspace;
-            int searchID = currentID;
+            
+            std::vector<int> validWSes;
+            for (auto& ws : g_pCompositor->m_vWorkspaces) {
+                if (ws->m_bIsSpecialWorkspace || (ws->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID && !onAllMonitors))
+                    continue;
 
-            while (remains != 0) {
-                if (remains < 0)
-                    searchID--;
-                else
-                    searchID++;
+                validWSes.push_back(ws->m_iID);
+            }
 
-                if (g_pCompositor->workspaceIDOutOfBounds(searchID)){
-                    // means we need to wrap around
-                    int lowestID = 99999;
-                    int highestID = -99999;
+            // get the offset
+            remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
-                    for (auto& w : g_pCompositor->m_vWorkspaces) {
-                        if (g_pCompositor->isWorkspaceSpecial(w->m_iID))
-                            continue;
-
-                        if (w->m_iID < lowestID)
-                            lowestID = w->m_iID;
-
-                        if (w->m_iID > highestID)
-                            highestID = w->m_iID;
-                    }
-
-                    if (remains < 0)
-                        searchID = highestID;
-                    else
-                        searchID = lowestID;
-                }
-
-                if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(searchID); PWORKSPACE && !PWORKSPACE->m_bIsSpecialWorkspace) {
-                    if (onAllMonitors || PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID) {
-                        currentID = PWORKSPACE->m_iID;
-
-                        if (remains < 0)
-                            remains++;
-                        else
-                            remains--;
-                    }
+            // get the current item
+            int currentItem = -1;
+            for (size_t i = 0; i < validWSes.size(); i++) {
+                if (validWSes[i] == g_pCompositor->m_pLastMonitor->activeWorkspace) {
+                    currentItem = i;
+                    break;
                 }
             }
 
-            result = currentID;
-            outName = g_pCompositor->getWorkspaceByID(currentID)->m_szName;
+            // apply
+            currentItem += remains;
+
+            // sanitize
+            if (currentItem >= (int)validWSes.size()) {
+                currentItem = currentItem % validWSes.size();
+            } else if (currentItem < 0) {
+                currentItem = validWSes.size() + currentItem;
+            }
+
+            result = validWSes[currentItem];
+            outName = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
 
         } else {
             if (in[0] == '+' || in[0] == '-') {

@@ -20,7 +20,7 @@ void addViewCoords(void* pWindow, int* x, int* y) {
     *x += PWINDOW->m_vRealPosition.goalv().x;
     *y += PWINDOW->m_vRealPosition.goalv().y;
 
-    if (!PWINDOW->m_bIsX11) {
+    if (!PWINDOW->m_bIsX11 && PWINDOW->m_bIsMapped) {
         wlr_box geom;
         wlr_xdg_surface_get_geometry(PWINDOW->m_uSurface.xdg, &geom);
 

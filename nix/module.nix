@@ -7,6 +7,11 @@ inputs: {
 }:
 with lib; let
   cfg = config.programs.hyprland;
+
+  defaultHyprlandPackage = inputs.self.packages.${pkgs.system}.default.override {
+    enableXWayland = cfg.xwayland.enable;
+    hidpiXWayland = cfg.xwayland.hidpi;
+  };
 in {
   imports = [
     (mkRemovedOptionModule ["programs" "hyprland" "extraPackages"] "extraPackages has been removed. Use environment.systemPackages instead.")
@@ -23,12 +28,29 @@ in {
 
     package = mkOption {
       type = types.nullOr types.package;
-      default = inputs.self.packages.${pkgs.system}.default;
+      default = defaultHyprlandPackage;
       defaultText = literalExpression "<Hyprland flake>.packages.<system>.default";
       example = literalExpression "<Hyprland flake>.packages.<system>.default.override { }";
       description = ''
         Hyprland package to use.
       '';
+    };
+
+    xwayland = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Enable XWayland.
+        '';
+      };
+      hidpi = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Enable HiDPI XWayland.
+        '';
+      };
     };
 
     recommendedEnvironment = mkOption {
@@ -44,7 +66,7 @@ in {
 
   config = mkIf cfg.enable {
     environment = {
-      systemPackages = lib.optional (cfg.package != null) cfg.package;
+      systemPackages = lib.optional (cfg.package != null) defaultHyprlandPackage;
 
       sessionVariables = mkIf cfg.recommendedEnvironment {
         NIXOS_OZONE_WL = "1";
@@ -57,11 +79,17 @@ in {
       xwayland.enable = mkDefault true;
     };
     security.polkit.enable = true;
-    services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) cfg.package;
+    services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) defaultHyprlandPackage;
     xdg.portal = {
       enable = mkDefault true;
       # xdg-desktop-portal-hyprland
-      extraPortals = [inputs.xdph.packages.${pkgs.system}.default];
+      extraPortals = lib.mkIf (cfg.package != null) [
+        (inputs.xdph.packages.${pkgs.system}.xdg-desktop-portal-hyprland.override {
+          hyprland-share-picker = inputs.xdph.packages.${pkgs.system}.hyprland-share-picker.override {
+            hyprland = defaultHyprlandPackage;
+          };
+        })
+      ];
     };
   };
 }

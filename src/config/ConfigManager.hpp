@@ -141,6 +141,7 @@ public:
     SMonitorRule        getMonitorRuleFor(std::string, std::string displayName = "");
 
     CMonitor*           getBoundMonitorForWS(std::string);
+    std::string         getBoundMonitorStringForWS(std::string);
 
     std::vector<SWindowRule> getMatchingRules(CWindow*);
 

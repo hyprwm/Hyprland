@@ -83,4 +83,5 @@ public:
 
 private:
     void        setupDefaultWS(const SMonitorRule&);
+    int         findAvailableDefaultWS();
 };

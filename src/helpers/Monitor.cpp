@@ -240,10 +240,24 @@ bool CMonitor::isMirror() {
     return pMirrorOf != nullptr;
 }
 
+int CMonitor::findAvailableDefaultWS() {
+    for (size_t i = 1; i < INT32_MAX; ++i) {
+        if (g_pCompositor->getWorkspaceByID(i))
+            continue;
+
+        if (const auto BOUND = g_pConfigManager->getBoundMonitorStringForWS(std::to_string(i)); !BOUND.empty() && BOUND != szName)
+            continue;
+        
+        return i;
+    }
+
+    return INT32_MAX; // shouldn't be reachable
+}
+
 void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
     // Workspace
     std::string newDefaultWorkspaceName = "";
-    int64_t WORKSPACEID = monitorRule.defaultWorkspace == "" ? g_pCompositor->m_vWorkspaces.size() + 1 : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
+    int64_t WORKSPACEID = monitorRule.defaultWorkspace == "" ? findAvailableDefaultWS() : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
 
     if (WORKSPACEID == INT_MAX || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
         WORKSPACEID = g_pCompositor->m_vWorkspaces.size() + 1;

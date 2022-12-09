@@ -1688,6 +1688,18 @@ CMonitor* CConfigManager::getBoundMonitorForWS(std::string wsname) {
     return nullptr;
 }
 
+std::string CConfigManager::getBoundMonitorStringForWS(std::string wsname) {
+    for (auto& [ws, mon] : boundWorkspaces) {
+        const auto WSNAME = ws.find("name:") == 0 ? ws.substr(5) : ws;
+
+        if (WSNAME == wsname) {
+            return mon;
+        }
+    }
+
+    return "";
+}
+
 void CConfigManager::addExecRule(SExecRequestedRule rule) {
     execRequestedRules.push_back(rule);
 }

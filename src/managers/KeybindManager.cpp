@@ -1015,6 +1015,10 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     // manually post event cuz it got ignored above
     g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", PWINDOW, PWORKSPACE->m_szName.c_str())});
 
+    // this window is gone. Unfocus if needed
+    if (g_pCompositor->m_pLastWindow == PWINDOW)
+        g_pCompositor->focusWindow(nullptr);
+
     g_pInputManager->refocus();
 }
 

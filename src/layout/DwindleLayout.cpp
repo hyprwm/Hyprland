@@ -635,7 +635,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     const auto PNODE = getNodeFromWindow(PWINDOW);
 
     if (!PNODE) {
-      PWINDOW->m_vRealSize = Vector2D(std::max((PWINDOW->m_vRealSize.goalv() + pixResize).x, 20.0), std::max((PWINDOW->m_vRealSize.goalv() + pixResize).y, 20.0));
+        PWINDOW->m_vRealSize = Vector2D(std::max((PWINDOW->m_vRealSize.goalv() + pixResize).x, 20.0), std::max((PWINDOW->m_vRealSize.goalv() + pixResize).y, 20.0));
         PWINDOW->updateWindowDecos();
         return;
     }

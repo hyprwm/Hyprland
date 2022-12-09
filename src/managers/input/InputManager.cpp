@@ -297,12 +297,16 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         m_bLastFocusOnLS = false;
     } else {
+        if (pFoundLayerSurface) {
+            m_bLastFocusOnLS = true;
+            if (pFoundLayerSurface->layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
+                g_pCompositor->focusWindow(nullptr);
+            }
+        }
+        
         if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
         }
-
-        if (pFoundLayerSurface)
-            m_bLastFocusOnLS = true;
     }
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);

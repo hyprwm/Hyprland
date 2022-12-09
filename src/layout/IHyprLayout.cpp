@@ -205,6 +205,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         return;
     }
 
+    const auto SPECIAL = g_pCompositor->isWorkspaceSpecial(DRAGGINGWINDOW->m_iWorkspaceID);
+
     const auto DELTA = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
     const auto TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
 
@@ -271,7 +273,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     // and check its monitor
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
 
-    if (PMONITOR) {
+    if (PMONITOR && !SPECIAL) {
         DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
         DRAGGINGWINDOW->moveToWorkspace(PMONITOR->activeWorkspace);
 

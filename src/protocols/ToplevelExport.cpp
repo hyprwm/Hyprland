@@ -194,7 +194,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
         PFRAME->dmabufFormat = DRM_FORMAT_INVALID;
     }
 
-    PFRAME->box = {0, 0, (int)PWINDOW->m_vRealSize.vec().x, (int)PWINDOW->m_vRealSize.vec().y};
+    PFRAME->box = { 0, 0, (int)(PWINDOW->m_vRealSize.vec().x * PMONITOR->scale), (int)(PWINDOW->m_vRealSize.vec().y * PMONITOR->scale) };
     int ow, oh;
     wlr_output_effective_resolution(PMONITOR->output, &ow, &oh);
     wlr_box_transform(&PFRAME->box, &PFRAME->box, PMONITOR->transform, ow, oh);

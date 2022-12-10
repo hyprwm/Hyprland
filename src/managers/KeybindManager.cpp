@@ -945,6 +945,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     // hacky, but works lol
+    // TODO: this sucks
 
     CWindow* PWINDOW = nullptr;
 
@@ -1015,11 +1016,11 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     // manually post event cuz it got ignored above
     g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", PWINDOW, PWORKSPACE->m_szName.c_str())});
 
-    // this window is gone. Unfocus if needed
-    if (g_pCompositor->m_pLastWindow == PWINDOW)
-        g_pCompositor->focusWindow(nullptr);
+    PWINDOW->m_iWorkspaceID = OLDWORKSPACEIDRETURN;
+    const auto PNEXTCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
+    PWINDOW->m_iWorkspaceID = workspaceToMoveTo;
 
-    g_pInputManager->refocus();
+    g_pCompositor->focusWindow(PNEXTCANDIDATE);
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {

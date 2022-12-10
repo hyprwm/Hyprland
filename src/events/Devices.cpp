@@ -110,6 +110,11 @@ void Events::listener_newConstraint(wl_listener* listener, void* data) {
 
     if (g_pCompositor->m_pLastFocus == PCONSTRAINT->surface) {
         g_pInputManager->constrainMouse(CONSTRAINT->pMouse, PCONSTRAINT);
+
+        if (!CONSTRAINT->hintSet) {
+            const auto PWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+            CONSTRAINT->positionHint = g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_vRealPosition.goalv();
+        }
     }
 }
 
@@ -124,14 +129,14 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
         if (PWINDOW) {
             if (PWINDOW->m_bIsX11) {
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
-                                PCONSTRAINT->constraint->current.cursor_hint.x + PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y + PCONSTRAINT->constraint->current.cursor_hint.y);
+                                PCONSTRAINT->positionHint.x + PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y + PCONSTRAINT->positionHint.y);
 
-                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->constraint->current.cursor_hint.x, PCONSTRAINT->constraint->current.cursor_hint.y);
+                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y);
             } else {
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
-                                PCONSTRAINT->constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.vec().x, PCONSTRAINT->constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.vec().y);
+                                PCONSTRAINT->positionHint.x + PWINDOW->m_vRealPosition.vec().x, PCONSTRAINT->positionHint.y + PWINDOW->m_vRealPosition.vec().y);
 
-                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->constraint->current.cursor_hint.x, PCONSTRAINT->constraint->current.cursor_hint.y);
+                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y);
             }
         }
 

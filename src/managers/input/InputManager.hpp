@@ -50,6 +50,7 @@ public:
     void            constrainMouse(SMouse*, wlr_pointer_constraint_v1*);
     void            recheckConstraint(SMouse*);
     void            unconstrainMouse();
+    SConstraint*    constraintFromWlr(wlr_pointer_constraint_v1*);
     std::string     getActiveLayoutForKeyboard(SKeyboard*);
 
     Vector2D        getMouseCoordsInternal();

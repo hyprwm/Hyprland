@@ -146,6 +146,9 @@ struct SConstraint {
     SMouse* pMouse = nullptr;
     wlr_pointer_constraint_v1* constraint = nullptr;
 
+    bool     hintSet = false;
+    Vector2D positionHint; // the position hint, but will be set to the current cursor pos if not set.
+
     DYNLISTENER(setConstraintRegion);
     DYNLISTENER(destroyConstraint);
 

@@ -39,12 +39,12 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
     //create on the fly if it doesn't exist yet
     const auto PWORKSPACEDATA = &m_lMasterWorkspacesData.emplace_back();
     PWORKSPACEDATA->workspaceID = ws;
-    const auto orientation = g_pConfigManager->getString("master:orientation");
-    if (orientation == "top") {
+    const auto orientation = &g_pConfigManager->getConfigValuePtr("master:orientation")->strValue;
+    if (*orientation == "top") {
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-    } else if (orientation == "right") {
+    } else if (*orientation == "right") {
         PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-    } else if (orientation == "bottom") {
+    } else if (*orientation == "bottom") {
         PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
     } else {
         PWORKSPACEDATA->orientation = ORIENTATION_LEFT;

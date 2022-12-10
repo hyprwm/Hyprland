@@ -109,6 +109,7 @@ void CConfigManager::setDefaultVars() {
     configValues["master:new_is_master"].intValue = 1;
     configValues["master:new_on_top"].intValue = 0;
     configValues["master:no_gaps_when_only"].intValue = 0;
+    configValues["master:orientation"].strValue = "left";
 
     configValues["animations:enabled"].intValue = 1;
     configValues["animations:speed"].floatValue = 7.f;

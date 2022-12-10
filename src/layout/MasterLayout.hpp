@@ -1,10 +1,19 @@
 #pragma once
 
 #include "IHyprLayout.hpp"
+#include <vector>
 #include <list>
 #include <deque>
 
 enum eFullscreenMode : uint8_t;
+
+//orientation determines which side of the screen the master area resides
+enum eOrientation : uint8_t {
+    ORIENTATION_LEFT = 0,
+    ORIENTATION_TOP,
+    ORIENTATION_RIGHT,
+    ORIENTATION_BOTTOM
+};
 
 struct SMasterNodeData {
     bool isMaster = false;
@@ -21,6 +30,15 @@ struct SMasterNodeData {
 
     bool operator==(const SMasterNodeData& rhs) {
         return pWindow == rhs.pWindow;
+    }
+};
+
+struct SMasterWorkspaceData {
+    int workspaceID = -1;
+    eOrientation orientation = ORIENTATION_LEFT;
+
+    bool operator==(const SMasterWorkspaceData& rhs) {
+        return workspaceID == rhs.workspaceID;
     }
 };
 
@@ -44,7 +62,8 @@ public:
 
 private:
 
-    std::list<SMasterNodeData>     m_lMasterNodesData;
+    std::list<SMasterNodeData>      m_lMasterNodesData;
+    std::vector<SMasterWorkspaceData> m_lMasterWorkspacesData;
 
     bool                m_bForceWarps = false;
 
@@ -52,9 +71,11 @@ private:
     void                applyNodeDataToWindow(SMasterNodeData*);
     SMasterNodeData*    getNodeFromWindow(CWindow*);
     SMasterNodeData*    getMasterNodeOnWorkspace(const int&);
+    SMasterWorkspaceData* getMasterWorkspaceData(const int&);
     void                calculateWorkspace(const int&);
     CWindow*            getNextWindow(CWindow*, bool);
     int                 getMastersOnWorkspace(const int&);
 
     friend struct SMasterNodeData;
+    friend struct SMasterWorkspaceData;
 };

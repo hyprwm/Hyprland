@@ -931,6 +931,23 @@ CWindow* CCompositor::getWindowFromHandle(uint32_t handle) {
     return nullptr;
 }
 
+CWindow* CCompositor::getWindowFromZWLRHandle(wl_resource* handle) {
+    for (auto& w : m_vWindows) {
+        if (!w->m_bIsMapped || w->isHidden() || !w->m_phForeignToplevel)
+            continue;
+
+        wl_resource* current;
+
+        wl_list_for_each(current, &w->m_phForeignToplevel->resources, link) {
+            if (current == handle) {
+                return w.get();
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 CWindow* CCompositor::getFullscreenWindowOnWorkspace(const int& ID) {
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == ID && w->m_bIsFullscreen)

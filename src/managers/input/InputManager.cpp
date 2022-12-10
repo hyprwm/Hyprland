@@ -73,9 +73,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         // XWayland windows sometimes issue constraints weirdly.
         // TODO: We probably should search their parent. wlr_xwayland_surface->parent
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
-        const auto PCONSTRAINT = g_pCompositor->m_sSeat.mouse->currentConstraint;
+        const auto PCONSTRAINT = constraintFromWlr(g_pCompositor->m_sSeat.mouse->currentConstraint);
 
-        if (!CONSTRAINTWINDOW) {
+        if (!CONSTRAINTWINDOW || !PCONSTRAINT) {
             unconstrainMouse();
         } else {
             // Native Wayland apps know how 2 constrain themselves.
@@ -86,7 +86,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (g_pCompositor->m_sSeat.mouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
                 // we just snap the cursor to where it should be.
 
-                Vector2D hint = { PCONSTRAINT->current.cursor_hint.x, PCONSTRAINT->current.cursor_hint.y };
+                Vector2D hint = { PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y };
 
                 wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x + hint.x, CONSTRAINTPOS.y + hint.y);
 
@@ -94,7 +94,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                         // these are usually FPS games. They will use the relative motion.
             } else {
                 // we restrict the cursor to the confined region
-                if (!pixman_region32_contains_point(&PCONSTRAINT->region, mouseCoords.x - CONSTRAINTPOS.x, mouseCoords.y - CONSTRAINTPOS.y, nullptr)) {
+                if (!pixman_region32_contains_point(&PCONSTRAINT->constraint->region, mouseCoords.x - CONSTRAINTPOS.x, mouseCoords.y - CONSTRAINTPOS.y, nullptr)) {
                     if (g_pCompositor->m_sSeat.mouse->constraintActive) {
                         wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, NULL, mouseCoords.x, mouseCoords.y);
                         mouseCoords = getMouseCoordsInternal();
@@ -964,6 +964,12 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
                         wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
                     }
                 }
+
+                const auto PCONSTRAINT = constraintFromWlr(constraint);
+                if (PCONSTRAINT) { // should never be null but who knows
+                    PCONSTRAINT->positionHint = Vector2D(constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
+                    PCONSTRAINT->hintSet = true;
+                }
             }
         }
 
@@ -1009,7 +1015,15 @@ void CInputManager::unconstrainMouse() {
 }
 
 void Events::listener_commitConstraint(void* owner, void* data) {
-    //g_pInputManager->recheckConstraint((SMouse*)owner);
+    const auto PMOUSE = (SMouse*)owner;
+
+    if (PMOUSE->currentConstraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
+        const auto PCONSTRAINT = g_pInputManager->constraintFromWlr(PMOUSE->currentConstraint);
+        if (PCONSTRAINT) {  // should never be null but who knows
+            PCONSTRAINT->positionHint = Vector2D(PMOUSE->currentConstraint->current.cursor_hint.x, PMOUSE->currentConstraint->current.cursor_hint.y);
+            PCONSTRAINT->hintSet = true;
+        }
+    }
 }
 
 void CInputManager::updateCapabilities() {
@@ -1223,4 +1237,13 @@ std::string CInputManager::getNameForNewDevice(std::string internalName) {
         dupeno++;
 
     return proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno)));
+}
+
+SConstraint* CInputManager::constraintFromWlr(wlr_pointer_constraint_v1* constraint) {
+    for (auto& c : m_lConstraints) {
+        if (c.constraint == constraint)
+            return &c;
+    }
+
+    return nullptr;
 }

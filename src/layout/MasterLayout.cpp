@@ -649,14 +649,14 @@ CWindow* CHyprMasterLayout::getNextWindow(CWindow* pWindow, bool next) {
         }
     } else {
         if (PNODE->isMaster) {
-            // focus the first non master
+            // focus the last non master
             for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
                 if (it->pWindow != pWindow && it->workspaceID == pWindow->m_iWorkspaceID) {
                     return it->pWindow;
                 }
             }
         } else {
-            // focus next
+            // focus previous
             bool reached = false;
             bool found = false;
             for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {

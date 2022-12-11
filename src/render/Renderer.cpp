@@ -269,7 +269,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     // clip box for animated offsets
     Vector2D offset;
-    if (!ignorePosition && pWindow->m_bIsFloating) {
+    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bPinned) {
         if (PWORKSPACE->m_vRenderOffset.vec().x != 0) {
             const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().x / PWSMON->vecSize.x;

@@ -16,7 +16,9 @@ enum eIdleInhibitMode {
 };
 
 struct SWindowSpecialRenderData {
+    bool alphaOverride = false;
     float alpha = 1.f;
+    bool alphaInactiveOverride = false;
     float alphaInactive = -1.f; // -1 means unset
 
     int64_t activeBorderColor = -1; // -1 means unset

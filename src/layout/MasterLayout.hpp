@@ -51,7 +51,6 @@ public:
     virtual void        recalculateWindow(CWindow*);
     virtual void        resizeActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
     virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode, bool);
-    virtual void        prepareLoseFocus(CWindow*);
     virtual std::any    layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
     virtual void        switchWindows(CWindow*, CWindow*);
@@ -76,6 +75,8 @@ private:
     void                calculateWorkspace(const int&);
     CWindow*            getNextWindow(CWindow*, bool);
     int                 getMastersOnWorkspace(const int&);
+    bool                prepareLoseFocus(CWindow*);
+    void                prepareNewFocus(CWindow*, bool inherit_fullscreen);
 
     friend struct SMasterNodeData;
     friend struct SMasterWorkspaceData;

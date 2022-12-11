@@ -580,6 +580,8 @@ void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     if (!PNODE2 || !PNODE)
         return;
 
+    prepareLoseFocus(pWindow);
+
     if (PNODE->workspaceID != PNODE2->workspaceID) {
         std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
         std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
@@ -681,6 +683,15 @@ CWindow* CHyprMasterLayout::getNextWindow(CWindow* pWindow, bool next) {
     return nullptr;
 }
 
+void CHyprMasterLayout::prepareLoseFocus(CWindow * pWindow) {
+    if (!pWindow)
+        return;
+
+    //if the current window is fullscreen, make it normal again if we are about to lose focus
+    if (pWindow->m_bIsFullscreen)
+        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
+}
+
 std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
     auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
         if (!g_pCompositor->windowValidMapped(PWINDOWTOCHANGETO))
@@ -704,6 +715,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PMASTER)
             return 0;
 
+
         if (PMASTER->pWindow != PWINDOW) {
             switchWindows(PWINDOW, PMASTER->pWindow);
             switchToWindow(PWINDOW);
@@ -723,6 +735,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         if (!PWINDOW)
             return 0;
+
+        prepareLoseFocus(PWINDOW);
 
         const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
 
@@ -747,12 +761,16 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PWINDOW)
             return 0;
 
+        prepareLoseFocus(PWINDOW);
+
         switchToWindow(getNextWindow(PWINDOW, true));
     } else if (message == "cycleprev") {
         const auto PWINDOW = header.pWindow;
 
         if (!PWINDOW)
             return 0;
+
+        prepareLoseFocus(PWINDOW);
 
         switchToWindow(getNextWindow(PWINDOW, false));
     } else if (message == "swapnext") {
@@ -767,6 +785,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOWTOSWAPWITH = getNextWindow(header.pWindow, true);
 
         if (PWINDOWTOSWAPWITH) {
+            prepareLoseFocus(header.pWindow);
             switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
             g_pCompositor->focusWindow(header.pWindow);
         }
@@ -782,6 +801,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOWTOSWAPWITH = getNextWindow(header.pWindow, false);
 
         if (PWINDOWTOSWAPWITH) {
+            prepareLoseFocus(header.pWindow);
             switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
             g_pCompositor->focusWindow(header.pWindow);
         }
@@ -799,6 +819,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         if (MASTERS + 2 > WINDOWS)
             return 0;
+
+        prepareLoseFocus(header.pWindow);
 
         if (!PNODE || PNODE->isMaster) {
             // first non-master node
@@ -830,6 +852,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (WINDOWS < 2 || MASTERS < 2)
             return 0;
 
+        prepareLoseFocus(header.pWindow);
+
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
             for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
@@ -848,6 +872,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         if (!PWINDOW)
             return 0;
+
+        prepareLoseFocus(PWINDOW);
 
         const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
 
@@ -868,6 +894,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PWINDOW)
             return 0;
 
+        prepareLoseFocus(PWINDOW);
+
         const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
 
         if (PWORKSPACEDATA->orientation == ORIENTATION_BOTTOM) {
@@ -882,6 +910,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         if (!PWINDOW)
             return 0;
+
+        prepareLoseFocus(PWINDOW);
 
         const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
 

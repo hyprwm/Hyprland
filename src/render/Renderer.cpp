@@ -255,12 +255,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         renderdata.fadeAlpha = 255.f;
     }
 
-    // apply window special data
-    if (pWindow->m_sSpecialRenderData.alphaInactive == -1)
-        renderdata.alpha *= pWindow->m_sSpecialRenderData.alpha;
-    else
-        renderdata.alpha *= pWindow == g_pCompositor->m_pLastWindow ? pWindow->m_sSpecialRenderData.alpha : pWindow->m_sSpecialRenderData.alphaInactive;
-
     // apply opaque
     if (pWindow->m_sAdditionalConfigData.forceOpaque)
         renderdata.alpha = 1.f;

@@ -328,14 +328,23 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         }
     } else if (r.szRule.find("opacity") == 0) {
         try {
-            std::string alphaPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+            CVarList vars(r.szRule, 0, ' ');
 
-            if (alphaPart.contains(' ')) {
-                // we have a space, 2 values
-                m_sSpecialRenderData.alpha = std::stof(alphaPart.substr(0, alphaPart.find_first_of(' ')));
-                m_sSpecialRenderData.alphaInactive = std::stof(alphaPart.substr(alphaPart.find_first_of(' ') + 1));
-            } else {
-                m_sSpecialRenderData.alpha = std::stof(alphaPart);
+            for (size_t i = 1 /* first item is "opacity" */; i < vars.size(); ++i) {
+                if (i == 1) {
+                    // first arg, alpha
+                    m_sSpecialRenderData.alpha = std::stof(vars[i]);
+                } else {
+                    if (vars[i] == "override") {
+                        if (i == 2) {
+                            m_sSpecialRenderData.alphaOverride = true;
+                        } else {
+                            m_sSpecialRenderData.alphaInactiveOverride = true;
+                        }
+                    } else {
+                        m_sSpecialRenderData.alphaInactive = std::stof(vars[i]);
+                    }
+                }
             }
         } catch(std::exception& e) {
             Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());

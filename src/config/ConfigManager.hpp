@@ -95,7 +95,7 @@ public:
 
     ~CVarList() = default;
 
-    int size() const {
+    size_t size() const {
         return m_vArgs.size();
     }
 

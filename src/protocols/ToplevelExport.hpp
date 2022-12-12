@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "wlr-foreign-toplevel-management-unstable-v1-protocol.h"
 #include "hyprland-toplevel-export-v1-protocol.h"
 
 #include <list>
@@ -45,7 +46,7 @@ public:
     CToplevelExportProtocolManager();
 
     void        bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
-    void        captureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, uint32_t handle);
+    void        captureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, CWindow* handle);
     void        removeClient(SToplevelClient* client, bool force = false);
     void        removeFrame(SToplevelFrame* frame, bool force = false);
     void        copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);

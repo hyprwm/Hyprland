@@ -89,9 +89,18 @@ message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland PkgConfig::deps)
 
+IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message(STATUS "Setting debug flags")
+
+    target_link_libraries(Hyprland asan)
+
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -no-pie -fno-builtin -fsanitize=address")
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg -no-pie -fno-builtin")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg -no-pie -fno-builtin")
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+
 target_link_libraries(Hyprland
-        asan
- 	    ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us
+        ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us
         pixman-1
         OpenGL
         GLESv2
@@ -100,11 +109,3 @@ target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/ext-workspace-unstable-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/hyprland-toplevel-export-v1-protocol.o
 )
-
-IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-    message(STATUS "Setting debug flags")
-
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -no-pie -fno-builtin -fsanitize=address")
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg -no-pie -fno-builtin")
-    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg -no-pie -fno-builtin")
-ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)

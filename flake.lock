@@ -19,11 +19,11 @@
     "hyprland-protocols_2": {
       "flake": false,
       "locked": {
-        "lastModified": 1670185345,
-        "narHash": "sha256-hxWGqlPecqEsE6nOHDV29KFBKePbY2Ipeac6lrChMKY=",
+        "lastModified": 1670703428,
+        "narHash": "sha256-4KUW5SKR0Y9uaYGcYwy53YJ3B/sgiprCL4fRGO+mpOA=",
         "owner": "hyprwm",
         "repo": "hyprland-protocols",
-        "rev": "4623a404c091e64743ba310199bb380ec52f1936",
+        "rev": "d0d6db8cb5bef6d93ca3ad8fb2124964173396da",
         "type": "github"
       },
       "original": {
@@ -82,11 +82,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1670797151,
-        "narHash": "sha256-ZFzJHqSXhGCjSeMgqTyJG1KJ2Nlwa+NEN9K4oGhWcjg=",
+        "lastModified": 1670856697,
+        "narHash": "sha256-98k05yRnbq8Ge8y6qzWqqxqiYAIUELTsXwfbLbA4e6k=",
         "owner": "hyprwm",
         "repo": "xdg-desktop-portal-hyprland",
-        "rev": "36ffb6892e14b9c5be6e321b3c47fe286ac256e6",
+        "rev": "3c4c9969ccfe2d101b26c86f4ee27eb3cb6c8b40",
         "type": "github"
       },
       "original": {

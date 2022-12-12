@@ -694,7 +694,7 @@ bool CHyprMasterLayout::prepareLoseFocus(CWindow* pWindow) {
     //if the current window is fullscreen, make it normal again if we are about to lose focus
     if (pWindow->m_bIsFullscreen) {
         g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
-        const auto INHERIT = &g_pConfigManager->getConfigValuePtr("master:inherit_fullscreen")->intValue;
+        static auto *const INHERIT = &g_pConfigManager->getConfigValuePtr("master:inherit_fullscreen")->intValue;
         return *INHERIT == 1;
     }
 

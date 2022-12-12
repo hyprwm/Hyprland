@@ -152,11 +152,13 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
         }
     }
 
+    const auto WORKSPACEID = PNODE->workspaceID;
+
     m_lMasterNodesData.remove(*PNODE);
 
-    if (getMastersOnWorkspace(PNODE->workspaceID) == getNodesOnWorkspace(PNODE->workspaceID) && MASTERSLEFT > 1) {
+    if (getMastersOnWorkspace(WORKSPACEID) == getNodesOnWorkspace(WORKSPACEID) && MASTERSLEFT > 1) {
         for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
-            if (it->workspaceID == PNODE->workspaceID) {
+            if (it->workspaceID == WORKSPACEID) {
                 it->isMaster = false;
                 break;
             }

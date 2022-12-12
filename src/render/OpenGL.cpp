@@ -846,10 +846,10 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     pixman_region32_t inverseOpaque;
     pixman_region32_init(&inverseOpaque);
     if (a >= 255.f) {
-        pixman_box32_t surfbox = {0, 0, pSurface->current.width, pSurface->current.height};
+        pixman_box32_t surfbox = {0, 0, pSurface->current.width * pSurface->current.scale, pSurface->current.height * pSurface->current.scale};
         pixman_region32_copy(&inverseOpaque, &pSurface->current.opaque);
         pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &surfbox);
-        pixman_region32_intersect_rect(&inverseOpaque, &inverseOpaque, 0, 0, pSurface->current.width, pSurface->current.height);
+        pixman_region32_intersect_rect(&inverseOpaque, &inverseOpaque, 0, 0, pSurface->current.width * pSurface->current.scale, pSurface->current.height * pSurface->current.scale);
 
         if (!pixman_region32_not_empty(&inverseOpaque)) {
             pixman_region32_fini(&inverseOpaque);
@@ -865,7 +865,15 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
+        if (pSurface->current.scale != 1) {
+            // wlroots prohibits shrinking a region
+            // TODO: just shrink
+            pixman_region32_union_rect(&inverseOpaque, &inverseOpaque, 0, 0, pBox->width, pBox->height);
+        }
+
         pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
+
+        pixman_region32_intersect(&inverseOpaque, &inverseOpaque, &damage);
 
         POUTFB = blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
     } else {

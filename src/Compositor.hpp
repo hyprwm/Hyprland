@@ -128,6 +128,7 @@ public:
     CWindow*                getWindowForPopup(wlr_xdg_popup*);
     CWindow*                getWindowFromSurface(wlr_surface*);
     CWindow*                getWindowFromHandle(uint32_t);
+    CWindow*                getWindowFromZWLRHandle(wl_resource*);
     bool                    isWorkspaceVisible(const int&);
     CWorkspace*             getWorkspaceByID(const int&);
     CWorkspace*             getWorkspaceByName(const std::string&);

@@ -142,6 +142,18 @@ void CMonitor::onConnect(bool noRule) {
 
     // ensure VRR (will enable if necessary)
     g_pConfigManager->ensureVRR(this);
+
+    // verify last mon valid
+    bool found = false;
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        if (m.get() == g_pCompositor->m_pLastMonitor) {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+        g_pCompositor->setActiveMonitor(this);
 }
 
 void CMonitor::onDisconnect() {

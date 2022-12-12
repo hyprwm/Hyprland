@@ -180,10 +180,10 @@ void IHyprLayout::onBeginDragWindow() {
 void IHyprLayout::onEndDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
+    g_pInputManager->unsetCursorImage();
+
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW))
         return;
-
-    g_pInputManager->unsetCursorImage();
 
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;
@@ -201,6 +201,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D()) {
+        onEndDragWindow();
         g_pInputManager->currentlyDraggedWindow = nullptr;
         return;
     }

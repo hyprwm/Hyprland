@@ -1141,8 +1141,14 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         return true;
     }
 
-    wlr_output_set_scale(pMonitor->output, pMonitorRule->scale);
-    pMonitor->scale = pMonitorRule->scale;
+    if (pMonitorRule->scale != -1) {
+        wlr_output_set_scale(pMonitor->output, pMonitorRule->scale);
+        pMonitor->scale = pMonitorRule->scale;
+    } else {
+        const auto DEFAULTSCALE = pMonitor->getDefaultScale();
+        wlr_output_set_scale(pMonitor->output, DEFAULTSCALE);
+        pMonitor->scale = DEFAULTSCALE;
+    }
 
     wlr_output_set_transform(pMonitor->output, pMonitorRule->transform);
     pMonitor->transform = pMonitorRule->transform;

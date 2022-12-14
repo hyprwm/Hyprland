@@ -70,6 +70,7 @@ public:
     void        addDamage(wlr_box* box);
     void        setMirror(const std::string&);
     bool        isMirror();
+    float       getDefaultScale();
 
     std::shared_ptr<CMonitor>* m_pThisWrap = nullptr;
     bool        m_bEnabled = false;

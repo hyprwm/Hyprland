@@ -1438,7 +1438,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(std::string name, std::string dis
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
-    return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-1, -1), .scale = 1}; // 0, 0 is preferred and -1, -1 is auto
+    return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-1, -1), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
 }
 
 std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {

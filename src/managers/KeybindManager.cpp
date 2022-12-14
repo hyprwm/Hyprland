@@ -888,6 +888,11 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     std::string workspaceName;
     const auto WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
 
+    if (WORKSPACEID == INT_MAX) {
+        Debug::log(LOG, "Invalid workspace in moveActiveToWorkspace");
+        return;
+    }
+
     if (WORKSPACEID == PWINDOW->m_iWorkspaceID) {
         Debug::log(LOG, "Not moving to workspace because it didn't change.");
         return;

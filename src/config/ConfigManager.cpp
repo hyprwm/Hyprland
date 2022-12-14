@@ -504,11 +504,15 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         }
     }
 
-    newrule.scale = stof(ARGS[3]);
+    if (ARGS[3].find("auto") == 0) {
+        newrule.scale = -1;
+    } else {
+        newrule.scale = stof(ARGS[3]);
 
-    if (newrule.scale < 0.25f) {
-        parseError = "not a valid scale.";
-        newrule.scale = 1;
+        if (newrule.scale < 0.25f) {
+            parseError = "not a valid scale.";
+            newrule.scale = 1;
+        }
     }
 
     int argno = 4;

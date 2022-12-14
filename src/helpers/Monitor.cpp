@@ -394,3 +394,21 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
     }
 }
+
+float CMonitor::getDefaultScale() {
+    if (!m_bEnabled)
+        return 1;
+
+    static constexpr double MMPERINCH = 25.4;
+
+    const auto DIAGONALPX = sqrt(pow(vecPixelSize.x, 2) + pow(vecPixelSize.y, 2));
+    const auto DIAGONALIN = sqrt(pow(output->phys_width / MMPERINCH, 2) + pow(output->phys_height / MMPERINCH, 2));
+
+    const auto PPI = DIAGONALPX / DIAGONALIN;
+
+    if (PPI > 200 /* High PPI, 2x*/)
+        return 2;
+    else if (PPI > 125 /* Medium PPI, 1.5x*/)
+        return 1.5;
+    return 1;
+}

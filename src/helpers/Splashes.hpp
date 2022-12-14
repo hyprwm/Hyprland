@@ -48,6 +48,13 @@ inline const std::vector<std::string> SPLASHES = {
     "Ding ding pch n daa, bam-ba-ba-re-bam baram bom bom baba-bam-bam-bommm",
     "Súbeme la radio que esta es mi canción",
     "I'm beggin', beggin' you",
+    "Never gonna let you down (I am trying!)",
+    "\"I use Arch, btw\" - John Cena",
+    "\"Hyper\".replace(\"e\", \"\")",
+    "\"my win11 install runs hyprland that is true\" - raf",
+    "\"stop playing league loser\" - hyprBot",
+    "\"If it ain't broke, don't fix it\" - Lucascito_03",
+    "\"@vaxry how do i learn c++\" - flicko",
     //
     "Join the discord server!",
     "Thanks ThatOneCalculator!",

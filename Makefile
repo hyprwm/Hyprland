@@ -171,6 +171,10 @@ install:
 
 	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
 
+cleaninstall:
+	echo -en "make cleaninstall has been DEPRECATED, you should avoid using it in the future.\nRunning make install instead...\n"
+	make install
+
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
 	rm -f ${PREFIX}/bin/Hyprland

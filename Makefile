@@ -160,29 +160,10 @@ install:
 	cd hyprctl && make all && cd ..
 
 	mkdir -p /usr/share/wayland-sessions
-	cp ./example/hyprland.desktop /usr/share/wayland-sessions/
 	mkdir -p ${PREFIX}/bin
 	cp ./build/Hyprland ${PREFIX}/bin
 	cp ./hyprctl/hyprctl ${PREFIX}/bin
-	mkdir -p ${PREFIX}/share/hyprland
-	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
-
-	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
-
-cleaninstall:
-	make clear
-	make fixwlr
-	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
-	make protocols
-	make release
-	cd hyprctl && make all && cd ..
-
-	mkdir -p /usr/share/wayland-sessions
-	mkdir -p ${PREFIX}/bin
-	cp ./build/Hyprland ${PREFIX}/bin
-	cp ./hyprctl/hyprctl ${PREFIX}/bin
+	if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop /usr/share/wayland-sessions; fi
 	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland

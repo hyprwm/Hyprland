@@ -11,6 +11,7 @@ with lib; let
   defaultHyprlandPackage = inputs.self.packages.${pkgs.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
     hidpiXWayland = cfg.xwayland.hidpi;
+    nvidiaPatches = cfg.nvidiaPatches;
   };
 in {
   imports = [
@@ -53,6 +54,15 @@ in {
       };
     };
 
+    nvidiaPatches = mkOption {
+      type = types.bool;
+      default = false;
+      example = liberalExpression "true";
+      description = ''
+        Patch wlroots for better Nvidia support.
+      '';
+    };
+
     recommendedEnvironment = mkOption {
       type = types.bool;
       default = true;
@@ -66,7 +76,7 @@ in {
 
   config = mkIf cfg.enable {
     environment = {
-      systemPackages = lib.optional (cfg.package != null) defaultHyprlandPackage;
+      systemPackages = lib.optional (cfg.package != null) cfg.package;
 
       sessionVariables = mkIf cfg.recommendedEnvironment {
         NIXOS_OZONE_WL = "1";
@@ -79,14 +89,14 @@ in {
       xwayland.enable = mkDefault true;
     };
     security.polkit.enable = true;
-    services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) defaultHyprlandPackage;
+    services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) cfg.package;
     xdg.portal = {
       enable = mkDefault true;
       # xdg-desktop-portal-hyprland
       extraPortals = lib.mkIf (cfg.package != null) [
         (inputs.xdph.packages.${pkgs.system}.xdg-desktop-portal-hyprland.override {
           hyprland-share-picker = inputs.xdph.packages.${pkgs.system}.hyprland-share-picker.override {
-            hyprland = defaultHyprlandPackage;
+            hyprland = cfg.package;
           };
         })
       ];

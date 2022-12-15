@@ -209,6 +209,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         if (requestedWorkspace.find("special" == 0)) {
             workspaceSpecial = true;
+            workspaceSilent = true;
         }
 
         if (!workspaceSilent) {

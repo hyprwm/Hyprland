@@ -182,9 +182,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                         if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"])
                             pWindow->m_bX11ShouldntFocus = true;
 
-                        if (pWindow->m_uSurface.xwayland->window_type[i] != HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"])
-                            pWindow->m_bNoInitialFocus = true;
-                            
+                        pWindow->m_bNoInitialFocus = true;
                         return true;
                     }
 

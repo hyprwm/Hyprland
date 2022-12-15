@@ -1054,6 +1054,8 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
 
     moveToTop(pWindow);
 
+    pWindow->m_bCreatedOverFullscreen = true;
+
     if (!pWindow->m_bIsX11)
         return;
 

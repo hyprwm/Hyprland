@@ -1410,6 +1410,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecPosition = pMonitorRule->offset;
     }
 
+    wlr_output_enable(pMonitor->output, 1);
+
     // update renderer (here because it will call rollback, so we cannot do this before committing)
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 

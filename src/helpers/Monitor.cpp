@@ -96,8 +96,6 @@ void CMonitor::onConnect(bool noRule) {
     }
 
     m_bEnabled = true;
-    
-    wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, monitorRule.scale);
 
     // create it in the arr
     vecPosition = monitorRule.offset;
@@ -109,6 +107,8 @@ void CMonitor::onConnect(bool noRule) {
     // set mode, also applies
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
+
+    wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
     Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x, (int)vecPixelSize.y, output);
 

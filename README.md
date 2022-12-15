@@ -146,9 +146,9 @@ Although Hyprland is pretty stable, it may have some bugs.
 <!----------------------------------{ Images }--------------------------------->
 
 [Stars Preview]: https://starchart.cc/vaxerski/Hyprland.svg
-[Preview A]: https://i.ibb.co/B3GJg28/20221126-20h53m26s-grim.png
-[Preview B]: https://i.imgur.com/pC6YF1Y.png
-[Preview C]: https://i.imgur.com/NbrTnZH.png
+[Preview A]: https://i.ibb.co/SX7GbYR/winter-rice.png
+[Preview B]: https://i.ibb.co/B3GJg28/20221126-20h53m26s-grim.png
+[Preview C]: https://i.imgur.com/pC6YF1Y.png
 
 
 <!----------------------------------{ Badges }--------------------------------->

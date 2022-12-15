@@ -146,7 +146,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 requestedWorkspace = WORKSPACERQ;
             }
 
-            if (requestedWorkspace == PWORKSPACE->m_szName || requestedWorkspace == "name:" + PWORKSPACE->m_szName)
+            const auto JUSTWORKSPACE = WORKSPACERQ.contains(' ') ? WORKSPACERQ.substr(0, WORKSPACERQ.find_first_of(' ')) : WORKSPACERQ;
+
+            if (JUSTWORKSPACE == PWORKSPACE->m_szName || JUSTWORKSPACE == "name:" + PWORKSPACE->m_szName)
                 requestedWorkspace = "";
 
             Debug::log(LOG, "Rule workspace matched by window %x, %s applied.", PWINDOW, r.szValue.c_str());

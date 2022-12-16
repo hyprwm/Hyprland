@@ -814,13 +814,15 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
     // get the node
     const auto PNODE = getNodeFromWindow(pWindow);
 
-    if (!PNODE)
-        return; // reject
+    if (!PNODE) {
+        Debug::log(LOG, "Rejecting to group a floating window");
+        return;
+    }
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PNODE->workspaceID);
 
     if (PWORKSPACE->m_bHasFullscreenWindow && !PNODE->isGroupMember()) {
-        Debug::log(ERR, "Cannot enable group on fullscreen window");
+        Debug::log(ERR, "Cannot enable group on a fullscreen window");
         return;
     }
 
@@ -874,8 +876,10 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
     } else {
         // create group
 
-        if (!PNODE->pParent)
+        if (!PNODE->pParent) {
+            Debug::log(LOG, "Rejecting to group a solitary window");
             return;
+        }
 
         PNODE->groupHead = true;
 
@@ -887,8 +891,10 @@ void CHyprDwindleLayout::toggleWindowGroup(CWindow* pWindow) {
         addToDequeRecursive(&newGroupMembers, &nodesToRemove, PNODE->pParent->children[0] == PNODE ? PNODE->pParent->children[1] : PNODE->pParent->children[0]);
 
         for (auto& n : newGroupMembers) {
-            if (n->isGroupMember())
-                return; // reject nested groups
+            if (n->isGroupMember()) {
+                Debug::log(LOG, "Rejecting to nest groups");
+                return;
+            }
         }
 
         for (auto& nd : nodesToRemove) {

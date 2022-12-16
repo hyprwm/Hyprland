@@ -555,6 +555,10 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     const auto VARIANT  = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_variant") : g_pConfigManager->getString("input:kb_variant");
     const auto OPTIONS  = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_options") : g_pConfigManager->getString("input:kb_options");
 
+    const auto ENABLED  = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
+
+    pKeyboard->enabled = ENABLED;
+
     try {
         if (NUMLOCKON == pKeyboard->numlockOn && REPEATDELAY == pKeyboard->repeatDelay && REPEATRATE == pKeyboard->repeatRate && RULES != "" &&
             RULES == pKeyboard->currentRules.rules && MODEL == pKeyboard->currentRules.model && LAYOUT == pKeyboard->currentRules.layout &&
@@ -847,6 +851,9 @@ void CInputManager::updateKeyboardsLeds(wlr_input_device* pKeyboard) {
 }
 
 void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
+    if (!pKeyboard->enabled)
+        return;
+
     bool passEvent = g_pKeybindManager->onKeyEvent(e, pKeyboard);
 
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
@@ -868,6 +875,9 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
+    if (!pKeyboard->enabled)
+        return;
+
     const auto PIMEGRAB = m_sIMERelay.getIMEKeyboardGrab(pKeyboard);
 
     const auto ALLMODS = accumulateModsFromAllKBs();
@@ -1051,6 +1061,9 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
 
     for (auto& kb : m_lKeyboards) {
         if (kb.isVirtual && shouldIgnoreVirtualKeyboard(&kb))
+            continue;
+
+        if (!kb.enabled)
             continue;
 
         finalMask |= wlr_keyboard_get_modifiers(wlr_keyboard_from_input_device(kb.keyboard));

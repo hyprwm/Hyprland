@@ -103,6 +103,7 @@ struct SKeyboard {
 
     bool               isVirtual = false;
     bool               active    = false;
+    bool               enabled   = true;
 
     xkb_layout_index_t activeLayout = 0;
 

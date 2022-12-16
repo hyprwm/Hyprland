@@ -887,6 +887,16 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
     m_dBlurLSNamespaces.emplace_back(value);
 }
 
+void CConfigManager::handleRoundingLS(const std::string& command, const std::string& value) {
+    if (value.find("remove,") == 0) {
+        const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
+        std::erase_if(m_dRoundingLSNamespaces, [&](const auto& other) { return other == TOREMOVE; });
+        return;
+    }
+
+    m_dRoundingLSNamespaces.emplace_back(value);
+}
+
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
     const auto ARGS = CVarList(value);
 
@@ -1012,6 +1022,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleSubmap(COMMAND, VALUE);
     else if (COMMAND == "blurls")
         handleBlurLS(COMMAND, VALUE);
+    else if (COMMAND == "roundingls")
+        handleRoundingLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
     else {
@@ -1143,6 +1155,7 @@ void CConfigManager::loadConfigLoadVars() {
     configDynamicVars.clear();
     deviceConfigs.clear();
     m_dBlurLSNamespaces.clear();
+    m_dRoundingLSNamespaces.clear();
     boundWorkspaces.clear();
     setDefaultAnimationVars(); // reset anims
 
@@ -1594,6 +1607,16 @@ bool CConfigManager::deviceConfigExists(const std::string& dev) {
 bool CConfigManager::shouldBlurLS(const std::string& ns) {
     for (auto& bls : m_dBlurLSNamespaces) {
         if (bls == ns) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool CConfigManager::shouldRoundLS(const std::string& ns) {
+    for (auto& rls : m_dRoundingLSNamespaces) {
+        if (rls == ns) {
             return true;
         }
     }

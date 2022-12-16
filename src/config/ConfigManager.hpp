@@ -142,6 +142,7 @@ class CConfigManager {
     std::string                                                     getDeviceString(const std::string&, const std::string&);
     bool                                                            deviceConfigExists(const std::string&);
     bool                                                            shouldBlurLS(const std::string&);
+    bool                                                            shouldRoundLS(const std::string&);
 
     SConfigValue*                                                   getConfigValuePtr(const std::string&);
     SConfigValue*                                                   getConfigValuePtrSafe(const std::string&);
@@ -199,6 +200,7 @@ class CConfigManager {
     std::deque<SMonitorRule>                                                       m_dMonitorRules;
     std::deque<SWindowRule>                                                        m_dWindowRules;
     std::deque<std::string>                                                        m_dBlurLSNamespaces;
+    std::deque<std::string>                                                        m_dRoundingLSNamespaces;
 
     bool                                                                           firstExecDispatched = false;
     std::deque<std::string>                                                        firstExecRequests;
@@ -229,6 +231,7 @@ class CConfigManager {
     void         handleSource(const std::string&, const std::string&);
     void         handleSubmap(const std::string&, const std::string&);
     void         handleBlurLS(const std::string&, const std::string&);
+    void         handleRoundingLS(const std::string&, const std::string&);
     void         handleBindWS(const std::string&, const std::string&);
 };
 

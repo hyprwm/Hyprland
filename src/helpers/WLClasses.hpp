@@ -35,6 +35,7 @@ struct SLayerSurface {
     bool                      noProcess     = false;
 
     bool                      forceBlur = false;
+    bool                      forceRounding = false;
 
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) {

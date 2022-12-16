@@ -354,10 +354,11 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.w                     = pLayer->layerSurface->surface->current.width;
     renderdata.h                     = pLayer->layerSurface->surface->current.height;
     renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+    renderdata.dontRound             = !pLayer->forceRounding;
+    renderdata.rounding              = g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
 
     renderdata.squishOversized = false; // don't squish popups
-    renderdata.dontRound       = true;
     wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
 }
 

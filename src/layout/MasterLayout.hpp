@@ -4,11 +4,13 @@
 #include <vector>
 #include <list>
 #include <deque>
+#include <any>
 
 enum eFullscreenMode : uint8_t;
 
 //orientation determines which side of the screen the master area resides
-enum eOrientation : uint8_t {
+enum eOrientation : uint8_t
+{
     ORIENTATION_LEFT = 0,
     ORIENTATION_TOP,
     ORIENTATION_RIGHT,
@@ -16,67 +18,66 @@ enum eOrientation : uint8_t {
 };
 
 struct SMasterNodeData {
-    bool isMaster = false;
-    float percMaster = 0.5f;
+    bool     isMaster   = false;
+    float    percMaster = 0.5f;
 
     CWindow* pWindow = nullptr;
 
     Vector2D position;
     Vector2D size;
 
-    float percSize = 1.f; // size multiplier for resizing children
+    float    percSize = 1.f; // size multiplier for resizing children
 
-    int workspaceID = -1;
+    int      workspaceID = -1;
 
-    bool operator==(const SMasterNodeData& rhs) {
+    bool     operator==(const SMasterNodeData& rhs) {
         return pWindow == rhs.pWindow;
     }
 };
 
 struct SMasterWorkspaceData {
-    int workspaceID = -1;
+    int          workspaceID = -1;
     eOrientation orientation = ORIENTATION_LEFT;
 
-    bool operator==(const SMasterWorkspaceData& rhs) {
+    bool         operator==(const SMasterWorkspaceData& rhs) {
         return workspaceID == rhs.workspaceID;
     }
 };
 
 class CHyprMasterLayout : public IHyprLayout {
-public:
-    virtual void        onWindowCreatedTiling(CWindow*);
-    virtual void        onWindowRemovedTiling(CWindow*);
-    virtual bool        isWindowTiled(CWindow*);
-    virtual void        recalculateMonitor(const int&);
-    virtual void        recalculateWindow(CWindow*);
-    virtual void        resizeActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
-    virtual void        fullscreenRequestForWindow(CWindow*, eFullscreenMode, bool);
-    virtual std::any    layoutMessage(SLayoutMessageHeader, std::string);
+  public:
+    virtual void                     onWindowCreatedTiling(CWindow*);
+    virtual void                     onWindowRemovedTiling(CWindow*);
+    virtual bool                     isWindowTiled(CWindow*);
+    virtual void                     recalculateMonitor(const int&);
+    virtual void                     recalculateWindow(CWindow*);
+    virtual void                     resizeActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
+    virtual void                     fullscreenRequestForWindow(CWindow*, eFullscreenMode, bool);
+    virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
-    virtual void        switchWindows(CWindow*, CWindow*);
-    virtual void        alterSplitRatioBy(CWindow*, float);
-    virtual std::string getLayoutName();
+    virtual void                     switchWindows(CWindow*, CWindow*);
+    virtual void                     alterSplitRatioBy(CWindow*, float);
+    virtual std::string              getLayoutName();
 
-    virtual void        onEnable();
-    virtual void        onDisable();
+    virtual void                     onEnable();
+    virtual void                     onDisable();
 
-private:
-
-    std::list<SMasterNodeData>      m_lMasterNodesData;
+  private:
+    std::list<SMasterNodeData>        m_lMasterNodesData;
     std::vector<SMasterWorkspaceData> m_lMasterWorkspacesData;
 
-    bool                m_bForceWarps = false;
+    bool                              m_bForceWarps = false;
 
-    int                 getNodesOnWorkspace(const int&);
-    void                applyNodeDataToWindow(SMasterNodeData*);
-    SMasterNodeData*    getNodeFromWindow(CWindow*);
-    SMasterNodeData*    getMasterNodeOnWorkspace(const int&);
-    SMasterWorkspaceData* getMasterWorkspaceData(const int&);
-    void                calculateWorkspace(const int&);
-    CWindow*            getNextWindow(CWindow*, bool);
-    int                 getMastersOnWorkspace(const int&);
-    bool                prepareLoseFocus(CWindow*);
-    void                prepareNewFocus(CWindow*, bool inherit_fullscreen);
+    int                               getNodesOnWorkspace(const int&);
+    void                              applyNodeDataToWindow(SMasterNodeData*);
+    SMasterNodeData*                  getNodeFromWindow(CWindow*);
+    SMasterNodeData*                  getMasterNodeOnWorkspace(const int&);
+    SMasterWorkspaceData*             getMasterWorkspaceData(const int&);
+    void                              calculateWorkspace(const int&);
+    CWindow*                          getNextWindow(CWindow*, bool);
+    int                               getMastersOnWorkspace(const int&);
+    bool                              prepareLoseFocus(CWindow*);
+    void                              prepareNewFocus(CWindow*, bool inherit_fullscreen);
 
     friend struct SMasterNodeData;
     friend struct SMasterWorkspaceData;

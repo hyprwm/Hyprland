@@ -3,16 +3,18 @@
 #include "../defines.hpp"
 #include <any>
 
-enum ANIMATEDVARTYPE {
+enum ANIMATEDVARTYPE
+{
     AVARTYPE_INVALID = -1,
     AVARTYPE_FLOAT,
     AVARTYPE_VECTOR,
     AVARTYPE_COLOR
 };
 
-enum AVARDAMAGEPOLICY {
+enum AVARDAMAGEPOLICY
+{
     AVARDAMAGE_INVALID = -1,
-    AVARDAMAGE_ENTIRE = 0,
+    AVARDAMAGE_ENTIRE  = 0,
     AVARDAMAGE_BORDER,
     AVARDAMAGE_SHADOW
 };
@@ -24,7 +26,7 @@ struct SAnimationPropertyConfig;
 class CHyprRenderer;
 
 class CAnimatedVariable {
-public:
+  public:
     CAnimatedVariable(); // dummy var
 
     void create(ANIMATEDVARTYPE, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
@@ -65,53 +67,59 @@ public:
         return m_cGoal;
     }
 
-    void operator=(const Vector2D& v) {
-        m_vGoal = v;
+    CAnimatedVariable& operator=(const Vector2D& v) {
+        m_vGoal        = v;
         animationBegin = std::chrono::system_clock::now();
-        m_vBegun = m_vValue;
+        m_vBegun       = m_vValue;
 
         onAnimationBegin();
+
+        return *this;
     }
 
-    void operator=(const float& v) {
-        m_fGoal = v;
+    CAnimatedVariable& operator=(const float& v) {
+        m_fGoal        = v;
         animationBegin = std::chrono::system_clock::now();
-        m_fBegun = m_fValue;
+        m_fBegun       = m_fValue;
 
         onAnimationBegin();
+
+        return *this;
     }
 
-    void operator=(const CColor& v) {
-        m_cGoal = v;
+    CAnimatedVariable& operator=(const CColor& v) {
+        m_cGoal        = v;
         animationBegin = std::chrono::system_clock::now();
-        m_cBegun = m_cValue;
+        m_cBegun       = m_cValue;
 
         onAnimationBegin();
+
+        return *this;
     }
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const Vector2D& v) {
-        m_vValue = v;
+        m_vValue       = v;
         animationBegin = std::chrono::system_clock::now();
-        m_vBegun = m_vValue;
+        m_vBegun       = m_vValue;
 
         onAnimationBegin();
     }
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const float& v) {
-        m_fValue = v;
+        m_fValue       = v;
         animationBegin = std::chrono::system_clock::now();
-        m_vBegun = m_vValue;
+        m_vBegun       = m_vValue;
 
         onAnimationBegin();
     }
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const CColor& v) {
-        m_cValue = v;
+        m_cValue       = v;
         animationBegin = std::chrono::system_clock::now();
-        m_vBegun = m_vValue;
+        m_vBegun       = m_vValue;
 
         onAnimationBegin();
     }
@@ -137,14 +145,10 @@ public:
     // checks if an animation is in progress
     bool isBeingAnimated() {
         switch (m_eVarType) {
-            case AVARTYPE_FLOAT:
-                return m_fValue != m_fGoal;
-            case AVARTYPE_VECTOR:
-                return m_vValue != m_vGoal;
-            case AVARTYPE_COLOR:
-                return m_cValue != m_cGoal;
-            default:
-                UNREACHABLE();
+            case AVARTYPE_FLOAT: return m_fValue != m_fGoal;
+            case AVARTYPE_VECTOR: return m_vValue != m_vGoal;
+            case AVARTYPE_COLOR: return m_cValue != m_cGoal;
+            default: UNREACHABLE();
         }
 
         UNREACHABLE();
@@ -166,8 +170,7 @@ public:
                 m_cValue = m_cGoal;
                 break;
             }
-            default:
-                UNREACHABLE();
+            default: UNREACHABLE();
         }
 
         if (endCallback)
@@ -191,7 +194,7 @@ public:
         if an animation is not running, runs instantly.
         if "remove" is set to true, will remove the callback when ran. */
     void setCallbackOnEnd(std::function<void(void* thisptr)> func, bool remove = true) {
-        m_fEndCallback = func;
+        m_fEndCallback       = func;
         m_bRemoveEndAfterRan = remove;
 
         if (!isBeingAnimated())
@@ -201,58 +204,57 @@ public:
     /*  sets a function to be ran when an animation is started.
         if "remove" is set to true, will remove the callback when ran. */
     void setCallbackOnBegin(std::function<void(void* thisptr)> func, bool remove = true) {
-        m_fBeginCallback = func;
+        m_fBeginCallback       = func;
         m_bRemoveBeginAfterRan = remove;
     }
 
     /*  resets all callbacks. Does not call any. */
     void resetAllCallbacks() {
-        m_fBeginCallback = nullptr;
-        m_fEndCallback = nullptr;
+        m_fBeginCallback       = nullptr;
+        m_fEndCallback         = nullptr;
         m_bRemoveBeginAfterRan = false;
-        m_bRemoveEndAfterRan = false;
+        m_bRemoveEndAfterRan   = false;
     }
 
-private:
+  private:
+    Vector2D m_vValue = Vector2D(0, 0);
+    float    m_fValue = 0;
+    CColor   m_cValue;
 
-    Vector2D        m_vValue = Vector2D(0,0);
-    float           m_fValue = 0;
-    CColor          m_cValue;
+    Vector2D m_vGoal = Vector2D(0, 0);
+    float    m_fGoal = 0;
+    CColor   m_cGoal;
 
-    Vector2D        m_vGoal = Vector2D(0,0);
-    float           m_fGoal = 0;
-    CColor          m_cGoal;
-
-    Vector2D        m_vBegun = Vector2D(0,0);
-    float           m_fBegun = 0;
-    CColor          m_cBegun;
+    Vector2D m_vBegun = Vector2D(0, 0);
+    float    m_fBegun = 0;
+    CColor   m_cBegun;
 
     // owners
-    void*           m_pWindow = nullptr;
-    void*           m_pWorkspace = nullptr;
-    void*           m_pLayer = nullptr;
+    void*                                 m_pWindow    = nullptr;
+    void*                                 m_pWorkspace = nullptr;
+    void*                                 m_pLayer     = nullptr;
 
-    SAnimationPropertyConfig* m_pConfig = nullptr;
+    SAnimationPropertyConfig*             m_pConfig = nullptr;
 
-    bool            m_bDummy = true;
-    bool            m_bIsRegistered = false;
+    bool                                  m_bDummy        = true;
+    bool                                  m_bIsRegistered = false;
 
     std::chrono::system_clock::time_point animationBegin;
 
-    ANIMATEDVARTYPE     m_eVarType      = AVARTYPE_INVALID;
-    AVARDAMAGEPOLICY    m_eDamagePolicy = AVARDAMAGE_INVALID;
+    ANIMATEDVARTYPE                       m_eVarType      = AVARTYPE_INVALID;
+    AVARDAMAGEPOLICY                      m_eDamagePolicy = AVARDAMAGE_INVALID;
 
-    bool            m_bRemoveEndAfterRan = true;
-    bool            m_bRemoveBeginAfterRan = true;
-    std::function<void(void* thisptr)> m_fEndCallback;
-    std::function<void(void* thisptr)> m_fBeginCallback;
+    bool                                  m_bRemoveEndAfterRan   = true;
+    bool                                  m_bRemoveBeginAfterRan = true;
+    std::function<void(void* thisptr)>    m_fEndCallback;
+    std::function<void(void* thisptr)>    m_fBeginCallback;
 
     // methods
     void onAnimationEnd() {
         if (m_fEndCallback) {
             m_fEndCallback(this);
             if (m_bRemoveEndAfterRan)
-                m_fEndCallback = nullptr;  // reset
+                m_fEndCallback = nullptr; // reset
         }
     }
 
@@ -260,7 +262,7 @@ private:
         if (m_fBeginCallback) {
             m_fBeginCallback(this);
             if (m_bRemoveBeginAfterRan)
-                m_fBeginCallback = nullptr;  // reset
+                m_fBeginCallback = nullptr; // reset
         }
     }
 

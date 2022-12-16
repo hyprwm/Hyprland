@@ -1,7 +1,7 @@
 #include "Color.hpp"
 #include "../defines.hpp"
 
-CColor::CColor() { }
+CColor::CColor() {}
 
 CColor::CColor(float r, float g, float b, float a) {
     this->r = r;

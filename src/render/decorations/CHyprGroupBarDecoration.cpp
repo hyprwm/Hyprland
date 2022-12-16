@@ -5,9 +5,7 @@ CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) {
     m_pWindow = pWindow;
 }
 
-CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {
-
-}
+CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
 
 SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationExtents() {
     return m_seExtents;
@@ -28,10 +26,10 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
         // we draw 3px above the window's border with 3px
         const auto PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-        m_seExtents.topLeft = Vector2D(0, *PBORDERSIZE + 3 + 3);
+        m_seExtents.topLeft     = Vector2D(0, *PBORDERSIZE + 3 + 3);
         m_seExtents.bottomRight = Vector2D();
 
-        m_vLastWindowPos = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
+        m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
         m_vLastWindowSize = pWindow->m_vRealSize.vec();
     }
 
@@ -59,7 +57,8 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 }
 
 void CHyprGroupBarDecoration::damageEntire() {
-    wlr_box dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x, m_seExtents.topLeft.y};
+    wlr_box dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
+                  m_seExtents.topLeft.y};
     g_pHyprRenderer->damageBox(&dm);
 }
 
@@ -77,7 +76,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     const int BARW = (m_vLastWindowSize.x - PAD * (barsToDraw - 1)) / barsToDraw;
 
-    int xoff = 0;
+    int       xoff = 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
         wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x, m_vLastWindowPos.y - m_seExtents.topLeft.y - pMonitor->vecPosition.y + offset.y, BARW, 3};
@@ -87,10 +86,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
         scaleBox(&rect, pMonitor->scale);
 
-        static auto *const PGROUPCOLACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->intValue;
-        static auto *const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->intValue;
+        static auto* const PGROUPCOLACTIVE   = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->intValue;
+        static auto* const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->intValue;
 
-        CColor color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? CColor(*PGROUPCOLACTIVE) : CColor(*PGROUPCOLINACTIVE);
+        CColor             color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? CColor(*PGROUPCOLACTIVE) : CColor(*PGROUPCOLINACTIVE);
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 

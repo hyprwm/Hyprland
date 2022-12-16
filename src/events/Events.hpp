@@ -31,7 +31,7 @@ namespace Events {
     DYNLISTENFUNC(commitSubsurface);
 
     // Popups
-    DYNLISTENFUNC(newPopup);  // LayerSurface
+    DYNLISTENFUNC(newPopup); // LayerSurface
 
     DYNLISTENFUNC(newPopupXDG);
     DYNLISTENFUNC(mapPopupXDG);
@@ -60,7 +60,7 @@ namespace Events {
     DYNLISTENFUNC(requestMaximize);
 
     // Window subsurfaces
-   // LISTENER(newSubsurfaceWindow);
+    // LISTENER(newSubsurfaceWindow);
 
     // Input events
     LISTENER(mouseMove);

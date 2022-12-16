@@ -4,19 +4,19 @@
 #include "../layout/MasterLayout.hpp"
 
 class CLayoutManager {
-public:
+  public:
+    IHyprLayout* getCurrentLayout();
 
-    IHyprLayout*    getCurrentLayout();
+    void         switchToLayout(std::string);
 
-    void            switchToLayout(std::string);
-
-private:
-    enum HYPRLAYOUTS {
+  private:
+    enum HYPRLAYOUTS
+    {
         DWINDLE = 0,
         MASTER
     };
 
-    HYPRLAYOUTS m_iCurrentLayoutID = DWINDLE;
+    HYPRLAYOUTS        m_iCurrentLayoutID = DWINDLE;
 
     CHyprDwindleLayout m_cDwindleLayout;
     CHyprMasterLayout  m_cMasterLayout;

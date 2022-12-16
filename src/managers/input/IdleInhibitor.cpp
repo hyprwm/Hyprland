@@ -17,17 +17,18 @@ void CInputManager::newIdleInhibitor(wlr_idle_inhibitor_v1* pInhibitor) {
 
     PINHIBIT->pWlrInhibitor = pInhibitor;
 
-    PINHIBIT->hyprListener_Destroy.initCallback(&pInhibitor->events.destroy, [](void* owner, void* data){
+    PINHIBIT->hyprListener_Destroy.initCallback(
+        &pInhibitor->events.destroy,
+        [](void* owner, void* data) {
+            const auto PINH = (SIdleInhibitor*)owner;
 
-        const auto PINH = (SIdleInhibitor*)owner;
+            g_pInputManager->m_lIdleInhibitors.remove(*PINH);
 
-        g_pInputManager->m_lIdleInhibitors.remove(*PINH);
+            Debug::log(LOG, "Destroyed an idleinhibitor");
 
-        Debug::log(LOG, "Destroyed an idleinhibitor");
-
-        g_pInputManager->recheckIdleInhibitorStatus();
-
-    }, PINHIBIT, "IdleInhibitor");
+            g_pInputManager->recheckIdleInhibitorStatus();
+        },
+        PINHIBIT, "IdleInhibitor");
 
     PINHIBIT->pWindow = g_pCompositor->getWindowFromSurface(pInhibitor->surface);
 

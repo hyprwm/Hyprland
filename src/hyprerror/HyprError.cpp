@@ -3,7 +3,7 @@
 
 void CHyprError::queueCreate(std::string message, const CColor& color) {
     m_szQueued = message;
-    m_cQueued = color;
+    m_cQueued  = color;
 }
 
 void CHyprError::createQueued() {
@@ -32,9 +32,9 @@ void CHyprError::createQueued() {
     cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, (FONTSIZE + 2 * (FONTSIZE / 10.f)) * LINECOUNT);
 
     // outline
-    cairo_rectangle(CAIRO, 0, 0, 1, PMONITOR->vecPixelSize.y);                                     // left
-    cairo_rectangle(CAIRO, PMONITOR->vecPixelSize.x - 1, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);  // right
-    cairo_rectangle(CAIRO, 0, PMONITOR->vecPixelSize.y - 1, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);  // bottom
+    cairo_rectangle(CAIRO, 0, 0, 1, PMONITOR->vecPixelSize.y);                                                   // left
+    cairo_rectangle(CAIRO, PMONITOR->vecPixelSize.x - 1, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y); // right
+    cairo_rectangle(CAIRO, 0, PMONITOR->vecPixelSize.y - 1, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y); // bottom
 
     cairo_fill(CAIRO);
 
@@ -46,7 +46,7 @@ void CHyprError::createQueued() {
     cairo_set_source_rgba(CAIRO, textColor.r / 255.f, textColor.g / 255.f, textColor.b / 255.f, textColor.a / 255.f);
 
     float yoffset = FONTSIZE;
-    while(m_szQueued != "") {
+    while (m_szQueued != "") {
         std::string current = m_szQueued.substr(0, m_szQueued.find('\n'));
         if (const auto NEWLPOS = m_szQueued.find('\n'); NEWLPOS != std::string::npos)
             m_szQueued = m_szQueued.substr(NEWLPOS + 1);
@@ -56,7 +56,6 @@ void CHyprError::createQueued() {
         cairo_show_text(CAIRO, current.c_str());
         yoffset += FONTSIZE + (FONTSIZE / 10.f);
     }
-
 
     cairo_surface_flush(CAIROSURFACE);
 
@@ -79,8 +78,8 @@ void CHyprError::createQueued() {
     cairo_surface_destroy(CAIROSURFACE);
 
     m_bIsCreated = true;
-    m_szQueued = "";
-    m_cQueued = CColor();
+    m_szQueued   = "";
+    m_cQueued    = CColor();
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
 }
@@ -96,7 +95,7 @@ void CHyprError::draw() {
         m_bQueuedDestroy = false;
         m_tTexture.destroyTexture();
         m_bIsCreated = false;
-        m_szQueued = "";
+        m_szQueued   = "";
         g_pHyprRenderer->damageMonitor(g_pCompositor->m_vMonitors.front().get());
         return;
     }

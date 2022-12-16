@@ -6,7 +6,11 @@ Vector2D::Vector2D(double xx, double yy) {
     y = yy;
 }
 
-Vector2D::Vector2D() { x = 0; y = 0; }
+Vector2D::Vector2D() {
+    x = 0;
+    y = 0;
+}
+
 Vector2D::~Vector2D() {}
 
 double Vector2D::normalize() {
@@ -24,8 +28,5 @@ Vector2D Vector2D::floor() {
 }
 
 Vector2D Vector2D::clamp(const Vector2D& min, const Vector2D& max) {
-    return Vector2D(
-        std::clamp(this->x, min.x, max.x == 0 ? INFINITY : max.x),
-        std::clamp(this->y, min.y, max.y == 0 ? INFINITY : max.y)
-    );
+    return Vector2D(std::clamp(this->x, min.x, max.x == 0 ? INFINITY : max.x), std::clamp(this->y, min.y, max.y == 0 ? INFINITY : max.y));
 }

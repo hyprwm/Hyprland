@@ -21,17 +21,17 @@ void CAnimationManager::addBezierWithName(std::string name, const Vector2D& p1, 
 
 void CAnimationManager::tick() {
 
-    bool animGlobalDisabled = false;
+    bool               animGlobalDisabled = false;
 
-    static auto *const PANIMENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
+    static auto* const PANIMENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
 
     if (!*PANIMENABLED)
         animGlobalDisabled = true;
 
-    static auto *const  PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-    static auto *const  PSHADOWSENABLED   = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
+    static auto* const              PBORDERSIZE     = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const              PSHADOWSENABLED = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
 
-    const auto DEFAULTBEZIER = m_mBezierCurves.find("default");
+    const auto                      DEFAULTBEZIER = m_mBezierCurves.find("default");
 
     std::vector<CAnimatedVariable*> animationEndedVars;
 
@@ -50,23 +50,23 @@ void CAnimationManager::tick() {
         const float SPENT = av->getPercent();
 
         // window stuff
-        const auto PWINDOW = (CWindow*)av->m_pWindow;
-        const auto PWORKSPACE = (CWorkspace*)av->m_pWorkspace;
-        const auto PLAYER = (SLayerSurface*)av->m_pLayer;
-        CMonitor* PMONITOR = nullptr;
-        bool animationsDisabled = animGlobalDisabled;
+        const auto PWINDOW            = (CWindow*)av->m_pWindow;
+        const auto PWORKSPACE         = (CWorkspace*)av->m_pWorkspace;
+        const auto PLAYER             = (SLayerSurface*)av->m_pLayer;
+        CMonitor*  PMONITOR           = nullptr;
+        bool       animationsDisabled = animGlobalDisabled;
 
-        wlr_box WLRBOXPREV = {0,0,0,0};
+        wlr_box    WLRBOXPREV = {0, 0, 0, 0};
         if (PWINDOW) {
-            WLRBOXPREV = PWINDOW->getFullWindowBoundingBox();
-            PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+            WLRBOXPREV         = PWINDOW->getFullWindowBoundingBox();
+            PMONITOR           = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
             animationsDisabled = animationsDisabled || PWINDOW->m_sAdditionalConfigData.forceNoAnims;
         } else if (PWORKSPACE) {
-            PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+            PMONITOR   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};
         } else if (PLAYER) {
             WLRBOXPREV = PLAYER->geometry;
-            PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
+            PMONITOR   = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
         }
 
         // beziers are with a switch unforto
@@ -85,7 +85,7 @@ void CAnimationManager::tick() {
                     break;
                 }
 
-                const auto DELTA = av->m_fGoal - av->m_fBegun;
+                const auto DELTA  = av->m_fGoal - av->m_fBegun;
                 const auto BEZIER = m_mBezierCurves.find(av->m_pConfig->pValues->internalBezier);
 
                 if (BEZIER != m_mBezierCurves.end())
@@ -106,7 +106,7 @@ void CAnimationManager::tick() {
                     break;
                 }
 
-                const auto DELTA = av->m_vGoal - av->m_vBegun;
+                const auto DELTA  = av->m_vGoal - av->m_vBegun;
                 const auto BEZIER = m_mBezierCurves.find(av->m_pConfig->pValues->internalBezier);
 
                 if (BEZIER != m_mBezierCurves.end())
@@ -127,7 +127,7 @@ void CAnimationManager::tick() {
                     break;
                 }
 
-                const auto DELTA = av->m_cGoal - av->m_cBegun;
+                const auto DELTA  = av->m_cGoal - av->m_cBegun;
                 const auto BEZIER = m_mBezierCurves.find(av->m_pConfig->pValues->internalBezier);
 
                 if (BEZIER != m_mBezierCurves.end())
@@ -164,40 +164,45 @@ void CAnimationManager::tick() {
                         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
                 }
                 break;
-            } case AVARDAMAGE_BORDER: {
+            }
+            case AVARDAMAGE_BORDER: {
                 RASSERT(PWINDOW, "Tried to AVARDAMAGE_BORDER a non-window AVAR!");
 
                 // damage only the border.
-                static auto *const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-                const auto ROUNDINGSIZE = *PROUNDING + 1;
-                const auto BORDERSIZE = *PBORDERSIZE;
+                static auto* const PROUNDING    = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+                const auto         ROUNDINGSIZE = *PROUNDING + 1;
+                const auto         BORDERSIZE   = *PBORDERSIZE;
 
                 // damage for old box
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);                              // top
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXPREV.height + 2 * BORDERSIZE);                             // left
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x + WLRBOXPREV.width - ROUNDINGSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXPREV.height + 2 * BORDERSIZE);        // right
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x, WLRBOXPREV.y + WLRBOXPREV.height - ROUNDINGSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);                     // bottom
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXPREV.height + 2 * BORDERSIZE); // left
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x + WLRBOXPREV.width - ROUNDINGSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE,
+                                           WLRBOXPREV.height + 2 * BORDERSIZE);                                                                                          // right
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x, WLRBOXPREV.y + WLRBOXPREV.height - ROUNDINGSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE); // bottom
 
                 // damage for new box
                 const wlr_box WLRBOXNEW = {PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y};
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);                                // top
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height + 2 * BORDERSIZE);                               // left
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width - ROUNDINGSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height + 2 * BORDERSIZE);           // right
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x, WLRBOXNEW.y + WLRBOXNEW.height - ROUNDINGSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);                        // bottom
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height + 2 * BORDERSIZE); // left
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width - ROUNDINGSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE,
+                                           WLRBOXNEW.height + 2 * BORDERSIZE);                                                                                       // right
+                g_pHyprRenderer->damageBox(WLRBOXNEW.x, WLRBOXNEW.y + WLRBOXNEW.height - ROUNDINGSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE); // bottom
 
                 break;
-            } case AVARDAMAGE_SHADOW: {
+            }
+            case AVARDAMAGE_SHADOW: {
                 RASSERT(PWINDOW, "Tried to AVARDAMAGE_SHADOW a non-window AVAR!");
 
-                static auto *const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
+                static auto* const PSHADOWIGNOREWINDOW = &g_pConfigManager->getConfigValuePtr("decoration:shadow_ignore_window")->intValue;
 
-                const auto PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
+                const auto         PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
 
                 if (PDECO) {
                     const auto EXTENTS = PDECO->getWindowDecorationExtents();
 
-                    wlr_box dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
-                                   PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x, PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
+                    wlr_box    dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
+                                   PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
+                                   PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
 
                     if (!*PSHADOWIGNOREWINDOW) {
                         // easy, damage the entire box
@@ -206,7 +211,8 @@ void CAnimationManager::tick() {
                         pixman_region32_t rg;
                         pixman_region32_init_rect(&rg, dmg.x, dmg.y, dmg.width, dmg.height);
                         pixman_region32_t wb;
-                        pixman_region32_init_rect(&wb, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y);
+                        pixman_region32_init_rect(&wb, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x,
+                                                  PWINDOW->m_vRealSize.vec().y);
                         pixman_region32_subtract(&rg, &rg, &wb);
                         g_pHyprRenderer->damageRegion(&rg);
                         pixman_region32_fini(&rg);
@@ -265,7 +271,7 @@ bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
 }
 
 bool CAnimationManager::bezierExists(const std::string& bezier) {
-    for (auto&[bc, bz] : m_mBezierCurves) {
+    for (auto& [bc, bz] : m_mBezierCurves) {
         if (bc == bezier)
             return true;
     }
@@ -279,33 +285,37 @@ bool CAnimationManager::bezierExists(const std::string& bezier) {
 //
 
 void CAnimationManager::animationPopin(CWindow* pWindow, bool close, float minPerc) {
-    const auto GOALPOS = pWindow->m_vRealPosition.goalv();
+    const auto GOALPOS  = pWindow->m_vRealPosition.goalv();
     const auto GOALSIZE = pWindow->m_vRealSize.goalv();
 
     if (!close) {
         pWindow->m_vRealSize.setValue((GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y}));
         pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize.m_vValue / 2.f);
     } else {
-        pWindow->m_vRealSize = (GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y});
+        pWindow->m_vRealSize     = (GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y});
         pWindow->m_vRealPosition = GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize.m_vGoal / 2.f;
     }
 }
 
 void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool close) {
-    pWindow->m_vRealSize.warp(false);  // size we preserve in slide
+    pWindow->m_vRealSize.warp(false); // size we preserve in slide
 
-    const auto GOALPOS = pWindow->m_vRealPosition.goalv();
+    const auto GOALPOS  = pWindow->m_vRealPosition.goalv();
     const auto GOALSIZE = pWindow->m_vRealSize.goalv();
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    Vector2D posOffset;
+    Vector2D   posOffset;
 
     if (force != "") {
-        if (force == "bottom") posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);
-        else if (force == "left") posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0);
-        else if (force == "right") posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0);
-        else posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
+        if (force == "bottom")
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);
+        else if (force == "left")
+            posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0);
+        else if (force == "right")
+            posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0);
+        else
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
 
         if (!close)
             pWindow->m_vRealPosition.setValue(posOffset);
@@ -318,9 +328,9 @@ void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool
     const auto MIDPOINT = GOALPOS + GOALSIZE / 2.f;
 
     // check sides it touches
-    const bool DISPLAYLEFT = STICKS(pWindow->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
-    const bool DISPLAYRIGHT = STICKS(pWindow->m_vPosition.x + pWindow->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
-    const bool DISPLAYTOP = STICKS(pWindow->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
+    const bool DISPLAYLEFT   = STICKS(pWindow->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
+    const bool DISPLAYRIGHT  = STICKS(pWindow->m_vPosition.x + pWindow->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
+    const bool DISPLAYTOP    = STICKS(pWindow->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
     const bool DISPLAYBOTTOM = STICKS(pWindow->m_vPosition.y + pWindow->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
 
     if (DISPLAYBOTTOM && DISPLAYTOP) {
@@ -351,12 +361,12 @@ void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool
 void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
     if (!close) {
         pWindow->m_vRealPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsIn");
-        pWindow->m_vRealSize.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsIn");
-        pWindow->m_fAlpha.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("fadeIn");
+        pWindow->m_vRealSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("windowsIn");
+        pWindow->m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeIn");
     } else {
         pWindow->m_vRealPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsOut");
-        pWindow->m_vRealSize.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsOut");
-        pWindow->m_fAlpha.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("fadeOut");
+        pWindow->m_vRealSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("windowsOut");
+        pWindow->m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeOut");
     }
 
     auto ANIMSTYLE = pWindow->m_vRealPosition.m_pConfig->pValues->internalStyle;
@@ -386,7 +396,7 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
             if (pWindow->m_sAdditionalConfigData.animationStyle.find("%") != std::string::npos) {
                 try {
                     auto percstr = pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find_last_of(' '));
-                    minPerc = std::stoi(percstr.substr(0, percstr.length() - 1));
+                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
                 } catch (std::exception& e) {
                     ; // oops
                 }
@@ -404,7 +414,7 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
             if (ANIMSTYLE.find("%") != 0) {
                 try {
                     auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
-                    minPerc = std::stoi(percstr.substr(0, percstr.length() - 1));
+                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
                 } catch (std::exception& e) {
                     ; // oops
                 }
@@ -425,10 +435,8 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
             if (style.find("%") != std::string::npos) {
                 try {
                     auto percstr = style.substr(style.find_last_of(' '));
-                    minPerc = std::stoi(percstr.substr(0, percstr.length() - 1));
-                } catch (std::exception& e) {
-                    return "invalid minperc";
-                }
+                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) { return "invalid minperc"; }
 
                 return "";
             }

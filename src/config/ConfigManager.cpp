@@ -11,7 +11,7 @@
 #include <iostream>
 
 CConfigManager::CConfigManager() {
-    configValues["general:col.active_border"].data = std::make_shared<CGradientValueData>(0xffffffff);
+    configValues["general:col.active_border"].data   = std::make_shared<CGradientValueData>(0xffffffff);
     configValues["general:col.inactive_border"].data = std::make_shared<CGradientValueData>(0xff444444);
 
     setDefaultVars();
@@ -20,7 +20,7 @@ CConfigManager::CConfigManager() {
     std::string CONFIGPATH;
     if (g_pCompositor->explicitConfigPath == "") {
         static const char* const ENVHOME = getenv("HOME");
-        CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+        CONFIGPATH                       = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
     } else {
         CONFIGPATH = g_pCompositor->explicitConfigPath;
     }
@@ -32,146 +32,146 @@ CConfigManager::CConfigManager() {
 }
 
 void CConfigManager::setDefaultVars() {
-    configValues["general:max_fps"].intValue = 60;
-    configValues["general:sensitivity"].floatValue = 1.0f;
+    configValues["general:max_fps"].intValue           = 60;
+    configValues["general:sensitivity"].floatValue     = 1.0f;
     configValues["general:apply_sens_to_raw"].intValue = 0;
-    configValues["general:main_mod"].strValue = "SUPER";                                               // exposed to the user for easier configuring
-    configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER");  // actually used and automatically calculated
+    configValues["general:main_mod"].strValue          = "SUPER";                                     // exposed to the user for easier configuring
+    configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER"); // actually used and automatically calculated
 
-    configValues["general:border_size"].intValue = 1;
+    configValues["general:border_size"].intValue           = 1;
     configValues["general:no_border_on_floating"].intValue = 0;
-    configValues["general:gaps_in"].intValue = 5;
-    configValues["general:gaps_out"].intValue = 20;
+    configValues["general:gaps_in"].intValue               = 5;
+    configValues["general:gaps_out"].intValue              = 20;
     ((CGradientValueData*)configValues["general:col.active_border"].data.get())->reset(0xffffffff);
     ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
     configValues["general:cursor_inactive_timeout"].intValue = 0;
-    configValues["general:no_cursor_warps"].intValue = 0;
+    configValues["general:no_cursor_warps"].intValue         = 0;
 
     configValues["general:layout"].strValue = "dwindle";
 
-    configValues["misc:disable_hyprland_logo"].intValue = 0;
-    configValues["misc:disable_splash_rendering"].intValue = 0;
-    configValues["misc:no_vfr"].intValue = 1;
+    configValues["misc:disable_hyprland_logo"].intValue     = 0;
+    configValues["misc:disable_splash_rendering"].intValue  = 0;
+    configValues["misc:no_vfr"].intValue                    = 1;
     configValues["misc:damage_entire_on_snapshot"].intValue = 0;
-    configValues["misc:mouse_move_enables_dpms"].intValue = 0;
-    configValues["misc:always_follow_on_dnd"].intValue = 1;
+    configValues["misc:mouse_move_enables_dpms"].intValue   = 0;
+    configValues["misc:always_follow_on_dnd"].intValue      = 1;
     configValues["misc:layers_hog_keyboard_focus"].intValue = 1;
-    configValues["misc:animate_manual_resizes"].intValue = 0;
-    configValues["misc:disable_autoreload"].intValue = 0;
-    configValues["misc:enable_swallow"].intValue = 0;
-    configValues["misc:swallow_regex"].strValue = STRVAL_EMPTY;
-    configValues["misc:focus_on_activate"].intValue = 0;
-    configValues["misc:no_direct_scanout"].intValue = 0;
+    configValues["misc:animate_manual_resizes"].intValue    = 0;
+    configValues["misc:disable_autoreload"].intValue        = 0;
+    configValues["misc:enable_swallow"].intValue            = 0;
+    configValues["misc:swallow_regex"].strValue             = STRVAL_EMPTY;
+    configValues["misc:focus_on_activate"].intValue         = 0;
+    configValues["misc:no_direct_scanout"].intValue         = 0;
 
-    configValues["debug:int"].intValue = 0;
-    configValues["debug:log_damage"].intValue = 0;
-    configValues["debug:overlay"].intValue = 0;
-    configValues["debug:damage_blink"].intValue = 0;
-    configValues["debug:disable_logs"].intValue = 0;
-    configValues["debug:disable_time"].intValue = 1;
+    configValues["debug:int"].intValue             = 0;
+    configValues["debug:log_damage"].intValue      = 0;
+    configValues["debug:overlay"].intValue         = 0;
+    configValues["debug:damage_blink"].intValue    = 0;
+    configValues["debug:disable_logs"].intValue    = 0;
+    configValues["debug:disable_time"].intValue    = 1;
     configValues["debug:damage_tracking"].intValue = DAMAGE_TRACKING_FULL;
 
-    configValues["decoration:rounding"].intValue = 0;
-    configValues["decoration:blur"].intValue = 1;
-    configValues["decoration:blur_size"].intValue = 8;
-    configValues["decoration:blur_passes"].intValue = 1;
-    configValues["decoration:blur_ignore_opacity"].intValue = 0;
+    configValues["decoration:rounding"].intValue               = 0;
+    configValues["decoration:blur"].intValue                   = 1;
+    configValues["decoration:blur_size"].intValue              = 8;
+    configValues["decoration:blur_passes"].intValue            = 1;
+    configValues["decoration:blur_ignore_opacity"].intValue    = 0;
     configValues["decoration:blur_new_optimizations"].intValue = 1;
-    configValues["decoration:blur_xray"].intValue = 0;
-    configValues["decoration:active_opacity"].floatValue = 1;
-    configValues["decoration:inactive_opacity"].floatValue = 1;
-    configValues["decoration:fullscreen_opacity"].floatValue = 1;
-    configValues["decoration:multisample_edges"].intValue = 1;
-    configValues["decoration:no_blur_on_oversized"].intValue = 0;
-    configValues["decoration:drop_shadow"].intValue = 1;
-    configValues["decoration:shadow_range"].intValue = 4;
-    configValues["decoration:shadow_render_power"].intValue = 3;
-    configValues["decoration:shadow_ignore_window"].intValue = 1;
-    configValues["decoration:shadow_offset"].vecValue = Vector2D();
-    configValues["decoration:shadow_scale"].floatValue = 1.f;
-    configValues["decoration:col.shadow"].intValue = 0xee1a1a1a;
-    configValues["decoration:col.shadow_inactive"].intValue = INT_MAX;
-    configValues["decoration:dim_inactive"].intValue = 0;
-    configValues["decoration:dim_strength"].floatValue = 0.5f;
-    configValues["decoration:screen_shader"].strValue = STRVAL_EMPTY;
+    configValues["decoration:blur_xray"].intValue              = 0;
+    configValues["decoration:active_opacity"].floatValue       = 1;
+    configValues["decoration:inactive_opacity"].floatValue     = 1;
+    configValues["decoration:fullscreen_opacity"].floatValue   = 1;
+    configValues["decoration:multisample_edges"].intValue      = 1;
+    configValues["decoration:no_blur_on_oversized"].intValue   = 0;
+    configValues["decoration:drop_shadow"].intValue            = 1;
+    configValues["decoration:shadow_range"].intValue           = 4;
+    configValues["decoration:shadow_render_power"].intValue    = 3;
+    configValues["decoration:shadow_ignore_window"].intValue   = 1;
+    configValues["decoration:shadow_offset"].vecValue          = Vector2D();
+    configValues["decoration:shadow_scale"].floatValue         = 1.f;
+    configValues["decoration:col.shadow"].intValue             = 0xee1a1a1a;
+    configValues["decoration:col.shadow_inactive"].intValue    = INT_MAX;
+    configValues["decoration:dim_inactive"].intValue           = 0;
+    configValues["decoration:dim_strength"].floatValue         = 0.5f;
+    configValues["decoration:screen_shader"].strValue          = STRVAL_EMPTY;
 
-    configValues["dwindle:pseudotile"].intValue = 0;
-    configValues["dwindle:col.group_border"].intValue = 0x66777700;
-    configValues["dwindle:col.group_border_active"].intValue = 0x66ffff00;
-    configValues["dwindle:force_split"].intValue = 0;
-    configValues["dwindle:preserve_split"].intValue = 0;
-    configValues["dwindle:special_scale_factor"].floatValue = 0.8f;
+    configValues["dwindle:pseudotile"].intValue               = 0;
+    configValues["dwindle:col.group_border"].intValue         = 0x66777700;
+    configValues["dwindle:col.group_border_active"].intValue  = 0x66ffff00;
+    configValues["dwindle:force_split"].intValue              = 0;
+    configValues["dwindle:preserve_split"].intValue           = 0;
+    configValues["dwindle:special_scale_factor"].floatValue   = 0.8f;
     configValues["dwindle:split_width_multiplier"].floatValue = 1.0f;
-    configValues["dwindle:no_gaps_when_only"].intValue = 0;
-    configValues["dwindle:use_active_for_splits"].intValue = 1;
+    configValues["dwindle:no_gaps_when_only"].intValue        = 0;
+    configValues["dwindle:use_active_for_splits"].intValue    = 1;
 
     configValues["master:special_scale_factor"].floatValue = 0.8f;
-    configValues["master:new_is_master"].intValue = 1;
-    configValues["master:new_on_top"].intValue = 0;
-    configValues["master:no_gaps_when_only"].intValue = 0;
-    configValues["master:orientation"].strValue = "left";
-    configValues["master:inherit_fullscreen"].intValue = 1;
+    configValues["master:new_is_master"].intValue          = 1;
+    configValues["master:new_on_top"].intValue             = 0;
+    configValues["master:no_gaps_when_only"].intValue      = 0;
+    configValues["master:orientation"].strValue            = "left";
+    configValues["master:inherit_fullscreen"].intValue     = 1;
 
-    configValues["animations:enabled"].intValue = 1;
-    configValues["animations:speed"].floatValue = 7.f;
-    configValues["animations:curve"].strValue = "default";
-    configValues["animations:windows_style"].strValue = STRVAL_EMPTY;
-    configValues["animations:windows_curve"].strValue = "[[f]]";
-    configValues["animations:windows_speed"].floatValue = 0.f;
-    configValues["animations:windows"].intValue = 1;
-    configValues["animations:borders_style"].strValue = STRVAL_EMPTY;
-    configValues["animations:borders_curve"].strValue = "[[f]]";
-    configValues["animations:borders_speed"].floatValue = 0.f;
-    configValues["animations:borders"].intValue = 1;
-    configValues["animations:fadein_style"].strValue = STRVAL_EMPTY;
-    configValues["animations:fadein_curve"].strValue = "[[f]]";
-    configValues["animations:fadein_speed"].floatValue = 0.f;
-    configValues["animations:fadein"].intValue = 1;
-    configValues["animations:workspaces_style"].strValue = STRVAL_EMPTY;
-    configValues["animations:workspaces_curve"].strValue = "[[f]]";
+    configValues["animations:enabled"].intValue            = 1;
+    configValues["animations:speed"].floatValue            = 7.f;
+    configValues["animations:curve"].strValue              = "default";
+    configValues["animations:windows_style"].strValue      = STRVAL_EMPTY;
+    configValues["animations:windows_curve"].strValue      = "[[f]]";
+    configValues["animations:windows_speed"].floatValue    = 0.f;
+    configValues["animations:windows"].intValue            = 1;
+    configValues["animations:borders_style"].strValue      = STRVAL_EMPTY;
+    configValues["animations:borders_curve"].strValue      = "[[f]]";
+    configValues["animations:borders_speed"].floatValue    = 0.f;
+    configValues["animations:borders"].intValue            = 1;
+    configValues["animations:fadein_style"].strValue       = STRVAL_EMPTY;
+    configValues["animations:fadein_curve"].strValue       = "[[f]]";
+    configValues["animations:fadein_speed"].floatValue     = 0.f;
+    configValues["animations:fadein"].intValue             = 1;
+    configValues["animations:workspaces_style"].strValue   = STRVAL_EMPTY;
+    configValues["animations:workspaces_curve"].strValue   = "[[f]]";
     configValues["animations:workspaces_speed"].floatValue = 0.f;
-    configValues["animations:workspaces"].intValue = 1;
+    configValues["animations:workspaces"].intValue         = 1;
 
-    configValues["input:sensitivity"].floatValue = 0.f;
-    configValues["input:accel_profile"].strValue = STRVAL_EMPTY;
-    configValues["input:kb_file"].strValue = STRVAL_EMPTY;
-    configValues["input:kb_layout"].strValue = "us";
-    configValues["input:kb_variant"].strValue = STRVAL_EMPTY;
-    configValues["input:kb_options"].strValue = STRVAL_EMPTY;
-    configValues["input:kb_rules"].strValue = STRVAL_EMPTY;
-    configValues["input:kb_model"].strValue = STRVAL_EMPTY;
-    configValues["input:repeat_rate"].intValue = 25;
-    configValues["input:repeat_delay"].intValue = 600;
-    configValues["input:natural_scroll"].intValue = 0;
-    configValues["input:numlock_by_default"].intValue = 0;
-    configValues["input:force_no_accel"].intValue = 0;
-    configValues["input:float_switch_override_focus"].intValue = 1;
-    configValues["input:left_handed"].intValue = 0;
-    configValues["input:scroll_method"].strValue = STRVAL_EMPTY;
-    configValues["input:scroll_button"].intValue = 0;
-    configValues["input:touchpad:natural_scroll"].intValue = 0;
-    configValues["input:touchpad:disable_while_typing"].intValue = 1;
-    configValues["input:touchpad:clickfinger_behavior"].intValue = 0;
+    configValues["input:sensitivity"].floatValue                    = 0.f;
+    configValues["input:accel_profile"].strValue                    = STRVAL_EMPTY;
+    configValues["input:kb_file"].strValue                          = STRVAL_EMPTY;
+    configValues["input:kb_layout"].strValue                        = "us";
+    configValues["input:kb_variant"].strValue                       = STRVAL_EMPTY;
+    configValues["input:kb_options"].strValue                       = STRVAL_EMPTY;
+    configValues["input:kb_rules"].strValue                         = STRVAL_EMPTY;
+    configValues["input:kb_model"].strValue                         = STRVAL_EMPTY;
+    configValues["input:repeat_rate"].intValue                      = 25;
+    configValues["input:repeat_delay"].intValue                     = 600;
+    configValues["input:natural_scroll"].intValue                   = 0;
+    configValues["input:numlock_by_default"].intValue               = 0;
+    configValues["input:force_no_accel"].intValue                   = 0;
+    configValues["input:float_switch_override_focus"].intValue      = 1;
+    configValues["input:left_handed"].intValue                      = 0;
+    configValues["input:scroll_method"].strValue                    = STRVAL_EMPTY;
+    configValues["input:scroll_button"].intValue                    = 0;
+    configValues["input:touchpad:natural_scroll"].intValue          = 0;
+    configValues["input:touchpad:disable_while_typing"].intValue    = 1;
+    configValues["input:touchpad:clickfinger_behavior"].intValue    = 0;
     configValues["input:touchpad:middle_button_emulation"].intValue = 0;
-    configValues["input:touchpad:tap-to-click"].intValue = 1;
-    configValues["input:touchpad:drag_lock"].intValue = 0;
-    configValues["input:touchpad:scroll_factor"].floatValue = 1.f;
-    configValues["input:touchdevice:transform"].intValue = 0;
-    configValues["input:touchdevice:output"].strValue = STRVAL_EMPTY;
+    configValues["input:touchpad:tap-to-click"].intValue            = 1;
+    configValues["input:touchpad:drag_lock"].intValue               = 0;
+    configValues["input:touchpad:scroll_factor"].floatValue         = 1.f;
+    configValues["input:touchdevice:transform"].intValue            = 0;
+    configValues["input:touchdevice:output"].strValue               = STRVAL_EMPTY;
 
-    configValues["binds:pass_mouse_when_bound"].intValue = 0;
-    configValues["binds:scroll_event_delay"].intValue = 300;
+    configValues["binds:pass_mouse_when_bound"].intValue    = 0;
+    configValues["binds:scroll_event_delay"].intValue       = 300;
     configValues["binds:workspace_back_and_forth"].intValue = 0;
-    configValues["binds:allow_workspace_cycles"].intValue = 0;
+    configValues["binds:allow_workspace_cycles"].intValue   = 0;
 
-    configValues["gestures:workspace_swipe"].intValue = 0;
-    configValues["gestures:workspace_swipe_fingers"].intValue = 3;
-    configValues["gestures:workspace_swipe_distance"].intValue = 300;
-    configValues["gestures:workspace_swipe_invert"].intValue = 1;
+    configValues["gestures:workspace_swipe"].intValue                    = 0;
+    configValues["gestures:workspace_swipe_fingers"].intValue            = 3;
+    configValues["gestures:workspace_swipe_distance"].intValue           = 300;
+    configValues["gestures:workspace_swipe_invert"].intValue             = 1;
     configValues["gestures:workspace_swipe_min_speed_to_force"].intValue = 30;
-    configValues["gestures:workspace_swipe_cancel_ratio"].floatValue = 0.5f;
-    configValues["gestures:workspace_swipe_create_new"].intValue = 1;
-    configValues["gestures:workspace_swipe_forever"].intValue = 0;
+    configValues["gestures:workspace_swipe_cancel_ratio"].floatValue     = 0.5f;
+    configValues["gestures:workspace_swipe_create_new"].intValue         = 1;
+    configValues["gestures:workspace_swipe_forever"].intValue            = 0;
 
     configValues["input:follow_mouse"].intValue = 1;
 
@@ -181,29 +181,29 @@ void CConfigManager::setDefaultVars() {
 void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     auto& cfgValues = deviceConfigs[dev];
 
-    cfgValues["sensitivity"].floatValue = 0.f;
-    cfgValues["accel_profile"].strValue = STRVAL_EMPTY;
-    cfgValues["kb_file"].strValue = STRVAL_EMPTY;
-    cfgValues["kb_layout"].strValue = "us";
-    cfgValues["kb_variant"].strValue = STRVAL_EMPTY;
-    cfgValues["kb_options"].strValue = STRVAL_EMPTY;
-    cfgValues["kb_rules"].strValue = STRVAL_EMPTY;
-    cfgValues["kb_model"].strValue = STRVAL_EMPTY;
-    cfgValues["repeat_rate"].intValue = 25;
-    cfgValues["repeat_delay"].intValue = 600;
-    cfgValues["natural_scroll"].intValue = 0;
-    cfgValues["numlock_by_default"].intValue = 0;
-    cfgValues["disable_while_typing"].intValue = 1;
-    cfgValues["clickfinger_behavior"].intValue = 0;
+    cfgValues["sensitivity"].floatValue           = 0.f;
+    cfgValues["accel_profile"].strValue           = STRVAL_EMPTY;
+    cfgValues["kb_file"].strValue                 = STRVAL_EMPTY;
+    cfgValues["kb_layout"].strValue               = "us";
+    cfgValues["kb_variant"].strValue              = STRVAL_EMPTY;
+    cfgValues["kb_options"].strValue              = STRVAL_EMPTY;
+    cfgValues["kb_rules"].strValue                = STRVAL_EMPTY;
+    cfgValues["kb_model"].strValue                = STRVAL_EMPTY;
+    cfgValues["repeat_rate"].intValue             = 25;
+    cfgValues["repeat_delay"].intValue            = 600;
+    cfgValues["natural_scroll"].intValue          = 0;
+    cfgValues["numlock_by_default"].intValue      = 0;
+    cfgValues["disable_while_typing"].intValue    = 1;
+    cfgValues["clickfinger_behavior"].intValue    = 0;
     cfgValues["middle_button_emulation"].intValue = 0;
-    cfgValues["tap-to-click"].intValue = 1;
-    cfgValues["drag_lock"].intValue = 0;
-    cfgValues["left_handed"].intValue = 0;
-    cfgValues["scroll_method"].strValue = STRVAL_EMPTY;
-    cfgValues["scroll_button"].intValue = 0;
-    cfgValues["touch_transform"].intValue = 0;
-    cfgValues["touch_output"].strValue = STRVAL_EMPTY;
-    cfgValues["enabled"].intValue = 1; // only for mice / touchpads
+    cfgValues["tap-to-click"].intValue            = 1;
+    cfgValues["drag_lock"].intValue               = 0;
+    cfgValues["left_handed"].intValue             = 0;
+    cfgValues["scroll_method"].strValue           = STRVAL_EMPTY;
+    cfgValues["scroll_button"].intValue           = 0;
+    cfgValues["touch_transform"].intValue         = 0;
+    cfgValues["touch_output"].strValue            = STRVAL_EMPTY;
+    cfgValues["enabled"].intValue                 = 1; // only for mice / touchpads
 }
 
 void CConfigManager::setDefaultAnimationVars() {
@@ -233,15 +233,7 @@ void CConfigManager::setDefaultAnimationVars() {
     }
 
     // init the values
-    animationConfig["global"] = {
-        false,
-        "default",
-        "",
-        8.f,
-        1,
-        &animationConfig["general"],
-        nullptr
-    };
+    animationConfig["global"] = {false, "default", "", 8.f, 1, &animationConfig["general"], nullptr};
 
     CREATEANIMCFG("windows", "global");
     CREATEANIMCFG("fade", "global");
@@ -270,7 +262,7 @@ void CConfigManager::init() {
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
 
     struct stat fileStat;
-    int err = stat(CONFIGPATH.c_str(), &fileStat);
+    int         err = stat(CONFIGPATH.c_str(), &fileStat);
     if (err != 0) {
         Debug::log(WARN, "Error at statting config, error %i", errno);
     }
@@ -298,7 +290,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
     SConfigValue* CONFIGENTRY = nullptr;
 
     if (COMMAND.find("device:") == 0) {
-        const auto DEVICE = COMMAND.substr(7).substr(0, COMMAND.find_last_of(':') - 7);
+        const auto DEVICE    = COMMAND.substr(7).substr(0, COMMAND.find_last_of(':') - 7);
         const auto CONFIGVAR = COMMAND.substr(COMMAND.find_last_of(':') + 1);
 
         if (!deviceConfigExists(DEVICE))
@@ -360,7 +352,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
 
         switch (CONFIGENTRY->data->getDataType()) {
             case CVD_TYPE_GRADIENT: {
-                
+
                 CVarList varlist(VALUE, 0, ' ');
 
                 CGradientValueData* data = (CGradientValueData*)CONFIGENTRY->data.get();
@@ -414,7 +406,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         configPaths.push_back(PATH);
 
         struct stat fileStat;
-        int err = stat(PATH.c_str(), &fileStat);
+        int         err = stat(PATH.c_str(), &fileStat);
         if (err != 0) {
             Debug::log(WARN, "Error at ticking config at %s, error %i: %s", PATH.c_str(), err, strerror(err));
             return;
@@ -470,8 +462,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             return;
         }
 
-        if (std::find_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }) != m_dMonitorRules.end())
-            m_dMonitorRules.erase(std::remove_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }));
+        std::erase_if(m_dMonitorRules, [&](const auto& other) { return other.name == newrule.name; });
 
         m_dMonitorRules.push_back(newrule);
 
@@ -481,9 +472,9 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     if (ARGS[1].find("pref") == 0) {
         newrule.resolution = Vector2D();
     } else if (ARGS[1].find("highrr") == 0) {
-        newrule.resolution = Vector2D(-1,-1);
+        newrule.resolution = Vector2D(-1, -1);
     } else if (ARGS[1].find("highres") == 0) {
-        newrule.resolution = Vector2D(-1,-2);
+        newrule.resolution = Vector2D(-1, -2);
     } else {
         newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
         newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
@@ -499,7 +490,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         newrule.offset.y = stoi(ARGS[2].substr(ARGS[2].find_first_of('x') + 1));
 
         if (newrule.offset.x < 0 || newrule.offset.y < 0) {
-            parseError = "invalid offset. Offset cannot be negative.";
+            parseError     = "invalid offset. Offset cannot be negative.";
             newrule.offset = Vector2D();
         }
     }
@@ -510,7 +501,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         newrule.scale = stof(ARGS[3]);
 
         if (newrule.scale < 0.25f) {
-            parseError = "not a valid scale.";
+            parseError    = "not a valid scale.";
             newrule.scale = 1;
         }
     }
@@ -533,8 +524,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         argno++;
     }
 
-    if (std::find_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }) != m_dMonitorRules.end())
-        m_dMonitorRules.erase(std::remove_if(m_dMonitorRules.begin(), m_dMonitorRules.end(), [&](const auto& other) { return other.name == newrule.name; }));
+    std::erase_if(m_dMonitorRules, [&](const auto& other) { return other.name == newrule.name; });
 
     m_dMonitorRules.push_back(newrule);
 }
@@ -566,7 +556,7 @@ void CConfigManager::handleBezier(const std::string& command, const std::string&
     g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
 }
 
-void CConfigManager::setAnimForChildren(SAnimationPropertyConfig *const ANIM) {
+void CConfigManager::setAnimForChildren(SAnimationPropertyConfig* const ANIM) {
     for (auto& [name, anim] : animationConfig) {
         if (anim.pParentAnimation == ANIM && !anim.overriden) {
             // if a child isnt overriden, set the values of the parent
@@ -593,7 +583,7 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
     }
 
     PANIM->second.overriden = true;
-    PANIM->second.pValues = &PANIM->second;
+    PANIM->second.pValues   = &PANIM->second;
 
     // on/off
     PANIM->second.internalEnabled = ARGS[1] == "1";
@@ -607,19 +597,19 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
         PANIM->second.internalSpeed = std::stof(ARGS[2]);
 
         if (PANIM->second.internalSpeed <= 0) {
-            parseError = "invalid speed";
+            parseError                  = "invalid speed";
             PANIM->second.internalSpeed = 1.f;
         }
     } else {
         PANIM->second.internalSpeed = 10.f;
-        parseError = "invalid speed";
+        parseError                  = "invalid speed";
     }
 
     // curve
     PANIM->second.internalBezier = ARGS[3];
 
     if (!g_pAnimationManager->bezierExists(ARGS[3])) {
-        parseError = "no such bezier";
+        parseError                   = "no such bezier";
         PANIM->second.internalBezier = "default";
     }
 
@@ -642,10 +632,10 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool locked = false;
-    bool release = false;
-    bool repeat = false;
-    bool mouse = false;
+    bool       locked   = false;
+    bool       release  = false;
+    bool       repeat   = false;
+    bool       mouse    = false;
     const auto BINDARGS = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -683,7 +673,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         return;
     }
 
-    const auto MOD = g_pKeybindManager->stringToModMask(ARGS[0]);
+    const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
     const auto MODSTR = ARGS[0];
 
     const auto KEY = ARGS[1];
@@ -736,38 +726,16 @@ void CConfigManager::handleUnbind(const std::string& command, const std::string&
 }
 
 bool windowRuleValid(const std::string& RULE) {
-    return !(RULE != "float"
-        && RULE != "tile"
-        && RULE.find("opacity") != 0
-        && RULE.find("move") != 0
-        && RULE.find("size") != 0
-        && RULE.find("minsize") != 0
-        && RULE.find("maxsize") != 0
-        && RULE.find("pseudo") != 0
-        && RULE.find("monitor") != 0
-        && RULE.find("idleinhibit") != 0
-        && RULE != "nofocus"
-        && RULE != "noblur"
-        && RULE != "noshadow"
-        && RULE != "noborder"
-        && RULE != "center"
-        && RULE != "opaque"
-        && RULE != "forceinput"
-        && RULE != "fullscreen"
-        && RULE != "nofullscreenrequest"
-        && RULE != "nomaxsize"
-        && RULE != "pin"
-        && RULE != "noanim"
-        && RULE != "windowdance"
-        && RULE.find("animation") != 0
-        && RULE.find("rounding") != 0
-        && RULE.find("workspace") != 0
-        && RULE.find("bordercolor") != 0);
+    return !(RULE != "float" && RULE != "tile" && RULE.find("opacity") != 0 && RULE.find("move") != 0 && RULE.find("size") != 0 && RULE.find("minsize") != 0 &&
+             RULE.find("maxsize") != 0 && RULE.find("pseudo") != 0 && RULE.find("monitor") != 0 && RULE.find("idleinhibit") != 0 && RULE != "nofocus" && RULE != "noblur" &&
+             RULE != "noshadow" && RULE != "noborder" && RULE != "center" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" && RULE != "nofullscreenrequest" &&
+             RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "windowdance" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 &&
+             RULE.find("workspace") != 0 && RULE.find("bordercolor") != 0);
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto RULE = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(",")));
-    const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(",") + 1));
+    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
     if (RULE == "" || VALUE == "") {
@@ -775,9 +743,7 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
     }
 
     if (RULE == "unset") {
-        std::erase_if(m_dWindowRules, [&] (const SWindowRule& other) {
-            return other.szValue == VALUE;
-        });
+        std::erase_if(m_dWindowRules, [&](const SWindowRule& other) { return other.szValue == VALUE; });
         return;
     }
 
@@ -792,8 +758,8 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
 }
 
 void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto RULE = value.substr(0, value.find_first_of(","));
-    const auto VALUE = value.substr(value.find_first_of(",") + 1);
+    const auto RULE  = value.substr(0, value.find_first_of(','));
+    const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
     if (!windowRuleValid(RULE) && RULE != "unset") {
         Debug::log(ERR, "Invalid rulev2 found: %s", RULE.c_str());
@@ -803,20 +769,19 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 
     // now we estract shit from the value
     SWindowRule rule;
-    rule.v2 = true;
-    rule.szRule = RULE;
+    rule.v2      = true;
+    rule.szRule  = RULE;
     rule.szValue = VALUE;
 
-    const auto TITLEPOS = VALUE.find("title:");
-    const auto CLASSPOS = VALUE.find("class:");
-    const auto X11POS   = VALUE.find("xwayland:");
-    const auto FLOATPOS = VALUE.find("floating:");
+    const auto TITLEPOS      = VALUE.find("title:");
+    const auto CLASSPOS      = VALUE.find("class:");
+    const auto X11POS        = VALUE.find("xwayland:");
+    const auto FLOATPOS      = VALUE.find("floating:");
     const auto FULLSCREENPOS = VALUE.find("fullscreen:");
-    const auto PINNEDPOS = VALUE.find("pinned:");
+    const auto PINNEDPOS     = VALUE.find("pinned:");
 
-    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos &&
-        X11POS == std::string::npos && FLOATPOS == std::string::npos &&
-        FULLSCREENPOS == std::string::npos && PINNEDPOS == std::string::npos) {
+    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos &&
+        PINNEDPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: %s", VALUE.c_str());
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -827,12 +792,18 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         result = VALUE.substr(pos);
 
         size_t min = 999999;
-        if (TITLEPOS > pos && TITLEPOS < min) min = TITLEPOS;
-        if (CLASSPOS > pos && CLASSPOS < min) min = CLASSPOS;
-        if (X11POS > pos && X11POS < min) min = X11POS;
-        if (FLOATPOS > pos && FLOATPOS < min) min = FLOATPOS;
-        if (FULLSCREENPOS > pos && FULLSCREENPOS < min) min = FULLSCREENPOS;
-        if (PINNEDPOS > pos && PINNEDPOS < min) min = PINNEDPOS;
+        if (TITLEPOS > pos && TITLEPOS < min)
+            min = TITLEPOS;
+        if (CLASSPOS > pos && CLASSPOS < min)
+            min = CLASSPOS;
+        if (X11POS > pos && X11POS < min)
+            min = X11POS;
+        if (FLOATPOS > pos && FLOATPOS < min)
+            min = FLOATPOS;
+        if (FULLSCREENPOS > pos && FULLSCREENPOS < min)
+            min = FULLSCREENPOS;
+        if (PINNEDPOS > pos && PINNEDPOS < min)
+            min = PINNEDPOS;
 
         result = result.substr(0, min - pos);
 
@@ -909,7 +880,7 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
     if (value.find("remove,") == 0) {
         const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
-        std::erase_if(m_dBlurLSNamespaces, [&] (const auto& other) { return other == TOREMOVE; });
+        std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; });
         return;
     }
 
@@ -952,7 +923,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
     configPaths.push_back(value);
 
     struct stat fileStat;
-    int err = stat(value.c_str(), &fileStat);
+    int         err = stat(value.c_str(), &fileStat);
     if (err != 0) {
         Debug::log(WARN, "Error at ticking config at %s, error %i: %s", value.c_str(), err, strerror(err));
         return;
@@ -962,8 +933,8 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
 
     std::ifstream ifs;
     ifs.open(value);
-    std::string line = "";
-    int linenum = 1;
+    std::string line    = "";
+    int         linenum = 1;
     if (ifs.is_open()) {
         while (std::getline(ifs, line)) {
             // Read line by line.
@@ -1003,7 +974,7 @@ void CConfigManager::handleBindWS(const std::string& command, const std::string&
 
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
     if (dynamic) {
-        parseError = "";
+        parseError      = "";
         currentCategory = "";
     }
 
@@ -1019,19 +990,30 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         if (isFirstLaunch) {
             firstExecRequests.push_back(VALUE);
         }
-    }
-    else if (COMMAND == "monitor") handleMonitor(COMMAND, VALUE);
-    else if (COMMAND.find("bind") == 0) handleBind(COMMAND, VALUE);
-    else if (COMMAND == "unbind") handleUnbind(COMMAND, VALUE);
-    else if (COMMAND == "workspace") handleDefaultWorkspace(COMMAND, VALUE);
-    else if (COMMAND == "windowrule") handleWindowRule(COMMAND, VALUE);
-    else if (COMMAND == "windowrulev2") handleWindowRuleV2(COMMAND, VALUE);
-    else if (COMMAND == "bezier") handleBezier(COMMAND, VALUE);
-    else if (COMMAND == "animation") handleAnimation(COMMAND, VALUE);
-    else if (COMMAND == "source") handleSource(COMMAND, VALUE);
-    else if (COMMAND == "submap") handleSubmap(COMMAND, VALUE);
-    else if (COMMAND == "blurls") handleBlurLS(COMMAND, VALUE);
-    else if (COMMAND == "wsbind") handleBindWS(COMMAND, VALUE);
+    } else if (COMMAND == "monitor")
+        handleMonitor(COMMAND, VALUE);
+    else if (COMMAND.find("bind") == 0)
+        handleBind(COMMAND, VALUE);
+    else if (COMMAND == "unbind")
+        handleUnbind(COMMAND, VALUE);
+    else if (COMMAND == "workspace")
+        handleDefaultWorkspace(COMMAND, VALUE);
+    else if (COMMAND == "windowrule")
+        handleWindowRule(COMMAND, VALUE);
+    else if (COMMAND == "windowrulev2")
+        handleWindowRuleV2(COMMAND, VALUE);
+    else if (COMMAND == "bezier")
+        handleBezier(COMMAND, VALUE);
+    else if (COMMAND == "animation")
+        handleAnimation(COMMAND, VALUE);
+    else if (COMMAND == "source")
+        handleSource(COMMAND, VALUE);
+    else if (COMMAND == "submap")
+        handleSubmap(COMMAND, VALUE);
+    else if (COMMAND == "blurls")
+        handleBlurLS(COMMAND, VALUE);
+    else if (COMMAND == "wsbind")
+        handleBindWS(COMMAND, VALUE);
     else {
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
         needsLayoutRecalc = 2;
@@ -1039,7 +1021,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     if (dynamic) {
         std::string retval = parseError;
-        parseError = "";
+        parseError         = "";
 
         // invalidate layouts if they changed
         if (needsLayoutRecalc) {
@@ -1064,7 +1046,7 @@ void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equals
     while (dollarPlace != std::string::npos) {
 
         const auto STRAFTERDOLLAR = line.substr(dollarPlace + 1);
-        for (auto&[var, value] : configDynamicVars) {
+        for (auto& [var, value] : configDynamicVars) {
             if (STRAFTERDOLLAR.find(var) == 0) {
                 line.replace(dollarPlace, var.length() + 1, value);
                 break;
@@ -1110,8 +1092,7 @@ void CConfigManager::parseLine(std::string& line) {
         if (currentCategory.length() != 0) {
             currentCategory.push_back(':');
             currentCategory.append(cat);
-        }
-        else {
+        } else {
             currentCategory = cat;
         }
 
@@ -1141,7 +1122,7 @@ void CConfigManager::parseLine(std::string& line) {
         return;
 
     const auto COMMAND = removeBeginEndSpacesTabs(line.substr(0, EQUALSPLACE));
-    const auto VALUE = removeBeginEndSpacesTabs(line.substr(EQUALSPLACE + 1));
+    const auto VALUE   = removeBeginEndSpacesTabs(line.substr(EQUALSPLACE + 1));
     //
 
     parseKeyword(COMMAND, VALUE);
@@ -1149,8 +1130,8 @@ void CConfigManager::parseLine(std::string& line) {
 
 void CConfigManager::loadConfigLoadVars() {
     Debug::log(LOG, "Reloading the config!");
-    parseError = "";       // reset the error
-    currentCategory = "";  // reset the category
+    parseError      = ""; // reset the error
+    currentCategory = ""; // reset the category
 
     // reset all vars before loading
     setDefaultVars();
@@ -1170,8 +1151,8 @@ void CConfigManager::loadConfigLoadVars() {
 
     std::string CONFIGPATH;
 
-    static const char* const ENVHOME = getenv("HOME");
-    const std::string CONFIGPARENTPATH = ENVHOME + (std::string) "/.config/hypr/";
+    static const char* const ENVHOME          = getenv("HOME");
+    const std::string        CONFIGPARENTPATH = ENVHOME + (std::string) "/.config/hypr/";
 
     if (g_pCompositor->explicitConfigPath == "") {
         CONFIGPATH = CONFIGPARENTPATH + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
@@ -1185,17 +1166,17 @@ void CConfigManager::loadConfigLoadVars() {
     ifs.open(CONFIGPATH);
 
     if (!ifs.good()) {
-        if(g_pCompositor->explicitConfigPath == "") {
+        if (g_pCompositor->explicitConfigPath == "") {
             Debug::log(WARN, "Config reading error. (No file? Attempting to generate, backing up old one if exists)");
             try {
                 std::filesystem::rename(CONFIGPATH, CONFIGPATH + ".backup");
-            } catch(...) { /* Probably doesn't exist */}
+            } catch (...) { /* Probably doesn't exist */
+            }
 
             try {
                 if (!std::filesystem::is_directory(CONFIGPARENTPATH))
                     std::filesystem::create_directories(CONFIGPARENTPATH);
-            }
-            catch (...) {
+            } catch (...) {
                 parseError = "Broken config file! (Could not create directory)";
                 return;
             }
@@ -1216,8 +1197,8 @@ void CConfigManager::loadConfigLoadVars() {
         }
     }
 
-    std::string line = "";
-    int linenum = 1;
+    std::string line    = "";
+    int         linenum = 1;
     if (ifs.is_open()) {
         while (std::getline(ifs, line)) {
             // Read line by line.
@@ -1261,7 +1242,8 @@ void CConfigManager::loadConfigLoadVars() {
     if (parseError != "")
         g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(255, 50, 50, 255));
     else if (configValues["autogenerated"].intValue == 1)
-        g_pHyprError->queueCreate("Warning: You're using an autogenerated config! (config file: " + CONFIGPATH + " )\nSUPER+Q -> kitty\nSUPER+M -> exit Hyprland", CColor(255, 255, 70, 255));
+        g_pHyprError->queueCreate("Warning: You're using an autogenerated config! (config file: " + CONFIGPATH + " )\nSUPER+Q -> kitty\nSUPER+M -> exit Hyprland",
+                                  CColor(255, 255, 70, 255));
     else
         g_pHyprError->destroy();
 
@@ -1308,7 +1290,7 @@ void CConfigManager::tick() {
 
     for (auto& cf : configPaths) {
         struct stat fileStat;
-        int err = stat(cf.c_str(), &fileStat);
+        int         err = stat(cf.c_str(), &fileStat);
         if (err != 0) {
             Debug::log(WARN, "Error at ticking config at %s, error %i: %s", cf.c_str(), err, strerror(err));
             return;
@@ -1316,7 +1298,7 @@ void CConfigManager::tick() {
 
         // check if we need to reload cfg
         if (fileStat.st_mtime != configModifyTimes[cf] || m_bForceReload) {
-            parse = true;
+            parse                 = true;
             configModifyTimes[cf] = fileStat.st_mtime;
         }
     }
@@ -1328,7 +1310,7 @@ void CConfigManager::tick() {
     }
 }
 
-std::mutex configmtx;
+std::mutex   configmtx;
 SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
     std::lock_guard<std::mutex> lg(configmtx);
 
@@ -1374,7 +1356,7 @@ float CConfigManager::getFloat(const std::string& v) {
 }
 
 std::string CConfigManager::getString(const std::string& v) {
-    const auto VAL = getConfigValueSafe(v).strValue;
+    auto VAL = getConfigValueSafe(v).strValue;
 
     if (VAL == STRVAL_EMPTY)
         return "";
@@ -1391,7 +1373,7 @@ float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& 
 }
 
 std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v) {
-    const auto VAL = getConfigValueSafeDevice(dev, v).strValue;
+    auto VAL = getConfigValueSafeDevice(dev, v).strValue;
 
     if (VAL == STRVAL_EMPTY)
         return "";
@@ -1399,23 +1381,25 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
     return VAL;
 }
 
-void CConfigManager::setInt(std::string v, int val) {
+void CConfigManager::setInt(const std::string& v, int val) {
     configValues[v].intValue = val;
 }
 
-void CConfigManager::setFloat(std::string v, float val) {
+void CConfigManager::setFloat(const std::string& v, float val) {
     configValues[v].floatValue = val;
 }
 
-void CConfigManager::setString(std::string v, std::string val) {
+void CConfigManager::setString(const std::string& v, const std::string& val) {
     configValues[v].strValue = val;
 }
 
-SMonitorRule CConfigManager::getMonitorRuleFor(std::string name, std::string displayName) {
+SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const std::string& displayName) {
     SMonitorRule* found = nullptr;
 
     for (auto& r : m_dMonitorRules) {
-        if (r.name == name || (r.name.find("desc:") == 0 && (r.name.substr(5) == displayName || r.name.substr(5) == removeBeginEndSpacesTabs(displayName.substr(0, displayName.find_first_of('(')))))) {
+        if (r.name == name ||
+            (r.name.find("desc:") == 0 &&
+             (r.name.substr(5) == displayName || r.name.substr(5) == removeBeginEndSpacesTabs(displayName.substr(0, displayName.find_first_of('(')))))) {
             found = &r;
             break;
         }
@@ -1447,7 +1431,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 
     std::vector<SWindowRule> returns;
 
-    std::string title = g_pXWaylandManager->getTitle(pWindow);
+    std::string title      = g_pXWaylandManager->getTitle(pWindow);
     std::string appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
 
     Debug::log(LOG, "Searching for matching rules for %s (title: %s)", appidclass.c_str(), title.c_str());
@@ -1519,8 +1503,8 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         returns.push_back(rule);
     }
 
-    const uint64_t PID = pWindow->getPID();
-    bool anyExecFound = false;
+    const uint64_t PID          = pWindow->getPID();
+    bool           anyExecFound = false;
 
     for (auto& er : execRequestedRules) {
         if (er.iPid == PID) {
@@ -1585,11 +1569,11 @@ void CConfigManager::performMonitorReload() {
     m_bWantsMonitorReload = false;
 }
 
-SConfigValue* CConfigManager::getConfigValuePtr(std::string val) {
+SConfigValue* CConfigManager::getConfigValuePtr(const std::string& val) {
     return &configValues[val];
 }
 
-SConfigValue* CConfigManager::getConfigValuePtrSafe(std::string val) {
+SConfigValue* CConfigManager::getConfigValuePtrSafe(const std::string& val) {
     const auto IT = configValues.find(val);
 
     if (IT == configValues.end())
@@ -1622,14 +1606,14 @@ void CConfigManager::ensureDPMS() {
         auto rule = getMonitorRuleFor(rm->szName, rm->output->description ? rm->output->description : "");
 
         if (rule.disabled == rm->m_bEnabled) {
-	        rm->m_pThisWrap = &rm;
+            rm->m_pThisWrap = &rm;
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);
         }
     }
 }
 
 void CConfigManager::ensureVRR(CMonitor* pMonitor) {
-    static auto *const PNOVRR = &getConfigValuePtr("misc:no_vfr")->intValue;
+    static auto* const PNOVRR = &getConfigValuePtr("misc:no_vfr")->intValue;
 
     auto ensureVRRForDisplay = [&](CMonitor* m) -> void {
         if (!*PNOVRR && !m->vrrActive) {
@@ -1682,8 +1666,8 @@ void CConfigManager::addParseError(const std::string& err) {
     g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(255, 50, 50, 255));
 }
 
-CMonitor* CConfigManager::getBoundMonitorForWS(std::string wsname) {
-    for (auto&[ws, mon] : boundWorkspaces) {
+CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
+    for (auto& [ws, mon] : boundWorkspaces) {
         const auto WSNAME = ws.find("name:") == 0 ? ws.substr(5) : ws;
 
         if (WSNAME == wsname) {
@@ -1694,7 +1678,7 @@ CMonitor* CConfigManager::getBoundMonitorForWS(std::string wsname) {
     return nullptr;
 }
 
-std::string CConfigManager::getBoundMonitorStringForWS(std::string wsname) {
+std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname) {
     for (auto& [ws, mon] : boundWorkspaces) {
         const auto WSNAME = ws.find("name:") == 0 ? ws.substr(5) : ws;
 
@@ -1706,7 +1690,7 @@ std::string CConfigManager::getBoundMonitorStringForWS(std::string wsname) {
     return "";
 }
 
-void CConfigManager::addExecRule(SExecRequestedRule rule) {
+void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
     execRequestedRules.push_back(rule);
 }
 

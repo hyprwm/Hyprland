@@ -5,12 +5,12 @@
 #include <fstream>
 #include <iostream>
 
-void Debug::init(std::string IS) {
+void Debug::init(const std::string& IS) {
     logFile = "/tmp/hypr/" + IS + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log");
 }
 
 void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {
-    char* outputStr = nullptr;
+    char*         outputStr = nullptr;
 
     std::ofstream ofs;
     ofs.open(logFile, std::ios::out | std::ios::app);
@@ -35,28 +35,17 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
     ofs.open(logFile, std::ios::out | std::ios::app);
 
     switch (level) {
-        case LOG:
-            ofs << "[LOG] ";
-            break;
-        case WARN:
-            ofs << "[WARN] ";
-            break;
-        case ERR:
-            ofs << "[ERR] ";
-            break;
-        case CRIT:
-            ofs << "[CRITICAL] ";
-            break;
-        case INFO:
-            ofs << "[INFO] ";
-            break;
-        default:
-            break;
+        case LOG: ofs << "[LOG] "; break;
+        case WARN: ofs << "[WARN] "; break;
+        case ERR: ofs << "[ERR] "; break;
+        case CRIT: ofs << "[CRITICAL] "; break;
+        case INFO: ofs << "[INFO] "; break;
+        default: break;
     }
 
     // print date and time to the ofs
     if (disableTime && !*disableTime) {
-        auto timet = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        auto       timet  = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         const auto MILLIS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 1000;
 
         ofs << std::put_time(std::localtime(&timet), "[%H:%M:%S:");
@@ -71,7 +60,7 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
         ofs << "] ";
     }
 
-    char* outputStr = nullptr;
+    char*   outputStr = nullptr;
 
     va_list args;
     va_start(args, fmt);

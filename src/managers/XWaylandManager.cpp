@@ -18,13 +18,11 @@ CHyprXWaylandManager::CHyprXWaylandManager() {
 
     Debug::log(LOG, "CHyprXWaylandManager started on display %s", m_sWLRXWayland->display_name);
 #else
-    unsetenv("DISPLAY");  // unset DISPLAY so that X11 apps do not try to start on a different/invalid DISPLAY
+    unsetenv("DISPLAY"); // unset DISPLAY so that X11 apps do not try to start on a different/invalid DISPLAY
 #endif
 }
 
-CHyprXWaylandManager::~CHyprXWaylandManager() {
-
-}
+CHyprXWaylandManager::~CHyprXWaylandManager() {}
 
 wlr_surface* CHyprXWaylandManager::getWindowSurface(CWindow* pWindow) {
     if (pWindow->m_bIsX11)
@@ -48,7 +46,6 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
         if (activate)
             wlr_xwayland_surface_restack(wlr_xwayland_surface_from_wlr_surface(pSurface), NULL, XCB_STACK_MODE_ABOVE);
     }
-
 }
 
 void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
@@ -58,14 +55,13 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
             wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
             wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
         }
-        
+
         wlr_xwayland_surface_activate(pWindow->m_uSurface.xwayland, activate);
-    }
-    else
+    } else
         wlr_xdg_toplevel_set_activated(pWindow->m_uSurface.xdg->toplevel, activate);
 
     if (activate) {
-        g_pCompositor->m_pLastFocus = getWindowSurface(pWindow);
+        g_pCompositor->m_pLastFocus  = getWindowSurface(pWindow);
         g_pCompositor->m_pLastWindow = pWindow;
     }
 
@@ -78,14 +74,14 @@ void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox)
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
 
         if (SIZEHINTS && pWindow->m_iX11Type != 2) {
-            pbox->x = SIZEHINTS->x;
-            pbox->y = SIZEHINTS->y;
-            pbox->width = SIZEHINTS->width;
+            pbox->x      = SIZEHINTS->x;
+            pbox->y      = SIZEHINTS->y;
+            pbox->width  = SIZEHINTS->width;
             pbox->height = SIZEHINTS->height;
         } else {
-            pbox->x = pWindow->m_uSurface.xwayland->x;
-            pbox->y = pWindow->m_uSurface.xwayland->y;
-            pbox->width = pWindow->m_uSurface.xwayland->width;
+            pbox->x      = pWindow->m_uSurface.xwayland->x;
+            pbox->y      = pWindow->m_uSurface.xwayland->y;
+            pbox->width  = pWindow->m_uSurface.xwayland->width;
             pbox->height = pWindow->m_uSurface.xwayland->height;
         }
     } else {
@@ -106,9 +102,7 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
         } else {
             return "";
         }
-    } catch (...) {
-        Debug::log(ERR, "Error in getTitle (probably null title)");
-    }
+    } catch (...) { Debug::log(ERR, "Error in getTitle (probably null title)"); }
 
     return "";
 }
@@ -129,9 +123,7 @@ std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
         } else {
             return "";
         }
-    } catch (std::logic_error& e) {
-        Debug::log(ERR, "Error in getAppIDClass: %s", e.what());
-    }
+    } catch (std::logic_error& e) { Debug::log(ERR, "Error in getAppIDClass: %s", e.what()); }
 
     return "";
 }
@@ -146,11 +138,12 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
 
 void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, const Vector2D& size, bool force) {
 
-    if (!force && ((pWindow->m_vReportedSize == size && pWindow->m_vRealPosition.vec() == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
+    if (!force &&
+        ((pWindow->m_vReportedSize == size && pWindow->m_vRealPosition.vec() == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
         return;
 
     pWindow->m_vReportedPosition = pWindow->m_vRealPosition.vec();
-    pWindow->m_vReportedSize = size;
+    pWindow->m_vReportedSize     = size;
 
     if (pWindow->m_bIsX11)
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, size.x, size.y);
@@ -173,18 +166,23 @@ wlr_surface* CHyprXWaylandManager::surfaceAt(CWindow* pWindow, const Vector2D& c
 bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
     if (pWindow->m_bIsX11) {
         for (size_t i = 0; i < pWindow->m_uSurface.xwayland->window_type_len; i++)
-            if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
-                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLBAR"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_UTILITY"] ||
-                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
-                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
-                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"])
-                    {
-                        if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"])
-                            pWindow->m_bX11ShouldntFocus = true;
+            if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLBAR"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_UTILITY"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
+                pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"]) {
+                    
+                if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
+                    pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"])
+                    pWindow->m_bX11ShouldntFocus = true;
 
-                        pWindow->m_bNoInitialFocus = true;
-                        return true;
-                    }
+                pWindow->m_bNoInitialFocus = true;
+                return true;
+            }
 
         if (pWindow->m_uSurface.xwayland->role) {
             try {
@@ -192,9 +190,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                 if (winrole.contains("pop-up") || winrole.contains("task_dialog")) {
                     return true;
                 }
-            } catch (std::exception& e) {
-                Debug::log(ERR, "Error in shouldBeFloated, winrole threw %s", e.what());
-            }
+            } catch (std::exception& e) { Debug::log(ERR, "Error in shouldBeFloated, winrole threw %s", e.what()); }
         }
 
         if (pWindow->m_uSurface.xwayland->modal) {
@@ -212,7 +208,8 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
     } else {
         const auto PSTATE = &pWindow->m_uSurface.xdg->toplevel->current;
 
-        if ((PSTATE->min_width != 0 && PSTATE->min_height != 0 && (PSTATE->min_width == PSTATE->max_width || PSTATE->min_height == PSTATE->max_height)) || pWindow->m_uSurface.xdg->toplevel->parent)
+        if ((PSTATE->min_width != 0 && PSTATE->min_height != 0 && (PSTATE->min_width == PSTATE->max_width || PSTATE->min_height == PSTATE->max_height)) ||
+            pWindow->m_uSurface.xdg->toplevel->parent)
             return true;
     }
 
@@ -233,9 +230,12 @@ void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {
         return;
 
     for (size_t i = 0; i < pWindow->m_uSurface.xwayland->window_type_len; i++) {
-        if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_NOTIFICATION"] ||
-            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"] ||
-            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] || pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
+        if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
+            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_NOTIFICATION"] ||
+            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
+            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"] ||
+            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] ||
+            pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
             pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"]) {
 
             pWindow->m_bX11DoesntWantBorders = true;
@@ -263,11 +263,12 @@ Vector2D CHyprXWaylandManager::getMaxSizeForWindow(CWindow* pWindow) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return Vector2D(99999, 99999);
 
-    if ((pWindow->m_bIsX11 && !pWindow->m_uSurface.xwayland->size_hints) || (!pWindow->m_bIsX11 && !pWindow->m_uSurface.xdg->toplevel) || pWindow->m_sAdditionalConfigData.noMaxSize)
+    if ((pWindow->m_bIsX11 && !pWindow->m_uSurface.xwayland->size_hints) || (!pWindow->m_bIsX11 && !pWindow->m_uSurface.xdg->toplevel) ||
+        pWindow->m_sAdditionalConfigData.noMaxSize)
         return Vector2D(99999, 99999);
 
-    auto MAXSIZE = pWindow->m_bIsX11 ? Vector2D(pWindow->m_uSurface.xwayland->size_hints->max_width, pWindow->m_uSurface.xwayland->size_hints->max_height)
-                                     : Vector2D(pWindow->m_uSurface.xdg->toplevel->current.max_width, pWindow->m_uSurface.xdg->toplevel->current.max_height);
+    auto MAXSIZE = pWindow->m_bIsX11 ? Vector2D(pWindow->m_uSurface.xwayland->size_hints->max_width, pWindow->m_uSurface.xwayland->size_hints->max_height) :
+                                       Vector2D(pWindow->m_uSurface.xdg->toplevel->current.max_width, pWindow->m_uSurface.xdg->toplevel->current.max_height);
 
     if (MAXSIZE.x < 5)
         MAXSIZE.x = 99999;

@@ -10,7 +10,7 @@ CTexture::CTexture(wlr_texture* tex) {
     wlr_gles2_texture_get_attribs(tex, &attrs);
 
     m_iTarget = attrs.target;
-    m_iTexID = attrs.tex;
+    m_iTexID  = attrs.tex;
 
     if (m_iTarget == GL_TEXTURE_2D) {
         m_iType = attrs.has_alpha ? TEXTURE_RGBA : TEXTURE_RGBX;

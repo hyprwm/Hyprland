@@ -17,7 +17,7 @@
 
 CMonitor* pMostHzMonitor = nullptr;
 
-void Events::listener_change(wl_listener* listener, void* data) {
+void      Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
 
@@ -29,14 +29,14 @@ void Events::listener_change(wl_listener* listener, void* data) {
         wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m->output, &BOX);
 
         //m->vecSize.x = BOX.width;
-       // m->vecSize.y = BOX.height;
+        // m->vecSize.y = BOX.height;
         m->vecPosition.x = BOX.x;
         m->vecPosition.y = BOX.y;
 
         CONFIGHEAD->state.enabled = m->output->enabled;
-        CONFIGHEAD->state.mode = m->output->current_mode;
-        CONFIGHEAD->state.x = m->vecPosition.x;
-        CONFIGHEAD->state.y = m->vecPosition.y;
+        CONFIGHEAD->state.mode    = m->output->current_mode;
+        CONFIGHEAD->state.x       = m->vecPosition.x;
+        CONFIGHEAD->state.y       = m->vecPosition.y;
     }
 
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
@@ -75,7 +75,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     const auto PNEWMONITOR = PNEWMONITORWRAP->get();
 
-    PNEWMONITOR->output = OUTPUT;
+    PNEWMONITOR->output      = OUTPUT;
     PNEWMONITOR->m_pThisWrap = PNEWMONITORWRAP;
 
     PNEWMONITOR->onConnect(false);
@@ -86,7 +86,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // ready to process cuz we have a monitor
     if (PNEWMONITOR->m_bEnabled) {
         g_pCompositor->m_bReadyToProcess = true;
-        g_pCompositor->m_bUnsafeState = false;
+        g_pCompositor->m_bUnsafeState    = false;
     }
 
     g_pConfigManager->m_bWantsMonitorReload = true;
@@ -104,17 +104,17 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (!PMONITOR->m_bEnabled)
         return;
 
-    static std::chrono::high_resolution_clock::time_point startRender = std::chrono::high_resolution_clock::now();
+    static std::chrono::high_resolution_clock::time_point startRender        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
-    static std::chrono::high_resolution_clock::time_point endRenderOverlay = std::chrono::high_resolution_clock::now();
+    static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
 
-    static auto *const PDEBUGOVERLAY = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
-    static auto *const PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("debug:damage_tracking")->intValue;
-    static auto *const PDAMAGEBLINK = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
-    static auto *const PNOVFR = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
-    static auto *const PNODIRECTSCANOUT = &g_pConfigManager->getConfigValuePtr("misc:no_direct_scanout")->intValue;
+    static auto* const                                    PDEBUGOVERLAY       = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
+    static auto* const                                    PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("debug:damage_tracking")->intValue;
+    static auto* const                                    PDAMAGEBLINK        = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
+    static auto* const                                    PNOVFR              = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
+    static auto* const                                    PNODIRECTSCANOUT    = &g_pConfigManager->getConfigValuePtr("misc:no_direct_scanout")->intValue;
 
-    static int damageBlinkCleanup = 0; // because double-buffered
+    static int                                            damageBlinkCleanup = 0; // because double-buffered
 
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
@@ -140,16 +140,17 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // checks //
-    if (PMONITOR->ID == pMostHzMonitor->ID || !*PNOVFR) {  // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
+    if (PMONITOR->ID == pMostHzMonitor->ID ||
+        !*PNOVFR) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
 
-        g_pConfigManager->dispatchExecOnce();  // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
+        g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
 
         if (g_pConfigManager->m_bWantsMonitorReload)
             g_pConfigManager->performMonitorReload();
 
-        g_pHyprRenderer->ensureCursorRenderingMode();  // so that the cursor gets hidden/shown if the user requested timeouts
+        g_pHyprRenderer->ensureCursorRenderingMode(); // so that the cursor gets hidden/shown if the user requested timeouts
     }
     //       //
 
@@ -173,7 +174,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     // check the damage
     pixman_region32_t damage;
-    bool hasChanged;
+    bool              hasChanged;
     pixman_region32_init(&damage);
 
     if (*PDAMAGETRACKINGMODE == -1) {
@@ -183,7 +184,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     g_pHyprOpenGL->preRender(PMONITOR);
 
-    if (!wlr_output_damage_attach_render(PMONITOR->damage, &hasChanged, &damage)){
+    if (!wlr_output_damage_attach_render(PMONITOR->damage, &hasChanged, &damage)) {
         Debug::log(ERR, "Couldn't attach render to display %s ???", PMONITOR->szName.c_str());
         return;
     }
@@ -202,24 +203,25 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0 || damageBlinkCleanup > 0 || PMONITOR->isMirror() /* why??? */) {
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || PMONITOR->forceFullFrames > 0 || damageBlinkCleanup > 0 ||
+        PMONITOR->isMirror() /* why??? */) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)PMONITOR->vecTransformedSize.x * 10, (int)PMONITOR->vecTransformedSize.y * 10); // wot?
 
         pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
     } else {
-        static auto *const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
+        static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
         // if we use blur we need to expand the damage for proper blurring
         if (*PBLURENABLED == 1) {
             // TODO: can this be optimized?
-            static auto *const PBLURSIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
-            static auto *const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
-            const auto BLURRADIUS = *PBLURSIZE * pow(2, *PBLURPASSES);  // is this 2^pass? I don't know but it works... I think.
+            static auto* const PBLURSIZE   = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
+            static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
+            const auto         BLURRADIUS  = *PBLURSIZE * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
 
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
 
             // now, prep the damage, get the extended damage region
-            wlr_region_expand(&damage, &damage, BLURRADIUS);                                                   // expand for proper blurring
+            wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring
         } else {
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
         }
@@ -231,7 +233,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             PMONITOR->forceFullFrames = 0;
     }
 
-
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.
 
@@ -241,7 +242,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pHyprOpenGL->renderMirrored();
     } else {
         g_pHyprOpenGL->clear(CColor(17, 17, 17, 255));
-        g_pHyprOpenGL->clearWithTex();  // will apply the hypr "wallpaper"
+        g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
         g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
 
@@ -318,7 +319,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 void Events::listener_monitorDestroy(void* owner, void* data) {
     const auto OUTPUT = (wlr_output*)data;
 
-    CMonitor* pMonitor = nullptr;
+    CMonitor*  pMonitor = nullptr;
 
     for (auto& m : g_pCompositor->m_vRealMonitors) {
         if (m->output == OUTPUT) {
@@ -338,16 +339,16 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     if (!g_pCompositor->m_bUnsafeState) {
         Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->output->name);
 
-        g_pCompositor->m_vRealMonitors.erase(std::remove_if(g_pCompositor->m_vRealMonitors.begin(), g_pCompositor->m_vRealMonitors.end(), [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; }));
+        std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
 
         if (pMostHzMonitor == pMonitor) {
-            int mostHz = 0;
+            int       mostHz         = 0;
             CMonitor* pMonitorMostHz = nullptr;
 
             for (auto& m : g_pCompositor->m_vMonitors) {
                 if (m->refreshRate > mostHz) {
                     pMonitorMostHz = m.get();
-                    mostHz = m->refreshRate;
+                    mostHz         = m->refreshRate;
                 }
             }
 
@@ -358,7 +359,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
 void Events::listener_monitorStateRequest(void* owner, void* data) {
     const auto PMONITOR = (CMonitor*)owner;
-    const auto E = (wlr_output_event_request_state*)data;
+    const auto E        = (wlr_output_event_request_state*)data;
 
     wlr_output_commit_state(PMONITOR->output, E->state);
 }

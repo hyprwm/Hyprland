@@ -3,7 +3,7 @@
 #include <math.h>
 
 class Vector2D {
-   public:
+  public:
     Vector2D(double, double);
     Vector2D();
     ~Vector2D();
@@ -12,18 +12,18 @@ class Vector2D {
     double y = 0;
 
     // returns the scale
-    double normalize();
+    double   normalize();
 
-    Vector2D operator+(const Vector2D a) const {
+    Vector2D operator+(const Vector2D& a) const {
         return Vector2D(this->x + a.x, this->y + a.y);
     }
-    Vector2D operator-(const Vector2D a) const {
+    Vector2D operator-(const Vector2D& a) const {
         return Vector2D(this->x - a.x, this->y - a.y);
     }
-    Vector2D operator*(const float a) const {
+    Vector2D operator*(const float& a) const {
         return Vector2D(this->x * a, this->y * a);
     }
-    Vector2D operator/(const float a) const {
+    Vector2D operator/(const float& a) const {
         return Vector2D(this->x / a, this->y / a);
     }
 

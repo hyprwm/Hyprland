@@ -16,13 +16,13 @@ CWindow::CWindow() {
 
 CWindow::~CWindow() {
     if (g_pCompositor->isWindowActive(this)) {
-        g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastFocus  = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
     }
 }
 
 wlr_box CWindow::getFullWindowBoundingBox() {
-    static auto *const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const       PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
     SWindowDecorationExtents maxExtents = {{*PBORDERSIZE + 2, *PBORDERSIZE + 2}, {*PBORDERSIZE + 2, *PBORDERSIZE + 2}};
 
@@ -44,10 +44,8 @@ wlr_box CWindow::getFullWindowBoundingBox() {
     }
 
     // Add extents to the real base BB and return
-    wlr_box finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x,
-                        m_vRealPosition.vec().y - maxExtents.topLeft.y,
-                        m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x,
-                        m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
+    wlr_box finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
+                        m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
 
     return finalBox;
 }
@@ -56,11 +54,11 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-    auto POS = m_vPosition;
-    auto SIZE = m_vSize;
+    auto       POS  = m_vPosition;
+    auto       SIZE = m_vSize;
 
     if (m_bIsFullscreen) {
-        POS = PMONITOR->vecPosition;
+        POS  = PMONITOR->vecPosition;
         SIZE = PMONITOR->vecSize;
 
         return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
@@ -135,25 +133,28 @@ void CWindow::createToplevelHandle() {
     wlr_foreign_toplevel_handle_v1_set_fullscreen(m_phForeignToplevel, false);
 
     // handle events
-    hyprListener_toplevelActivate.initCallback(&m_phForeignToplevel->events.request_activate, [&](void* owner, void* data) {
+    hyprListener_toplevelActivate.initCallback(
+        &m_phForeignToplevel->events.request_activate,
+        [&](void* owner, void* data) {
+            g_pCompositor->focusWindow(this);
+        },
+        this, "Toplevel");
 
-        g_pCompositor->focusWindow(this);
+    hyprListener_toplevelFullscreen.initCallback(
+        &m_phForeignToplevel->events.request_fullscreen,
+        [&](void* owner, void* data) {
+            const auto EV = (wlr_foreign_toplevel_handle_v1_fullscreen_event*)data;
 
-    }, this, "Toplevel");
+            g_pCompositor->setWindowFullscreen(this, EV->fullscreen, FULLSCREEN_FULL);
+        },
+        this, "Toplevel");
 
-    hyprListener_toplevelFullscreen.initCallback(&m_phForeignToplevel->events.request_fullscreen, [&](void* owner, void* data) {
-
-        const auto EV = (wlr_foreign_toplevel_handle_v1_fullscreen_event*)data;
-
-        g_pCompositor->setWindowFullscreen(this, EV->fullscreen, FULLSCREEN_FULL);
-
-    }, this, "Toplevel");
-
-    hyprListener_toplevelClose.initCallback(&m_phForeignToplevel->events.request_close, [&](void* owner, void* data) {
-
-        g_pCompositor->closeWindow(this);
-
-    }, this, "Toplevel");
+    hyprListener_toplevelClose.initCallback(
+        &m_phForeignToplevel->events.request_close,
+        [&](void* owner, void* data) {
+            g_pCompositor->closeWindow(this);
+        },
+        this, "Toplevel");
 
     m_iLastToplevelMonitorID = m_iMonitorID;
 }
@@ -290,12 +291,8 @@ void CWindow::onMap() {
     m_cRealShadowColor.registerVar();
     m_fDimPercent.registerVar();
 
-    m_vRealSize.setCallbackOnEnd([&] (void* ptr) {
-        g_pHyprOpenGL->onWindowResizeEnd(this);
-    }, false);
-    m_vRealSize.setCallbackOnBegin([&] (void* ptr) {
-        g_pHyprOpenGL->onWindowResizeStart(this);
-    }, false);
+    m_vRealSize.setCallbackOnEnd([&](void* ptr) { g_pHyprOpenGL->onWindowResizeEnd(this); }, false);
+    m_vRealSize.setCallbackOnBegin([&](void* ptr) { g_pHyprOpenGL->onWindowResizeStart(this); }, false);
 }
 
 void CWindow::setHidden(bool hidden) {
@@ -323,9 +320,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
     } else if (r.szRule.find("rounding") == 0) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-        } catch (std::exception& e) {
-            Debug::log(ERR, "Rounding rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
-        }
+        } catch (std::exception& e) { Debug::log(ERR, "Rounding rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
     } else if (r.szRule.find("opacity") == 0) {
         try {
             CVarList vars(r.szRule, 0, ' ');
@@ -346,44 +341,40 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                     }
                 }
             }
-        } catch(std::exception& e) {
-            Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
-        }
-        } else if (r.szRule == "noanim") {
-            m_sAdditionalConfigData.forceNoAnims = true;
-        }  else if (r.szRule.find("animation") == 0) {
-            auto STYLE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
-            m_sAdditionalConfigData.animationStyle = STYLE;
-        } else if (r.szRule.find("bordercolor") == 0) {
+        } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
+    } else if (r.szRule == "noanim") {
+        m_sAdditionalConfigData.forceNoAnims = true;
+    } else if (r.szRule.find("animation") == 0) {
+        auto STYLE                             = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+        m_sAdditionalConfigData.animationStyle = STYLE;
+    } else if (r.szRule.find("bordercolor") == 0) {
         try {
             std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
 
             if (colorPart.contains(' ')) {
                 // we have a space, 2 values
-                m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
+                m_sSpecialRenderData.activeBorderColor   = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
                 m_sSpecialRenderData.inactiveBorderColor = configStringToInt(colorPart.substr(colorPart.find_first_of(' ') + 1));
             } else {
                 m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
             }
-        } catch(std::exception& e) {
-            Debug::log(ERR, "BorderColor rule \"%s\" failed with: %s", r.szRule.c_str(), e.what());
-        }
+        } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
     }
 }
 
 void CWindow::updateDynamicRules() {
-    m_sSpecialRenderData.activeBorderColor = -1;
+    m_sSpecialRenderData.activeBorderColor   = -1;
     m_sSpecialRenderData.inactiveBorderColor = -1;
-    m_sSpecialRenderData.alpha = 1.f;
-    m_sSpecialRenderData.alphaInactive = -1.f;
-    m_sAdditionalConfigData.forceNoBlur = false;
-    m_sAdditionalConfigData.forceNoBorder = false;
-    m_sAdditionalConfigData.forceNoShadow = false;
+    m_sSpecialRenderData.alpha               = 1.f;
+    m_sSpecialRenderData.alphaInactive       = -1.f;
+    m_sAdditionalConfigData.forceNoBlur      = false;
+    m_sAdditionalConfigData.forceNoBorder    = false;
+    m_sAdditionalConfigData.forceNoShadow    = false;
     if (!m_sAdditionalConfigData.forceOpaqueOverriden)
         m_sAdditionalConfigData.forceOpaque = false;
-    m_sAdditionalConfigData.forceNoAnims = false;
+    m_sAdditionalConfigData.forceNoAnims   = false;
     m_sAdditionalConfigData.animationStyle = "";
-    m_sAdditionalConfigData.rounding = -1;
+    m_sAdditionalConfigData.rounding       = -1;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {

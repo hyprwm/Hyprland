@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
 
     // parse some args
     std::string configPath;
-    bool ignoreSudo = false;
+    bool        ignoreSudo = false;
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--i-am-really-stupid"))
             ignoreSudo = true;
@@ -28,9 +28,9 @@ int main(int argc, char** argv) {
             configPath = std::string(argv[++i]);
             Debug::log(LOG, "Using config location %s.", configPath.c_str());
         } else {
-            std::cout << "Hyprland usage: Hyprland [arg [...]].\n\nArguments:\n" <<
-                "--help         -h | Show this help message\n" <<
-                "--config       -c | Specify config file to use\n";
+            std::cout << "Hyprland usage: Hyprland [arg [...]].\n\nArguments:\n"
+                      << "--help         -h | Show this help message\n"
+                      << "--config       -c | Specify config file to use\n";
             return 1;
         }
     }
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
         if (Init::isSudo()) {
             std::cout << "Hyprland shall not be run as the root user. If you really want to, use the --i-am-really-stupid flag.\n";
             return 1;
-    	}
+        }
     } else {
         std::cout << "Running with ignored root checks, I surely hope you know what you're doing.\n";
         sleep(1);
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
-    g_pCompositor = std::make_unique<CCompositor>();
+    g_pCompositor                     = std::make_unique<CCompositor>();
     g_pCompositor->explicitConfigPath = configPath;
 
     Debug::log(LOG, "Hyprland init finished.");

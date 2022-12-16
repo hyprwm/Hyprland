@@ -10,7 +10,7 @@ void IHyprLayout::onWindowCreated(CWindow* pWindow) {
         g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
 
         if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
-            const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+            const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
             pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
         } else {
             pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
@@ -50,9 +50,10 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
-        pWindow->m_vRealSize = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
+        pWindow->m_vRealSize      = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
 
-        if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) { // XDG windows should be fine. TODO: check for weird atoms?
+        if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 &&
+            pWindow->m_iX11Type == 2) { // XDG windows should be fine. TODO: check for weird atoms?
             pWindow->setHidden(true);
             return;
         }
@@ -62,7 +63,8 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
             pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
         }
 
-        pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goalv().x) / 2.f, PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goalv().y) / 2.f);
+        pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goalv().x) / 2.f,
+                                            PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goalv().y) / 2.f);
     } else {
         // we respect the size.
         pWindow->m_vRealSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
@@ -75,10 +77,14 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
 
         if (!pWindow->m_bIsX11) {
             for (auto& m : g_pCompositor->m_vMonitors) {
-                if (VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
-                    || VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
-                    || VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)
-                    || VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)) {
+                if (VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x,
+                              m->vecPosition.y + m->vecPosition.y) ||
+                    VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x,
+                              m->vecPosition.y + m->vecPosition.y) ||
+                    VECINRECT(Vector2D(desiredGeometry.x, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y, m->vecPosition.x + m->vecSize.x,
+                              m->vecPosition.y + m->vecPosition.y) ||
+                    VECINRECT(Vector2D(desiredGeometry.x + desiredGeometry.width, desiredGeometry.y + desiredGeometry.height), m->vecPosition.x, m->vecPosition.y,
+                              m->vecPosition.x + m->vecSize.x, m->vecPosition.y + m->vecPosition.y)) {
 
                     visible = true;
                     break;
@@ -144,17 +150,17 @@ void IHyprLayout::onBeginDragWindow() {
     if (!DRAGGINGWINDOW->m_bIsFloating) {
         if (g_pInputManager->dragMode == MBIND_MOVE) {
             changeWindowFloatingMode(DRAGGINGWINDOW);
-            DRAGGINGWINDOW->m_bIsFloating = true;
+            DRAGGINGWINDOW->m_bIsFloating    = true;
             DRAGGINGWINDOW->m_bDraggingTiled = true;
 
             DRAGGINGWINDOW->m_vRealPosition = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize.goalv() / 2.f;
         }
     }
 
-    m_vBeginDragXY = g_pInputManager->getMouseCoordsInternal();
+    m_vBeginDragXY         = g_pInputManager->getMouseCoordsInternal();
     m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition.goalv();
-    m_vBeginDragSizeXY = DRAGGINGWINDOW->m_vRealSize.goalv();
-    m_vLastDragXY = m_vBeginDragXY;
+    m_vBeginDragSizeXY     = DRAGGINGWINDOW->m_vRealSize.goalv();
+    m_vLastDragXY          = m_vBeginDragXY;
 
     // get the grab corner
     if (m_vBeginDragXY.x < m_vBeginDragPositionXY.x + m_vBeginDragSizeXY.x / 2.0) {
@@ -208,7 +214,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     const auto SPECIAL = g_pCompositor->isWorkspaceSpecial(DRAGGINGWINDOW->m_iWorkspaceID);
 
-    const auto DELTA = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
+    const auto DELTA     = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
     const auto TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
 
     const auto PANIMATE = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
@@ -237,25 +243,25 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             // calc the new size and pos
 
             Vector2D newSize = m_vBeginDragSizeXY;
-            Vector2D newPos = m_vBeginDragPositionXY;
+            Vector2D newPos  = m_vBeginDragPositionXY;
 
             if (m_iGrabbedCorner == 3) {
                 newSize = newSize + DELTA;
             } else if (m_iGrabbedCorner == 0) {
                 newSize = newSize - DELTA;
-                newPos = newPos + DELTA;
+                newPos  = newPos + DELTA;
             } else if (m_iGrabbedCorner == 1) {
                 newSize = newSize + Vector2D(DELTA.x, -DELTA.y);
-                newPos = newPos + Vector2D(0, DELTA.y);
+                newPos  = newPos + Vector2D(0, DELTA.y);
             } else if (m_iGrabbedCorner == 4) {
                 newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
-                newPos = newPos + Vector2D(DELTA.x, 0);
+                newPos  = newPos + Vector2D(DELTA.x, 0);
             }
 
-            newSize = newSize.clamp(Vector2D(20,20), MAXSIZE);
+            newSize = newSize.clamp(Vector2D(20, 20), MAXSIZE);
 
             if (*PANIMATE) {
-                DRAGGINGWINDOW->m_vRealSize = newSize;
+                DRAGGINGWINDOW->m_vRealSize     = newSize;
                 DRAGGINGWINDOW->m_vRealPosition = newPos;
             } else {
                 DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(newSize);
@@ -301,15 +307,15 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     const auto TILED = isWindowTiled(pWindow);
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{ "changefloatingmode", getFormat("%x,%d", pWindow, (int)TILED) });
+    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("%x,%d", pWindow, (int)TILED)});
 
     if (!TILED) {
-        const auto PNEWMON = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
+        const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
         pWindow->m_iMonitorID = PNEWMON->ID;
         pWindow->moveToWorkspace(PNEWMON->activeWorkspace);
 
         // save real pos cuz the func applies the default 5,5 mid
-        const auto PSAVEDPOS = pWindow->m_vRealPosition.goalv();
+        const auto PSAVEDPOS  = pWindow->m_vRealPosition.goalv();
         const auto PSAVEDSIZE = pWindow->m_vRealSize.goalv();
 
         // if the window is pseudo, update its size
@@ -336,9 +342,9 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         g_pCompositor->moveWindowToTop(pWindow);
 
         pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f;
-        pWindow->m_vRealSize = pWindow->m_vLastFloatingSize;
+        pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
 
-        pWindow->m_vSize = pWindow->m_vRealSize.goalv();
+        pWindow->m_vSize     = pWindow->m_vRealSize.goalv();
         pWindow->m_vPosition = pWindow->m_vRealPosition.goalv();
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
@@ -389,8 +395,10 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
 
         // find whether there is a floating window below this one
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus && !w->m_bNoFocus) {
-                if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x, w->m_vPosition.y + w->m_vSize.y)) {
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus &&
+                !w->m_bNoFocus) {
+                if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
+                              w->m_vPosition.y + w->m_vSize.y)) {
                     return w.get();
                 }
             }
@@ -406,7 +414,8 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
 
         // if not, floating window
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus && !w->m_bNoFocus)
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus &&
+                !w->m_bNoFocus)
                 return w.get();
         }
 
@@ -417,11 +426,11 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     // if it was a tiled window, we first try to find the window that will replace it.
     const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
 
-    if (!PWINDOWCANDIDATE || pWindow == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus || PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+    if (!PWINDOWCANDIDATE || pWindow == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus ||
+        PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
         return nullptr;
 
     return PWINDOWCANDIDATE;
 }
 
-IHyprLayout::~IHyprLayout() {
-}
+IHyprLayout::~IHyprLayout() {}

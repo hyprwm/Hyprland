@@ -4,7 +4,7 @@
 #include "../protocols/ToplevelExport.hpp"
 
 class CProtocolManager {
-public:
+  public:
     CProtocolManager();
 
     std::unique_ptr<CToplevelExportProtocolManager> m_pToplevelExportProtocolManager;

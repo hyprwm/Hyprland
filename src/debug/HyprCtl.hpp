@@ -5,20 +5,21 @@
 #include "../helpers/MiscFunctions.hpp"
 
 namespace HyprCtl {
-    void            startHyprCtlSocket();
+    void startHyprCtlSocket();
 
     // very simple thread-safe request method
-    inline  bool    requestMade = false;
-    inline  bool    requestReady = false;
-    inline  std::string request = "";
+    inline bool             requestMade  = false;
+    inline bool             requestReady = false;
+    inline std::string      request      = "";
 
-    inline std::ifstream requestStream;
+    inline std::ifstream    requestStream;
 
     inline wl_event_source* hyprCtlTickSource = nullptr;
 
-    inline int      iSocketFD = -1;
+    inline int              iSocketFD = -1;
 
-    enum eHyprCtlOutputFormat {
+    enum eHyprCtlOutputFormat
+    {
         FORMAT_NORMAL = 0,
         FORMAT_JSON
     };

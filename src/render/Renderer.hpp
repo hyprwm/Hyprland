@@ -10,14 +10,16 @@
 struct SMonitorRule;
 
 // TODO: add fuller damage tracking for updating only parts of a window
-enum DAMAGETRACKINGMODES {
+enum DAMAGETRACKINGMODES
+{
     DAMAGE_TRACKING_INVALID = -1,
-    DAMAGE_TRACKING_NONE = 0,
+    DAMAGE_TRACKING_NONE    = 0,
     DAMAGE_TRACKING_MONITOR,
     DAMAGE_TRACKING_FULL
 };
 
-enum eRenderPassMode {
+enum eRenderPassMode
+{
     RENDER_PASS_ALL = 0,
     RENDER_PASS_MAIN,
     RENDER_PASS_POPUP
@@ -26,8 +28,7 @@ enum eRenderPassMode {
 class CToplevelExportProtocolManager;
 
 class CHyprRenderer {
-public:
-
+  public:
     void                renderAllClientsForMonitor(const int&, timespec*);
     void                outputMgrApplyTest(wlr_output_configuration_v1*, bool);
     void                arrangeLayersForMonitor(const int&);
@@ -46,24 +47,23 @@ public:
     void                calculateUVForWindowSurface(CWindow*, wlr_surface*, bool main = false);
 
     bool                m_bWindowRequestedCursorHide = false;
-    bool                m_bBlockSurfaceFeedback = false;
-    CWindow*            m_pLastScanout = nullptr;
+    bool                m_bBlockSurfaceFeedback      = false;
+    CWindow*            m_pLastScanout               = nullptr;
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 
     bool                attemptDirectScanout(CMonitor*);
     void                setWindowScanoutMode(CWindow*);
 
-private:
-    void                arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
-    void                renderWorkspaceWithFullscreenWindow(CMonitor*, CWorkspace*, timespec*);
-    void                renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
-    void                renderLayer(SLayerSurface*, CMonitor*, timespec*);
-    void                renderDragIcon(CMonitor*, timespec*);
-    void                renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
+  private:
+    void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
+    void renderWorkspaceWithFullscreenWindow(CMonitor*, CWorkspace*, timespec*);
+    void renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
+    void renderLayer(SLayerSurface*, CMonitor*, timespec*);
+    void renderDragIcon(CMonitor*, timespec*);
+    void renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
 
-    bool                m_bHasARenderedCursor = true;
-
+    bool m_bHasARenderedCursor = true;
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportProtocolManager;

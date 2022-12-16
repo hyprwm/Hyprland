@@ -5,29 +5,28 @@
 #include <sys/utsname.h>
 #include <iomanip>
 
-#if defined(__DragonFly__) || defined(__FreeBSD__) || \
-  defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__)
-# include <sys/sysctl.h>
-# if defined(__DragonFly__)
-#  include <sys/kinfo.h>      // struct kinfo_proc
-# elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-#  include <sys/user.h>       // struct kinfo_proc
-# endif
+#if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#include <sys/sysctl.h>
+#if defined(__DragonFly__)
+#include <sys/kinfo.h> // struct kinfo_proc
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#include <sys/user.h> // struct kinfo_proc
+#endif
 
-# if defined(__NetBSD__)
-#  undef KERN_PROC
-#  define KERN_PROC KERN_PROC2
-#  define KINFO_PROC struct kinfo_proc2
-# else
-#  define KINFO_PROC struct kinfo_proc
-# endif
-# if defined(__DragonFly__)
-#  define KP_PPID(kp) kp.kp_ppid
-# elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-#  define KP_PPID(kp) kp.ki_ppid
-# else
-#  define KP_PPID(kp) kp.p_ppid
-# endif
+#if defined(__NetBSD__)
+#undef KERN_PROC
+#define KERN_PROC  KERN_PROC2
+#define KINFO_PROC struct kinfo_proc2
+#else
+#define KINFO_PROC struct kinfo_proc
+#endif
+#if defined(__DragonFly__)
+#define KP_PPID(kp) kp.kp_ppid
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#define KP_PPID(kp) kp.ki_ppid
+#else
+#define KP_PPID(kp) kp.p_ppid
+#endif
 #endif
 
 static const float transforms[][9] = {{
@@ -87,7 +86,7 @@ std::string absolutePath(const std::string& rawpath, const std::string& currentP
     return value;
 }
 
-void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::string ownerString) {
+void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, const std::string& ownerString) {
     ASSERT(pSignal);
     ASSERT(pListener);
 
@@ -96,12 +95,12 @@ void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, std::
     Debug::log(LOG, "Registered signal for owner %x: %x -> %x (owner: %s)", pOwner, pSignal, pListener, ownerString.c_str());
 }
 
-void handleNoop(struct wl_listener *listener, void *data) {
+void handleNoop(struct wl_listener* listener, void* data) {
     // Do nothing
 }
 
-std::string getFormat(const char *fmt, ...) {
-    char* outputStr = nullptr;
+std::string getFormat(const char* fmt, ...) {
+    char*   outputStr = nullptr;
 
     va_list args;
     va_start(args, fmt);
@@ -116,32 +115,31 @@ std::string getFormat(const char *fmt, ...) {
 
 std::string escapeJSONStrings(const std::string& str) {
     std::ostringstream oss;
-    for (auto &c : str) {
+    for (auto& c : str) {
         switch (c) {
-        case '"': oss << "\\\""; break;
-        case '\\': oss << "\\\\"; break;
-        case '\b': oss << "\\b"; break;
-        case '\f': oss << "\\f"; break;
-        case '\n': oss << "\\n"; break;
-        case '\r': oss << "\\r"; break;
-        case '\t': oss << "\\t"; break;
-        default:
-            if ('\x00' <= c && c <= '\x1f') {
-                oss << "\\u"
-                    << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
-            } else {
-                oss << c;
-            }
+            case '"': oss << "\\\""; break;
+            case '\\': oss << "\\\\"; break;
+            case '\b': oss << "\\b"; break;
+            case '\f': oss << "\\f"; break;
+            case '\n': oss << "\\n"; break;
+            case '\r': oss << "\\r"; break;
+            case '\t': oss << "\\t"; break;
+            default:
+                if ('\x00' <= c && c <= '\x1f') {
+                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
+                } else {
+                    oss << c;
+                }
         }
     }
     return oss.str();
 }
 
 void scaleBox(wlr_box* box, float scale) {
-    box->width = std::round(box->width * scale);
+    box->width  = std::round(box->width * scale);
     box->height = std::round(box->height * scale);
-    box->x = std::round(box->x * scale);
-    box->y = std::round(box->y * scale);
+    box->x      = std::round(box->x * scale);
+    box->y      = std::round(box->y * scale);
 }
 
 std::string removeBeginEndSpacesTabs(std::string str) {
@@ -166,9 +164,9 @@ std::string removeBeginEndSpacesTabs(std::string str) {
 float getPlusMinusKeywordResult(std::string source, float relative) {
     float result = INT_MAX;
 
-    if (source.find_first_of("+") == 0) {
+    if (source[0] == '+') {
         try {
-            if (source.contains("."))
+            if (source.contains('.'))
                 result = relative + std::stof(source.substr(1));
             else
                 result = relative + std::stoi(source.substr(1));
@@ -176,9 +174,9 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
             Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
             return INT_MAX;
         }
-    } else if (source.find_first_of("-") == 0) {
+    } else if (source[0] == '-') {
         try {
-            if (source.contains("."))
+            if (source.contains('.'))
                 result = relative - std::stof(source.substr(1));
             else
                 result = relative - std::stoi(source.substr(1));
@@ -188,7 +186,7 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
         }
     } else {
         try {
-            if (source.contains("."))
+            if (source.contains('.'))
                 result = stof(source);
             else
                 result = stoi(source);
@@ -239,7 +237,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             const auto NAME = in.substr(8);
 
             const auto WS = g_pCompositor->getWorkspaceByName("special:" + NAME);
-            
+
             outName = "special:" + NAME;
 
             return WS ? WS->m_iID : g_pCompositor->getNewSpecialID();
@@ -248,7 +246,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         return SPECIAL_WORKSPACE_START;
     } else if (in.find("name:") == 0) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
-        const auto WORKSPACE = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
+        const auto WORKSPACE     = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
         if (!WORKSPACE) {
             result = g_pCompositor->getNextAvailableNamedWorkspace();
         } else {
@@ -276,8 +274,8 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             result = (int)getPlusMinusKeywordResult(in.substr(1), 0);
 
             // result now has +/- what we should move on mon
-            int remains = (int)result;
-            
+            int              remains = (int)result;
+
             std::vector<int> validWSes;
             for (auto& ws : g_pCompositor->m_vWorkspaces) {
                 if (ws->m_bIsSpecialWorkspace || (ws->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID && !onAllMonitors))
@@ -310,7 +308,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 currentItem = validWSes.size() + currentItem;
             }
 
-            result = validWSes[currentItem];
+            result  = validWSes[currentItem];
             outName = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
 
         } else {
@@ -345,8 +343,8 @@ float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Ve
 
 // Execute a shell command and get the output
 std::string execAndGet(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
+    std::array<char, 128>                          buffer;
+    std::string                                    result;
     const std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
     if (!pipe) {
         Debug::log(ERR, "execAndGet: failed in pipe");
@@ -387,8 +385,8 @@ void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
     memset(mat, 0, sizeof(*mat) * 9);
 
     const float* t = transforms[tr];
-    float x = 2.0f / w;
-    float y = 2.0f / h;
+    float        x = 2.0f / w;
+    float        y = 2.0f / h;
 
     // Rotation + reflection
     mat[0] = x * t[0];
@@ -411,35 +409,35 @@ int64_t getPPIDof(int64_t pid) {
         KERN_PROC,
         KERN_PROC_PID,
         (int)pid,
-# if defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__NetBSD__) || defined(__OpenBSD__)
         sizeof(KINFO_PROC),
         1,
-# endif
+#endif
     };
-    u_int miblen = sizeof(mib) / sizeof(mib[0]);
+    u_int      miblen = sizeof(mib) / sizeof(mib[0]);
     KINFO_PROC kp;
-    size_t sz = sizeof(KINFO_PROC);
+    size_t     sz = sizeof(KINFO_PROC);
     if (sysctl(mib, miblen, &kp, &sz, NULL, 0) != -1)
         return KP_PPID(kp);
 
     return 0;
 #else
     std::string dir = "/proc/" + std::to_string(pid) + "/status";
-    FILE* infile;
+    FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)
         return 0;
 
-    char* line = nullptr;
-    size_t len = 0;
-    ssize_t len2 = 0;
+    char*       line = nullptr;
+    size_t      len  = 0;
+    ssize_t     len2 = 0;
 
     std::string pidstr;
 
     while ((len2 = getline(&line, &len, infile)) != -1) {
         if (strstr(line, "PPid:")) {
-            pidstr = std::string(line, len2);
+            pidstr            = std::string(line, len2);
             const auto tabpos = pidstr.find_last_of('\t');
             if (tabpos != std::string::npos)
                 pidstr = pidstr.substr(tabpos);
@@ -453,9 +451,7 @@ int64_t getPPIDof(int64_t pid) {
 
     try {
         return std::stoll(pidstr);
-    } catch (std::exception& e) {
-        return 0;
-    }
+    } catch (std::exception& e) { return 0; }
 #endif
 }
 
@@ -464,7 +460,7 @@ int64_t configStringToInt(const std::string& VALUE) {
         // Values with 0x are hex
         const auto VALUEWITHOUTHEX = VALUE.substr(2);
         return stol(VALUEWITHOUTHEX, nullptr, 16);
-    } else if (VALUE.find("rgba(") == 0 && VALUE.find(")") == VALUE.length() - 1) {
+    } else if (VALUE.find("rgba(") == 0 && VALUE.find(')') == VALUE.length() - 1) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
@@ -476,7 +472,7 @@ int64_t configStringToInt(const std::string& VALUE) {
 
         // now we need to RGBA -> ARGB. The config holds ARGB only.
         return (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
-    } else if (VALUE.find("rgb(") == 0 && VALUE.find(")") == VALUE.length() - 1) {
+    } else if (VALUE.find("rgb(") == 0 && VALUE.find(')') == VALUE.length() - 1) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {

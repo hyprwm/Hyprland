@@ -5,13 +5,13 @@
 #include "../Compositor.hpp"
 
 class CThreadManager {
-public:
+  public:
     CThreadManager();
     ~CThreadManager();
 
     wl_event_source* m_esConfigTimer;
 
-   private:
+  private:
 };
 
 inline std::unique_ptr<CThreadManager> g_pThreadManager;

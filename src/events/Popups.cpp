@@ -16,12 +16,12 @@
 // --------------------------------------------- //
 
 void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
-    SXDGPopup *const PPOPUP = (SXDGPopup*)pPopup;
+    SXDGPopup* const PPOPUP = (SXDGPopup*)pPopup;
 
-    auto curPopup = PPOPUP;
+    auto             curPopup = PPOPUP;
 
-    int px = 0;
-    int py = 0;
+    int              px = 0;
+    int              py = 0;
 
     while (true) {
         px += curPopup->popup->current.geometry.x;
@@ -63,13 +63,14 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
-    wlr_box box = {.x = PMONITOR->vecPosition.x - pHyprPopup->lx, .y = PMONITOR->vecPosition.y - pHyprPopup->ly, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
+    wlr_box    box = {.x = PMONITOR->vecPosition.x - pHyprPopup->lx, .y = PMONITOR->vecPosition.y - pHyprPopup->ly, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
 
     wlr_xdg_popup_unconstrain_from_box(popup, &box);
 
     pHyprPopup->monitor = PMONITOR;
 
-    Debug::log(LOG, "Popup: Unconstrained from lx ly: %f %f, pHyprPopup lx ly: %f %f", (float)PMONITOR->vecPosition.x, (float)PMONITOR->vecPosition.y, (float)pHyprPopup->lx, (float)pHyprPopup->ly);
+    Debug::log(LOG, "Popup: Unconstrained from lx ly: %f %f, pHyprPopup lx ly: %f %f", (float)PMONITOR->vecPosition.x, (float)PMONITOR->vecPosition.y, (float)pHyprPopup->lx,
+               (float)pHyprPopup->ly);
 }
 
 void Events::listener_newPopup(void* owner, void* data) {
@@ -85,9 +86,9 @@ void Events::listener_newPopup(void* owner, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
-    PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = layersurface->position.x;
-    PNEWPOPUP->ly = layersurface->position.y;
+    PNEWPOPUP->popup   = WLRPOPUP;
+    PNEWPOPUP->lx      = layersurface->position.x;
+    PNEWPOPUP->ly      = layersurface->position.y;
     PNEWPOPUP->monitor = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
@@ -108,11 +109,11 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-    PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->lx = PWINDOW->m_vRealPosition.goalv().x;
-    PNEWPOPUP->ly = PWINDOW->m_vRealPosition.goalv().y;
+    PNEWPOPUP->popup        = WLRPOPUP;
+    PNEWPOPUP->lx           = PWINDOW->m_vRealPosition.goalv().x;
+    PNEWPOPUP->ly           = PWINDOW->m_vRealPosition.goalv().y;
     PNEWPOPUP->parentWindow = PWINDOW;
-    PNEWPOPUP->monitor = PMONITOR;
+    PNEWPOPUP->monitor      = PMONITOR;
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
 
@@ -130,12 +131,12 @@ void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
 
     const auto PNEWPOPUP = g_pCompositor->m_vXDGPopups.emplace_back(std::make_unique<SXDGPopup>()).get();
 
-    PNEWPOPUP->popup = WLRPOPUP;
-    PNEWPOPUP->parentPopup = PPOPUP;
-    PNEWPOPUP->lx = PPOPUP->lx;
-    PNEWPOPUP->ly = PPOPUP->ly;
+    PNEWPOPUP->popup        = WLRPOPUP;
+    PNEWPOPUP->parentPopup  = PPOPUP;
+    PNEWPOPUP->lx           = PPOPUP->lx;
+    PNEWPOPUP->ly           = PPOPUP->ly;
     PNEWPOPUP->parentWindow = PPOPUP->parentWindow;
-    PNEWPOPUP->monitor = PPOPUP->monitor;
+    PNEWPOPUP->monitor      = PPOPUP->monitor;
 
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
@@ -182,7 +183,7 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
 void Events::listener_commitPopupXDG(void* owner, void* data) {
     SXDGPopup* PPOPUP = (SXDGPopup*)owner;
 
-    int lx = 0, ly = 0;
+    int        lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
 
     g_pHyprRenderer->damageSurface(PPOPUP->popup->base->surface, lx, ly);
@@ -200,5 +201,5 @@ void Events::listener_destroyPopupXDG(void* owner, void* data) {
         PPOPUP->pSurfaceTree = nullptr;
     }
 
-    g_pCompositor->m_vXDGPopups.erase(std::remove_if(g_pCompositor->m_vXDGPopups.begin(), g_pCompositor->m_vXDGPopups.end(), [&](std::unique_ptr<SXDGPopup>& el) { return el.get() == PPOPUP; }));
+    std::erase_if(g_pCompositor->m_vXDGPopups, [&](std::unique_ptr<SXDGPopup>& el) { return el.get() == PPOPUP; });
 }

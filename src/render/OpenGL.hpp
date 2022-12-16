@@ -15,17 +15,12 @@
 class CHyprRenderer;
 
 inline const float fullVerts[] = {
-    1, 0,  // top right
-    0, 0,  // top left
-    1, 1,  // bottom right
-    0, 1,  // bottom left
+    1, 0, // top right
+    0, 0, // top left
+    1, 1, // bottom right
+    0, 1, // bottom left
 };
-inline const float fanVertsFull[] = {
-    -1.0f, -1.0f,
-    1.0f, -1.0f,
-    1.0f, 1.0f,
-    -1.0f, 1.0f
-};
+inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
 struct SMonitorRenderData {
     CFramebuffer primaryFB;
@@ -42,118 +37,118 @@ struct SMonitorRenderData {
     wlr_box      backgroundTexBox;
 
     // Shaders
-    bool                    m_bShadersInitialized = false;
-    CShader                 m_shQUAD;
-    CShader                 m_shRGBA;
-    CShader                 m_shRGBX;
-    CShader                 m_shEXT;
-    CShader                 m_shBLUR1;
-    CShader                 m_shBLUR2;
-    CShader                 m_shSHADOW;
-    CShader                 m_shBORDER1;
+    bool    m_bShadersInitialized = false;
+    CShader m_shQUAD;
+    CShader m_shRGBA;
+    CShader m_shRGBX;
+    CShader m_shEXT;
+    CShader m_shBLUR1;
+    CShader m_shBLUR2;
+    CShader m_shSHADOW;
+    CShader m_shBORDER1;
     //
 };
 
 struct SCurrentRenderData {
-    CMonitor*   pMonitor = nullptr;
-    float       projection[9];
+    CMonitor*           pMonitor = nullptr;
+    float               projection[9];
 
     SMonitorRenderData* pCurrentMonData = nullptr;
 
-    pixman_region32_t* pDamage = nullptr;
+    pixman_region32_t*  pDamage = nullptr;
 
-    Vector2D    primarySurfaceUVTopLeft = Vector2D(-1, -1);
-    Vector2D    primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+    Vector2D            primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-    wlr_box     clipBox = {};
+    wlr_box             clipBox = {};
 };
 
 class CGradientValueData;
 
 class CHyprOpenGLImpl {
-public:
-
+  public:
     CHyprOpenGLImpl();
 
-    void    begin(CMonitor*, pixman_region32_t*, bool fake = false);
-    void    end();
+    void                                       begin(CMonitor*, pixman_region32_t*, bool fake = false);
+    void                                       end();
 
-    void    renderRect(wlr_box*, const CColor&, int round = 0);
-    void    renderRectWithDamage(wlr_box*, const CColor&, pixman_region32_t* damage, int round = 0);
-    void    renderTexture(wlr_texture*, wlr_box*, float a, int round = 0, bool allowCustomUV = false);
-    void    renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool allowCustomUV = false);
-    void    renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool blockBlurOptimization = false);
-    void    renderRoundedShadow(wlr_box*, int round, int range, float a = 1.0);
-    void    renderBorder(wlr_box*, const CGradientValueData&, int round, float a = 1.0);
+    void                                       renderRect(wlr_box*, const CColor&, int round = 0);
+    void                                       renderRectWithDamage(wlr_box*, const CColor&, pixman_region32_t* damage, int round = 0);
+    void                                       renderTexture(wlr_texture*, wlr_box*, float a, int round = 0, bool allowCustomUV = false);
+    void                                       renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardOpaque = false, bool allowCustomUV = false);
+    void                                       renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool blockBlurOptimization = false);
+    void                                       renderRoundedShadow(wlr_box*, int round, int range, float a = 1.0);
+    void                                       renderBorder(wlr_box*, const CGradientValueData&, int round, float a = 1.0);
 
-    void    makeWindowSnapshot(CWindow*);
-    void    makeRawWindowSnapshot(CWindow*, CFramebuffer*);
-    void    makeLayerSnapshot(SLayerSurface*);
-    void    renderSnapshot(CWindow**);
-    void    renderSnapshot(SLayerSurface**);
+    void                                       makeWindowSnapshot(CWindow*);
+    void                                       makeRawWindowSnapshot(CWindow*, CFramebuffer*);
+    void                                       makeLayerSnapshot(SLayerSurface*);
+    void                                       renderSnapshot(CWindow**);
+    void                                       renderSnapshot(SLayerSurface**);
 
-    void    clear(const CColor&);
-    void    clearWithTex();
-    void    scissor(const wlr_box*, bool transform = true);
-    void    scissor(const pixman_box32*, bool transform = true);
-    void    scissor(const int x, const int y, const int w, const int h, bool transform = true);
+    void                                       clear(const CColor&);
+    void                                       clearWithTex();
+    void                                       scissor(const wlr_box*, bool transform = true);
+    void                                       scissor(const pixman_box32*, bool transform = true);
+    void                                       scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-    void    destroyMonitorResources(CMonitor*);
+    void                                       destroyMonitorResources(CMonitor*);
 
-    void    markBlurDirtyForMonitor(CMonitor*);
+    void                                       markBlurDirtyForMonitor(CMonitor*);
 
-    void    preWindowPass();
-    void    preRender(CMonitor*);
+    void                                       preWindowPass();
+    void                                       preRender(CMonitor*);
 
-    void    saveBufferForMirror();
-    void    renderMirrored();
+    void                                       saveBufferForMirror();
+    void                                       renderMirrored();
 
-    void    onWindowResizeStart(CWindow*);
-    void    onWindowResizeEnd(CWindow*);
+    void                                       onWindowResizeStart(CWindow*);
+    void                                       onWindowResizeEnd(CWindow*);
 
-    void    applyScreenShader(const std::string& path);
+    void                                       applyScreenShader(const std::string& path);
 
-    SCurrentRenderData m_RenderData;
+    SCurrentRenderData                         m_RenderData;
 
-    GLint  m_iCurrentOutputFb = 0;
-    GLint  m_iWLROutputFb = 0;
+    GLint                                      m_iCurrentOutputFb = 0;
+    GLint                                      m_iWLROutputFb     = 0;
 
-    bool   m_bReloadScreenShader = true; // at launch it can be set
+    bool                                       m_bReloadScreenShader = true; // at launch it can be set
 
-    CWindow* m_pCurrentWindow = nullptr; // hack to get the current rendered window
+    CWindow*                                   m_pCurrentWindow = nullptr; // hack to get the current rendered window
 
-    pixman_region32_t m_rOriginalDamageRegion; // used for storing the pre-expanded region
+    pixman_region32_t                          m_rOriginalDamageRegion; // used for storing the pre-expanded region
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
-    std::unordered_map<SLayerSurface*, CFramebuffer> m_mLayerFramebuffers;
+    std::unordered_map<SLayerSurface*, CFramebuffer>  m_mLayerFramebuffers;
     std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
-    std::unordered_map<CMonitor*, CTexture> m_mMonitorBGTextures;
+    std::unordered_map<CMonitor*, CTexture>           m_mMonitorBGTextures;
 
-private:
-    std::list<GLuint>       m_lBuffers;
-    std::list<GLuint>       m_lTextures;
+  private:
+    std::list<GLuint> m_lBuffers;
+    std::list<GLuint> m_lTextures;
 
-    int                     m_iDRMFD;
-    std::string             m_szExtensions;
+    int               m_iDRMFD;
+    std::string       m_szExtensions;
 
-    bool                    m_bFakeFrame = false;
-    bool                    m_bEndFrame = false;
-    bool                    m_bApplyFinalShader = false;
+    bool              m_bFakeFrame        = false;
+    bool              m_bEndFrame         = false;
+    bool              m_bApplyFinalShader = false;
 
-    CShader                 m_sFinalScreenShader;
+    CShader           m_sFinalScreenShader;
 
-    GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
-    GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false);
-    void                    createBGTextureForMonitor(CMonitor*);
-    void                    initShaders();
+    GLuint            createProgram(const std::string&, const std::string&, bool dynamic = false);
+    GLuint            compileShader(const GLuint&, std::string, bool dynamic = false);
+    void              createBGTextureForMonitor(CMonitor*);
+    void              initShaders();
 
     // returns the out FB, can be either Mirror or MirrorSwap
-    CFramebuffer*           blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
+    CFramebuffer* blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
 
-    void                    renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false, bool allowCustomUV = false, bool allowDim = false);
-    void                    renderSplash(cairo_t *const, cairo_surface_t *const, double);
+    void          renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
+                                                  bool allowCustomUV = false, bool allowDim = false);
+    void          renderSplash(cairo_t* const, cairo_surface_t* const, double);
 
-    void                    preBlurForCurrentMonitor();
+    void          preBlurForCurrentMonitor();
 
     friend class CHyprRenderer;
 };

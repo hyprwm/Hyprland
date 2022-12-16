@@ -1,24 +1,26 @@
 #pragma once
 #include "../defines.hpp"
+#include <vector>
 
-enum eConfigValueDataTypes {
-    CVD_TYPE_INVALID = -1,
+enum eConfigValueDataTypes
+{
+    CVD_TYPE_INVALID  = -1,
     CVD_TYPE_GRADIENT = 0
 };
 
 interface ICustomConfigValueData {
-public:
+  public:
     virtual ~ICustomConfigValueData() = 0;
 
     virtual eConfigValueDataTypes getDataType() = 0;
 };
 
 class CGradientValueData : public ICustomConfigValueData {
-public:
+  public:
     CGradientValueData(CColor col) {
         m_vColors.push_back(col);
     };
-    virtual ~CGradientValueData() { };
+    virtual ~CGradientValueData(){};
 
     virtual eConfigValueDataTypes getDataType() {
         return CVD_TYPE_GRADIENT;
@@ -34,14 +36,15 @@ public:
     std::vector<CColor> m_vColors;
 
     /* Float corresponding to the angle (rad) */
-    float               m_fAngle = 0;
+    float m_fAngle = 0;
 
     bool operator==(const CGradientValueData& other) {
         if (other.m_vColors.size() != m_vColors.size() || m_fAngle != other.m_fAngle)
             return false;
 
         for (size_t i = 0; i < m_vColors.size(); ++i)
-            if (m_vColors[i] != other.m_vColors[i]) return false;
+            if (m_vColors[i] != other.m_vColors[i])
+                return false;
 
         return true;
     }

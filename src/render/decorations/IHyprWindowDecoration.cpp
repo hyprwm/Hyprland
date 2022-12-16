@@ -2,6 +2,4 @@
 
 #include "../../Window.hpp"
 
-IHyprWindowDecoration::~IHyprWindowDecoration() {
-
-}
+IHyprWindowDecoration::~IHyprWindowDecoration() {}

@@ -396,7 +396,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
         // find whether there is a floating window below this one
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus &&
-                !w->m_bNoFocus) {
+                !w->m_bNoFocus && w.get() != pWindow) {
                 if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
                               w->m_vPosition.y + w->m_vSize.y)) {
                     return w.get();
@@ -409,13 +409,14 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
             return m_pLastTiledWindow;
 
         // if we don't, let's try to find any window that is in the middle
-        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f); PWINDOWCANDIDATE)
+        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f); PWINDOWCANDIDATE &&
+            PWINDOWCANDIDATE != pWindow)
             return PWINDOWCANDIDATE;
 
         // if not, floating window
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus &&
-                !w->m_bNoFocus)
+                !w->m_bNoFocus && w.get() != pWindow)
                 return w.get();
         }
 

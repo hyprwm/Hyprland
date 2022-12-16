@@ -26,8 +26,8 @@ void Events::listener_outputMgrTest(wl_listener* listener, void* data) {
 }
 
 void Events::listener_leaseRequest(wl_listener* listener, void* data) {
-    const auto REQUEST = (wlr_drm_lease_request_v1*)data;
-    struct wlr_drm_lease_v1* lease = wlr_drm_lease_request_v1_grant(REQUEST);
+    const auto               REQUEST = (wlr_drm_lease_request_v1*)data;
+    struct wlr_drm_lease_v1* lease   = wlr_drm_lease_request_v1_grant(REQUEST);
     if (!lease) {
         Debug::log(ERR, "Failed to grant lease request!");
         wlr_drm_lease_request_v1_reject(REQUEST);
@@ -47,7 +47,7 @@ void Events::listener_requestSetSel(wl_listener* listener, void* data) {
 void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 #ifndef NO_XWAYLAND
     const auto XCBCONNECTION = xcb_connect(g_pXWaylandManager->m_sWLRXWayland->display_name, NULL);
-    const auto ERR = xcb_connection_has_error(XCBCONNECTION);
+    const auto ERR           = xcb_connection_has_error(XCBCONNECTION);
     if (ERR) {
         Debug::log(LogLevel::ERR, "XWayland -> xcb_connection_has_error failed with %i", ERR);
         return;
@@ -55,7 +55,7 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 
     for (auto& ATOM : HYPRATOMS) {
         xcb_intern_atom_cookie_t cookie = xcb_intern_atom(XCBCONNECTION, 0, ATOM.first.length(), ATOM.first.c_str());
-        xcb_intern_atom_reply_t* reply = xcb_intern_atom_reply(XCBCONNECTION, cookie, NULL);
+        xcb_intern_atom_reply_t* reply  = xcb_intern_atom_reply(XCBCONNECTION, cookie, NULL);
 
         if (!reply) {
             Debug::log(LogLevel::ERR, "XWayland -> Atom failed: %s", ATOM.first.c_str());
@@ -69,7 +69,8 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 
     const auto XCURSOR = wlr_xcursor_manager_get_xcursor(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", 1);
     if (XCURSOR) {
-        wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, XCURSOR->images[0]->width, XCURSOR->images[0]->height, XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y);
+        wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, XCURSOR->images[0]->width,
+                                XCURSOR->images[0]->height, XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y);
     }
 
     xcb_disconnect(XCBCONNECTION);
@@ -107,15 +108,16 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
         Debug::log(LOG, "Drag started with an icon %x", wlrDrag->icon);
 
         g_pInputManager->m_sDrag.dragIcon = wlrDrag->icon;
-        wlrDrag->icon->data = g_pInputManager->m_sDrag.dragIcon;
+        wlrDrag->icon->data               = g_pInputManager->m_sDrag.dragIcon;
 
         g_pInputManager->m_sDrag.hyprListener_mapIcon.initCallback(&wlrDrag->icon->events.map, &Events::listener_mapDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
         g_pInputManager->m_sDrag.hyprListener_unmapIcon.initCallback(&wlrDrag->icon->events.unmap, &Events::listener_unmapDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
         g_pInputManager->m_sDrag.hyprListener_destroyIcon.initCallback(&wlrDrag->icon->events.destroy, &Events::listener_destroyDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
-        g_pInputManager->m_sDrag.hyprListener_commitIcon.initCallback(&wlrDrag->icon->surface->events.commit, &Events::listener_commitDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
+        g_pInputManager->m_sDrag.hyprListener_commitIcon.initCallback(&wlrDrag->icon->surface->events.commit, &Events::listener_commitDragIcon, &g_pInputManager->m_sDrag,
+                                                                      "DragIcon");
     }
 
-    static auto *const PFOLLOWONDND = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
+    static auto* const PFOLLOWONDND = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
 
     if (*PFOLLOWONDND)
         g_pInputManager->m_pFollowOnDnDBegin = g_pCompositor->m_pLastWindow;
@@ -126,12 +128,13 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
 void Events::listener_destroyDrag(void* owner, void* data) {
     Debug::log(LOG, "Drag destroyed.");
 
-    static auto *const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
 
     if (g_pInputManager->m_sDrag.drag && g_pInputManager->m_sDrag.dragIcon && g_pInputManager->m_sDrag.dragIcon->surface)
-        g_pHyprRenderer->damageBox(g_pInputManager->m_sDrag.pos.x - 2, g_pInputManager->m_sDrag.pos.y - 2, g_pInputManager->m_sDrag.dragIcon->surface->current.width + 4, g_pInputManager->m_sDrag.dragIcon->surface->current.height + 4);
+        g_pHyprRenderer->damageBox(g_pInputManager->m_sDrag.pos.x - 2, g_pInputManager->m_sDrag.pos.y - 2, g_pInputManager->m_sDrag.dragIcon->surface->current.width + 4,
+                                   g_pInputManager->m_sDrag.dragIcon->surface->current.height + 4);
 
-    g_pInputManager->m_sDrag.drag = nullptr;
+    g_pInputManager->m_sDrag.drag     = nullptr;
     g_pInputManager->m_sDrag.dragIcon = nullptr;
     g_pInputManager->m_sDrag.hyprListener_destroy.removeCallback();
 

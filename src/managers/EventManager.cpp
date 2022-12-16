@@ -15,14 +15,13 @@
 
 #include <string>
 
-CEventManager::CEventManager() {
-}
+CEventManager::CEventManager() {}
 
 int fdHandleWrite(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP) {
         // remove, hanged up
         const auto ACCEPTEDFDS = (std::deque<std::pair<int, wl_event_source*>>*)data;
-        for (auto it = ACCEPTEDFDS->begin(); it != ACCEPTEDFDS->end(); ) {
+        for (auto it = ACCEPTEDFDS->begin(); it != ACCEPTEDFDS->end();) {
             if (it->first == fd) {
                 wl_event_source_remove(it->second); // remove this fd listener
                 it = ACCEPTEDFDS->erase(it);
@@ -45,7 +44,7 @@ void CEventManager::startThread() {
         }
 
         sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
-        std::string socketPath = "/tmp/hypr/" + g_pCompositor->m_szInstanceSignature + "/.socket2.sock";
+        std::string socketPath    = "/tmp/hypr/" + g_pCompositor->m_szInstanceSignature + "/.socket2.sock";
         strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
 
         bind(SOCKET, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS));
@@ -54,7 +53,7 @@ void CEventManager::startThread() {
         listen(SOCKET, 10);
 
         sockaddr_in clientAddress;
-        socklen_t clientSize = sizeof(clientAddress);
+        socklen_t   clientSize = sizeof(clientAddress);
 
         Debug::log(LOG, "Hypr socket 2 started at %s", socketPath.c_str());
 
@@ -70,7 +69,8 @@ void CEventManager::startThread() {
                 Debug::log(LOG, "Socket 2 accepted a new client at FD %d", ACCEPTEDCONNECTION);
 
                 // add to event loop so we can close it when we need to
-                m_dAcceptedSocketFDs.push_back({ACCEPTEDCONNECTION, wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, WL_EVENT_READABLE, fdHandleWrite, &m_dAcceptedSocketFDs)});
+                m_dAcceptedSocketFDs.push_back(
+                    {ACCEPTEDCONNECTION, wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, WL_EVENT_READABLE, fdHandleWrite, &m_dAcceptedSocketFDs)});
             }
         }
 
@@ -98,15 +98,18 @@ void CEventManager::flushEvents() {
 void CEventManager::postEvent(const SHyprIPCEvent event, bool force) {
 
     if ((m_bIgnoreEvents && !force) || g_pCompositor->m_bIsShuttingDown) {
-        Debug::log(WARN, "Suppressed (ignoreevents true / shutting down) event of type %s, content: %s",event.event.c_str(), event.data.c_str());
+        Debug::log(WARN, "Suppressed (ignoreevents true / shutting down) event of type %s, content: %s", event.event.c_str(), event.data.c_str());
         return;
     }
 
-    std::thread([&](const SHyprIPCEvent ev) {
-        eventQueueMutex.lock();
-        m_dQueuedEvents.push_back(ev);
-        eventQueueMutex.unlock();
+    std::thread(
+        [&](const SHyprIPCEvent ev) {
+            eventQueueMutex.lock();
+            m_dQueuedEvents.push_back(ev);
+            eventQueueMutex.unlock();
 
-        flushEvents();
-    }, event).detach();
+            flushEvents();
+        },
+        event)
+        .detach();
 }

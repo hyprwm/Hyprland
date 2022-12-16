@@ -61,7 +61,7 @@ void Events::listener_requestMouse(wl_listener* listener, void* data) {
 void Events::listener_newInput(wl_listener* listener, void* data) {
     const auto DEVICE = (wlr_input_device*)data;
 
-    switch(DEVICE->type) {
+    switch (DEVICE->type) {
         case WLR_INPUT_DEVICE_KEYBOARD:
             Debug::log(LOG, "Attached a keyboard with name %s", DEVICE->name);
             g_pInputManager->newKeyboard(DEVICE);
@@ -86,9 +86,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             Debug::log(LOG, "Attached a switch device with name %s", DEVICE->name);
             g_pInputManager->newSwitch(DEVICE);
             break;
-        default:
-            Debug::log(WARN, "Unrecognized input device plugged in: %s", DEVICE->name);
-            break;
+        default: Debug::log(WARN, "Unrecognized input device plugged in: %s", DEVICE->name); break;
     }
 
     g_pInputManager->updateCapabilities();
@@ -102,7 +100,7 @@ void Events::listener_newConstraint(wl_listener* listener, void* data) {
     g_pInputManager->m_lConstraints.emplace_back();
     const auto CONSTRAINT = &g_pInputManager->m_lConstraints.back();
 
-    CONSTRAINT->pMouse = g_pCompositor->m_sSeat.mouse;
+    CONSTRAINT->pMouse     = g_pCompositor->m_sSeat.mouse;
     CONSTRAINT->constraint = PCONSTRAINT;
 
     CONSTRAINT->hyprListener_destroyConstraint.initCallback(&PCONSTRAINT->events.destroy, &Events::listener_destroyConstraint, CONSTRAINT, "Constraint");
@@ -112,7 +110,7 @@ void Events::listener_newConstraint(wl_listener* listener, void* data) {
         g_pInputManager->constrainMouse(CONSTRAINT->pMouse, PCONSTRAINT);
 
         if (!CONSTRAINT->hintSet) {
-            const auto PWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+            const auto PWINDOW       = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
             CONSTRAINT->positionHint = g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_vRealPosition.goalv();
         }
     }
@@ -128,13 +126,13 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
 
         if (PWINDOW) {
             if (PWINDOW->m_bIsX11) {
-                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
-                                PCONSTRAINT->positionHint.x + PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y + PCONSTRAINT->positionHint.y);
+                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PCONSTRAINT->positionHint.x + PWINDOW->m_uSurface.xwayland->x,
+                                PWINDOW->m_uSurface.xwayland->y + PCONSTRAINT->positionHint.y);
 
                 wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y);
             } else {
-                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr,
-                                PCONSTRAINT->positionHint.x + PWINDOW->m_vRealPosition.vec().x, PCONSTRAINT->positionHint.y + PWINDOW->m_vRealPosition.vec().y);
+                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PCONSTRAINT->positionHint.x + PWINDOW->m_vRealPosition.vec().x,
+                                PCONSTRAINT->positionHint.y + PWINDOW->m_vRealPosition.vec().y);
 
                 wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y);
             }
@@ -153,9 +151,9 @@ void Events::listener_setConstraintRegion(void* owner, void* data) {
 }
 
 void Events::listener_newVirtPtr(wl_listener* listener, void* data) {
-    const auto EV = (wlr_virtual_pointer_v1_new_pointer_event*)data;
+    const auto EV      = (wlr_virtual_pointer_v1_new_pointer_event*)data;
     const auto POINTER = EV->new_pointer;
-    const auto DEVICE = &POINTER->pointer.base;
+    const auto DEVICE  = &POINTER->pointer.base;
 
     g_pInputManager->newMouse(DEVICE, true);
 }

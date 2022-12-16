@@ -67,15 +67,15 @@ void CMonitor::onConnect(bool noRule) {
 
     if (output->non_desktop) {
         Debug::log(LOG, "Not configuring non-desktop output");
-		if (g_pCompositor->m_sWRLDRMLeaseMgr) {
-			wlr_drm_lease_v1_manager_offer_output(g_pCompositor->m_sWRLDRMLeaseMgr, output);
-		}
-		return;
-	}
+        if (g_pCompositor->m_sWRLDRMLeaseMgr) {
+            wlr_drm_lease_v1_manager_offer_output(g_pCompositor->m_sWRLDRMLeaseMgr, output);
+        }
+        return;
+    }
 
     if (!m_bRenderingInitPassed) {
         output->allocator = nullptr;
-        output->renderer = nullptr;
+        output->renderer  = nullptr;
         wlr_output_init_render(output, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
         m_bRenderingInitPassed = true;
     }
@@ -91,7 +91,7 @@ void CMonitor::onConnect(bool noRule) {
         }
     }
 
-    if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end()){
+    if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end()) {
         g_pCompositor->m_vMonitors.push_back(*m_pThisWrap);
     }
 
@@ -99,7 +99,7 @@ void CMonitor::onConnect(bool noRule) {
 
     // create it in the arr
     vecPosition = monitorRule.offset;
-    vecSize = monitorRule.resolution;
+    vecSize     = monitorRule.resolution;
     refreshRate = monitorRule.refreshRate;
 
     wlr_output_enable(output, 1);
@@ -110,7 +110,8 @@ void CMonitor::onConnect(bool noRule) {
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
-    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x, (int)vecPixelSize.y, output);
+    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x,
+               (int)vecPixelSize.y, output);
 
     damage = wlr_output_damage_create(output);
 
@@ -127,12 +128,12 @@ void CMonitor::onConnect(bool noRule) {
 
     m_pThisWrap = nullptr;
 
-    forceFullFrames = 3;  // force 3 full frames to make sure there is no blinking due to double-buffering.
+    forceFullFrames = 3; // force 3 full frames to make sure there is no blinking due to double-buffering.
     //
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
 
-    if (!g_pCompositor->m_pLastMonitor)  // set the last monitor if it isnt set yet
+    if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->setActiveMonitor(this);
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
@@ -189,7 +190,7 @@ void CMonitor::onDisconnect() {
         g_pConfigManager->m_bWantsMonitorReload = true;
     }
 
-    m_bEnabled = false;
+    m_bEnabled             = false;
     m_bRenderingInitPassed = false;
 
     hyprListener_monitorFrame.removeCallback();
@@ -206,7 +207,8 @@ void CMonitor::onDisconnect() {
     }
 
     // snap cursor
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f, BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f,
+                    BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
 
     // move workspaces
     std::deque<CWorkspace*> wspToMove;
@@ -259,7 +261,7 @@ int CMonitor::findAvailableDefaultWS() {
 
         if (const auto BOUND = g_pConfigManager->getBoundMonitorStringForWS(std::to_string(i)); !BOUND.empty() && BOUND != szName)
             continue;
-        
+
         return i;
     }
 
@@ -269,10 +271,10 @@ int CMonitor::findAvailableDefaultWS() {
 void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
     // Workspace
     std::string newDefaultWorkspaceName = "";
-    int64_t WORKSPACEID = monitorRule.defaultWorkspace == "" ? findAvailableDefaultWS() : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
+    int64_t     WORKSPACEID = monitorRule.defaultWorkspace == "" ? findAvailableDefaultWS() : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
 
     if (WORKSPACEID == INT_MAX || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
-        WORKSPACEID = g_pCompositor->m_vWorkspaces.size() + 1;
+        WORKSPACEID             = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 
         Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", monitorRule.defaultWorkspace.c_str());
@@ -347,7 +349,8 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
             }
         }
 
-        if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end()) {
+        if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) ==
+            g_pCompositor->m_vMonitors.end()) {
             g_pCompositor->m_vMonitors.push_back(*m_pThisWrap);
         }
 
@@ -387,9 +390,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         pMirrorOf->mirrors.push_back(this);
 
         // remove from mvmonitors
-        if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) != g_pCompositor->m_vMonitors.end()) {
-            g_pCompositor->m_vMonitors.erase(std::remove_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](const auto& other) { return other.get() == this; }));
-        }
+        std::erase_if(g_pCompositor->m_vMonitors, [&](const auto& other) { return other.get() == this; });
 
         g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
     }
@@ -401,10 +402,10 @@ float CMonitor::getDefaultScale() {
 
     static constexpr double MMPERINCH = 25.4;
 
-    const auto DIAGONALPX = sqrt(pow(vecPixelSize.x, 2) + pow(vecPixelSize.y, 2));
-    const auto DIAGONALIN = sqrt(pow(output->phys_width / MMPERINCH, 2) + pow(output->phys_height / MMPERINCH, 2));
+    const auto              DIAGONALPX = sqrt(pow(vecPixelSize.x, 2) + pow(vecPixelSize.y, 2));
+    const auto              DIAGONALIN = sqrt(pow(output->phys_width / MMPERINCH, 2) + pow(output->phys_height / MMPERINCH, 2));
 
-    const auto PPI = DIAGONALPX / DIAGONALIN;
+    const auto              PPI = DIAGONALPX / DIAGONALIN;
 
     if (PPI > 200 /* High PPI, 2x*/)
         return 2;

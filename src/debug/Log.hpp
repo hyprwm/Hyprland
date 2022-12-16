@@ -4,9 +4,10 @@
 
 #define LOGMESSAGESIZE 1024
 
-enum LogLevel {
+enum LogLevel
+{
     NONE = -1,
-    LOG = 0,
+    LOG  = 0,
     WARN,
     ERR,
     CRIT,
@@ -14,11 +15,11 @@ enum LogLevel {
 };
 
 namespace Debug {
-    void init(std::string IS);
-    void log(LogLevel level, const char* fmt, ...);
-    void wlrLog(wlr_log_importance level, const char* fmt, va_list args);
+    void               init(const std::string& IS);
+    void               log(LogLevel level, const char* fmt, ...);
+    void               wlrLog(wlr_log_importance level, const char* fmt, va_list args);
 
     inline std::string logFile;
-    inline int64_t* disableLogs = nullptr;
-    inline int64_t* disableTime = nullptr;
+    inline int64_t*    disableLogs = nullptr;
+    inline int64_t*    disableTime = nullptr;
 };

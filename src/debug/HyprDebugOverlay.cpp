@@ -38,10 +38,10 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     if (!m_pMonitor)
         return 0;
 
-    int yOffset = offset;
+    int                  yOffset = offset;
     cairo_text_extents_t cairoExtents;
-    float maxX = 0;
-    std::string text = "";
+    float                maxX = 0;
+    std::string          text = "";
 
     // get avg fps
     float avgFrametime = 0;
@@ -62,7 +62,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     }
     avgRenderTimeNoOverlay /= m_dLastRenderTimes.size() == 0 ? 1 : m_dLastRenderTimes.size();
 
-    const float FPS = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
+    const float FPS      = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
     const float idealFPS = m_dLastFrametimes.size();
 
     cairo_select_font_face(g_pDebugOverlay->m_pCairo, "Noto Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -75,7 +75,8 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     text = m_pMonitor->szName;
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX) maxX = cairoExtents.width;
+    if (cairoExtents.width > maxX)
+        maxX = cairoExtents.width;
 
     cairo_set_font_size(g_pDebugOverlay->m_pCairo, 16);
 
@@ -91,7 +92,8 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     text = std::string(std::to_string((int)FPS) + " FPS");
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX) maxX = cairoExtents.width;
+    if (cairoExtents.width > maxX)
+        maxX = cairoExtents.width;
 
     cairo_set_font_size(g_pDebugOverlay->m_pCairo, 10);
     cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 1.f, 1.f, 1.f);
@@ -101,26 +103,30 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     text = std::string("Avg Frametime: " + std::to_string((int)avgFrametime) + "." + std::to_string((int)(avgFrametime * 10.f) % 10) + "ms");
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX) maxX = cairoExtents.width;
+    if (cairoExtents.width > maxX)
+        maxX = cairoExtents.width;
 
     yOffset += 11;
     cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
     text = std::string("Avg Rendertime: " + std::to_string((int)avgRenderTime) + "." + std::to_string((int)(avgRenderTime * 10.f) % 10) + "ms");
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX) maxX = cairoExtents.width;
+    if (cairoExtents.width > maxX)
+        maxX = cairoExtents.width;
 
     yOffset += 11;
     cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
     text = std::string("Avg Rendertime (no overlay): " + std::to_string((int)avgRenderTimeNoOverlay) + "." + std::to_string((int)(avgRenderTimeNoOverlay * 10.f) % 10) + "ms");
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX) maxX = cairoExtents.width;
+    if (cairoExtents.width > maxX)
+        maxX = cairoExtents.width;
 
     yOffset += 11;
 
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
-    m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset - 1, (int)maxX + 2, yOffset - offset + 2};
+    m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset - 1, (int)maxX + 2,
+                        yOffset - offset + 2};
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
 
     return yOffset - offset;
@@ -144,7 +150,7 @@ void CHyprDebugOverlay::draw() {
 
     if (!m_pCairoSurface || !m_pCairo) {
         m_pCairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
-        m_pCairo = cairo_create(m_pCairoSurface);
+        m_pCairo        = cairo_create(m_pCairoSurface);
     }
 
     // clear the pixmap
@@ -176,6 +182,6 @@ void CHyprDebugOverlay::draw() {
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecSize.x, PMONITOR->vecSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
-    wlr_box pMonBox = {0,0,PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    wlr_box pMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
     g_pHyprOpenGL->renderTexture(m_tTexture, &pMonBox, 255.f);
 }

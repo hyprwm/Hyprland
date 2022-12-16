@@ -5,9 +5,9 @@
 int slowUpdate = 0;
 
 int handleTimer(void* data) {
-    const auto PTM = (CThreadManager*)data;
+    const auto         PTM = (CThreadManager*)data;
 
-    static auto *const PDISABLECFGRELOAD = &g_pConfigManager->getConfigValuePtr("misc:disable_autoreload")->intValue;
+    static auto* const PDISABLECFGRELOAD = &g_pConfigManager->getConfigValuePtr("misc:disable_autoreload")->intValue;
 
     if (*PDISABLECFGRELOAD != 1)
         g_pConfigManager->tick();

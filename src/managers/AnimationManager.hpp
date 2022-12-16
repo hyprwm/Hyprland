@@ -8,35 +8,34 @@
 #include "../Window.hpp"
 
 class CAnimationManager {
-public:
-
+  public:
     CAnimationManager();
 
-    void            tick();
-    void            addBezierWithName(std::string, const Vector2D&, const Vector2D&);
-    void            removeAllBeziers();
+    void                          tick();
+    void                          addBezierWithName(std::string, const Vector2D&, const Vector2D&);
+    void                          removeAllBeziers();
 
-    void            onWindowPostCreateClose(CWindow*, bool close = false);
+    void                          onWindowPostCreateClose(CWindow*, bool close = false);
 
-    bool            bezierExists(const std::string&);
+    bool                          bezierExists(const std::string&);
 
-    std::string     styleValidInConfigVar(const std::string&, const std::string&);
+    std::string                   styleValidInConfigVar(const std::string&, const std::string&);
 
     std::list<CAnimatedVariable*> m_lAnimatedVariables;
 
-private:
-    bool            deltaSmallToFlip(const Vector2D& a, const Vector2D& b);
-    bool            deltaSmallToFlip(const CColor& a, const CColor& b);
-    bool            deltaSmallToFlip(const float& a, const float& b);
-    bool            deltazero(const Vector2D& a, const Vector2D& b);
-    bool            deltazero(const CColor& a, const CColor& b);
-    bool            deltazero(const float& a, const float& b);
+  private:
+    bool                                          deltaSmallToFlip(const Vector2D& a, const Vector2D& b);
+    bool                                          deltaSmallToFlip(const CColor& a, const CColor& b);
+    bool                                          deltaSmallToFlip(const float& a, const float& b);
+    bool                                          deltazero(const Vector2D& a, const Vector2D& b);
+    bool                                          deltazero(const CColor& a, const CColor& b);
+    bool                                          deltazero(const float& a, const float& b);
 
     std::unordered_map<std::string, CBezierCurve> m_mBezierCurves;
 
     // Anim stuff
-    void            animationPopin(CWindow*, bool close = false, float minPerc = 0.f);
-    void            animationSlide(CWindow*, std::string force = "", bool close = false);
+    void animationPopin(CWindow*, bool close = false, float minPerc = 0.f);
+    void animationSlide(CWindow*, std::string force = "", bool close = false);
 };
 
 inline std::unique_ptr<CAnimationManager> g_pAnimationManager;

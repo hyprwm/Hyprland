@@ -14,7 +14,7 @@ CHyprWLListener::CHyprWLListener(wl_signal* pSignal, std::function<void(void*, v
 }
 
 CHyprWLListener::CHyprWLListener() {
-    m_swWrapper.m_pSelf = this;
+    m_swWrapper.m_pSelf            = this;
     m_swWrapper.m_sListener.notify = &handleWrapped;
     wl_list_init(&m_swWrapper.m_sListener.link);
 }
@@ -41,9 +41,9 @@ void CHyprWLListener::initCallback(wl_signal* pSignal, std::function<void(void*,
         return;
     }
 
-    m_pOwner = pOwner;
+    m_pOwner    = pOwner;
     m_pCallback = callback;
-    m_szAuthor = author;
+    m_szAuthor  = author;
 
     addWLSignal(pSignal, &m_swWrapper.m_sListener, pOwner, m_szAuthor);
 }

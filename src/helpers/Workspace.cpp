@@ -9,8 +9,8 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
         return;
     }
 
-    m_iMonitorID = monitorID;
-    m_szName = name;
+    m_iMonitorID          = monitorID;
+    m_szName              = name;
     m_bIsSpecialWorkspace = special;
 
     if (!special) {
@@ -26,9 +26,11 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     }
 
     m_vRenderOffset.m_pWorkspace = this;
-    m_vRenderOffset.create(AVARTYPE_VECTOR, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr, AVARDAMAGE_ENTIRE);
+    m_vRenderOffset.create(AVARTYPE_VECTOR, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"),
+                           nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.m_pWorkspace = this;
-    m_fAlpha.create(AVARTYPE_FLOAT, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr, AVARDAMAGE_ENTIRE);
+    m_fAlpha.create(AVARTYPE_FLOAT, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"),
+                    nullptr, AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(255.f);
 
     m_vRenderOffset.registerVar();
@@ -68,7 +70,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         // fallback is slide
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-        m_fAlpha.setValueAndWarp(255.f);  // fix a bug, if switching from fade -> slide.
+        m_fAlpha.setValueAndWarp(255.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
             m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y));

@@ -34,7 +34,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     auto PMONITOR = (CMonitor*)g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
 
     if (!WLRLAYERSURFACE->output || !PMONITOR || PMONITOR->pMirrorOf) {
-        PMONITOR = g_pCompositor->m_vMonitors.front().get();
+        PMONITOR                = g_pCompositor->m_vMonitors.front().get();
         WLRLAYERSURFACE->output = PMONITOR->output; // TODO: current mon
     }
 
@@ -49,13 +49,14 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     layerSurface->hyprListener_newPopup.initCallback(&WLRLAYERSURFACE->events.new_popup, &Events::listener_newPopup, layerSurface, "layerSurface");
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
-    layerSurface->layer = WLRLAYERSURFACE->current.layer;
-    WLRLAYERSURFACE->data = layerSurface;
-    layerSurface->monitorID = PMONITOR->ID;
+    layerSurface->layer        = WLRLAYERSURFACE->current.layer;
+    WLRLAYERSURFACE->data      = layerSurface;
+    layerSurface->monitorID    = PMONITOR->ID;
 
     layerSurface->forceBlur = g_pConfigManager->shouldBlurLS(layerSurface->szNamespace);
 
-    Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface->layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer, PMONITOR->szName.c_str());
+    Debug::log(LOG, "LayerSurface %x (namespace %s layer %d) created on monitor %s", layerSurface->layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer,
+               PMONITOR->szName.c_str());
 }
 
 void Events::listener_destroyLayerSurface(void* owner, void* data) {
@@ -94,12 +95,13 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
         PMONITOR->scheduledRecalc = true;
 
         // and damage
-        wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+        wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
+                             layersurface->geometry.height};
         g_pHyprRenderer->damageBox(&geomFixed);
     }
 
     layersurface->readyToDelete = true;
-    layersurface->layerSurface = nullptr;
+    layersurface->layerSurface  = nullptr;
 }
 
 void Events::listener_mapLayerSurface(void* owner, void* data) {
@@ -108,7 +110,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     Debug::log(LOG, "LayerSurface %x mapped", layersurface->layerSurface);
 
     layersurface->layerSurface->mapped = true;
-    layersurface->mapped = true;
+    layersurface->mapped               = true;
 
     // anim
     layersurface->alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
@@ -128,7 +130,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
                 break;
             }
         }
-        layersurface->monitorID = PMONITOR->ID;
+        layersurface->monitorID   = PMONITOR->ID;
         PMONITOR->scheduledRecalc = true;
         g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
     }
@@ -137,23 +139,26 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
 
-    if (layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) { // don't focus if constrained
+    if (layersurface->layerSurface->current.keyboard_interactive &&
+        (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) { // don't focus if constrained
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
-        const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
+        const auto LOCAL =
+            g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
     }
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
-    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
+                         layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
     layersurface->alpha.setValue(0);
-    layersurface->alpha = 255.f;
+    layersurface->alpha         = 255.f;
     layersurface->readyToDelete = false;
-    layersurface->fadingOut = false;
+    layersurface->fadingOut     = false;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
 }
@@ -201,19 +206,20 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     // refocus if needed
     if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus) {
-        
-        Vector2D surfaceCoords;
+
+        Vector2D       surfaceCoords;
         SLayerSurface* pFoundLayerSurface = nullptr;
-        wlr_surface* foundSurface = nullptr;
+        wlr_surface*   foundSurface       = nullptr;
 
         g_pCompositor->m_pLastFocus = nullptr;
 
         // find LS-es to focus
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
+                                                           &surfaceCoords, &pFoundLayerSurface);
 
         if (!foundSurface)
-            foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
-
+            foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
+                                                               &surfaceCoords, &pFoundLayerSurface);
 
         if (!foundSurface) {
             // if there isn't any, focus the last window
@@ -226,13 +232,16 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
         }
     }
 
-    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width, layersurface->geometry.height};
+    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
+                         layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
-    geomFixed = {layersurface->geometry.x + (int)PMONITOR->vecPosition.x, layersurface->geometry.y + (int)PMONITOR->vecPosition.y, (int)layersurface->layerSurface->surface->current.width, (int)layersurface->layerSurface->surface->current.height};
+    geomFixed = {layersurface->geometry.x + (int)PMONITOR->vecPosition.x, layersurface->geometry.y + (int)PMONITOR->vecPosition.y,
+                 (int)layersurface->layerSurface->surface->current.width, (int)layersurface->layerSurface->surface->current.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
-    geomFixed = {layersurface->geometry.x, layersurface->geometry.y, (int)layersurface->layerSurface->surface->current.width, (int)layersurface->layerSurface->surface->current.height};
+    geomFixed              = {layersurface->geometry.x, layersurface->geometry.y, (int)layersurface->layerSurface->surface->current.width,
+                 (int)layersurface->layerSurface->surface->current.height};
     layersurface->geometry = geomFixed; // because the surface can overflow... for some reason?
 }
 
@@ -248,7 +257,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         return;
 
     if (layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);  // so that blur is recalc'd
+        g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
 
     wlr_box geomFixed = {layersurface->geometry.x, layersurface->geometry.y, layersurface->geometry.width, layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
@@ -265,7 +274,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
             }
         }
 
-        layersurface->monitorID = PMONITOR->ID;
+        layersurface->monitorID   = PMONITOR->ID;
         PMONITOR->scheduledRecalc = true;
         g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
     }
@@ -284,7 +293,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
             layersurface->layer = layersurface->layerSurface->current.layer;
 
             if (layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-                g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);  // so that blur is recalc'd
+                g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
         }
 
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
@@ -295,7 +304,8 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
     // update geom if it changed
-    layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, layersurface->layerSurface->surface->current.width, layersurface->layerSurface->surface->current.height};
+    layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, layersurface->layerSurface->surface->current.width,
+                              layersurface->layerSurface->surface->current.height};
 
     g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 }

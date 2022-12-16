@@ -1,64 +1,65 @@
 ---
+Language: Cpp
 BasedOnStyle: LLVM
+
+AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
-AlignConsecutiveMacros: 'true'
-AlignConsecutiveAssignments: 'true'
+AlignConsecutiveMacros: true
+AlignConsecutiveAssignments: true
 AlignEscapedNewlines: Right
-AlignOperands: 'false'
-AlignTrailingComments: 'true'
-AllowAllArgumentsOnNextLine: 'true'
-AllowAllConstructorInitializersOnNextLine: 'true'
-AllowAllParametersOfDeclarationOnNextLine: 'true'
-AllowShortBlocksOnASingleLine: 'true'
-AllowShortCaseLabelsOnASingleLine: 'true'
-AllowShortFunctionsOnASingleLine: 'Empty'
+AlignOperands: false
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: true
+AllowAllConstructorInitializersOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: All
-AllowShortLoopsOnASingleLine: 'false'
+AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
-AlwaysBreakBeforeMultilineStrings: 'false'
-AlwaysBreakTemplateDeclarations: 'Yes'
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
 BreakBeforeBraces: Attach
-BreakBeforeTernaryOperators: 'false'
+BreakBeforeTernaryOperators: false
 BreakConstructorInitializers: AfterColon
-ColumnLimit: '180'
-CompactNamespaces: 'false'
-ConstructorInitializerAllOnOneLineOrOnePerLine: 'false'
-ExperimentalAutoDetectBinPacking: 'false'
-FixNamespaceComments: 'false'
+ColumnLimit: 180
+CompactNamespaces: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ExperimentalAutoDetectBinPacking: false
+FixNamespaceComments: false
 IncludeBlocks: Preserve
-IndentCaseLabels: 'true'
-IndentWidth: '4'
-Language: Cpp
+IndentCaseLabels: true
+IndentWidth: 4
 PointerAlignment: Left
-ReflowComments: 'false'
-SortIncludes: 'false'
-SortUsingDeclarations: 'false'
-SpaceAfterCStyleCast: 'false'
-SpaceAfterLogicalNot: 'false'
-SpaceAfterTemplateKeyword: 'true'
-SpaceBeforeCtorInitializerColon: 'true'
-SpaceBeforeInheritanceColon: 'true'
+ReflowComments: false
+SortIncludes: false
+SortUsingDeclarations: false
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
-SpaceBeforeRangeBasedForLoopColon: 'true'
-SpaceInEmptyParentheses: 'false'
-SpacesBeforeTrailingComments: '1'
-SpacesInAngles: 'false'
-SpacesInCStyleCastParentheses: 'false'
-SpacesInContainerLiterals: 'false'
-SpacesInParentheses: 'false'
-SpacesInSquareBrackets: 'false'
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
 Standard: Auto
-TabWidth: '4'
+TabWidth: 4
 UseTab: Never
 
-AllowShortEnumsOnASingleLine: 'false'
+AllowShortEnumsOnASingleLine: false
 
 BraceWrapping:
-  AfterEnum: 'false'
+  AfterEnum: false
 
-AlignConsecutiveDeclarations: 'AcrossEmptyLines'
+AlignConsecutiveDeclarations: AcrossEmptyLinesAndComments
 
-NamespaceIndentation: 'All'
-
+NamespaceIndentation: All

@@ -26,9 +26,9 @@ struct SWindowSpecialRenderData {
     int64_t inactiveBorderColor = -1; // -1 means unset
 
     // set by the layout
-    bool rounding = true;
-    bool border   = true;
-    bool decorate = true;
+    bool    rounding = true;
+    bool    border   = true;
+    bool    decorate = true;
 };
 
 struct SWindowAdditionalConfigData {
@@ -88,109 +88,109 @@ class CWindow {
     } m_uSurface;
 
     // this is the position and size of the "bounding box"
-    Vector2D m_vPosition = Vector2D(0, 0);
-    Vector2D m_vSize     = Vector2D(0, 0);
+    Vector2D                                           m_vPosition = Vector2D(0, 0);
+    Vector2D                                           m_vSize     = Vector2D(0, 0);
 
     // this is the real position and size used to draw the thing
-    CAnimatedVariable m_vRealPosition;
-    CAnimatedVariable m_vRealSize;
+    CAnimatedVariable                                  m_vRealPosition;
+    CAnimatedVariable                                  m_vRealSize;
 
     // for not spamming the protocols
-    Vector2D m_vReportedPosition;
-    Vector2D m_vReportedSize;
+    Vector2D                                           m_vReportedPosition;
+    Vector2D                                           m_vReportedSize;
 
     // for restoring floating statuses
-    Vector2D m_vLastFloatingSize;
+    Vector2D                                           m_vLastFloatingSize;
 
     // this is used for pseudotiling
-    bool        m_bIsPseudotiled = false;
-    Vector2D    m_vPseudoSize    = Vector2D(0, 0);
+    bool                                               m_bIsPseudotiled = false;
+    Vector2D                                           m_vPseudoSize    = Vector2D(0, 0);
 
-    uint64_t    m_iTags          = 0;
-    bool        m_bIsFloating    = false;
-    bool        m_bDraggingTiled = false; // for dragging around tiled windows
-    bool        m_bIsFullscreen  = false;
-    uint64_t    m_iMonitorID     = -1;
-    std::string m_szTitle        = "";
-    int         m_iWorkspaceID   = -1;
+    uint64_t                                           m_iTags          = 0;
+    bool                                               m_bIsFloating    = false;
+    bool                                               m_bDraggingTiled = false; // for dragging around tiled windows
+    bool                                               m_bIsFullscreen  = false;
+    uint64_t                                           m_iMonitorID     = -1;
+    std::string                                        m_szTitle        = "";
+    int                                                m_iWorkspaceID   = -1;
 
-    bool        m_bIsMapped = false;
+    bool                                               m_bIsMapped = false;
 
-    bool        m_bRequestsFloat = false;
+    bool                                               m_bRequestsFloat = false;
 
     // This is for fullscreen apps
-    bool m_bCreatedOverFullscreen = false;
+    bool                                               m_bCreatedOverFullscreen = false;
 
     // XWayland stuff
-    bool     m_bIsX11                = false;
-    bool     m_bMappedX11            = false;
-    CWindow* m_pX11Parent            = nullptr;
-    uint64_t m_iX11Type              = 0;
-    bool     m_bIsModal              = false;
-    bool     m_bX11DoesntWantBorders = false;
-    bool     m_bX11ShouldntFocus     = false;
+    bool                                               m_bIsX11                = false;
+    bool                                               m_bMappedX11            = false;
+    CWindow*                                           m_pX11Parent            = nullptr;
+    uint64_t                                           m_iX11Type              = 0;
+    bool                                               m_bIsModal              = false;
+    bool                                               m_bX11DoesntWantBorders = false;
+    bool                                               m_bX11ShouldntFocus     = false;
     //
 
     // For nofocus
-    bool m_bNoFocus        = false;
-    bool m_bNoInitialFocus = false;
+    bool                                               m_bNoFocus        = false;
+    bool                                               m_bNoInitialFocus = false;
 
     // initial fullscreen and fullscreen disabled
-    bool              m_bWantsInitialFullscreen = false;
-    bool              m_bNoFullscreenRequest    = false;
+    bool                                               m_bWantsInitialFullscreen = false;
+    bool                                               m_bNoFullscreenRequest    = false;
 
-    SSurfaceTreeNode* m_pSurfaceTree = nullptr;
+    SSurfaceTreeNode*                                  m_pSurfaceTree = nullptr;
 
     // Animated border
-    CGradientValueData m_cRealBorderColor         = {0};
-    CGradientValueData m_cRealBorderColorPrevious = {0};
-    CAnimatedVariable  m_fBorderAnimationProgress;
+    CGradientValueData                                 m_cRealBorderColor         = {0};
+    CGradientValueData                                 m_cRealBorderColorPrevious = {0};
+    CAnimatedVariable                                  m_fBorderAnimationProgress;
 
     // Fade in-out
-    CAnimatedVariable m_fAlpha;
-    bool              m_bFadingOut     = false;
-    bool              m_bReadyToDelete = false;
-    Vector2D          m_vOriginalClosedPos;  // these will be used for calculations later on in
-    Vector2D          m_vOriginalClosedSize; // drawing the closing animations
+    CAnimatedVariable                                  m_fAlpha;
+    bool                                               m_bFadingOut     = false;
+    bool                                               m_bReadyToDelete = false;
+    Vector2D                                           m_vOriginalClosedPos;  // these will be used for calculations later on in
+    Vector2D                                           m_vOriginalClosedSize; // drawing the closing animations
 
     // For pinned (sticky) windows
-    bool m_bPinned = false;
+    bool                                               m_bPinned = false;
 
     // for proper cycling. While cycling we can't just move the pointers, so we need to keep track of the last cycled window.
-    CWindow* m_pLastCycledWindow = nullptr;
+    CWindow*                                           m_pLastCycledWindow = nullptr;
 
     // Foreign Toplevel proto
-    wlr_foreign_toplevel_handle_v1* m_phForeignToplevel = nullptr;
+    wlr_foreign_toplevel_handle_v1*                    m_phForeignToplevel = nullptr;
 
     // Window decorations
     std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
     std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
 
     // Special render data, rules, etc
-    SWindowSpecialRenderData    m_sSpecialRenderData;
-    SWindowAdditionalConfigData m_sAdditionalConfigData;
+    SWindowSpecialRenderData                           m_sSpecialRenderData;
+    SWindowAdditionalConfigData                        m_sAdditionalConfigData;
 
     // for alpha
-    CAnimatedVariable m_fActiveInactiveAlpha;
+    CAnimatedVariable                                  m_fActiveInactiveAlpha;
 
     // animated shadow color
-    CAnimatedVariable m_cRealShadowColor;
+    CAnimatedVariable                                  m_cRealShadowColor;
 
     // animated tint
-    CAnimatedVariable m_fDimPercent;
+    CAnimatedVariable                                  m_fDimPercent;
 
     // swallowing
-    CWindow* m_pSwallowed = nullptr;
+    CWindow*                                           m_pSwallowed = nullptr;
 
     // for toplevel monitor events
-    uint64_t m_iLastToplevelMonitorID = -1;
-    uint64_t m_iLastSurfaceMonitorID  = -1;
+    uint64_t                                           m_iLastToplevelMonitorID = -1;
+    uint64_t                                           m_iLastSurfaceMonitorID  = -1;
 
     // for idle inhibiting windows
-    eIdleInhibitMode m_eIdleInhibitMode = IDLEINHIBIT_NONE;
+    eIdleInhibitMode                                   m_eIdleInhibitMode = IDLEINHIBIT_NONE;
 
     // For the list lookup
-    bool operator==(const CWindow& rhs) {
+    bool                                               operator==(const CWindow& rhs) {
         return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
             m_bFadingOut == rhs.m_bFadingOut;
     }

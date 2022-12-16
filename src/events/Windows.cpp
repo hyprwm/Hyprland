@@ -209,7 +209,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 shouldFocus = true;
         }
 
-        if (requestedWorkspace.find("special" == 0)) {
+        if (requestedWorkspace.find("special") == 0) {
             workspaceSpecial = true;
             workspaceSilent = true;
         }

@@ -15,7 +15,7 @@ enum LogLevel
 };
 
 namespace Debug {
-    void               init(std::string IS);
+    void               init(const std::string& IS);
     void               log(LogLevel level, const char* fmt, ...);
     void               wlrLog(wlr_log_importance level, const char* fmt, va_list args);
 

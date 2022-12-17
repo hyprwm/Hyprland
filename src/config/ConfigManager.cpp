@@ -52,7 +52,6 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:disable_hyprland_logo"].intValue     = 0;
     configValues["misc:disable_splash_rendering"].intValue  = 0;
     configValues["misc:no_vfr"].intValue                    = 1;
-    configValues["misc:damage_entire_on_snapshot"].intValue = 0;
     configValues["misc:mouse_move_enables_dpms"].intValue   = 0;
     configValues["misc:always_follow_on_dnd"].intValue      = 1;
     configValues["misc:layers_hog_keyboard_focus"].intValue = 1;
@@ -261,8 +260,8 @@ void CConfigManager::init() {
 
     const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
 
-    struct stat fileStat;
-    int         err = stat(CONFIGPATH.c_str(), &fileStat);
+    struct stat       fileStat;
+    int               err = stat(CONFIGPATH.c_str(), &fileStat);
     if (err != 0) {
         Debug::log(WARN, "Error at statting config, error %i", errno);
     }
@@ -353,7 +352,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         switch (CONFIGENTRY->data->getDataType()) {
             case CVD_TYPE_GRADIENT: {
 
-                CVarList varlist(VALUE, 0, ' ');
+                CVarList            varlist(VALUE, 0, ' ');
 
                 CGradientValueData* data = (CGradientValueData*)CONFIGENTRY->data.get();
                 data->m_vColors.clear();
@@ -426,7 +425,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     // get the monitor config
     SMonitorRule newrule;
 
-    const auto ARGS = CVarList(args);
+    const auto   ARGS = CVarList(args);
 
     newrule.name = ARGS[0];
 
@@ -530,7 +529,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
 }
 
 void CConfigManager::handleBezier(const std::string& command, const std::string& args) {
-    const auto ARGS = CVarList(args);
+    const auto  ARGS = CVarList(args);
 
     std::string bezierName = ARGS[0];
 
@@ -678,7 +677,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     const auto KEY = ARGS[1];
 
-    auto HANDLER = ARGS[2];
+    auto       HANDLER = ARGS[2];
 
     const auto COMMAND = mouse ? HANDLER : ARGS[3];
 
@@ -1149,7 +1148,7 @@ void CConfigManager::loadConfigLoadVars() {
     // paths
     configPaths.clear();
 
-    std::string CONFIGPATH;
+    std::string              CONFIGPATH;
 
     static const char* const ENVHOME          = getenv("HOME");
     const std::string        CONFIGPARENTPATH = ENVHOME + (std::string) "/.config/hypr/";
@@ -1279,7 +1278,7 @@ void CConfigManager::loadConfigLoadVars() {
 void CConfigManager::tick() {
     static const char* const ENVHOME = getenv("HOME");
 
-    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    const std::string        CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
 
     if (!std::filesystem::exists(CONFIGPATH)) {
         Debug::log(ERR, "Config doesn't exist??");
@@ -1314,7 +1313,7 @@ std::mutex   configmtx;
 SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
     std::lock_guard<std::mutex> lg(configmtx);
 
-    SConfigValue copy = configValues[val];
+    SConfigValue                copy = configValues[val];
 
     return copy;
 }
@@ -1322,7 +1321,7 @@ SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
 SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val) {
     std::lock_guard<std::mutex> lg(configmtx);
 
-    const auto it = deviceConfigs.find(dev);
+    const auto                  it = deviceConfigs.find(dev);
 
     if (it == deviceConfigs.end()) {
         Debug::log(ERR, "getConfigValueSafeDevice: No device config for %s found???", dev.c_str());
@@ -1431,8 +1430,8 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 
     std::vector<SWindowRule> returns;
 
-    std::string title      = g_pXWaylandManager->getTitle(pWindow);
-    std::string appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
+    std::string              title      = g_pXWaylandManager->getTitle(pWindow);
+    std::string              appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
 
     Debug::log(LOG, "Searching for matching rules for %s (title: %s)", appidclass.c_str(), title.c_str());
 
@@ -1615,7 +1614,7 @@ void CConfigManager::ensureDPMS() {
 void CConfigManager::ensureVRR(CMonitor* pMonitor) {
     static auto* const PNOVRR = &getConfigValuePtr("misc:no_vfr")->intValue;
 
-    auto ensureVRRForDisplay = [&](CMonitor* m) -> void {
+    auto               ensureVRRForDisplay = [&](CMonitor* m) -> void {
         if (!*PNOVRR && !m->vrrActive) {
             // Adaptive sync (VRR)
             wlr_output_enable_adaptive_sync(m->output, 1);

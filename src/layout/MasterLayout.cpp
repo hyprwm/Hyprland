@@ -147,7 +147,8 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
         // find new one
         for (auto& nd : m_lMasterNodesData) {
             if (!nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
-                nd.isMaster = true;
+                nd.isMaster   = true;
+                nd.percMaster = PNODE->percMaster;
                 break;
             }
         }

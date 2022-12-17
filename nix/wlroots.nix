@@ -42,6 +42,12 @@ assert (lib.assertMsg (hidpiXWayland -> enableXWayland) ''
             sha256 = "sha256-jvfkAMh3gzkfuoRhB4E9T5X1Hu62wgUjj4tZkJm0mrI=";
             revert = true;
           })
+        ])
+        ++ (lib.optionals nvidiaPatches [
+          (fetchpatch {
+            url = "https://aur.archlinux.org/cgit/aur.git/plain/0001-nvidia-format-workaround.patch?h=hyprland-nvidia-screenshare-git";
+            sha256 = "A9f1p5EW++mGCaNq8w7ZJfeWmvTfUm4iO+1KDcnqYX8=";
+          })
         ]);
       postPatch =
         (old.postPatch or "")

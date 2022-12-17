@@ -101,6 +101,7 @@ class CWindow {
 
     // for restoring floating statuses
     Vector2D                                           m_vLastFloatingSize;
+    Vector2D                                           m_vLastFloatingPosition;
 
     // this is used for pseudotiling
     bool                                               m_bIsPseudotiled = false;

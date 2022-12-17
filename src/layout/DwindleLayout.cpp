@@ -655,7 +655,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     const bool DISPLAYBOTTOM = STICKS(PWINDOW->m_vPosition.y + PWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
 
     // construct allowed movement
-    Vector2D allowedMovement = pixResize;
+    Vector2D   allowedMovement = pixResize;
     if (DISPLAYLEFT && DISPLAYRIGHT)
         allowedMovement.x = 0;
 
@@ -671,7 +671,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
 
     // Get the parent's parent
-    auto PPARENT2 = PPARENT->pParent;
+    auto       PPARENT2 = PPARENT->pParent;
 
     // No parent means we have only 2 windows, and thus one axis of freedom
     if (!PPARENT2) {
@@ -749,8 +749,8 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
             applyNodeDataToWindow(PNODE);
         else {
             // get back its' dimensions from position and size
-            pWindow->m_vRealPosition = pWindow->m_vPosition;
-            pWindow->m_vRealSize     = pWindow->m_vSize;
+            pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
+            pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
         }
     } else {
         // if it now got fullscreen, make it fullscreen
@@ -759,8 +759,10 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
 
         // save position and size if floating
         if (pWindow->m_bIsFloating) {
-            pWindow->m_vPosition = pWindow->m_vRealPosition.vec();
-            pWindow->m_vSize     = pWindow->m_vRealSize.vec();
+            pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goalv();
+            pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goalv();
+            pWindow->m_vPosition             = pWindow->m_vRealPosition.goalv();
+            pWindow->m_vSize                 = pWindow->m_vRealSize.goalv();
         }
 
         // apply new pos and size being monitors' box

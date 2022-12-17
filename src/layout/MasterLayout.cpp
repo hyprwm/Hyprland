@@ -793,7 +793,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const bool inheritFullscreen = prepareLoseFocus(PWINDOW);
 
-        const auto PPREVWINDOW = getNextWindow(PWINDOW, true);
+        const auto PPREVWINDOW = getNextWindow(PWINDOW, false);
         switchToWindow(PPREVWINDOW);
         prepareNewFocus(PPREVWINDOW, inheritFullscreen);
     } else if (message == "swapnext") {

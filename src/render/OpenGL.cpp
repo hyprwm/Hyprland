@@ -467,8 +467,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     static auto* const PDIMINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:dim_inactive")->intValue;
 
     // get transform
-    const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
-    float      matrix[9];
+    const auto         TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
+    float              matrix[9];
     wlr_matrix_project_box(matrix, pBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
     float glMatrix[9];
@@ -605,7 +605,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
 
     // prep damage
-    pixman_region32_t damage;
+    pixman_region32_t  damage;
     pixman_region32_init(&damage);
     pixman_region32_copy(&damage, originalDamage);
     wlr_region_transform(&damage, &damage, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
@@ -619,7 +619,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     CFramebuffer* currentRenderToFB = &m_RenderData.pCurrentMonData->primaryFB;
 
     // declare the draw func
-    auto drawPass = [&](CShader* pShader, pixman_region32_t* pDamage) {
+    auto          drawPass = [&](CShader* pShader, pixman_region32_t* pDamage) {
         if (currentRenderToFB == PMIRRORFB)
             PMIRRORSWAPFB->bind();
         else
@@ -829,7 +829,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     static auto* const PBLURXRAY        = &g_pConfigManager->getConfigValuePtr("decoration:blur_xray")->intValue;
 
     // make a damage region for this window
-    pixman_region32_t damage;
+    pixman_region32_t  damage;
     pixman_region32_init(&damage);
     pixman_region32_intersect_rect(&damage, m_RenderData.pDamage, pBox->x, pBox->y, pBox->width, pBox->height); // clip it to the box
 
@@ -908,7 +908,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // stencil done. Render everything.
-    wlr_box MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+    wlr_box            MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
     // render our great blurred FB
     static auto* const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
     m_bEndFrame                           = true; // fix transformed
@@ -1225,7 +1225,7 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     wlr_box    windowBox;
     // some mafs to figure out the correct box
     // the originalClosedPos is relative to the monitor's pos
-    Vector2D scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.vec().x / (PWINDOW->m_vOriginalClosedSize.x * PMONITOR->scale)),
+    Vector2D   scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.vec().x / (PWINDOW->m_vOriginalClosedSize.x * PMONITOR->scale)),
                                 (PMONITOR->scale * PWINDOW->m_vRealSize.vec().y / (PWINDOW->m_vOriginalClosedSize.y * PMONITOR->scale)));
 
     windowBox.width  = PMONITOR->vecTransformedSize.x * scaleXY.x;
@@ -1243,11 +1243,6 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     m_bEndFrame = false;
 
     pixman_region32_fini(&fakeDamage);
-
-    static auto* const PDAMAGEMON = &g_pConfigManager->getConfigValuePtr("misc:damage_entire_on_snapshot")->intValue;
-
-    if (*PDAMAGEMON)
-        PMONITOR->forceFullFrames += 1;
 }
 
 void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
@@ -1278,11 +1273,6 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     m_bEndFrame = false;
 
     pixman_region32_fini(&fakeDamage);
-
-    static auto* const PDAMAGEMON = &g_pConfigManager->getConfigValuePtr("misc:damage_entire_on_snapshot")->intValue;
-
-    if (*PDAMAGEMON)
-        PMONITOR->forceFullFrames += 1;
 }
 
 void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, float a) {
@@ -1410,7 +1400,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     static auto* const PNOSPLASH = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
 
     // release the last tex if exists
-    const auto PTEX = &m_mMonitorBGTextures[pMonitor];
+    const auto         PTEX = &m_mMonitorBGTextures[pMonitor];
     PTEX->destroyTexture();
 
     PTEX->allocate();

@@ -704,7 +704,7 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     double     subx, suby;
 
     // calc for oversized windows... fucking bullshit, again.
-    wlr_box geom;
+    wlr_box    geom;
     wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
     const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.vec().x + geom.x, pos.y - pWindow->m_vRealPosition.vec().y + geom.y, &subx, &suby);
@@ -906,6 +906,14 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
 
         if (!SURFACEAT && VECINRECT(pos, (*it)->geometry.x, (*it)->geometry.y, (*it)->geometry.x + (*it)->geometry.width, (*it)->geometry.y + (*it)->geometry.height)) {
             SURFACEAT = (*it)->layerSurface->surface;
+        }
+
+        if ((*it)->layerSurface->current.keyboard_interactive && (*it)->layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
+            if (!SURFACEAT)
+                SURFACEAT = (*it)->layerSurface->surface;
+
+            *ppLayerSurfaceFound = it->get();
+            return SURFACEAT;
         }
 
         if (SURFACEAT) {
@@ -1682,7 +1690,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
     const bool SWITCHINGISACTIVE = POLDMON->activeWorkspace == pWorkspace->m_iID;
 
     // fix old mon
-    int nextWorkspaceOnMonitorID = -1;
+    int        nextWorkspaceOnMonitorID = -1;
     for (auto& w : m_vWorkspaces) {
         if (w->m_iMonitorID == POLDMON->ID && w->m_iID != pWorkspace->m_iID) {
             nextWorkspaceOnMonitorID = w->m_iID;

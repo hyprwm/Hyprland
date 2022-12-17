@@ -781,6 +781,10 @@ void CKeybindManager::changeworkspace(std::string args) {
                 g_pInputManager->refocus();
         } else if (g_pCompositor->getWindowsOnWorkspace(PWORKSPACETOCHANGETO->m_iID) > 0)
             g_pInputManager->refocus();
+        else {
+            // if there are no windows on the workspace, just unfocus the window on the previous workspace
+            g_pCompositor->focusWindow(nullptr);
+        }
 
         // set the new monitor as the last (no warps would bug otherwise)
         g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromID(PWORKSPACETOCHANGETO->m_iMonitorID));

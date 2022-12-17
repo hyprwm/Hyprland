@@ -1152,6 +1152,7 @@ void CKeybindManager::toggleSplit(std::string args) {
 
 void CKeybindManager::alterSplitRatio(std::string args) {
     float splitratio = 0;
+    bool exact = false;
 
     if (args == "+" || args == "-") {
         Debug::log(LOG, "alterSplitRatio: using LEGACY +/-, consider switching to the Hyprland syntax.");
@@ -1159,7 +1160,12 @@ void CKeybindManager::alterSplitRatio(std::string args) {
     }
 
     if (splitratio == 0) {
-        splitratio = getPlusMinusKeywordResult(args, 0);
+        if (args.find("exact") == 0) {
+            exact = true;
+            splitratio = getPlusMinusKeywordResult(args.substr(5), 0);
+        } else {
+            splitratio = getPlusMinusKeywordResult(args, 0);
+        }
     }
 
     if (splitratio == INT_MAX) {
@@ -1172,7 +1178,7 @@ void CKeybindManager::alterSplitRatio(std::string args) {
     if (!PLASTWINDOW)
         return;
 
-    g_pLayoutManager->getCurrentLayout()->alterSplitRatioBy(PLASTWINDOW, splitratio);
+    g_pLayoutManager->getCurrentLayout()->alterSplitRatio(PLASTWINDOW, splitratio, exact);
 }
 
 void CKeybindManager::focusMonitor(std::string arg) {

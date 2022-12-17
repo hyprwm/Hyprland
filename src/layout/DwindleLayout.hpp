@@ -60,7 +60,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
     virtual void                     switchWindows(CWindow*, CWindow*);
-    virtual void                     alterSplitRatioBy(CWindow*, float);
+    virtual void                     alterSplitRatio(CWindow*, float, bool);
     virtual std::string              getLayoutName();
 
     virtual void                     onEnable();

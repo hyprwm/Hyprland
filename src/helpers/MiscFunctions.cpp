@@ -30,38 +30,38 @@
 #endif
 
 static const float transforms[][9] = {{
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	},{
-		0.0f, 1.0f, 0.0f,
-		-1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	},{
-		-1.0f, 0.0f, 0.0f,
-		0.0f, -1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	},{
-		0.0f, -1.0f, 0.0f,
-		1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	},{
-		-1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	},{
-		0.0f, 1.0f, 0.0f,
-		1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	},{
-		1.0f, 0.0f, 0.0f,
-		0.0f, -1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	},{
-		0.0f, -1.0f, 0.0f,
-		-1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	},
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+    },{
+        0.0f, 1.0f, 0.0f,
+        -1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+    },{
+        -1.0f, 0.0f, 0.0f,
+        0.0f, -1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+    },{
+        0.0f, -1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+    },{
+        -1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+    },{
+        0.0f, 1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+    },{
+        1.0f, 0.0f, 0.0f,
+        0.0f, -1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+    },{
+        0.0f, -1.0f, 0.0f,
+        -1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+    },
 };
 
 std::string absolutePath(const std::string& rawpath, const std::string& currentPath) {
@@ -162,41 +162,12 @@ std::string removeBeginEndSpacesTabs(std::string str) {
 }
 
 float getPlusMinusKeywordResult(std::string source, float relative) {
-    float result = INT_MAX;
-
-    if (source[0] == '+') {
-        try {
-            if (source.contains('.'))
-                result = relative + std::stof(source.substr(1));
-            else
-                result = relative + std::stoi(source.substr(1));
-        } catch (...) {
-            Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
-            return INT_MAX;
-        }
-    } else if (source[0] == '-') {
-        try {
-            if (source.contains('.'))
-                result = relative - std::stof(source.substr(1));
-            else
-                result = relative - std::stoi(source.substr(1));
-        } catch (...) {
-            Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
-            return INT_MAX;
-        }
-    } else {
-        try {
-            if (source.contains('.'))
-                result = stof(source);
-            else
-                result = stoi(source);
-        } catch (...) {
-            Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
-            return INT_MAX;
-        }
+    try {
+        return relative + stof(source);
+    } catch (...) {
+        Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
+        return INT_MAX;
     }
-
-    return result;
 }
 
 bool isNumber(const std::string& str, bool allowfloat) {

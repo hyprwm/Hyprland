@@ -604,7 +604,7 @@ void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     prepareNewFocus(pWindow2, inheritFullscreen);
 }
 
-void CHyprMasterLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
+void CHyprMasterLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {
     // window should be valid, insallah
 
     const auto PNODE = getNodeFromWindow(pWindow);
@@ -614,7 +614,8 @@ void CHyprMasterLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
 
     const auto PMASTER = getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
-    PMASTER->percMaster = std::clamp(PMASTER->percMaster + ratio, 0.05f, 0.95f);
+    float newRatio = exact ? ratio : PMASTER->percMaster + ratio;
+    PMASTER->percMaster = std::clamp(newRatio, 0.05f, 0.95f);
 
     recalculateMonitor(pWindow->m_iMonitorID);
 }

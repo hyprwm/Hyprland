@@ -115,10 +115,10 @@ interface IHyprLayout {
     virtual void                     switchWindows(CWindow*, CWindow*) = 0;
 
     /*
-        Called when the user requests to change the splitratio by X
+        Called when the user requests to change the splitratio by or to X
         on a window
     */
-    virtual void                     alterSplitRatioBy(CWindow*, float) = 0;
+    virtual void                     alterSplitRatio(CWindow*, float, bool exact = false) = 0;
 
     /*
         Called when something wants the current layout's name

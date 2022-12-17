@@ -1166,7 +1166,7 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     g_pHyprRenderer->damageWindow(pWindow2);
 }
 
-void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
+void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {
     // window should be valid, insallah
 
     const auto PNODE = getNodeFromWindow(pWindow);
@@ -1174,7 +1174,8 @@ void CHyprDwindleLayout::alterSplitRatioBy(CWindow* pWindow, float ratio) {
     if (!PNODE || !PNODE->pParent || (PNODE->isGroupMember() && PNODE->getGroupMemberCount() == g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID)))
         return;
 
-    PNODE->pParent->splitRatio = std::clamp(PNODE->pParent->splitRatio + ratio, 0.1f, 1.9f);
+    float newRatio = exact ? ratio : PNODE->pParent->splitRatio + ratio;
+    PNODE->pParent->splitRatio = std::clamp(newRatio, 0.1f, 1.9f);
 
     PNODE->pParent->recalcSizePosRecursive();
 }

@@ -720,51 +720,9 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
     if (!*PBLURNEWOPTIMIZE || !m_mMonitorRenderResources[pMonitor].blurFBDirty || !*PBLUR)
         return;
 
-    bool has = false;
-
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == pMonitor->activeWorkspace && w->m_bIsMapped && !w->isHidden() && (!w->m_bIsFloating || *PBLURXRAY)) {
-            has = true;
-            break;
-        }
-    }
-
-    if (has)
-        g_pHyprRenderer->damageMonitor(pMonitor);
-}
-
-void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
-
-    // make the fake dmg
-    pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
-    wlr_box    wholeMonitor = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-    const auto POUTFB       = blurMainFramebufferWithDamage(255, &wholeMonitor, &fakeDamage);
-
-    // render onto blurFB
-    m_RenderData.pCurrentMonData->blurFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
-    m_RenderData.pCurrentMonData->blurFB.bind();
-
-    clear(CColor(0, 0, 0, 0));
-
-    m_bEndFrame = true; // fix transformed
-    renderTextureInternalWithDamage(POUTFB->m_cTex, &wholeMonitor, 255, &fakeDamage, 0, false, true, false);
-    m_bEndFrame = false;
-
-    pixman_region32_fini(&fakeDamage);
-
-    m_RenderData.pCurrentMonData->primaryFB.bind();
-
-    m_RenderData.pCurrentMonData->blurFBDirty = false;
-}
-
-void CHyprOpenGLImpl::preWindowPass() {
-    static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
-    static auto* const PBLURXRAY        = &g_pConfigManager->getConfigValuePtr("decoration:blur_xray")->intValue;
-    static auto* const PBLUR            = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
-
-    if (!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE || !*PBLUR)
-        return;
+    // check if we need to update the blur fb
+    // if there are no windows that would benefit from it,
+    // we will ignore that the blur FB is dirty.
 
     auto windowShouldBeBlurred = [&](CWindow* pWindow) -> bool {
         if (!pWindow)
@@ -802,7 +760,7 @@ void CHyprOpenGLImpl::preWindowPass() {
 
     bool hasWindows = false;
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == m_RenderData.pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && (!w->m_bIsFloating || *PBLURXRAY)) {
+        if (w->m_iWorkspaceID == pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && (!w->m_bIsFloating || *PBLURXRAY)) {
 
             // check if window is valid
             if (!windowShouldBeBlurred(w.get()))
@@ -814,6 +772,42 @@ void CHyprOpenGLImpl::preWindowPass() {
     }
 
     if (!hasWindows)
+        return;
+
+    g_pHyprRenderer->damageMonitor(pMonitor);
+    m_mMonitorRenderResources[pMonitor].blurFBShouldRender = true;
+}
+
+void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
+
+    // make the fake dmg
+    pixman_region32_t fakeDamage;
+    pixman_region32_init_rect(&fakeDamage, 0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
+    wlr_box    wholeMonitor = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+    const auto POUTFB       = blurMainFramebufferWithDamage(255, &wholeMonitor, &fakeDamage);
+
+    // render onto blurFB
+    m_RenderData.pCurrentMonData->blurFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
+    m_RenderData.pCurrentMonData->blurFB.bind();
+
+    clear(CColor(0, 0, 0, 0));
+
+    m_bEndFrame = true; // fix transformed
+    renderTextureInternalWithDamage(POUTFB->m_cTex, &wholeMonitor, 255, &fakeDamage, 0, false, true, false);
+    m_bEndFrame = false;
+
+    pixman_region32_fini(&fakeDamage);
+
+    m_RenderData.pCurrentMonData->primaryFB.bind();
+
+    m_RenderData.pCurrentMonData->blurFBDirty = false;
+}
+
+void CHyprOpenGLImpl::preWindowPass() {
+    static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
+    static auto* const PBLUR            = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
+
+    if (!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE || !*PBLUR || !m_RenderData.pCurrentMonData->blurFBShouldRender)
         return;
 
     // blur the main FB, it will be rendered onto the mirror

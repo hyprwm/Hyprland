@@ -559,6 +559,12 @@ std::string dispatchKeyword(std::string in) {
     if (COMMAND.contains("decoration:screen_shader"))
         g_pHyprOpenGL->m_bReloadScreenShader = true;
 
+    if (COMMAND.contains("blur")) {
+        for (auto& [m, rd] : g_pHyprOpenGL->m_mMonitorRenderResources) {
+            rd.blurFBDirty = true;
+        }
+    }
+
     Debug::log(LOG, "Hyprctl: keyword %s : %s", COMMAND.c_str(), VALUE.c_str());
 
     if (retval == "")

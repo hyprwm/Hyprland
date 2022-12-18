@@ -8,6 +8,7 @@ self: {
   defaultHyprlandPackage = self.packages.${pkgs.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
     hidpiXWayland = cfg.xwayland.hidpi;
+    nvidiaPatches = cfg.nvidiaPatches;
   };
 in {
   options.wayland.windowManager.hyprland = {
@@ -58,6 +59,17 @@ in {
         '';
       };
     };
+
+    nvidiaPatches = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      defaultText = lib.literalExpression "false";
+      example = lib.liberalExpression "true";
+      description = ''
+        Patch wlroots for better Nvidia support.
+      '';
+    };
+
 
     extraConfig = lib.mkOption {
       type = lib.types.nullOr lib.types.lines;

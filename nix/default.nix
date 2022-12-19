@@ -6,6 +6,7 @@
   pkg-config,
   meson,
   ninja,
+  cairo,
   git,
   hyprland-protocols,
   libdrm,
@@ -61,6 +62,7 @@ in
       buildInputs =
         [
           git
+          cairo
           libdrm
           libinput
           libxkbcommon

@@ -6,7 +6,6 @@
 #pragma diag_suppress 1696
 #endif
 
-#include <X11/Xlib.h>
 #include <getopt.h>
 #include <libinput.h>
 #include <linux/input-event-codes.h>
@@ -109,7 +108,6 @@ extern "C" {
 #ifndef NO_XWAYLAND
 #include <wlr/backend/x11.h>
 #include <wlr/xwayland.h>
-#include <X11/Xproto.h>
 #endif
 }
 

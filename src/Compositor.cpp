@@ -2,6 +2,9 @@
 #include "helpers/Splashes.hpp"
 #include <random>
 #include "debug/HyprCtl.hpp"
+#ifdef USES_SYSTEMD
+#include <systemd/sd-daemon.h> // for sd_notify
+#endif
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal %d", signo);
@@ -383,6 +386,15 @@ void CCompositor::startCompositor() {
     }
 
     wlr_xcursor_manager_set_cursor_image(m_sWLRXCursorMgr, "left_ptr", m_sWLRCursor);
+
+#ifdef USES_SYSTEMD
+    if (sd_booted() > 0)
+        // tell systemd that we are ready so it can start other bond, following, related units
+        sd_notify(0, "READY=1");
+   else
+        Debug::log(LOG, "systemd integration is baked in but system itself is not booted à la systemd!");
+#endif
+
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");

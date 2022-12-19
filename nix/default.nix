@@ -6,6 +6,7 @@
   pkg-config,
   meson,
   ninja,
+  cairo,
   git,
   hyprland-protocols,
   libdrm,
@@ -14,7 +15,6 @@
   libxkbcommon,
   mesa,
   mount,
-  pango,
   pciutils,
   wayland,
   wayland-protocols,
@@ -62,11 +62,11 @@ in
       buildInputs =
         [
           git
+          cairo
           libdrm
           libinput
           libxkbcommon
           mesa
-          pango
           wayland
           wayland-protocols
           wayland-scanner

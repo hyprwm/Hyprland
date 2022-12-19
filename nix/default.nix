@@ -14,7 +14,6 @@
   libxkbcommon,
   mesa,
   mount,
-  pango,
   pciutils,
   wayland,
   wayland-protocols,
@@ -66,7 +65,6 @@ in
           libinput
           libxkbcommon
           mesa
-          pango
           wayland
           wayland-protocols
           wayland-scanner

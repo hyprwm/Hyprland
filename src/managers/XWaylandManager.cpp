@@ -44,7 +44,7 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
         wlr_xwayland_surface_activate(wlr_xwayland_surface_from_wlr_surface(pSurface), activate);
 
         if (activate)
-            wlr_xwayland_surface_restack(wlr_xwayland_surface_from_wlr_surface(pSurface), NULL, XCB_STACK_MODE_ABOVE);
+            wlr_xwayland_surface_restack(wlr_xwayland_surface_from_wlr_surface(pSurface), nullptr, XCB_STACK_MODE_ABOVE);
     }
 }
 
@@ -53,7 +53,7 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
 
         if (activate) {
             wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
-            wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, NULL, XCB_STACK_MODE_ABOVE);
+            wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, nullptr, XCB_STACK_MODE_ABOVE);
         }
 
         wlr_xwayland_surface_activate(pWindow->m_uSurface.xwayland, activate);
@@ -175,7 +175,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] ||
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
                 pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"]) {
-                    
+
                 if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
                     pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"])
                     pWindow->m_bX11ShouldntFocus = true;

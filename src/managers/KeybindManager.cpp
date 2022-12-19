@@ -947,6 +947,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         g_pCompositor->focusWindow(PWINDOW);
     } else {
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
+        g_pInputManager->refocus();
     }
 
     PWINDOW->updateToplevel();
@@ -1152,7 +1153,7 @@ void CKeybindManager::toggleSplit(std::string args) {
 
 void CKeybindManager::alterSplitRatio(std::string args) {
     float splitratio = 0;
-    bool exact = false;
+    bool  exact      = false;
 
     if (args == "+" || args == "-") {
         Debug::log(LOG, "alterSplitRatio: using LEGACY +/-, consider switching to the Hyprland syntax.");
@@ -1161,7 +1162,7 @@ void CKeybindManager::alterSplitRatio(std::string args) {
 
     if (splitratio == 0) {
         if (args.find("exact") == 0) {
-            exact = true;
+            exact      = true;
             splitratio = getPlusMinusKeywordResult(args.substr(5), 0);
         } else {
             splitratio = getPlusMinusKeywordResult(args, 0);

@@ -25,12 +25,10 @@ diff --git a/src/meson.build b/src/meson.build
 index 5d64188..a676333 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -7,7 +7,7 @@ executable('Hyprland', src,
+@@ -7,5 +7,5 @@ executable('Hyprland', src,
      server_protos,
      dependency('wayland-server'),
      dependency('wayland-client'),
 -    wlroots.get_variable('wlroots'),
 +    wlroots,
      dependency('cairo'),
-     dependency('pango'),
-     dependency('pangocairo'),

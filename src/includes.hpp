@@ -108,8 +108,6 @@ extern "C" {
 #ifndef NO_XWAYLAND
 #include <wlr/backend/x11.h>
 #include <wlr/xwayland.h>
-#include <X11/Xlib.h>
-#include <X11/Xproto.h>
 #endif
 }
 

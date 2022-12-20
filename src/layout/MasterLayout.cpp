@@ -240,7 +240,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         for (auto& n : m_lMasterNodesData) {
             if (n.workspaceID == PWORKSPACE->m_iID && n.isMaster) {
                 if (PWORKSPACEDATA->orientation == ORIENTATION_RIGHT) {
-                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(PMONITOR->vecSize.x - WIDTH, nextY);
+                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(PMONITOR->vecSize.x - WIDTH - PMONITOR->vecReservedBottomRight.x, nextY);
                 } else {
                     n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(0, nextY);
                 }

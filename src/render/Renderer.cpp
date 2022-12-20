@@ -451,7 +451,25 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
 
-        if (!w->m_bIsFloating)
+        if (!w->m_bIsFloating || w->m_bPinned)
+            continue;
+
+        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+            continue;
+
+        if (!shouldRenderWindow(w.get(), PMONITOR))
+            continue;
+
+        // render the bad boy
+        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_ALL);
+    }
+
+    // pinned always above
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
+
+        if (!w->m_bPinned || !w->m_bIsFloating)
             continue;
 
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))

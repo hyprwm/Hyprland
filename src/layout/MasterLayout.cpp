@@ -240,7 +240,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         for (auto& n : m_lMasterNodesData) {
             if (n.workspaceID == PWORKSPACE->m_iID && n.isMaster) {
                 if (PWORKSPACEDATA->orientation == ORIENTATION_RIGHT) {
-                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(PMONITOR->vecSize.x - WIDTH, nextY);
+                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(PMONITOR->vecSize.x - WIDTH - PMONITOR->vecReservedBottomRight.x - PMONITOR->vecReservedTopLeft.x, nextY);
                 } else {
                     n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(0, nextY);
                 }
@@ -265,7 +265,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         for (auto& n : m_lMasterNodesData) {
             if (n.workspaceID == PWORKSPACE->m_iID && n.isMaster) {
                 if (PWORKSPACEDATA->orientation == ORIENTATION_BOTTOM) {
-                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(nextX, PMONITOR->vecSize.y - HEIGHT - PMONITOR->vecReservedBottomRight.y);
+                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(nextX, PMONITOR->vecSize.y - HEIGHT - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
                 } else {
                     n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(nextX, 0);
                 }

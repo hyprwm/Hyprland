@@ -409,7 +409,7 @@ float CMonitor::getDefaultScale() {
 
     if (PPI > 200 /* High PPI, 2x*/)
         return 2;
-    else if (PPI > 125 /* Medium PPI, 1.5x*/)
+    else if (PPI > 140 /* Medium PPI, 1.5x*/)
         return 1.5;
     return 1;
 }

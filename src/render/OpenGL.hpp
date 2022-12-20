@@ -38,15 +38,15 @@ struct SMonitorRenderData {
     wlr_box      backgroundTexBox;
 
     // Shaders
-    bool         m_bShadersInitialized = false;
-    CShader      m_shQUAD;
-    CShader      m_shRGBA;
-    CShader      m_shRGBX;
-    CShader      m_shEXT;
-    CShader      m_shBLUR1;
-    CShader      m_shBLUR2;
-    CShader      m_shSHADOW;
-    CShader      m_shBORDER1;
+    bool    m_bShadersInitialized = false;
+    CShader m_shQUAD;
+    CShader m_shRGBA;
+    CShader m_shRGBX;
+    CShader m_shEXT;
+    CShader m_shBLUR1;
+    CShader m_shBLUR2;
+    CShader m_shSHADOW;
+    CShader m_shBORDER1;
     //
 };
 
@@ -143,13 +143,13 @@ class CHyprOpenGLImpl {
     void              initShaders();
 
     // returns the out FB, can be either Mirror or MirrorSwap
-    CFramebuffer*     blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
+    CFramebuffer* blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
 
-    void renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
-                                         bool allowCustomUV = false, bool allowDim = false);
-    void renderSplash(cairo_t* const, cairo_surface_t* const, double);
+    void          renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
+                                                  bool allowCustomUV = false, bool allowDim = false);
+    void          renderSplash(cairo_t* const, cairo_surface_t* const, double);
 
-    void preBlurForCurrentMonitor();
+    void          preBlurForCurrentMonitor();
 
     friend class CHyprRenderer;
 };

@@ -3,7 +3,7 @@
 #include <string>
 
 inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVarName) -> std::string {
-        return R"#(
+    return R"#(
 
     // branchless baby!
     highp vec2 pixCoord = vec2(gl_FragCoord);
@@ -30,7 +30,8 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
 	        distances /= 4.0;
 
-	        )#" + colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
+	        )#" +
+        colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
         }
 
     }
@@ -66,7 +67,8 @@ void main() {
     vec4 pixColor = v_color;
 
     if (radius > 0.0) {
-	)#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+	)#" +
+    ROUNDED_SHADER_FUNC("pixColor") + R"#(
     }
 
     gl_FragColor = pixColor;
@@ -114,7 +116,8 @@ void main() {
 	pixColor[2] = pixColor[2] * tint[2];
     }
 
-    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    )#" +
+    ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
     gl_FragColor = pixColor * alpha;
 })#";
@@ -149,7 +152,8 @@ void main() {
 	pixColor[2] = pixColor[2] * tint[2];
     }
 
-    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    )#" +
+    ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
     gl_FragColor = pixColor * alpha;
 })#";
@@ -234,7 +238,8 @@ void main() {
 	pixColor[2] = pixColor[2] * tint[2];
     }
 
-    )#" + ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    )#" +
+    ROUNDED_SHADER_FUNC("pixColor") + R"#(
 
     gl_FragColor = pixColor * alpha;
 }

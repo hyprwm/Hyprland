@@ -38,7 +38,7 @@ class CGradientValueData : public ICustomConfigValueData {
     /* Float corresponding to the angle (rad) */
     float m_fAngle = 0;
 
-    bool operator==(const CGradientValueData& other) {
+    bool  operator==(const CGradientValueData& other) {
         if (other.m_vColors.size() != m_vColors.size() || m_fAngle != other.m_fAngle)
             return false;
 

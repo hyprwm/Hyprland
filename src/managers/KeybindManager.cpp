@@ -431,8 +431,8 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
         // vtnr is bugged for some reason.
-        const std::string  TTYSTR = execAndGet("head -n 1 /sys/devices/virtual/tty/tty0/active").substr(3);
-        unsigned int       ttynum = 0;
+        const std::string TTYSTR = execAndGet("head -n 1 /sys/devices/virtual/tty/tty0/active").substr(3);
+        unsigned int      ttynum = 0;
         try {
             ttynum = std::stoll(TTYSTR);
         } catch (std::exception& e) {
@@ -633,9 +633,9 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // Flag needed so that the previous workspace is not recorded when switching
     // to a previous workspace.
-    bool        isSwitchingToPrevious = false;
+    bool isSwitchingToPrevious = false;
 
-    bool        internal = false;
+    bool internal = false;
 
     if (args.find("[internal]") == 0) {
         workspaceToChangeTo   = std::stoi(args.substr(10));
@@ -885,7 +885,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (!PWINDOW)
         return;
 
-    const auto  OLDWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+    const auto OLDWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
     // hack
     std::string workspaceName;

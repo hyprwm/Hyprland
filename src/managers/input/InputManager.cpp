@@ -555,7 +555,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     const auto VARIANT  = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_variant") : g_pConfigManager->getString("input:kb_variant");
     const auto OPTIONS  = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_options") : g_pConfigManager->getString("input:kb_options");
 
-    const auto ENABLED  = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
+    const auto ENABLED = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
 
     pKeyboard->enabled = ENABLED;
 

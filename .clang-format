@@ -60,6 +60,6 @@ AllowShortEnumsOnASingleLine: false
 BraceWrapping:
   AfterEnum: false
 
-AlignConsecutiveDeclarations: AcrossEmptyLinesAndComments
+AlignConsecutiveDeclarations: AcrossEmptyLines
 
 NamespaceIndentation: All

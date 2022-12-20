@@ -134,11 +134,7 @@ void CWindow::createToplevelHandle() {
 
     // handle events
     hyprListener_toplevelActivate.initCallback(
-        &m_phForeignToplevel->events.request_activate,
-        [&](void* owner, void* data) {
-            g_pCompositor->focusWindow(this);
-        },
-        this, "Toplevel");
+        &m_phForeignToplevel->events.request_activate, [&](void* owner, void* data) { g_pCompositor->focusWindow(this); }, this, "Toplevel");
 
     hyprListener_toplevelFullscreen.initCallback(
         &m_phForeignToplevel->events.request_fullscreen,
@@ -150,11 +146,7 @@ void CWindow::createToplevelHandle() {
         this, "Toplevel");
 
     hyprListener_toplevelClose.initCallback(
-        &m_phForeignToplevel->events.request_close,
-        [&](void* owner, void* data) {
-            g_pCompositor->closeWindow(this);
-        },
-        this, "Toplevel");
+        &m_phForeignToplevel->events.request_close, [&](void* owner, void* data) { g_pCompositor->closeWindow(this); }, this, "Toplevel");
 
     m_iLastToplevelMonitorID = m_iMonitorID;
 }

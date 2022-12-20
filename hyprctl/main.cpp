@@ -44,7 +44,7 @@ flags:
     --batch -> execute a batch of commands, separated by ';'
 )#";
 
-void request(std::string arg, int minArgs = 0) {
+void              request(std::string arg, int minArgs = 0) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
@@ -59,7 +59,6 @@ void request(std::string arg, int minArgs = 0) {
         return;
     }
 
-
     // get the instance signature
     auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
 
@@ -71,7 +70,7 @@ void request(std::string arg, int minArgs = 0) {
     std::string instanceSigStr = std::string(instanceSig);
 
     sockaddr_un serverAddress = {0};
-    serverAddress.sun_family = AF_UNIX;
+    serverAddress.sun_family  = AF_UNIX;
 
     std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.socket.sock";
 
@@ -89,8 +88,8 @@ void request(std::string arg, int minArgs = 0) {
         return;
     }
 
-    std::string reply = "";
-    char buffer[8192] = {0};
+    std::string reply        = "";
+    char        buffer[8192] = {0};
 
     sizeWritten = read(SERVERSOCKET, buffer, 8192);
 
@@ -134,7 +133,7 @@ void requestHyprpaper(std::string arg) {
     std::string instanceSigStr = std::string(instanceSig);
 
     sockaddr_un serverAddress = {0};
-    serverAddress.sun_family = AF_UNIX;
+    serverAddress.sun_family  = AF_UNIX;
 
     std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.hyprpaper.sock";
 
@@ -176,7 +175,7 @@ int dispatchRequest(int argc, char** argv) {
 
     std::string rq = "/dispatch";
 
-    for(int i = 2; i < argc; i++) {
+    for (int i = 2; i < argc; i++) {
         if (!strcmp(argv[i], "--"))
             continue;
         rq += " " + std::string(argv[i]);
@@ -195,7 +194,7 @@ int keywordRequest(int argc, char** argv) {
 
     std::string rq = "/keyword";
 
-    for(int i = 2; i < argc; i++)
+    for (int i = 2; i < argc; i++)
         rq += " " + std::string(argv[i]);
 
     request(rq);
@@ -265,7 +264,7 @@ bool isNumber(const std::string& str, bool allowfloat) {
 }
 
 int main(int argc, char** argv) {
-    int bflag = 0, sflag = 0, index, c;
+    int  bflag = 0, sflag = 0, index, c;
     bool parseArgs = true;
 
     if (argc < 2) {
@@ -274,8 +273,8 @@ int main(int argc, char** argv) {
     }
 
     std::string fullRequest = "";
-    std::string fullArgs = "";
-    const auto ARGS = splitArgs(argc, argv);
+    std::string fullArgs    = "";
+    const auto  ARGS        = splitArgs(argc, argv);
 
     for (auto i = 0; i < ARGS.size(); ++i) {
         if (ARGS[i] == "--") {
@@ -308,29 +307,49 @@ int main(int argc, char** argv) {
     fullRequest.pop_back(); // remove trailing space
 
     fullRequest = fullArgs + "/" + fullRequest;
-    
+
     int exitStatus = 0;
 
-    if (fullRequest.contains("/--batch")) batchRequest(fullRequest);
-    else if (fullRequest.contains("/monitors")) request(fullRequest);
-    else if (fullRequest.contains("/clients")) request(fullRequest);
-    else if (fullRequest.contains("/workspaces")) request(fullRequest);
-    else if (fullRequest.contains("/activewindow")) request(fullRequest);
-    else if (fullRequest.contains("/layers")) request(fullRequest);
-    else if (fullRequest.contains("/version")) request(fullRequest);
-    else if (fullRequest.contains("/kill")) request(fullRequest);
-    else if (fullRequest.contains("/splash")) request(fullRequest);
-    else if (fullRequest.contains("/devices")) request(fullRequest);
-    else if (fullRequest.contains("/reload")) request(fullRequest);
-    else if (fullRequest.contains("/getoption")) request(fullRequest);
-    else if (fullRequest.contains("/cursorpos")) request(fullRequest);
-    else if (fullRequest.contains("/switchxkblayout")) request(fullRequest, 2);
-    else if (fullRequest.contains("/output")) exitStatus = outputRequest(argc, argv);
-    else if (fullRequest.contains("/setcursor")) exitStatus = setcursorRequest(argc, argv);
-    else if (fullRequest.contains("/dispatch")) exitStatus = dispatchRequest(argc, argv);
-    else if (fullRequest.contains("/keyword")) exitStatus = keywordRequest(argc, argv);
-    else if (fullRequest.contains("/hyprpaper")) exitStatus = hyprpaperRequest(argc, argv);
-    else if (fullRequest.contains("/--help")) printf("%s", USAGE.c_str());
+    if (fullRequest.contains("/--batch"))
+        batchRequest(fullRequest);
+    else if (fullRequest.contains("/monitors"))
+        request(fullRequest);
+    else if (fullRequest.contains("/clients"))
+        request(fullRequest);
+    else if (fullRequest.contains("/workspaces"))
+        request(fullRequest);
+    else if (fullRequest.contains("/activewindow"))
+        request(fullRequest);
+    else if (fullRequest.contains("/layers"))
+        request(fullRequest);
+    else if (fullRequest.contains("/version"))
+        request(fullRequest);
+    else if (fullRequest.contains("/kill"))
+        request(fullRequest);
+    else if (fullRequest.contains("/splash"))
+        request(fullRequest);
+    else if (fullRequest.contains("/devices"))
+        request(fullRequest);
+    else if (fullRequest.contains("/reload"))
+        request(fullRequest);
+    else if (fullRequest.contains("/getoption"))
+        request(fullRequest);
+    else if (fullRequest.contains("/cursorpos"))
+        request(fullRequest);
+    else if (fullRequest.contains("/switchxkblayout"))
+        request(fullRequest, 2);
+    else if (fullRequest.contains("/output"))
+        exitStatus = outputRequest(argc, argv);
+    else if (fullRequest.contains("/setcursor"))
+        exitStatus = setcursorRequest(argc, argv);
+    else if (fullRequest.contains("/dispatch"))
+        exitStatus = dispatchRequest(argc, argv);
+    else if (fullRequest.contains("/keyword"))
+        exitStatus = keywordRequest(argc, argv);
+    else if (fullRequest.contains("/hyprpaper"))
+        exitStatus = hyprpaperRequest(argc, argv);
+    else if (fullRequest.contains("/--help"))
+        printf("%s", USAGE.c_str());
     else {
         printf("%s\n", USAGE.c_str());
         return 1;

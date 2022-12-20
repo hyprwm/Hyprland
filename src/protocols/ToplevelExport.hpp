@@ -45,11 +45,11 @@ class CToplevelExportProtocolManager {
   public:
     CToplevelExportProtocolManager();
 
-    void                        bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
-    void                        captureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, CWindow* handle);
-    void                        removeClient(SToplevelClient* client, bool force = false);
-    void                        removeFrame(SToplevelFrame* frame, bool force = false);
-    void                        copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);
+    void bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
+    void captureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, CWindow* handle);
+    void removeClient(SToplevelClient* client, bool force = false);
+    void removeFrame(SToplevelFrame* frame, bool force = false);
+    void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);
 
     void onMonitorRender(CMonitor* pMonitor);
     void displayDestroy();

@@ -8,21 +8,21 @@ typedef struct {
     /** User specified flags */
     uint32_t flags;
     /** User-specified position */
-    int32_t  x, y;
+    int32_t x, y;
     /** User-specified size */
-    int32_t  width, height;
+    int32_t width, height;
     /** Program-specified minimum size */
-    int32_t  min_width, min_height;
+    int32_t min_width, min_height;
     /** Program-specified maximum size */
-    int32_t  max_width, max_height;
+    int32_t max_width, max_height;
     /** Program-specified resize increments */
-    int32_t  width_inc, height_inc;
+    int32_t width_inc, height_inc;
     /** Program-specified minimum aspect ratios */
-    int32_t  min_aspect_num, min_aspect_den;
+    int32_t min_aspect_num, min_aspect_den;
     /** Program-specified maximum aspect ratios */
-    int32_t  max_aspect_num, max_aspect_den;
+    int32_t max_aspect_num, max_aspect_den;
     /** Program-specified base size */
-    int32_t  base_width, base_height;
+    int32_t base_width, base_height;
     /** Program-specified window gravity */
     uint32_t win_gravity;
 } xcb_size_hints_t;
@@ -93,12 +93,12 @@ struct wlr_xwayland_surface {
     struct wl_event_source*      ping_timer;
 
     // _NET_WM_STATE
-    bool                         modal;
-    bool                         fullscreen;
-    bool                         maximized_vert, maximized_horz;
-    bool                         minimized;
+    bool modal;
+    bool fullscreen;
+    bool maximized_vert, maximized_horz;
+    bool minimized;
 
-    bool                         has_alpha;
+    bool has_alpha;
 
     struct {
         struct wl_signal destroy;

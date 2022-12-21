@@ -22,8 +22,15 @@ CCompositor::CCompositor() {
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
 
+    if (!std::filesystem::exists("/tmp/hypr")) {
+        std::filesystem::create_directory("/tmp/hypr");
+        std::filesystem::permissions("/tmp/hypr", std::filesystem::perms::all, std::filesystem::perm_options::replace);
+    }
+
     const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;
-    mkdir(INSTANCEPATH.c_str(), S_IRWXU | S_IRWXG);
+    std::filesystem::create_directory(INSTANCEPATH);
+    std::filesystem::permissions(INSTANCEPATH, std::filesystem::perms::group_all, std::filesystem::perm_options::replace);
+    std::filesystem::permissions(INSTANCEPATH, std::filesystem::perms::owner_all, std::filesystem::perm_options::add);
 
     Debug::init(m_szInstanceSignature);
 

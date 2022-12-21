@@ -551,6 +551,7 @@ std::string dispatchKeyword(std::string in) {
         g_pInputManager->setKeyboardLayout();     // update kb layout
         g_pInputManager->setPointerConfigs();     // update mouse cfgs
         g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
+        g_pInputManager->setTabletConfigs();      // update tablets
     }
 
     if (COMMAND.contains("general:layout"))

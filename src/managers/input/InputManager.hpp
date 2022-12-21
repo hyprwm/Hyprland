@@ -60,6 +60,7 @@ class CInputManager {
     void               setKeyboardLayout();
     void               setPointerConfigs();
     void               setTouchDeviceConfigs();
+    void               setTabletConfigs();
 
     void               updateDragIcon();
     void               updateCapabilities();

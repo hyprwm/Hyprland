@@ -133,7 +133,13 @@ in {
           then defaultHyprlandPackage
           else cfg.package;
       in
-        lib.mkIf (!cfg.disableAutoreload) "HYPRLAND_INSTANCE_SIGNATURE=$(ls -w 1 /tmp/hypr | tail -1) ${hyprlandPackage}/bin/hyprctl reload config-only";
+        lib.mkIf (!cfg.disableAutoreload) ''(  # execute in subshell so that `shopt` won't affect other scripts
+          shopt -s nullglob  # so that nothing is done if /tmp/hypr/ does not exist or is empty
+          for instance in /tmp/hypr/*; do
+            HYPRLAND_INSTANCE_SIGNATURE=''${instance##*/} ${hyprlandPackage}/bin/hyprctl reload config-only \
+              || true  # ignore dead instance(s)
+          done
+        )'';
     };
 
     systemd.user.targets.hyprland-session = lib.mkIf cfg.systemdIntegration {

@@ -173,9 +173,6 @@ void CMonitor::onDisconnect() {
         }
     }
 
-    if (g_pCompositor->m_pLastMonitor == this)
-        g_pCompositor->setActiveMonitor(BACKUPMON);
-
     // remove mirror
     if (pMirrorOf) {
         pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
@@ -238,6 +235,9 @@ void CMonitor::onDisconnect() {
     Debug::log(LOG, "Removed monitor %s!", szName.c_str());
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
+
+    if (g_pCompositor->m_pLastMonitor == this)
+        g_pCompositor->setActiveMonitor(BACKUPMON);
 
     std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
 }

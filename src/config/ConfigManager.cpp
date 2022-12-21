@@ -200,8 +200,8 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["left_handed"].intValue             = 0;
     cfgValues["scroll_method"].strValue           = STRVAL_EMPTY;
     cfgValues["scroll_button"].intValue           = 0;
-    cfgValues["touch_transform"].intValue         = 0;
-    cfgValues["touch_output"].strValue            = STRVAL_EMPTY;
+    cfgValues["transform"].intValue               = 0;
+    cfgValues["output"].strValue                  = STRVAL_EMPTY;
     cfgValues["enabled"].intValue                 = 1; // only for mice / touchpads
 }
 
@@ -298,6 +298,11 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         auto it = deviceConfigs.find(DEVICE);
 
         if (it->second.find(CONFIGVAR) == it->second.end()) {
+            if (it->second.contains("touch_output") || it->second.contains("touch_transform")) {
+                parseError = "touch_output and touch_transform have been changed to output and transform respectively";
+                return;
+            }
+
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
             return;
         }
@@ -1229,6 +1234,7 @@ void CConfigManager::loadConfigLoadVars() {
         g_pInputManager->setKeyboardLayout();
         g_pInputManager->setPointerConfigs();
         g_pInputManager->setTouchDeviceConfigs();
+        g_pInputManager->setTabletConfigs();
     }
 
     // Calculate the internal vars
@@ -1534,6 +1540,7 @@ void CConfigManager::dispatchExecOnce() {
     g_pInputManager->setKeyboardLayout();
     g_pInputManager->setPointerConfigs();
     g_pInputManager->setTouchDeviceConfigs();
+    g_pInputManager->setTabletConfigs();
 
     // set ws names again
     for (auto& ws : g_pCompositor->m_vWorkspaces) {

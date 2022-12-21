@@ -137,6 +137,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             }
         },
         PNEWTABLET, "Tablet");
+
+    setTabletConfigs();
 }
 
 STabletTool* CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
@@ -176,6 +178,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
     }
 
     PNEWPAD->wlrTabletPadV2 = wlr_tablet_pad_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pDevice);
+    PNEWPAD->pWlrDevice     = pDevice;
 
     PNEWPAD->hyprListener_Button.initCallback(
         &wlr_tablet_pad_from_input_device(pDevice)->events.button,

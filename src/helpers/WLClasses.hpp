@@ -253,6 +253,7 @@ struct STabletTool {
 struct STabletPad {
     wlr_tablet_v2_tablet_pad* wlrTabletPadV2 = nullptr;
     STablet*                  pTabletParent  = nullptr;
+    wlr_input_device*         pWlrDevice     = nullptr;
 
     std::string               name = "";
 

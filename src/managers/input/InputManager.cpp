@@ -1147,14 +1147,30 @@ void CInputManager::setTouchDeviceConfigs() {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
 
             const int  ROTATION =
-                std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "touch_transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
+                std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
-            const auto OUTPUT = HASCONFIG ? g_pConfigManager->getDeviceString(PTOUCHDEV->name, "touch_output") : g_pConfigManager->getString("input:touchdevice:output");
+            const auto OUTPUT = HASCONFIG ? g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output") : g_pConfigManager->getString("input:touchdevice:output");
             if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY)
                 PTOUCHDEV->boundOutput = OUTPUT;
             else
                 PTOUCHDEV->boundOutput = "";
+        }
+    }
+}
+
+void CInputManager::setTabletConfigs() {
+    for (auto& t : m_lTablets) {
+        const auto HASCONFIG = g_pConfigManager->deviceConfigExists(t.name);
+
+        if (HASCONFIG) {
+            const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output");
+            const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
+
+            if (PMONITOR) {
+                wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, t.wlrDevice, PMONITOR->output);
+                wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, nullptr);
+            }
         }
     }
 }

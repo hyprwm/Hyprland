@@ -279,10 +279,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     const auto SIZEX = SIZEXSTR == "max" ?
                         std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) :
-                        (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stoi(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
+                        (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stof(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
                     const auto SIZEY = SIZEYSTR == "max" ?
                         std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) :
-                        (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stoi(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
+                        (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stof(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
 
                     Debug::log(LOG, "Rule size, applying to window %x", PWINDOW);
 
@@ -338,19 +338,19 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
                         const auto POSXRAW  = POSXSTR.substr(5);
                         posX =
-                            PMONITOR->vecSize.x - (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stoi(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
+                            PMONITOR->vecSize.x - (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stof(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
 
                         if (CURSOR)
                             Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
                     } else if (!CURSOR) {
-                        posX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x;
+                        posX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x;
                     } else {
                         // cursor
                         if (POSXSTR == "cursor") {
                             posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->vecPosition.x;
                         } else {
                             posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->vecPosition.x +
-                                (!POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stoi(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goalv().x);
+                                (!POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goalv().x);
                         }
                     }
 
@@ -358,19 +358,19 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
                         const auto POSYRAW  = POSYSTR.substr(5);
                         posY =
-                            PMONITOR->vecSize.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stoi(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
+                            PMONITOR->vecSize.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
 
                         if (CURSOR)
                             Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
                     } else if (!CURSOR) {
-                        posY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y;
+                        posY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y;
                     } else {
                         // cursor
                         if (POSYSTR == "cursor") {
                             posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y;
                         } else {
                             posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y +
-                                (!POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stoi(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goalv().y);
+                                (!POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goalv().y);
                         }
                     }
 

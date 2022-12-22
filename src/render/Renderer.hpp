@@ -49,6 +49,7 @@ class CHyprRenderer {
     bool                m_bWindowRequestedCursorHide = false;
     bool                m_bBlockSurfaceFeedback      = false;
     CWindow*            m_pLastScanout               = nullptr;
+    CMonitor*           m_pMostHzMonitor             = nullptr;
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 

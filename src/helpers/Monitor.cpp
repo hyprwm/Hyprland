@@ -239,6 +239,20 @@ void CMonitor::onDisconnect() {
     if (g_pCompositor->m_pLastMonitor == this)
         g_pCompositor->setActiveMonitor(BACKUPMON);
 
+    if (g_pHyprRenderer->m_pMostHzMonitor == this) {
+        int       mostHz         = 0;
+        CMonitor* pMonitorMostHz = nullptr;
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m->refreshRate > mostHz && m.get() != this) {
+                pMonitorMostHz = m.get();
+                mostHz         = m->refreshRate;
+            }
+        }
+
+        g_pHyprRenderer->m_pMostHzMonitor = pMonitorMostHz;
+    }
+
     std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
 }
 

@@ -15,9 +15,7 @@
 //                                                           //
 // --------------------------------------------------------- //
 
-CMonitor* pMostHzMonitor = nullptr;
-
-void      Events::listener_change(wl_listener* listener, void* data) {
+void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
 
@@ -80,8 +78,8 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     PNEWMONITOR->onConnect(false);
 
-    if ((!pMostHzMonitor || PNEWMONITOR->refreshRate > pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
-        pMostHzMonitor = PNEWMONITOR;
+    if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->refreshRate > g_pHyprRenderer->m_pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
+        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
 
     // ready to process cuz we have a monitor
     if (PNEWMONITOR->m_bEnabled) {
@@ -140,7 +138,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     // checks //
-    if (PMONITOR->ID == pMostHzMonitor->ID ||
+    if (PMONITOR->ID == g_pHyprRenderer->m_pMostHzMonitor->ID ||
         !*PNOVFR) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
@@ -340,20 +338,6 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
         Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->output->name);
 
         std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
-
-        if (pMostHzMonitor == pMonitor) {
-            int       mostHz         = 0;
-            CMonitor* pMonitorMostHz = nullptr;
-
-            for (auto& m : g_pCompositor->m_vMonitors) {
-                if (m->refreshRate > mostHz) {
-                    pMonitorMostHz = m.get();
-                    mostHz         = m->refreshRate;
-                }
-            }
-
-            pMostHzMonitor = pMonitorMostHz;
-        }
     }
 }
 

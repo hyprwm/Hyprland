@@ -743,6 +743,11 @@ void CInputManager::setPointerConfigs() {
                 Debug::log(WARN, "Scroll method unknown");
             }
 
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "tap-and-drag") : g_pConfigManager->getInt("input:touchpad:tap-and-drag")) == 0)
+                libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_DISABLED);
+            else
+                libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_ENABLED);
+
             if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "drag_lock") : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
                 libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_DISABLED);
             else

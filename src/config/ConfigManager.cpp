@@ -153,6 +153,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:clickfinger_behavior"].intValue    = 0;
     configValues["input:touchpad:middle_button_emulation"].intValue = 0;
     configValues["input:touchpad:tap-to-click"].intValue            = 1;
+    configValues["input:touchpad:tap-and-drag"].intValue            = 1;
     configValues["input:touchpad:drag_lock"].intValue               = 0;
     configValues["input:touchpad:scroll_factor"].floatValue         = 1.f;
     configValues["input:touchdevice:transform"].intValue            = 0;
@@ -196,6 +197,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["clickfinger_behavior"].intValue    = 0;
     cfgValues["middle_button_emulation"].intValue = 0;
     cfgValues["tap-to-click"].intValue            = 1;
+    cfgValues["tap-and-drag"].intValue            = 1;
     cfgValues["drag_lock"].intValue               = 0;
     cfgValues["left_handed"].intValue             = 0;
     cfgValues["scroll_method"].strValue           = STRVAL_EMPTY;

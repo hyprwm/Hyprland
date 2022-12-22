@@ -201,6 +201,16 @@ config:
 
 	cd subprojects/wlroots && ninja -C build/ install
 
+configdebug:
+	make protocols
+
+	make fixwlr
+
+	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=debug -Dwerror=false -Dexamples=false -Db_sanitize=address
+	cd subprojects/wlroots && ninja -C build/
+
+	cd subprojects/wlroots && ninja -C build/ install
+
 man:
 	pandoc ./docs/Hyprland.1.rst \
 		--standalone \

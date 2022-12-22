@@ -924,6 +924,9 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
         }
 
         if (SURFACEAT) {
+            if (!pixman_region32_not_empty(&SURFACEAT->input_region))
+                continue;
+
             *ppLayerSurfaceFound = it->get();
             return SURFACEAT;
         }

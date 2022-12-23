@@ -111,6 +111,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool        requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen ||
         (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen) ||
         (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->fullscreen);
+    bool requestsMaximize = false;
     bool shouldFocus      = true;
     bool workspaceSpecial = false;
 
@@ -173,6 +174,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
         } else if (r.szRule == "pin") {
             PWINDOW->m_bPinned = true;
+        } else if (r.szRule == "maximize") {
+            requestsMaximize = true;
         } else if (r.szRule.find("idleinhibit") == 0) {
             auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
@@ -457,7 +460,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
     PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
 
-    if (requestsFullscreen && !PWINDOW->m_bNoFullscreenRequest) {
+    if ((requestsFullscreen || requestsMaximize) && !PWINDOW->m_bNoFullscreenRequest) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWORKSPACE->m_bHasFullscreenWindow) {
             const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
@@ -467,7 +470,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vRealPosition.warp();
         PWINDOW->m_vRealSize.warp();
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
+        g_pCompositor->setWindowFullscreen(PWINDOW, true, requestsFullscreen ? FULLSCREEN_FULL : FULLSCREEN_MAXIMIZED);
     }
 
     if (pFullscreenWindow && workspaceSilent) {

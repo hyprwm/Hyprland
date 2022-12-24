@@ -1,7 +1,9 @@
-#!/usr/bin/env -S nix shell nixpkgs#gawk nixpkgs#git nixpkgs#moreutils nixpkgs#jq -c bash
+#!/usr/bin/env -S nix shell nixpkgs#gawk nixpkgs#git nixpkgs#moreutils nixpkgs#jq nixpkgs#ripgrep -c bash
+
+set -ex
 
 # get wlroots revision from submodule
-SUB_REV=$(git submodule status | awk '{ print substr($1,2)}')
+SUB_REV=$(git submodule status | rg wlroots | awk '{ print substr($1,2)}')
 # and from lockfile
 CRT_REV=$(jq < flake.lock '.nodes.wlroots.locked.rev' -r)
 

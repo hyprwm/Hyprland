@@ -172,6 +172,7 @@ void CConfigManager::setDefaultVars() {
     configValues["gestures:workspace_swipe_cancel_ratio"].floatValue     = 0.5f;
     configValues["gestures:workspace_swipe_create_new"].intValue         = 1;
     configValues["gestures:workspace_swipe_forever"].intValue            = 0;
+    configValues["gestures:workspace_swipe_numbered"].intValue           = 0;
 
     configValues["input:follow_mouse"].intValue = 1;
 

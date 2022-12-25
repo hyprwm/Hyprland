@@ -44,24 +44,25 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     if (!m_sActiveSwipe.pWorkspaceBegin)
         return; // no valid swipe
 
-    static auto* const PSWIPEPERC = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_cancel_ratio")->floatValue;
-    static auto* const PSWIPEDIST = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
-    static auto* const PSWIPEFORC = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_min_speed_to_force")->intValue;
-    static auto* const PSWIPENEW  = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
-    const bool         VERTANIMS  = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert";
+    static auto* const PSWIPEPERC   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_cancel_ratio")->floatValue;
+    static auto* const PSWIPEDIST   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
+    static auto* const PSWIPEFORC   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_min_speed_to_force")->intValue;
+    static auto* const PSWIPENEW    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
+    static auto* const PSWIPENUMBER = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_numbered")->intValue;
+    const bool         VERTANIMS    = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert";
 
     // commit
     std::string wsname           = "";
-    auto        workspaceIDLeft  = getWorkspaceIDFromString("m-1", wsname);
-    auto        workspaceIDRight = getWorkspaceIDFromString("m+1", wsname);
+    auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : "m-1", wsname);
+    auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : "m+1", wsname);
 
     if ((workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID || (workspaceIDRight == workspaceIDLeft && workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID)) &&
         *PSWIPENEW) {
         workspaceIDRight = m_sActiveSwipe.pWorkspaceBegin->m_iID > 0 ? m_sActiveSwipe.pWorkspaceBegin->m_iID + 1 : 1;
     }
 
-    auto        PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW
-    const auto  PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+    auto        PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
+    auto        PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
 
     const auto  RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.vec();
 
@@ -71,17 +72,20 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         abs(m_sActiveSwipe.delta) < 2) {
         // revert
         if (abs(m_sActiveSwipe.delta) < 2) {
-            PWORKSPACEL->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
+            if (PWORKSPACEL)
+                PWORKSPACEL->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
             if (PWORKSPACER)
                 PWORKSPACER->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
         } else {
             if (m_sActiveSwipe.delta < 0) {
                 // to left
-                if (VERTANIMS)
-                    PWORKSPACEL->m_vRenderOffset = Vector2D({0, -m_sActiveSwipe.pMonitor->vecSize.y});
-                else
-                    PWORKSPACEL->m_vRenderOffset = Vector2D({-m_sActiveSwipe.pMonitor->vecSize.x, 0});
+                if (PWORKSPACEL) {
+                    if (VERTANIMS)
+                        PWORKSPACEL->m_vRenderOffset = Vector2D({0, -m_sActiveSwipe.pMonitor->vecSize.y});
+                    else
+                        PWORKSPACEL->m_vRenderOffset = Vector2D({-m_sActiveSwipe.pMonitor->vecSize.x, 0});
+                }
             } else if (PWORKSPACER) {
                 // to right
                 if (VERTANIMS)
@@ -96,9 +100,14 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         pSwitchedTo = m_sActiveSwipe.pWorkspaceBegin;
     } else if (m_sActiveSwipe.delta < 0) {
         // switch to left
-        const auto RENDEROFFSET = PWORKSPACEL->m_vRenderOffset.vec();
+        const auto RENDEROFFSET = PWORKSPACEL ? PWORKSPACEL->m_vRenderOffset.vec() : Vector2D();
 
-        g_pKeybindManager->m_mDispatchers["workspace"]("[internal]" + std::to_string(workspaceIDLeft));
+        if (PWORKSPACEL)
+            g_pKeybindManager->m_mDispatchers["workspace"]("[internal]" + std::to_string(workspaceIDLeft));
+        else {
+            g_pKeybindManager->m_mDispatchers["workspace"](std::to_string(workspaceIDLeft)); // so that the ID is created properly
+            PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+        }
 
         PWORKSPACEL->m_vRenderOffset.setValue(RENDEROFFSET);
         PWORKSPACEL->m_fAlpha.setValueAndWarp(255.f);
@@ -121,11 +130,10 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
         if (PWORKSPACER)
             g_pKeybindManager->m_mDispatchers["workspace"]("[internal]" + std::to_string(workspaceIDRight));
-        else
+        else {
             g_pKeybindManager->m_mDispatchers["workspace"](std::to_string(workspaceIDRight)); // so that the ID is created properly
-
-        if (!PWORKSPACER)
-            PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed on PSWIPENEW
+            PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+        }
 
         PWORKSPACER->m_vRenderOffset.setValue(RENDEROFFSET);
         PWORKSPACER->m_fAlpha.setValueAndWarp(255.f);
@@ -146,7 +154,8 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
     g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
 
-    PWORKSPACEL->m_bForceRendering = false;
+    if (PWORKSPACEL)
+        PWORKSPACEL->m_bForceRendering = false;
     if (PWORKSPACER)
         PWORKSPACER->m_bForceRendering = false;
     m_sActiveSwipe.pWorkspaceBegin->m_bForceRendering = false;
@@ -169,6 +178,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     static auto* const PSWIPEINVR    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_invert")->intValue;
     static auto* const PSWIPENEW     = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
     static auto* const PSWIPEFOREVER = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_forever")->intValue;
+    static auto* const PSWIPENUMBER  = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_numbered")->intValue;
 
     const bool         VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert";
 
@@ -178,8 +188,8 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     m_sActiveSwipe.speedPoints++;
 
     std::string wsname           = "";
-    auto        workspaceIDLeft  = getWorkspaceIDFromString("m-1", wsname);
-    auto        workspaceIDRight = getWorkspaceIDFromString("m+1", wsname);
+    auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : "m-1", wsname);
+    auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : "m+1", wsname);
 
     if ((workspaceIDLeft == INT_MAX || workspaceIDRight == INT_MAX || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID) && !*PSWIPENEW) {
         m_sActiveSwipe.pWorkspaceBegin = nullptr; // invalidate the swipe
@@ -200,37 +210,10 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     }
 
     if (m_sActiveSwipe.delta < 0) {
-        if (workspaceIDLeft > m_sActiveSwipe.pWorkspaceBegin->m_iID && !*PSWIPENEW) {
-            m_sActiveSwipe.delta = 0;
-            return;
-        }
-
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
-        PWORKSPACE->m_bForceRendering = true;
-        PWORKSPACE->m_fAlpha.setValueAndWarp(255.f);
-
-        if (workspaceIDLeft != workspaceIDRight) {
-            const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
-
-            PWORKSPACER->m_bForceRendering = false;
-            PWORKSPACER->m_fAlpha.setValueAndWarp(0.f);
-        }
-
-        if (VERTANIMS) {
-            PWORKSPACE->m_vRenderOffset.setValueAndWarp(
-                Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y - m_sActiveSwipe.pMonitor->vecSize.y));
-            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y));
-        } else {
-            PWORKSPACE->m_vRenderOffset.setValueAndWarp(
-                Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x - m_sActiveSwipe.pMonitor->vecSize.x, 0));
-            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
-        }
-
-        g_pCompositor->updateWorkspaceWindowDecos(workspaceIDLeft);
-    } else {
-        if (workspaceIDRight < m_sActiveSwipe.pWorkspaceBegin->m_iID) {
-            if (*PSWIPENEW) {
+        if (workspaceIDLeft > m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
+            if (*PSWIPENEW || *PSWIPENUMBER) {
                 g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
 
                 if (VERTANIMS)
@@ -245,7 +228,47 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
             return;
         }
 
+        PWORKSPACE->m_bForceRendering = true;
+        PWORKSPACE->m_fAlpha.setValueAndWarp(255.f);
+
+        if (workspaceIDLeft != workspaceIDRight) {
+            const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+
+            if (PWORKSPACER) {
+                PWORKSPACER->m_bForceRendering = false;
+                PWORKSPACER->m_fAlpha.setValueAndWarp(0.f);
+            }
+        }
+
+        if (VERTANIMS) {
+            PWORKSPACE->m_vRenderOffset.setValueAndWarp(
+                Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y - m_sActiveSwipe.pMonitor->vecSize.y));
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y));
+        } else {
+            PWORKSPACE->m_vRenderOffset.setValueAndWarp(
+                Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x - m_sActiveSwipe.pMonitor->vecSize.x, 0));
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
+        }
+
+        g_pCompositor->updateWorkspaceWindowDecos(workspaceIDLeft);
+    } else {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+
+        if (workspaceIDRight < m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
+            if (*PSWIPENEW || *PSWIPENUMBER) {
+                g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
+
+                if (VERTANIMS)
+                    m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0, ((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.y));
+                else
+                    m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / *PSWIPEDIST) * m_sActiveSwipe.pMonitor->vecSize.x, 0));
+
+                g_pCompositor->updateWorkspaceWindowDecos(m_sActiveSwipe.pWorkspaceBegin->m_iID);
+                return;
+            }
+            m_sActiveSwipe.delta = 0;
+            return;
+        }
 
         PWORKSPACE->m_bForceRendering = true;
         PWORKSPACE->m_fAlpha.setValueAndWarp(255.f);
@@ -253,8 +276,10 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         if (workspaceIDLeft != workspaceIDRight) {
             const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
-            PWORKSPACEL->m_bForceRendering = false;
-            PWORKSPACEL->m_fAlpha.setValueAndWarp(0.f);
+            if (PWORKSPACEL) {
+                PWORKSPACEL->m_bForceRendering = false;
+                PWORKSPACEL->m_fAlpha.setValueAndWarp(0.f);
+            }
         }
 
         if (VERTANIMS) {

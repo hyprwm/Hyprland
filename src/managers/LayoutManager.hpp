@@ -10,13 +10,12 @@ class CLayoutManager {
     void         switchToLayout(std::string);
 
   private:
-    enum HYPRLAYOUTS
-    {
-        DWINDLE = 0,
-        MASTER
+    enum HYPRLAYOUTS {
+        LAYOUT_DWINDLE = 0,
+        LAYOUT_MASTER
     };
 
-    HYPRLAYOUTS        m_iCurrentLayoutID = DWINDLE;
+    HYPRLAYOUTS        m_iCurrentLayoutID = LAYOUT_DWINDLE;
 
     CHyprDwindleLayout m_cDwindleLayout;
     CHyprMasterLayout  m_cMasterLayout;

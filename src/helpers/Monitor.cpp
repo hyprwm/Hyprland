@@ -407,6 +407,8 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         std::erase_if(g_pCompositor->m_vMonitors, [&](const auto& other) { return other.get() == this; });
 
         g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
+
+        g_pCompositor->sanityCheckWorkspaces();
     }
 }
 

@@ -2,8 +2,8 @@
 
 IHyprLayout* CLayoutManager::getCurrentLayout() {
     switch (m_iCurrentLayoutID) {
-        case DWINDLE: return &m_cDwindleLayout;
-        case MASTER: return &m_cMasterLayout;
+        case LAYOUT_DWINDLE: return &m_cDwindleLayout;
+        case LAYOUT_MASTER: return &m_cMasterLayout;
     }
 
     // fallback
@@ -12,15 +12,15 @@ IHyprLayout* CLayoutManager::getCurrentLayout() {
 
 void CLayoutManager::switchToLayout(std::string layout) {
     if (layout == "dwindle") {
-        if (m_iCurrentLayoutID != DWINDLE) {
+        if (m_iCurrentLayoutID != LAYOUT_DWINDLE) {
             getCurrentLayout()->onDisable();
-            m_iCurrentLayoutID = DWINDLE;
+            m_iCurrentLayoutID = LAYOUT_DWINDLE;
             getCurrentLayout()->onEnable();
         }
     } else if (layout == "master") {
-        if (m_iCurrentLayoutID != MASTER) {
+        if (m_iCurrentLayoutID != LAYOUT_MASTER) {
             getCurrentLayout()->onDisable();
-            m_iCurrentLayoutID = MASTER;
+            m_iCurrentLayoutID = LAYOUT_MASTER;
             getCurrentLayout()->onEnable();
         }
     } else {

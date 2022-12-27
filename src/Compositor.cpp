@@ -1679,8 +1679,6 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
                 }
             }
         }
-
-        Debug::log(ERR, "Error in getMonitorFromString: no such monitor");
     }
 
     return nullptr;

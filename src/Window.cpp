@@ -351,6 +351,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
+    } else if (r.szRule == "dimaround") {
+        m_sAdditionalConfigData.dimAround = true;
     }
 }
 
@@ -367,6 +369,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceNoAnims   = false;
     m_sAdditionalConfigData.animationStyle = "";
     m_sAdditionalConfigData.rounding       = -1;
+    m_sAdditionalConfigData.dimAround      = false;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {

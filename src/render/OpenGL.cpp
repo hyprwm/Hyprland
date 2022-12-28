@@ -1102,6 +1102,8 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     begin(PMONITOR, &fakeDamage, true);
 
+    g_pHyprRenderer->m_bRenderingSnapshot = true;
+
     clear(CColor(0, 0, 0, 0)); // JIC
 
     timespec now;
@@ -1141,6 +1143,8 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     pixman_region32_fini(&fakeDamage);
 
+    g_pHyprRenderer->m_bRenderingSnapshot = false;
+
     wlr_output_rollback(PMONITOR->output);
 }
 
@@ -1157,6 +1161,8 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     pixman_region32_union_rect(&fakeDamage, &fakeDamage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
     begin(PMONITOR, &fakeDamage, true);
+
+    g_pHyprRenderer->m_bRenderingSnapshot = true;
 
     const auto PFRAMEBUFFER = &m_mLayerFramebuffers[pLayer];
 
@@ -1188,8 +1194,9 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
 #endif
-
     end();
+
+    g_pHyprRenderer->m_bRenderingSnapshot = false;
 
     pixman_region32_fini(&fakeDamage);
 
@@ -1202,9 +1209,11 @@ void CHyprOpenGLImpl::onWindowResizeEnd(CWindow* pWindow) {}
 
 void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     RASSERT(m_RenderData.pMonitor, "Tried to render snapshot rect without begin()!");
-    const auto PWINDOW = *pWindow;
+    const auto         PWINDOW = *pWindow;
 
-    auto       it = m_mWindowFramebuffers.begin();
+    static auto* const PDIMAROUND = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
+
+    auto               it = m_mWindowFramebuffers.begin();
     for (; it != m_mWindowFramebuffers.end(); it++) {
         if (it->first == PWINDOW) {
             break;
@@ -1229,6 +1238,11 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
 
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y);
+
+    if (*PDIMAROUND && (*pWindow)->m_sAdditionalConfigData.dimAround) {
+        wlr_box monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
+        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * PWINDOW->m_fAlpha.fl()));
+    }
 
     m_bEndFrame = true;
 

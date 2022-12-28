@@ -179,7 +179,6 @@ void IHyprLayout::onBeginDragWindow() {
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
-    // shadow to ignore any bound to MAIN_MOD
     g_pKeybindManager->shadowKeybinds();
 }
 
@@ -409,8 +408,8 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
             return m_pLastTiledWindow;
 
         // if we don't, let's try to find any window that is in the middle
-        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f); PWINDOWCANDIDATE &&
-            PWINDOWCANDIDATE != pWindow)
+        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
+            PWINDOWCANDIDATE && PWINDOWCANDIDATE != pWindow)
             return PWINDOWCANDIDATE;
 
         // if not, floating window

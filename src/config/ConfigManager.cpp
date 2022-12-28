@@ -35,8 +35,6 @@ void CConfigManager::setDefaultVars() {
     configValues["general:max_fps"].intValue           = 60;
     configValues["general:sensitivity"].floatValue     = 1.0f;
     configValues["general:apply_sens_to_raw"].intValue = 0;
-    configValues["general:main_mod"].strValue          = "SUPER";                                     // exposed to the user for easier configuring
-    configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask("SUPER"); // actually used and automatically calculated
 
     configValues["general:border_size"].intValue           = 1;
     configValues["general:no_border_on_floating"].intValue = 0;
@@ -1241,9 +1239,6 @@ void CConfigManager::loadConfigLoadVars() {
         g_pInputManager->setTouchDeviceConfigs();
         g_pInputManager->setTabletConfigs();
     }
-
-    // Calculate the internal vars
-    configValues["general:main_mod_internal"].intValue = g_pKeybindManager->stringToModMask(configValues["general:main_mod"].strValue);
 
     if (!isFirstLaunch)
         g_pHyprOpenGL->m_bReloadScreenShader = true;

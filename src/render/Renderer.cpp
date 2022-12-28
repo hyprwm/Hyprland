@@ -374,7 +374,8 @@ void CHyprRenderer::renderIMEPopup(SIMEPopup* pPopup, CMonitor* pMonitor, timesp
 }
 
 void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(ID);
+    const auto         PMONITOR    = g_pCompositor->getMonitorFromID(ID);
+    static auto* const PDIMSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
 
     if (!PMONITOR)
         return;
@@ -483,6 +484,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     }
 
     // and then special
+    bool renderedSpecialBG = false;
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
@@ -492,6 +494,22 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
         if (!shouldRenderWindow(w.get(), PMONITOR))
             continue;
+
+        if (!renderedSpecialBG) {
+            if (*PDIMSPECIAL != 0.f) {
+                const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID);
+
+                const auto SPECIALANIMPROGRS =
+                    PSPECIALWORKSPACE->m_vRenderOffset.isBeingAnimated() ? PSPECIALWORKSPACE->m_vRenderOffset.getPercent() : PSPECIALWORKSPACE->m_fAlpha.getPercent();
+
+                const bool ANIMOUT = !PMONITOR->specialWorkspaceID;
+
+                wlr_box    monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+                g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMSPECIAL * 255.f * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
+            }
+
+            renderedSpecialBG = true;
+        }
 
         // render the bad boy
         renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_ALL);

@@ -92,6 +92,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:col.shadow_inactive"].intValue    = INT_MAX;
     configValues["decoration:dim_inactive"].intValue           = 0;
     configValues["decoration:dim_strength"].floatValue         = 0.5f;
+    configValues["decoration:dim_special"].floatValue          = 0.2f;
     configValues["decoration:screen_shader"].strValue          = STRVAL_EMPTY;
 
     configValues["dwindle:pseudotile"].intValue               = 0;

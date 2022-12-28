@@ -48,6 +48,7 @@ class CHyprRenderer {
 
     bool                m_bWindowRequestedCursorHide = false;
     bool                m_bBlockSurfaceFeedback      = false;
+    bool                m_bRenderingSnapshot         = false;
     CWindow*            m_pLastScanout               = nullptr;
     CMonitor*           m_pMostHzMonitor             = nullptr;
 

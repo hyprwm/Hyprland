@@ -8,8 +8,7 @@
 #include <deque>
 #include "config/ConfigDataValues.hpp"
 
-enum eIdleInhibitMode
-{
+enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
@@ -43,6 +42,7 @@ struct SWindowAdditionalConfigData {
     bool        forceNoShadow        = false;
     bool        windowDanceCompat    = false;
     bool        noMaxSize            = false;
+    bool        dimAround            = false;
 };
 
 struct SWindowRule {

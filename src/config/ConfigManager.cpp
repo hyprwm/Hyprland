@@ -93,6 +93,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:dim_inactive"].intValue           = 0;
     configValues["decoration:dim_strength"].floatValue         = 0.5f;
     configValues["decoration:dim_special"].floatValue          = 0.2f;
+    configValues["decoration:dim_around"].floatValue           = 0.4f;
     configValues["decoration:screen_shader"].strValue          = STRVAL_EMPTY;
 
     configValues["dwindle:pseudotile"].intValue               = 0;
@@ -737,8 +738,8 @@ bool windowRuleValid(const std::string& RULE) {
     return !(RULE != "float" && RULE != "tile" && RULE.find("opacity") != 0 && RULE.find("move") != 0 && RULE.find("size") != 0 && RULE.find("minsize") != 0 &&
              RULE.find("maxsize") != 0 && RULE.find("pseudo") != 0 && RULE.find("monitor") != 0 && RULE.find("idleinhibit") != 0 && RULE != "nofocus" && RULE != "noblur" &&
              RULE != "noshadow" && RULE != "noborder" && RULE != "center" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" && RULE != "nofullscreenrequest" &&
-             RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "windowdance" && RULE != "maximize" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 &&
-             RULE.find("workspace") != 0 && RULE.find("bordercolor") != 0);
+             RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" && RULE != "windowdance" && RULE != "maximize" && RULE.find("animation") != 0 &&
+             RULE.find("rounding") != 0 && RULE.find("workspace") != 0 && RULE.find("bordercolor") != 0);
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {

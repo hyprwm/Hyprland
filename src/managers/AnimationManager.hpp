@@ -18,6 +18,7 @@ class CAnimationManager {
     void                          onWindowPostCreateClose(CWindow*, bool close = false);
 
     bool                          bezierExists(const std::string&);
+    CBezierCurve*                 getBezier(const std::string&);
 
     std::string                   styleValidInConfigVar(const std::string&, const std::string&);
 

@@ -506,7 +506,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
                 const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID);
 
                 const auto SPECIALANIMPROGRS =
-                    PSPECIALWORKSPACE->m_vRenderOffset.isBeingAnimated() ? PSPECIALWORKSPACE->m_vRenderOffset.getPercent() : PSPECIALWORKSPACE->m_fAlpha.getPercent();
+                    PSPECIALWORKSPACE->m_vRenderOffset.isBeingAnimated() ? PSPECIALWORKSPACE->m_vRenderOffset.getCurveValue() : PSPECIALWORKSPACE->m_fAlpha.getCurveValue();
 
                 const bool ANIMOUT = !PMONITOR->specialWorkspaceID;
 

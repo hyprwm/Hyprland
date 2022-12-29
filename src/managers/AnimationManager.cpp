@@ -201,8 +201,8 @@ void CAnimationManager::tick() {
                     const auto EXTENTS = PDECO->getWindowDecorationExtents();
 
                     wlr_box    dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
-                                   PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
-                                   PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
+                                      PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
+                                      PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
 
                     if (!*PSHADOWIGNOREWINDOW) {
                         // easy, damage the entire box
@@ -457,4 +457,10 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
     }
 
     return "";
+}
+
+CBezierCurve* CAnimationManager::getBezier(const std::string& name) {
+    const auto BEZIER = std::find_if(m_mBezierCurves.begin(), m_mBezierCurves.end(), [&](const auto& other) { return other.first == name; });
+
+    return BEZIER == m_mBezierCurves.end() ? &m_mBezierCurves["default"] : &BEZIER->second;
 }

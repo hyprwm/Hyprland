@@ -413,7 +413,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
     switch (e->state) {
         case WLR_BUTTON_PRESSED: {
-            const auto PWINDOW = g_pCompositor->m_pLastWindow;
+            const auto PWINDOW = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
 
             if (!PWINDOW) {
                 Debug::log(ERR, "Cannot kill invalid window!");

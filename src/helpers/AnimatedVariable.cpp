@@ -70,3 +70,12 @@ float CAnimatedVariable::getPercent() {
     const auto DURATIONPASSED = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - animationBegin).count();
     return std::clamp((DURATIONPASSED / 100.f) / m_pConfig->pValues->internalSpeed, 0.f, 1.f);
 }
+
+float CAnimatedVariable::getCurveValue() {
+    const auto SPENT = getPercent();
+
+    if (SPENT >= 1.f)
+        return 1.f;
+
+    return g_pAnimationManager->getBezier(m_pConfig->pValues->internalBezier)->getYForPoint(SPENT);
+}

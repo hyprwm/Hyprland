@@ -3,16 +3,14 @@
 #include "../defines.hpp"
 #include <any>
 
-enum ANIMATEDVARTYPE
-{
+enum ANIMATEDVARTYPE {
     AVARTYPE_INVALID = -1,
     AVARTYPE_FLOAT,
     AVARTYPE_VECTOR,
     AVARTYPE_COLOR
 };
 
-enum AVARDAMAGEPOLICY
-{
+enum AVARDAMAGEPOLICY {
     AVARDAMAGE_INVALID = -1,
     AVARDAMAGE_ENTIRE  = 0,
     AVARDAMAGE_BORDER,
@@ -189,6 +187,9 @@ class CAnimatedVariable {
 
     /* returns the spent (completion) % */
     float getPercent();
+
+    /* returns the current curve value */
+    float getCurveValue();
 
     /*  sets a function to be ran when the animation finishes.
         if an animation is not running, runs instantly.

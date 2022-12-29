@@ -1242,6 +1242,7 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     if (*PDIMAROUND && (*pWindow)->m_sAdditionalConfigData.dimAround) {
         wlr_box monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
         g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * PWINDOW->m_fAlpha.fl()));
+        g_pHyprRenderer->damageMonitor(PMONITOR);
     }
 
     m_bEndFrame = true;

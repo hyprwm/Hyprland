@@ -1005,28 +1005,23 @@ CWorkspace* CCompositor::getWorkspaceByID(const int& id) {
 }
 
 void CCompositor::sanityCheckWorkspaces() {
-    for (auto it = m_vWorkspaces.begin(); it != m_vWorkspaces.end(); ++it) {
+    auto it = m_vWorkspaces.begin();
+    while (it != m_vWorkspaces.end()) {
         const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace((*it)->m_iID);
-
-        if ((WINDOWSONWORKSPACE == 0 && !isWorkspaceVisible((*it)->m_iID))) {
-            it = m_vWorkspaces.erase(it);
-
-            if (it == m_vWorkspaces.end())
-                break;
-
-            continue;
-        }
 
         if ((*it)->m_bIsSpecialWorkspace && WINDOWSONWORKSPACE == 0) {
             getMonitorFromID((*it)->m_iMonitorID)->specialWorkspaceID = 0;
 
             it = m_vWorkspaces.erase(it);
-
-            if (it == m_vWorkspaces.end())
-                break;
-
             continue;
         }
+
+        if ((WINDOWSONWORKSPACE == 0 && !isWorkspaceVisible((*it)->m_iID))) {
+            it = m_vWorkspaces.erase(it);
+            continue;
+        }
+
+        ++it;
     }
 }
 

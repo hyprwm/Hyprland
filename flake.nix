@@ -57,8 +57,8 @@
         mesonFlags = oldAttrs.mesonFlags ++ ["-Dexperimental=true"];
       });
 
-      xdg-desktop-portal-hyprland = inputs.xdph.packages.${prev.system}.default.override {
-        hyprland-share-picker = inputs.xdph.packages.${prev.system}.hyprland-share-picker.override {inherit hyprland;};
+      xdg-desktop-portal-hyprland = inputs.xdph.packages.${prev.hostPlatform.system}.default.override {
+        hyprland-share-picker = inputs.xdph.packages.${prev.hostPlatform.system}.hyprland-share-picker.override {inherit hyprland;};
       };
     };
 

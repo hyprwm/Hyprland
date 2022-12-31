@@ -11,8 +11,10 @@
 #include <iostream>
 
 CConfigManager::CConfigManager() {
-    configValues["general:col.active_border"].data   = std::make_shared<CGradientValueData>(0xffffffff);
-    configValues["general:col.inactive_border"].data = std::make_shared<CGradientValueData>(0xff444444);
+    configValues["general:col.active_border"].data       = std::make_shared<CGradientValueData>(0xffffffff);
+    configValues["general:col.inactive_border"].data     = std::make_shared<CGradientValueData>(0xff444444);
+    configValues["dwindle:col.group_border"].data        = std::make_shared<CGradientValueData>(0x66777700);
+    configValues["dwindle:col.group_border_active"].data = std::make_shared<CGradientValueData>(0x66ffff00);
 
     setDefaultVars();
     setDefaultAnimationVars();
@@ -94,9 +96,9 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:dim_around"].floatValue           = 0.4f;
     configValues["decoration:screen_shader"].strValue          = STRVAL_EMPTY;
 
+    ((CGradientValueData*)configValues["dwindle:col.group_border"].data.get())->reset(0x66777700);
+    ((CGradientValueData*)configValues["dwindle:col.group_border_active"].data.get())->reset(0x66ffff00);
     configValues["dwindle:pseudotile"].intValue               = 0;
-    configValues["dwindle:col.group_border"].intValue         = 0x66777700;
-    configValues["dwindle:col.group_border_active"].intValue  = 0x66ffff00;
     configValues["dwindle:force_split"].intValue              = 0;
     configValues["dwindle:preserve_split"].intValue           = 0;
     configValues["dwindle:special_scale_factor"].floatValue   = 0.8f;

@@ -655,7 +655,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     const bool DISPLAYBOTTOM = STICKS(PWINDOW->m_vPosition.y + PWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
 
     // construct allowed movement
-    Vector2D   allowedMovement = pixResize;
+    Vector2D allowedMovement = pixResize;
     if (DISPLAYLEFT && DISPLAYRIGHT)
         allowedMovement.x = 0;
 
@@ -671,7 +671,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
 
     // Get the parent's parent
-    auto       PPARENT2 = PPARENT->pParent;
+    auto PPARENT2 = PPARENT->pParent;
 
     // No parent means we have only 2 windows, and thus one axis of freedom
     if (!PPARENT2) {
@@ -1044,20 +1044,20 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
 
     SWindowRenderLayoutHints hints;
 
-    static auto* const       PGROUPCOLACTIVE   = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->intValue;
-    static auto* const       PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->intValue;
+    static auto* const       PGROUPCOLACTIVE   = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->data;
+    static auto* const       PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->data;
 
     const auto               PNODE = getNodeFromWindow(pWindow);
     if (!PNODE)
         return hints; // left for the future, maybe floating funkiness
 
     if (PNODE->isGroupMember()) {
-        hints.isBorderColor = true;
+        hints.isBorderGradient = true;
 
         if (pWindow == g_pCompositor->m_pLastWindow)
-            hints.borderColor = CColor(*PGROUPCOLACTIVE);
+            hints.borderGradient = (CGradientValueData*)PGROUPCOLACTIVE->get();
         else
-            hints.borderColor = CColor(*PGROUPCOLINACTIVE);
+            hints.borderGradient = (CGradientValueData*)PGROUPCOLINACTIVE->get();
     }
 
     return hints;
@@ -1174,7 +1174,7 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
     if (!PNODE || !PNODE->pParent || (PNODE->isGroupMember() && PNODE->getGroupMemberCount() == g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID)))
         return;
 
-    float newRatio = exact ? ratio : PNODE->pParent->splitRatio + ratio;
+    float newRatio             = exact ? ratio : PNODE->pParent->splitRatio + ratio;
     PNODE->pParent->splitRatio = std::clamp(newRatio, 0.1f, 1.9f);
 
     PNODE->pParent->recalcSizePosRecursive();

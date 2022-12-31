@@ -1486,8 +1486,8 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
 
     // border
     const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
-    if (RENDERDATA.isBorderColor)
-        setBorderColor(RENDERDATA.borderColor * (1.f / 255.f));
+    if (RENDERDATA.isBorderGradient)
+        setBorderColor(*RENDERDATA.borderGradient);
     else
         setBorderColor(
             pWindow == m_pLastWindow ?

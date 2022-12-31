@@ -2,8 +2,7 @@
 #include "../defines.hpp"
 #include <vector>
 
-enum eConfigValueDataTypes
-{
+enum eConfigValueDataTypes {
     CVD_TYPE_INVALID  = -1,
     CVD_TYPE_GRADIENT = 0
 };
@@ -18,7 +17,7 @@ interface ICustomConfigValueData {
 class CGradientValueData : public ICustomConfigValueData {
   public:
     CGradientValueData(CColor col) {
-        m_vColors.push_back(col);
+        m_vColors.push_back(col * (1.f / 255.f));
     };
     virtual ~CGradientValueData(){};
 
@@ -28,7 +27,7 @@ class CGradientValueData : public ICustomConfigValueData {
 
     void reset(CColor col) {
         m_vColors.clear();
-        m_vColors.emplace_back(col);
+        m_vColors.emplace_back(col * (1.f / 255.f));
         m_fAngle = 0;
     }
 
@@ -39,7 +38,7 @@ class CGradientValueData : public ICustomConfigValueData {
     float m_fAngle = 0;
 
     bool  operator==(const CGradientValueData& other) {
-        if (other.m_vColors.size() != m_vColors.size() || m_fAngle != other.m_fAngle)
+         if (other.m_vColors.size() != m_vColors.size() || m_fAngle != other.m_fAngle)
             return false;
 
         for (size_t i = 0; i < m_vColors.size(); ++i)

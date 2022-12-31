@@ -22,7 +22,12 @@ CWindow::~CWindow() {
 }
 
 wlr_box CWindow::getFullWindowBoundingBox() {
-    static auto* const       PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+
+    if (m_sAdditionalConfigData.dimAround) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    }
 
     SWindowDecorationExtents maxExtents = {{*PBORDERSIZE + 2, *PBORDERSIZE + 2}, {*PBORDERSIZE + 2, *PBORDERSIZE + 2}};
 

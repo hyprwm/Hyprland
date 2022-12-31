@@ -86,10 +86,11 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
         scaleBox(&rect, pMonitor->scale);
 
-        static auto* const PGROUPCOLACTIVE   = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->intValue;
-        static auto* const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->intValue;
+        static auto* const PGROUPCOLACTIVE   = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border_active")->data;
+        static auto* const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:col.group_border")->data;
 
-        CColor             color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? CColor(*PGROUPCOLACTIVE) : CColor(*PGROUPCOLINACTIVE);
+        CColor             color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? ((CGradientValueData*)PGROUPCOLACTIVE->get())->m_vColors[0] :
+                                                                                         ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0];
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 

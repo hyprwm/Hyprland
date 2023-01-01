@@ -25,8 +25,7 @@ struct SKeybind {
     bool shadowed = false;
 };
 
-enum eFocusWindowMode
-{
+enum eFocusWindowMode {
     MODE_CLASS_REGEX = 0,
     MODE_TITLE_REGEX,
     MODE_ADDRESS,
@@ -91,6 +90,7 @@ class CKeybindManager {
     static void toggleActivePseudo(std::string);
     static void changeworkspace(std::string);
     static void fullscreenActive(std::string);
+    static void fakeFullscreenActive(std::string);
     static void moveActiveToWorkspace(std::string);
     static void moveActiveToWorkspaceSilent(std::string);
     static void moveFocusTo(std::string);

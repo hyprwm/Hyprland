@@ -11,6 +11,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglefloating"]                = toggleActiveFloating;
     m_mDispatchers["workspace"]                     = changeworkspace;
     m_mDispatchers["fullscreen"]                    = fullscreenActive;
+    m_mDispatchers["fakefullscreen"]                = fakeFullscreenActive;
     m_mDispatchers["movetoworkspace"]               = moveActiveToWorkspace;
     m_mDispatchers["movetoworkspacesilent"]         = moveActiveToWorkspaceSilent;
     m_mDispatchers["pseudo"]                        = toggleActivePseudo;
@@ -1817,4 +1818,11 @@ void CKeybindManager::mouse(std::string args) {
 void CKeybindManager::bringActiveToTop(std::string args) {
     if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
         g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
+}
+
+void CKeybindManager::fakeFullscreenActive(std::string args) {
+    if (g_pCompositor->m_pLastWindow) {
+        // will also set the flag
+        g_pXWaylandManager->setWindowFullscreen(g_pCompositor->m_pLastWindow, !g_pCompositor->m_pLastWindow->m_bInFullscreenReported);
+    }
 }

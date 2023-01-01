@@ -257,6 +257,8 @@ void CHyprXWaylandManager::setWindowFullscreen(CWindow* pWindow, bool fullscreen
 
     if (pWindow->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_fullscreen(pWindow->m_phForeignToplevel, fullscreen);
+
+    pWindow->m_bInFullscreenReported = fullscreen;
 }
 
 Vector2D CHyprXWaylandManager::getMaxSizeForWindow(CWindow* pWindow) {

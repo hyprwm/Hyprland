@@ -192,6 +192,12 @@ void CMonitor::onDisconnect() {
 
     hyprListener_monitorFrame.removeCallback();
 
+    for (size_t i = 0; i < 4; ++i) {
+        for (auto& ls : m_aLayerSurfaceLists[i]) {
+            wlr_layer_surface_v1_destroy(ls->layerSurface);
+        }
+    }
+
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
 

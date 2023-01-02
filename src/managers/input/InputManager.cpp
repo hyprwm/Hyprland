@@ -814,9 +814,8 @@ void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
         } else {
             m_pActiveKeyboard = nullptr;
         }
-    }
-
-    m_lKeyboards.remove(*pKeyboard);
+    } else
+        m_lKeyboards.remove(*pKeyboard);
 }
 
 void CInputManager::destroyMouse(wlr_input_device* mouse) {

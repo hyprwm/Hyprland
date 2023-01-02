@@ -190,6 +190,8 @@ void IHyprLayout::onEndDragWindow() {
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW))
         return;
 
+    g_pInputManager->currentlyDraggedWindow = nullptr;
+
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;
         g_pInputManager->refocus();

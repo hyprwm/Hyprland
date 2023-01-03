@@ -243,7 +243,7 @@ void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {
         }
     }
 
-    if (pWindow->m_uSurface.xwayland->parent || pWindow->m_iX11Type == 2) {
+    if (pWindow->m_iX11Type == 2) {
         pWindow->m_bX11DoesntWantBorders = true;
     }
 }

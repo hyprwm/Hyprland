@@ -1041,6 +1041,16 @@ void Events::listener_commitConstraint(void* owner, void* data) {
             PCONSTRAINT->hintSet      = true;
         }
     }
+
+    if (PMOUSE->currentConstraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_REGION) {
+        if (pixman_region32_not_empty(&PMOUSE->currentConstraint->current.region)) {
+            pixman_region32_intersect(&PMOUSE->currentConstraint->region, &PMOUSE->currentConstraint->surface->input_region, &PMOUSE->currentConstraint->current.region);
+        } else {
+            pixman_region32_copy(&PMOUSE->currentConstraint->region, &PMOUSE->currentConstraint->surface->input_region);
+        }
+
+        g_pInputManager->recheckConstraint(PMOUSE);
+    }
 }
 
 void CInputManager::updateCapabilities() {

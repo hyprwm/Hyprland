@@ -132,8 +132,8 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:workspaces_curve"].strValue     = "[[f]]";
     configValues["animations:workspaces_speed"].floatValue   = 0.f;
     configValues["animations:workspaces"].intValue           = 1;
-    configValues["animations:wobble:enabled"].intValue       = 0;
-    configValues["animations:wobble:only_floating"].intValue = 1;
+    configValues["animations:wobble_enabled"].intValue       = 0;
+    configValues["animations:wobble_only_floating"].intValue = 1;
 
     configValues["input:sensitivity"].floatValue                    = 0.f;
     configValues["input:accel_profile"].strValue                    = STRVAL_EMPTY;

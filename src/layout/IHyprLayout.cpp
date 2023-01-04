@@ -119,7 +119,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         g_pCompositor->moveWindowToTop(pWindow);
     }
 
-    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble:enabled")->intValue;
+    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble_enabled")->intValue;
 
     if (*PWOBBLE) {
         pWindow->m_oWobblyModel.emplace(pWindow);
@@ -196,7 +196,7 @@ void IHyprLayout::onBeginDragWindow() {
 
     g_pKeybindManager->shadowKeybinds();
 
-    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble:enabled")->intValue;
+    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble_enabled")->intValue;
     if (*PWOBBLE && !DRAGGINGWINDOW->m_oWobblyModel) {
         DRAGGINGWINDOW->m_oWobblyModel.emplace(DRAGGINGWINDOW);
     }
@@ -212,7 +212,7 @@ void IHyprLayout::onEndDragWindow() {
 
     g_pInputManager->currentlyDraggedWindow = nullptr;
 
-    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble:enabled")->intValue;
+    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble_enabled")->intValue;
     
     if (*PWOBBLE) {
         // window is wobbly, needs to know it was ungrabbed
@@ -220,7 +220,7 @@ void IHyprLayout::onEndDragWindow() {
             DRAGGINGWINDOW->m_oWobblyModel->notifyUngrab();
         }
         
-        static auto const PWOBBLEFLOATINGONLY = &g_pConfigManager->getConfigValuePtr("animations:wobble:only_floating")->intValue;
+        static auto const PWOBBLEFLOATINGONLY = &g_pConfigManager->getConfigValuePtr("animations:wobble_only_floating")->intValue;
         if (DRAGGINGWINDOW->m_bDraggingTiled && *PWOBBLEFLOATINGONLY) {
             DRAGGINGWINDOW->m_oWobblyModel.reset();
         }
@@ -357,8 +357,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("%x,%d", pWindow, (int)TILED)});
 
     // read config options here since they are used in both branches
-    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble:enabled")->intValue;
-    static auto const PWOBBLEFLOATINGONLY = &g_pConfigManager->getConfigValuePtr("animations:wobble:only_floating")->intValue;
+    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble_enabled")->intValue;
+    static auto const PWOBBLEFLOATINGONLY = &g_pConfigManager->getConfigValuePtr("animations:wobble_only_floating")->intValue;
     
     if (!TILED) {
         const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);

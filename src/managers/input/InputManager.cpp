@@ -1144,23 +1144,6 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 }
 
 void CInputManager::setTouchDeviceConfigs() {
-    // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
-    static const float MATRICES[8][6] = {{// normal
-                                          1, 0, 0, 0, 1, 0},
-                                         {// rotation 90°
-                                          0, -1, 1, 1, 0, 0},
-                                         {// rotation 180°
-                                          -1, 0, 1, 0, -1, 1},
-                                         {// rotation 270°
-                                          0, 1, 0, -1, 0, 1},
-                                         {// flipped
-                                          -1, 0, 1, 0, 1, 0},
-                                         {// flipped + rotation 90°
-                                          0, 1, 0, 1, 0, 0},
-                                         {// flipped + rotation 180°
-                                          1, 0, 0, 0, -1, 1},
-                                         {// flipped + rotation 270°
-                                          0, -1, 1, -1, 0, 1}};
     for (auto& m : m_lTouchDevices) {
         const auto PTOUCHDEV = &m;
 
@@ -1189,6 +1172,14 @@ void CInputManager::setTabletConfigs() {
         if (HASCONFIG) {
             const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output");
             const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
+
+            if (wlr_input_device_is_libinput(t.pWlrDevice)) {
+                const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
+
+                const int  ROTATION =
+                    std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
+                libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+            }
 
             if (PMONITOR) {
                 wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, t.wlrDevice, PMONITOR->output);

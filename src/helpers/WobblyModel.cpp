@@ -18,7 +18,21 @@
 CWobblyModel::CWobblyModel(CWindow* window) {
     m_pWindow = window;
 
-    ensureHasModel();
+    m_iNumObjects = GRID_WIDTH * GRID_HEIGHT;
+    m_pObjects = new Object[m_iNumObjects]{};
+    if(!m_pObjects) {
+        return;
+    }
+
+    m_pAnchorObject = nullptr;
+    m_iNumSprings = 0;
+
+    m_fSteps = 0;
+
+    initObjects(m_pWindow->m_vPosition.x, m_pWindow->m_vPosition.y, m_pWindow->m_vSize.x, m_pWindow->m_vSize.y);
+    initSprings(m_pWindow->m_vSize.x, m_pWindow->m_vSize.y);
+
+    calcBounds();
 
     // register
     g_pAnimationManager->m_lWobblyModels.push_back(this);
@@ -28,10 +42,7 @@ CWobblyModel::~CWobblyModel() {
     // unregister
     g_pAnimationManager->m_lWobblyModels.remove(this);
 
-    if (m_pModel != nullptr) {
-        delete[] m_pModel->m_pObjects;
-        delete m_pModel;
-    }
+    delete[] m_pObjects;
 
     // TODO probs remove this when rendering is figured out
     if(m_v)
@@ -44,46 +55,41 @@ void CWobblyModel::notifyGrab(const Vector2D& position) {
     Debug::log(LOG, "notifyGrab: %f, %f", position.x, position.y);
 
 
-    if (ensureHasModel())
-    {
-        if (m_pModel->m_pAnchorObject) {
-            m_pModel->m_pAnchorObject->m_bImmobile = false;
-        }
-
-        m_pModel->m_pAnchorObject = findNearestObject(position.x, position.y);
-        m_pModel->m_pAnchorObject->m_bImmobile = true;
-
-        m_bGrabbed = true;
-
-        for (int i = 0; i < m_pModel->m_iNumSprings; i++) {
-            Spring& spring = m_pModel->m_aSprings[i];
-
-            if (spring.m_pA == m_pModel->m_pAnchorObject) {
-                spring.m_pB->m_vVelocity.x -= spring.m_vOffset.x * 0.05f;
-                spring.m_pB->m_vVelocity.y -= spring.m_vOffset.y * 0.05f;
-            } else if (spring.m_pB == m_pModel->m_pAnchorObject) {
-                spring.m_pA->m_vVelocity.x += spring.m_vOffset.x * 0.05f;
-                spring.m_pA->m_vVelocity.y += spring.m_vOffset.y * 0.05f;
-            }
-        }
-
-        m_iWobblyBits |= WobblyInitial; // TODO what is this
+    if (m_pAnchorObject) {
+        m_pAnchorObject->m_bImmobile = false;
     }
+
+    m_pAnchorObject = findNearestObject(position.x, position.y);
+    m_pAnchorObject->m_bImmobile = true;
+
+    m_bGrabbed = true;
+
+    for (int i = 0; i < m_iNumSprings; i++) {
+        Spring& spring = m_aSprings[i];
+
+        if (spring.m_pA == m_pAnchorObject) {
+            spring.m_pB->m_vVelocity.x -= spring.m_vOffset.x * 0.05f;
+            spring.m_pB->m_vVelocity.y -= spring.m_vOffset.y * 0.05f;
+        } else if (spring.m_pB == m_pAnchorObject) {
+            spring.m_pA->m_vVelocity.x += spring.m_vOffset.x * 0.05f;
+            spring.m_pA->m_vVelocity.y += spring.m_vOffset.y * 0.05f;
+        }
+    }
+
+    m_iWobblyBits |= WobblyInitial; // TODO what is this
 }
 
 void CWobblyModel::notifyUngrab() {
     Debug::log(LOG, "notifyUngrab");
 
     if (m_bGrabbed) {
-        if (m_pModel != nullptr) {
-            if (m_pModel->m_pAnchorObject != nullptr) {
-                m_pModel->m_pAnchorObject->m_bImmobile = false;
-            }
-
-            m_pModel->m_pAnchorObject = nullptr;
-
-            m_iWobblyBits |= WobblyInitial;
+        if (m_pAnchorObject != nullptr) {
+            m_pAnchorObject->m_bImmobile = false;
         }
+
+        m_pAnchorObject = nullptr;
+
+        m_iWobblyBits |= WobblyInitial;
 
         m_bGrabbed = false;
     }
@@ -93,8 +99,8 @@ void CWobblyModel::notifyMove(const Vector2D &delta) {
     Debug::log(LOG, "notifyMove: %f, %f", delta.x, delta.y);
 
     if (m_bGrabbed) {
-        m_pModel->m_pAnchorObject->m_vPosition.x += delta.x;
-        m_pModel->m_pAnchorObject->m_vPosition.y += delta.y;
+        m_pAnchorObject->m_vPosition.x += delta.x;
+        m_pAnchorObject->m_vPosition.y += delta.y;
 
         m_iWobblyBits |= WobblyInitial;
         m_bSynced = false;
@@ -110,9 +116,6 @@ void CWobblyModel::notifyResize(const Vector2D &delta) {
 void CWobblyModel::tick(int deltaTime) {
     Debug::log(LOG, "tick: %i", deltaTime);
 
-    if(m_pModel == nullptr)
-        return;
-    
     float friction = WOBBLY_FRICTION;
     float springK  = WOBBLY_SPRING_K;
 
@@ -128,8 +131,8 @@ void CWobblyModel::tick(int deltaTime) {
     if (m_iWobblyBits != 0) {
         calcBounds();
     } else {
-        m_pWindow->m_vPosition.x = m_pModel->m_vTopLeft.x;
-        m_pWindow->m_vPosition.y = m_pModel->m_vTopLeft.y;
+        m_pWindow->m_vPosition.x = m_vTopLeft.x;
+        m_pWindow->m_vPosition.y = m_vTopLeft.y;
 
         m_bSynced = true;
     }
@@ -177,8 +180,8 @@ void CWobblyModel::calcGeometry() {
             float deformedX = 0.f, deformedY = 0.f;
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    deformedX += coeffsU[i] * coeffsV[j] * m_pModel->m_pObjects[j * GRID_WIDTH + i].m_vPosition.x;
-                    deformedY += coeffsU[i] * coeffsV[j] * m_pModel->m_pObjects[j * GRID_HEIGHT + i].m_vPosition.y;
+                    deformedX += coeffsU[i] * coeffsV[j] * m_pObjects[j * GRID_WIDTH + i].m_vPosition.x;
+                    deformedY += coeffsU[i] * coeffsV[j] * m_pObjects[j * GRID_HEIGHT + i].m_vPosition.y;
                 }
             }
 
@@ -193,13 +196,13 @@ void CWobblyModel::calcGeometry() {
 
 
 CWobblyModel::Object* CWobblyModel::findNearestObject(float x, float y) {
-    Object* nearest = &m_pModel->m_pObjects[0];
+    Object* nearest = &m_pObjects[0];
 
     // start infinitely far away, so any object is closer
     float nearestDistSq = std::numeric_limits<float>::max();
 
-    for (int i = 0; i < m_pModel->m_iNumObjects; i++) {
-        Object* curObj = &m_pModel->m_pObjects[i];
+    for (int i = 0; i < m_iNumObjects; i++) {
+        Object* curObj = &m_pObjects[i];
 
         float dx = curObj->m_vPosition.x - x;
         float dy = curObj->m_vPosition.y - y;
@@ -214,39 +217,6 @@ CWobblyModel::Object* CWobblyModel::findNearestObject(float x, float y) {
     return nearest;
 }
 
-bool CWobblyModel::ensureHasModel() {
-    if (!m_pModel) {
-        createModel(m_pWindow->m_vPosition.x, m_pWindow->m_vPosition.y, m_pWindow->m_vSize.x, m_pWindow->m_vSize.y);
-        if(!m_pModel)
-            return false;
-    }
-
-    return true; 
-}
-
-void CWobblyModel::createModel(int x, int y, int width, int height) {
-    m_pModel = new Model{};
-    if(!m_pModel)
-        return;
-
-    m_pModel->m_iNumObjects = GRID_WIDTH * GRID_HEIGHT;
-    m_pModel->m_pObjects = new Object[m_pModel->m_iNumObjects]{};
-    if(!m_pModel->m_pObjects) {
-        delete m_pModel;
-        return;
-    }
-
-    m_pModel->m_pAnchorObject = nullptr;
-    m_pModel->m_iNumSprings = 0;
-
-    m_pModel->m_fSteps = 0;
-
-    initObjects(x, y, width, height);
-    initSprings(width, height);
-
-    calcBounds();
-}
-
 void CWobblyModel::initObjects(int x, int y, int width, int height) {
     int i = 0;
 
@@ -257,7 +227,7 @@ void CWobblyModel::initObjects(int x, int y, int width, int height) {
         for (int gridX = 0; gridX < GRID_WIDTH; gridX++) {
             
             // init object
-            Object& obj = m_pModel->m_pObjects[i];
+            Object& obj = m_pObjects[i];
             obj.m_vForce.x = 0;
             obj.m_vForce.y = 0;
 
@@ -280,7 +250,7 @@ void CWobblyModel::initSprings(int width, int height) {
     float hpad = float(width ) / (GRID_WIDTH  - 1);
     float vpad = float(height) / (GRID_HEIGHT - 1);
 
-    m_pModel->m_iNumSprings = 0;
+    m_iNumSprings = 0;
 
     int i = 0;
 
@@ -288,11 +258,11 @@ void CWobblyModel::initSprings(int width, int height) {
     for (int gridY = 0; gridY < GRID_HEIGHT; gridY++) {
         for (int gridX = 0; gridX < GRID_WIDTH; gridX++) {
             if (gridX > 0) {
-                addSpring(&m_pModel->m_pObjects[i - 1], &m_pModel->m_pObjects[i], hpad, 0);
+                addSpring(&m_pObjects[i - 1], &m_pObjects[i], hpad, 0);
             }
 
             if (gridY > 0) {
-                addSpring(&m_pModel->m_pObjects[i - GRID_WIDTH], &m_pModel->m_pObjects[i], 0, vpad);
+                addSpring(&m_pObjects[i - GRID_WIDTH], &m_pObjects[i], 0, vpad);
             }
 
             i++;
@@ -301,8 +271,8 @@ void CWobblyModel::initSprings(int width, int height) {
 }
 
 void CWobblyModel::addSpring(Object* a, Object* b, float offsetX, float offsetY) {
-    Spring& spring = m_pModel->m_aSprings[m_pModel->m_iNumSprings];
-    m_pModel->m_iNumSprings++;
+    Spring& spring = m_aSprings[m_iNumSprings];
+    m_iNumSprings++;
 
     // TODO can't we ctor this?
     // init spring
@@ -313,22 +283,22 @@ void CWobblyModel::addSpring(Object* a, Object* b, float offsetX, float offsetY)
 }
 
 void CWobblyModel::calcBounds() {
-    m_pModel->m_vTopLeft.x = std::numeric_limits<short>::max();
-    m_pModel->m_vTopLeft.y = std::numeric_limits<short>::max();
-    m_pModel->m_vBottomRight.x = std::numeric_limits<short>::min();
-    m_pModel->m_vBottomRight.y = std::numeric_limits<short>::min();
+    m_vTopLeft.x = std::numeric_limits<short>::max();
+    m_vTopLeft.y = std::numeric_limits<short>::max();
+    m_vBottomRight.x = std::numeric_limits<short>::min();
+    m_vBottomRight.y = std::numeric_limits<short>::min();
 
-    for (int i = 0; i < m_pModel->m_iNumObjects; i++) {
-        if (m_pModel->m_pObjects[i].m_vPosition.x < m_pModel->m_vTopLeft.x) {
-            m_pModel->m_vTopLeft.x = m_pModel->m_pObjects[i].m_vPosition.x;
-        } else if (m_pModel->m_pObjects[i].m_vPosition.x > m_pModel->m_vBottomRight.x) {
-            m_pModel->m_vBottomRight.x = m_pModel->m_pObjects[i].m_vPosition.x;
+    for (int i = 0; i < m_iNumObjects; i++) {
+        if (m_pObjects[i].m_vPosition.x < m_vTopLeft.x) {
+            m_vTopLeft.x = m_pObjects[i].m_vPosition.x;
+        } else if (m_pObjects[i].m_vPosition.x > m_vBottomRight.x) {
+            m_vBottomRight.x = m_pObjects[i].m_vPosition.x;
         }
     
-        if (m_pModel->m_pObjects[i].m_vPosition.y < m_pModel->m_vTopLeft.y) {
-            m_pModel->m_vTopLeft.y = m_pModel->m_pObjects[i].m_vPosition.y;
-        } else if (m_pModel->m_pObjects[i].m_vPosition.y > m_pModel->m_vBottomRight.y) {
-            m_pModel->m_vBottomRight.y = m_pModel->m_pObjects[i].m_vPosition.y;
+        if (m_pObjects[i].m_vPosition.y < m_vTopLeft.y) {
+            m_vTopLeft.y = m_pObjects[i].m_vPosition.y;
+        } else if (m_pObjects[i].m_vPosition.y > m_vBottomRight.y) {
+            m_vBottomRight.y = m_pObjects[i].m_vPosition.y;
         }
     }
 }
@@ -338,20 +308,20 @@ int CWobblyModel::modelStep(float friction, float k, float time) {
     float velocitySum = 0.0f;
     float force, forceSum = 0.0f;
 
-    m_pModel->m_fSteps += time / 15.0f;
-    int steps = floor (m_pModel->m_fSteps);
-    m_pModel->m_fSteps -= steps;
+    m_fSteps += time / 15.0f;
+    int steps = floor (m_fSteps);
+    m_fSteps -= steps;
 
     if (!steps)
         return 1;
 
     for (int j = 0; j < steps; j++) {
-        for (int i = 0; i < m_pModel->m_iNumSprings; i++) {
-            springExertForces(&m_pModel->m_aSprings[i], k);
+        for (int i = 0; i < m_iNumSprings; i++) {
+            springExertForces(&m_aSprings[i], k);
         }
     
-        for (int i = 0; i < m_pModel->m_iNumObjects; i++) {
-            velocitySum += objectStep(&m_pModel->m_pObjects[i],
+        for (int i = 0; i < m_iNumObjects; i++) {
+            velocitySum += objectStep(&m_pObjects[i],
                             friction,
                             &force);
             forceSum += force;

@@ -46,20 +46,18 @@ class CWobblyModel {
         Vector2D  m_vOffset;
     };
 
-    struct Model {
-        Object*                                m_pObjects = nullptr;
-        int                                    m_iNumObjects;
-        
-        std::array<Spring, MODEL_MAX_SPRINGS>  m_aSprings;
+    // the model itself
+    Object*                                m_pObjects = nullptr;
+    int                                    m_iNumObjects;
+    
+    std::array<Spring, MODEL_MAX_SPRINGS>  m_aSprings;
 
-        int                                    m_iNumSprings;
-        Object*                                m_pAnchorObject = nullptr;
-        float                                  m_fSteps;
-        Vector2D                               m_vTopLeft;
-        Vector2D                               m_vBottomRight;
-    };
+    int                                    m_iNumSprings;
+    Object*                                m_pAnchorObject = nullptr;
+    float                                  m_fSteps;
+    Vector2D                               m_vTopLeft;
+    Vector2D                               m_vBottomRight;
 
-    Model* m_pModel = nullptr;
 
     CWindow* m_cWindow = nullptr;
     int m_iXCells = 8;
@@ -83,9 +81,7 @@ class CWobblyModel {
 
   private:
     Object* findNearestObject(float x, float y);
-    bool ensureHasModel();
 
-    void createModel(int x, int y, int width, int height);
     void initObjects(int x, int y, int width, int height);
     void initObject(Object* model, int x, int y, int velX, int velY);
     void initSprings(int width, int height);

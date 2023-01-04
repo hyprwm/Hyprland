@@ -3,10 +3,9 @@
 #include "Vector2D.hpp"
 #include <array>
 
-constexpr int GRID_WIDTH = 4;
-constexpr int GRID_HEIGHT = 4;
-
-constexpr int MODEL_MAX_SPRINGS = GRID_WIDTH * GRID_HEIGHT * 2;
+// TODO where should these go?
+constexpr Vector2D GRID_SIZE(4, 4);
+constexpr int MODEL_MAX_SPRINGS = GRID_SIZE.x * GRID_SIZE.y * 2;
 
 class CWindow;
 
@@ -20,30 +19,30 @@ class CWobblyModel {
     int m_iWobblyBits = 1;
 
     struct Edge {
-        float m_fNext;
-        float m_fPrev;
+        float m_fNext{};
+        float m_fPrev{};
 
-        float m_fStart;
-        float m_fEnd;
+        float m_fStart{};
+        float m_fEnd{};
 
-        float m_fAttract;
-        float m_fVelocity;
+        float m_fAttract{};
+        float m_fVelocity{};
     };
 
     struct Object {
-        Vector2D  m_vForce;
-        Vector2D  m_vPosition;
-        Vector2D  m_vVelocity;
-        float     m_fTheta;
-        bool      m_bImmobile;
-        Edge      m_sVertEdge;
-        Edge      m_sHorzEdge;
+        Vector2D  m_vForce{};
+        Vector2D  m_vPosition{};
+        Vector2D  m_vVelocity{};
+        float     m_fTheta{};
+        bool      m_bImmobile{};
+        Edge      m_sVertEdge{};
+        Edge      m_sHorzEdge{};
     };
 
     struct Spring {
         Object*   m_pA = nullptr;
         Object*   m_pB = nullptr;
-        Vector2D  m_vOffset;
+        Vector2D  m_vOffset{};
     };
 
     // the model itself
@@ -80,17 +79,19 @@ class CWobblyModel {
     void calcGeometry();
 
   private:
-    Object* findNearestObject(float x, float y);
+    Object* findNearestObject(const Vector2D& position);
 
-    void initObjects(int x, int y, int width, int height);
-    void initObject(Object* model, int x, int y, int velX, int velY);
-    void initSprings(int width, int height);
-    void addSpring(Object* a, Object* b, float offsetX, float offsetY);
+    void initObjects(const Vector2D& position, const Vector2D& size);
+    void initObject(Object* model, const Vector2D& position, const Vector2D& velocity);
+    void initSprings(const Vector2D& size);
+    void addSpring(Object* a, Object* b, const Vector2D& offset);
     void calcBounds();
 
     // simulation itself
     int modelStep(float friction, float k, float time);
-    int objectStep(Object* object, float friction, float* force);
+
+    // returns object velocity sum
+    int objectStep(Object* object, float friction, float& force);
     void springExertForces(Spring* spring, float k);
-    void objectApplyForce(Object* object, float forceX, float forceY);
+    void objectApplyForce(Object* object, const Vector2D& force);
 };

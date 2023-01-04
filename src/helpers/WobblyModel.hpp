@@ -85,16 +85,16 @@ class CWobblyModel {
     Object* findNearestObject(float x, float y);
     bool ensureHasModel();
 
-    static Model* createModel(int x, int y, int width, int height);
-    static void initObjects(Model* model, int x, int y, int width, int height);
-    static void initObject(Object* model, int x, int y, int velX, int velY);
-    static void initSprings(Model* model, int width, int height);
-    static void addSpring(Model* model, Object* a, Object* b, float offsetX, float offsetY);
-    static void calcBounds(Model* model);
+    void createModel(int x, int y, int width, int height);
+    void initObjects(int x, int y, int width, int height);
+    void initObject(Object* model, int x, int y, int velX, int velY);
+    void initSprings(int width, int height);
+    void addSpring(Object* a, Object* b, float offsetX, float offsetY);
+    void calcBounds();
 
-    // the simulation itself
-    static int modelStep(Model* model, float friction, float k, float time);
-    static int objectStep(Object* object, float friction, float* force);
-    static void springExertForces(Spring* spring, float k);
-    static void objectApplyForce(Object* object, float forceX, float forceY);
+    // simulation itself
+    int modelStep(float friction, float k, float time);
+    int objectStep(Object* object, float friction, float* force);
+    void springExertForces(Spring* spring, float k);
+    void objectApplyForce(Object* object, float forceX, float forceY);
 };

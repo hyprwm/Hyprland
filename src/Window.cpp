@@ -109,7 +109,7 @@ pid_t CWindow::getPID() {
     if (!m_bIsX11) {
         wl_client_get_credentials(wl_resource_get_client(m_uSurface.xdg->resource), &PID, nullptr, nullptr);
     } else {
-    PID = m_uSurface.xwayland->pid;
+        PID = m_uSurface.xwayland->pid;
     }
 
     return PID;

@@ -12,12 +12,18 @@ CWindow::CWindow() {
     m_fDimPercent.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), (void*)this, AVARDAMAGE_ENTIRE);
 
     m_dWindowDecorations.emplace_back(std::make_unique<CHyprDropShadowDecoration>(this)); // put the shadow so it's the first deco (has to be rendered first)
+    
+    m_pWobblyModel = new CWobblyModel(this);
 }
 
 CWindow::~CWindow() {
     if (g_pCompositor->isWindowActive(this)) {
         g_pCompositor->m_pLastFocus  = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
+    }
+ 
+    if(m_pWobblyModel) {
+        delete m_pWobblyModel;
     }
 }
 

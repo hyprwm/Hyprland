@@ -4,6 +4,7 @@
 #include "events/Events.hpp"
 #include "helpers/SubsurfaceTree.hpp"
 #include "helpers/AnimatedVariable.hpp"
+#include "helpers/WobblyModel.hpp"
 #include "render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
 #include "config/ConfigDataValues.hpp"
@@ -173,6 +174,9 @@ class CWindow {
     // Special render data, rules, etc
     SWindowSpecialRenderData    m_sSpecialRenderData;
     SWindowAdditionalConfigData m_sAdditionalConfigData;
+
+    // Wobbly effect
+    CWobblyModel* m_pWobblyModel = nullptr;
 
     // for alpha
     CAnimatedVariable m_fActiveInactiveAlpha;

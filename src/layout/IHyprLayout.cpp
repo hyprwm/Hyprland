@@ -162,6 +162,15 @@ void IHyprLayout::onBeginDragWindow() {
     m_vBeginDragSizeXY     = DRAGGINGWINDOW->m_vRealSize.goalv();
     m_vLastDragXY          = m_vBeginDragXY;
 
+    // window is wobbly, needs to know where it was grabbed
+    if (DRAGGINGWINDOW->m_pWobblyModel) {
+        if (DRAGGINGWINDOW->m_pWobblyModel->m_bGrabbed) {
+            DRAGGINGWINDOW->m_pWobblyModel->notifyUngrab();
+        }
+
+        DRAGGINGWINDOW->m_pWobblyModel->notifyGrab(m_vBeginDragXY);
+    }
+
     // get the grab corner
     if (m_vBeginDragXY.x < m_vBeginDragPositionXY.x + m_vBeginDragSizeXY.x / 2.0) {
         // left
@@ -196,6 +205,11 @@ void IHyprLayout::onEndDragWindow() {
         DRAGGINGWINDOW->m_bIsFloating = false;
         g_pInputManager->refocus();
         changeWindowFloatingMode(DRAGGINGWINDOW);
+    }
+
+    // window is wobbly, needs to know it was ungrabbed
+    if (DRAGGINGWINDOW->m_pWobblyModel) {
+        DRAGGINGWINDOW->m_pWobblyModel->notifyUngrab();
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
@@ -235,6 +249,11 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
         }
 
+        // if window is wobbly, notify of the drag
+        if(DRAGGINGWINDOW->m_pWobblyModel != nullptr) {
+            DRAGGINGWINDOW->m_pWobblyModel->notifyMove(DELTA);
+        }
+
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
     } else if (g_pInputManager->dragMode == MBIND_RESIZE) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
@@ -267,6 +286,11 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             } else {
                 DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(newSize);
                 DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(newPos);
+            }
+
+            // if window is wobbly, notify of the resize
+            if(DRAGGINGWINDOW->m_pWobblyModel != nullptr) {
+                DRAGGINGWINDOW->m_pWobblyModel->notifyResize(DELTA); // TODO should we pass absolute size?
             }
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
@@ -373,6 +397,8 @@ void IHyprLayout::moveActiveWindow(const Vector2D& delta, CWindow* pWindow) {
     }
 
     PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goalv() + delta;
+   
+   
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 }

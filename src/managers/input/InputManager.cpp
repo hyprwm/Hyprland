@@ -1173,11 +1173,11 @@ void CInputManager::setTabletConfigs() {
             const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output");
             const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
 
-            if (wlr_input_device_is_libinput(t.pWlrDevice)) {
-                const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
+            if (wlr_input_device_is_libinput(t.wlrDevice)) {
+                const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
                 const int  ROTATION =
-                    std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
+                    std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
             }
 

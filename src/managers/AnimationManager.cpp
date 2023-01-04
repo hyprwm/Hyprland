@@ -244,6 +244,27 @@ void CAnimationManager::tick() {
     for (auto& ave : animationEndedVars) {
         ave->onAnimationEnd();
     }
+
+    // update wobbly windows
+    // TODO find an actual way of getting deltaTime
+    static timespec lastFrame{};
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    // check if it's the first frame
+    if (lastFrame.tv_nsec == 0) {
+        lastFrame = now;
+        return;
+    }
+
+    // in ms
+    int deltaTime = (now.tv_nsec - lastFrame.tv_nsec) / 1000000;
+    for (auto& model : m_lWobblyModels) {
+        model->tick(deltaTime);
+    }
+
+    lastFrame = now;
 }
 
 bool CAnimationManager::deltaSmallToFlip(const Vector2D& a, const Vector2D& b) {

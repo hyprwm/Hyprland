@@ -38,6 +38,11 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     rounding -= 1; // to fix a border issue
 
     if (RDATA->surface && surface == RDATA->surface) {
+        // here-ish is where we need to change rendering
+        // but this will only affect window surfaces.
+        // we need to affect decorations as well
+        // I will leave this to vaxry, I think.
+
         if (wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 255.f) {
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         } else {

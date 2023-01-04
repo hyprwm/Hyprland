@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/BezierCurve.hpp"
+#include "../helpers/WobblyModel.hpp"
 #include "../Window.hpp"
 
 class CAnimationManager {
@@ -23,6 +24,7 @@ class CAnimationManager {
     std::string                   styleValidInConfigVar(const std::string&, const std::string&);
 
     std::list<CAnimatedVariable*> m_lAnimatedVariables;
+    std::list<CWobblyModel*> m_lWobblyModels;
 
   private:
     bool                                          deltaSmallToFlip(const Vector2D& a, const Vector2D& b);

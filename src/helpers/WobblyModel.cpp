@@ -19,10 +19,7 @@ CWobblyModel::CWobblyModel(CWindow* window) {
     m_pWindow = window;
 
     m_iNumObjects = GRID_SIZE.x * GRID_SIZE.y;
-    m_pObjects = new Object[m_iNumObjects]{};
-    if(!m_pObjects) {
-        return;
-    }
+    m_vObjects = std::vector<Object>(m_iNumObjects);
 
     m_pAnchorObject = nullptr;
     m_iNumSprings = 0;
@@ -41,14 +38,6 @@ CWobblyModel::CWobblyModel(CWindow* window) {
 CWobblyModel::~CWobblyModel() {
     // unregister
     g_pAnimationManager->m_lWobblyModels.remove(this);
-
-    delete[] m_pObjects;
-
-    // TODO probs remove this when rendering is figured out
-    if(m_v)
-        delete[] m_v;
-    if(m_uv)
-        delete[] m_uv;
 }
 
 void CWobblyModel::notifyGrab(const Vector2D& position) {
@@ -149,10 +138,8 @@ void CWobblyModel::calcGeometry() {
     int ih = m_iYCells + 1;
 
     // TODO this is real bad. goes in render function... maybe even shader?
-    delete[] m_v;
-    delete[] m_uv;
-    m_v = new float[2 * iw * ih]{};
-    m_uv = new float[2 * iw * ih]{};
+    m_vVerts.reserve(2 * iw * ih);
+    m_vUVs.reserve(2 * iw * ih);
 
     for (int y = 0; y < ih; y++) {
         for (int x = 0; x < iw; x++) {
@@ -177,29 +164,29 @@ void CWobblyModel::calcGeometry() {
             float deformedX = 0.f, deformedY = 0.f;
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    deformedX += coeffsU[i] * coeffsV[j] * m_pObjects[j * int(GRID_SIZE.x) + i].m_vPosition.x;
-                    deformedY += coeffsU[i] * coeffsV[j] * m_pObjects[j * int(GRID_SIZE.y) + i].m_vPosition.y;
+                    deformedX += coeffsU[i] * coeffsV[j] * m_vObjects[j * int(GRID_SIZE.x) + i].m_vPosition.x;
+                    deformedY += coeffsU[i] * coeffsV[j] * m_vObjects[j * int(GRID_SIZE.y) + i].m_vPosition.y;
                 }
             }
 
-            m_v[(y * iw + x) * 2] = deformedX;
-            m_v[(y * iw + x) * 2 + 1] = deformedY;
+            m_vVerts[(y * iw + x) * 2] = deformedX;
+            m_vVerts[(y * iw + x) * 2 + 1] = deformedY;
 
-            m_uv[(y * iw + x) * 2] = (x * cell_w) / width;
-            m_uv[(y * iw + x) * 2 + 1] = (y * cell_h) / height;
+            m_vUVs[(y * iw + x) * 2] = (x * cell_w) / width;
+            m_vUVs[(y * iw + x) * 2 + 1] = (y * cell_h) / height;
         }
     }
 }
 
 
 CWobblyModel::Object* CWobblyModel::findNearestObject(const Vector2D& position) {
-    Object* nearest = &m_pObjects[0];
+    Object* nearest = &m_vObjects[0];
 
     // start infinitely far away, so any object is closer
     float nearestDistSq = std::numeric_limits<float>::max();
 
     for (int i = 0; i < m_iNumObjects; i++) {
-        Object* curObj = &m_pObjects[i];
+        Object* curObj = &m_vObjects[i];
 
         Vector2D delta = curObj->m_vPosition - position;
         float distSq = delta.x * delta.x + delta.y * delta.y; // no need for sqrt
@@ -222,7 +209,7 @@ void CWobblyModel::initObjects(const Vector2D& position, const Vector2D& size) {
         for (int gridX = 0; gridX < GRID_SIZE.x; gridX++) {
             
             // init object
-            m_pObjects[i] = Object {
+            m_vObjects[i] = Object {
                 Vector2D(),
                 position + (Vector2D(gridX, gridY) * size) / gridDiv
             };
@@ -241,11 +228,11 @@ void CWobblyModel::initSprings(const Vector2D& size) {
     for (int gridY = 0; gridY < GRID_SIZE.y; gridY++) {
         for (int gridX = 0; gridX < GRID_SIZE.x; gridX++) {
             if (gridX > 0) {
-                addSpring(&m_pObjects[i - 1], &m_pObjects[i], Vector2D(padding.x, 0));
+                addSpring(&m_vObjects[i - 1], &m_vObjects[i], Vector2D(padding.x, 0));
             }
 
             if (gridY > 0) {
-                addSpring(&m_pObjects[i - int(GRID_SIZE.x)], &m_pObjects[i], Vector2D(0, padding.y));
+                addSpring(&m_vObjects[i - int(GRID_SIZE.x)], &m_vObjects[i], Vector2D(0, padding.y));
             }
 
             i++;
@@ -267,16 +254,16 @@ void CWobblyModel::calcBounds() {
     m_vBottomRight.y = std::numeric_limits<short>::min();
 
     for (int i = 0; i < m_iNumObjects; i++) {
-        if (m_pObjects[i].m_vPosition.x < m_vTopLeft.x) {
-            m_vTopLeft.x = m_pObjects[i].m_vPosition.x;
-        } else if (m_pObjects[i].m_vPosition.x > m_vBottomRight.x) {
-            m_vBottomRight.x = m_pObjects[i].m_vPosition.x;
+        if (m_vObjects[i].m_vPosition.x < m_vTopLeft.x) {
+            m_vTopLeft.x = m_vObjects[i].m_vPosition.x;
+        } else if (m_vObjects[i].m_vPosition.x > m_vBottomRight.x) {
+            m_vBottomRight.x = m_vObjects[i].m_vPosition.x;
         }
     
-        if (m_pObjects[i].m_vPosition.y < m_vTopLeft.y) {
-            m_vTopLeft.y = m_pObjects[i].m_vPosition.y;
-        } else if (m_pObjects[i].m_vPosition.y > m_vBottomRight.y) {
-            m_vBottomRight.y = m_pObjects[i].m_vPosition.y;
+        if (m_vObjects[i].m_vPosition.y < m_vTopLeft.y) {
+            m_vTopLeft.y = m_vObjects[i].m_vPosition.y;
+        } else if (m_vObjects[i].m_vPosition.y > m_vBottomRight.y) {
+            m_vBottomRight.y = m_vObjects[i].m_vPosition.y;
         }
     }
 }
@@ -299,7 +286,7 @@ int CWobblyModel::modelStep(float friction, float k, float time) {
         }
     
         for (int i = 0; i < m_iNumObjects; i++) {
-            velocitySum += objectStep(&m_pObjects[i],
+            velocitySum += objectStep(&m_vObjects[i],
                             friction,
                             force);
             forceSum += force;

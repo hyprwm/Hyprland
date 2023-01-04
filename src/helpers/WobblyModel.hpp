@@ -2,6 +2,7 @@
 
 #include "Vector2D.hpp"
 #include <array>
+#include <vector>
 
 // TODO where should these go?
 constexpr Vector2D GRID_SIZE(4, 4);
@@ -46,7 +47,7 @@ class CWobblyModel {
     };
 
     // the model itself
-    Object*                                m_pObjects = nullptr;
+    std::vector<Object>                    m_vObjects;
     int                                    m_iNumObjects;
     
     std::array<Spring, MODEL_MAX_SPRINGS>  m_aSprings;
@@ -67,8 +68,8 @@ class CWobblyModel {
     int m_iVertexCount = 0;
 
     // TODO this should change for rendering
-    float *m_v  = nullptr;
-    float *m_uv = nullptr;
+    std::vector<float> m_vVerts;
+    std::vector<float> m_vUVs;
 
     void notifyGrab(const Vector2D& position);
     void notifyUngrab();

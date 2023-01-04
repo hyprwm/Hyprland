@@ -1169,19 +1169,16 @@ void CInputManager::setTabletConfigs() {
     for (auto& t : m_lTablets) {
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(t.name);
 
-        if (HASCONFIG) {
-            const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output");
+        if (wlr_input_device_is_libinput(t.wlrDevice)) {
+            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
+
+            const int  ROTATION =
+                std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform") : g_pConfigManager->getInt("input:tablet:transform"), 0, 7);
+            libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+
+            const auto OUTPUT = HASCONFIG ? g_pConfigManager->getDeviceString(t.name, "output") : g_pConfigManager->getString("input:tablet:output");
             const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
-
-            if (wlr_input_device_is_libinput(t.wlrDevice)) {
-                const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
-
-                const int  ROTATION =
-                    std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
-                libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
-            }
-
-            if (PMONITOR) {
+            if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY && PMONITOR) {
                 wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, t.wlrDevice, PMONITOR->output);
                 wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, nullptr);
             }

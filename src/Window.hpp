@@ -7,6 +7,7 @@
 #include "helpers/WobblyModel.hpp"
 #include "render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
+#include <optional>
 #include "config/ConfigDataValues.hpp"
 
 enum eIdleInhibitMode {
@@ -176,7 +177,7 @@ class CWindow {
     SWindowAdditionalConfigData m_sAdditionalConfigData;
 
     // Wobbly effect
-    CWobblyModel* m_pWobblyModel = nullptr;
+    std::optional<CWobblyModel> m_oWobblyModel;
 
     // for alpha
     CAnimatedVariable m_fActiveInactiveAlpha;

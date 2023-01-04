@@ -118,6 +118,12 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
 
         g_pCompositor->moveWindowToTop(pWindow);
     }
+
+    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble:enabled")->intValue;
+
+    if (*PWOBBLE) {
+        pWindow->m_oWobblyModel.emplace(pWindow);
+    }
 }
 
 void IHyprLayout::onBeginDragWindow() {
@@ -163,12 +169,12 @@ void IHyprLayout::onBeginDragWindow() {
     m_vLastDragXY          = m_vBeginDragXY;
 
     // window is wobbly, needs to know where it was grabbed
-    if (DRAGGINGWINDOW->m_pWobblyModel) {
-        if (DRAGGINGWINDOW->m_pWobblyModel->m_bGrabbed) {
-            DRAGGINGWINDOW->m_pWobblyModel->notifyUngrab();
+    if (DRAGGINGWINDOW->m_oWobblyModel) {
+        if (DRAGGINGWINDOW->m_oWobblyModel->m_bGrabbed) {
+            DRAGGINGWINDOW->m_oWobblyModel->notifyUngrab();
         }
 
-        DRAGGINGWINDOW->m_pWobblyModel->notifyGrab(m_vBeginDragXY);
+        DRAGGINGWINDOW->m_oWobblyModel->notifyGrab(m_vBeginDragXY);
     }
 
     // get the grab corner
@@ -189,6 +195,11 @@ void IHyprLayout::onBeginDragWindow() {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     g_pKeybindManager->shadowKeybinds();
+
+    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble:enabled")->intValue;
+    if (*PWOBBLE && !DRAGGINGWINDOW->m_oWobblyModel) {
+        DRAGGINGWINDOW->m_oWobblyModel.emplace(DRAGGINGWINDOW);
+    }
 }
 
 void IHyprLayout::onEndDragWindow() {
@@ -201,16 +212,27 @@ void IHyprLayout::onEndDragWindow() {
 
     g_pInputManager->currentlyDraggedWindow = nullptr;
 
+    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble:enabled")->intValue;
+    
+    if (*PWOBBLE) {
+        // window is wobbly, needs to know it was ungrabbed
+        if (DRAGGINGWINDOW->m_oWobblyModel) {
+            DRAGGINGWINDOW->m_oWobblyModel->notifyUngrab();
+        }
+        
+        static auto const PWOBBLEFLOATINGONLY = &g_pConfigManager->getConfigValuePtr("animations:wobble:only_floating")->intValue;
+        if (DRAGGINGWINDOW->m_bDraggingTiled && *PWOBBLEFLOATINGONLY) {
+            DRAGGINGWINDOW->m_oWobblyModel.reset();
+        }
+    }
+
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;
         g_pInputManager->refocus();
         changeWindowFloatingMode(DRAGGINGWINDOW);
     }
 
-    // window is wobbly, needs to know it was ungrabbed
-    if (DRAGGINGWINDOW->m_pWobblyModel) {
-        DRAGGINGWINDOW->m_pWobblyModel->notifyUngrab();
-    }
+    
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
@@ -250,8 +272,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         }
 
         // if window is wobbly, notify of the drag
-        if(DRAGGINGWINDOW->m_pWobblyModel != nullptr) {
-            DRAGGINGWINDOW->m_pWobblyModel->notifyMove(DELTA);
+        if(DRAGGINGWINDOW->m_oWobblyModel) {
+            DRAGGINGWINDOW->m_oWobblyModel->notifyMove(DELTA);
         }
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
@@ -289,8 +311,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             }
 
             // if window is wobbly, notify of the resize
-            if(DRAGGINGWINDOW->m_pWobblyModel != nullptr) {
-                DRAGGINGWINDOW->m_pWobblyModel->notifyResize(DELTA); // TODO should we pass absolute size?
+            if(DRAGGINGWINDOW->m_oWobblyModel) {
+                DRAGGINGWINDOW->m_oWobblyModel->notifyResize(DELTA); // TODO should we pass absolute size?
             }
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
@@ -334,6 +356,10 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("%x,%d", pWindow, (int)TILED)});
 
+    // read config options here since they are used in both branches
+    static auto const PWOBBLE = &g_pConfigManager->getConfigValuePtr("animations:wobble:enabled")->intValue;
+    static auto const PWOBBLEFLOATINGONLY = &g_pConfigManager->getConfigValuePtr("animations:wobble:only_floating")->intValue;
+    
     if (!TILED) {
         const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
         pWindow->m_iMonitorID = PNEWMON->ID;
@@ -361,6 +387,12 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         if (pWindow == g_pCompositor->m_pLastWindow)
             m_pLastTiledWindow = pWindow;
+
+        
+    
+        if (*PWOBBLE && *PWOBBLEFLOATINGONLY) {
+            pWindow->m_oWobblyModel.reset();
+        }
     } else {
         onWindowRemovedTiling(pWindow);
 
@@ -378,6 +410,11 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         if (pWindow == m_pLastTiledWindow)
             m_pLastTiledWindow = nullptr;
+
+        if (*PWOBBLE && *PWOBBLEFLOATINGONLY) {
+            pWindow->m_oWobblyModel.emplace(pWindow);
+        }
+
     }
 
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);

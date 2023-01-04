@@ -84,6 +84,11 @@ animations {
     animation = border, 1, 10, default
     animation = fade, 1, 7, default
     animation = workspaces, 1, 6, default
+
+    wobble {
+        enabled = no
+        only_floating = yes
+    }
 }
 
 dwindle {

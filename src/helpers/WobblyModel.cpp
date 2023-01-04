@@ -16,6 +16,8 @@
 #define WOBBLY_SPRING_K 8
 
 CWobblyModel::CWobblyModel(CWindow* window) {
+    Debug::log(LOG, "Creating WobblyModel for window %s", window->m_szTitle);
+
     m_pWindow = window;
 
     m_iNumObjects = GRID_SIZE.x * GRID_SIZE.y;
@@ -36,6 +38,7 @@ CWobblyModel::CWobblyModel(CWindow* window) {
 }
 
 CWobblyModel::~CWobblyModel() {
+    Debug::log(LOG, "Destroying WobblyModel for window %s", m_pWindow->m_szTitle);
     // unregister
     g_pAnimationManager->m_lWobblyModels.remove(this);
 }

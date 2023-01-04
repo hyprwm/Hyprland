@@ -12,18 +12,12 @@ CWindow::CWindow() {
     m_fDimPercent.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), (void*)this, AVARDAMAGE_ENTIRE);
 
     m_dWindowDecorations.emplace_back(std::make_unique<CHyprDropShadowDecoration>(this)); // put the shadow so it's the first deco (has to be rendered first)
-    
-    m_pWobblyModel = new CWobblyModel(this);
 }
 
 CWindow::~CWindow() {
     if (g_pCompositor->isWindowActive(this)) {
         g_pCompositor->m_pLastFocus  = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
-    }
- 
-    if(m_pWobblyModel) {
-        delete m_pWobblyModel;
     }
 }
 
@@ -115,7 +109,7 @@ pid_t CWindow::getPID() {
     if (!m_bIsX11) {
         wl_client_get_credentials(wl_resource_get_client(m_uSurface.xdg->resource), &PID, nullptr, nullptr);
     } else {
-        PID = m_uSurface.xwayland->pid;
+    PID = m_uSurface.xwayland->pid;
     }
 
     return PID;

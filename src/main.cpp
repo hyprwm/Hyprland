@@ -4,6 +4,9 @@
 #include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
 #include <iostream>
+#ifdef USES_SYSTEMD
+#include <systemd/sd-daemon.h> // for sd_notify
+#endif
 
 int main(int argc, char** argv) {
 
@@ -65,6 +68,12 @@ int main(int argc, char** argv) {
 
     // If we are here it means we got yote.
     Debug::log(LOG, "Hyprland reached the end.");
+
+#ifdef USES_SYSTEMD
+    // tell systemd it destroy bound/related units
+    if (sd_booted() > 0)
+       sd_notify(0, "STOPPING=1");
+#endif
 
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
 

@@ -50,6 +50,16 @@ if not have_xwayland
 add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
 endif
 
+systemd_dep = dependency('libsystemd', required: get_option('systemd'))
+
+if get_option('systemd').enabled() 
+  if systemd_dep.found()
+        add_project_arguments('-DUSES_SYSTEMD', language: 'cpp')
+  else 
+	error('Cannot enable systemd in Hyprland: libsystemd was not found')
+  endif
+endif
+
 if get_option('buildtype') == 'debug'
   add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
 endif

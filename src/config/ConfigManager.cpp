@@ -1671,7 +1671,7 @@ void CConfigManager::addParseError(const std::string& err) {
     if (parseError == "")
         parseError = err;
 
-    g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(255, 50, 50, 255));
+    g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 }
 
 CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {

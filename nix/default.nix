@@ -16,6 +16,7 @@
   mesa,
   mount,
   pciutils,
+  systemd,
   wayland,
   wayland-protocols,
   wayland-scanner,
@@ -27,6 +28,7 @@
   hidpiXWayland ? true,
   legacyRenderer ? false,
   nvidiaPatches ? false,
+  withSystemd ? true,
   version ? "git",
 }: let
   assertXWayland = lib.assertMsg (hidpiXWayland -> enableXWayland) ''
@@ -73,7 +75,8 @@ in
           pciutils
           (wlroots.override {inherit enableXWayland hidpiXWayland nvidiaPatches;})
         ]
-        ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland];
+        ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland]
+        ++ lib.optionals withSystemd [systemd];
 
       mesonBuildType =
         if debug
@@ -83,6 +86,7 @@ in
       mesonFlags = builtins.concatLists [
         (lib.optional (!enableXWayland) "-Dxwayland=disabled")
         (lib.optional legacyRenderer "-DLEGACY_RENDERER:STRING=true")
+        (lib.optional withSystemd "-Dsystemd=enabled")
       ];
 
       patches = [
@@ -90,8 +94,8 @@ in
         ./meson-build.patch
       ];
 
-      # Fix hardcoded paths to /usr installation
       postPatch = ''
+        # Fix hardcoded paths to /usr installation
         sed -i "s#/usr#$out#" src/render/OpenGL.cpp
 
         # for some reason rmdir doesn't work in a dirty tree

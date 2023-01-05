@@ -1,0 +1,12 @@
+; a primitive systemd --user example
+[Unit]
+Description = %p
+BindsTo     = graphical-session.target
+Upholds     = swaybg@333333.service
+
+[Service]
+Type            = notify
+ExecStart       = /usr/bin/Hyprland
+
+[Install]
+WantedBy = default.target

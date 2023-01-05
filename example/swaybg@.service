@@ -1,0 +1,13 @@
+; a primitive systemd --user example
+; see example/hyprland.service for more details
+[Unit]
+Description = %p
+BindsTo     = hyprland.service
+Wants       = hyprland.service
+After       = hyprland.service
+
+[Service]
+ExecStart = /usr/bin/swaybg --color #%i
+
+[Install]
+WantedBy = default.target

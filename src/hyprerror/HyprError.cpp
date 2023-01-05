@@ -28,7 +28,7 @@ void CHyprError::createQueued() {
 
     const auto LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
 
-    cairo_set_source_rgba(CAIRO, m_cQueued.r / 255.f, m_cQueued.g / 255.f, m_cQueued.b / 255.f, m_cQueued.a / 255.f);
+    cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
     cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, (FONTSIZE + 2 * (FONTSIZE / 10.f)) * LINECOUNT);
 
     // outline
@@ -39,11 +39,11 @@ void CHyprError::createQueued() {
     cairo_fill(CAIRO);
 
     // draw the text with a common font
-    const CColor textColor = m_cQueued.r * m_cQueued.g * m_cQueued.b < 0.5f ? CColor(255, 255, 255, 255) : CColor(0, 0, 0, 255);
+    const CColor textColor = m_cQueued.r * m_cQueued.g * m_cQueued.b < 0.5f ? CColor(1.0, 1.0, 1.0, 1.0) : CColor(0, 0, 0, 1.0);
 
     cairo_select_font_face(CAIRO, "Noto Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(CAIRO, FONTSIZE);
-    cairo_set_source_rgba(CAIRO, textColor.r / 255.f, textColor.g / 255.f, textColor.b / 255.f, textColor.a / 255.f);
+    cairo_set_source_rgba(CAIRO, textColor.r, textColor.g, textColor.b, textColor.a);
 
     float yoffset = FONTSIZE;
     while (m_szQueued != "") {
@@ -107,7 +107,7 @@ void CHyprError::draw() {
 
     wlr_box windowBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
 
-    g_pHyprOpenGL->renderTexture(m_tTexture, &windowBox, 255.f, 0);
+    g_pHyprOpenGL->renderTexture(m_tTexture, &windowBox, 1.f, 0);
 }
 
 void CHyprError::destroy() {

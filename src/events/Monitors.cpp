@@ -239,7 +239,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (PMONITOR->isMirror()) {
         g_pHyprOpenGL->renderMirrored();
     } else {
-        g_pHyprOpenGL->clear(CColor(17, 17, 17, 255));
+        g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
         g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
         g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
@@ -257,7 +257,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
         if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
             wlr_box monrect = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
-            g_pHyprOpenGL->renderRect(&monrect, CColor(255, 0, 255, 100), 0);
+            g_pHyprOpenGL->renderRect(&monrect, CColor(1.0, 0.0, 1.0, 100.0 / 255.0), 0);
             damageBlinkCleanup = 1;
         } else if (*PDAMAGEBLINK) {
             damageBlinkCleanup++;

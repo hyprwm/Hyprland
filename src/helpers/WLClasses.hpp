@@ -57,7 +57,7 @@ struct SRenderData {
     bool dontRound = true;
 
     // for fade
-    float fadeAlpha = 255.f;
+    float fadeAlpha = 1.f;
 
     // for alpha settings
     float alpha = 1.f;

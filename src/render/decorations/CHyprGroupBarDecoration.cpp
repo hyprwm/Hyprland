@@ -92,7 +92,6 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         CColor             color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? ((CGradientValueData*)PGROUPCOLACTIVE->get())->m_vColors[0] :
                                                                                          ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0];
         color.a *= a;
-        color = color * 255.f; // gradient has 0 - 1
         g_pHyprOpenGL->renderRect(&rect, color);
 
         xoff += PAD + BARW;

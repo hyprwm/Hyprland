@@ -31,7 +31,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     m_fAlpha.m_pWorkspace = this;
     m_fAlpha.create(AVARTYPE_FLOAT, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"),
                     nullptr, AVARDAMAGE_ENTIRE);
-    m_fAlpha.setValueAndWarp(255.f);
+    m_fAlpha.setValueAndWarp(1.f);
 
     m_vRenderOffset.registerVar();
     m_fAlpha.registerVar();
@@ -61,16 +61,16 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 
         if (in) {
             m_fAlpha.setValueAndWarp(0.f);
-            m_fAlpha = 255.f;
+            m_fAlpha = 1.f;
         } else {
-            m_fAlpha.setValueAndWarp(255.f);
+            m_fAlpha.setValueAndWarp(1.f);
             m_fAlpha = 0.f;
         }
     } else if (ANIMSTYLE == "slidevert") {
         // fallback is slide
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-        m_fAlpha.setValueAndWarp(255.f); // fix a bug, if switching from fade -> slide.
+        m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
             m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y));
@@ -82,7 +82,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         // fallback is slide
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-        m_fAlpha.setValueAndWarp(255.f); // fix a bug, if switching from fade -> slide.
+        m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
             m_vRenderOffset.setValueAndWarp(Vector2D(left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x, 0));
@@ -102,7 +102,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->fadingOut)
-                ls->alpha = m_bHasFullscreenWindow && m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 255.f;
+                ls->alpha = m_bHasFullscreenWindow && m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
         }
     }
 }

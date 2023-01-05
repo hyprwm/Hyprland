@@ -126,7 +126,7 @@ void CKeybindManager::updateXKBTranslationState() {
     if (!PKEYMAP) {
         g_pHyprError->queueCreate("[Runtime Error] Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
                                       ", layout: " + LAYOUT + " )",
-                                  CColor(255, 50, 50, 255));
+                                  CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 
         Debug::log(ERR, "[XKBTranslationState] Keyboard layout %s with variant %s (rules: %s, model: %s, options: %s) couldn't have been loaded.", rules.layout, rules.variant,
                    rules.rules, rules.model, rules.options);
@@ -1017,10 +1017,10 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     PWORKSPACE->m_fAlpha.setValueAndWarp(0.f);
 
     POLDWORKSPACEIDRETURN->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
-    POLDWORKSPACEIDRETURN->m_fAlpha.setValueAndWarp(255.f);
+    POLDWORKSPACEIDRETURN->m_fAlpha.setValueAndWarp(1.f);
 
     POLDWORKSPACEONMON->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
-    POLDWORKSPACEONMON->m_fAlpha.setValueAndWarp(255.f);
+    POLDWORKSPACEONMON->m_fAlpha.setValueAndWarp(1.f);
 
     g_pEventManager->m_bIgnoreEvents = false;
 

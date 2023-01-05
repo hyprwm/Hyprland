@@ -35,7 +35,7 @@ void CInputManager::beginWorkspaceSwipe() {
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            ls->alpha = 255.f;
+            ls->alpha = 1.f;
         }
     }
 }
@@ -110,14 +110,14 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         }
 
         PWORKSPACEL->m_vRenderOffset.setValue(RENDEROFFSET);
-        PWORKSPACEL->m_fAlpha.setValueAndWarp(255.f);
+        PWORKSPACEL->m_fAlpha.setValueAndWarp(1.f);
 
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
         if (VERTANIMS)
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, m_sActiveSwipe.pMonitor->vecSize.y);
         else
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(m_sActiveSwipe.pMonitor->vecSize.x, 0);
-        m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
+        m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(1.f);
 
         g_pInputManager->unconstrainMouse();
 
@@ -136,14 +136,14 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         }
 
         PWORKSPACER->m_vRenderOffset.setValue(RENDEROFFSET);
-        PWORKSPACER->m_fAlpha.setValueAndWarp(255.f);
+        PWORKSPACER->m_fAlpha.setValueAndWarp(1.f);
 
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
         if (VERTANIMS)
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, -m_sActiveSwipe.pMonitor->vecSize.y);
         else
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-m_sActiveSwipe.pMonitor->vecSize.x, 0);
-        m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(255.f);
+        m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(1.f);
 
         g_pInputManager->unconstrainMouse();
 
@@ -166,7 +166,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
     // apply alpha
     for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 255.f;
+        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
     }
 }
 
@@ -229,7 +229,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         }
 
         PWORKSPACE->m_bForceRendering = true;
-        PWORKSPACE->m_fAlpha.setValueAndWarp(255.f);
+        PWORKSPACE->m_fAlpha.setValueAndWarp(1.f);
 
         if (workspaceIDLeft != workspaceIDRight) {
             const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
@@ -271,7 +271,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         }
 
         PWORKSPACE->m_bForceRendering = true;
-        PWORKSPACE->m_fAlpha.setValueAndWarp(255.f);
+        PWORKSPACE->m_fAlpha.setValueAndWarp(1.f);
 
         if (workspaceIDLeft != workspaceIDRight) {
             const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);

@@ -151,12 +151,12 @@ void CHyprOpenGLImpl::end() {
         glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
         wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
-        clear(CColor(11, 11, 11, 255));
+        clear(CColor(11.0 / 255.0, 11.0 / 255.0, 11.0 / 255.0, 1.0));
 
         m_bEndFrame         = true;
         m_bApplyFinalShader = true;
 
-        renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 255.f, 0);
+        renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f, 0);
 
         m_bApplyFinalShader = false;
         m_bEndFrame         = false;
@@ -310,7 +310,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 void CHyprOpenGLImpl::clear(const CColor& color) {
     RASSERT(m_RenderData.pMonitor, "Tried to render without begin()!");
 
-    glClearColor(color.r / 255.f, color.g / 255.f, color.b / 255.f, color.a / 255.f);
+    glClearColor(color.r, color.g, color.b, color.a);
 
     if (pixman_region32_not_empty(m_RenderData.pDamage)) {
         PIXMAN_DAMAGE_FOREACH(m_RenderData.pDamage) {
@@ -391,7 +391,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     wlr_matrix_transpose(glMatrix, glMatrix);
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix);
 #endif
-    glUniform4f(m_RenderData.pCurrentMonData->m_shQUAD.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f);
+    glUniform4f(m_RenderData.pCurrentMonData->m_shQUAD.color, col.r, col.g, col.b, col.a);
 
     wlr_box transformedBox;
     wlr_box_transform(&transformedBox, box, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
@@ -460,6 +460,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
                                                       bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
+    RASSERT(alpha <= 1.0, "Tried to render texture with a > 1");
 
     if (!pixman_region32_not_empty(m_RenderData.pDamage))
         return;
@@ -508,7 +509,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 #endif
     glUniform1i(shader->tex, 0);
     if (!usingFinalShader) {
-        glUniform1f(shader->alpha, alpha / 255.f);
+        glUniform1f(shader->alpha, alpha);
         glUniform1i(shader->discardOpaque, (int)discardOpaque);
     }
 
@@ -640,7 +641,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
         wlr_matrix_transpose(glMatrix, glMatrix);
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
 #endif
-        glUniform1f(pShader->radius, *PBLURSIZE * (a / 255.f)); // this makes the blursize change with a
+        glUniform1f(pShader->radius, *PBLURSIZE * a); // this makes the blursize change with a
         if (pShader == &m_RenderData.pCurrentMonData->m_shBLUR1)
             glUniform2f(m_RenderData.pCurrentMonData->m_shBLUR1.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f),
                         0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
@@ -739,9 +740,9 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         pixman_region32_t inverseOpaque;
         pixman_region32_init(&inverseOpaque);
         const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-        const float A          = pWindow->m_fAlpha.fl() * pWindow->m_fActiveInactiveAlpha.fl() * PWORKSPACE->m_fAlpha.fl() / 255.f;
+        const float A          = pWindow->m_fAlpha.fl() * pWindow->m_fActiveInactiveAlpha.fl() * PWORKSPACE->m_fAlpha.fl();
 
-        if (A >= 255.f) {
+        if (A >= 1.f) {
             pixman_box32_t surfbox = {0, 0, PSURFACE->current.width, PSURFACE->current.height};
             pixman_region32_copy(&inverseOpaque, &PSURFACE->current.opaque);
             pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &surfbox);
@@ -784,7 +785,7 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
     wlr_box    wholeMonitor = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-    const auto POUTFB       = blurMainFramebufferWithDamage(255, &wholeMonitor, &fakeDamage);
+    const auto POUTFB       = blurMainFramebufferWithDamage(1, &wholeMonitor, &fakeDamage);
 
     // render onto blurFB
     m_RenderData.pCurrentMonData->blurFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
@@ -793,7 +794,7 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     clear(CColor(0, 0, 0, 0));
 
     m_bEndFrame = true; // fix transformed
-    renderTextureInternalWithDamage(POUTFB->m_cTex, &wholeMonitor, 255, &fakeDamage, 0, false, true, false);
+    renderTextureInternalWithDamage(POUTFB->m_cTex, &wholeMonitor, 1, &fakeDamage, 0, false, true, false);
     m_bEndFrame = false;
 
     pixman_region32_fini(&fakeDamage);
@@ -839,7 +840,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     // amazing hack: the surface has an opaque region!
     pixman_region32_t inverseOpaque;
     pixman_region32_init(&inverseOpaque);
-    if (a >= 255.f) {
+    if (a >= 1.f) {
         pixman_box32_t surfbox = {0, 0, pSurface->current.width * pSurface->current.scale, pSurface->current.height * pSurface->current.scale};
         pixman_region32_copy(&inverseOpaque, &pSurface->current.opaque);
         pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &surfbox);
@@ -906,7 +907,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     // render our great blurred FB
     static auto* const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
     m_bEndFrame                           = true; // fix transformed
-    renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 255.f : a, &damage, 0, false, false, false);
+    renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 1.f : a, &damage, 0, false, false, false);
     m_bEndFrame = false;
 
     // render the window, but clear stencil
@@ -1316,7 +1317,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     wlr_matrix_transpose(glMatrix, glMatrix);
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
 #endif
-    glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r / 255.f, col.g / 255.f, col.b / 255.f, col.a / 255.f * a);
+    glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r, col.g, col.b, col.a * a);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(box->width - (range + round), box->height - (range + round));
@@ -1369,7 +1370,7 @@ void CHyprOpenGLImpl::saveBufferForMirror() {
 
     wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
 
-    renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 255.f, 0, false, false);
+    renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f, 0, false, false);
 
     m_RenderData.pCurrentMonData->primaryFB.bind();
 }
@@ -1382,7 +1383,7 @@ void CHyprOpenGLImpl::renderMirrored() {
     if (PFB->m_cTex.m_iTexID <= 0)
         return;
 
-    renderTexture(PFB->m_cTex, &monbox, 255.f, 0, false, false);
+    renderTexture(PFB->m_cTex, &monbox, 1.f, 0, false, false);
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY) {
@@ -1502,7 +1503,7 @@ void CHyprOpenGLImpl::clearWithTex() {
         }
 
         if (TEXIT != m_mMonitorBGTextures.end())
-            renderTexture(TEXIT->second, &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox, 255, 0);
+            renderTexture(TEXIT->second, &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox, 1.0, 0);
     }
 }
 

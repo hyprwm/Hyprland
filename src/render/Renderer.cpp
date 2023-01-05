@@ -38,7 +38,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     rounding -= 1; // to fix a border issue
 
     if (RDATA->surface && surface == RDATA->surface) {
-        if (wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 255.f) {
+        if (wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 1.f) {
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         } else {
             if (RDATA->blur)
@@ -243,7 +243,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     renderdata.w         = std::max(pWindow->m_vRealSize.vec().x, 5.0); // clamp the size to min 5,
     renderdata.h         = std::max(pWindow->m_vRealSize.vec().y, 5.0); // otherwise we'll have issues later with invalid boxes
     renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
-    renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (pWindow->m_bPinned ? 1.f : (PWORKSPACE->m_fAlpha.fl() / 255.f));
+    renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.fl());
     renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.fl();
     renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) &&
         (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
@@ -253,7 +253,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     if (ignoreAllGeometry) {
         renderdata.alpha     = 1.f;
-        renderdata.fadeAlpha = 255.f;
+        renderdata.fadeAlpha = 1.f;
     }
 
     // apply opaque
@@ -300,7 +300,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
         if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
             for (auto& wd : pWindow->m_dWindowDecorations)
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha / 255.f, offset);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
 
         wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
 
@@ -312,7 +312,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             auto       grad     = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor;
             const bool ANIMATED = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.isBeingAnimated();
-            float      a1       = renderdata.fadeAlpha * renderdata.alpha / 255.f * (ANIMATED ? g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.fl() : 1.f);
+            float      a1       = renderdata.fadeAlpha * renderdata.alpha * (ANIMATED ? g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.fl() : 1.f);
 
             wlr_box    windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
 
@@ -321,7 +321,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, a1);
 
             if (ANIMATED) {
-                float a2 = renderdata.fadeAlpha * renderdata.alpha / 255.f * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.fl());
+                float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.fl());
                 g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, rounding, a2);
             }
         }
@@ -511,7 +511,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
                 const bool ANIMOUT = !PMONITOR->specialWorkspaceID;
 
                 wlr_box    monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
-                g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMSPECIAL * 255.f * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
+                g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
             }
 
             renderedSpecialBG = true;
@@ -632,7 +632,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (!PCANDIDATE)
         return false; // ????
 
-    if (PCANDIDATE->m_fAlpha.fl() != 255.f || PCANDIDATE->m_fActiveInactiveAlpha.fl() != 1.f || PWORKSPACE->m_fAlpha.fl() != 255.f)
+    if (PCANDIDATE->m_fAlpha.fl() != 1.f || PCANDIDATE->m_fActiveInactiveAlpha.fl() != 1.f || PWORKSPACE->m_fAlpha.fl() != 1.f)
         return false;
 
     if (PCANDIDATE->m_vRealSize.vec() != pMonitor->vecSize || PCANDIDATE->m_vRealPosition.vec() != pMonitor->vecPosition || PCANDIDATE->m_vRealPosition.isBeingAnimated() ||

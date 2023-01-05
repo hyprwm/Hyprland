@@ -1489,11 +1489,9 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     if (RENDERDATA.isBorderGradient)
         setBorderColor(*RENDERDATA.borderGradient);
     else
-        setBorderColor(
-            pWindow == m_pLastWindow ?
-                (pWindow->m_sSpecialRenderData.activeBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor) * (1.f / 255.f)) : *ACTIVECOL) :
-                (pWindow->m_sSpecialRenderData.inactiveBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor) * (1.f / 255.f)) :
-                                                                          *INACTIVECOL));
+        setBorderColor(pWindow == m_pLastWindow ?
+                           (pWindow->m_sSpecialRenderData.activeBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor)) : *ACTIVECOL) :
+                           (pWindow->m_sSpecialRenderData.inactiveBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor)) : *INACTIVECOL));
 
     // opacity
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
@@ -1814,13 +1812,13 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
         if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID) {
             w->m_bCreatedOverFullscreen = false;
             if (w.get() != pWindow && !w->m_bFadingOut && !w->m_bPinned)
-                w->m_fAlpha = pWindow->m_bIsFullscreen ? 0.f : 255.f;
+                w->m_fAlpha = pWindow->m_bIsFullscreen ? 0.f : 1.f;
         }
     }
 
     for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         if (!ls->fadingOut)
-            ls->alpha = pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL ? 0.f : 255.f;
+            ls->alpha = pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL ? 0.f : 1.f;
     }
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv(), true);

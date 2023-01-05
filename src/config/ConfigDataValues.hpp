@@ -17,7 +17,7 @@ interface ICustomConfigValueData {
 class CGradientValueData : public ICustomConfigValueData {
   public:
     CGradientValueData(CColor col) {
-        m_vColors.push_back(col * (1.f / 255.f));
+        m_vColors.push_back(col);
     };
     virtual ~CGradientValueData(){};
 
@@ -27,7 +27,7 @@ class CGradientValueData : public ICustomConfigValueData {
 
     void reset(CColor col) {
         m_vColors.clear();
-        m_vColors.emplace_back(col * (1.f / 255.f));
+        m_vColors.emplace_back(col);
         m_fAngle = 0;
     }
 

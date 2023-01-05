@@ -455,7 +455,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // do the animation thing
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
     PWINDOW->m_fAlpha.setValueAndWarp(0.f);
-    PWINDOW->m_fAlpha = 255.f;
+    PWINDOW->m_fAlpha = 1.f;
 
     PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
     PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);

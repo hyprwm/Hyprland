@@ -348,7 +348,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10);
 
     g_pHyprOpenGL->begin(PMONITOR, &fakeDamage, true);
-    g_pHyprOpenGL->clear(CColor(0, 0, 0, 255));
+    g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
 
     // render client at 0,0
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(frame->pWindow); // block the feedback to avoid spamming the surface if it's visible

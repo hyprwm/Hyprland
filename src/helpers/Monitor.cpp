@@ -196,6 +196,7 @@ void CMonitor::onDisconnect() {
         for (auto& ls : m_aLayerSurfaceLists[i]) {
             wlr_layer_surface_v1_destroy(ls->layerSurface);
         }
+        m_aLayerSurfaceLists[i].clear();
     }
 
     if (!BACKUPMON) {

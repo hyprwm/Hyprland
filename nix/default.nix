@@ -9,6 +9,7 @@
   cairo,
   git,
   hyprland-protocols,
+  jq,
   libdrm,
   libinput,
   libxcb,
@@ -51,6 +52,7 @@ in
       };
 
       nativeBuildInputs = [
+        jq
         meson
         ninja
         pkg-config

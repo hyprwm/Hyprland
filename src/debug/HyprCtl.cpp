@@ -461,6 +461,51 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return result;
 }
 
+std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string ret = "";
+    if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
+        for (auto& kb : g_pKeybindManager->m_lKeybinds) {
+            ret += "bind";
+            if (kb.locked)
+                ret += "l";
+            if (kb.mouse)
+                ret += "m";
+            if (kb.release)
+                ret += "r";
+            if (kb.repeat)
+                ret += "e";
+
+            ret += getFormat("\n\tmodmask: %u\n\tsubmap: %s\n\tkey: %s\n\tkeycode: %d\n\tdispatcher: %s\n\targ: %s\n\n", kb.modmask, kb.submap.c_str(), kb.key.c_str(), kb.keycode,
+                             kb.handler.c_str(), kb.arg.c_str());
+        }
+    } else {
+        // json
+        ret += "[";
+        for (auto& kb : g_pKeybindManager->m_lKeybinds) {
+            ret += getFormat(
+                R"#(
+{
+    "locked": %s,
+    "mouse": %s,
+    "release": %s,
+    "repeat": %s,
+    "modmask": %u,
+    "submap": "%s",
+    "key": "%s",
+    "keycode": %i,
+    "dispatcher": "%s",
+    "arg": "%s"
+},)#",
+                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.modmask, kb.submap.c_str(),
+                kb.key.c_str(), kb.keycode, kb.handler.c_str(), kb.arg.c_str());
+        }
+        ret.pop_back();
+        ret += "]";
+    }
+
+    return ret;
+}
+
 std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
@@ -913,6 +958,8 @@ std::string getReply(std::string request) {
         return splashRequest();
     else if (request == "cursorpos")
         return cursorPosRequest(format);
+    else if (request == "binds")
+        return bindsRequest(format);
     else if (request.find("switchxkblayout") == 0)
         return switchXKBLayoutRequest(request);
     else if (request.find("output") == 0)

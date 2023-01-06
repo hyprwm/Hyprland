@@ -756,18 +756,30 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
     if (PWINDOW->isHidden() || PWINDOW->m_bNoFullscreenRequest)
         return;
 
+    bool requestedFullState = false;
+
     if (!PWINDOW->m_bIsX11) {
         const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 
-        if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen)
+        if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen && !PWINDOW->m_bFakeFullscreenState)
             g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
+
+        requestedFullState = REQUESTED->fullscreen;
 
         wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
     } else {
         if (!PWINDOW->m_uSurface.xwayland->mapped)
             return;
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, PWINDOW->m_uSurface.xwayland->fullscreen, FULLSCREEN_FULL);
+        if (!PWINDOW->m_bFakeFullscreenState)
+            g_pCompositor->setWindowFullscreen(PWINDOW, PWINDOW->m_uSurface.xwayland->fullscreen, FULLSCREEN_FULL);
+
+        requestedFullState = PWINDOW->m_uSurface.xwayland->fullscreen;
+    }
+
+    if (!requestedFullState && PWINDOW->m_bFakeFullscreenState) {
+        g_pXWaylandManager->setWindowFullscreen(PWINDOW, false); // fixes for apps expecting a de-fullscreen (e.g. ff)
+        g_pXWaylandManager->setWindowFullscreen(PWINDOW, true);
     }
 
     PWINDOW->updateToplevel();

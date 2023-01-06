@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.4)
+
+# Get version
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/props.json PROPS)
+string(JSON VER GET ${PROPS} version)
+
 project(Hyprland 
     DESCRIPTION "A Modern C++ Wayland Compositor"
+    VERSION ${VER}
 )
 
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")

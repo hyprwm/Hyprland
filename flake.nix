@@ -33,6 +33,8 @@
 
     pkgsFor = nixpkgs.legacyPackages;
 
+    props = builtins.fromJSON (builtins.readFile ./props.json);
+
     mkDate = longDate: (lib.concatStringsSep "-" [
       (builtins.substring 0 4 longDate)
       (builtins.substring 4 2 longDate)
@@ -46,7 +48,7 @@
       };
       hyprland = prev.callPackage ./nix/default.nix {
         stdenv = prev.gcc12Stdenv;
-        version = "0.20.0beta" + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
+        version = props.version + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
         inherit (inputs) hyprland-protocols;
       };

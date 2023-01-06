@@ -27,6 +27,7 @@ commands:
     activewindow
     layers
     devices
+    binds
     dispatch
     keyword
     version
@@ -44,7 +45,7 @@ flags:
     --batch -> execute a batch of commands, separated by ';'
 )#";
 
-void              request(std::string arg, int minArgs = 0) {
+void request(std::string arg, int minArgs = 0) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
@@ -333,6 +334,8 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/reload"))
         request(fullRequest);
     else if (fullRequest.contains("/getoption"))
+        request(fullRequest);
+    else if (fullRequest.contains("/binds"))
         request(fullRequest);
     else if (fullRequest.contains("/cursorpos"))
         request(fullRequest);

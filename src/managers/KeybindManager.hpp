@@ -51,8 +51,9 @@ class CKeybindManager {
 
     wl_event_source*                                                  m_pActiveKeybindEventSource = nullptr;
 
+    std::list<SKeybind>                                               m_lKeybinds;
+
   private:
-    std::list<SKeybind>       m_lKeybinds;
     std::deque<xkb_keysym_t>  m_dPressedKeysyms;
     std::deque<int>           m_dPressedKeycodes;
 

@@ -4,7 +4,6 @@
 CColor::CColor() {}
 
 CColor::CColor(float r, float g, float b, float a) {
-    RASSERT(r <= 1.f && g <= 1.f && b <= 1.f && a <= 1.f, "un-normalized color assignment");
     this->r = r;
     this->g = g;
     this->b = b;

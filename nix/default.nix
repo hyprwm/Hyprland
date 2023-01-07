@@ -67,6 +67,7 @@ in
         [
           git
           cairo
+          hyprland-protocols
           libdrm
           libinput
           libxkbcommon
@@ -99,10 +100,6 @@ in
       postPatch = ''
         # Fix hardcoded paths to /usr installation
         sed -i "s#/usr#$out#" src/render/OpenGL.cpp
-
-        # for some reason rmdir doesn't work in a dirty tree
-        rmdir subprojects/hyprland-protocols || true
-        ln -s ${hyprland-protocols} subprojects/hyprland-protocols
       '';
 
       passthru.providedSessions = ["hyprland"];

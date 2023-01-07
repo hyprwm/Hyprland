@@ -10,6 +10,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["closewindow"]                   = kill;
     m_mDispatchers["togglefloating"]                = toggleActiveFloating;
     m_mDispatchers["workspace"]                     = changeworkspace;
+    m_mDispatchers["renameworkspace"]               = renameWorkspace;
     m_mDispatchers["fullscreen"]                    = fullscreenActive;
     m_mDispatchers["fakefullscreen"]                = fakeFullscreenActive;
     m_mDispatchers["movetoworkspace"]               = moveActiveToWorkspace;
@@ -1287,6 +1288,16 @@ void CKeybindManager::workspaceOpt(std::string args) {
 
     // recalc mon
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+}
+
+void CKeybindManager::renameWorkspace(std::string args) {
+    if (!args.contains(' '))
+        return;
+
+    int workspace = std::stoi(args.substr(0, args.find_first_of(' ')));
+    std::string name = args.substr(args.find_first_of(' ') + 1);
+    g_pCompositor->renameWorkspace(workspace, name);
+
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {

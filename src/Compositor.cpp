@@ -2071,6 +2071,25 @@ CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, con
     return PWORKSPACE;
 }
 
+CWorkspace* CCompositor::renameWorkspace(const int& id, const std::string& name) {
+    const auto PWORKSPACE = getWorkspaceByID(id);
+
+    if (!PWORKSPACE)
+        return nullptr;
+
+    const auto NAME  = name == "" ? std::to_string(id) : name;
+
+    const bool SPECIAL = id >= SPECIAL_WORKSPACE_START && id <= -2;
+
+    if (!SPECIAL) {
+        Debug::log(LOG, "renameWorkspace: Renaming workspace %d to %s", id, NAME);
+        wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, NAME.c_str());
+        PWORKSPACE->m_szName = name;
+    }
+
+    return PWORKSPACE;
+}
+
 void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
     if (m_pLastMonitor == pMonitor)
         return;

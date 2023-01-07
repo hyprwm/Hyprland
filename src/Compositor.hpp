@@ -174,6 +174,7 @@ class CCompositor {
     void           setActiveMonitor(CMonitor*);
     bool           isWorkspaceSpecial(const int&);
     int            getNewSpecialID();
+    CWorkspace*    renameWorkspace(const int& id, const std::string& name = "");
 
     std::string    explicitConfigPath;
 

@@ -8,14 +8,15 @@
       flake = false;
     };
 
-    xdph = {
-      url = "github:hyprwm/xdg-desktop-portal-hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     hyprland-protocols = {
       url = "github:hyprwm/hyprland-protocols";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    xdph = {
+      url = "github:hyprwm/xdg-desktop-portal-hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.hyprland-protocols.follows = "hyprland-protocols";
     };
   };
 

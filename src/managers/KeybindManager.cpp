@@ -1294,9 +1294,15 @@ void CKeybindManager::renameWorkspace(std::string args) {
     if (!args.contains(' '))
         return;
 
-    int workspace = std::stoi(args.substr(0, args.find_first_of(' ')));
-    std::string name = args.substr(args.find_first_of(' ') + 1);
-    g_pCompositor->renameWorkspace(workspace, name);
+    try {
+        int workspace = std::stoi(args.substr(0, args.find_first_of(' ')));
+        std::string name = args.substr(args.find_first_of(' ') + 1);
+        g_pCompositor->renameWorkspace(workspace, name);
+    }
+    catch (...) {
+        Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id and string name. \"%s\".", args.c_str());
+        return;
+    }
 
 }
 

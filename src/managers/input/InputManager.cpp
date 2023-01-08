@@ -1,7 +1,10 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "wlr/util/box.h"
 
-void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
+const bool TEMP_CONFIG_RESIZE_ON_BORDER = true;
+
+void       CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     static auto* const PSENS      = &g_pConfigManager->getConfigValuePtr("general:sensitivity")->floatValue;
     static auto* const PNOACCEL   = &g_pConfigManager->getConfigValuePtr("input:force_no_accel")->intValue;
     static auto* const PSENSTORAW = &g_pConfigManager->getConfigValuePtr("general:apply_sens_to_raw")->intValue;
@@ -10,10 +13,10 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
 
     if (*PSENSTORAW == 1)
         wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * *PSENS,
-                                                             DELTA.y * *PSENS, e->unaccel_dx * *PSENS, e->unaccel_dy * *PSENS);
+                                                                   DELTA.y * *PSENS, e->unaccel_dx * *PSENS, e->unaccel_dy * *PSENS);
     else
         wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x, DELTA.y,
-                                                             e->unaccel_dx, e->unaccel_dy);
+                                                                   e->unaccel_dx, e->unaccel_dy);
 
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, DELTA.x * *PSENS, DELTA.y * *PSENS);
 
@@ -395,6 +398,20 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
             if (!g_pCompositor->m_sSeat.mouse->currentConstraint)
                 refocus();
+
+            // TODO maybe move out of switch statement
+            // HELP if a window is not fullscreen and not floating, it is tiled,  right??
+            if (TEMP_CONFIG_RESIZE_ON_BORDER && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bIsFloating) {
+                const auto    w    = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
+                const wlr_box box  = w->getFullWindowBoundingBox();
+                const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+                // check if clicked on gaps/border (borders are hard to click on, doesn't matter how thick it is)
+                // TODO take curved corners into consideration
+                const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+                if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && !wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y)) {
+                    g_pKeybindManager->onGapDragEvent(e);
+                }
+            }
 
             // if clicked on a floating window make it top
             if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)

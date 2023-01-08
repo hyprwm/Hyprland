@@ -391,10 +391,9 @@ void CCompositor::startCompositor() {
     if (sd_booted() > 0)
         // tell systemd that we are ready so it can start other bond, following, related units
         sd_notify(0, "READY=1");
-   else
+    else
         Debug::log(LOG, "systemd integration is baked in but system itself is not booted à la systemd!");
 #endif
-
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");
@@ -2069,6 +2068,20 @@ CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, con
     PWORKSPACE->m_iMonitorID = monID;
 
     return PWORKSPACE;
+}
+
+void CCompositor::renameWorkspace(const int& id, const std::string& name) {
+    const auto PWORKSPACE = getWorkspaceByID(id);
+
+    if (!PWORKSPACE)
+        return;
+
+    if (isWorkspaceSpecial(id))
+        return;
+
+    Debug::log(LOG, "renameWorkspace: Renaming workspace %d to '%s'", id, name);
+    wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, name.c_str());
+    PWORKSPACE->m_szName = name;
 }
 
 void CCompositor::setActiveMonitor(CMonitor* pMonitor) {

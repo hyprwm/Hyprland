@@ -460,7 +460,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
                                                       bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
-    RASSERT(alpha <= 1.0, "Tried to render texture with a > 1");
+    
+    alpha = std::clamp(alpha, 0.f, 1.f);
 
     if (!pixman_region32_not_empty(m_RenderData.pDamage))
         return;

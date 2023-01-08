@@ -10,6 +10,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["closewindow"]                   = kill;
     m_mDispatchers["togglefloating"]                = toggleActiveFloating;
     m_mDispatchers["workspace"]                     = changeworkspace;
+    m_mDispatchers["renameworkspace"]               = renameWorkspace;
     m_mDispatchers["fullscreen"]                    = fullscreenActive;
     m_mDispatchers["fakefullscreen"]                = fakeFullscreenActive;
     m_mDispatchers["movetoworkspace"]               = moveActiveToWorkspace;
@@ -292,6 +293,14 @@ void CKeybindManager::onGapDragEvent(wlr_pointer_button_event* e) {
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
     handleKeybinds(0, "switch:" + switchName, 0, 0, true, 0);
+}
+
+void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
+    handleKeybinds(0, "switch:on:" + switchName, 0, 0, true, 0);
+}
+
+void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
+    handleKeybinds(0, "switch:off:" + switchName, 0, 0, true, 0);
 }
 
 int repeatKeyHandler(void* data) {
@@ -1295,6 +1304,21 @@ void CKeybindManager::workspaceOpt(std::string args) {
 
     // recalc mon
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(g_pCompositor->m_pLastMonitor->ID);
+}
+
+void CKeybindManager::renameWorkspace(std::string args) {
+    try {
+        const auto FIRSTSPACEPOS = args.find_first_of(' ');
+        if (FIRSTSPACEPOS != std::string::npos) {
+            int         workspace = std::stoi(args.substr(0, FIRSTSPACEPOS));
+            std::string name      = args.substr(FIRSTSPACEPOS + 1);
+            g_pCompositor->renameWorkspace(workspace, name);
+        } else {
+            g_pCompositor->renameWorkspace(std::stoi(args), "");
+        }
+    } catch (std::exception& e) {
+        Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"%s\": \"%s\"", args.c_str(), e.what());
+    }
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {

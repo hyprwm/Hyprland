@@ -391,6 +391,20 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     if (!PASS && !*PPASSMOUSE)
         return;
 
+    // TODO is there a more direct way to check if a window is tiled?
+    if (TEMP_CONFIG_RESIZE_ON_BORDER && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bIsFloating) {
+        const auto    w    = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
+        const wlr_box box  = w->getFullWindowBoundingBox();
+        const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+        // check if clicked on gaps/border (borders are hard to click on, doesn't matter how thick it is)
+        // TODO take curved corners into consideration
+        const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+        if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && !wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y)) {
+            g_pKeybindManager->onGapDragEvent(e);
+            return;
+        }
+    }
+
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
@@ -398,20 +412,6 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
             if (!g_pCompositor->m_sSeat.mouse->currentConstraint)
                 refocus();
-
-            // TODO maybe move out of switch statement
-            // HELP if a window is not fullscreen and not floating, it is tiled,  right??
-            if (TEMP_CONFIG_RESIZE_ON_BORDER && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bIsFloating) {
-                const auto    w    = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
-                const wlr_box box  = w->getFullWindowBoundingBox();
-                const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-                // check if clicked on gaps/border (borders are hard to click on, doesn't matter how thick it is)
-                // TODO take curved corners into consideration
-                const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-                if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && !wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y)) {
-                    g_pKeybindManager->onGapDragEvent(e);
-                }
-            }
 
             // if clicked on a floating window make it top
             if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)

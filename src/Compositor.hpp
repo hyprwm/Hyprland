@@ -171,6 +171,7 @@ class CCompositor {
     void           forceReportSizesToWindowsOnWorkspace(const int&);
     bool           cursorOnReservedArea();
     CWorkspace*    createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
+    void           renameWorkspace(const int&, const std::string& name = "");
     void           setActiveMonitor(CMonitor*);
     bool           isWorkspaceSpecial(const int&);
     int            getNewSpecialID();

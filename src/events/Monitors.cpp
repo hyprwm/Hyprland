@@ -216,10 +216,12 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
             const auto         BLURRADIUS  = *PBLURSIZE * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
 
-            pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
-
             // now, prep the damage, get the extended damage region
             wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring
+
+            pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
+
+            wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring 2
         } else {
             pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
         }
@@ -280,7 +282,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     pixman_region32_init(&frameDamage);
 
     const auto TRANSFORM = wlr_output_transform_invert(PMONITOR->output->transform);
-    wlr_region_transform(&frameDamage, &PMONITOR->damage->current, TRANSFORM, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
+    wlr_region_transform(&frameDamage, &g_pHyprOpenGL->m_rOriginalDamageRegion, TRANSFORM, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);
 
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
         pixman_region32_union_rect(&frameDamage, &frameDamage, 0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y);

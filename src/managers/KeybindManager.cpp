@@ -1292,15 +1292,18 @@ void CKeybindManager::workspaceOpt(std::string args) {
 
 void CKeybindManager::renameWorkspace(std::string args) {
     try {
-        int workspace = std::stoi(args.substr(0, args.find_first_of(' ')));
-        std::string name = args.substr(args.find_first_of(' ') + 1);
-        g_pCompositor->renameWorkspace(workspace, name);
+        const auto POS_FIRST_SPACE = args.find_first_of(' ');
+        if (POS_FIRST_SPACE != std::string::npos) {
+            int workspace = std::stoi(args.substr(0, POS_FIRST_SPACE));
+            std::string name = args.substr(POS_FIRST_SPACE + 1);
+            g_pCompositor->renameWorkspace(workspace, name);
+        } else {
+            g_pCompositor->renameWorkspace(std::stoi(args), "");
+        }
     }
     catch (...) {
-        Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only and or numeric id and string name. \"%s\".", args.c_str());
-        return;
+        Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"%s\".", args.c_str());
     }
-
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {

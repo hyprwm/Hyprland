@@ -2078,12 +2078,10 @@ void CCompositor::renameWorkspace(const int& id, const std::string& name) {
         return;
     }
 
-    const auto NAME = name.empty() ? std::to_string(id) : name;
-
     if (!isWorkspaceSpecial(id)) {
-        Debug::log(LOG, "renameWorkspace: Renaming workspace %d to %s", id, NAME);
-        wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, NAME.c_str());
-        PWORKSPACE->m_szName = NAME;
+        Debug::log(LOG, "renameWorkspace: Renaming workspace %d to '%s'", id, name);
+        wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, name.c_str());
+        PWORKSPACE->m_szName = name;
     }
 }
 

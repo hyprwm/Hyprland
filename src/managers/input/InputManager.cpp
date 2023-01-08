@@ -1,5 +1,6 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "wlr/types/wlr_switch.h"
 
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     static auto* const PSENS      = &g_pConfigManager->getConfigValuePtr("general:sensitivity")->floatValue;
@@ -1215,6 +1216,18 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
             Debug::log(LOG, "Switch %s fired, triggering binds.", NAME.c_str());
 
             g_pKeybindManager->onSwitchEvent(NAME);
+
+            const auto event_data = (struct wlr_switch_toggle_event*)data;
+            switch (event_data->switch_state) {
+                case WLR_SWITCH_STATE_ON:
+                    Debug::log(LOG, "Switch %s turn on, triggering binds.", NAME.c_str());
+                    g_pKeybindManager->onSwitchOnEvent(NAME);
+                    break;
+                case WLR_SWITCH_STATE_OFF:
+                    Debug::log(LOG, "Switch %s turn off, triggering binds.", NAME.c_str());
+                    g_pKeybindManager->onSwitchOffEvent(NAME);
+                    break;
+            }
         },
         PNEWDEV, "SwitchDevice");
 }

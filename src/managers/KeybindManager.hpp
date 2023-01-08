@@ -40,6 +40,8 @@ class CKeybindManager {
     bool                                                              onAxisEvent(wlr_pointer_axis_event*);
     bool                                                              onMouseEvent(wlr_pointer_button_event*);
     void                                                              onSwitchEvent(const std::string&);
+    void                                                              onSwitchOnEvent(const std::string&);
+    void                                                              onSwitchOffEvent(const std::string&);
 
     void                                                              addKeybind(SKeybind);
     void                                                              removeKeybind(uint32_t, const std::string&);

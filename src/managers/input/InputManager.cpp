@@ -1217,7 +1217,7 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
 
             g_pKeybindManager->onSwitchEvent(NAME);
 
-            const auto event_data = (struct wlr_switch_toggle_event*)data;
+            const auto event_data = (wlr_switch_toggle_event*)data;
             switch (event_data->switch_state) {
                 case WLR_SWITCH_STATE_ON:
                     Debug::log(LOG, "Switch %s turn on, triggering binds.", NAME.c_str());

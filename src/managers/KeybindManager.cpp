@@ -1760,16 +1760,30 @@ void CKeybindManager::swapActiveWorkspaces(std::string args) {
 }
 
 void CKeybindManager::pinActive(std::string args) {
-    if (!g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow->m_bIsFloating || g_pCompositor->m_pLastWindow->m_bIsFullscreen)
+
+    CWindow* PWINDOW = nullptr;
+
+    if (args != "" && args != "active" && args.length() > 1) {
+        PWINDOW = g_pCompositor->getWindowByRegex(args);
+    } else {
+        PWINDOW = g_pCompositor->m_pLastWindow;
+    }
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "pin: window not found");
+        return;
+    }
+
+    if (!PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;
 
-    g_pCompositor->m_pLastWindow->m_bPinned      = !g_pCompositor->m_pLastWindow->m_bPinned;
-    g_pCompositor->m_pLastWindow->m_iWorkspaceID = g_pCompositor->getMonitorFromID(g_pCompositor->m_pLastWindow->m_iMonitorID)->activeWorkspace;
+    PWINDOW->m_bPinned      = !PWINDOW->m_bPinned;
+    PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
 
-    g_pCompositor->m_pLastWindow->updateDynamicRules();
-    g_pCompositor->updateWindowAnimatedDecorationValues(g_pCompositor->m_pLastWindow);
+    PWINDOW->updateDynamicRules();
+    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
     PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal());
 }

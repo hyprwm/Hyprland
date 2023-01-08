@@ -287,6 +287,14 @@ void CKeybindManager::onSwitchEvent(const std::string& switchName) {
     handleKeybinds(0, "switch:" + switchName, 0, 0, true, 0);
 }
 
+void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
+    handleKeybinds(0, "switch:on:" + switchName, 0, 0, true, 0);
+}
+
+void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
+    handleKeybinds(0, "switch:off:" + switchName, 0, 0, true, 0);
+}
+
 int repeatKeyHandler(void* data) {
     SKeybind** ppActiveKeybind = (SKeybind**)data;
 

@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
         cmd += std::string(i == 0 ? "" : " ") + argv[i];
     setenv("HYPRLAND_CMD", cmd.c_str(), 1);
     setenv("XDG_BACKEND", "wayland", 1);
-    setenv("_JAVA_AWT_WM_NONREPARENTING", "1", 0);
+    setenv("_JAVA_AWT_WM_NONREPARENTING", "1", 1);
 
     // parse some args
     std::string configPath;

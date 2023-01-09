@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 #ifdef USES_SYSTEMD
     // tell systemd it destroy bound/related units
     if (sd_booted() > 0)
-       sd_notify(0, "STOPPING=1");
+        sd_notify(0, "STOPPING=1");
 #endif
 
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);

@@ -283,9 +283,10 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
     } else {
         for (auto& mon : g_pCompositor->m_vMonitors) {
             result += getFormat("Monitor %s:\n", mon->szName.c_str());
-            int layerLevel = 0;
+            int                                     layerLevel = 0;
+            static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
             for (auto& level : mon->m_aLayerSurfaceLists) {
-                result += getFormat("\tLayer level %i:\n", layerLevel);
+                result += getFormat("\tLayer level %i (%s):\n", layerLevel, levelNames[layerLevel].c_str());
 
                 for (auto& layer : level) {
                     result += getFormat("\t\tLayer %x: xywh: %i %i %i %i, namespace: %s\n", layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width,

@@ -191,6 +191,9 @@ void Events::listener_mapInputPopup(void* owner, void* data) {
     Debug::log(LOG, "Mapped an IME Popup");
 
     g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
+
+    if (const auto PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D(PPOPUP->realX, PPOPUP->realY) + PPOPUP->lastSize / 2.f); PMONITOR)
+        wlr_surface_send_enter(PPOPUP->pSurface->surface, PMONITOR->output);
 }
 
 void Events::listener_unmapInputPopup(void* owner, void* data) {

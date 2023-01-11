@@ -386,16 +386,15 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
 void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
     // notify the keybind manager
-    static auto* const PPASSMOUSE   = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
-    const auto         PASS         = g_pKeybindManager->onMouseEvent(e);
-    static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
-    static auto* const PGAPRESIZE   = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
+    static auto* const PPASSMOUSE    = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
+    const auto         PASS          = g_pKeybindManager->onMouseEvent(e);
+    static auto* const PFOLLOWMOUSE  = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PBORDERRESIZE = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
 
     if (!PASS && !*PPASSMOUSE)
         return;
 
-    // TODO is there a more direct way to check if a window is tiled?
-    if (*PGAPRESIZE && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bIsFloating) {
+    if (*PBORDERRESIZE && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bIsFloating) {
         const auto    w    = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
         const wlr_box box  = w->getFullWindowBoundingBox();
         const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};

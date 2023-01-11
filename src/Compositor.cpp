@@ -1082,6 +1082,9 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
                 break;
             }
         }
+
+        if (pw->m_bIsMapped)
+            g_pHyprRenderer->damageMonitor(getMonitorFromID(pw->m_iMonitorID));
     };
 
     moveToTop(pWindow);

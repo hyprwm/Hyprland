@@ -394,7 +394,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     if (!PASS && !*PPASSMOUSE)
         return;
 
-    if (*PBORDERRESIZE && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bIsFloating) {
+    if (*PBORDERRESIZE && g_pCompositor->m_pLastWindow) {
         const auto    w    = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
         const wlr_box box  = w->getFullWindowBoundingBox();
         const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};

@@ -2,9 +2,7 @@
 #include "../../Compositor.hpp"
 #include "wlr/types/wlr_switch.h"
 
-const bool TEMP_CONFIG_RESIZE_ON_BORDER = true;
-
-void       CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
+void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     static auto* const PSENS      = &g_pConfigManager->getConfigValuePtr("general:sensitivity")->floatValue;
     static auto* const PNOACCEL   = &g_pConfigManager->getConfigValuePtr("input:force_no_accel")->intValue;
     static auto* const PSENSTORAW = &g_pConfigManager->getConfigValuePtr("general:apply_sens_to_raw")->intValue;
@@ -13,10 +11,10 @@ void       CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
 
     if (*PSENSTORAW == 1)
         wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * *PSENS,
-                                                                   DELTA.y * *PSENS, e->unaccel_dx * *PSENS, e->unaccel_dy * *PSENS);
+                                                             DELTA.y * *PSENS, e->unaccel_dx * *PSENS, e->unaccel_dy * *PSENS);
     else
         wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x, DELTA.y,
-                                                                   e->unaccel_dx, e->unaccel_dy);
+                                                             e->unaccel_dx, e->unaccel_dy);
 
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, DELTA.x * *PSENS, DELTA.y * *PSENS);
 

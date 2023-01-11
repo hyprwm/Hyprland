@@ -39,6 +39,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PFOLLOWONDND   = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
     static auto* const PHOGFOCUS      = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
     static auto* const PFLOATBEHAVIOR = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
+    const auto FOCUS_EXTENT = g_pConfigManager->getConfigValuePtr("general:resize_on_gaps")->intValue ? g_pConfigManager->getConfigValuePtr("general:border_size")->intValue : 0;
 
     m_pFoundSurfaceToFocus      = nullptr;
     m_pFoundLSToFocus           = nullptr;
@@ -158,7 +159,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         // only check floating because tiled cant be over fullscreen
         for (auto w = g_pCompositor->m_vWindows.rbegin(); w != g_pCompositor->m_vWindows.rend(); w++) {
-            wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
+            wlr_box box = {(*w)->m_vRealPosition.vec().x - FOCUS_EXTENT, (*w)->m_vRealPosition.vec().y - FOCUS_EXTENT, (*w)->m_vRealSize.vec().x + 2 * FOCUS_EXTENT,
+                           (*w)->m_vRealSize.vec().y + 2 * FOCUS_EXTENT};
             if ((((*w)->m_bIsFloating && (*w)->m_bIsMapped && ((*w)->m_bCreatedOverFullscreen || (*w)->m_bPinned)) ||
                  (g_pCompositor->isWorkspaceSpecial((*w)->m_iWorkspaceID) && PMONITOR->specialWorkspaceID)) &&
                 wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden()) {

@@ -560,12 +560,14 @@ void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
 }
 
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
-    const auto PMONITOR = getMonitorFromVector(pos);
+    const auto PMONITOR     = getMonitorFromVector(pos);
+    const auto FOCUS_EXTENT = g_pConfigManager->getConfigValuePtr("general:resize_on_gaps")->intValue ? g_pConfigManager->getConfigValuePtr("general:border_size")->intValue : 0;
 
     // special workspace
     if (PMONITOR->specialWorkspaceID) {
         for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-            wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
+            wlr_box box = {(*w)->m_vRealPosition.vec().x - FOCUS_EXTENT, (*w)->m_vRealPosition.vec().y - FOCUS_EXTENT, (*w)->m_vRealSize.vec().x + 2 * FOCUS_EXTENT,
+                           (*w)->m_vRealSize.vec().y + 2 * FOCUS_EXTENT};
             if ((*w)->m_bIsFloating && (*w)->m_iWorkspaceID == PMONITOR->specialWorkspaceID && (*w)->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) &&
                 !(*w)->isHidden() && !(*w)->m_bX11ShouldntFocus)
                 return (*w).get();
@@ -581,7 +583,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
     // pinned windows on top of floating regardless
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-        wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
+        wlr_box box = {(*w)->m_vRealPosition.vec().x - FOCUS_EXTENT, (*w)->m_vRealPosition.vec().y - FOCUS_EXTENT, (*w)->m_vRealSize.vec().x + 2 * FOCUS_EXTENT,
+                       (*w)->m_vRealSize.vec().y + 2 * FOCUS_EXTENT};
         if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && !(*w)->isHidden() && !(*w)->m_bX11ShouldntFocus && (*w)->m_bPinned) {
             if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))
                 return w->get();
@@ -600,7 +603,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-        wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
+        wlr_box box = {(*w)->m_vRealPosition.vec().x - FOCUS_EXTENT, (*w)->m_vRealPosition.vec().y - FOCUS_EXTENT, (*w)->m_vRealSize.vec().x + 2 * FOCUS_EXTENT,
+                       (*w)->m_vRealSize.vec().y + 2 * FOCUS_EXTENT};
         if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden() && !(*w)->m_bPinned) {
             // OR windows should add focus to parent
             if ((*w)->m_bX11ShouldntFocus && (*w)->m_iX11Type != 2)

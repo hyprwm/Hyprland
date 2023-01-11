@@ -761,7 +761,13 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
     if (!PWINDOW->m_bIsX11) {
         const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 
-        if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen && !PWINDOW->m_bFakeFullscreenState)
+        if (REQUESTED->fullscreen && PWINDOW->m_bIsFullscreen) {
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+            if (PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) {
+                g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_MAXIMIZED);
+                g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
+            }
+        } else if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen && !PWINDOW->m_bFakeFullscreenState)
             g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
 
         requestedFullState = REQUESTED->fullscreen;

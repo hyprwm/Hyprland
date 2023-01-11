@@ -394,8 +394,11 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     if (!PASS && !*PPASSMOUSE)
         return;
 
-    if (*PBORDERRESIZE && g_pCompositor->m_pLastWindow) {
-        const auto    w    = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
+    // TODO also check surfaces, maybe move into the switch statement below (focuses window first),
+    // so that I don't have to find surfaces myself, plus no need for vectorToWindowIdeal to find the window
+    const auto w = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
+    // TODO exclude if fullscreen
+    if (*PBORDERRESIZE && w) {
         const wlr_box box  = w->getFullWindowBoundingBox();
         const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
         // check if clicked on gaps/border (borders are hard to click on, doesn't matter how thick it is)

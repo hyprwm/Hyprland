@@ -283,7 +283,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     return !found && !mouseBindWasActive;
 }
 
-void CKeybindManager::onGapDragEvent(wlr_pointer_button_event* e) {
+void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
     if (e->state == WLR_BUTTON_PRESSED) {
         mouse("1resizewindow");
     } else {

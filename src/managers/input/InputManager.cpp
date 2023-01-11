@@ -406,7 +406,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
         const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
         if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) &&
             (!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
-            g_pKeybindManager->onGapDragEvent(e);
+            g_pKeybindManager->resizeWithBorder(e);
             return;
         }
     }

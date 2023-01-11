@@ -39,7 +39,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PFOLLOWONDND   = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
     static auto* const PHOGFOCUS      = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
     static auto* const PFLOATBEHAVIOR = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
-    const auto FOCUS_EXTENT = g_pConfigManager->getConfigValuePtr("general:resize_on_gaps")->intValue ? g_pConfigManager->getConfigValuePtr("general:border_size")->intValue : 0;
+    const auto FOCUS_EXTENT = g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue ? g_pConfigManager->getConfigValuePtr("general:border_size")->intValue : 0;
 
     m_pFoundSurfaceToFocus      = nullptr;
     m_pFoundLSToFocus           = nullptr;
@@ -389,7 +389,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     static auto* const PPASSMOUSE   = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
     const auto         PASS         = g_pKeybindManager->onMouseEvent(e);
     static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
-    static auto* const PGAPRESIZE   = &g_pConfigManager->getConfigValuePtr("general:resize_on_gaps")->intValue;
+    static auto* const PGAPRESIZE   = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
 
     if (!PASS && !*PPASSMOUSE)
         return;

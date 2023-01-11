@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.4)
+include(CheckIncludeFile)
 
 # Get version
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/props.json PROPS)
@@ -85,12 +86,13 @@ IF(NO_SYSTEMD MATCHES true)
 ELSE()
     message(STATUS "SYSTEMD support is requested (NO_SYSTEMD not defined) checking deps...")
     pkg_check_modules(LIBSYSTEMD libsystemd)
-    IF(LIBSYSTEMD_FOUND)
+    check_include_file("systemd/sd-daemon.h" SYSTEMDH)
+    IF(LIBSYSTEMD_FOUND AND SYSTEMDH)
         add_definitions( -DUSES_SYSTEMD )
         target_link_libraries(Hyprland "${LIBSYSTEMD_LIBRARIES}")
     ELSE()
-        message(WARNING "Systemd support requested but libsystemd was not found")
-    ENDIF(LIBSYSTEMD_FOUND)
+        message(WARNING "Systemd support requested but libsystemd or systemd headers were not found")
+    ENDIF(LIBSYSTEMD_FOUND AND SYSTEMDH)
 ENDIF(NO_SYSTEMD MATCHES true)
 
 target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")

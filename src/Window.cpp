@@ -381,3 +381,33 @@ void CWindow::updateDynamicRules() {
         applyDynamicRule(r);
     }
 }
+
+// check if the point is "hidden" under a rounded corner of the window
+bool CWindow::isInCurvedCorner(double x, double y) {
+    static auto* const ROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    static auto* const BORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+
+    if (BORDERSIZE >= ROUNDING || ROUNDING == 0)
+        return false;
+
+    // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
+    double x0 = m_vRealPosition.vec().x + *ROUNDING;
+    double y0 = m_vRealPosition.vec().y + *ROUNDING;
+    double x1 = m_vRealPosition.vec().x + m_vRealSize.vec().x - *ROUNDING;
+    double y1 = m_vRealPosition.vec().y + m_vRealSize.vec().y - *ROUNDING;
+
+    if (x < x0 && y < y0) {
+        return Vector2D{x0, y0}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    }
+    if (x > x1 && y < y0) {
+        return Vector2D{x1, y0}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    }
+    if (x < x0 && y > y1) {
+        return Vector2D{x0, y1}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    }
+    if (x > x1 && y > y1) {
+        return Vector2D{x1, y1}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    }
+
+    return false;
+}

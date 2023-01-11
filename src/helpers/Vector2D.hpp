@@ -39,6 +39,8 @@ class Vector2D {
         return Vector2D(this->x * a.x, this->y * a.y);
     }
 
+    double   distance(const Vector2D& other);
+
     Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D());
 
     Vector2D floor();

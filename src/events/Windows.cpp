@@ -808,6 +808,9 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
     if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow)
         return;
 
+    if (PWINDOW->m_bIsFloating)
+        g_pCompositor->moveWindowToTop(PWINDOW);
+
     g_pCompositor->focusWindow(PWINDOW);
     Vector2D middle = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
     g_pCompositor->warpCursorTo(middle);
@@ -822,6 +825,9 @@ void Events::listener_activateX11(void* owner, void* data) {
 
     if (!*PFOCUSONACTIVATE || PWINDOW->m_iX11Type != 1 || PWINDOW == g_pCompositor->m_pLastWindow)
         return;
+
+    if (PWINDOW->m_bIsFloating)
+        g_pCompositor->moveWindowToTop(PWINDOW);
 
     g_pCompositor->focusWindow(PWINDOW);
     Vector2D middle = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;

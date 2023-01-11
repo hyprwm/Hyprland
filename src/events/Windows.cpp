@@ -57,6 +57,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_bFadingOut     = false;
     PWINDOW->m_szTitle        = g_pXWaylandManager->getTitle(PWINDOW);
 
+    if (g_pInputManager->m_bLastFocusOnLS) // waybar fix
+        g_pInputManager->releaseAllMouseButtons();
+
     if (PWINDOW->m_iX11Type == 2)
         g_pCompositor->moveUnmanagedX11ToWindows(PWINDOW);
 

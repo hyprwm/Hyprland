@@ -322,6 +322,14 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 
     m_tmrLastCursorMovement.reset();
 
+    if (e->state == WLR_BUTTON_PRESSED) {
+        m_lCurrentlyHeldButtons.push_back(e->button);
+    } else {
+        if (std::find_if(m_lCurrentlyHeldButtons.begin(), m_lCurrentlyHeldButtons.end(), [&](const auto& other) { return other == e->button; }) == m_lCurrentlyHeldButtons.end())
+            return;
+        std::erase_if(m_lCurrentlyHeldButtons, [&](const auto& other) { return other == e->button; });
+    }
+
     switch (m_ecbClickBehavior) {
         case CLICKMODE_DEFAULT: processMouseDownNormal(e); break;
         case CLICKMODE_KILL: processMouseDownKill(e); break;
@@ -1295,4 +1303,17 @@ SConstraint* CInputManager::constraintFromWlr(wlr_pointer_constraint_v1* constra
     }
 
     return nullptr;
+}
+
+void CInputManager::releaseAllMouseButtons() {
+    const auto buttonsCopy = m_lCurrentlyHeldButtons;
+
+    if (g_pInputManager->m_sDrag.drag)
+        return;
+
+    for (auto& mb : buttonsCopy) {
+        wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, 0, mb, WLR_BUTTON_RELEASED);
+    }
+
+    m_lCurrentlyHeldButtons.clear();
 }

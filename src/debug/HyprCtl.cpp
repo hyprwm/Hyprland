@@ -503,8 +503,8 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "dispatcher": "%s",
     "arg": "%s"
 },)#",
-                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.modmask, kb.submap.c_str(),
-                kb.key.c_str(), kb.keycode, kb.handler.c_str(), kb.arg.c_str());
+                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.modmask,
+                escapeJSONStrings(kb.submap).c_str(), escapeJSONStrings(kb.key).c_str(), kb.keycode, escapeJSONStrings(kb.handler).c_str(), escapeJSONStrings(kb.arg).c_str());
         }
         ret.pop_back();
         ret += "]";

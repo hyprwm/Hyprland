@@ -399,8 +399,6 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     if (*PBORDERRESIZE && w) {
         const wlr_box box  = w->getFullWindowBoundingBox();
         const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-        // check if clicked on gaps/border (borders are hard to click on, doesn't matter how thick it is)
-        // TODO take curved corners into consideration
         const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
         if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) &&
             (!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {

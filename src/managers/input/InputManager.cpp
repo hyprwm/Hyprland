@@ -406,12 +406,10 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
             // clicking on border triggers resize
             if (*PBORDERRESIZE && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState) {
-                const wlr_box box         = g_pCompositor->m_pLastWindow->getFullWindowBoundingBox();
                 const wlr_box real        = {g_pCompositor->m_pLastWindow->m_vRealPosition.vec().x, g_pCompositor->m_pLastWindow->m_vRealPosition.vec().y,
                                              g_pCompositor->m_pLastWindow->m_vRealSize.vec().x, g_pCompositor->m_pLastWindow->m_vRealSize.vec().y};
                 const auto    mouseCoords = g_pInputManager->getMouseCoordsInternal();
-                if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) &&
-                    (!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || g_pCompositor->m_pLastWindow->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
+                if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || g_pCompositor->m_pLastWindow->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
                     g_pKeybindManager->resizeWithBorder(e);
                     return;
                 }

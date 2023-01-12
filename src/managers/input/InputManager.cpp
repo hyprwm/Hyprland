@@ -395,11 +395,10 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     // TODO also check surfaces, maybe move into the switch statement below (focuses window first),
     // so that I don't have to find surfaces myself, plus no need for vectorToWindowIdeal to find the window
     const auto w = g_pCompositor->vectorToWindowIdeal(getMouseCoordsInternal());
-    // TODO exclude if fullscreen
-    if (*PBORDERRESIZE && w) {
-        const wlr_box box  = w->getFullWindowBoundingBox();
-        const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-        const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+    if (*PBORDERRESIZE && w && !w->m_bIsFullscreen && !w->m_bFakeFullscreenState) {
+        const wlr_box box         = w->getFullWindowBoundingBox();
+        const wlr_box real        = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+        const auto    mouseCoords = g_pInputManager->getMouseCoordsInternal();
         if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) &&
             (!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
             g_pKeybindManager->resizeWithBorder(e);

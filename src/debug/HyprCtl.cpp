@@ -618,6 +618,12 @@ std::string dispatchKeyword(std::string in) {
         }
     }
 
+    // decorations will probably need a repaint
+    if (COMMAND.contains("decoration:")) {
+        for (auto& m : g_pCompositor->m_vMonitors)
+            g_pHyprRenderer->damageMonitor(m.get());
+    }
+
     Debug::log(LOG, "Hyprctl: keyword %s : %s", COMMAND.c_str(), VALUE.c_str());
 
     if (retval == "")

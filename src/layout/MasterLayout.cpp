@@ -532,8 +532,8 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
             applyNodeDataToWindow(PNODE);
         else {
             // get back its' dimensions from position and size
-            pWindow->m_vRealPosition = pWindow->m_vPosition;
-            pWindow->m_vRealSize     = pWindow->m_vSize;
+            pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
+            pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
         }
     } else {
         // if it now got fullscreen, make it fullscreen
@@ -542,8 +542,10 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
 
         // save position and size if floating
         if (pWindow->m_bIsFloating) {
-            pWindow->m_vPosition = pWindow->m_vRealPosition.vec();
-            pWindow->m_vSize     = pWindow->m_vRealSize.vec();
+            pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goalv();
+            pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goalv();
+            pWindow->m_vPosition             = pWindow->m_vRealPosition.goalv();
+            pWindow->m_vSize                 = pWindow->m_vRealSize.goalv();
         }
 
         // apply new pos and size being monitors' box

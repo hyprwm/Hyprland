@@ -560,8 +560,10 @@ void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
 }
 
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
-    const auto PMONITOR     = getMonitorFromVector(pos);
-    const auto FOCUS_EXTENT = g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue ? g_pConfigManager->getConfigValuePtr("general:border_size")->intValue : 0;
+    const auto         PMONITOR        = getMonitorFromVector(pos);
+    static auto* const PRESIZEONBORDER = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
+    static auto* const PBORDERSIZE     = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    const auto         FOCUS_EXTENT    = *PRESIZEONBORDER ? *PBORDERSIZE : 0;
 
     // special workspace
     if (PMONITOR->specialWorkspaceID) {

@@ -961,6 +961,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     }
 
     PWINDOW->updateToplevel();
+
+    g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {

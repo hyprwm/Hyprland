@@ -37,6 +37,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PFOLLOWONDND    = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
     static auto* const PHOGFOCUS       = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
     static auto* const PFLOATBEHAVIOR  = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
+    static auto* const PROUNDING       = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
     static auto* const PRESIZEONBORDER = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
     static auto* const PBORDERSIZE     = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     const auto         FOCUS_EXTENT    = *PRESIZEONBORDER ? *PBORDERSIZE : 0;
@@ -196,6 +197,39 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             }
         } else {
             pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+
+            if (*PRESIZEONBORDER) {
+                wlr_box box = {pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y, pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealSize.vec().y};
+                if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+                    unsetCursorImage();
+                } else {
+                    // give a small leeway (10 px) for corner icon
+                    auto corner = *PROUNDING + *PBORDERSIZE + 10;
+                    if (mouseCoords.y < box.y + corner) {
+                        if (mouseCoords.x < box.x + corner)
+                            setCursorImageUntilUnset("top_left_corner");
+                        else if (mouseCoords.x > box.x + box.width - corner)
+                            setCursorImageUntilUnset("top_right_corner");
+                        else
+                            setCursorImageUntilUnset("top_side");
+                    } else if (mouseCoords.y > box.y + box.height - corner) {
+                        if (mouseCoords.x < box.x)
+                            setCursorImageUntilUnset("bottom_left_corner");
+                        else if (mouseCoords.x > box.x + box.width - corner)
+                            setCursorImageUntilUnset("bottom_right_corner");
+                        else
+                            setCursorImageUntilUnset("bottom_side");
+                    } else {
+                        if (mouseCoords.x < box.x + corner)
+                            setCursorImageUntilUnset("left_side");
+                        else if (mouseCoords.x > box.x + box.width - corner)
+                            setCursorImageUntilUnset("right_side");
+                        else {
+                            // unreachable
+                        }
+                    }
+                }
+            }
 
             // TODO: this causes crashes, sometimes. ???
             // if (refocus && !pFoundWindow) {

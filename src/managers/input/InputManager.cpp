@@ -386,10 +386,10 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
 void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
     // notify the keybind manager
-    static auto* const PPASSMOUSE    = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
-    const auto         PASS          = g_pKeybindManager->onMouseEvent(e);
-    static auto* const PFOLLOWMOUSE  = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
-    static auto* const PBORDERRESIZE = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
+    static auto* const PPASSMOUSE      = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
+    const auto         PASS            = g_pKeybindManager->onMouseEvent(e);
+    static auto* const PFOLLOWMOUSE    = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PRESIZEONBORDER = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
 
     if (!PASS && !*PPASSMOUSE)
         return;
@@ -407,7 +407,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
                 g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
 
             // clicking on border triggers resize
-            if (*PBORDERRESIZE && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState) {
+            if (*PRESIZEONBORDER && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsFullscreen && !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState) {
                 const wlr_box real        = {g_pCompositor->m_pLastWindow->m_vRealPosition.vec().x, g_pCompositor->m_pLastWindow->m_vRealPosition.vec().y,
                                              g_pCompositor->m_pLastWindow->m_vRealSize.vec().x, g_pCompositor->m_pLastWindow->m_vRealSize.vec().y};
                 const auto    mouseCoords = g_pInputManager->getMouseCoordsInternal();

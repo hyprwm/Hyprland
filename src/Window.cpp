@@ -383,6 +383,8 @@ void CWindow::updateDynamicRules() {
 }
 
 // check if the point is "hidden" under a rounded corner of the window
+// it is assumed that the point is within the real window box (m_vRealPosition, m_vRealSize)
+// otherwise behaviour is undefined
 bool CWindow::isInCurvedCorner(double x, double y) {
     static auto* const ROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
     static auto* const BORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;

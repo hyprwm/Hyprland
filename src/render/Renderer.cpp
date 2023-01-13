@@ -578,10 +578,10 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
 
         // ignore X and Y, adjust uv
         if (geom.x != 0 || geom.y != 0) {
-            const auto XPERC = geom.x / pSurface->current.width;
-            const auto YPERC = geom.y / pSurface->current.height;
-            const auto WPERC = (geom.x + geom.width) / pSurface->current.width;
-            const auto HPERC = (geom.y + geom.height) / pSurface->current.height;
+            const auto XPERC = (double)geom.x / (double)pSurface->current.width;
+            const auto YPERC = (double)geom.y / (double)pSurface->current.height;
+            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.width;
+            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->current.height;
 
             const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
             uvBR               = uvBR - Vector2D(1.0 - WPERC * (uvBR.x - uvTL.x), 1.0 - HPERC * (uvBR.y - uvTL.y));
@@ -593,6 +593,14 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
             }
         }
 
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = uvBR;
+
+        if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
+            // No special UV mods needed
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+            g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        }
     } else {
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);

@@ -32,15 +32,16 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
-    static auto* const PFOLLOWMOUSE    = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
-    static auto* const PMOUSEDPMS      = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
-    static auto* const PFOLLOWONDND    = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
-    static auto* const PHOGFOCUS       = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
-    static auto* const PFLOATBEHAVIOR  = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
-    static auto* const PROUNDING       = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static auto* const PRESIZEONBORDER = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
-    static auto* const PBORDERSIZE     = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-    const auto         FOCUS_EXTENT    = *PRESIZEONBORDER ? *PBORDERSIZE : 0;
+    static auto* const PFOLLOWMOUSE      = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PMOUSEDPMS        = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
+    static auto* const PFOLLOWONDND      = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
+    static auto* const PHOGFOCUS         = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
+    static auto* const PFLOATBEHAVIOR    = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
+    static auto* const PROUNDING         = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
+    static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     m_pFoundSurfaceToFocus      = nullptr;
     m_pFoundLSToFocus           = nullptr;
@@ -160,8 +161,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         // only check floating because tiled cant be over fullscreen
         for (auto w = g_pCompositor->m_vWindows.rbegin(); w != g_pCompositor->m_vWindows.rend(); w++) {
-            wlr_box box = {(*w)->m_vRealPosition.vec().x - FOCUS_EXTENT, (*w)->m_vRealPosition.vec().y - FOCUS_EXTENT, (*w)->m_vRealSize.vec().x + 2 * FOCUS_EXTENT,
-                           (*w)->m_vRealSize.vec().y + 2 * FOCUS_EXTENT};
+            wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
+                           (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
             if ((((*w)->m_bIsFloating && (*w)->m_bIsMapped && ((*w)->m_bCreatedOverFullscreen || (*w)->m_bPinned)) ||
                  (g_pCompositor->isWorkspaceSpecial((*w)->m_iWorkspaceID) && PMONITOR->specialWorkspaceID)) &&
                 wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden()) {

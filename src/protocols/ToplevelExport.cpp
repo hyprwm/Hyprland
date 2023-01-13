@@ -53,7 +53,7 @@ void handleCaptureToplevelWithWlr(wl_client* client, wl_resource* resource, uint
     g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, g_pCompositor->getWindowFromZWLRHandle(handle));
 }
 
-void handleDestroy(wl_client* client, wl_resource* resource) {
+static void handleDestroy(wl_client* client, wl_resource* resource) {
     wl_resource_destroy(resource);
 }
 
@@ -74,8 +74,8 @@ static const struct hyprland_toplevel_export_manager_v1_interface toplevelExport
 static const struct hyprland_toplevel_export_frame_v1_interface toplevelFrameImpl = {.copy = handleCopyFrame, .destroy = handleDestroyFrame};
 
 SToplevelClient*                                                clientFromResource(wl_resource* resource) {
-    ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_manager_v1_interface, &toplevelExportManagerImpl));
-    return (SToplevelClient*)wl_resource_get_user_data(resource);
+                                                   ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_manager_v1_interface, &toplevelExportManagerImpl));
+                                                   return (SToplevelClient*)wl_resource_get_user_data(resource);
 }
 
 SToplevelFrame* frameFromResource(wl_resource* resource) {
@@ -95,7 +95,7 @@ void CToplevelExportProtocolManager::removeClient(SToplevelClient* client, bool 
     m_lClients.remove(*client); // TODO: this doesn't get cleaned up after sharing app exits???
 }
 
-void handleManagerResourceDestroy(wl_resource* resource) {
+static void handleManagerResourceDestroy(wl_resource* resource) {
     const auto PCLIENT = clientFromResource(resource);
 
     g_pProtocolManager->m_pToplevelExportProtocolManager->removeClient(PCLIENT, true);

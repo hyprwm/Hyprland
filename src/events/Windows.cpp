@@ -564,6 +564,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PMONITOR->scale);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {

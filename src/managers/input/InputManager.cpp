@@ -198,31 +198,46 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         } else {
             pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
+            // TODO check if is being dragged, skip setting cursor icon if so
             if (*PRESIZEONBORDER) {
+                const auto CORNER = *PROUNDING + *PBORDERSIZE + 10;
                 wlr_box box = {pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y, pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealSize.vec().y};
                 if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-                    unsetCursorImage();
+                    if (pFoundWindow->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+                        if (mouseCoords.y < box.y + CORNER) {
+                            if (mouseCoords.x < box.x + CORNER)
+                                setCursorImageUntilUnset("top_left_corner");
+                            else
+                                setCursorImageUntilUnset("top_right_corner");
+                        } else {
+                            if (mouseCoords.x < box.x + CORNER)
+                                setCursorImageUntilUnset("bottom_left_corner");
+                            else
+                                setCursorImageUntilUnset("bottom_right_corner");
+                        }
+                    } else {
+                        unsetCursorImage();
+                    }
                 } else {
                     // give a small leeway (10 px) for corner icon
-                    auto corner = *PROUNDING + *PBORDERSIZE + 10;
-                    if (mouseCoords.y < box.y + corner) {
-                        if (mouseCoords.x < box.x + corner)
+                    if (mouseCoords.y < box.y + CORNER) {
+                        if (mouseCoords.x < box.x + CORNER)
                             setCursorImageUntilUnset("top_left_corner");
-                        else if (mouseCoords.x > box.x + box.width - corner)
+                        else if (mouseCoords.x > box.x + box.width - CORNER)
                             setCursorImageUntilUnset("top_right_corner");
                         else
                             setCursorImageUntilUnset("top_side");
-                    } else if (mouseCoords.y > box.y + box.height - corner) {
+                    } else if (mouseCoords.y > box.y + box.height - CORNER) {
                         if (mouseCoords.x < box.x)
                             setCursorImageUntilUnset("bottom_left_corner");
-                        else if (mouseCoords.x > box.x + box.width - corner)
+                        else if (mouseCoords.x > box.x + box.width - CORNER)
                             setCursorImageUntilUnset("bottom_right_corner");
                         else
                             setCursorImageUntilUnset("bottom_side");
                     } else {
-                        if (mouseCoords.x < box.x + corner)
+                        if (mouseCoords.x < box.x + CORNER)
                             setCursorImageUntilUnset("left_side");
-                        else if (mouseCoords.x > box.x + box.width - corner)
+                        else if (mouseCoords.x > box.x + box.width - CORNER)
                             setCursorImageUntilUnset("right_side");
                         else {
                             // unreachable

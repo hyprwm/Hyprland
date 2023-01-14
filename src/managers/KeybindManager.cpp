@@ -641,10 +641,6 @@ void CKeybindManager::changeworkspace(std::string args) {
     int         workspaceToChangeTo = 0;
     std::string workspaceName       = "";
 
-    // Flag needed so that the previous workspace is not recorded when switching
-    // to a previous workspace.
-    bool isSwitchingToPrevious = false;
-
     bool internal = false;
 
     if (args.find("[internal]") == 0) {
@@ -669,10 +665,6 @@ void CKeybindManager::changeworkspace(std::string args) {
             else
                 workspaceName = std::to_string(workspaceToChangeTo);
 
-            isSwitchingToPrevious = true;
-
-            // If the previous workspace ID isn't reset, cycles can form when continually going
-            // to the previous workspace again and again.
             static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
             if (!*PALLOWWORKSPACECYCLES)
                 PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
@@ -702,10 +694,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         else
             workspaceName = std::to_string(workspaceToChangeTo);
 
-        isSwitchingToPrevious = true;
 
-        // If the previous workspace ID isn't reset, cycles can form when continually going
-        // to the previous workspace again and again.
         static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
         if (!*PALLOWWORKSPACECYCLES)
             PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
@@ -728,7 +717,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
 
-        if (!isSwitchingToPrevious && !internal)
+        if (!internal)
             // Remember previous workspace.
             PWORKSPACETOCHANGETO->m_iPrevWorkspaceID = g_pCompositor->m_pLastMonitor->activeWorkspace;
 
@@ -823,9 +812,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     const bool ANOTHERMONITOR = PMONITOR != g_pCompositor->m_pLastMonitor;
 
-    if (!isSwitchingToPrevious)
-        // Remember previous workspace.
-        PWORKSPACE->m_iPrevWorkspaceID = OLDWORKSPACE;
+    PWORKSPACE->m_iPrevWorkspaceID = OLDWORKSPACE;
 
     // start anim on new workspace
     PWORKSPACE->startAnim(true, ANIMTOLEFT);

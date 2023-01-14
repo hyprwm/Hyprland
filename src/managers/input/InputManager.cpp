@@ -1146,12 +1146,10 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 void CInputManager::setTouchDeviceConfigs() {
     for (auto& m : m_lTouchDevices) {
         const auto PTOUCHDEV = &m;
-        Debug::log(LOG, "Checking for config for device %s", PTOUCHDEV->name);
 
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(PTOUCHDEV->name);
 
         if (wlr_input_device_is_libinput(m.pWlrDevice)) {
-            Debug::log(LOG, "Device %s is a libinput device", PTOUCHDEV->name);
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.pWlrDevice);
 
             const int  ROTATION =

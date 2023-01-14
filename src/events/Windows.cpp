@@ -803,12 +803,22 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
 
     Debug::log(LOG, "Activate request for surface at %x", E->surface);
 
-    if (!*PFOCUSONACTIVATE || !wlr_surface_is_xdg_surface(E->surface))
+    if (!wlr_surface_is_xdg_surface(E->surface))
         return;
 
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(E->surface);
 
     if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow)
+        return;
+
+    PWINDOW->m_bIsUrgent = true;
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+    if (PWORKSPACE->m_pWlrHandle) {
+        wlr_ext_workspace_handle_v1_set_urgent(PWORKSPACE->m_pWlrHandle, 1);
+    }
+
+    if (!*PFOCUSONACTIVATE)
         return;
 
     if (PWINDOW->m_bIsFloating)

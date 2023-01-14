@@ -157,6 +157,9 @@ class CWindow {
     // For pinned (sticky) windows
     bool m_bPinned = false;
 
+    // urgency hint
+    bool m_bIsUrgent = false;
+
     // fakefullscreen
     bool m_bFakeFullscreenState = false;
 

@@ -1643,6 +1643,10 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
     if (name[0] == '+' || name[0] == '-') {
         // relative
+
+        if (m_vMonitors.size() == 1)
+            return m_vMonitors.begin()->get();
+
         const auto OFFSET = name[0] == '-' ? name : name.substr(1);
 
         if (!isNumber(OFFSET)) {
@@ -1671,7 +1675,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
 
         if (currentPlace != std::clamp(currentPlace, 0, (int)m_vMonitors.size())) {
             Debug::log(WARN, "Error in getMonitorFromString: Vaxry's code sucks.");
-            currentPlace = std::clamp(currentPlace, 0, (int)m_vMonitors.size());
+            currentPlace = std::clamp(currentPlace, 0, (int)m_vMonitors.size() - 1);
         }
 
         return m_vMonitors[currentPlace].get();

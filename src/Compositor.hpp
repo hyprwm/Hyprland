@@ -135,6 +135,7 @@ class CCompositor {
     void           sanityCheckWorkspaces();
     void           updateWorkspaceWindowDecos(const int&);
     int            getWindowsOnWorkspace(const int&);
+    bool           hasUrgentWindowOnWorkspace(const int&);
     CWindow*       getFirstWindowOnWorkspace(const int&);
     CWindow*       getFullscreenWindowOnWorkspace(const int&);
     bool           doesSeatAcceptInput(wlr_surface*);

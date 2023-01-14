@@ -826,6 +826,17 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     updateWindowAnimatedDecorationValues(pWindow);
 
+    // Handle urgency hint on the workspace
+    if (pWindow->m_bIsUrgent) {
+        pWindow->m_bIsUrgent = false;
+        if (!hasUrgentWindowOnWorkspace(pWindow->m_iWorkspaceID)) {
+            const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
+            if (PWORKSPACE->m_pWlrHandle) {
+                wlr_ext_workspace_handle_v1_set_urgent(PWORKSPACE->m_pWlrHandle, 0);
+            }
+        }
+    }
+
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
 
@@ -1044,6 +1055,15 @@ int CCompositor::getWindowsOnWorkspace(const int& id) {
     }
 
     return no;
+}
+
+bool CCompositor::hasUrgentWindowOnWorkspace(const int& id) {
+    for (auto& w : m_vWindows) {
+        if (w->m_iWorkspaceID == id && w->m_bIsMapped && w->m_bIsUrgent)
+            return true;
+    }
+
+    return false;
 }
 
 CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {

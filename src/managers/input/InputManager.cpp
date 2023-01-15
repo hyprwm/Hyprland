@@ -1144,23 +1144,6 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 }
 
 void CInputManager::setTouchDeviceConfigs() {
-    // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
-    static const float MATRICES[8][6] = {{// normal
-                                          1, 0, 0, 0, 1, 0},
-                                         {// rotation 90°
-                                          0, -1, 1, 1, 0, 0},
-                                         {// rotation 180°
-                                          -1, 0, 1, 0, -1, 1},
-                                         {// rotation 270°
-                                          0, 1, 0, -1, 0, 1},
-                                         {// flipped
-                                          -1, 0, 1, 0, 1, 0},
-                                         {// flipped + rotation 90°
-                                          0, 1, 0, 1, 0, 0},
-                                         {// flipped + rotation 180°
-                                          1, 0, 0, 0, -1, 1},
-                                         {// flipped + rotation 270°
-                                          0, -1, 1, -1, 0, 1}};
     for (auto& m : m_lTouchDevices) {
         const auto PTOUCHDEV = &m;
 
@@ -1186,11 +1169,16 @@ void CInputManager::setTabletConfigs() {
     for (auto& t : m_lTablets) {
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(t.name);
 
-        if (HASCONFIG) {
-            const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output");
-            const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
+        if (wlr_input_device_is_libinput(t.wlrDevice)) {
+            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
-            if (PMONITOR) {
+            const int  ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform") : g_pConfigManager->getInt("input:tablet:transform"), 0, 7);
+            Debug::log(LOG, "Setting calibration matrix for device %s", t.name);
+            libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+
+            const auto OUTPUT   = HASCONFIG ? g_pConfigManager->getDeviceString(t.name, "output") : g_pConfigManager->getString("input:tablet:output");
+            const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
+            if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY && PMONITOR) {
                 wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, t.wlrDevice, PMONITOR->output);
                 wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, nullptr);
             }

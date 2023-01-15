@@ -160,6 +160,8 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:scroll_factor"].floatValue         = 1.f;
     configValues["input:touchdevice:transform"].intValue            = 0;
     configValues["input:touchdevice:output"].strValue               = STRVAL_EMPTY;
+    configValues["input:tablet:transform"].intValue                 = 0;
+    configValues["input:tablet:output"].strValue                    = STRVAL_EMPTY;
 
     configValues["binds:pass_mouse_when_bound"].intValue    = 0;
     configValues["binds:scroll_event_delay"].intValue       = 300;
@@ -1340,7 +1342,12 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
             if (foundIt == std::string::npos)
                 continue;
 
-            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + cv.first || cv.first == "input:touchdevice:" + val) {
+            if (cv.first == "input:" + val
+                || cv.first == "input:touchpad:" + cv.first
+                || cv.first == "input:touchdevice:" + val
+                || cv.first == "input:tablet:" + cv.first
+                || cv.first == "input:tablet:" + val
+            ) {
                 copy = cv.second;
             }
         }

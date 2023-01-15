@@ -1167,11 +1167,9 @@ void CInputManager::setTouchDeviceConfigs() {
 
 void CInputManager::setTabletConfigs() {
     for (auto& t : m_lTablets) {
-        Debug::log(LOG, "Checking for config for device %s", t.name);
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(t.name);
 
         if (wlr_input_device_is_libinput(t.wlrDevice)) {
-            Debug::log(LOG, "Device %s is a libinput device", t.name);
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
             const int  ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform") : g_pConfigManager->getInt("input:tablet:transform"), 0, 7);

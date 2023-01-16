@@ -669,13 +669,13 @@ void CKeybindManager::changeworkspace(std::string args) {
             else
                 workspaceName = std::to_string(workspaceToChangeTo);
 
-            isSwitchingToPrevious = true;
-
             // If the previous workspace ID isn't reset, cycles can form when continually going
             // to the previous workspace again and again.
             static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
             if (!*PALLOWWORKSPACECYCLES)
                 PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
+            else
+                isSwitchingToPrevious = true;
         }
     } else {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
@@ -702,13 +702,13 @@ void CKeybindManager::changeworkspace(std::string args) {
         else
             workspaceName = std::to_string(workspaceToChangeTo);
 
-        isSwitchingToPrevious = true;
-
         // If the previous workspace ID isn't reset, cycles can form when continually going
         // to the previous workspace again and again.
         static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
         if (!*PALLOWWORKSPACECYCLES)
             PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
+        else
+            isSwitchingToPrevious = true;
 
     } else if (PCURRENTWORKSPACE && PCURRENTWORKSPACE->m_iID == workspaceToChangeTo && !internal)
         return;

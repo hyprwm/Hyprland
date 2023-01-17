@@ -767,11 +767,23 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         if (REQUESTED->fullscreen && PWINDOW->m_bIsFullscreen) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
             if (PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) {
+                // Store that we were maximized
+                PWINDOW->m_bWasMaximized = true;
                 g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_MAXIMIZED);
                 g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
             }
-        } else if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen && !PWINDOW->m_bFakeFullscreenState)
+            else
+                PWINDOW->m_bWasMaximized = false;
+        } else if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen && !PWINDOW->m_bFakeFullscreenState) {
             g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
+            if (PWINDOW->m_bWasMaximized && !REQUESTED->fullscreen) {
+                // Was maximized before the fullscreen request, return now back to maximized instead of normal
+                g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_MAXIMIZED);
+            }
+        }
+
+        // Disable the maximize flag when we recieve a de-fullscreen request
+        PWINDOW->m_bWasMaximized &= REQUESTED->fullscreen;
 
         requestedFullState = REQUESTED->fullscreen;
 

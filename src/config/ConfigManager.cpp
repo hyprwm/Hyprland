@@ -61,6 +61,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:swallow_regex"].strValue             = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue         = 0;
     configValues["misc:no_direct_scanout"].intValue         = 0;
+    configValues["misc:hide_cursor_on_touch"].intValue      = 1;
 
     configValues["debug:int"].intValue             = 0;
     configValues["debug:log_damage"].intValue      = 0;
@@ -1342,12 +1343,8 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
             if (foundIt == std::string::npos)
                 continue;
 
-            if (cv.first == "input:" + val
-                || cv.first == "input:touchpad:" + cv.first
-                || cv.first == "input:touchdevice:" + val
-                || cv.first == "input:tablet:" + cv.first
-                || cv.first == "input:tablet:" + val
-            ) {
+            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + cv.first || cv.first == "input:touchdevice:" + val || cv.first == "input:tablet:" + cv.first ||
+                cv.first == "input:tablet:" + val) {
                 copy = cv.second;
             }
         }

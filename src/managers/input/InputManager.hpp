@@ -26,24 +26,22 @@ struct STouchData {
 };
 
 // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
-static const float MATRICES[8][6] = {
-  {// normal
-  1, 0, 0, 0, 1, 0},
-  {// rotation 90°
-  0, -1, 1, 1, 0, 0},
-  {// rotation 180°
-  -1, 0, 1, 0, -1, 1},
-  {// rotation 270°
-  0, 1, 0, -1, 0, 1},
-  {// flipped
-  -1, 0, 1, 0, 1, 0},
-  {// flipped + rotation 90°
-  0, 1, 0, 1, 0, 0},
-  {// flipped + rotation 180°
-  1, 0, 0, 0, -1, 1},
-  {// flipped + rotation 270°
-  0, -1, 1, -1, 0, 1}
-};
+static const float MATRICES[8][6] = {{// normal
+                                      1, 0, 0, 0, 1, 0},
+                                     {// rotation 90°
+                                      0, -1, 1, 1, 0, 0},
+                                     {// rotation 180°
+                                      -1, 0, 1, 0, -1, 1},
+                                     {// rotation 270°
+                                      0, 1, 0, -1, 0, 1},
+                                     {// flipped
+                                      -1, 0, 1, 0, 1, 0},
+                                     {// flipped + rotation 90°
+                                      0, 1, 0, 1, 0, 0},
+                                     {// flipped + rotation 180°
+                                      1, 0, 0, 0, -1, 1},
+                                     {// flipped + rotation 270°
+                                      0, -1, 1, -1, 0, 1}};
 
 class CKeybindManager;
 
@@ -159,6 +157,9 @@ class CInputManager {
 
     // for some bugs in follow mouse 0
     bool m_bLastFocusOnLS = false;
+
+    // for hiding cursor on touch
+    bool m_bLastInputTouch = false;
 
   private:
     bool m_bCursorImageOverriden = false;

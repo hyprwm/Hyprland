@@ -1458,6 +1458,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     // reload to fix mirrors
     g_pConfigManager->m_bWantsMonitorReload = true;
 
+    Debug::log(LOG, "Monitor %s data dump: res %ix%i@%imHz, scale %.2f, transform %i, pos %ix%i, 10b %i", pMonitor->szName.c_str(), pMonitor->vecPixelSize.x,
+               pMonitor->vecPixelSize.y, pMonitor->refreshRate, pMonitor->scale, pMonitor->transform, pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->enabled10bit);
+
     return true;
 }
 

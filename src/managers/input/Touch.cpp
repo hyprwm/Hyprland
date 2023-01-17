@@ -15,6 +15,8 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     refocus();
 
+    m_bLastInputTouch = true;
+
     m_sTouchData.touchFocusWindow  = m_pFoundWindowToFocus;
     m_sTouchData.touchFocusSurface = m_pFoundSurfaceToFocus;
     m_sTouchData.touchFocusLS      = m_pFoundLSToFocus;

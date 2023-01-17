@@ -21,6 +21,8 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     mouseMoveUnified(e->time_msec);
 
     m_tmrLastCursorMovement.reset();
+
+    m_bLastInputTouch = false;
 }
 
 void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
@@ -29,6 +31,8 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
     mouseMoveUnified(e->time_msec);
 
     m_tmrLastCursorMovement.reset();
+
+    m_bLastInputTouch = false;
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {

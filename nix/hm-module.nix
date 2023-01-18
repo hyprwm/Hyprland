@@ -5,7 +5,7 @@ self: {
   ...
 }: let
   cfg = config.wayland.windowManager.hyprland;
-  defaultHyprlandPackage = self.packages.${pkgs.hostPlatform.system}.default.override {
+  defaultHyprlandPackage = self.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
     hidpiXWayland = cfg.xwayland.hidpi;
     nvidiaPatches = cfg.nvidiaPatches;

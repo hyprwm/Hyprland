@@ -51,7 +51,7 @@
         stdenv = prev.gcc12Stdenv;
         version = props.version + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
-        inherit (inputs.hyprland-protocols.packages.${prev.hostPlatform.system}) hyprland-protocols;
+        inherit (inputs.hyprland-protocols.packages.${prev.stdenv.hostPlatform.system}) hyprland-protocols;
       };
       hyprland-debug = hyprland.override {debug = true;};
       hyprland-no-hidpi = hyprland.override {hidpiXWayland = false;};
@@ -60,8 +60,8 @@
         mesonFlags = oldAttrs.mesonFlags ++ ["-Dexperimental=true"];
       });
 
-      xdg-desktop-portal-hyprland = inputs.xdph.packages.${prev.hostPlatform.system}.default.override {
-        hyprland-share-picker = inputs.xdph.packages.${prev.hostPlatform.system}.hyprland-share-picker.override {inherit hyprland;};
+      xdg-desktop-portal-hyprland = inputs.xdph.packages.${prev.stdenv.hostPlatform.system}.default.override {
+        hyprland-share-picker = inputs.xdph.packages.${prev.stdenv.hostPlatform.system}.hyprland-share-picker.override {inherit hyprland;};
       };
     };
 

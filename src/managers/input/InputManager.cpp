@@ -310,7 +310,22 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive) {
-            setCursorIconOnBorder(pFoundWindow);
+            wlr_box box = {pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y, pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealSize.vec().y};
+            if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && !pFoundWindow->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+                unsetCursorImage();
+            } else {
+                if (mouseCoords.y < box.y + (box.height / 2.0)) {
+                    if (mouseCoords.x < box.x + (box.width / 2.0))
+                        setCursorImageUntilUnset("top_left_corner");
+                    else
+                        setCursorImageUntilUnset("top_right_corner");
+                } else {
+                    if (mouseCoords.x < box.x + (box.width / 2.0))
+                        setCursorImageUntilUnset("bottom_left_corner");
+                    else
+                        setCursorImageUntilUnset("bottom_right_corner");
+                }
+            }
         }
 
         m_bLastFocusOnLS = false;
@@ -1317,51 +1332,4 @@ SConstraint* CInputManager::constraintFromWlr(wlr_pointer_constraint_v1* constra
     }
 
     return nullptr;
-}
-
-void CInputManager::setCursorIconOnBorder(CWindow* w) {
-    static auto* const PROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static const auto* PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-    // give a small leeway (10 px) for corner icon
-    const auto CORNER      = *PROUNDING + *PBORDERSIZE + 10;
-    const auto mouseCoords = getMouseCoordsInternal();
-    wlr_box    box         = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-    if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-        if (w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
-            if (mouseCoords.y < box.y + CORNER) {
-                if (mouseCoords.x < box.x + CORNER)
-                    setCursorImageUntilUnset("top_left_corner");
-                else
-                    setCursorImageUntilUnset("top_right_corner");
-            } else {
-                if (mouseCoords.x < box.x + CORNER)
-                    setCursorImageUntilUnset("bottom_left_corner");
-                else
-                    setCursorImageUntilUnset("bottom_right_corner");
-            }
-        } else {
-            unsetCursorImage();
-        }
-    } else {
-        if (mouseCoords.y < box.y + CORNER) {
-            if (mouseCoords.x < box.x + CORNER)
-                setCursorImageUntilUnset("top_left_corner");
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("top_right_corner");
-            else
-                setCursorImageUntilUnset("top_side");
-        } else if (mouseCoords.y > box.y + box.height - CORNER) {
-            if (mouseCoords.x < box.x)
-                setCursorImageUntilUnset("bottom_left_corner");
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("bottom_right_corner");
-            else
-                setCursorImageUntilUnset("bottom_side");
-        } else {
-            if (mouseCoords.x < box.x + CORNER)
-                setCursorImageUntilUnset("left_side");
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("right_side");
-        }
-    }
 }

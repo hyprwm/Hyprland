@@ -167,8 +167,6 @@ class CInputManager {
     // swipe
     void beginWorkspaceSwipe();
 
-    void setCursorIconOnBorder(CWindow* w);
-
     friend class CKeybindManager;
 };
 

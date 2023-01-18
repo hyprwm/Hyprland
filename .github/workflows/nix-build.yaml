@@ -10,6 +10,7 @@ jobs:
         package:
         - default
         - hyprland-no-hidpi
+        - xdg-desktop-portal-hyprland
     steps:
     - name: Clone repository
       uses: actions/checkout@v3

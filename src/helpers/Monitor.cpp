@@ -199,6 +199,10 @@ void CMonitor::onDisconnect() {
         m_aLayerSurfaceLists[i].clear();
     }
 
+    Debug::log(LOG, "Removed monitor %s!", szName.c_str());
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
+
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
 
@@ -238,10 +242,6 @@ void CMonitor::onDisconnect() {
     wlr_output_commit(output);
 
     std::erase_if(g_pCompositor->m_vWorkspaces, [&](std::unique_ptr<CWorkspace>& el) { return el->m_iMonitorID == ID; });
-
-    Debug::log(LOG, "Removed monitor %s!", szName.c_str());
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
 
     if (g_pCompositor->m_pLastMonitor == this)
         g_pCompositor->setActiveMonitor(BACKUPMON);

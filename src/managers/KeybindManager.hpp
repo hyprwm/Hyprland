@@ -97,6 +97,7 @@ class CKeybindManager {
     static void moveActiveToWorkspace(std::string);
     static void moveActiveToWorkspaceSilent(std::string);
     static void moveFocusTo(std::string);
+    static void focusUrgentOrLastWindow(std::string);
     static void centerWindow(std::string);
     static void moveActiveTo(std::string);
     static void toggleGroup(std::string);

@@ -1084,6 +1084,15 @@ int CCompositor::getWindowsOnWorkspace(const int& id) {
     return no;
 }
 
+CWindow* CCompositor::getUrgentWindow() {
+    for (auto& w : m_vWindows) {
+        if (w->m_bIsMapped && w->m_bIsUrgent)
+            return w.get();
+    }
+
+    return nullptr;
+}
+
 bool CCompositor::hasUrgentWindowOnWorkspace(const int& id) {
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == id && w->m_bIsMapped && w->m_bIsUrgent)

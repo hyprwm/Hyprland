@@ -14,7 +14,9 @@ void CHyprError::createQueued() {
 
     const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
 
-    const auto FONTSIZE = std::clamp((int)(10.f * (PMONITOR->vecPixelSize.x / 1920.f)), 8, 40);
+    const auto SCALE = PMONITOR->scale;
+
+    const auto FONTSIZE = std::clamp((int)(10.f * ((PMONITOR->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
 
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
@@ -26,14 +28,11 @@ void CHyprError::createQueued() {
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
-    const auto LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
-
-    //cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
-    //cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, (FONTSIZE + 2 * (FONTSIZE / 10.f)) * LINECOUNT);
+    const auto   LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
 
     const double DEGREES = M_PI / 180.0;
 
-    const double PAD = 10;
+    const double PAD = 10 * SCALE;
 
     const double X      = PAD;
     const double Y      = PAD;

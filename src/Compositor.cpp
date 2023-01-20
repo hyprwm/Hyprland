@@ -808,8 +808,14 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     if (pWindow->m_bPinned)
         pWindow->m_iWorkspaceID = m_pLastMonitor->activeWorkspace;
 
-    if (!isWorkspaceVisible(pWindow->m_iWorkspaceID))
+    if (!isWorkspaceVisible(pWindow->m_iWorkspaceID)) {
+        // This is to fix incorrect feedback on the focus history.
+        const auto PWORKSPACE            = getWorkspaceByID(pWindow->m_iWorkspaceID);
+        PWORKSPACE->m_pLastFocusedWindow = pWindow;
         g_pKeybindManager->changeworkspace("[internal]" + std::to_string(pWindow->m_iWorkspaceID));
+        // changeworkspace already calls focusWindow
+        return;
+    }
 
     const auto PLASTWINDOW = m_pLastWindow;
     m_pLastWindow          = pWindow;

@@ -1,4 +1,4 @@
-self: {
+self: args @ {
   config,
   lib,
   pkgs,
@@ -125,18 +125,26 @@ in {
       '';
     };
 
-    config = builtins.mapAttrs (_: p: import p {inherit lib types;}) {
-      general = ./config/general.nix;
-      dwindle = ./config/dwindle.nix;
-      input = ./config/input.nix;
-      decoration = ./config/decoration.nix;
-      gestures = ./config/gestures.nix;
-      animations = ./config/animations.nix;
-      misc = ./config/misc.nix;
-      binds = ./config/binds.nix;
-      debug = ./config/debug.nix;
-      windowRules = ./config/windowrules.nix;
-    };
+    config =
+      builtins.mapAttrs (
+        _: path: let
+          func = import path;
+          pass = builtins.functionArgs func;
+          filterArgs = lib.filterAttrs (n: _: builtins.hasAttr n pass);
+        in
+          func (filterArgs (args // {inherit types;}))
+      ) {
+        general = ./config/general.nix;
+        dwindle = ./config/dwindle.nix;
+        input = ./config/input.nix;
+        decoration = ./config/decoration.nix;
+        gestures = ./config/gestures.nix;
+        animations = ./config/animations.nix;
+        misc = ./config/misc.nix;
+        binds = ./config/binds.nix;
+        debug = ./config/debug.nix;
+        windowRules = ./config/windowrules.nix;
+      };
 
     imports = [
       (

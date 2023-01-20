@@ -40,6 +40,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
     static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    static auto* const PRESIZECURSORICON = &g_pConfigManager->getConfigValuePtr("general:hover_icon_on_border")->intValue;
     const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     m_pFoundSurfaceToFocus      = nullptr;
@@ -308,8 +309,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
 
-        // change cursor icon if hovering over border
-        if (*PRESIZEONBORDER && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive) {
+        // change cursor icon if hovering over border, skip if mouse bind (resize or move operations) is active
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive) {
             setCursorIconOnBorder(pFoundWindow);
         }
 

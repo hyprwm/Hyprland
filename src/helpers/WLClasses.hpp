@@ -42,8 +42,10 @@ struct SLayerSurface {
     }
 };
 
+class CMonitor;
+
 struct SRenderData {
-    wlr_output* output;
+    CMonitor*   pMonitor;
     timespec*   when;
     int         x, y;
 
@@ -51,7 +53,6 @@ struct SRenderData {
     void*        data    = nullptr;
     wlr_surface* surface = nullptr;
     int          w, h;
-    void*        pMonitor = nullptr;
 
     // for rounding
     bool dontRound = true;
@@ -223,7 +224,7 @@ struct STablet {
     std::string           name = "";
 
     bool                  operator==(const STablet& b) {
-        return wlrDevice == b.wlrDevice;
+                         return wlrDevice == b.wlrDevice;
     }
 };
 

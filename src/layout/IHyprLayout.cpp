@@ -128,11 +128,13 @@ void IHyprLayout::onBeginDragWindow() {
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
         Debug::log(ERR, "Dragging attempted on an invalid window!");
+        g_pInputManager->currentlyDraggedWindow = nullptr;
         return;
     }
 
     if (DRAGGINGWINDOW->m_bIsFullscreen) {
         Debug::log(LOG, "Rejecting drag on a fullscreen window.");
+        g_pInputManager->currentlyDraggedWindow = nullptr;
         return;
     }
 
@@ -140,6 +142,7 @@ void IHyprLayout::onBeginDragWindow() {
 
     if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
         Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
+        g_pInputManager->currentlyDraggedWindow = nullptr;
         return;
     }
 

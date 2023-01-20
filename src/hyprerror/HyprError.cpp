@@ -28,15 +28,31 @@ void CHyprError::createQueued() {
 
     const auto LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
 
-    cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
-    cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, (FONTSIZE + 2 * (FONTSIZE / 10.f)) * LINECOUNT);
+    //cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
+    //cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, (FONTSIZE + 2 * (FONTSIZE / 10.f)) * LINECOUNT);
 
-    // outline
-    cairo_rectangle(CAIRO, 0, 0, 1, PMONITOR->vecPixelSize.y);                                                   // left
-    cairo_rectangle(CAIRO, PMONITOR->vecPixelSize.x - 1, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y); // right
-    cairo_rectangle(CAIRO, 0, PMONITOR->vecPixelSize.y - 1, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y); // bottom
+    const double DEGREES = M_PI / 180.0;
 
-    cairo_fill(CAIRO);
+    const double PAD = 10;
+
+    const double X      = PAD;
+    const double Y      = PAD;
+    const double RADIUS = PAD;
+    const double WIDTH  = PMONITOR->vecPixelSize.x - PAD * 2;
+    const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * LINECOUNT + 3;
+
+    cairo_new_sub_path(CAIRO);
+    cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
+    cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + HEIGHT - RADIUS, RADIUS, 0 * DEGREES, 90 * DEGREES);
+    cairo_arc(CAIRO, X + RADIUS, Y + HEIGHT - RADIUS, RADIUS, 90 * DEGREES, 180 * DEGREES);
+    cairo_arc(CAIRO, X + RADIUS, Y + RADIUS, RADIUS, 180 * DEGREES, 270 * DEGREES);
+    cairo_close_path(CAIRO);
+
+    cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.g, m_cQueued.a);
+    cairo_fill_preserve(CAIRO);
+    cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
+    cairo_set_line_width(CAIRO, 2);
+    cairo_stroke(CAIRO);
 
     // draw the text with a common font
     const CColor textColor = m_cQueued.r + m_cQueued.g + m_cQueued.b < 0.2f ? CColor(1.0, 1.0, 1.0, 1.0) : CColor(0, 0, 0, 1.0);
@@ -52,7 +68,7 @@ void CHyprError::createQueued() {
             m_szQueued = m_szQueued.substr(NEWLPOS + 1);
         else
             m_szQueued = "";
-        cairo_move_to(CAIRO, 0, yoffset);
+        cairo_move_to(CAIRO, PAD + 1 + RADIUS, yoffset + PAD + 1);
         cairo_show_text(CAIRO, current.c_str());
         yoffset += FONTSIZE + (FONTSIZE / 10.f);
     }

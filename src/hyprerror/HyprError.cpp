@@ -1,6 +1,15 @@
 #include "HyprError.hpp"
 #include "../Compositor.hpp"
 
+CHyprError::CHyprError() {
+    m_fFadeOpacity.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), nullptr, AVARDAMAGE_NONE);
+    m_fFadeOpacity.registerVar();
+}
+
+CHyprError::~CHyprError() {
+    m_fFadeOpacity.unregister();
+}
+
 void CHyprError::queueCreate(std::string message, const CColor& color) {
     m_szQueued = message;
     m_cQueued  = color;
@@ -11,6 +20,9 @@ void CHyprError::createQueued() {
         m_bQueuedDestroy = false;
         m_tTexture.destroyTexture();
     }
+
+    m_fFadeOpacity.setValueAndWarp(0.f);
+    m_fFadeOpacity = 1.f;
 
     const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
 
@@ -39,6 +51,8 @@ void CHyprError::createQueued() {
     const double RADIUS = PAD;
     const double WIDTH  = PMONITOR->vecPixelSize.x - PAD * 2;
     const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * LINECOUNT + 3;
+
+    m_bDamageBox = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
 
     cairo_new_sub_path(CAIRO);
     cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
@@ -107,12 +121,17 @@ void CHyprError::draw() {
     }
 
     if (m_bQueuedDestroy) {
-        m_bQueuedDestroy = false;
-        m_tTexture.destroyTexture();
-        m_bIsCreated = false;
-        m_szQueued   = "";
-        g_pHyprRenderer->damageMonitor(g_pCompositor->m_vMonitors.front().get());
-        return;
+        if (!m_fFadeOpacity.isBeingAnimated()) {
+            if (m_fFadeOpacity.fl() == 0.f) {
+                m_bQueuedDestroy = false;
+                m_tTexture.destroyTexture();
+                m_bIsCreated = false;
+                m_szQueued   = "";
+                return;
+            } else {
+                m_fFadeOpacity = 0.f;
+            }
+        }
     }
 
     const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
@@ -120,9 +139,12 @@ void CHyprError::draw() {
     if (g_pHyprOpenGL->m_RenderData.pMonitor != PMONITOR)
         return; // wrong mon
 
-    wlr_box windowBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    wlr_box monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
 
-    g_pHyprOpenGL->renderTexture(m_tTexture, &windowBox, 1.f, 0);
+    if (m_fFadeOpacity.isBeingAnimated())
+        g_pHyprRenderer->damageBox(&m_bDamageBox);
+
+    g_pHyprOpenGL->renderTexture(m_tTexture, &monbox, m_fFadeOpacity.fl(), 0);
 }
 
 void CHyprError::destroy() {

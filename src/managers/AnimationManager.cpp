@@ -223,7 +223,6 @@ void CAnimationManager::tick() {
                 break;
             }
             default: {
-                Debug::log(ERR, "av has damage policy INVALID???");
                 break;
             }
         }
@@ -233,7 +232,8 @@ void CAnimationManager::tick() {
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
         // manually schedule a frame
-        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+        if (PMONITOR)
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
         // check if we did not finish animating. If so, trigger onAnimationEnd.
         if (!av->isBeingAnimated())

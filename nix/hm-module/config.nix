@@ -135,7 +135,6 @@
       disable_hyprland_logo = ${lib.boolToString disable_hyprland_logo}
       disable_splash_rendering = ${lib.boolToString disable_splash_rendering}
       no_vfr = ${lib.boolToString no_vfr}
-      damage_entire_on_snapshot = ${lib.boolToString damage_entire_on_snapshot}
       mouse_move_enables_dpms = ${lib.boolToString mouse_move_enables_dpms}
       always_follow_on_dnd = ${lib.boolToString always_follow_on_dnd}
       layers_hog_keyboard_focus = ${lib.boolToString layers_hog_keyboard_focus}

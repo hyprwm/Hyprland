@@ -20,12 +20,6 @@
     description = lib.mdDoc '''';
     example = lib.literalExpression "";
   };
-  damage_entire_on_snapshot = lib.mkOption {
-    type = types.bool;
-    default = false;
-    description = lib.mdDoc '''';
-    example = lib.literalExpression "";
-  };
   mouse_move_enables_dpms = lib.mkOption {
     type = types.bool;
     default = false;

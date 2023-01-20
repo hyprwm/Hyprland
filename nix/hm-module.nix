@@ -85,7 +85,7 @@ in {
     };
 
     extraConfig = lib.mkOption {
-      type = lib.types.nullOr lib.types.lines;
+      type = lib.types.lines;
       default = "";
       description = ''
         Extra configuration lines to add to ~/.config/hypr/hyprland.conf.
@@ -120,7 +120,7 @@ in {
       NIXOS_OZONE_WL = "1";
     };
 
-    xdg.configFile."hypr/hyprland.conf" = lib.mkIf (cfg.extraConfig != null) {
+    xdg.configFile."hypr/hyprland.conf" = {
       text =
         (lib.optionalString cfg.systemdIntegration ''
           exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && systemctl --user start hyprland-session.target

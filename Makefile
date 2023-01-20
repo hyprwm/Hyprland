@@ -121,6 +121,16 @@ wlr-foreign-toplevel-management-unstable-v1-protocol.c:
 
 wlr-foreign-toplevel-management-unstable-v1-protocol.o: wlr-foreign-toplevel-management-unstable-v1-protocol.h
 
+fractional-scale-v1-protocol.h:
+	$(WAYLAND_SCANNER) server-header \
+		$(WAYLAND_PROTOCOLS)/staging/fractional-scale/fractional-scale-v1.xml $@
+
+fractional-scale-v1-protocol.c:
+	$(WAYLAND_SCANNER) private-code \
+		$(WAYLAND_PROTOCOLS)/staging/fractional-scale/fractional-scale-v1.xml $@
+
+fractional-scale-v1-protocol.o: fractional-scale-v1-protocol.h
+
 legacyrenderer:
 	mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:STRING=true -H./ -B./build -G Ninja
 	cmake --build ./build --config Release --target all -j$(shell nproc)
@@ -184,7 +194,7 @@ uninstall:
 	rm -f ${PREFIX}/share/man/man1/Hyprland.1
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1
 
-protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o wlr-output-power-management-unstable-v1-protocol.o linux-dmabuf-unstable-v1-protocol.o hyprland-toplevel-export-v1-protocol.o wlr-foreign-toplevel-management-unstable-v1-protocol.o
+protocols: xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o wlr-screencopy-unstable-v1-protocol.o idle-protocol.o ext-workspace-unstable-v1-protocol.o pointer-constraints-unstable-v1-protocol.o tablet-unstable-v2-protocol.o wlr-output-power-management-unstable-v1-protocol.o linux-dmabuf-unstable-v1-protocol.o hyprland-toplevel-export-v1-protocol.o wlr-foreign-toplevel-management-unstable-v1-protocol.o fractional-scale-v1-protocol.o
 
 fixwlr:
 	sed -i -E 's/(soversion = 12)([^032]|$$)/soversion = 12032/g' subprojects/wlroots/meson.build

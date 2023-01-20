@@ -21,6 +21,7 @@ wayland_scanner = find_program(
 protocols = [
   [wl_protocol_dir, 'stable/xdg-shell/xdg-shell.xml'],
   [wl_protocol_dir, 'unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml'],
+  [wl_protocol_dir, 'staging/fractional-scale/fractional-scale-v1.xml'],
   ['wlr-foreign-toplevel-management-unstable-v1.xml'],
   ['wlr-layer-shell-unstable-v1.xml'],
   ['wlr-output-power-management-unstable-v1.xml'],

@@ -5,7 +5,10 @@ self: {
   ...
 }: let
   inherit (lib) types;
+
   cfg = config.wayland.windowManager.hyprland;
+  cfgPath = "wayland.windowManager.hyprland";
+
   defaultHyprlandPackage = self.packages.${pkgs.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
     hidpiXWayland = cfg.xwayland.hidpi;
@@ -88,14 +91,16 @@ in {
       '';
     };
 
-    disableAutoreload = lib.mkOption {
+    reloadConfig = lib.mkOption {
       type = lib.types.bool;
-      default = false;
-      defaultText = lib.literalExpression "false";
-      example = lib.literalExpression "true";
+      default = true;
       description = lib.mdDoc ''
-        Whether to disable automatically reloading Hyprland's configuration when
-        rebuilding the Home Manager profile.
+        If enabled, automatically tell Hyprland to reload configuration
+        after activating a new Home Manager generation.
+
+        Note, this option is different from
+        `${cfgPath}.config.misc.disable_autoreload`,
+        which disables Hyprland's filesystem watch.
       '';
     };
 
@@ -154,19 +159,18 @@ in {
     xdg.configFile."hypr/hyprland.conf" = {
       text = import ./config.nix {inherit lib types pkgs cfg;};
 
-      onChange = let
+      onChange = lib.mkIf (cfg.reloadConfig) (let
         hyprlandPackage =
           if cfg.package == null
           then defaultHyprlandPackage
           else cfg.package;
-      in
-        lib.mkIf (!cfg.disableAutoreload) ''          (  # execute in subshell so that `shopt` won't affect other scripts
-                    shopt -s nullglob  # so that nothing is done if /tmp/hypr/ does not exist or is empty
-                    for instance in /tmp/hypr/*; do
-                      HYPRLAND_INSTANCE_SIGNATURE=''${instance##*/} ${hyprlandPackage}/bin/hyprctl reload config-only \
-                        || true  # ignore dead instance(s)
-                    done
-                  )'';
+      in ''        (  # execute in subshell so that `shopt` won't affect other scripts
+                  shopt -s nullglob  # so that nothing is done if /tmp/hypr/ does not exist or is empty
+                  for instance in /tmp/hypr/*; do
+                    HYPRLAND_INSTANCE_SIGNATURE=''${instance##*/} ${hyprlandPackage}/bin/hyprctl reload config-only \
+                      || true  # ignore dead instance(s)
+                  done
+                )'');
     };
 
     systemd.user.targets.hyprland-session = lib.mkIf cfg.systemdIntegration {

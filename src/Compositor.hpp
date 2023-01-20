@@ -96,6 +96,8 @@ class CCompositor {
     CWindow*                                  m_pLastWindow  = nullptr;
     CMonitor*                                 m_pLastMonitor = nullptr;
 
+    std::vector<CWindow*>                     m_vWindowFocusHistory; // first element is the most recently focused.
+
     SSeat                                     m_sSeat;
 
     bool                                      m_bReadyToProcess = false;

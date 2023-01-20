@@ -39,7 +39,7 @@ void CHyprError::createQueued() {
     cairo_fill(CAIRO);
 
     // draw the text with a common font
-    const CColor textColor = m_cQueued.r * m_cQueued.g * m_cQueued.b < 0.5f ? CColor(1.0, 1.0, 1.0, 1.0) : CColor(0, 0, 0, 1.0);
+    const CColor textColor = m_cQueued.r + m_cQueued.g + m_cQueued.b < 0.2f ? CColor(1.0, 1.0, 1.0, 1.0) : CColor(0, 0, 0, 1.0);
 
     cairo_select_font_face(CAIRO, "Noto Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(CAIRO, FONTSIZE);

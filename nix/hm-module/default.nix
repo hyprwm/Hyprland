@@ -159,18 +159,21 @@ in {
     xdg.configFile."hypr/hyprland.conf" = {
       text = import ./config.nix {inherit lib types pkgs cfg;};
 
-      onChange = lib.mkIf (cfg.reloadConfig) (let
-        hyprlandPackage =
-          if cfg.package == null
-          then defaultHyprlandPackage
-          else cfg.package;
-      in ''        (  # execute in subshell so that `shopt` won't affect other scripts
-                  shopt -s nullglob  # so that nothing is done if /tmp/hypr/ does not exist or is empty
-                  for instance in /tmp/hypr/*; do
-                    HYPRLAND_INSTANCE_SIGNATURE=''${instance##*/} ${hyprlandPackage}/bin/hyprctl reload config-only \
-                      || true  # ignore dead instance(s)
-                  done
-                )'');
+      onChange = lib.mkIf (cfg.reloadConfig) ''
+        (
+          shopt -s nullglob
+          for socket in /tmp/hypr/_*/.socket.sock; do
+            response="$(
+              printf 'reload config-only' \
+                | ${pkgs.netcat}/bin/nc -U $socket 2>/dev/null || true
+            )"
+            if [[ "$response" == 'ok' ]]; then
+              instance="$(egrep -o '_[0-9]+' <<< $socket)"
+              echo "Reloading Hyprland instance $instance"
+            fi
+          done
+        )
+      '';
     };
 
     systemd.user.targets.hyprland-session = lib.mkIf cfg.systemdIntegration {

@@ -22,10 +22,10 @@
     description = lib.mdDoc ''
       | Int | Enum | Description |
       | --- | ---- | ----------- |
-      | `0` | `"disabled"` | Do not move focus to hovered window. |
-      | `1` | `"full"` | Move focus to hovered window. |
-      | `2` | `"loose"` | Move mouse focus but not keyboard focus. |
-      | `3` | `"full_loose"` | Detach keyboard and mouse focus and do not refocus on click. |
+      | `0` | `disabled` | Do not move focus to hovered window. |
+      | `1` | `full` | Move focus to hovered window. |
+      | `2` | `loose` | Move mouse focus but not keyboard focus. |
+      | `3` | `full_loose` | Detach keyboard and mouse focus and do not refocus on click. |
     '';
     example = lib.literalExpression ''
       "loose"
@@ -134,6 +134,12 @@
     # type = types.nullOr (types.enum ["2fg" "edge" "on_button_down" "no_scroll"]);
     default = "2fg";
     description = lib.mdDoc ''description'';
+    example = lib.literalExpression '''';
+  };
+  scroll_button = lib.mkOption {
+    type = types.ints.unsigned;
+    default = 0;
+    description = lib.mdDoc '''';
     example = lib.literalExpression '''';
   };
 

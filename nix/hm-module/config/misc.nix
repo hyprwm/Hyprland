@@ -73,4 +73,22 @@
     example = lib.literalExpression ''["Alacritty" "dolphin" "Steam"]'';
     apply = lib.mapNullable (x: "^(${lib.concatStringsSep "|" x})$");
   };
+  focus_on_activate = lib.mkOption {
+    type = types.bool;
+    default = false;
+    description = lib.mdDoc '''';
+    example = lib.literalExpression "";
+  };
+  no_direct_scanout = lib.mkOption {
+    type = types.bool;
+    default = false;
+    description = lib.mdDoc '''';
+    example = lib.literalExpression "";
+  };
+  hide_cursor_on_touch = lib.mkOption {
+    type = types.bool;
+    default = true;
+    description = lib.mdDoc '''';
+    example = lib.literalExpression "";
+  };
 }

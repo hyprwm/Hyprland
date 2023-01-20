@@ -51,5 +51,11 @@
       description = lib.mdDoc ''description'';
       example = lib.literalExpression '''';
     };
+    numbered = lib.mkOption {
+      type = types.bool;
+      default = false;
+      description = lib.mdDoc ''description'';
+      example = lib.literalExpression '''';
+    };
   };
 }

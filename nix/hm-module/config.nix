@@ -47,6 +47,7 @@
       blur_passes = ${toString blur_passes}
       blur_ignore_opacity = ${lib.boolToString blur_ignore_opacity}
       blur_new_optimizations = ${lib.boolToString blur_new_optimizations}
+      blur_xray = ${lib.boolToString blur_xray}
       drop_shadow = ${lib.boolToString drop_shadow}
       shadow_range = ${toString shadow_range}
       shadow_render_power = ${toString shadow_render_power}
@@ -54,8 +55,12 @@
       col.shadow = ${active_shadow_color}
       col.shadow_inactive = ${inactive_shadow_color}
       shadow_offset = [${toString shadow_offset}]
+      shadow_scale = ${toString shadow_scale}
       dim_inactive = ${lib.boolToString dim_inactive}
       dim_strength = ${toString dim_strength}
+      dim_special = ${toString dim_special}
+      dim_around = ${toString dim_around}
+      screen_shader = ${toString screen_shader}
     }
   '')}
 
@@ -99,6 +104,7 @@
       left_handed = ${lib.boolToString left_handed}
       accel_profile = ${toString accel_profile}
       scroll_method = ${toString scroll_method}
+      scroll_button = ${toString scroll_button}
 
       touchpad {
         disable_while_typing = ${lib.boolToString touchpad.disable_while_typing}
@@ -124,11 +130,9 @@
       workspace_swipe_cancel_ratio = ${toString workspace_swipe.cancel_ratio}
       workspace_swipe_create_new = ${lib.boolToString workspace_swipe.create_new}
       workspace_swipe_forever = ${lib.boolToString workspace_swipe.forever}
+      workspace_swipe_numbered = ${lib.boolToString workspace_swipe.numbered}
     }
   '')}
-
-  # https://regex101.com/r/qvXGZJ/1
-  # https://regex101.com/r/ZYB9sk/1
 
   ${(with cfg.config.misc; ''
     # <https://wiki.hyprland.org/Configuring/Variables/#misc>
@@ -143,6 +147,9 @@
       disable_autoreload = ${lib.boolToString disable_autoreload}
       enable_swallow = ${lib.boolToString enable_swallow}
       swallow_regex = ${toString swallow_regex}
+      focus_on_activate = ${lib.boolToString focus_on_activate}
+      no_direct_scanout = ${lib.boolToString no_direct_scanout}
+      hide_cursor_on_touch = ${lib.boolToString hide_cursor_on_touch}
     }
   '')}
 

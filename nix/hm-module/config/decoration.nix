@@ -1,6 +1,7 @@
 {
   lib,
   types,
+  pkgs,
 }: {
   rounding = lib.mkOption {
     type = types.ints.unsigned;
@@ -52,6 +53,11 @@
     default = false;
     description = lib.mdDoc '''';
   };
+  blur_xray = lib.mkOption {
+    type = types.bool;
+    default = false;
+    description = lib.mdDoc '''';
+  };
   drop_shadow = lib.mkOption {
     type = types.bool;
     default = true;
@@ -60,6 +66,11 @@
   shadow_range = lib.mkOption {
     type = types.ints.unsigned;
     default = 4;
+    description = lib.mdDoc '''';
+  };
+  shadow_scale = lib.mkOption {
+    type = types.float;
+    default = 1.0;
     description = lib.mdDoc '''';
   };
   shadow_render_power = lib.mkOption {
@@ -98,5 +109,26 @@
     type = types.float;
     default = 0.5;
     description = lib.mdDoc '''';
+  };
+  dim_special = lib.mkOption {
+    type = types.float;
+    default = 0.2;
+    description = lib.mdDoc '''';
+  };
+  dim_around = lib.mkOption {
+    type = types.float;
+    default = 0.4;
+    description = lib.mdDoc '''';
+  };
+  screen_shader = lib.mkOption {
+    type = types.nullOr (types.either types.path types.lines);
+    default = null;
+    description = lib.mdDoc '''';
+    apply = x:
+      if x == null
+      then ""
+      else if lib.isPath
+      then x
+      else toString (pkgs.writeText "hyprland-shader.frag" x);
   };
 }

@@ -771,8 +771,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
                 PWINDOW->m_bWasMaximized = true;
                 g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_MAXIMIZED);
                 g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
-            }
-            else
+            } else
                 PWINDOW->m_bWasMaximized = false;
         } else if (REQUESTED->fullscreen != PWINDOW->m_bIsFullscreen && !PWINDOW->m_bFakeFullscreenState) {
             g_pCompositor->setWindowFullscreen(PWINDOW, REQUESTED->fullscreen, FULLSCREEN_FULL);
@@ -839,6 +838,8 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
     g_pCompositor->focusWindow(PWINDOW);
     Vector2D middle = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
     g_pCompositor->warpCursorTo(middle);
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%x", PWINDOW)});
 }
 
 void Events::listener_activateX11(void* owner, void* data) {
@@ -857,6 +858,8 @@ void Events::listener_activateX11(void* owner, void* data) {
     g_pCompositor->focusWindow(PWINDOW);
     Vector2D middle = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
     g_pCompositor->warpCursorTo(middle);
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%x", PWINDOW)});
 }
 
 void Events::listener_configureX11(void* owner, void* data) {

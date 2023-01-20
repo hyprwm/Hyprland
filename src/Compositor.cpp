@@ -865,6 +865,14 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     }
 
     g_pInputManager->recheckIdleInhibitorStatus();
+
+    // move to front of the window history
+    const auto HISTORYPIVOT = std::find_if(m_vWindowFocusHistory.begin(), m_vWindowFocusHistory.end(), [&](const auto& other) { return other == pWindow; });
+    if (HISTORYPIVOT == m_vWindowFocusHistory.end()) {
+        Debug::log(ERR, "BUG THIS: Window %x has no pivot in history", pWindow);
+    } else {
+        std::rotate(m_vWindowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
+    }
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {

@@ -267,6 +267,8 @@ void CWindow::onUnmap() {
     m_fDimPercent.setCallbackOnEnd(unregisterVar);
 
     m_vRealSize.setCallbackOnBegin(nullptr);
+
+    std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other == this; });
 }
 
 void CWindow::onMap() {
@@ -290,6 +292,8 @@ void CWindow::onMap() {
 
     m_vRealSize.setCallbackOnEnd([&](void* ptr) { g_pHyprOpenGL->onWindowResizeEnd(this); }, false);
     m_vRealSize.setCallbackOnBegin([&](void* ptr) { g_pHyprOpenGL->onWindowResizeStart(this); }, false);
+
+    g_pCompositor->m_vWindowFocusHistory.push_back(this);
 }
 
 void CWindow::setHidden(bool hidden) {

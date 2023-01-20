@@ -104,6 +104,7 @@
         disable_while_typing = ${lib.boolToString touchpad.disable_while_typing}
         natural_scroll = ${lib.boolToString touchpad.natural_scroll}
         clickfinger_behavior = ${lib.boolToString touchpad.clickfinger_behavior}
+        middle_button_emulation = ${lib.boolToString touchpad.middle_button_emulation}
         tap-to-click = ${lib.boolToString touchpad.tap_to_click}
         drag_lock = ${lib.boolToString touchpad.drag_lock}
         scroll_factor = ${toString touchpad.scroll_factor}

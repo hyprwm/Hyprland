@@ -48,7 +48,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pin"]                           = pinActive;
     m_mDispatchers["mouse"]                         = mouse;
     m_mDispatchers["bringactivetotop"]              = bringActiveToTop;
-    m_mDispatchers["focusurgentorlastwindow"]       = focusUrgentOrLastWindow;
+    m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
 
     m_tScrollTimer.reset();
 }
@@ -1100,7 +1100,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
     }
 }
 
-void CKeybindManager::focusUrgentOrLastWindow(std::string args) {
+void CKeybindManager::focusUrgentOrLast(std::string args) {
     const auto PWINDOWURGENT = g_pCompositor->getUrgentWindow();
     const auto PWINDOWPREV = g_pCompositor->m_pLastWindow
         ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1])

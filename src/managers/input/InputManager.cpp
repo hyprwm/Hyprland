@@ -277,6 +277,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     if (pFoundWindow) {
+        // change cursor icon if hovering over border, skip if mouse bind is active
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive) {
+            setCursorIconOnBorder(pFoundWindow);
+        }
+
         if (*PFOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow &&
                 ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
@@ -307,11 +312,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         } else {
             if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus)
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
-        }
-
-        // change cursor icon if hovering over border, skip if mouse bind (resize or move operations) is active
-        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive) {
-            setCursorIconOnBorder(pFoundWindow);
         }
 
         m_bLastFocusOnLS = false;

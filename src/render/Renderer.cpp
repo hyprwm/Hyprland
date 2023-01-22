@@ -577,7 +577,7 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
         wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
         // ignore X and Y, adjust uv
-        if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.vec().x || geom.height > pWindow->m_vRealSize.vec().y) {
+        if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.goalv().x || geom.height > pWindow->m_vRealSize.goalv().y) {
             const auto XPERC = (double)geom.x / (double)pSurface->current.width;
             const auto YPERC = (double)geom.y / (double)pSurface->current.height;
             const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.width;
@@ -587,9 +587,9 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
             uvBR               = uvBR - Vector2D(1.0 - WPERC * (uvBR.x - uvTL.x), 1.0 - HPERC * (uvBR.y - uvTL.y));
             uvTL               = uvTL + TOADDTL;
 
-            if (geom.width > pWindow->m_vRealSize.vec().x || geom.height > pWindow->m_vRealSize.vec().y) {
-                uvBR.x = uvBR.x * (pWindow->m_vRealSize.vec().x / geom.width);
-                uvBR.y = uvBR.y * (pWindow->m_vRealSize.vec().y / geom.height);
+            if (geom.width > pWindow->m_vRealSize.goalv().x || geom.height > pWindow->m_vRealSize.goalv().y) {
+                uvBR.x = uvBR.x * (pWindow->m_vRealSize.goalv().x / geom.width);
+                uvBR.y = uvBR.y * (pWindow->m_vRealSize.goalv().y / geom.height);
             }
         }
 

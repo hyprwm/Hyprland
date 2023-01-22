@@ -812,6 +812,10 @@ std::string dispatchSeterror(std::string request) {
 
     if (vars.size() < 3) {
         g_pHyprError->destroy();
+
+        if (vars.size() == 2 && !vars[1].find("dis"))
+            return "var 1 not color or disable";
+
         return "ok";
     }
 

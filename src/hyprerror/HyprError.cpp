@@ -61,7 +61,7 @@ void CHyprError::createQueued() {
     cairo_arc(CAIRO, X + RADIUS, Y + RADIUS, RADIUS, 180 * DEGREES, 270 * DEGREES);
     cairo_close_path(CAIRO);
 
-    cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.g, m_cQueued.a);
+    cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
     cairo_fill_preserve(CAIRO);
     cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
     cairo_set_line_width(CAIRO, 2);

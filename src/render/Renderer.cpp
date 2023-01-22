@@ -577,7 +577,7 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
         wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
         // ignore X and Y, adjust uv
-        if (geom.x != 0 || geom.y != 0) {
+        if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.vec().x || geom.height > pWindow->m_vRealSize.vec().y) {
             const auto XPERC = (double)geom.x / (double)pSurface->current.width;
             const auto YPERC = (double)geom.y / (double)pSurface->current.height;
             const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.width;

@@ -1197,7 +1197,7 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         // sometimes somehow fucking happens wtf
         bool exists = false;
         for (auto& m : m_vMonitors) {
-            for (auto& lsl : m->m_aLayerSurfaceLists) {
+            for (auto& lsl : m->m_aLayerSurfaceLayers) {
                 for (auto& lsp : lsl) {
                     if (lsp.get() == ls) {
                         exists = true;
@@ -1233,7 +1233,7 @@ void CCompositor::cleanupFadingOut(const int& monid) {
             g_pHyprOpenGL->m_mLayerFramebuffers.erase(ls);
 
             for (auto& m : m_vMonitors) {
-                for (auto& lsl : m->m_aLayerSurfaceLists) {
+                for (auto& lsl : m->m_aLayerSurfaceLayers) {
                     if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; }) != lsl.end()) {
                         std::erase_if(lsl, [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; });
                     }
@@ -1890,7 +1890,7 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
         }
     }
 
-    for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+    for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         if (!ls->fadingOut)
             ls->alpha = pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL ? 0.f : 1.f;
     }
@@ -2022,7 +2022,7 @@ void CCompositor::warpCursorTo(const Vector2D& pos) {
 
 SLayerSurface* CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {
     for (auto& m : m_vMonitors) {
-        for (auto& lsl : m->m_aLayerSurfaceLists) {
+        for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
                 if (ls->layerSurface == pLS)
                     return ls.get();
@@ -2041,7 +2041,7 @@ void CCompositor::closeWindow(CWindow* pWindow) {
 
 SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
     for (auto& m : m_vMonitors) {
-        for (auto& lsl : m->m_aLayerSurfaceLists) {
+        for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
                 if (ls->layerSurface && ls->layerSurface->surface == pSurface)
                     return ls.get();

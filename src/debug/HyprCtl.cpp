@@ -239,7 +239,7 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 escapeJSONStrings(mon->szName).c_str());
 
             int layerLevel = 0;
-            for (auto& level : mon->m_aLayerSurfaceLists) {
+            for (auto& level : mon->m_aLayerSurfaceLayers) {
                 result += getFormat(
                     R"#(
         "%i": [
@@ -285,7 +285,7 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
             result += getFormat("Monitor %s:\n", mon->szName.c_str());
             int                                     layerLevel = 0;
             static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
-            for (auto& level : mon->m_aLayerSurfaceLists) {
+            for (auto& level : mon->m_aLayerSurfaceLayers) {
                 result += getFormat("\tLayer level %i (%s):\n", layerLevel, levelNames[layerLevel].c_str());
 
                 for (auto& layer : level) {

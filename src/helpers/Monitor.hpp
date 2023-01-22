@@ -47,12 +47,9 @@ class CMonitor {
     std::vector<CMonitor*> mirrors;
 
     // for the special workspace. 0 means not open.
-    int specialWorkspaceID = 0;
+    int                                                        specialWorkspaceID = 0;
 
-    // Double-linked list because we need to have constant mem addresses for signals
-    // We have to store pointers and use raw new/delete because they might be moved between them
-    // and I am lazy
-    std::array<std::vector<std::unique_ptr<SLayerSurface>>, 4> m_aLayerSurfaceLists;
+    std::array<std::vector<std::unique_ptr<SLayerSurface>>, 4> m_aLayerSurfaceLayers;
 
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);

@@ -48,9 +48,9 @@ void CHyprError::createQueued() {
 
     const double X      = PAD;
     const double Y      = PAD;
-    const double RADIUS = PAD;
     const double WIDTH  = PMONITOR->vecPixelSize.x - PAD * 2;
     const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * LINECOUNT + 3;
+    const double RADIUS = PAD > HEIGHT / 2 ? HEIGHT / 2 - 1 : PAD;
 
     m_bDamageBox = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
 

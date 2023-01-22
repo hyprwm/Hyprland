@@ -38,7 +38,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
         WLRLAYERSURFACE->output = PMONITOR->output; // TODO: current mon
     }
 
-    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLists[WLRLAYERSURFACE->pending.layer].emplace_back(std::make_unique<SLayerSurface>()).get();
+    SLayerSurface* layerSurface = PMONITOR->m_aLayerSurfaceLayers[WLRLAYERSURFACE->pending.layer].emplace_back(std::make_unique<SLayerSurface>()).get();
 
     layerSurface->szNamespace = WLRLAYERSURFACE->_namespace;
 
@@ -123,10 +123,10 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
-        for (auto it = POLDMON->m_aLayerSurfaceLists[layersurface->layer].begin(); it != POLDMON->m_aLayerSurfaceLists[layersurface->layer].end(); it++) {
+        for (auto it = POLDMON->m_aLayerSurfaceLayers[layersurface->layer].begin(); it != POLDMON->m_aLayerSurfaceLayers[layersurface->layer].end(); it++) {
             if (it->get() == layersurface) {
-                PMONITOR->m_aLayerSurfaceLists[layersurface->layer].emplace_back(std::move(*it));
-                POLDMON->m_aLayerSurfaceLists[layersurface->layer].erase(it);
+                PMONITOR->m_aLayerSurfaceLayers[layersurface->layer].emplace_back(std::move(*it));
+                POLDMON->m_aLayerSurfaceLayers[layersurface->layer].erase(it);
                 break;
             }
         }
@@ -214,11 +214,11 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
         g_pCompositor->m_pLastFocus = nullptr;
 
         // find LS-es to focus
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
                                                            &surfaceCoords, &pFoundLayerSurface);
 
         if (!foundSurface)
-            foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
+            foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                                &surfaceCoords, &pFoundLayerSurface);
 
         if (!foundSurface) {
@@ -266,10 +266,10 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
-        for (auto it = POLDMON->m_aLayerSurfaceLists[layersurface->layer].begin(); it != POLDMON->m_aLayerSurfaceLists[layersurface->layer].end(); it++) {
+        for (auto it = POLDMON->m_aLayerSurfaceLayers[layersurface->layer].begin(); it != POLDMON->m_aLayerSurfaceLayers[layersurface->layer].end(); it++) {
             if (it->get() == layersurface) {
-                PMONITOR->m_aLayerSurfaceLists[layersurface->layer].emplace_back(std::move(*it));
-                POLDMON->m_aLayerSurfaceLists[layersurface->layer].erase(it);
+                PMONITOR->m_aLayerSurfaceLayers[layersurface->layer].emplace_back(std::move(*it));
+                POLDMON->m_aLayerSurfaceLayers[layersurface->layer].erase(it);
                 break;
             }
         }
@@ -282,10 +282,10 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     if (layersurface->layerSurface->current.committed != 0) {
         if (layersurface->layer != layersurface->layerSurface->current.layer) {
 
-            for (auto it = PMONITOR->m_aLayerSurfaceLists[layersurface->layer].begin(); it != PMONITOR->m_aLayerSurfaceLists[layersurface->layer].end(); it++) {
+            for (auto it = PMONITOR->m_aLayerSurfaceLayers[layersurface->layer].begin(); it != PMONITOR->m_aLayerSurfaceLayers[layersurface->layer].end(); it++) {
                 if (it->get() == layersurface) {
-                    PMONITOR->m_aLayerSurfaceLists[layersurface->layerSurface->current.layer].emplace_back(std::move(*it));
-                    PMONITOR->m_aLayerSurfaceLists[layersurface->layer].erase(it);
+                    PMONITOR->m_aLayerSurfaceLayers[layersurface->layerSurface->current.layer].emplace_back(std::move(*it));
+                    PMONITOR->m_aLayerSurfaceLayers[layersurface->layer].erase(it);
                     break;
                 }
             }

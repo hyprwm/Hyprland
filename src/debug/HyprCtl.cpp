@@ -805,6 +805,31 @@ std::string switchXKBLayoutRequest(const std::string& request) {
     return "ok";
 }
 
+std::string dispatchSeterror(std::string request) {
+    CVarList    vars(request, 0, ' ');
+
+    std::string errorMessage = "";
+
+    if (vars.size() < 3) {
+        g_pHyprError->destroy();
+        return "ok";
+    }
+
+    const CColor COLOR = configStringToInt(vars[1]);
+
+    for (size_t i = 2; i < vars.size(); ++i)
+        errorMessage += vars[i] + ' ';
+
+    if (errorMessage.empty()) {
+        g_pHyprError->destroy();
+    } else {
+        errorMessage.pop_back(); // pop last space
+        g_pHyprError->queueCreate(errorMessage, COLOR);
+    }
+
+    return "ok";
+}
+
 std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
     std::string curitem = "";
 
@@ -973,6 +998,8 @@ std::string getReply(std::string request) {
         return cursorPosRequest(format);
     else if (request == "binds")
         return bindsRequest(format);
+    else if (request.find("seterror") == 0)
+        return dispatchSeterror(request);
     else if (request.find("switchxkblayout") == 0)
         return switchXKBLayoutRequest(request);
     else if (request.find("output") == 0)

@@ -1709,7 +1709,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
             currentPlace = currentPlace % m_vMonitors.size();
         }
 
-        if (currentPlace != std::clamp(currentPlace, 0, (int)m_vMonitors.size())) {
+        if (currentPlace != std::clamp(currentPlace, 0, (int)m_vMonitors.size() - 1)) {
             Debug::log(WARN, "Error in getMonitorFromString: Vaxry's code sucks.");
             currentPlace = std::clamp(currentPlace, 0, (int)m_vMonitors.size() - 1);
         }

@@ -1704,7 +1704,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
         currentPlace += offsetLeft;
 
         if (currentPlace < 0) {
-            currentPlace = m_vMonitors.size() - currentPlace;
+            currentPlace = m_vMonitors.size() + currentPlace;
         } else {
             currentPlace = currentPlace % m_vMonitors.size();
         }

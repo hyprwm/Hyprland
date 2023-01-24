@@ -836,6 +836,73 @@ std::string dispatchSeterror(std::string request) {
     return "ok";
 }
 
+std::string dispatchSetProp(std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    if (vars.size() < 4)
+        return "not enough args";
+
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+
+    if (!PWINDOW)
+        return "window not found";
+
+    const auto PROP = vars[2];
+    const auto VAL  = vars[3];
+
+    bool       lock = false;
+
+    if (vars.size() > 4) {
+        if (vars[4].find("lock") == 0) {
+            lock = true;
+        }
+    }
+
+    try {
+        if (PROP == "animationstyle") {
+            PWINDOW->m_sAdditionalConfigData.animationStyle = VAL;
+        } else if (PROP == "rounding") {
+            PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "forcenoblur") {
+            PWINDOW->m_sAdditionalConfigData.forceNoBlur.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "forceopaque") {
+            PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "forceopaqueoverriden") {
+            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverriden.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "forceallowsinput") {
+            PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "forcenoanims") {
+            PWINDOW->m_sAdditionalConfigData.forceNoAnims.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "forcenoborder") {
+            PWINDOW->m_sAdditionalConfigData.forceNoBorder.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "forcenoshadow") {
+            PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "windowdancecompat") {
+            PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "nomaxsize") {
+            PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "dimaround") {
+            PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "alphaoverride") {
+            PWINDOW->m_sSpecialRenderData.alphaOverride.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "alpha") {
+            PWINDOW->m_sSpecialRenderData.alpha.forceSetIgnoreLocked(std::stof(VAL), lock);
+        } else if (PROP == "alphainactiveoverride") {
+            PWINDOW->m_sSpecialRenderData.alphaInactiveOverride.forceSetIgnoreLocked(std::stoi(VAL), lock);
+        } else if (PROP == "alphainactive") {
+            PWINDOW->m_sSpecialRenderData.alphaInactive.forceSetIgnoreLocked(std::stof(VAL), lock);
+        } else if (PROP == "activebordercolor") {
+            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(std::stoll(VAL), lock);
+        } else if (PROP == "inactivebordercolor") {
+            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(std::stoll(VAL), lock);
+        } else {
+            return "prop not found";
+        }
+    } catch (std::exception& e) { return "error in parsing prop value: " + std::string(e.what()); }
+
+    return "ok";
+}
+
 std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
     std::string curitem = "";
 
@@ -1004,6 +1071,8 @@ std::string getReply(std::string request) {
         return cursorPosRequest(format);
     else if (request == "binds")
         return bindsRequest(format);
+    else if (request.find("setprop") == 0)
+        return dispatchSetProp(request);
     else if (request.find("seterror") == 0)
         return dispatchSeterror(request);
     else if (request.find("switchxkblayout") == 0)

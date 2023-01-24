@@ -1353,7 +1353,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
             else
                 setCursorImageUntilUnset("top_side");
         } else if (mouseCoords.y > box.y + box.height - CORNER) {
-            if (mouseCoords.x < box.x)
+            if (mouseCoords.x < box.x + CORNER)
                 setCursorImageUntilUnset("bottom_left_corner");
             else if (mouseCoords.x > box.x + box.width - CORNER)
                 setCursorImageUntilUnset("bottom_right_corner");

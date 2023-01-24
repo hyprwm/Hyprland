@@ -15,14 +15,85 @@ enum eIdleInhibitMode {
     IDLEINHIBIT_FOCUS
 };
 
-struct SWindowSpecialRenderData {
-    bool    alphaOverride         = false;
-    float   alpha                 = 1.f;
-    bool    alphaInactiveOverride = false;
-    float   alphaInactive         = -1.f; // -1 means unset
+template <typename T>
+class CWindowOverridableVar {
+  public:
+    CWindowOverridableVar(T val) {
+        value = val;
+    }
 
-    int64_t activeBorderColor   = -1; // -1 means unset
-    int64_t inactiveBorderColor = -1; // -1 means unset
+    cCWindowOverridableVar<T> operator=(CWindowOverridableVar<T> other) {
+        if (locked)
+            return *this;
+
+        locked = other.locked;
+        value  = other.value;
+
+        return *this;
+    }
+
+    T operator=(T& other) {
+        if (locked)
+            return value;
+        value = other;
+        return other;
+    }
+
+    void forceSetIgnoreLocked(T val, bool lock = false) {
+        value  = val;
+        locked = lock;
+    }
+
+    T operator*(T& other) {
+        return value * other;
+    }
+
+    T operator+(T& other) {
+        return value + other;
+    }
+
+    bool operator==(T& other) {
+        return other == value;
+    }
+
+    bool operator>=(T& other) {
+        return value >= other;
+    }
+
+    bool operator<=(T& other) {
+        return value <= other;
+    }
+
+    bool operator>(T& other) {
+        return value > other;
+    }
+
+    bool operator<(T& other) {
+        return value < other;
+    }
+
+    explicit operator bool() {
+        return static_cast<bool>(value);
+    }
+
+    T toUnderlying() {
+        return value;
+    }
+
+    bool locked = false;
+
+  private:
+    T value;
+};
+
+struct SWindowSpecialRenderData {
+    CWindowOverridableVar<bool>    alphaOverride         = false;
+    CWindowOverridableVar<float>   alpha                 = 1.f;
+    CWindowOverridableVar<bool>    alphaInactiveOverride = false;
+    CWindowOverridableVar<float>   alphaInactive         = -1.f; // -1 means unset
+
+    CWindowOverridableVar<int64_t> activeBorderColor   = -1; // -1 means unset
+    CWindowOverridableVar<int64_t> inactiveBorderColor = -1; // -1 means unset
 
     // set by the layout
     bool rounding = true;
@@ -31,18 +102,18 @@ struct SWindowSpecialRenderData {
 };
 
 struct SWindowAdditionalConfigData {
-    std::string animationStyle       = "";
-    int         rounding             = -1; // -1 means no
-    bool        forceNoBlur          = false;
-    bool        forceOpaque          = false;
-    bool        forceOpaqueOverriden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
-    bool        forceAllowsInput     = false;
-    bool        forceNoAnims         = false;
-    bool        forceNoBorder        = false;
-    bool        forceNoShadow        = false;
-    bool        windowDanceCompat    = false;
-    bool        noMaxSize            = false;
-    bool        dimAround            = false;
+    std::string                 animationStyle       = std::string("");
+    CWindowOverridableVar<int>  rounding             = -1; // -1 means no
+    CWindowOverridableVar<bool> forceNoBlur          = false;
+    CWindowOverridableVar<bool> forceOpaque          = false;
+    CWindowOverridableVar<bool> forceOpaqueOverriden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
+    CWindowOverridableVar<bool> forceAllowsInput     = false;
+    CWindowOverridableVar<bool> forceNoAnims         = false;
+    CWindowOverridableVar<bool> forceNoBorder        = false;
+    CWindowOverridableVar<bool> forceNoShadow        = false;
+    CWindowOverridableVar<bool> windowDanceCompat    = false;
+    CWindowOverridableVar<bool> noMaxSize            = false;
+    CWindowOverridableVar<bool> dimAround            = false;
 };
 
 struct SWindowRule {

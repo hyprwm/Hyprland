@@ -1559,9 +1559,12 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     if (RENDERDATA.isBorderGradient)
         setBorderColor(*RENDERDATA.borderGradient);
     else
-        setBorderColor(pWindow == m_pLastWindow ?
-                           (pWindow->m_sSpecialRenderData.activeBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor)) : *ACTIVECOL) :
-                           (pWindow->m_sSpecialRenderData.inactiveBorderColor >= 0 ? CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor)) : *INACTIVECOL));
+        setBorderColor(pWindow == m_pLastWindow ? (pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying() >= 0 ?
+                                                       CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying())) :
+                                                       *ACTIVECOL) :
+                                                  (pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying() >= 0 ?
+                                                       CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying())) :
+                                                       *INACTIVECOL));
 
     // opacity
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
@@ -1570,11 +1573,11 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     } else {
         if (pWindow == m_pLastWindow)
             pWindow->m_fActiveInactiveAlpha =
-                pWindow->m_sSpecialRenderData.alphaOverride ? pWindow->m_sSpecialRenderData.alpha : pWindow->m_sSpecialRenderData.alpha * *PACTIVEALPHA;
+                pWindow->m_sSpecialRenderData.alphaOverride.toUnderlying() ? pWindow->m_sSpecialRenderData.alpha.toUnderlying() : pWindow->m_sSpecialRenderData.alpha.toUnderlying() * *PACTIVEALPHA;
         else
-            pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaInactive != -1 ?
-                (pWindow->m_sSpecialRenderData.alphaInactiveOverride ? pWindow->m_sSpecialRenderData.alphaInactive :
-                                                                       pWindow->m_sSpecialRenderData.alphaInactive * *PINACTIVEALPHA) :
+            pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaInactive.toUnderlying() != -1 ?
+                (pWindow->m_sSpecialRenderData.alphaInactiveOverride.toUnderlying() ? pWindow->m_sSpecialRenderData.alphaInactive.toUnderlying() :
+                                                                                      pWindow->m_sSpecialRenderData.alphaInactive.toUnderlying() * *PINACTIVEALPHA) :
                 *PINACTIVEALPHA;
     }
 

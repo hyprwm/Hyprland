@@ -379,7 +379,7 @@ void CWindow::updateDynamicRules() {
     if (!m_sAdditionalConfigData.forceOpaqueOverriden)
         m_sAdditionalConfigData.forceOpaque = false;
     m_sAdditionalConfigData.forceNoAnims   = false;
-    m_sAdditionalConfigData.animationStyle = "";
+    m_sAdditionalConfigData.animationStyle = std::string("");
     m_sAdditionalConfigData.rounding       = -1;
     m_sAdditionalConfigData.dimAround      = false;
 

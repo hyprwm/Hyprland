@@ -247,7 +247,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.fl();
     renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) &&
         (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
-    renderdata.rounding = ignoreAllGeometry ? 0 : pWindow->m_sAdditionalConfigData.rounding;
+    renderdata.rounding = ignoreAllGeometry ? 0 : pWindow->m_sAdditionalConfigData.rounding.toUnderlying();
     renderdata.blur     = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
     renderdata.pWindow  = pWindow;
 

@@ -78,7 +78,7 @@ in {
       type = lib.types.bool;
       default = false;
       defaultText = lib.literalExpression "false";
-      example = lib.liberalExpression "true";
+      example = lib.literalExpression "true";
       description = ''
         Patch wlroots for better Nvidia support.
       '';

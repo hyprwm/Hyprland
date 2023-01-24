@@ -57,7 +57,7 @@ in {
     nvidiaPatches = mkOption {
       type = types.bool;
       default = false;
-      example = liberalExpression "true";
+      example = literalExpression "true";
       description = ''
         Patch wlroots for better Nvidia support.
       '';

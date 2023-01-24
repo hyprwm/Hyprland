@@ -863,39 +863,39 @@ std::string dispatchSetProp(std::string request) {
         if (PROP == "animationstyle") {
             PWINDOW->m_sAdditionalConfigData.animationStyle = VAL;
         } else if (PROP == "rounding") {
-            PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forcenoblur") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBlur.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceNoBlur.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forceopaque") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forceopaqueoverriden") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverriden.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverriden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forceallowsinput") {
-            PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forcenoanims") {
-            PWINDOW->m_sAdditionalConfigData.forceNoAnims.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceNoAnims.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forcenoborder") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBorder.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceNoBorder.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forcenoshadow") {
-            PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "windowdancecompat") {
-            PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "nomaxsize") {
-            PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "dimaround") {
-            PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphaoverride") {
-            PWINDOW->m_sSpecialRenderData.alphaOverride.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sSpecialRenderData.alphaOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alpha") {
             PWINDOW->m_sSpecialRenderData.alpha.forceSetIgnoreLocked(std::stof(VAL), lock);
         } else if (PROP == "alphainactiveoverride") {
-            PWINDOW->m_sSpecialRenderData.alphaInactiveOverride.forceSetIgnoreLocked(std::stoi(VAL), lock);
+            PWINDOW->m_sSpecialRenderData.alphaInactiveOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphainactive") {
             PWINDOW->m_sSpecialRenderData.alphaInactive.forceSetIgnoreLocked(std::stof(VAL), lock);
         } else if (PROP == "activebordercolor") {
-            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(std::stoll(VAL), lock);
+            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "inactivebordercolor") {
-            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(std::stoll(VAL), lock);
+            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else {
             return "prop not found";
         }

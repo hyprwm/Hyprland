@@ -387,7 +387,7 @@ void CCompositor::startCompositor() {
     signal(SIGPIPE, SIG_IGN);
 
     if (m_sWLRSession /* Session-less Hyprland usually means a nest, don't update the env in that case */ && fork() == 0)
-        g_pKeybindManager->spawn("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE");
+        execl("/bin/sh", "/bin/sh", "-c", "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE", nullptr);
 
     Debug::log(LOG, "Running on WAYLAND_DISPLAY: %s", m_szWLDisplaySocket.c_str());
 

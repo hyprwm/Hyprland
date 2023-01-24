@@ -901,6 +901,8 @@ std::string dispatchSetProp(std::string request) {
         }
     } catch (std::exception& e) { return "error in parsing prop value: " + std::string(e.what()); }
 
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
     return "ok";
 }
 

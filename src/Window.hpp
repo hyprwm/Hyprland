@@ -8,7 +8,8 @@
 #include <deque>
 #include "config/ConfigDataValues.hpp"
 
-enum eIdleInhibitMode {
+enum eIdleInhibitMode
+{
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
@@ -22,7 +23,9 @@ class CWindowOverridableVar {
         value = val;
     }
 
-    CWindowOverridableVar<T> operator=(CWindowOverridableVar<T> other) {
+    ~CWindowOverridableVar() = default;
+
+    CWindowOverridableVar<T>& operator=(CWindowOverridableVar<T> other) {
         if (locked)
             return *this;
 

@@ -22,7 +22,7 @@ class CWindowOverridableVar {
         value = val;
     }
 
-    cCWindowOverridableVar<T> operator=(CWindowOverridableVar<T> other) {
+    CWindowOverridableVar<T> operator=(CWindowOverridableVar<T> other) {
         if (locked)
             return *this;
 

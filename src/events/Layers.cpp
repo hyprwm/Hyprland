@@ -121,6 +121,11 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     if (!PMONITOR)
         return;
 
+    for (auto& rule : g_pConfigManager->getMatchingRules(layersurface)) {
+        if (rule.rule == "noanim")
+            layersurface->noAnimations = true;
+    }
+
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
         for (auto it = POLDMON->m_aLayerSurfaceLayers[layersurface->layer].begin(); it != POLDMON->m_aLayerSurfaceLayers[layersurface->layer].end(); it++) {
@@ -160,6 +165,9 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     layersurface->readyToDelete = false;
     layersurface->fadingOut     = false;
 
+    if (layersurface->noAnimations)
+        layersurface->alpha.setValueAndWarp(1.f);
+
     g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
 }
 
@@ -189,6 +197,9 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     // make a snapshot and start fade
     g_pHyprOpenGL->makeLayerSnapshot(layersurface);
     layersurface->alpha = 0.f;
+
+    if (layersurface->noAnimations)
+        layersurface->alpha.setValueAndWarp(0.f);
 
     layersurface->mapped = false;
 
@@ -241,7 +252,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     g_pHyprRenderer->damageBox(&geomFixed);
 
     geomFixed              = {layersurface->geometry.x, layersurface->geometry.y, (int)layersurface->layerSurface->surface->current.width,
-                              (int)layersurface->layerSurface->surface->current.height};
+                 (int)layersurface->layerSurface->surface->current.height};
     layersurface->geometry = geomFixed; // because the surface can overflow... for some reason?
 }
 

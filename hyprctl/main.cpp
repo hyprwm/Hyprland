@@ -341,6 +341,8 @@ int main(int argc, char** argv) {
         request(fullRequest);
     else if (fullRequest.contains("/cursorpos"))
         request(fullRequest);
+    else if (fullRequest.contains("/animations"))
+        request(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))

@@ -165,9 +165,6 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     layersurface->readyToDelete = false;
     layersurface->fadingOut     = false;
 
-    if (layersurface->noAnimations)
-        layersurface->alpha.setValueAndWarp(1.f);
-
     g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
 }
 
@@ -197,9 +194,6 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     // make a snapshot and start fade
     g_pHyprOpenGL->makeLayerSnapshot(layersurface);
     layersurface->alpha = 0.f;
-
-    if (layersurface->noAnimations)
-        layersurface->alpha.setValueAndWarp(0.f);
 
     layersurface->mapped = false;
 

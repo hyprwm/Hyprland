@@ -469,6 +469,59 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return result;
 }
 
+std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string ret = "";
+    if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
+        ret += "animations:\n";
+
+        for (auto& ac : g_pConfigManager->getAnimationConfig()) {
+            ret += getFormat("\n\tname: %s\n\t\toverriden: %i\n\t\tbezier: %s\n\t\tenabled: %i\n\t\tspeed: %.2f\n\t\tstyle: %s\n", ac.first.c_str(), (int)ac.second.overriden,
+                             ac.second.internalBezier.c_str(), ac.second.internalEnabled, ac.second.internalSpeed, ac.second.internalStyle.c_str());
+        }
+
+        ret += "beziers:\n";
+
+        for (auto& bz : g_pAnimationManager->getAllBeziers()) {
+            ret += getFormat("\n\tname: %s\n", bz.first.c_str());
+        }
+    } else {
+        // json
+
+        ret += "[[";
+        for (auto& ac : g_pConfigManager->getAnimationConfig()) {
+            ret += getFormat(R"#(
+{
+    "name": "%s",
+    "overriden": %s,
+    "bezier": "%s",
+    "enabled": %s,
+    "speed": %.2f,
+    "style": "%s"
+},)#",
+                             ac.first.c_str(), ac.second.overriden ? "true" : "false", ac.second.internalBezier.c_str(), ac.second.internalEnabled ? "true" : "false",
+                             ac.second.internalSpeed, ac.second.internalStyle.c_str());
+        }
+
+        ret[ret.length() - 1] = ']';
+
+        ret += ",\n[";
+
+        for (auto& bz : g_pAnimationManager->getAllBeziers()) {
+            ret += getFormat(R"#(
+{
+    "name": "%s"
+},)#",
+                             bz.first.c_str());
+        }
+
+        ret.pop_back();
+
+        ret += "]";
+    }
+
+    return ret;
+}
+
 std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string ret = "";
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
@@ -1074,6 +1127,8 @@ std::string getReply(std::string request) {
         return cursorPosRequest(format);
     else if (request == "binds")
         return bindsRequest(format);
+    else if (request == "animations")
+        return animationsRequest(format);
     else if (request.find("setprop") == 0)
         return dispatchSetProp(request);
     else if (request.find("seterror") == 0)

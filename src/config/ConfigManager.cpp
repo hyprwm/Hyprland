@@ -1704,3 +1704,7 @@ void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
 ICustomConfigValueData::~ICustomConfigValueData() {
     ; // empty
 }
+
+std::unordered_map<std::string, SAnimationPropertyConfig> CConfigManager::getAnimationConfig() {
+    return animationConfig;
+}

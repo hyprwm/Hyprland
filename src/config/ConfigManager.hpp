@@ -155,6 +155,8 @@ class CConfigManager {
 
     std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
 
+    std::unordered_map<std::string, SAnimationPropertyConfig>       getAnimationConfig();
+
     // no-op when done.
     void                      dispatchExecOnce();
 

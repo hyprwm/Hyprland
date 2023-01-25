@@ -11,18 +11,20 @@ class CAnimationManager {
   public:
     CAnimationManager();
 
-    void                          tick();
-    void                          addBezierWithName(std::string, const Vector2D&, const Vector2D&);
-    void                          removeAllBeziers();
+    void                                          tick();
+    void                                          addBezierWithName(std::string, const Vector2D&, const Vector2D&);
+    void                                          removeAllBeziers();
 
-    void                          onWindowPostCreateClose(CWindow*, bool close = false);
+    void                                          onWindowPostCreateClose(CWindow*, bool close = false);
 
-    bool                          bezierExists(const std::string&);
-    CBezierCurve*                 getBezier(const std::string&);
+    bool                                          bezierExists(const std::string&);
+    CBezierCurve*                                 getBezier(const std::string&);
 
-    std::string                   styleValidInConfigVar(const std::string&, const std::string&);
+    std::string                                   styleValidInConfigVar(const std::string&, const std::string&);
 
-    std::list<CAnimatedVariable*> m_lAnimatedVariables;
+    std::unordered_map<std::string, CBezierCurve> getAllBeziers();
+
+    std::list<CAnimatedVariable*>                 m_lAnimatedVariables;
 
   private:
     bool                                          deltaSmallToFlip(const Vector2D& a, const Vector2D& b);

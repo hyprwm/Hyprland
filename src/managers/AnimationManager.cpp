@@ -67,6 +67,7 @@ void CAnimationManager::tick() {
         } else if (PLAYER) {
             WLRBOXPREV = PLAYER->geometry;
             PMONITOR   = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
+            animationsDisabled = animationsDisabled || PLAYER->noAnimations;
         }
 
         // beziers are with a switch unforto

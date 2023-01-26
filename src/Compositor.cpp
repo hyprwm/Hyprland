@@ -1270,13 +1270,16 @@ void CCompositor::addToFadingOutSafe(CWindow* pWindow) {
 
 CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
 
-    const auto WINDOWIDEALBB = pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+    // 0 -> history, 1 -> shared length
+    static auto* const PMETHOD = &g_pConfigManager->getConfigValuePtr("binds:focus_preferred_method")->intValue;
 
-    const auto POSA  = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
-    const auto SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
+    const auto         WINDOWIDEALBB = pWindow->getWindowIdealBoundingBoxIgnoreReserved();
 
-    auto       longestIntersect       = -1;
-    CWindow*   longestIntersectWindow = nullptr;
+    const auto         POSA  = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
+    const auto         SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
+
+    auto               leaderValue  = -1;
+    CWindow*           leaderWindow = nullptr;
 
     for (auto& w : m_vWindows) {
         if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || w->m_bIsFloating || !isWorkspaceVisible(w->m_iWorkspaceID))
@@ -1291,50 +1294,62 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
         const auto POSB  = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
         const auto SIZEB = Vector2D(BWINDOWIDEALBB.width, BWINDOWIDEALBB.height);
 
+        double     intersectLength = -1;
+
         switch (dir) {
             case 'l':
                 if (STICKS(POSA.x, POSB.x + SIZEB.x)) {
-                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
-                    if (INTERSECTLEN > longestIntersect) {
-                        longestIntersect       = INTERSECTLEN;
-                        longestIntersectWindow = w.get();
-                    }
+                    intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                 }
                 break;
             case 'r':
                 if (STICKS(POSA.x + SIZEA.x, POSB.x)) {
-                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
-                    if (INTERSECTLEN > longestIntersect) {
-                        longestIntersect       = INTERSECTLEN;
-                        longestIntersectWindow = w.get();
-                    }
+                    intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                 }
                 break;
             case 't':
             case 'u':
                 if (STICKS(POSA.y, POSB.y + SIZEB.y)) {
-                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
-                    if (INTERSECTLEN > longestIntersect) {
-                        longestIntersect       = INTERSECTLEN;
-                        longestIntersectWindow = w.get();
-                    }
+                    intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
                 }
                 break;
             case 'b':
             case 'd':
                 if (STICKS(POSA.y + SIZEA.y, POSB.y)) {
-                    const auto INTERSECTLEN = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
-                    if (INTERSECTLEN > longestIntersect) {
-                        longestIntersect       = INTERSECTLEN;
-                        longestIntersectWindow = w.get();
-                    }
+                    intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
                 }
                 break;
         }
+
+        if (*PMETHOD == 0 /* history */) {
+            if (intersectLength > 0) {
+
+                // get idx
+                int windowIDX = -1;
+                for (size_t i = 0; i < g_pCompositor->m_vWindowFocusHistory.size(); ++i) {
+                    if (g_pCompositor->m_vWindowFocusHistory[i] == w.get()) {
+                        windowIDX = i;
+                        break;
+                    }
+                }
+
+                windowIDX = g_pCompositor->m_vWindowFocusHistory.size() - windowIDX;
+
+                if (windowIDX > leaderValue) {
+                    leaderValue  = windowIDX;
+                    leaderWindow = w.get();
+                }
+            }
+        } else /* length */ {
+            if (intersectLength > leaderValue) {
+                leaderValue  = intersectLength;
+                leaderWindow = w.get();
+            }
+        }
     }
 
-    if (longestIntersect != -1)
-        return longestIntersectWindow;
+    if (leaderValue != -1)
+        return leaderWindow;
 
     return nullptr;
 }
@@ -1572,8 +1587,8 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
         pWindow->m_fActiveInactiveAlpha = *PFULLSCREENALPHA;
     } else {
         if (pWindow == m_pLastWindow)
-            pWindow->m_fActiveInactiveAlpha =
-                pWindow->m_sSpecialRenderData.alphaOverride.toUnderlying() ? pWindow->m_sSpecialRenderData.alpha.toUnderlying() : pWindow->m_sSpecialRenderData.alpha.toUnderlying() * *PACTIVEALPHA;
+            pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaOverride.toUnderlying() ? pWindow->m_sSpecialRenderData.alpha.toUnderlying() :
+                                                                                                           pWindow->m_sSpecialRenderData.alpha.toUnderlying() * *PACTIVEALPHA;
         else
             pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaInactive.toUnderlying() != -1 ?
                 (pWindow->m_sSpecialRenderData.alphaInactiveOverride.toUnderlying() ? pWindow->m_sSpecialRenderData.alphaInactive.toUnderlying() :

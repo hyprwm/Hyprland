@@ -225,11 +225,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (!foundSurface) {
         if (!m_bEmptyFocusCursorSet) {
-            // TODO: maybe wrap?
-            if (m_ecbClickBehavior == CLICKMODE_KILL)
-                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
-            else
-                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+            if (g_pHyprRenderer->m_bHasARenderedCursor) {
+                // TODO: maybe wrap?
+                if (m_ecbClickBehavior == CLICKMODE_KILL)
+                    wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
+                else
+                    wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+            }
 
             m_bEmptyFocusCursorSet = true;
         }

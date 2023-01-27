@@ -146,8 +146,6 @@ void IHyprLayout::onBeginDragWindow() {
         return;
     }
 
-    g_pInputManager->setCursorImageUntilUnset("hand1");
-
     DRAGGINGWINDOW->m_bDraggingTiled = false;
 
     if (!DRAGGINGWINDOW->m_bIsFloating) {
@@ -179,6 +177,8 @@ void IHyprLayout::onBeginDragWindow() {
         else
             m_iGrabbedCorner = 3;
     }
+
+    g_pInputManager->setCursorImageUntilUnset("grab");
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 

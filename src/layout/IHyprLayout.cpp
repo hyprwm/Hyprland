@@ -175,24 +175,7 @@ void IHyprLayout::onBeginDragWindow() {
             m_iGrabbedCorner = 3;
     }
 
-    if (g_pInputManager->dragMode == MBIND_RESIZE) {
-        switch (m_iGrabbedCorner) {
-            case 0:
-                g_pInputManager->setCursorImageUntilUnset("top_left_corner");
-                break;
-            case 1:
-                g_pInputManager->setCursorImageUntilUnset("top_right_corner");
-                break;
-            case 3:
-                g_pInputManager->setCursorImageUntilUnset("bottom_right_corner");
-                break;
-            case 4:
-                g_pInputManager->setCursorImageUntilUnset("bottom_left_corner");
-                break;
-        }
-    } else {
-        g_pInputManager->setCursorImageUntilUnset("grabbing");
-    }
+    g_pInputManager->setCursorImageUntilUnset("grab");
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 

@@ -50,7 +50,7 @@ void CFractionalScaleProtocolManager::bindManager(wl_client* client, void* data,
     Debug::log(LOG, "FractionalScaleManager bound successfully!");
 }
 
-void handleDestroyScaleAddon(wl_client* client, wl_resource* resource);
+static void handleDestroyScaleAddon(wl_client* client, wl_resource* resource);
 //
 
 static const struct wp_fractional_scale_v1_interface fractionalScaleAddonImpl { .destroy = handleDestroyScaleAddon };
@@ -61,9 +61,17 @@ SFractionalScaleAddon* addonFromResource(wl_resource* resource) {
     return (SFractionalScaleAddon*)wl_resource_get_user_data(resource);
 }
 
-void handleDestroyScaleAddon(wl_client* client, wl_resource* resource) {
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->removeAddon(addonFromResource(resource)->pSurface);
+static void handleDestroyScaleAddon(wl_client* client, wl_resource* resource) {
     wl_resource_destroy(resource);
+}
+
+static void handleAddonDestroy(wl_resource* resource) {
+    const auto PADDON = addonFromResource(resource);
+    if (PADDON->pResource) {
+        wl_resource_set_user_data(PADDON->pResource, nullptr);
+    }
+
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->removeAddon(PADDON->pSurface);
 }
 
 void CFractionalScaleProtocolManager::getFractionalScale(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* surface) {
@@ -71,6 +79,7 @@ void CFractionalScaleProtocolManager::getFractionalScale(wl_client* client, wl_r
     const auto PADDON   = getAddonForSurface(PSURFACE);
 
     PADDON->pResource = wl_resource_create(client, &wp_fractional_scale_v1_interface, wl_resource_get_version(resource), id);
+    wl_resource_set_implementation(PADDON->pResource, &fractionalScaleAddonImpl, PADDON, handleAddonDestroy);
 
     wp_fractional_scale_v1_send_preferred_scale(PADDON->pResource, (uint32_t)std::round(PADDON->preferredScale * 120.0));
 }

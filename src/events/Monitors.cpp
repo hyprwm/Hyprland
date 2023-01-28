@@ -94,8 +94,10 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR);
 
     if (firstLaunch) {
-        firstLaunch = false;
-        g_pCompositor->warpCursorTo(PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f, true);
+        firstLaunch    = false;
+        const auto POS = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+        if (g_pCompositor->m_sSeat.mouse)
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
     }
 }
 

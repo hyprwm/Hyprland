@@ -167,7 +167,7 @@ class CCompositor {
     void           addToFadingOutSafe(SLayerSurface*);
     void           addToFadingOutSafe(CWindow*);
     CWindow*       getWindowByRegex(const std::string&);
-    void           warpCursorTo(const Vector2D&);
+    void           warpCursorTo(const Vector2D&, bool force = false);
     SLayerSurface* getLayerSurfaceFromWlr(wlr_layer_surface_v1*);
     SLayerSurface* getLayerSurfaceFromSurface(wlr_surface*);
     void           closeWindow(CWindow*);

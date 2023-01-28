@@ -2021,14 +2021,14 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
     return nullptr;
 }
 
-void CCompositor::warpCursorTo(const Vector2D& pos) {
+void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
 
     // warpCursorTo should only be used for warps that
     // should be disabled with no_cursor_warps
 
     static auto* const PNOWARPS = &g_pConfigManager->getConfigValuePtr("general:no_cursor_warps")->intValue;
 
-    if (*PNOWARPS)
+    if (*PNOWARPS && !force)
         return;
 
     wlr_cursor_warp(m_sWLRCursor, m_sSeat.mouse->mouse, pos.x, pos.y);

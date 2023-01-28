@@ -2160,7 +2160,7 @@ void CCompositor::renameWorkspace(const int& id, const std::string& name) {
     if (isWorkspaceSpecial(id))
         return;
 
-    Debug::log(LOG, "renameWorkspace: Renaming workspace %d to '%s'", id, name);
+    Debug::log(LOG, "renameWorkspace: Renaming workspace %d to '%s'", id, name.c_str());
     wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, name.c_str());
     PWORKSPACE->m_szName = name;
 }

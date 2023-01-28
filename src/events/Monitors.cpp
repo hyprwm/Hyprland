@@ -44,6 +44,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // new monitor added, let's accomodate for that.
     const auto OUTPUT = (wlr_output*)data;
 
+    // for warping the cursor on launch
+    static bool firstLaunch = true;
+
     if (!OUTPUT->name) {
         Debug::log(ERR, "New monitor has no name?? Ignoring");
         return;
@@ -89,6 +92,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     g_pConfigManager->m_bWantsMonitorReload = true;
     g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR);
+
+    if (firstLaunch) {
+        firstLaunch = false;
+        g_pCompositor->warpCursorTo(PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f, true);
+    }
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {

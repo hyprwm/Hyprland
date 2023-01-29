@@ -2,6 +2,15 @@
 
 #include <regex>
 
+#include <sys/ioctl.h>
+#if defined(__linux__)
+#include <linux/vt.h>
+#elif defined(__NetBSD__) || defined(__OpenBSD__)
+#include <dev/wscons/wsdisplay_usl_io.h>
+#elif defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sys/consio.h>
+#endif
+
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
 
@@ -442,13 +451,16 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
         // vtnr is bugged for some reason.
-        const std::string TTYSTR = execAndGet("head -n 1 /sys/devices/virtual/tty/tty0/active").substr(3);
         unsigned int      ttynum = 0;
-        try {
-            ttynum = std::stoll(TTYSTR);
-        } catch (std::exception& e) {
-            ; // oops?
-        }
+#if defined(__linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
+        struct vt_stat st;
+        if (!ioctl(0, VT_GETSTATE, &st))
+            ttynum = st.v_active;
+#elif defined(__DragonFly__) || defined(__FreeBSD__)
+        int vt;
+        if (!ioctl(0, VT_GETACTIVE, &vt))
+            ttynum = vt;
+#endif
 
         if (ttynum == TTY)
             return true;

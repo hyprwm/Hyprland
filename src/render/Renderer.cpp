@@ -356,8 +356,8 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.blur                  = pLayer->forceBlur;
     renderdata.surface               = pLayer->layerSurface->surface;
     renderdata.decorate              = false;
-    renderdata.w                     = pLayer->layerSurface->surface->current.width;
-    renderdata.h                     = pLayer->layerSurface->surface->current.height;
+    renderdata.w                     = pLayer->geometry.width;
+    renderdata.h                     = pLayer->geometry.height;
     renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
 
@@ -550,7 +550,7 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
 
             Vector2D bufferSize = Vector2D(pSurface->buffer->texture->width, pSurface->buffer->texture->height);
 
-            // calculate UV for the basic src_box. Assume dest == size. TODO: don't.
+            // calculate UV for the basic src_box. Assume dest == size. Scale to dest later
             uvTL = Vector2D(bufferSource.x / bufferSize.x, bufferSource.y / bufferSize.y);
             uvBR = Vector2D((bufferSource.x + bufferSource.width) / bufferSize.x, (bufferSource.y + bufferSource.height) / bufferSize.y);
 
@@ -558,6 +558,14 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
                 uvTL = Vector2D();
                 uvBR = Vector2D(1, 1);
             }
+        }
+
+        const auto DESTVP = Vector2D{pSurface->current.viewport.dst_width, pSurface->current.viewport.dst_height};
+
+        if (DESTVP != Vector2D{} && !pWindow /* Layersurface. TODO: is this correct? */) {
+            const auto DESTSCALE = DESTVP / Vector2D(pSurface->buffer->texture->width, pSurface->buffer->texture->height);
+            uvTL                 = uvTL * DESTSCALE;
+            uvBR                 = uvBR * DESTSCALE;
         }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;

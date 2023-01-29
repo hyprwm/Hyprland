@@ -1035,7 +1035,10 @@ void Events::listener_requestMinimize(void* owner, void* data) {
     } else {
         const auto E = (wlr_foreign_toplevel_handle_v1_minimized_event*)data;
 
-        g_pEventManager->postEvent({"minimize", getFormat("%x,%i", PWINDOW, (int)E->minimized)});
+        if (E)
+            g_pEventManager->postEvent({"minimize", getFormat("%x,%i", PWINDOW, (int)E->minimized)});
+        else
+            g_pEventManager->postEvent({"minimize", getFormat("%x,1", PWINDOW)});
     }
 }
 

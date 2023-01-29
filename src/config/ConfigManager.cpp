@@ -447,6 +447,13 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         if (ARGS[1] == "disable" || ARGS[1] == "disabled")
             newrule.disabled = true;
         else if (ARGS[1] == "transform") {
+            const auto TSF = std::stoi(ARGS[2]);
+            if (std::clamp(TSF, 0, 7) != TSF) {
+                Debug::log(ERR, "invalid transform %i in monitor", TSF);
+                parseError = "invalid transform";
+                return;
+            }
+
             wl_output_transform transform = (wl_output_transform)std::stoi(ARGS[2]);
 
             // overwrite if exists

@@ -105,8 +105,11 @@ extern "C" {
 
 #include <drm_fourcc.h>
 
-#ifndef NO_XWAYLAND
+#if WLR_HAS_X11_BACKEND
 #include <wlr/backend/x11.h>
+#endif
+
+#ifndef NO_XWAYLAND
 #include <wlr/xwayland.h>
 #endif
 }
@@ -125,6 +128,10 @@ extern "C" {
 #define GLES32
 #include <GLES3/gl32.h>
 #include <GLES3/gl3ext.h>
+#endif
+
+#if !WLR_HAS_X11_BACKEND
+#include "helpers/X11Stubs.hpp"
 #endif
 
 #ifdef NO_XWAYLAND

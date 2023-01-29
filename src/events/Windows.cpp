@@ -824,6 +824,8 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
     if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow)
         return;
 
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%x", PWINDOW)});
+
     PWINDOW->m_bIsUrgent = true;
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
@@ -840,8 +842,6 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
     g_pCompositor->focusWindow(PWINDOW);
     Vector2D middle = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
     g_pCompositor->warpCursorTo(middle);
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%x", PWINDOW)});
 }
 
 void Events::listener_activateX11(void* owner, void* data) {
@@ -851,7 +851,12 @@ void Events::listener_activateX11(void* owner, void* data) {
 
     Debug::log(LOG, "X11 Activate request for window %x", PWINDOW);
 
-    if (!*PFOCUSONACTIVATE || PWINDOW->m_iX11Type != 1 || PWINDOW == g_pCompositor->m_pLastWindow)
+    if (PWINDOW->m_iX11Type != 1 || PWINDOW == g_pCompositor->m_pLastWindow)
+        return;
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%x", PWINDOW)});
+
+    if (!*PFOCUSONACTIVATE)
         return;
 
     if (PWINDOW->m_bIsFloating)
@@ -860,8 +865,6 @@ void Events::listener_activateX11(void* owner, void* data) {
     g_pCompositor->focusWindow(PWINDOW);
     Vector2D middle = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
     g_pCompositor->warpCursorTo(middle);
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%x", PWINDOW)});
 }
 
 void Events::listener_configureX11(void* owner, void* data) {

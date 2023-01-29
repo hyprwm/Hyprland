@@ -25,8 +25,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
             windowBox.height = RDATA->h - y;
     }
 
-    if (RDATA->pWindow)
-        g_pHyprRenderer->calculateUVForWindowSurface(RDATA->pWindow, surface, RDATA->squishOversized);
+    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->squishOversized);
 
     scaleBox(&windowBox, RDATA->pMonitor->scale);
 
@@ -539,8 +538,8 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     renderDragIcon(PMONITOR, time);
 }
 
-void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* pSurface, bool main) {
-    if (!pWindow->m_bIsX11) {
+void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurface, bool main) {
+    if (!pWindow || !pWindow->m_bIsX11) {
         Vector2D uvTL;
         Vector2D uvBR = Vector2D(1, 1);
 
@@ -570,7 +569,7 @@ void CHyprRenderer::calculateUVForWindowSurface(CWindow* pWindow, wlr_surface* p
             g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         }
 
-        if (!main)
+        if (!main || !pWindow)
             return;
 
         wlr_box geom;

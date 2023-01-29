@@ -160,9 +160,3 @@ inline void wlr_xwayland_surface_close(wlr_xwayland_surface*) {}
 inline void wlr_xwayland_surface_set_fullscreen(wlr_xwayland_surface*, bool) {}
 
 inline void wlr_xwayland_surface_set_minimized(wlr_xwayland_surface*, bool) {}
-
-inline bool wlr_backend_is_x11(void*) {
-    return false;
-}
-
-inline void wlr_x11_output_create(void*) {}

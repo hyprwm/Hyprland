@@ -33,7 +33,7 @@ struct SDwindleNodeData {
     bool                             valid = true;
 
     // For list lookup
-    bool operator==(const SDwindleNodeData& rhs) {
+    bool operator==(const SDwindleNodeData& rhs) const {
         return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && position == rhs.position && size == rhs.size && pParent == rhs.pParent &&
             children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }

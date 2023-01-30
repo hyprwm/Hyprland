@@ -30,7 +30,7 @@ struct SMasterNodeData {
 
     int      workspaceID = -1;
 
-    bool     operator==(const SMasterNodeData& rhs) {
+    bool     operator==(const SMasterNodeData& rhs) const {
         return pWindow == rhs.pWindow;
     }
 };
@@ -39,7 +39,7 @@ struct SMasterWorkspaceData {
     int          workspaceID = -1;
     eOrientation orientation = ORIENTATION_LEFT;
 
-    bool         operator==(const SMasterWorkspaceData& rhs) {
+    bool         operator==(const SMasterWorkspaceData& rhs) const {
         return workspaceID == rhs.workspaceID;
     }
 };

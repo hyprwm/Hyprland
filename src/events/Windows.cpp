@@ -1034,11 +1034,7 @@ void Events::listener_requestMinimize(void* owner, void* data) {
         wlr_xwayland_surface_set_minimized(PWINDOW->m_uSurface.xwayland, E->minimize && g_pCompositor->m_pLastWindow != PWINDOW); // fucking DXVK
     } else {
         const auto E = (wlr_foreign_toplevel_handle_v1_minimized_event*)data;
-
-        if (E)
-            g_pEventManager->postEvent({"minimize", getFormat("%x,%i", PWINDOW, (int)E->minimized)});
-        else
-            g_pEventManager->postEvent({"minimize", getFormat("%x,1", PWINDOW)});
+        g_pEventManager->postEvent({"minimize", getFormat("%x,%i", PWINDOW, E ? (int)E->minimized : 1)});
     }
 }
 

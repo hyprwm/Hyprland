@@ -1,5 +1,7 @@
 #include "BezierCurve.hpp"
 
+#include <algorithm>
+
 void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
     m_dPoints.clear();
 

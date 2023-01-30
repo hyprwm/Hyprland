@@ -1,5 +1,3 @@
-#define _POSIX_C_SOURCE 200809L
-
 #include "../includes.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "ext-workspace-unstable-v1-protocol.h"

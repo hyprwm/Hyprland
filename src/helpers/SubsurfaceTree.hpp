@@ -24,7 +24,7 @@ struct SSurfaceTreeNode {
     void*                  globalOffsetData;
     CWindow*               pWindowOwner = nullptr;
 
-    bool                   operator==(const SSurfaceTreeNode& rhs) {
+    bool                   operator==(const SSurfaceTreeNode& rhs) const {
         return pSurface == rhs.pSurface;
     }
 };
@@ -41,7 +41,7 @@ struct SSubsurface {
 
     CWindow* pWindowOwner = nullptr;
 
-    bool     operator==(const SSubsurface& rhs) {
+    bool     operator==(const SSubsurface& rhs) const {
         return pSubsurface == rhs.pSubsurface;
     }
 };

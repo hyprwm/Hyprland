@@ -751,6 +751,10 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
             // get back its' dimensions from position and size
             pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
             pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
+
+            pWindow->m_sSpecialRenderData.rounding = true;
+            pWindow->m_sSpecialRenderData.border   = true;
+            pWindow->m_sSpecialRenderData.decorate = true;
         }
     } else {
         // if it now got fullscreen, make it fullscreen

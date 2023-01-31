@@ -354,6 +354,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
         pWindow->m_sSpecialRenderData.rounding = true;
+        pWindow->m_sSpecialRenderData.border   = true;
+        pWindow->m_sSpecialRenderData.decorate = true;
 
         if (pWindow == m_pLastTiledWindow)
             m_pLastTiledWindow = nullptr;

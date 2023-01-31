@@ -857,6 +857,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         pixman_region32_init_rect(&inverseOpaque, 0, 0, pBox->width, pBox->height);
     }
 
+    wlr_region_scale(&inverseOpaque, &inverseOpaque, m_RenderData.pMonitor->scale);
+
     //                                                                        vvv TODO: layered blur fbs?
     const bool USENEWOPTIMIZE =
         (*PBLURNEWOPTIMIZE && !blockBlurOptimization && ((m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating) || *PBLURXRAY) &&
@@ -864,12 +866,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
-        if (pSurface->current.scale != 1) {
-            // wlroots prohibits shrinking a region
-            // TODO: just shrink
-            pixman_region32_union_rect(&inverseOpaque, &inverseOpaque, 0, 0, pBox->width, pBox->height);
-        }
-
         pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
 
         pixman_region32_intersect(&inverseOpaque, &inverseOpaque, &damage);

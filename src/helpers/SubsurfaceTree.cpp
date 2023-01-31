@@ -197,6 +197,8 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
             // subsurface->pChild = nullptr;
         }
     }
+
+    g_pInputManager->simulateMouseMovement(); // to focus and return back to an appropriate surface
 }
 
 void Events::listener_commitSubsurface(void* owner, void* data) {

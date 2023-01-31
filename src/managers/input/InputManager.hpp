@@ -7,12 +7,14 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode {
+enum eClickBehaviorMode
+{
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode {
+enum eMouseBindMode
+{
     MBIND_INVALID = -1,
     MBIND_MOVE    = 0,
     MBIND_RESIZE
@@ -72,6 +74,7 @@ class CInputManager {
 
     Vector2D           getMouseCoordsInternal();
     void               refocus();
+    void               simulateMouseMovement();
 
     void               setKeyboardLayout();
     void               setPointerConfigs();

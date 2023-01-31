@@ -178,6 +178,8 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
     g_pHyprRenderer->damageBox(lx - extents.x, ly - extents.y, extents.width + 2, extents.height + 2);
 
     PPOPUP->pSurfaceTree = nullptr;
+
+    g_pInputManager->simulateMouseMovement(); // to focus and return back to an appropriate surface
 }
 
 void Events::listener_commitPopupXDG(void* owner, void* data) {

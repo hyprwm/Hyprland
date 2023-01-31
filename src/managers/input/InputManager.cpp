@@ -35,6 +35,15 @@ void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
     m_bLastInputTouch = false;
 }
 
+void CInputManager::simulateMouseMovement() {
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    m_vLastCursorPosFloored = m_vLastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
+    mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000);
+
+    m_tmrLastCursorMovement.reset();
+}
+
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PFOLLOWMOUSE   = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
     static auto* const PMOUSEDPMS     = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;

@@ -14,7 +14,7 @@ struct SToplevelClient {
     int          ref      = 0;
     wl_resource* resource = nullptr;
 
-    bool         operator==(const SToplevelClient& other) {
+    bool         operator==(const SToplevelClient& other) const {
         return resource == other.resource;
     }
 };
@@ -36,7 +36,7 @@ struct SToplevelFrame {
 
     CWindow*         pWindow = nullptr;
 
-    bool             operator==(const SToplevelFrame& other) {
+    bool             operator==(const SToplevelFrame& other) const {
         return resource == other.resource && client == other.client;
     }
 };

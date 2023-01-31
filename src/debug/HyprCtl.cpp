@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <sstream>
 #include <string>
 
 std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {

@@ -220,7 +220,8 @@ class CWindow {
     // Animated border
     CGradientValueData m_cRealBorderColor         = {0};
     CGradientValueData m_cRealBorderColorPrevious = {0};
-    CAnimatedVariable  m_fBorderAnimationProgress;
+    CAnimatedVariable  m_fBorderFadeAnimationProgress;
+    CAnimatedVariable  m_fBorderAngleAnimationProgress;
 
     // Fade in-out
     CAnimatedVariable m_fAlpha;
@@ -296,6 +297,7 @@ class CWindow {
     bool                   isHidden();
     void                   applyDynamicRule(const SWindowRule& r);
     void                   updateDynamicRules();
+    void                   onBorderAngleAnimEnd(void* ptr);
 
   private:
     // For hidden windows and stuff

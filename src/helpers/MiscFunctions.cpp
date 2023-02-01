@@ -518,3 +518,19 @@ int64_t configStringToInt(const std::string& VALUE) {
     }
     return std::stoll(VALUE);
 }
+
+double normalizeAngleRad(double ang) {
+    if (ang > M_PI * 2) {
+        while (ang > M_PI * 2)
+            ang -= M_PI * 2;
+        return ang;
+    }
+
+    if (ang < 0.0) {
+        while (ang < 0.0)
+            ang += M_PI * 2;
+        return ang;
+    }
+
+    return ang;
+}

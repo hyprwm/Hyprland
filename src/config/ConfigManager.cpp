@@ -127,8 +127,8 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:borders"].intValue            = 1;
     configValues["animations:borderangle_style"].strValue      = STRVAL_EMPTY;
     configValues["animations:borderangle_curve"].strValue      = "[[f]]";
-    configValues["animations:borderangle_speed"].floatValue    = 0.f;
-    configValues["animations:borderangle"].intValue            = 1;
+    configValues["animations:borderangle_speed"].floatValue    = 100.f;
+    configValues["animations:borderangle"].intValue            = 0;
     configValues["animations:fadein_style"].strValue       = STRVAL_EMPTY;
     configValues["animations:fadein_curve"].strValue       = "[[f]]";
     configValues["animations:fadein_speed"].floatValue     = 0.f;

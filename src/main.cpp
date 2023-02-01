@@ -38,8 +38,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    system("mkdir -p /tmp/hypr");
-
     if (!ignoreSudo) {
         if (Init::isSudo()) {
             std::cout << "Hyprland shall not be run as the root user. If you really want to, use the --i-am-really-stupid flag.\n";

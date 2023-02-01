@@ -31,6 +31,10 @@ class CGradientValueData : public ICustomConfigValueData {
         m_fAngle = 0;
     }
 
+    void addAngle(float angle) {
+        m_fAngle += angle;
+    }
+
     /* Vector containing the colors */
     std::vector<CColor> m_vColors;
 

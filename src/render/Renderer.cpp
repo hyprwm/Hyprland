@@ -309,9 +309,18 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             float              rounding = renderdata.dontRound ? 0 : renderdata.rounding == -1 ? *PROUNDING : renderdata.rounding;
             rounding *= pMonitor->scale;
 
-            auto       grad     = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor;
-            const bool ANIMATED = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.isBeingAnimated();
-            float      a1       = renderdata.fadeAlpha * renderdata.alpha * (ANIMATED ? g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.fl() : 1.f);
+            auto grad = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor;
+
+            float angle_offset = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.getPercent();
+            if (angle_offset == 1.f)
+                g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.setValue(0.f);
+
+            if (g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.isBeingAnimated()) {
+                grad.addAngle(angle_offset * 6.28318531f);
+            }
+
+            const bool ANIMATED = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.isBeingAnimated();
+            float      a1       = renderdata.fadeAlpha * renderdata.alpha * (ANIMATED ? g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl() : 1.f);
 
             wlr_box    windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
 
@@ -320,7 +329,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, a1);
 
             if (ANIMATED) {
-                float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAnimationProgress.fl());
+                float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl());
                 g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, rounding, a2);
             }
         }

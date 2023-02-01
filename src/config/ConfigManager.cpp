@@ -125,6 +125,10 @@ void CConfigManager::setDefaultVars() {
     configValues["animations:borders_curve"].strValue      = "[[f]]";
     configValues["animations:borders_speed"].floatValue    = 0.f;
     configValues["animations:borders"].intValue            = 1;
+    configValues["animations:borderangle_style"].strValue      = STRVAL_EMPTY;
+    configValues["animations:borderangle_curve"].strValue      = "[[f]]";
+    configValues["animations:borderangle_speed"].floatValue    = 0.f;
+    configValues["animations:borderangle"].intValue            = 1;
     configValues["animations:fadein_style"].strValue       = STRVAL_EMPTY;
     configValues["animations:fadein_curve"].strValue       = "[[f]]";
     configValues["animations:fadein_speed"].floatValue     = 0.f;
@@ -220,6 +224,7 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("windows");
         INITANIMCFG("fade");
         INITANIMCFG("border");
+        INITANIMCFG("borderangle");
         INITANIMCFG("workspaces");
 
         // windows
@@ -246,6 +251,7 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("windows", "global");
     CREATEANIMCFG("fade", "global");
     CREATEANIMCFG("border", "global");
+    CREATEANIMCFG("borderangle", "global");
     CREATEANIMCFG("workspaces", "global");
 
     CREATEANIMCFG("windowsIn", "windows");

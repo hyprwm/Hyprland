@@ -170,7 +170,7 @@ void requestHyprpaper(std::string arg) {
 
 int dispatchRequest(int argc, char** argv) {
 
-    if (argc < 4) {
+    if (argc < 3) {
         std::cout << "Usage: hyprctl dispatch <dispatcher> <arg>\n\
             Execute a hyprland keybind dispatcher with the given argument";
         return 1;

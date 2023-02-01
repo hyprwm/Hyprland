@@ -12,6 +12,7 @@ _deps
 build/
 result*
 /.vscode/
+/.idea/
 .envrc
 .cache
 

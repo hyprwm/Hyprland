@@ -220,6 +220,7 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("windows");
         INITANIMCFG("fade");
         INITANIMCFG("border");
+        INITANIMCFG("borderangle");
         INITANIMCFG("workspaces");
 
         // windows
@@ -246,6 +247,7 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("windows", "global");
     CREATEANIMCFG("fade", "global");
     CREATEANIMCFG("border", "global");
+    CREATEANIMCFG("borderangle", "global");
     CREATEANIMCFG("workspaces", "global");
 
     CREATEANIMCFG("windowsIn", "windows");

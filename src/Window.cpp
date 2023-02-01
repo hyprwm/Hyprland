@@ -5,7 +5,8 @@
 CWindow::CWindow() {
     m_vRealPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
     m_vRealSize.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
-    m_fBorderAnimationProgress.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("border"), (void*)this, AVARDAMAGE_BORDER);
+    m_fBorderFadeAnimationProgress.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("border"), (void*)this, AVARDAMAGE_BORDER);
+    m_fBorderAngleAnimationProgress.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("borderangle"), (void*)this, AVARDAMAGE_BORDER);
     m_fAlpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), (void*)this, AVARDAMAGE_ENTIRE);
     m_fActiveInactiveAlpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), (void*)this, AVARDAMAGE_ENTIRE);
     m_cRealShadowColor.create(AVARTYPE_COLOR, g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), (void*)this, AVARDAMAGE_SHADOW);
@@ -263,7 +264,8 @@ void CWindow::onUnmap() {
 
     m_vRealPosition.setCallbackOnEnd(unregisterVar);
     m_vRealSize.setCallbackOnEnd(unregisterVar);
-    m_fBorderAnimationProgress.setCallbackOnEnd(unregisterVar);
+    m_fBorderFadeAnimationProgress.setCallbackOnEnd(unregisterVar);
+    m_fBorderAngleAnimationProgress.setCallbackOnEnd(unregisterVar);
     m_fActiveInactiveAlpha.setCallbackOnEnd(unregisterVar);
     m_fAlpha.setCallbackOnEnd(unregisterVar);
     m_cRealShadowColor.setCallbackOnEnd(unregisterVar);
@@ -279,7 +281,8 @@ void CWindow::onMap() {
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
     m_vRealPosition.resetAllCallbacks();
     m_vRealSize.resetAllCallbacks();
-    m_fBorderAnimationProgress.resetAllCallbacks();
+    m_fBorderFadeAnimationProgress.resetAllCallbacks();
+    m_fBorderAngleAnimationProgress.resetAllCallbacks();
     m_fActiveInactiveAlpha.resetAllCallbacks();
     m_fAlpha.resetAllCallbacks();
     m_cRealShadowColor.resetAllCallbacks();
@@ -287,7 +290,8 @@ void CWindow::onMap() {
 
     m_vRealPosition.registerVar();
     m_vRealSize.registerVar();
-    m_fBorderAnimationProgress.registerVar();
+    m_fBorderFadeAnimationProgress.registerVar();
+    m_fBorderAngleAnimationProgress.registerVar();
     m_fActiveInactiveAlpha.registerVar();
     m_fAlpha.registerVar();
     m_cRealShadowColor.registerVar();
@@ -296,7 +300,28 @@ void CWindow::onMap() {
     m_vRealSize.setCallbackOnEnd([&](void* ptr) { g_pHyprOpenGL->onWindowResizeEnd(this); }, false);
     m_vRealSize.setCallbackOnBegin([&](void* ptr) { g_pHyprOpenGL->onWindowResizeStart(this); }, false);
 
+    m_fBorderAngleAnimationProgress.setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
+
+    m_fBorderAngleAnimationProgress.setValueAndWarp(0.f);
+    m_fBorderAngleAnimationProgress = 1.f;
+
     g_pCompositor->m_vWindowFocusHistory.push_back(this);
+}
+
+void CWindow::onBorderAngleAnimEnd(void* ptr) {
+    const auto        PANIMVAR = (CAnimatedVariable*)ptr;
+
+    const std::string STYLE = PANIMVAR->getConfig()->pValues->internalStyle;
+
+    if (STYLE != "loop")
+        return;
+
+    PANIMVAR->setCallbackOnEnd(nullptr); // we remove the callback here because otherwise setvalueandwarp will recurse this
+
+    PANIMVAR->setValueAndWarp(0);
+    *PANIMVAR = 1.f;
+
+    PANIMVAR->setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
 }
 
 void CWindow::setHidden(bool hidden) {

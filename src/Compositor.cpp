@@ -1565,8 +1565,8 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
 
         pWindow->m_cRealBorderColorPrevious = pWindow->m_cRealBorderColor;
         pWindow->m_cRealBorderColor         = grad;
-        pWindow->m_fBorderAnimationProgress.setValueAndWarp(0.f);
-        pWindow->m_fBorderAnimationProgress = 1.f;
+        pWindow->m_fBorderFadeAnimationProgress.setValueAndWarp(0.f);
+        pWindow->m_fBorderFadeAnimationProgress = 1.f;
     };
 
     // border
@@ -1580,6 +1580,10 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
                                                   (pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying() >= 0 ?
                                                        CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying())) :
                                                        *INACTIVECOL));
+
+    // tick angle if it's not running (aka dead)
+    if (!pWindow->m_fBorderAngleAnimationProgress.isBeingAnimated())
+        pWindow->m_fBorderAngleAnimationProgress.setValueAndWarp(0.f);
 
     // opacity
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);

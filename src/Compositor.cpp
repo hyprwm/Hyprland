@@ -4,7 +4,6 @@
 #include "debug/HyprCtl.hpp"
 #ifdef USES_SYSTEMD
 #include <systemd/sd-daemon.h> // for sd_notify
-#include <iostream>
 #endif
 
 int handleCritSignal(int signo, void* data) {
@@ -1560,9 +1559,6 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     static auto* const PSHADOWCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow_inactive")->intValue;
     static auto* const PDIMSTRENGTH       = &g_pConfigManager->getConfigValuePtr("decoration:dim_strength")->floatValue;
 
-    pWindow->m_fBorderAngleAnimationProgress.setValueAndWarp(0.f);
-    pWindow->m_fBorderAngleAnimationProgress = 1.f;
-
     auto               setBorderColor = [&](CGradientValueData grad) -> void {
         if (grad == pWindow->m_cRealBorderColor)
             return;
@@ -1572,7 +1568,6 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
         pWindow->m_fBorderFadeAnimationProgress.setValueAndWarp(0.f);
         pWindow->m_fBorderFadeAnimationProgress = 1.f;
     };
-
 
     // border
     const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);

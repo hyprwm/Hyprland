@@ -300,7 +300,28 @@ void CWindow::onMap() {
     m_vRealSize.setCallbackOnEnd([&](void* ptr) { g_pHyprOpenGL->onWindowResizeEnd(this); }, false);
     m_vRealSize.setCallbackOnBegin([&](void* ptr) { g_pHyprOpenGL->onWindowResizeStart(this); }, false);
 
+    m_fBorderAngleAnimationProgress.setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
+
+    m_fBorderAngleAnimationProgress.setValueAndWarp(0.f);
+    m_fBorderAngleAnimationProgress = 1.f;
+
     g_pCompositor->m_vWindowFocusHistory.push_back(this);
+}
+
+void CWindow::onBorderAngleAnimEnd(void* ptr) {
+    const auto        PANIMVAR = (CAnimatedVariable*)ptr;
+
+    const std::string STYLE = PANIMVAR->getConfig()->pValues->internalStyle;
+
+    if (STYLE != "loop")
+        return;
+
+    PANIMVAR->setCallbackOnEnd(nullptr); // we remove the callback here because otherwise setvalueandwarp will recurse this
+
+    PANIMVAR->setValueAndWarp(0);
+    *PANIMVAR = 1.f;
+
+    PANIMVAR->setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
 }
 
 void CWindow::setHidden(bool hidden) {

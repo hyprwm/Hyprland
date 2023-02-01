@@ -297,6 +297,7 @@ class CWindow {
     bool                   isHidden();
     void                   applyDynamicRule(const SWindowRule& r);
     void                   updateDynamicRules();
+    void                   onBorderAngleAnimEnd(void* ptr);
 
   private:
     // For hidden windows and stuff

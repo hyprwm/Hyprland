@@ -20,3 +20,5 @@ int64_t     configStringToInt(const std::string&);
 float       getPlusMinusKeywordResult(std::string in, float relative);
 
 void        matrixProjection(float mat[9], int w, int h, wl_output_transform tr);
+
+double      normalizeAngleRad(double ang);

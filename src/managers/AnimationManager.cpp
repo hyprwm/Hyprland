@@ -453,6 +453,10 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
             return "";
 
         return "unknown style";
+    } else if (config == "borderangle") {
+        if (style == "loop" || style == "once")
+            return "";
+        return "unknown style";
     } else {
         return "animation has no styles";
     }

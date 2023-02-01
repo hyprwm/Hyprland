@@ -1581,6 +1581,10 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
                                                        CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying())) :
                                                        *INACTIVECOL));
 
+    // tick angle if it's not running (aka dead)
+    if (!pWindow->m_fBorderAngleAnimationProgress.isBeingAnimated())
+        pWindow->m_fBorderAngleAnimationProgress.setValueAndWarp(0.f);
+
     // opacity
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     if (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {

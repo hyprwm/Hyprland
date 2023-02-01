@@ -311,14 +311,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             auto grad = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor;
 
-            float angle_offset = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.getPercent();
-            if (angle_offset == 1.f)
-                g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.setValue(0.f);
-
-            if (g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.isBeingAnimated()) {
-                grad.addAngle(angle_offset * 6.28318531f);
-            }
-
             const bool ANIMATED = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.isBeingAnimated();
             float      a1       = renderdata.fadeAlpha * renderdata.alpha * (ANIMATED ? g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl() : 1.f);
 
@@ -326,11 +318,14 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             scaleBox(&windowBox, pMonitor->scale);
 
-            g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, a1);
+            float angle_offset = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.getPercent() * 360.f;
+            if (angle_offset == 360.f)
+                g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.setValue(0.f);
+            g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, a1, angle_offset);
 
             if (ANIMATED) {
                 float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl());
-                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, rounding, a2);
+                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, rounding, a2, angle_offset);
             }
         }
     }

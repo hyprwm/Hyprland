@@ -190,6 +190,8 @@ CCompositor::CCompositor() {
 
     m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLDisplay);
 
+    m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
+
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throw std::runtime_error("wlr_headless_backend_create() failed!");
@@ -253,6 +255,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
+    addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
@@ -339,6 +342,9 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the ProtocolManager!");
     g_pProtocolManager = std::make_unique<CProtocolManager>();
+
+    Debug::log(LOG, "Creating the SessionLockManager!");
+    g_pSessionLockManager = std::make_unique<CSessionLockManager>();
 
     Debug::log(LOG, "Creating the EventManager!");
     g_pEventManager = std::make_unique<CEventManager>();
@@ -1112,7 +1118,24 @@ CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
 }
 
 bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
-    return !m_sSeat.exclusiveClient || (surface && m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource));
+    if (g_pSessionLockManager->isSessionLocked()) {
+        if (g_pSessionLockManager->isSurfaceSessionLock(surface))
+            return true;
+
+        if (surface && m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource))
+            return true;
+
+        return false;
+    }
+
+    if (m_sSeat.exclusiveClient) {
+        if (surface && m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource))
+            return true;
+
+        return false;
+    }
+
+    return true;
 }
 
 bool CCompositor::isWindowActive(CWindow* pWindow) {

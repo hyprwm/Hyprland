@@ -85,7 +85,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // constraints
     // All constraints TODO: multiple mice?
-    if (g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient) {
+    if (g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient && !g_pSessionLockManager->isSessionLocked()) {
         // XWayland windows sometimes issue constraints weirdly.
         // TODO: We probably should search their parent. wlr_xwayland_surface->parent
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
@@ -147,6 +147,16 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         const auto ACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
         g_pCompositor->deactivateAllWLRWorkspaces(ACTIVEWORKSPACE->m_pWlrHandle);
         ACTIVEWORKSPACE->setActive(true);
+    }
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        const auto PSLS = PMONITOR ? g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID) : nullptr;
+
+        if (!PSLS)
+            return;
+
+        foundSurface = PSLS->pWlrLockSurface->surface;
+        surfacePos   = PMONITOR->vecPosition;
     }
 
     // overlay is above fullscreen

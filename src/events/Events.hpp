@@ -157,4 +157,7 @@ namespace Events {
 
     LISTENER(holdBegin);
     LISTENER(holdEnd);
+
+    // Session Lock
+    LISTENER(newSessionLock);
 };

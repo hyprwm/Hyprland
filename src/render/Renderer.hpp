@@ -27,6 +27,7 @@ enum eRenderPassMode
 
 class CToplevelExportProtocolManager;
 class CInputManager;
+struct SSessionLockSurface;
 
 class CHyprRenderer {
   public:
@@ -63,6 +64,7 @@ class CHyprRenderer {
     void renderWorkspaceWithFullscreenWindow(CMonitor*, CWorkspace*, timespec*);
     void renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
     void renderLayer(SLayerSurface*, CMonitor*, timespec*);
+    void renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
     void renderDragIcon(CMonitor*, timespec*);
     void renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
 

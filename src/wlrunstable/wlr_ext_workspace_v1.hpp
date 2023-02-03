@@ -52,6 +52,7 @@ struct wlr_ext_workspace_group_handle_v1_create_workspace_event {
 
 struct wlr_ext_workspace_group_handle_v1_output {
 	struct wl_list link; // wlr_ext_workspace_group_handle_v1::outputs
+	struct wl_listener output_bind;
 	struct wl_listener output_destroy;
 	struct wlr_output *output;
 

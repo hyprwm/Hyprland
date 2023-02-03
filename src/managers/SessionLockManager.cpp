@@ -108,8 +108,6 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
             g_pCompositor->m_sSeat.exclusiveClient = nullptr;
 
-            g_pInputManager->refocus();
-
             g_pCompositor->focusSurface(nullptr);
 
             for (auto& m : g_pCompositor->m_vMonitors)

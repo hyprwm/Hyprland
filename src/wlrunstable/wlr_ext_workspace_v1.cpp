@@ -405,6 +405,22 @@ static void group_send_output(struct wlr_ext_workspace_group_handle_v1 *group,
 	}
 }
 
+static void workspace_handle_output_bind(struct wl_listener *listener,
+		void *data) {
+	struct wlr_output_event_bind *evt = (wlr_output_event_bind *)data;
+	struct wlr_ext_workspace_group_handle_v1_output *output =
+		wl_container_of(listener, output, output_bind);
+	struct wl_client *client = wl_resource_get_client(evt->resource);
+
+	struct wl_resource *group_resource, *tmp;
+	wl_resource_for_each_safe(group_resource, tmp, &output->group_handle->resources) {
+		if (client == wl_resource_get_client(group_resource)) {
+			zext_workspace_group_handle_v1_send_output_enter(group_resource,
+				evt->resource);
+		}
+	}
+}
+
 static void workspace_handle_output_destroy(struct wl_listener *listener,
 		void *data) {
 	struct wlr_ext_workspace_group_handle_v1_output *output =
@@ -431,6 +447,9 @@ void wlr_ext_workspace_group_handle_v1_output_enter(
 	group_output->output = output;
 	group_output->group_handle = group;
 	wl_list_insert(&group->outputs, &group_output->link);
+
+	group_output->output_bind.notify = workspace_handle_output_bind;
+	wl_signal_add(&output->events.bind, &group_output->output_bind);
 
 	group_output->output_destroy.notify = workspace_handle_output_destroy;
 	wl_signal_add(&output->events.destroy, &group_output->output_destroy);

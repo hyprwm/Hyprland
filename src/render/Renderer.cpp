@@ -384,7 +384,7 @@ void CHyprRenderer::renderIMEPopup(SIMEPopup* pPopup, CMonitor* pMonitor, timesp
 }
 
 void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMonitor* pMonitor, timespec* time) {
-    SRenderData renderdata = {pMonitor, time, 0, 0};
+    SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition.x, pMonitor->vecPosition.y};
 
     renderdata.blur     = false;
     renderdata.surface  = pSurface->pWlrLockSurface->surface;

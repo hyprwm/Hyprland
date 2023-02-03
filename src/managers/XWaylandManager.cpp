@@ -110,14 +110,14 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
 std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
     try {
         if (pWindow->m_bIsX11) {
-            if (pWindow->m_uSurface.xwayland) {
+            if (pWindow->m_uSurface.xwayland && pWindow->m_uSurface.xwayland->_class) {
                 if (!pWindow->m_bMappedX11 || !pWindow->m_bIsMapped)
                     return "unmanaged X11";
 
                 return std::string(pWindow->m_uSurface.xwayland->_class);
             }
         } else if (pWindow->m_uSurface.xdg) {
-            if (pWindow->m_uSurface.xdg->toplevel) {
+            if (pWindow->m_uSurface.xdg->toplevel && pWindow->m_uSurface.xdg->toplevel->app_id) {
                 return std::string(pWindow->m_uSurface.xdg->toplevel->app_id);
             }
         } else {

@@ -110,6 +110,8 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
             g_pInputManager->refocus();
 
+            g_pCompositor->focusSurface(nullptr);
+
             for (auto& m : g_pCompositor->m_vMonitors)
                 g_pHyprRenderer->damageMonitor(m.get());
         },

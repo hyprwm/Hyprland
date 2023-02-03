@@ -419,6 +419,8 @@ static void workspace_handle_output_bind(struct wl_listener *listener,
 				evt->resource);
 		}
 	}
+
+	workspace_manager_update_idle_source(output->group_handle->manager);
 }
 
 static void workspace_handle_output_destroy(struct wl_listener *listener,

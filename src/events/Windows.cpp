@@ -816,7 +816,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
 
     Debug::log(LOG, "Activate request for surface at %x", E->surface);
 
-    if (!wlr_surface_is_xdg_surface(E->surface))
+    if (!wlr_xdg_surface_try_from_wlr_surface(E->surface))
         return;
 
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(E->surface);

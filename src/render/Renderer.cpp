@@ -37,7 +37,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     rounding -= 1; // to fix a border issue
 
     if (RDATA->surface && surface == RDATA->surface) {
-        if (wlr_surface_is_xwayland_surface(surface) && !wlr_xwayland_surface_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 1.f) {
+        if (wlr_xwayland_surface_try_from_wlr_surface(surface) && !wlr_xwayland_surface_try_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 1.f) {
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         } else {
             if (RDATA->blur)

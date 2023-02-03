@@ -16,6 +16,7 @@
 #include "managers/AnimationManager.hpp"
 #include "managers/EventManager.hpp"
 #include "managers/ProtocolManager.hpp"
+#include "managers/SessionLockManager.hpp"
 #include "debug/HyprDebugOverlay.hpp"
 #include "helpers/Monitor.hpp"
 #include "helpers/Workspace.hpp"
@@ -73,6 +74,7 @@ class CCompositor {
     wlr_xdg_activation_v1*                     m_sWLRActivation;
     wlr_linux_dmabuf_v1*                       m_sWLRLinuxDMABuf;
     wlr_backend*                               m_sWLRHeadlessBackend;
+    wlr_session_lock_manager_v1*               m_sWLRSessionLockMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szWLDisplaySocket   = "";

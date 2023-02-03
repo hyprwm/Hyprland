@@ -383,12 +383,31 @@ void CHyprRenderer::renderIMEPopup(SIMEPopup* pPopup, CMonitor* pMonitor, timesp
     wlr_surface_for_each_surface(pPopup->pSurface->surface, renderSurface, &renderdata);
 }
 
+void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMonitor* pMonitor, timespec* time) {
+    SRenderData renderdata = {pMonitor, time, 0, 0};
+
+    renderdata.blur     = false;
+    renderdata.surface  = pSurface->pWlrLockSurface->surface;
+    renderdata.decorate = false;
+    renderdata.w        = pMonitor->vecSize.x;
+    renderdata.h        = pMonitor->vecSize.y;
+
+    wlr_surface_for_each_surface(pSurface->pWlrLockSurface->surface, renderSurface, &renderdata);
+}
+
 void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     const auto         PMONITOR    = g_pCompositor->getMonitorFromID(ID);
     static auto* const PDIMSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
 
     if (!PMONITOR)
         return;
+
+    if (!g_pCompositor->m_sSeat.exclusiveClient && g_pSessionLockManager->isSessionLocked()) {
+        // locked with no exclusive, draw only red
+        wlr_box boxe = {0, 0, INT16_MAX, INT16_MAX};
+        g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));
+        return;
+    }
 
     // Render layer surfaces below windows for monitor
     for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
@@ -541,6 +560,18 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
     }
 
     renderDragIcon(PMONITOR, time);
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+
+        if (!PSLS) {
+            // locked with no surface, fill with red
+            wlr_box boxe = {0, 0, INT16_MAX, INT16_MAX};
+            g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));
+        } else {
+            renderSessionLockSurface(PSLS, PMONITOR, time);
+        }
+    }
 }
 
 void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurface, bool main) {
@@ -702,7 +733,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 }
 
 void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
-    if (!g_pCompositor->m_sWLRLinuxDMABuf)
+    if (!g_pCompositor->m_sWLRLinuxDMABuf || g_pSessionLockManager->isSessionLocked())
         return;
 
     if (!pWindow->m_bIsFullscreen) {

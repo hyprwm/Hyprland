@@ -102,6 +102,7 @@ extern "C" {
 #include <wlr/backend/headless.h>
 #include <wlr/backend/multi.h>
 #include <wlr/backend/wayland.h>
+#include <wlr/types/wlr_session_lock_v1.h>
 
 #include <drm_fourcc.h>
 

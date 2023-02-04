@@ -1126,10 +1126,7 @@ void CConfigManager::parseLine(std::string& line) {
         startPos++;
     }
 
-    // remove shit at the beginning
-    while (line[0] == ' ' || line[0] == '\t') {
-        line = line.substr(1);
-    }
+    line = removeBeginEndSpacesTabs(line);
 
     if (line.contains(" {")) {
         auto cat = line.substr(0, line.find(" {"));

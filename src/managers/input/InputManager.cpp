@@ -401,6 +401,18 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     if (!PASS && !*PPASSMOUSE)
         return;
 
+    // clicking on border triggers resize
+    if (*PRESIZEONBORDER && g_pCompositor->m_pLastWindow && !m_bLastFocusOnLS && !g_pCompositor->m_pLastWindow->m_bIsFullscreen &&
+        !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState) {
+        const auto    mouseCoords = g_pInputManager->getMouseCoordsInternal();
+        const auto    w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+        const wlr_box real        = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+        if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
+            g_pKeybindManager->resizeWithBorder(e);
+            return;
+        }
+    }
+
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
@@ -412,18 +424,6 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             // if clicked on a floating window make it top
             if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
                 g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
-
-            // clicking on border triggers resize
-            if (*PRESIZEONBORDER && g_pCompositor->m_pLastWindow && !m_bLastFocusOnLS && !g_pCompositor->m_pLastWindow->m_bIsFullscreen &&
-                !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState) {
-                const wlr_box real        = {g_pCompositor->m_pLastWindow->m_vRealPosition.vec().x, g_pCompositor->m_pLastWindow->m_vRealPosition.vec().y,
-                                             g_pCompositor->m_pLastWindow->m_vRealSize.vec().x, g_pCompositor->m_pLastWindow->m_vRealSize.vec().y};
-                const auto    mouseCoords = g_pInputManager->getMouseCoordsInternal();
-                if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || g_pCompositor->m_pLastWindow->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
-                    g_pKeybindManager->resizeWithBorder(e);
-                    return;
-                }
-            }
 
             break;
         case WLR_BUTTON_RELEASED: break;

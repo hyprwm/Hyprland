@@ -278,7 +278,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (pFoundWindow) {
         // change cursor icon if hovering over border, skip if mouse bind is active
-        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive) {
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive && g_pCompositor->m_vXDGPopups.empty()) {
             setCursorIconOnBorder(pFoundWindow);
         }
 
@@ -403,7 +403,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
     // clicking on border triggers resize
     if (*PRESIZEONBORDER && g_pCompositor->m_pLastWindow && !m_bLastFocusOnLS && !g_pCompositor->m_pLastWindow->m_bIsFullscreen &&
-        !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState) {
+        !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState && g_pCompositor->m_vXDGPopups.empty()) {
         const auto    mouseCoords = g_pInputManager->getMouseCoordsInternal();
         const auto    w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
         const wlr_box real        = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};

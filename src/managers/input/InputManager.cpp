@@ -403,10 +403,10 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
     // clicking on border triggers resize
     // TODO detect click on LS properly
-    if (*PRESIZEONBORDER && !m_bLastFocusOnLS && g_pCompositor->m_vXDGPopups.empty()) {
+    if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
         const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
         const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
-        if (w && !w->m_bIsFullscreen && !w->m_bFakeFullscreenState) {
+        if (w && !w->m_bIsFullscreen && !w->m_bFakeFullscreenState && g_pCompositor->m_vXDGPopups.empty()) {
             const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
             if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
                 g_pKeybindManager->resizeWithBorder(e);

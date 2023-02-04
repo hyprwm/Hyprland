@@ -278,7 +278,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (pFoundWindow) {
         // change cursor icon if hovering over border, skip if mouse bind is active
-        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive && g_pCompositor->m_vXDGPopups.empty()) {
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive &&
+            !g_pCompositor->monitorHasXDGPopup(g_pCompositor->getMonitorFromCursor())) {
+            // disable resize on border while any popup is active
             setCursorIconOnBorder(pFoundWindow);
         }
 
@@ -402,14 +404,18 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
         return;
 
     // clicking on border triggers resize
-    if (*PRESIZEONBORDER && g_pCompositor->m_pLastWindow && !m_bLastFocusOnLS && !g_pCompositor->m_pLastWindow->m_bIsFullscreen &&
-        !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState && g_pCompositor->m_vXDGPopups.empty()) {
-        const auto    mouseCoords = g_pInputManager->getMouseCoordsInternal();
-        const auto    w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
-        const wlr_box real        = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-        if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
-            g_pKeybindManager->resizeWithBorder(e);
-            return;
+    if (*PRESIZEONBORDER && !g_pCompositor->monitorHasXDGPopup(g_pCompositor->getMonitorFromCursor())) {
+        const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+        // if (g_pCompositor->vectorToLayerSurface(mouseCoords, std::vector<std::unique_ptr<SLayerSurface>> *, Vector2D *, SLayerSurface **)) {
+        //
+        // }
+        const auto w = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+        if (w && !m_bLastFocusOnLS && !w->m_bIsFullscreen && !w->m_bFakeFullscreenState) {
+            const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+            if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
+                g_pKeybindManager->resizeWithBorder(e);
+                return;
+            }
         }
     }
 

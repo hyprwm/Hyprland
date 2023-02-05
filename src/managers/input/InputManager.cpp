@@ -761,6 +761,14 @@ void CInputManager::setPointerConfigs() {
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);
                 else
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
+
+                const auto TAP_MAP = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "tap_button_map") : g_pConfigManager->getString("input:touchpad:tap_button_map");
+                if (TAP_MAP == "" || TAP_MAP == "lrm")
+                    libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LRM);
+                else if (TAP_MAP == "lmr")
+                    libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LMR);
+                else
+                    Debug::log(WARN, "Tap button mapping unknown");
             }
 
             const auto SCROLLMETHOD = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "scroll_method") : g_pConfigManager->getString("input:scroll_method");

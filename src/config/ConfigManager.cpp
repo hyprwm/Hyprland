@@ -932,17 +932,16 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
     }
 }
 
-void CConfigManager::handleBlurLS(const std::string& command, const std::string& value, const bool dynamic) {
+void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
     if (value.find("remove,") == 0) {
         const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
-        if (std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; }) && dynamic)
+        if (std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; }))
             updateBlurredLS(TOREMOVE, false);
         return;
     }
 
     m_dBlurLSNamespaces.emplace_back(value);
-    if (dynamic)
-        updateBlurredLS(value, true);
+    updateBlurredLS(value, true);
 }
 
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
@@ -1071,7 +1070,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "submap")
         handleSubmap(COMMAND, VALUE);
     else if (COMMAND == "blurls")
-        handleBlurLS(COMMAND, VALUE, dynamic);
+        handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
     else {

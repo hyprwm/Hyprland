@@ -235,7 +235,7 @@ class CConfigManager {
     void         handleAnimation(const std::string&, const std::string&);
     void         handleSource(const std::string&, const std::string&);
     void         handleSubmap(const std::string&, const std::string&);
-    void         handleBlurLS(const std::string&, const std::string&, const bool);
+    void         handleBlurLS(const std::string&, const std::string&);
     void         handleBindWS(const std::string&, const std::string&);
 };
 

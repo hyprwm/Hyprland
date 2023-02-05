@@ -154,6 +154,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:natural_scroll"].intValue          = 0;
     configValues["input:touchpad:disable_while_typing"].intValue    = 1;
     configValues["input:touchpad:clickfinger_behavior"].intValue    = 0;
+    configValues["input:touchpad:tap_button_map"].strValue          = STRVAL_EMPTY;
     configValues["input:touchpad:middle_button_emulation"].intValue = 0;
     configValues["input:touchpad:tap-to-click"].intValue            = 1;
     configValues["input:touchpad:tap-and-drag"].intValue            = 1;
@@ -199,6 +200,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["repeat_rate"].intValue             = 25;
     cfgValues["repeat_delay"].intValue            = 600;
     cfgValues["natural_scroll"].intValue          = 0;
+    cfgValues["tap_button_map"].strValue          = STRVAL_EMPTY;
     cfgValues["numlock_by_default"].intValue      = 0;
     cfgValues["disable_while_typing"].intValue    = 1;
     cfgValues["clickfinger_behavior"].intValue    = 0;

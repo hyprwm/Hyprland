@@ -921,14 +921,28 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     m_dWindowRules.push_back(rule);
 }
 
-void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
+void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBlur) {
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto& lsl : m->m_aLayerSurfaceLayers) {
+            for (auto& ls : lsl) {
+                if (ls->szNamespace == name)
+                    ls->forceBlur = forceBlur;
+            }
+        }
+    }
+}
+
+void CConfigManager::handleBlurLS(const std::string& command, const std::string& value, const bool dynamic) {
     if (value.find("remove,") == 0) {
         const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
-        std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; });
+        if (std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; }) && dynamic)
+            updateBlurredLS(TOREMOVE, false);
         return;
     }
 
     m_dBlurLSNamespaces.emplace_back(value);
+    if (dynamic)
+        updateBlurredLS(value, true);
 }
 
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
@@ -1057,7 +1071,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "submap")
         handleSubmap(COMMAND, VALUE);
     else if (COMMAND == "blurls")
-        handleBlurLS(COMMAND, VALUE);
+        handleBlurLS(COMMAND, VALUE, dynamic);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
     else {

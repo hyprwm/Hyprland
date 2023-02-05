@@ -214,6 +214,7 @@ class CConfigManager {
     void         setDeviceDefaultVars(const std::string&);
 
     void         setAnimForChildren(SAnimationPropertyConfig* const);
+    void         updateBlurredLS(const std::string&, const bool);
 
     void         applyUserDefinedVars(std::string&, const size_t);
     void         loadConfigLoadVars();
@@ -234,7 +235,7 @@ class CConfigManager {
     void         handleAnimation(const std::string&, const std::string&);
     void         handleSource(const std::string&, const std::string&);
     void         handleSubmap(const std::string&, const std::string&);
-    void         handleBlurLS(const std::string&, const std::string&);
+    void         handleBlurLS(const std::string&, const std::string&, const bool);
     void         handleBindWS(const std::string&, const std::string&);
 };
 

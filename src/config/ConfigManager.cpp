@@ -1318,10 +1318,9 @@ void CConfigManager::loadConfigLoadVars() {
 }
 
 void CConfigManager::tick() {
-    static const char* const ENVHOME = getenv("HOME");
-
     std::string CONFIGPATH;
-    if (g_pCompositor->explicitConfigPath == "") {
+    if (g_pCompositor->explicitConfigPath.empty()) {
+        static const char* const ENVHOME = getenv("HOME");
         CONFIGPATH                       = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
     } else {
         CONFIGPATH = g_pCompositor->explicitConfigPath;

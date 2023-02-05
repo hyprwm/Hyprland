@@ -214,6 +214,7 @@ class CConfigManager {
     void         setDeviceDefaultVars(const std::string&);
 
     void         setAnimForChildren(SAnimationPropertyConfig* const);
+    void         updateBlurredLS(const std::string&, const bool);
 
     void         applyUserDefinedVars(std::string&, const size_t);
     void         loadConfigLoadVars();

@@ -923,14 +923,27 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     m_dWindowRules.push_back(rule);
 }
 
+void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBlur) {
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto& lsl : m->m_aLayerSurfaceLayers) {
+            for (auto& ls : lsl) {
+                if (ls->szNamespace == name)
+                    ls->forceBlur = forceBlur;
+            }
+        }
+    }
+}
+
 void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
     if (value.find("remove,") == 0) {
         const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
-        std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; });
+        if (std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; }))
+            updateBlurredLS(TOREMOVE, false);
         return;
     }
 
     m_dBlurLSNamespaces.emplace_back(value);
+    updateBlurredLS(value, true);
 }
 
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {

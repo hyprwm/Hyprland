@@ -794,6 +794,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
 
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
@@ -864,6 +865,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("%x", pWindow)});
 
     g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
 
@@ -901,6 +903,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     if (!pSurface) {
         wlr_seat_keyboard_clear_focus(m_sSeat.seat);
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // unfocused
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
         g_pInputManager->m_sIMERelay.onKeyboardFocus(nullptr);
         g_pCompositor->m_pLastFocus = nullptr;
         return;

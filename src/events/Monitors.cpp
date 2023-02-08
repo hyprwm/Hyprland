@@ -119,7 +119,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     static auto* const                                    PDEBUGOVERLAY       = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
     static auto* const                                    PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("debug:damage_tracking")->intValue;
     static auto* const                                    PDAMAGEBLINK        = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
-    static auto* const                                    PNOVFR              = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
     static auto* const                                    PNODIRECTSCANOUT    = &g_pConfigManager->getConfigValuePtr("misc:no_direct_scanout")->intValue;
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
@@ -149,7 +148,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     // checks //
     if (PMONITOR->ID == g_pHyprRenderer->m_pMostHzMonitor->ID ||
-        !*PNOVFR) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
+        g_pHyprRenderer->m_pMostHzMonitor->output->adaptive_sync_status ==
+            WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
         g_pAnimationManager->tick();
 
@@ -204,7 +204,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         pixman_region32_fini(&damage);
         wlr_output_rollback(PMONITOR->output);
 
-        if (*PDAMAGEBLINK || *PNOVFR)
+        if (*PDAMAGEBLINK || PMONITOR->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED)
             g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
         return;
@@ -311,7 +311,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (!wlr_output_commit(PMONITOR->output))
         return;
 
-    if (*PDAMAGEBLINK || *PNOVFR)
+    if (*PDAMAGEBLINK || PMONITOR->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     if (*PDEBUGOVERLAY == 1) {

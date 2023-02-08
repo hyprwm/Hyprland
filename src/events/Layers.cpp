@@ -305,13 +305,13 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
         PMONITOR->scheduledRecalc = true;
+    } else {
+        layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
+
+        // update geom if it changed
+        layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, (int)layersurface->layerSurface->surface->current.width,
+                                  (int)layersurface->layerSurface->surface->current.height};
     }
-
-    layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
-
-    // update geom if it changed
-    layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, (int)layersurface->layerSurface->current.actual_width,
-                              (int)layersurface->layerSurface->current.actual_height};
 
     g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 

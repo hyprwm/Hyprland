@@ -50,6 +50,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PFOLLOWONDND   = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
     static auto* const PHOGFOCUS      = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
     static auto* const PFLOATBEHAVIOR = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
+    static auto* const PMOUSEFOCUSMON = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_focuses_monitor")->intValue;
 
     m_pFoundSurfaceToFocus      = nullptr;
     m_pFoundLSToFocus           = nullptr;
@@ -140,7 +141,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
-    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
+    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && *PMOUSEFOCUSMON) {
         g_pCompositor->setActiveMonitor(PMONITOR);
 
         // set active workspace and deactivate all other in wlr

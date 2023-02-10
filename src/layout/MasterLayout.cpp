@@ -747,7 +747,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
     CVarList vars(message, 0, ' ');
 
-    if (vars.size() < 1 || vars[0] == "") {
+    if (vars.size() < 1 || vars[0].empty()) {
         Debug::log(ERR, "layoutmsg called without params");
         return 0;
     }
@@ -773,10 +773,10 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         // * child - keep the focus at the new child
         // * auto (default) - swap the focus (keep the focus of the previously selected window)
         if (PMASTER->pWindow != PWINDOW) {
-            auto newChild = PMASTER->pWindow;
+            const auto NEWCHILD = PMASTER->pWindow;
             switchWindows(PWINDOW, PMASTER->pWindow);
             if (vars.size() >= 2 && vars[1] == "child")
-                switchToWindow(newChild);
+                switchToWindow(NEWCHILD);
             else // default switch to new master
                 switchToWindow(PMASTER->pWindow);
         } else {

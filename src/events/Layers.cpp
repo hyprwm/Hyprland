@@ -246,9 +246,6 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     geomFixed = {layersurface->geometry.x + (int)PMONITOR->vecPosition.x, layersurface->geometry.y + (int)PMONITOR->vecPosition.y,
                  (int)layersurface->layerSurface->surface->current.width, (int)layersurface->layerSurface->surface->current.height};
     g_pHyprRenderer->damageBox(&geomFixed);
-
-    geomFixed = {layersurface->geometry.x, layersurface->geometry.y, (int)layersurface->layerSurface->current.actual_width, (int)layersurface->layerSurface->current.actual_height};
-    layersurface->geometry = geomFixed; // because the surface can overflow... for some reason?
 }
 
 void Events::listener_commitLayerSurface(void* owner, void* data) {

@@ -212,6 +212,18 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
     // if correct monitor draw hyprerror
     if (pMonitor == g_pCompositor->m_vMonitors.front().get())
         g_pHyprError->draw();
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
+
+        if (!PSLS) {
+            // locked with no surface, fill with red
+            wlr_box boxe = {0, 0, INT16_MAX, INT16_MAX};
+            g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));
+        } else {
+            renderSessionLockSurface(PSLS, pMonitor, time);
+        }
+    }
 }
 
 void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool ignoreAllGeometry) {

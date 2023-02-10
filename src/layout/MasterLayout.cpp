@@ -745,7 +745,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f);
     };
 
-    CVarList vars(message);
+    CVarList vars(message, 0, ' ');
 
     if (vars.size() < 1 || vars[0] == "") {
         Debug::log(ERR, "layoutmsg called without params");

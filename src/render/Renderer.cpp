@@ -596,14 +596,6 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
             }
         }
 
-        const auto DESTVP = Vector2D{pSurface->current.viewport.dst_width, pSurface->current.viewport.dst_height};
-
-        if (DESTVP != Vector2D{} && !pWindow /* Layersurface. TODO: is this correct? */) {
-            const auto DESTSCALE = DESTVP / Vector2D(pSurface->buffer->texture->width, pSurface->buffer->texture->height);
-            uvTL                 = uvTL * DESTSCALE;
-            uvBR                 = uvBR * DESTSCALE;
-        }
-
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = uvBR;
 

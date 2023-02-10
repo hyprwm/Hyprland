@@ -309,10 +309,10 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
         // update geom if it changed
-        if (layersurface->layerSurface->surface->current.scale == 1 && PMONITOR->scale != 1.f) {
+        if (layersurface->layerSurface->surface->current.scale == 1 && PMONITOR->scale != 1.f && layersurface->layerSurface->surface->current.viewport.has_dst) {
             // fractional scaling. Dirty hack.
-            layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, (int)(layersurface->layerSurface->surface->current.width / PMONITOR->scale),
-                                      (int)(layersurface->layerSurface->surface->current.height / PMONITOR->scale)};
+            layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, (int)(layersurface->layerSurface->surface->current.viewport.dst_width),
+                                      (int)(layersurface->layerSurface->surface->current.viewport.dst_height)};
         } else {
             // this is because some apps like e.g. rofi-lbonn can't fucking use the protocol correctly.
             layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, (int)layersurface->layerSurface->surface->current.width,

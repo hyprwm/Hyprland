@@ -517,7 +517,7 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
         ret.pop_back();
 
-        ret += "]";
+        ret += "]]";
     }
 
     return ret;

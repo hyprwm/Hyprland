@@ -733,7 +733,7 @@ void CHyprMasterLayout::prepareNewFocus(CWindow* pWindow, bool inheritFullscreen
         return;
 
     if (inheritFullscreen)
-        g_pCompositor->setWindowFullscreen(pWindow, true, FULLSCREEN_MAXIMIZED);
+        g_pCompositor->setWindowFullscreen(pWindow, true, g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID)->m_efFullscreenMode);
 }
 
 std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
@@ -754,6 +754,11 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
     auto command = vars[0];
 
+    // swapwithmaster <master | child | auto>
+    // first message argument can have the following values:
+    // * master - keep the focus at the new master
+    // * child - keep the focus at the new child
+    // * auto (default) - swap the focus (keep the focus of the previously selected window)
     if (command == "swapwithmaster") {
         const auto PWINDOW = header.pWindow;
 
@@ -768,34 +773,38 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PMASTER)
             return 0;
 
-        // first message argument can have the following values:
-        // * master - keep the focus at the new master
-        // * child - keep the focus at the new child
-        // * auto (default) - swap the focus (keep the focus of the previously selected window)
+        const auto NEWCHILD = PMASTER->pWindow;
+
         if (PMASTER->pWindow != PWINDOW) {
-            const auto NEWCHILD = PMASTER->pWindow;
-            switchWindows(PWINDOW, PMASTER->pWindow);
-            if (vars.size() >= 2 && vars[1] == "child")
-                switchToWindow(NEWCHILD);
-            else // default switch to new master
-                switchToWindow(PMASTER->pWindow);
+            const auto NEWMASTER         = PWINDOW;
+            const bool newFocusToChild   = vars.size() >= 2 && vars[1] == "child";
+            const bool inheritFullscreen = prepareLoseFocus(NEWMASTER);
+            switchWindows(NEWMASTER, NEWCHILD);
+            const auto NEWFOCUS = newFocusToChild ? NEWCHILD : NEWMASTER;
+            switchToWindow(NEWFOCUS);
+            prepareNewFocus(NEWFOCUS, inheritFullscreen);
         } else {
             for (auto& n : m_lMasterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
-                    switchWindows(n.pWindow, PMASTER->pWindow);
-                    // if master is focused keep master focused (don't do anything)
-                    if (vars.size() >= 2 && vars[1] == "master") {
-                        switchToWindow(PMASTER->pWindow);
-                    } else { // default switch to child
-                        switchToWindow(n.pWindow);
-                    }
+                    const auto NEWMASTER         = n.pWindow;
+                    const bool inheritFullscreen = prepareLoseFocus(NEWCHILD);
+                    switchWindows(NEWMASTER, NEWCHILD);
+                    const bool newFocusToMaster = vars.size() >= 2 && vars[1] == "master";
+                    const auto NEWFOCUS         = newFocusToMaster ? NEWMASTER : NEWCHILD;
+                    switchToWindow(NEWFOCUS);
+                    prepareNewFocus(NEWFOCUS, inheritFullscreen);
                     break;
                 }
             }
         }
 
         return 0;
-    } else if (command == "focusmaster") {
+    }
+    // focusmaster <master | auto>
+    // first message argument can have the following values:
+    // * master - keep the focus at the new master, even if it was focused before
+    // * auto (default) - swap the focus with the first child, if the current focus was master, otherwise focus master
+    else if (command == "focusmaster") {
         const auto PWINDOW = header.pWindow;
 
         if (!PWINDOW)
@@ -808,14 +817,11 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PMASTER)
             return 0;
 
-        // first message argument can have the following values:
-        // * master - keep the focus at the new master, even if it was focused before
-        // * auto (default) - swap the focus with the first child, if the current focus was master, otherwise focus master
         if (PMASTER->pWindow != PWINDOW) {
             switchToWindow(PMASTER->pWindow);
             prepareNewFocus(PMASTER->pWindow, inheritFullscreen);
         } else if (vars.size() >= 2 && vars[1] == "master") {
-              return 0;
+            return 0;
         } else {
             // if master is focused keep master focused (don't do anything)
             for (auto& n : m_lMasterNodesData) {

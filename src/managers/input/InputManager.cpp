@@ -278,7 +278,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (pFoundWindow) {
         // change cursor icon if hovering over border, skip if mouse bind is active
-        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive) {
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive && !pFoundWindow->hasPopupAt(mouseCoords)) {
             setCursorIconOnBorder(pFoundWindow);
         }
 
@@ -408,7 +408,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
         const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
         if (w && !w->m_bIsFullscreen && !w->m_bFakeFullscreenState) {
             const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-            if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) {
+            if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
                 g_pKeybindManager->resizeWithBorder(e);
                 return;
             }

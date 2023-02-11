@@ -413,3 +413,25 @@ bool CWindow::isInCurvedCorner(double x, double y) {
 
     return false;
 }
+
+void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
+    const auto DATA = (SExtensionFindingData*)data;
+
+    wlr_box    box = {DATA->origin.x + x, DATA->origin.y + y, surface->current.width, surface->current.height};
+
+    if (wlr_box_contains_point(&box, DATA->vec.x, DATA->vec.y))
+        *DATA->found = surface;
+}
+
+// checks if the wayland window has a popup at pos
+bool CWindow::hasPopupAt(const Vector2D& pos) {
+    if (m_bIsX11)
+        return false;
+
+    wlr_surface*          resultSurf = nullptr;
+    Vector2D              origin     = m_vRealPosition.vec();
+    SExtensionFindingData data       = {origin, pos, &resultSurf};
+    wlr_xdg_surface_for_each_popup_surface(m_uSurface.xdg, findExtensionForVector2D, &data);
+
+    return resultSurf;
+}

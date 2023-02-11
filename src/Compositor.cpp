@@ -550,19 +550,10 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
     return nullptr;
 }
 
-void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
-    const auto DATA = (SExtensionFindingData*)data;
-
-    wlr_box    box = {DATA->origin.x + x, DATA->origin.y + y, surface->current.width, surface->current.height};
-
-    if (wlr_box_contains_point(&box, DATA->vec.x, DATA->vec.y))
-        *DATA->found = surface;
-}
-
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
-    const auto         PMONITOR        = getMonitorFromVector(pos);
-    static auto* const PRESIZEONBORDER = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
-    static auto* const PBORDERSIZE     = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    const auto         PMONITOR          = getMonitorFromVector(pos);
+    static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
+    static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
     const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
@@ -593,12 +584,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
                 return w->get();
 
             if (!(*w)->m_bIsX11) {
-                wlr_surface*          resultSurf = nullptr;
-                Vector2D              origin     = (*w)->m_vRealPosition.vec();
-                SExtensionFindingData data       = {origin, pos, &resultSurf};
-                wlr_xdg_surface_for_each_popup_surface((*w)->m_uSurface.xdg, findExtensionForVector2D, &data);
-
-                if (resultSurf)
+                if ((*w)->hasPopupAt(pos))
                     return w->get();
             }
         }
@@ -625,12 +611,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
             }
 
             if (!(*w)->m_bIsX11) {
-                wlr_surface*          resultSurf = nullptr;
-                Vector2D              origin     = (*w)->m_vRealPosition.vec();
-                SExtensionFindingData data       = {origin, pos, &resultSurf};
-                wlr_xdg_surface_for_each_popup_surface((*w)->m_uSurface.xdg, findExtensionForVector2D, &data);
-
-                if (resultSurf)
+                if ((*w)->hasPopupAt(pos))
                     return w->get();
             }
         }
@@ -639,12 +620,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // for windows, we need to check their extensions too, first.
     for (auto& w : m_vWindows) {
         if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->isHidden() && !w->m_bX11ShouldntFocus) {
-            wlr_surface*          resultSurf = nullptr;
-            Vector2D              origin     = w->m_vRealPosition.vec();
-            SExtensionFindingData data       = {origin, pos, &resultSurf};
-            wlr_xdg_surface_for_each_popup_surface(w->m_uSurface.xdg, findExtensionForVector2D, &data);
-
-            if (resultSurf)
+            if ((w)->hasPopupAt(pos))
                 return w.get();
         }
     }

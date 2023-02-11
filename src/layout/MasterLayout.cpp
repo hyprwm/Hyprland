@@ -733,7 +733,7 @@ void CHyprMasterLayout::prepareNewFocus(CWindow* pWindow, bool inheritFullscreen
         return;
 
     if (inheritFullscreen)
-        g_pCompositor->setWindowFullscreen(pWindow, true, FULLSCREEN_MAXIMIZED);
+        g_pCompositor->setWindowFullscreen(pWindow, true, g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID)->m_efFullscreenMode);
 }
 
 std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {

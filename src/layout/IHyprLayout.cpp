@@ -174,17 +174,15 @@ void IHyprLayout::onBeginDragWindow() {
 
     // get the grab corner
     if (m_vBeginDragXY.x < m_vBeginDragPositionXY.x + m_vBeginDragSizeXY.x / 2.0) {
-        // left
         if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0)
-            m_iGrabbedCorner = 0;
+            m_eGrabbedCorner = CORNER_TOPLEFT;
         else
-            m_iGrabbedCorner = 4;
+            m_eGrabbedCorner = CORNER_BOTTOMLEFT;
     } else {
-        // right
         if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0)
-            m_iGrabbedCorner = 1;
+            m_eGrabbedCorner = CORNER_TOPRIGHT;
         else
-            m_iGrabbedCorner = 3;
+            m_eGrabbedCorner = CORNER_BOTTOMRIGHT;
     }
 
     g_pInputManager->setCursorImageUntilUnset("grab");
@@ -258,20 +256,18 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             Vector2D newSize = m_vBeginDragSizeXY;
             Vector2D newPos  = m_vBeginDragPositionXY;
 
-            if (m_iGrabbedCorner == 3) {
-                newSize = newSize + DELTA;
-            } else if (m_iGrabbedCorner == 0) {
-                newSize = newSize - DELTA;
-                newPos  = newPos + DELTA;
-            } else if (m_iGrabbedCorner == 1) {
-                newSize = newSize + Vector2D(DELTA.x, -DELTA.y);
-                newPos  = newPos + Vector2D(0, DELTA.y);
-            } else if (m_iGrabbedCorner == 4) {
-                newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
-                newPos  = newPos + Vector2D(DELTA.x, 0);
+            if (m_eGrabbedCorner == CORNER_BOTTOMRIGHT) {
+                newSize = (newSize + DELTA).clamp(Vector2D(20, 20), MAXSIZE);
+            } else if (m_eGrabbedCorner == CORNER_TOPLEFT) {
+                newSize = (newSize - DELTA).clamp(Vector2D(20, 20), MAXSIZE);
+                newPos  = newPos - newSize + m_vBeginDragSizeXY;
+            } else if (m_eGrabbedCorner == CORNER_TOPRIGHT) {
+                newSize = (newSize + Vector2D(DELTA.x, -DELTA.y)).clamp(Vector2D(20, 20), MAXSIZE);
+                newPos  = newPos + Vector2D(0, (m_vBeginDragSizeXY - newSize).y);
+            } else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT) {
+                newSize = (newSize + Vector2D(-DELTA.x, DELTA.y)).clamp(Vector2D(20, 20), MAXSIZE);
+                newPos  = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0);
             }
-
-            newSize = newSize.clamp(Vector2D(20, 20), MAXSIZE);
 
             if (*PANIMATE) {
                 DRAGGINGWINDOW->m_vRealSize     = newSize;

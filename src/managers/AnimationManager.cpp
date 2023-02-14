@@ -70,6 +70,8 @@ void CAnimationManager::tick() {
             animationsDisabled = animationsDisabled || PLAYER->noAnimations;
         }
 
+        const bool VISIBLE = PWINDOW ? g_pHyprRenderer->shouldRenderWindow(PWINDOW) : true;
+
         // beziers are with a switch unforto
         // TODO: maybe do something cleaner
 
@@ -142,7 +144,18 @@ void CAnimationManager::tick() {
             }
         }
 
-        // damage the window with the damage policy
+        // set size and pos if valid, but only if damage policy entire (dont if border for example)
+        if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)
+            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
+
+        // check if we did not finish animating. If so, trigger onAnimationEnd.
+        if (!av->isBeingAnimated())
+            animationEndedVars.push_back(av);
+
+        // lastly, handle damage, but only if whatever we are animating is visible.
+        if (!VISIBLE)
+            continue;
+
         switch (av->m_eDamagePolicy) {
             case AVARDAMAGE_ENTIRE: {
                 g_pHyprRenderer->damageBox(&WLRBOXPREV);
@@ -178,8 +191,9 @@ void CAnimationManager::tick() {
                 g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top
                 g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXPREV.height + 2 * BORDERSIZE); // left
                 g_pHyprRenderer->damageBox(WLRBOXPREV.x + WLRBOXPREV.width - ROUNDINGSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE,
-                                           WLRBOXPREV.height + 2 * BORDERSIZE);                                                                                          // right
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x, WLRBOXPREV.y + WLRBOXPREV.height - ROUNDINGSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE); // bottom
+                                           WLRBOXPREV.height + 2 * BORDERSIZE); // right
+                g_pHyprRenderer->damageBox(WLRBOXPREV.x, WLRBOXPREV.y + WLRBOXPREV.height - ROUNDINGSIZE, WLRBOXPREV.width + 2 * BORDERSIZE,
+                                           BORDERSIZE + ROUNDINGSIZE); // bottom
 
                 // damage for new box
                 const wlr_box WLRBOXNEW = {PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y};
@@ -228,17 +242,9 @@ void CAnimationManager::tick() {
             }
         }
 
-        // set size and pos if valid, but only if damage policy entire (dont if border for example)
-        if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)
-            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
-
         // manually schedule a frame
         if (PMONITOR)
             g_pCompositor->scheduleFrameForMonitor(PMONITOR);
-
-        // check if we did not finish animating. If so, trigger onAnimationEnd.
-        if (!av->isBeingAnimated())
-            animationEndedVars.push_back(av);
     }
 
     // do it here, because if this alters the animation vars deque we would be in trouble above.

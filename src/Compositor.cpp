@@ -1957,6 +1957,8 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
 
     // DMAbuf stuff for direct scanout
     g_pHyprRenderer->setWindowScanoutMode(pWindow);
+
+    g_pConfigManager->ensureVRR(PMONITOR);
 }
 
 void CCompositor::moveUnmanagedX11ToWindows(CWindow* pWindow) {

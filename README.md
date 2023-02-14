@@ -130,7 +130,7 @@ Although Hyprland is pretty stable, it may have some bugs.
 
 [Contribute]: https://wiki.hyprland.org/Contributing-and-Debugging/
 [Install]: https://wiki.hyprland.org/Getting-Started/Installation/
-[Quick Start]: https://wiki.hyprland.org/Getting-Started/Quick-start/
+[Quick Start]: https://wiki.hyprland.org/Getting-Started/Master-Tutorial/
 [License]: LICENSE
 
 

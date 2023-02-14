@@ -51,7 +51,8 @@ void CConfigManager::setDefaultVars() {
 
     configValues["misc:disable_hyprland_logo"].intValue      = 0;
     configValues["misc:disable_splash_rendering"].intValue   = 0;
-    configValues["misc:no_vfr"].intValue                     = 1;
+    configValues["misc:vfr"].intValue                        = 1;
+    configValues["misc:vrr"].intValue                        = 0;
     configValues["misc:mouse_move_enables_dpms"].intValue    = 0;
     configValues["misc:always_follow_on_dnd"].intValue       = 1;
     configValues["misc:layers_hog_keyboard_focus"].intValue  = 1;
@@ -1692,35 +1693,61 @@ void CConfigManager::ensureDPMS() {
 }
 
 void CConfigManager::ensureVRR(CMonitor* pMonitor) {
-    static auto* const PNOVRR = &getConfigValuePtr("misc:no_vfr")->intValue;
+    static auto* const PVRR = &getConfigValuePtr("misc:vrr")->intValue;
 
-    auto               ensureVRRForDisplay = [&](CMonitor* m) -> void {
-        if (!*PNOVRR && !m->vrrActive) {
-            // Adaptive sync (VRR)
-            wlr_output_enable_adaptive_sync(m->output, 1);
-
-            if (!wlr_output_test(m->output)) {
-                Debug::log(LOG, "Pending output %s does not accept VRR.", m->output->name);
+    static auto        ensureVRRForDisplay = [&](CMonitor* m) -> void {
+        if (*PVRR == 0) {
+            if (m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
-            }
 
-            if (!wlr_output_commit(m->output)) {
-                Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
+                if (!wlr_output_commit(m->output)) {
+                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
+                }
             }
+            m->vrrActive = false;
+            return;
+        } else if (*PVRR == 1) {
+            if (!m->vrrActive) {
+                wlr_output_enable_adaptive_sync(m->output, 1);
 
+                if (!wlr_output_test(m->output)) {
+                    Debug::log(LOG, "Pending output %s does not accept VRR.", m->output->name);
+                    wlr_output_enable_adaptive_sync(m->output, 0);
+                }
+
+                if (!wlr_output_commit(m->output)) {
+                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
+                }
+            }
+            m->vrrActive = true;
+            return;
+        } else if (*PVRR == 2) {
+            /* fullscreen */
             m->vrrActive = true;
 
-            Debug::log(LOG, "VRR ensured on %s -> true", m->output->name);
-        } else if (*PNOVRR && m->vrrActive) {
-            wlr_output_enable_adaptive_sync(m->output, 0);
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m->activeWorkspace);
 
-            if (!wlr_output_commit(m->output)) {
-                Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
+            if (!PWORKSPACE)
+                return; // ???
+
+            if (PWORKSPACE->m_bHasFullscreenWindow && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED) {
+                wlr_output_enable_adaptive_sync(m->output, 1);
+
+                if (!wlr_output_test(m->output)) {
+                    Debug::log(LOG, "Pending output %s does not accept VRR.", m->output->name);
+                    wlr_output_enable_adaptive_sync(m->output, 0);
+                }
+
+                if (!wlr_output_commit(m->output)) {
+                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
+                }
+            } else if (!PWORKSPACE->m_bHasFullscreenWindow && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
+                wlr_output_enable_adaptive_sync(m->output, 0);
+
+                if (!wlr_output_commit(m->output)) {
+                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
+                }
             }
-
-            m->vrrActive = false;
-
-            Debug::log(LOG, "VRR ensured on %s -> false", m->output->name);
         }
     };
 

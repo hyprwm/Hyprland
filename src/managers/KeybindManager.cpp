@@ -58,6 +58,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["mouse"]                         = mouse;
     m_mDispatchers["bringactivetotop"]              = bringActiveToTop;
     m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
+    m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
 
     m_tScrollTimer.reset();
 }
@@ -1146,6 +1147,41 @@ void CKeybindManager::focusUrgentOrLast(std::string args) {
     };
 
     switchToWindow(PWINDOWURGENT ? PWINDOWURGENT : PWINDOWPREV);
+}
+
+void CKeybindManager::focusCurrentOrLast(std::string args) {
+    const auto PWINDOWPREV   = g_pCompositor->m_pLastWindow ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1]) :
+                                                              (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0]);
+
+    if (!PWINDOWPREV)
+        return;
+
+    // remove constraints
+    g_pInputManager->unconstrainMouse();
+
+    auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
+        if (PWINDOWTOCHANGETO == g_pCompositor->m_pLastWindow || !PWINDOWTOCHANGETO)
+            return;
+
+        if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsFullscreen) {
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
+            const auto FSMODE     = PWORKSPACE->m_efFullscreenMode;
+
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(g_pCompositor->m_pLastWindow, false, FULLSCREEN_FULL);
+
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
+        } else {
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+            Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
+            g_pCompositor->warpCursorTo(middle);
+        }
+    };
+
+    switchToWindow(PWINDOWPREV);
 }
 
 void CKeybindManager::moveActiveTo(std::string args) {

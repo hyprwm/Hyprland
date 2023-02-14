@@ -313,7 +313,7 @@ void CWindow::onBorderAngleAnimEnd(void* ptr) {
 
     const std::string STYLE = PANIMVAR->getConfig()->pValues->internalStyle;
 
-    if (STYLE != "loop")
+    if (STYLE != "loop" || !PANIMVAR->getConfig()->pValues->internalEnabled)
         return;
 
     PANIMVAR->setCallbackOnEnd(nullptr); // we remove the callback here because otherwise setvalueandwarp will recurse this

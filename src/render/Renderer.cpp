@@ -1196,9 +1196,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     }
 
     // don't touch VR headsets
-    if (pMonitor->output->non_desktop) {
+    if (pMonitor->output->non_desktop)
         return true;
-    }
 
     if (!pMonitor->m_bEnabled) {
         pMonitor->onConnect(true); // enable it.

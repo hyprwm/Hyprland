@@ -7,6 +7,11 @@
 #include "SubsurfaceTree.hpp"
 #include "AnimatedVariable.hpp"
 
+struct SLayerRule {
+    std::string targetNamespace = "";
+    std::string rule            = "";
+};
+
 struct SLayerSurface {
     SLayerSurface();
 
@@ -33,25 +38,27 @@ struct SLayerSurface {
     bool                      fadingOut     = false;
     bool                      readyToDelete = false;
     bool                      noProcess     = false;
+    bool                      noAnimations  = false;
 
     bool                      forceBlur = false;
 
     // For the list lookup
-    bool operator==(const SLayerSurface& rhs) {
+    bool operator==(const SLayerSurface& rhs) const {
         return layerSurface == rhs.layerSurface && monitorID == rhs.monitorID;
     }
 };
 
+class CMonitor;
+
 struct SRenderData {
-    wlr_output* output;
-    timespec*   when;
-    int         x, y;
+    CMonitor* pMonitor;
+    timespec* when;
+    int       x, y;
 
     // for iters
     void*        data    = nullptr;
     wlr_surface* surface = nullptr;
     int          w, h;
-    void*        pMonitor = nullptr;
 
     // for rounding
     bool dontRound = true;
@@ -116,7 +123,7 @@ struct SKeyboard {
     int                numlockOn   = -1;
 
     // For the list lookup
-    bool operator==(const SKeyboard& rhs) {
+    bool operator==(const SKeyboard& rhs) const {
         return keyboard == rhs.keyboard;
     }
 };
@@ -138,7 +145,7 @@ struct SMouse {
     DYNLISTENER(commitConstraint);
     DYNLISTENER(destroyMouse);
 
-    bool operator==(const SMouse& b) {
+    bool operator==(const SMouse& b) const {
         return mouse == b.mouse;
     }
 };
@@ -153,7 +160,7 @@ struct SConstraint {
     DYNLISTENER(setConstraintRegion);
     DYNLISTENER(destroyConstraint);
 
-    bool operator==(const SConstraint& b) {
+    bool operator==(const SConstraint& b) const {
         return constraint == b.constraint;
     }
 };
@@ -178,7 +185,7 @@ struct SXDGPopup {
     SSurfaceTreeNode* pSurfaceTree = nullptr;
 
     // For the list lookup
-    bool operator==(const SXDGPopup& rhs) {
+    bool operator==(const SXDGPopup& rhs) const {
         return popup == rhs.popup;
     }
 };
@@ -222,7 +229,7 @@ struct STablet {
 
     std::string           name = "";
 
-    bool                  operator==(const STablet& b) {
+    bool                  operator==(const STablet& b) const {
         return wlrDevice == b.wlrDevice;
     }
 };
@@ -245,7 +252,7 @@ struct STabletTool {
     DYNLISTENER(TabletToolDestroy);
     DYNLISTENER(TabletToolSetCursor);
 
-    bool operator==(const STabletTool& b) {
+    bool operator==(const STabletTool& b) const {
         return wlrTabletTool == b.wlrTabletTool;
     }
 };
@@ -263,7 +270,7 @@ struct STabletPad {
     DYNLISTENER(Ring);
     DYNLISTENER(Destroy);
 
-    bool operator==(const STabletPad& b) {
+    bool operator==(const STabletPad& b) const {
         return wlrTabletPadV2 == b.wlrTabletPadV2;
     }
 };
@@ -274,7 +281,7 @@ struct SIdleInhibitor {
 
     DYNLISTENER(Destroy);
 
-    bool operator==(const SIdleInhibitor& b) {
+    bool operator==(const SIdleInhibitor& b) const {
         return pWlrInhibitor == b.pWlrInhibitor;
     }
 };
@@ -326,7 +333,7 @@ struct SIMEPopup {
 
     DYNLISTENER(focusedSurfaceUnmap);
 
-    bool operator==(const SIMEPopup& other) {
+    bool operator==(const SIMEPopup& other) const {
         return pSurface == other.pSurface;
     }
 };
@@ -340,7 +347,7 @@ struct STouchDevice {
 
     DYNLISTENER(destroy);
 
-    bool operator==(const STouchDevice& other) {
+    bool operator==(const STouchDevice& other) const {
         return pWlrDevice == other.pWlrDevice;
     }
 };
@@ -351,7 +358,7 @@ struct SSwitchDevice {
     DYNLISTENER(destroy);
     DYNLISTENER(toggle);
 
-    bool operator==(const SSwitchDevice& other) {
+    bool operator==(const SSwitchDevice& other) const {
         return pWlrDevice == other.pWlrDevice;
     }
 };

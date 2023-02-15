@@ -25,6 +25,24 @@ struct STouchData {
     Vector2D       touchSurfaceOrigin;
 };
 
+// The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
+static const float MATRICES[8][6] = {{// normal
+                                      1, 0, 0, 0, 1, 0},
+                                     {// rotation 90°
+                                      0, -1, 1, 1, 0, 0},
+                                     {// rotation 180°
+                                      -1, 0, 1, 0, -1, 1},
+                                     {// rotation 270°
+                                      0, 1, 0, -1, 0, 1},
+                                     {// flipped
+                                      -1, 0, 1, 0, 1, 0},
+                                     {// flipped + rotation 90°
+                                      0, 1, 0, 1, 0, 0},
+                                     {// flipped + rotation 180°
+                                      1, 0, 0, 0, -1, 1},
+                                     {// flipped + rotation 270°
+                                      0, -1, 1, -1, 0, 1}};
+
 class CKeybindManager;
 
 class CInputManager {
@@ -54,6 +72,7 @@ class CInputManager {
 
     Vector2D           getMouseCoordsInternal();
     void               refocus();
+    void               simulateMouseMovement();
 
     void               setKeyboardLayout();
     void               setPointerConfigs();
@@ -135,6 +154,14 @@ class CInputManager {
     std::string deviceNameToInternalString(std::string);
     std::string getNameForNewDevice(std::string);
 
+    void        releaseAllMouseButtons();
+
+    // for some bugs in follow mouse 0
+    bool m_bLastFocusOnLS = false;
+
+    // for hiding cursor on touch
+    bool m_bLastInputTouch = false;
+
   private:
     bool m_bCursorImageOverriden = false;
 
@@ -143,26 +170,26 @@ class CInputManager {
     bool               m_bEmptyFocusCursorSet  = false;
     Vector2D           m_vLastCursorPosFloored = Vector2D();
 
-    // for some bugs in follow mouse 0
-    bool         m_bLastFocusOnLS = false;
+    void               processMouseDownNormal(wlr_pointer_button_event* e);
+    void               processMouseDownKill(wlr_pointer_button_event* e);
 
-    void         processMouseDownNormal(wlr_pointer_button_event* e);
-    void         processMouseDownKill(wlr_pointer_button_event* e);
+    void               disableAllKeyboards(bool virt = false);
 
-    void         disableAllKeyboards(bool virt = false);
+    uint32_t           m_uiCapabilities = 0;
 
-    uint32_t     m_uiCapabilities = 0;
+    void               mouseMoveUnified(uint32_t, bool refocus = false);
 
-    void         mouseMoveUnified(uint32_t, bool refocus = false);
+    STabletTool*       ensureTabletToolPresent(wlr_tablet_tool*);
 
-    STabletTool* ensureTabletToolPresent(wlr_tablet_tool*);
-
-    void         applyConfigToKeyboard(SKeyboard*);
+    void               applyConfigToKeyboard(SKeyboard*);
 
     // this will be set after a refocus()
     wlr_surface*   m_pFoundSurfaceToFocus = nullptr;
     SLayerSurface* m_pFoundLSToFocus      = nullptr;
     CWindow*       m_pFoundWindowToFocus  = nullptr;
+
+    // for releasing mouse buttons
+    std::list<uint32_t> m_lCurrentlyHeldButtons;
 
     // swipe
     void beginWorkspaceSwipe();

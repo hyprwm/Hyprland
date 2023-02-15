@@ -460,7 +460,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
                                                       bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
-    
+
     alpha = std::clamp(alpha, 0.f, 1.f);
 
     if (!pixman_region32_not_empty(m_RenderData.pDamage))
@@ -733,17 +733,18 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         if (pWindow->m_sAdditionalConfigData.forceNoBlur)
             return false;
 
-        const auto PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+        const auto  PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
 
-        if (PSURFACE->opaque)
-            return false;
-
-        pixman_region32_t inverseOpaque;
-        pixman_region32_init(&inverseOpaque);
         const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
         const float A          = pWindow->m_fAlpha.fl() * pWindow->m_fActiveInactiveAlpha.fl() * PWORKSPACE->m_fAlpha.fl();
 
         if (A >= 1.f) {
+            if (PSURFACE->opaque)
+                return false;
+
+            pixman_region32_t inverseOpaque;
+            pixman_region32_init(&inverseOpaque);
+
             pixman_box32_t surfbox = {0, 0, PSURFACE->current.width, PSURFACE->current.height};
             pixman_region32_copy(&inverseOpaque, &PSURFACE->current.opaque);
             pixman_region32_inverse(&inverseOpaque, &inverseOpaque, &surfbox);
@@ -753,9 +754,9 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
                 pixman_region32_fini(&inverseOpaque);
                 return false;
             }
-        }
 
-        pixman_region32_fini(&inverseOpaque);
+            pixman_region32_fini(&inverseOpaque);
+        }
 
         return true;
     };
@@ -856,6 +857,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         pixman_region32_init_rect(&inverseOpaque, 0, 0, pBox->width, pBox->height);
     }
 
+    wlr_region_scale(&inverseOpaque, &inverseOpaque, m_RenderData.pMonitor->scale);
+
     //                                                                        vvv TODO: layered blur fbs?
     const bool USENEWOPTIMIZE =
         (*PBLURNEWOPTIMIZE && !blockBlurOptimization && ((m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating) || *PBLURXRAY) &&
@@ -863,12 +866,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
-        if (pSurface->current.scale != 1) {
-            // wlroots prohibits shrinking a region
-            // TODO: just shrink
-            pixman_region32_union_rect(&inverseOpaque, &inverseOpaque, 0, 0, pBox->width, pBox->height);
-        }
-
         pixman_region32_translate(&inverseOpaque, pBox->x, pBox->y);
 
         pixman_region32_intersect(&inverseOpaque, &inverseOpaque, &damage);

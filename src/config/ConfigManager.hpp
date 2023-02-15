@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <regex>
 #include "../Window.hpp"
+#include "../helpers/WLClasses.hpp"
 
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
@@ -152,8 +153,11 @@ class CConfigManager {
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
 
     std::vector<SWindowRule>                                        getMatchingRules(CWindow*);
+    std::vector<SLayerRule>                                         getMatchingRules(SLayerSurface*);
 
     std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
+
+    std::unordered_map<std::string, SAnimationPropertyConfig>       getAnimationConfig();
 
     // no-op when done.
     void                      dispatchExecOnce();
@@ -198,6 +202,7 @@ class CConfigManager {
 
     std::deque<SMonitorRule>                                                       m_dMonitorRules;
     std::deque<SWindowRule>                                                        m_dWindowRules;
+    std::deque<SLayerRule>                                                         m_dLayerRules;
     std::deque<std::string>                                                        m_dBlurLSNamespaces;
 
     bool                                                                           firstExecDispatched = false;
@@ -209,6 +214,7 @@ class CConfigManager {
     void         setDeviceDefaultVars(const std::string&);
 
     void         setAnimForChildren(SAnimationPropertyConfig* const);
+    void         updateBlurredLS(const std::string&, const bool);
 
     void         applyUserDefinedVars(std::string&, const size_t);
     void         loadConfigLoadVars();
@@ -222,6 +228,7 @@ class CConfigManager {
     void         handleBind(const std::string&, const std::string&);
     void         handleUnbind(const std::string&, const std::string&);
     void         handleWindowRule(const std::string&, const std::string&);
+    void         handleLayerRule(const std::string&, const std::string&);
     void         handleWindowRuleV2(const std::string&, const std::string&);
     void         handleDefaultWorkspace(const std::string&, const std::string&);
     void         handleBezier(const std::string&, const std::string&);

@@ -63,8 +63,17 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
             pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
         }
 
-        pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goalv().x) / 2.f,
-                                            PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goalv().y) / 2.f);
+        if (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect) {
+
+            if (pWindow->m_uSurface.xwayland->x != 0 && pWindow->m_uSurface.xwayland->y != 0)
+                pWindow->m_vRealPosition = Vector2D{pWindow->m_uSurface.xwayland->x, pWindow->m_uSurface.xwayland->y};
+            else
+                pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goalv().x) / 2.f,
+                                                    PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goalv().y) / 2.f);
+        } else {
+            pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goalv().x) / 2.f,
+                                                PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goalv().y) / 2.f);
+        }
     } else {
         // we respect the size.
         pWindow->m_vRealSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
@@ -108,7 +117,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
     }
 
-    if (pWindow->m_bX11DoesntWantBorders) {
+    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect)) {
         pWindow->m_vRealPosition.setValue(pWindow->m_vRealPosition.goalv());
         pWindow->m_vRealSize.setValue(pWindow->m_vRealSize.goalv());
     }
@@ -128,11 +137,13 @@ void IHyprLayout::onBeginDragWindow() {
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
         Debug::log(ERR, "Dragging attempted on an invalid window!");
+        g_pInputManager->currentlyDraggedWindow = nullptr;
         return;
     }
 
     if (DRAGGINGWINDOW->m_bIsFullscreen) {
         Debug::log(LOG, "Rejecting drag on a fullscreen window.");
+        g_pInputManager->currentlyDraggedWindow = nullptr;
         return;
     }
 
@@ -140,10 +151,9 @@ void IHyprLayout::onBeginDragWindow() {
 
     if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
         Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
+        g_pInputManager->currentlyDraggedWindow = nullptr;
         return;
     }
-
-    g_pInputManager->setCursorImageUntilUnset("hand1");
 
     DRAGGINGWINDOW->m_bDraggingTiled = false;
 
@@ -164,18 +174,18 @@ void IHyprLayout::onBeginDragWindow() {
 
     // get the grab corner
     if (m_vBeginDragXY.x < m_vBeginDragPositionXY.x + m_vBeginDragSizeXY.x / 2.0) {
-        // left
         if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0)
-            m_iGrabbedCorner = 0;
+            m_eGrabbedCorner = CORNER_TOPLEFT;
         else
-            m_iGrabbedCorner = 4;
+            m_eGrabbedCorner = CORNER_BOTTOMLEFT;
     } else {
-        // right
         if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0)
-            m_iGrabbedCorner = 1;
+            m_eGrabbedCorner = CORNER_TOPRIGHT;
         else
-            m_iGrabbedCorner = 3;
+            m_eGrabbedCorner = CORNER_BOTTOMRIGHT;
     }
+
+    g_pInputManager->setCursorImageUntilUnset("grab");
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
@@ -246,20 +256,18 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             Vector2D newSize = m_vBeginDragSizeXY;
             Vector2D newPos  = m_vBeginDragPositionXY;
 
-            if (m_iGrabbedCorner == 3) {
-                newSize = newSize + DELTA;
-            } else if (m_iGrabbedCorner == 0) {
-                newSize = newSize - DELTA;
-                newPos  = newPos + DELTA;
-            } else if (m_iGrabbedCorner == 1) {
-                newSize = newSize + Vector2D(DELTA.x, -DELTA.y);
-                newPos  = newPos + Vector2D(0, DELTA.y);
-            } else if (m_iGrabbedCorner == 4) {
-                newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
-                newPos  = newPos + Vector2D(DELTA.x, 0);
+            if (m_eGrabbedCorner == CORNER_BOTTOMRIGHT) {
+                newSize = (newSize + DELTA).clamp(Vector2D(20, 20), MAXSIZE);
+            } else if (m_eGrabbedCorner == CORNER_TOPLEFT) {
+                newSize = (newSize - DELTA).clamp(Vector2D(20, 20), MAXSIZE);
+                newPos  = newPos - newSize + m_vBeginDragSizeXY;
+            } else if (m_eGrabbedCorner == CORNER_TOPRIGHT) {
+                newSize = (newSize + Vector2D(DELTA.x, -DELTA.y)).clamp(Vector2D(20, 20), MAXSIZE);
+                newPos  = newPos + Vector2D(0, (m_vBeginDragSizeXY - newSize).y);
+            } else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT) {
+                newSize = (newSize + Vector2D(-DELTA.x, DELTA.y)).clamp(Vector2D(20, 20), MAXSIZE);
+                newPos  = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0);
             }
-
-            newSize = newSize.clamp(Vector2D(20, 20), MAXSIZE);
 
             if (*PANIMATE) {
                 DRAGGINGWINDOW->m_vRealSize     = newSize;
@@ -351,6 +359,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
         pWindow->m_sSpecialRenderData.rounding = true;
+        pWindow->m_sSpecialRenderData.border   = true;
+        pWindow->m_sSpecialRenderData.decorate = true;
 
         if (pWindow == m_pLastTiledWindow)
             m_pLastTiledWindow = nullptr;

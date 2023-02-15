@@ -52,18 +52,21 @@ void CConfigManager::setDefaultVars() {
 
     configValues["general:layout"].strValue = "dwindle";
 
-    configValues["misc:disable_hyprland_logo"].intValue     = 0;
-    configValues["misc:disable_splash_rendering"].intValue  = 0;
-    configValues["misc:no_vfr"].intValue                    = 1;
-    configValues["misc:mouse_move_enables_dpms"].intValue   = 0;
-    configValues["misc:always_follow_on_dnd"].intValue      = 1;
-    configValues["misc:layers_hog_keyboard_focus"].intValue = 1;
-    configValues["misc:animate_manual_resizes"].intValue    = 0;
-    configValues["misc:disable_autoreload"].intValue        = 0;
-    configValues["misc:enable_swallow"].intValue            = 0;
-    configValues["misc:swallow_regex"].strValue             = STRVAL_EMPTY;
-    configValues["misc:focus_on_activate"].intValue         = 0;
-    configValues["misc:no_direct_scanout"].intValue         = 0;
+    configValues["misc:disable_hyprland_logo"].intValue      = 0;
+    configValues["misc:disable_splash_rendering"].intValue   = 0;
+    configValues["misc:vfr"].intValue                        = 1;
+    configValues["misc:vrr"].intValue                        = 0;
+    configValues["misc:mouse_move_enables_dpms"].intValue    = 0;
+    configValues["misc:always_follow_on_dnd"].intValue       = 1;
+    configValues["misc:layers_hog_keyboard_focus"].intValue  = 1;
+    configValues["misc:animate_manual_resizes"].intValue     = 0;
+    configValues["misc:disable_autoreload"].intValue         = 0;
+    configValues["misc:enable_swallow"].intValue             = 0;
+    configValues["misc:swallow_regex"].strValue              = STRVAL_EMPTY;
+    configValues["misc:focus_on_activate"].intValue          = 0;
+    configValues["misc:no_direct_scanout"].intValue          = 0;
+    configValues["misc:hide_cursor_on_touch"].intValue       = 1;
+    configValues["misc:mouse_move_focuses_monitor"].intValue = 1;
 
     configValues["debug:int"].intValue             = 0;
     configValues["debug:log_damage"].intValue      = 0;
@@ -156,6 +159,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:natural_scroll"].intValue          = 0;
     configValues["input:touchpad:disable_while_typing"].intValue    = 1;
     configValues["input:touchpad:clickfinger_behavior"].intValue    = 0;
+    configValues["input:touchpad:tap_button_map"].strValue          = STRVAL_EMPTY;
     configValues["input:touchpad:middle_button_emulation"].intValue = 0;
     configValues["input:touchpad:tap-to-click"].intValue            = 1;
     configValues["input:touchpad:tap-and-drag"].intValue            = 1;
@@ -163,11 +167,14 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:scroll_factor"].floatValue         = 1.f;
     configValues["input:touchdevice:transform"].intValue            = 0;
     configValues["input:touchdevice:output"].strValue               = STRVAL_EMPTY;
+    configValues["input:tablet:transform"].intValue                 = 0;
+    configValues["input:tablet:output"].strValue                    = STRVAL_EMPTY;
 
     configValues["binds:pass_mouse_when_bound"].intValue    = 0;
     configValues["binds:scroll_event_delay"].intValue       = 300;
     configValues["binds:workspace_back_and_forth"].intValue = 0;
     configValues["binds:allow_workspace_cycles"].intValue   = 0;
+    configValues["binds:focus_preferred_method"].intValue   = 0;
 
     configValues["gestures:workspace_swipe"].intValue                    = 0;
     configValues["gestures:workspace_swipe_fingers"].intValue            = 3;
@@ -198,6 +205,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["repeat_rate"].intValue             = 25;
     cfgValues["repeat_delay"].intValue            = 600;
     cfgValues["natural_scroll"].intValue          = 0;
+    cfgValues["tap_button_map"].strValue          = STRVAL_EMPTY;
     cfgValues["numlock_by_default"].intValue      = 0;
     cfgValues["disable_while_typing"].intValue    = 1;
     cfgValues["clickfinger_behavior"].intValue    = 0;
@@ -219,6 +227,7 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("windows");
         INITANIMCFG("fade");
         INITANIMCFG("border");
+        INITANIMCFG("borderangle");
         INITANIMCFG("workspaces");
 
         // windows
@@ -245,6 +254,7 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("windows", "global");
     CREATEANIMCFG("fade", "global");
     CREATEANIMCFG("border", "global");
+    CREATEANIMCFG("borderangle", "global");
     CREATEANIMCFG("workspaces", "global");
 
     CREATEANIMCFG("windowsIn", "windows");
@@ -446,6 +456,13 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         if (ARGS[1] == "disable" || ARGS[1] == "disabled")
             newrule.disabled = true;
         else if (ARGS[1] == "transform") {
+            const auto TSF = std::stoi(ARGS[2]);
+            if (std::clamp(TSF, 0, 7) != TSF) {
+                Debug::log(ERR, "invalid transform %i in monitor", TSF);
+                parseError = "invalid transform";
+                return;
+            }
+
             wl_output_transform transform = (wl_output_transform)std::stoi(ARGS[2]);
 
             // overwrite if exists
@@ -714,11 +731,6 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
         return;
     }
 
-    if (KEY == "exclam" || KEY == "asciicircum" || KEY == "at") { // just some
-        parseError = "Your config contains (probably) wrong keys. The SHIFT keysym behavior has changed after v0.10.3beta. Please consult the wiki (Advanced configuring -> binds)";
-        return;
-    }
-
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
             g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
@@ -745,6 +757,10 @@ bool windowRuleValid(const std::string& RULE) {
              RULE.find("rounding") != 0 && RULE.find("workspace") != 0 && RULE.find("bordercolor") != 0);
 }
 
+bool layerRuleValid(const std::string& RULE) {
+    return !(RULE != "noanim");
+}
+
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
     const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
     const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
@@ -767,6 +783,29 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
     }
 
     m_dWindowRules.push_back({RULE, VALUE});
+}
+
+void CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
+    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
+
+    // check rule and value
+    if (RULE == "" || VALUE == "") {
+        return;
+    }
+
+    if (RULE == "unset") {
+        std::erase_if(m_dLayerRules, [&](const SLayerRule& other) { return other.targetNamespace == VALUE; });
+        return;
+    }
+
+    if (!layerRuleValid(RULE)) {
+        Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
+        parseError = "Invalid rule found: " + RULE;
+        return;
+    }
+
+    m_dLayerRules.push_back({VALUE, RULE});
 }
 
 void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
@@ -889,14 +928,27 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     m_dWindowRules.push_back(rule);
 }
 
+void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBlur) {
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto& lsl : m->m_aLayerSurfaceLayers) {
+            for (auto& ls : lsl) {
+                if (ls->szNamespace == name)
+                    ls->forceBlur = forceBlur;
+            }
+        }
+    }
+}
+
 void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
     if (value.find("remove,") == 0) {
         const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
-        std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; });
+        if (std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; }))
+            updateBlurredLS(TOREMOVE, false);
         return;
     }
 
     m_dBlurLSNamespaces.emplace_back(value);
+    updateBlurredLS(value, true);
 }
 
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
@@ -1014,6 +1066,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleWindowRule(COMMAND, VALUE);
     else if (COMMAND == "windowrulev2")
         handleWindowRuleV2(COMMAND, VALUE);
+    else if (COMMAND == "layerrule")
+        handleLayerRule(COMMAND, VALUE);
     else if (COMMAND == "bezier")
         handleBezier(COMMAND, VALUE);
     else if (COMMAND == "animation")
@@ -1092,10 +1146,7 @@ void CConfigManager::parseLine(std::string& line) {
         startPos++;
     }
 
-    // remove shit at the beginning
-    while (line[0] == ' ' || line[0] == '\t') {
-        line = line.substr(1);
-    }
+    line = removeBeginEndSpacesTabs(line);
 
     if (line.contains(" {")) {
         auto cat = line.substr(0, line.find(" {"));
@@ -1287,9 +1338,13 @@ void CConfigManager::loadConfigLoadVars() {
 }
 
 void CConfigManager::tick() {
-    static const char* const ENVHOME = getenv("HOME");
-
-    const std::string        CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    std::string CONFIGPATH;
+    if (g_pCompositor->explicitConfigPath.empty()) {
+        static const char* const ENVHOME = getenv("HOME");
+        CONFIGPATH                       = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    } else {
+        CONFIGPATH = g_pCompositor->explicitConfigPath;
+    }
 
     if (!std::filesystem::exists(CONFIGPATH)) {
         Debug::log(ERR, "Config doesn't exist??");
@@ -1348,7 +1403,8 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
             if (foundIt == std::string::npos)
                 continue;
 
-            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + cv.first || cv.first == "input:touchdevice:" + val) {
+            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + cv.first || cv.first == "input:touchdevice:" + val || cv.first == "input:tablet:" + cv.first ||
+                cv.first == "input:tablet:" + val) {
                 copy = cv.second;
             }
         }
@@ -1529,6 +1585,22 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
     return returns;
 }
 
+std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
+    std::vector<SLayerRule> returns;
+
+    for (auto& lr : m_dLayerRules) {
+        std::regex NSCHECK(lr.targetNamespace);
+
+        if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
+            continue;
+
+        // hit
+        returns.push_back(lr);
+    }
+
+    return returns;
+}
+
 void CConfigManager::dispatchExecOnce() {
     if (firstExecDispatched || isFirstLaunch)
         return;
@@ -1624,35 +1696,61 @@ void CConfigManager::ensureDPMS() {
 }
 
 void CConfigManager::ensureVRR(CMonitor* pMonitor) {
-    static auto* const PNOVRR = &getConfigValuePtr("misc:no_vfr")->intValue;
+    static auto* const PVRR = &getConfigValuePtr("misc:vrr")->intValue;
 
-    auto               ensureVRRForDisplay = [&](CMonitor* m) -> void {
-        if (!*PNOVRR && !m->vrrActive) {
-            // Adaptive sync (VRR)
-            wlr_output_enable_adaptive_sync(m->output, 1);
-
-            if (!wlr_output_test(m->output)) {
-                Debug::log(LOG, "Pending output %s does not accept VRR.", m->output->name);
+    static auto        ensureVRRForDisplay = [&](CMonitor* m) -> void {
+        if (*PVRR == 0) {
+            if (m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
-            }
 
-            if (!wlr_output_commit(m->output)) {
-                Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
+                if (!wlr_output_commit(m->output)) {
+                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
+                }
             }
+            m->vrrActive = false;
+            return;
+        } else if (*PVRR == 1) {
+            if (!m->vrrActive) {
+                wlr_output_enable_adaptive_sync(m->output, 1);
 
+                if (!wlr_output_test(m->output)) {
+                    Debug::log(LOG, "Pending output %s does not accept VRR.", m->output->name);
+                    wlr_output_enable_adaptive_sync(m->output, 0);
+                }
+
+                if (!wlr_output_commit(m->output)) {
+                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
+                }
+            }
+            m->vrrActive = true;
+            return;
+        } else if (*PVRR == 2) {
+            /* fullscreen */
             m->vrrActive = true;
 
-            Debug::log(LOG, "VRR ensured on %s -> true", m->output->name);
-        } else if (*PNOVRR && m->vrrActive) {
-            wlr_output_enable_adaptive_sync(m->output, 0);
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m->activeWorkspace);
 
-            if (!wlr_output_commit(m->output)) {
-                Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
+            if (!PWORKSPACE)
+                return; // ???
+
+            if (PWORKSPACE->m_bHasFullscreenWindow && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED) {
+                wlr_output_enable_adaptive_sync(m->output, 1);
+
+                if (!wlr_output_test(m->output)) {
+                    Debug::log(LOG, "Pending output %s does not accept VRR.", m->output->name);
+                    wlr_output_enable_adaptive_sync(m->output, 0);
+                }
+
+                if (!wlr_output_commit(m->output)) {
+                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
+                }
+            } else if (!PWORKSPACE->m_bHasFullscreenWindow && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
+                wlr_output_enable_adaptive_sync(m->output, 0);
+
+                if (!wlr_output_commit(m->output)) {
+                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
+                }
             }
-
-            m->vrrActive = false;
-
-            Debug::log(LOG, "VRR ensured on %s -> false", m->output->name);
         }
     };
 
@@ -1707,4 +1805,8 @@ void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
 
 ICustomConfigValueData::~ICustomConfigValueData() {
     ; // empty
+}
+
+std::unordered_map<std::string, SAnimationPropertyConfig> CConfigManager::getAnimationConfig() {
+    return animationConfig;
 }

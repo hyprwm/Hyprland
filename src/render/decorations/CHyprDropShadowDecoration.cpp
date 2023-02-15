@@ -73,8 +73,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto ROUNDING =
-        !m_pWindow->m_sSpecialRenderData.rounding ? 0 : (m_pWindow->m_sAdditionalConfigData.rounding == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding);
+    const auto ROUNDING = !m_pWindow->m_sSpecialRenderData.rounding ?
+        0 :
+        (m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying());
 
     // draw the shadow
     wlr_box fullBox = {m_vLastWindowPos.x - *PSHADOWSIZE, m_vLastWindowPos.y - *PSHADOWSIZE, m_vLastWindowSize.x + 2.0 * *PSHADOWSIZE, m_vLastWindowSize.y + 2.0 * *PSHADOWSIZE};

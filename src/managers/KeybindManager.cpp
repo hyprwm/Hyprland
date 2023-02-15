@@ -2,6 +2,15 @@
 
 #include <regex>
 
+#include <sys/ioctl.h>
+#if defined(__linux__)
+#include <linux/vt.h>
+#elif defined(__NetBSD__) || defined(__OpenBSD__)
+#include <dev/wscons/wsdisplay_usl_io.h>
+#elif defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sys/consio.h>
+#endif
+
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
 
@@ -48,6 +57,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pin"]                           = pinActive;
     m_mDispatchers["mouse"]                         = mouse;
     m_mDispatchers["bringactivetotop"]              = bringActiveToTop;
+    m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
+    m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
 
     m_tScrollTimer.reset();
 }
@@ -449,13 +460,16 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
         // vtnr is bugged for some reason.
-        const std::string TTYSTR = execAndGet("head -n 1 /sys/devices/virtual/tty/tty0/active").substr(3);
-        unsigned int      ttynum = 0;
-        try {
-            ttynum = std::stoll(TTYSTR);
-        } catch (std::exception& e) {
-            ; // oops?
-        }
+        unsigned int ttynum = 0;
+#if defined(__linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
+        struct vt_stat st;
+        if (!ioctl(0, VT_GETSTATE, &st))
+            ttynum = st.v_active;
+#elif defined(__DragonFly__) || defined(__FreeBSD__)
+        int vt;
+        if (!ioctl(0, VT_GETACTIVE, &vt))
+            ttynum = vt;
+#endif
 
         if (ttynum == TTY)
             return true;
@@ -677,13 +691,13 @@ void CKeybindManager::changeworkspace(std::string args) {
             else
                 workspaceName = std::to_string(workspaceToChangeTo);
 
-            isSwitchingToPrevious = true;
-
             // If the previous workspace ID isn't reset, cycles can form when continually going
             // to the previous workspace again and again.
             static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
             if (!*PALLOWWORKSPACECYCLES)
                 PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
+            else
+                isSwitchingToPrevious = true;
         }
     } else {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
@@ -710,13 +724,13 @@ void CKeybindManager::changeworkspace(std::string args) {
         else
             workspaceName = std::to_string(workspaceToChangeTo);
 
-        isSwitchingToPrevious = true;
-
         // If the previous workspace ID isn't reset, cycles can form when continually going
         // to the previous workspace again and again.
         static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
         if (!*PALLOWWORKSPACECYCLES)
             PCURRENTWORKSPACE->m_iPrevWorkspaceID = -1;
+        else
+            isSwitchingToPrevious = true;
 
     } else if (PCURRENTWORKSPACE && PCURRENTWORKSPACE->m_iID == workspaceToChangeTo && !internal)
         return;
@@ -969,6 +983,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     }
 
     PWINDOW->updateToplevel();
+
+    g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
@@ -1103,6 +1119,77 @@ void CKeybindManager::moveFocusTo(std::string args) {
             switchToWindow(PWINDOWNEXT);
         }
     }
+}
+
+void CKeybindManager::focusUrgentOrLast(std::string args) {
+    const auto PWINDOWURGENT = g_pCompositor->getUrgentWindow();
+    const auto PWINDOWPREV   = g_pCompositor->m_pLastWindow ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1]) :
+                                                              (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0]);
+
+    if (!PWINDOWURGENT && !PWINDOWPREV)
+        return;
+
+    // remove constraints
+    g_pInputManager->unconstrainMouse();
+
+    auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
+        if (PWINDOWTOCHANGETO == g_pCompositor->m_pLastWindow || !PWINDOWTOCHANGETO)
+            return;
+
+        if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsFullscreen) {
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
+            const auto FSMODE     = PWORKSPACE->m_efFullscreenMode;
+
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(g_pCompositor->m_pLastWindow, false, FULLSCREEN_FULL);
+
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
+        } else {
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+            Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
+            g_pCompositor->warpCursorTo(middle);
+        }
+    };
+
+    switchToWindow(PWINDOWURGENT ? PWINDOWURGENT : PWINDOWPREV);
+}
+
+void CKeybindManager::focusCurrentOrLast(std::string args) {
+    const auto PWINDOWPREV   = g_pCompositor->m_pLastWindow ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1]) :
+                                                              (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0]);
+
+    if (!PWINDOWPREV)
+        return;
+
+    // remove constraints
+    g_pInputManager->unconstrainMouse();
+
+    auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
+        if (PWINDOWTOCHANGETO == g_pCompositor->m_pLastWindow || !PWINDOWTOCHANGETO)
+            return;
+
+        if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsFullscreen) {
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
+            const auto FSMODE     = PWORKSPACE->m_efFullscreenMode;
+
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(g_pCompositor->m_pLastWindow, false, FULLSCREEN_FULL);
+
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+
+            if (!PWINDOWTOCHANGETO->m_bPinned)
+                g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
+        } else {
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+            Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
+            g_pCompositor->warpCursorTo(middle);
+        }
+    };
+
+    switchToWindow(PWINDOWPREV);
 }
 
 void CKeybindManager::moveActiveTo(std::string args) {
@@ -1792,16 +1879,30 @@ void CKeybindManager::swapActiveWorkspaces(std::string args) {
 }
 
 void CKeybindManager::pinActive(std::string args) {
-    if (!g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow->m_bIsFloating || g_pCompositor->m_pLastWindow->m_bIsFullscreen)
+
+    CWindow* PWINDOW = nullptr;
+
+    if (args != "" && args != "active" && args.length() > 1) {
+        PWINDOW = g_pCompositor->getWindowByRegex(args);
+    } else {
+        PWINDOW = g_pCompositor->m_pLastWindow;
+    }
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "pin: window not found");
+        return;
+    }
+
+    if (!PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;
 
-    g_pCompositor->m_pLastWindow->m_bPinned      = !g_pCompositor->m_pLastWindow->m_bPinned;
-    g_pCompositor->m_pLastWindow->m_iWorkspaceID = g_pCompositor->getMonitorFromID(g_pCompositor->m_pLastWindow->m_iMonitorID)->activeWorkspace;
+    PWINDOW->m_bPinned      = !PWINDOW->m_bPinned;
+    PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
 
-    g_pCompositor->m_pLastWindow->updateDynamicRules();
-    g_pCompositor->updateWindowAnimatedDecorationValues(g_pCompositor->m_pLastWindow);
+    PWINDOW->updateDynamicRules();
+    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
     PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal());
 }

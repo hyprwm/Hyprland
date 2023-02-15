@@ -9,21 +9,95 @@
 #include "config/ConfigDataValues.hpp"
 #include "src/helpers/Vector2D.hpp"
 
-enum eIdleInhibitMode {
+enum eIdleInhibitMode
+{
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
     IDLEINHIBIT_FOCUS
 };
 
-struct SWindowSpecialRenderData {
-    bool    alphaOverride         = false;
-    float   alpha                 = 1.f;
-    bool    alphaInactiveOverride = false;
-    float   alphaInactive         = -1.f; // -1 means unset
+template <typename T>
+class CWindowOverridableVar {
+  public:
+    CWindowOverridableVar(T val) {
+        value = val;
+    }
 
-    int64_t activeBorderColor   = -1; // -1 means unset
-    int64_t inactiveBorderColor = -1; // -1 means unset
+    ~CWindowOverridableVar() = default;
+
+    CWindowOverridableVar<T>& operator=(CWindowOverridableVar<T> other) {
+        if (locked)
+            return *this;
+
+        locked = other.locked;
+        value  = other.value;
+
+        return *this;
+    }
+
+    T operator=(T& other) {
+        if (locked)
+            return value;
+        value = other;
+        return other;
+    }
+
+    void forceSetIgnoreLocked(T val, bool lock = false) {
+        value  = val;
+        locked = lock;
+    }
+
+    T operator*(T& other) {
+        return value * other;
+    }
+
+    T operator+(T& other) {
+        return value + other;
+    }
+
+    bool operator==(T& other) {
+        return other == value;
+    }
+
+    bool operator>=(T& other) {
+        return value >= other;
+    }
+
+    bool operator<=(T& other) {
+        return value <= other;
+    }
+
+    bool operator>(T& other) {
+        return value > other;
+    }
+
+    bool operator<(T& other) {
+        return value < other;
+    }
+
+    explicit operator bool() {
+        return static_cast<bool>(value);
+    }
+
+    T toUnderlying() {
+        return value;
+    }
+
+    bool locked = false;
+
+  private:
+    T value;
+};
+
+struct SWindowSpecialRenderData {
+    CWindowOverridableVar<bool>    alphaOverride         = false;
+    CWindowOverridableVar<float>   alpha                 = 1.f;
+    CWindowOverridableVar<bool>    alphaInactiveOverride = false;
+    CWindowOverridableVar<float>   alphaInactive         = -1.f; // -1 means unset
+
+    CWindowOverridableVar<int64_t> activeBorderColor   = -1; // -1 means unset
+    CWindowOverridableVar<int64_t> inactiveBorderColor = -1; // -1 means unset
 
     // set by the layout
     bool rounding = true;
@@ -32,18 +106,18 @@ struct SWindowSpecialRenderData {
 };
 
 struct SWindowAdditionalConfigData {
-    std::string animationStyle       = "";
-    int         rounding             = -1; // -1 means no
-    bool        forceNoBlur          = false;
-    bool        forceOpaque          = false;
-    bool        forceOpaqueOverriden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
-    bool        forceAllowsInput     = false;
-    bool        forceNoAnims         = false;
-    bool        forceNoBorder        = false;
-    bool        forceNoShadow        = false;
-    bool        windowDanceCompat    = false;
-    bool        noMaxSize            = false;
-    bool        dimAround            = false;
+    std::string                 animationStyle       = std::string("");
+    CWindowOverridableVar<int>  rounding             = -1; // -1 means no
+    CWindowOverridableVar<bool> forceNoBlur          = false;
+    CWindowOverridableVar<bool> forceOpaque          = false;
+    CWindowOverridableVar<bool> forceOpaqueOverriden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
+    CWindowOverridableVar<bool> forceAllowsInput     = false;
+    CWindowOverridableVar<bool> forceNoAnims         = false;
+    CWindowOverridableVar<bool> forceNoBorder        = false;
+    CWindowOverridableVar<bool> forceNoShadow        = false;
+    CWindowOverridableVar<bool> windowDanceCompat    = false;
+    CWindowOverridableVar<bool> noMaxSize            = false;
+    CWindowOverridableVar<bool> dimAround            = false;
 };
 
 struct SWindowRule {
@@ -112,6 +186,7 @@ class CWindow {
     bool        m_bIsFloating    = false;
     bool        m_bDraggingTiled = false; // for dragging around tiled windows
     bool        m_bIsFullscreen  = false;
+    bool        m_bWasMaximized  = false;
     uint64_t    m_iMonitorID     = -1;
     std::string m_szTitle        = "";
     int         m_iWorkspaceID   = -1;
@@ -146,7 +221,8 @@ class CWindow {
     // Animated border
     CGradientValueData m_cRealBorderColor         = {0};
     CGradientValueData m_cRealBorderColorPrevious = {0};
-    CAnimatedVariable  m_fBorderAnimationProgress;
+    CAnimatedVariable  m_fBorderFadeAnimationProgress;
+    CAnimatedVariable  m_fBorderAngleAnimationProgress;
 
     // Fade in-out
     CAnimatedVariable m_fAlpha;
@@ -157,6 +233,9 @@ class CWindow {
 
     // For pinned (sticky) windows
     bool m_bPinned = false;
+
+    // urgency hint
+    bool m_bIsUrgent = false;
 
     // fakefullscreen
     bool m_bFakeFullscreenState = false;
@@ -219,6 +298,8 @@ class CWindow {
     bool                   isHidden();
     void                   applyDynamicRule(const SWindowRule& r);
     void                   updateDynamicRules();
+
+    void                   onBorderAngleAnimEnd(void* ptr);
     bool                   isInCurvedCorner(double x, double y);
     bool                   hasPopupAt(const Vector2D& pos);
 

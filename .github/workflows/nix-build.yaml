@@ -10,6 +10,8 @@ jobs:
         package:
         - default
         - hyprland-no-hidpi
+        - hyprland-nvidia
+        - xdg-desktop-portal-hyprland
     steps:
     - name: Clone repository
       uses: actions/checkout@v3

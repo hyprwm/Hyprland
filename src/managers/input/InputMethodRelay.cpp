@@ -144,8 +144,8 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
     Vector2D   parentPos;
     Vector2D   parentSize;
 
-    if (wlr_surface_is_layer_surface(PFOCUSEDSURFACE)) {
-        const auto PLS = g_pCompositor->getLayerSurfaceFromWlr(wlr_layer_surface_v1_from_wlr_surface(PFOCUSEDSURFACE));
+    if (wlr_layer_surface_v1_try_from_wlr_surface(PFOCUSEDSURFACE)) {
+        const auto PLS = g_pCompositor->getLayerSurfaceFromWlr(wlr_layer_surface_v1_try_from_wlr_surface(PFOCUSEDSURFACE));
 
         if (PLS) {
             parentPos  = Vector2D(PLS->geometry.x, PLS->geometry.y) + g_pCompositor->getMonitorFromID(PLS->monitorID)->vecPosition;
@@ -191,6 +191,9 @@ void Events::listener_mapInputPopup(void* owner, void* data) {
     Debug::log(LOG, "Mapped an IME Popup");
 
     g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
+
+    if (const auto PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D(PPOPUP->realX, PPOPUP->realY) + PPOPUP->lastSize / 2.f); PMONITOR)
+        wlr_surface_send_enter(PPOPUP->pSurface->surface, PMONITOR->output);
 }
 
 void Events::listener_unmapInputPopup(void* owner, void* data) {
@@ -240,8 +243,8 @@ void CInputMethodRelay::damagePopup(SIMEPopup* pPopup) {
 
     const auto PFOCUSEDSURFACE = PFOCUSEDTI->pWlrInput->focused_surface;
 
-    if (wlr_surface_is_layer_surface(PFOCUSEDSURFACE)) {
-        const auto PLS = g_pCompositor->getLayerSurfaceFromWlr(wlr_layer_surface_v1_from_wlr_surface(PFOCUSEDSURFACE));
+    if (wlr_layer_surface_v1_try_from_wlr_surface(PFOCUSEDSURFACE)) {
+        const auto PLS = g_pCompositor->getLayerSurfaceFromWlr(wlr_layer_surface_v1_try_from_wlr_surface(PFOCUSEDSURFACE));
 
         if (PLS) {
             parentPos = Vector2D(PLS->geometry.x, PLS->geometry.y) + g_pCompositor->getMonitorFromID(PLS->monitorID)->vecPosition;

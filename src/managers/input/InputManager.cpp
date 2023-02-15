@@ -21,12 +21,25 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     mouseMoveUnified(e->time_msec);
 
     m_tmrLastCursorMovement.reset();
+
+    m_bLastInputTouch = false;
 }
 
 void CInputManager::onMouseWarp(wlr_pointer_motion_absolute_event* e) {
     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, &e->pointer->base, e->x, e->y);
 
     mouseMoveUnified(e->time_msec);
+
+    m_tmrLastCursorMovement.reset();
+
+    m_bLastInputTouch = false;
+}
+
+void CInputManager::simulateMouseMovement() {
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    m_vLastCursorPosFloored = m_vLastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
+    mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000);
 
     m_tmrLastCursorMovement.reset();
 }
@@ -37,6 +50,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PFOLLOWONDND      = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
     static auto* const PHOGFOCUS         = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
     static auto* const PFLOATBEHAVIOR    = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
+    static auto* const PMOUSEFOCUSMON    = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_focuses_monitor")->intValue;
     static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_borders")->intValue;
     static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
@@ -77,7 +91,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // constraints
     // All constraints TODO: multiple mice?
-    if (g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient) {
+    if (g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient && !g_pSessionLockManager->isSessionLocked()) {
         // XWayland windows sometimes issue constraints weirdly.
         // TODO: We probably should search their parent. wlr_xwayland_surface->parent
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
@@ -132,7 +146,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
-    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor) {
+    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && (*PMOUSEFOCUSMON || refocus)) {
         g_pCompositor->setActiveMonitor(PMONITOR);
 
         // set active workspace and deactivate all other in wlr
@@ -141,12 +155,22 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         ACTIVEWORKSPACE->setActive(true);
     }
 
+    if (g_pSessionLockManager->isSessionLocked()) {
+        const auto PSLS = PMONITOR ? g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID) : nullptr;
+
+        if (!PSLS)
+            return;
+
+        foundSurface = PSLS->pWlrLockSurface->surface;
+        surfacePos   = PMONITOR->vecPosition;
+    }
+
     // overlay is above fullscreen
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
 
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
 
     // then, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
@@ -217,20 +241,23 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // then surfaces below
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords, &pFoundLayerSurface);
 
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface =
+            g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
     g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor);
 
     if (!foundSurface) {
         if (!m_bEmptyFocusCursorSet) {
-            // TODO: maybe wrap?
-            if (m_ecbClickBehavior == CLICKMODE_KILL)
-                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
-            else
-                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+            if (g_pHyprRenderer->m_bHasARenderedCursor) {
+                // TODO: maybe wrap?
+                if (m_ecbClickBehavior == CLICKMODE_KILL)
+                    wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
+                else
+                    wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+            }
 
             m_bEmptyFocusCursorSet = true;
         }
@@ -332,6 +359,14 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
     m_tmrLastCursorMovement.reset();
+
+    if (e->state == WLR_BUTTON_PRESSED) {
+        m_lCurrentlyHeldButtons.push_back(e->button);
+    } else {
+        if (std::find_if(m_lCurrentlyHeldButtons.begin(), m_lCurrentlyHeldButtons.end(), [&](const auto& other) { return other == e->button; }) == m_lCurrentlyHeldButtons.end())
+            return;
+        std::erase_if(m_lCurrentlyHeldButtons, [&](const auto& other) { return other == e->button; });
+    }
 
     switch (m_ecbClickBehavior) {
         case CLICKMODE_DEFAULT: processMouseDownNormal(e); break;
@@ -753,6 +788,14 @@ void CInputManager::setPointerConfigs() {
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);
                 else
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
+
+                const auto TAP_MAP = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "tap_button_map") : g_pConfigManager->getString("input:touchpad:tap_button_map");
+                if (TAP_MAP == "" || TAP_MAP == "lrm")
+                    libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LRM);
+                else if (TAP_MAP == "lmr")
+                    libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LMR);
+                else
+                    Debug::log(WARN, "Tap button mapping unknown");
             }
 
             const auto SCROLLMETHOD = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "scroll_method") : g_pConfigManager->getString("input:scroll_method");
@@ -1162,23 +1205,6 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 }
 
 void CInputManager::setTouchDeviceConfigs() {
-    // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
-    static const float MATRICES[8][6] = {{// normal
-                                          1, 0, 0, 0, 1, 0},
-                                         {// rotation 90°
-                                          0, -1, 1, 1, 0, 0},
-                                         {// rotation 180°
-                                          -1, 0, 1, 0, -1, 1},
-                                         {// rotation 270°
-                                          0, 1, 0, -1, 0, 1},
-                                         {// flipped
-                                          -1, 0, 1, 0, 1, 0},
-                                         {// flipped + rotation 90°
-                                          0, 1, 0, 1, 0, 0},
-                                         {// flipped + rotation 180°
-                                          1, 0, 0, 0, -1, 1},
-                                         {// flipped + rotation 270°
-                                          0, -1, 1, -1, 0, 1}};
     for (auto& m : m_lTouchDevices) {
         const auto PTOUCHDEV = &m;
 
@@ -1204,11 +1230,16 @@ void CInputManager::setTabletConfigs() {
     for (auto& t : m_lTablets) {
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(t.name);
 
-        if (HASCONFIG) {
-            const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output");
-            const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
+        if (wlr_input_device_is_libinput(t.wlrDevice)) {
+            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
-            if (PMONITOR) {
+            const int  ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform") : g_pConfigManager->getInt("input:tablet:transform"), 0, 7);
+            Debug::log(LOG, "Setting calibration matrix for device %s", t.name.c_str());
+            libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+
+            const auto OUTPUT   = HASCONFIG ? g_pConfigManager->getDeviceString(t.name, "output") : g_pConfigManager->getString("input:tablet:output");
+            const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
+            if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY && PMONITOR) {
                 wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, t.wlrDevice, PMONITOR->output);
                 wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, nullptr);
             }
@@ -1323,6 +1354,19 @@ SConstraint* CInputManager::constraintFromWlr(wlr_pointer_constraint_v1* constra
     return nullptr;
 }
 
+void CInputManager::releaseAllMouseButtons() {
+    const auto buttonsCopy = m_lCurrentlyHeldButtons;
+
+    if (g_pInputManager->m_sDrag.drag)
+        return;
+
+    for (auto& mb : buttonsCopy) {
+        wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, 0, mb, WLR_BUTTON_RELEASED);
+    }
+
+    m_lCurrentlyHeldButtons.clear();
+}
+
 void CInputManager::setCursorIconOnBorder(CWindow* w) {
     static auto* const PROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
     static const auto* PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
@@ -1368,4 +1412,3 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
                 setCursorImageUntilUnset("right_side");
         }
     }
-}

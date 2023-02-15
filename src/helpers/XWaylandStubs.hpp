@@ -161,8 +161,4 @@ inline void wlr_xwayland_surface_set_fullscreen(wlr_xwayland_surface*, bool) {}
 
 inline void wlr_xwayland_surface_set_minimized(wlr_xwayland_surface*, bool) {}
 
-inline bool wlr_backend_is_x11(void*) {
-    return false;
-}
-
-inline void wlr_x11_output_create(void*) {}
+inline wlr_xwayland_surface* wlr_xwayland_surface_try_from_wlr_surface(wlr_surface*) { return nullptr; }

@@ -16,6 +16,7 @@
 #include "managers/AnimationManager.hpp"
 #include "managers/EventManager.hpp"
 #include "managers/ProtocolManager.hpp"
+#include "managers/SessionLockManager.hpp"
 #include "debug/HyprDebugOverlay.hpp"
 #include "helpers/Monitor.hpp"
 #include "helpers/Workspace.hpp"
@@ -73,6 +74,7 @@ class CCompositor {
     wlr_xdg_activation_v1*                     m_sWLRActivation;
     wlr_linux_dmabuf_v1*                       m_sWLRLinuxDMABuf;
     wlr_backend*                               m_sWLRHeadlessBackend;
+    wlr_session_lock_manager_v1*               m_sWLRSessionLockMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szWLDisplaySocket   = "";
@@ -95,6 +97,8 @@ class CCompositor {
     wlr_surface*                              m_pLastFocus   = nullptr;
     CWindow*                                  m_pLastWindow  = nullptr;
     CMonitor*                                 m_pLastMonitor = nullptr;
+
+    std::vector<CWindow*>                     m_vWindowFocusHistory; // first element is the most recently focused.
 
     SSeat                                     m_sSeat;
 
@@ -135,6 +139,8 @@ class CCompositor {
     void           sanityCheckWorkspaces();
     void           updateWorkspaceWindowDecos(const int&);
     int            getWindowsOnWorkspace(const int&);
+    CWindow*       getUrgentWindow();
+    bool           hasUrgentWindowOnWorkspace(const int&);
     CWindow*       getFirstWindowOnWorkspace(const int&);
     CWindow*       getFullscreenWindowOnWorkspace(const int&);
     bool           doesSeatAcceptInput(wlr_surface*);
@@ -163,7 +169,7 @@ class CCompositor {
     void           addToFadingOutSafe(SLayerSurface*);
     void           addToFadingOutSafe(CWindow*);
     CWindow*       getWindowByRegex(const std::string&);
-    void           warpCursorTo(const Vector2D&);
+    void           warpCursorTo(const Vector2D&, bool force = false);
     SLayerSurface* getLayerSurfaceFromWlr(wlr_layer_surface_v1*);
     SLayerSurface* getLayerSurfaceFromSurface(wlr_surface*);
     void           closeWindow(CWindow*);

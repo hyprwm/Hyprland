@@ -11,8 +11,8 @@ enum ANIMATEDVARTYPE {
 };
 
 enum AVARDAMAGEPOLICY {
-    AVARDAMAGE_INVALID = -1,
-    AVARDAMAGE_ENTIRE  = 0,
+    AVARDAMAGE_NONE   = -1,
+    AVARDAMAGE_ENTIRE = 0,
     AVARDAMAGE_BORDER,
     AVARDAMAGE_SHADOW
 };
@@ -243,7 +243,7 @@ class CAnimatedVariable {
     std::chrono::system_clock::time_point animationBegin;
 
     ANIMATEDVARTYPE                       m_eVarType      = AVARTYPE_INVALID;
-    AVARDAMAGEPOLICY                      m_eDamagePolicy = AVARDAMAGE_INVALID;
+    AVARDAMAGEPOLICY                      m_eDamagePolicy = AVARDAMAGE_NONE;
 
     bool                                  m_bRemoveEndAfterRan   = true;
     bool                                  m_bRemoveBeginAfterRan = true;

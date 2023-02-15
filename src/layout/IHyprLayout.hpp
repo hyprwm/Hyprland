@@ -15,6 +15,14 @@ struct SLayoutMessageHeader {
 
 enum eFullscreenMode : uint8_t;
 
+enum eRectCorner
+{
+    CORNER_TOPLEFT = 0,
+    CORNER_TOPRIGHT,
+    CORNER_BOTTOMRIGHT,
+    CORNER_BOTTOMLEFT
+};
+
 interface IHyprLayout {
   public:
     virtual ~IHyprLayout()   = 0;
@@ -136,11 +144,11 @@ interface IHyprLayout {
     virtual void onWindowFocusChange(CWindow*);
 
   private:
-    Vector2D m_vBeginDragXY;
-    Vector2D m_vLastDragXY;
-    Vector2D m_vBeginDragPositionXY;
-    Vector2D m_vBeginDragSizeXY;
-    int      m_iGrabbedCorner = 0;
+    Vector2D    m_vBeginDragXY;
+    Vector2D    m_vLastDragXY;
+    Vector2D    m_vBeginDragPositionXY;
+    Vector2D    m_vBeginDragSizeXY;
+    eRectCorner m_eGrabbedCorner = CORNER_TOPLEFT;
 
-    CWindow* m_pLastTiledWindow = nullptr;
+    CWindow*    m_pLastTiledWindow = nullptr;
 };

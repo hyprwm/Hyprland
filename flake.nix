@@ -51,17 +51,22 @@
         stdenv = prev.gcc12Stdenv;
         version = props.version + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
-        inherit (inputs.hyprland-protocols.packages.${prev.hostPlatform.system}) hyprland-protocols;
+        inherit (inputs.hyprland-protocols.packages.${prev.stdenv.hostPlatform.system}) hyprland-protocols;
       };
       hyprland-debug = hyprland.override {debug = true;};
       hyprland-no-hidpi = hyprland.override {hidpiXWayland = false;};
+      hyprland-nvidia = hyprland.override {nvidiaPatches = true;};
 
       waybar-hyprland = prev.waybar.overrideAttrs (oldAttrs: {
+        postPatch = ''
+          # use hyprctl to switch workspaces
+          sed -i 's/zext_workspace_handle_v1_activate(workspace_handle_);/const std::string command = "hyprctl dispatch workspace " + name_;\n\tsystem(command.c_str());/g' src/modules/wlr/workspace_manager.cpp
+        '';
         mesonFlags = oldAttrs.mesonFlags ++ ["-Dexperimental=true"];
       });
 
-      xdg-desktop-portal-hyprland = inputs.xdph.packages.${prev.hostPlatform.system}.default.override {
-        hyprland-share-picker = inputs.xdph.packages.${prev.hostPlatform.system}.hyprland-share-picker.override {inherit hyprland;};
+      xdg-desktop-portal-hyprland = inputs.xdph.packages.${prev.stdenv.hostPlatform.system}.default.override {
+        hyprland-share-picker = inputs.xdph.packages.${prev.stdenv.hostPlatform.system}.hyprland-share-picker.override {inherit hyprland;};
       };
     };
 

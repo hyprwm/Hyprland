@@ -100,7 +100,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     // check LS-es
     if (in && !m_bIsSpecialWorkspace) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        for (auto& ls : PMONITOR->m_aLayerSurfaceLists[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->fadingOut)
                 ls->alpha = m_bHasFullscreenWindow && m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
         }

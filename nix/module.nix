@@ -8,7 +8,7 @@ inputs: {
 with lib; let
   cfg = config.programs.hyprland;
 
-  defaultHyprlandPackage = inputs.self.packages.${pkgs.hostPlatform.system}.default.override {
+  defaultHyprlandPackage = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
     hidpiXWayland = cfg.xwayland.hidpi;
     nvidiaPatches = cfg.nvidiaPatches;
@@ -57,7 +57,7 @@ in {
     nvidiaPatches = mkOption {
       type = types.bool;
       default = false;
-      example = liberalExpression "true";
+      example = literalExpression "true";
       description = ''
         Patch wlroots for better Nvidia support.
       '';
@@ -94,8 +94,8 @@ in {
       enable = mkDefault true;
       # xdg-desktop-portal-hyprland
       extraPortals = lib.mkIf (cfg.package != null) [
-        (inputs.xdph.packages.${pkgs.hostPlatform.system}.xdg-desktop-portal-hyprland.override {
-          hyprland-share-picker = inputs.xdph.packages.${pkgs.hostPlatform.system}.hyprland-share-picker.override {
+        (inputs.xdph.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland.override {
+          hyprland-share-picker = inputs.xdph.packages.${pkgs.stdenv.hostPlatform.system}.hyprland-share-picker.override {
             hyprland = cfg.package;
           };
         })

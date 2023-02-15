@@ -35,16 +35,16 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
     if (!pSurface)
         return;
 
-    if (wlr_surface_is_xdg_surface(pSurface)) {
-        const auto PSURF = wlr_xdg_surface_from_wlr_surface(pSurface);
+    if (wlr_xdg_surface_try_from_wlr_surface(pSurface)) {
+        const auto PSURF = wlr_xdg_surface_try_from_wlr_surface(pSurface);
         if (PSURF && PSURF->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
             wlr_xdg_toplevel_set_activated(PSURF->toplevel, activate);
         }
-    } else if (wlr_surface_is_xwayland_surface(pSurface)) {
-        wlr_xwayland_surface_activate(wlr_xwayland_surface_from_wlr_surface(pSurface), activate);
+    } else if (wlr_xwayland_surface_try_from_wlr_surface(pSurface)) {
+        wlr_xwayland_surface_activate(wlr_xwayland_surface_try_from_wlr_surface(pSurface), activate);
 
         if (activate)
-            wlr_xwayland_surface_restack(wlr_xwayland_surface_from_wlr_surface(pSurface), nullptr, XCB_STACK_MODE_ABOVE);
+            wlr_xwayland_surface_restack(wlr_xwayland_surface_try_from_wlr_surface(pSurface), nullptr, XCB_STACK_MODE_ABOVE);
     }
 }
 
@@ -110,14 +110,14 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
 std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
     try {
         if (pWindow->m_bIsX11) {
-            if (pWindow->m_uSurface.xwayland) {
+            if (pWindow->m_uSurface.xwayland && pWindow->m_uSurface.xwayland->_class) {
                 if (!pWindow->m_bMappedX11 || !pWindow->m_bIsMapped)
                     return "unmanaged X11";
 
                 return std::string(pWindow->m_uSurface.xwayland->_class);
             }
         } else if (pWindow->m_uSurface.xdg) {
-            if (pWindow->m_uSurface.xdg->toplevel) {
+            if (pWindow->m_uSurface.xdg->toplevel && pWindow->m_uSurface.xdg->toplevel->app_id) {
                 return std::string(pWindow->m_uSurface.xdg->toplevel->app_id);
             }
         } else {

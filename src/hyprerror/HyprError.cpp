@@ -1,6 +1,15 @@
 #include "HyprError.hpp"
 #include "../Compositor.hpp"
 
+CHyprError::CHyprError() {
+    m_fFadeOpacity.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), nullptr, AVARDAMAGE_NONE);
+    m_fFadeOpacity.registerVar();
+}
+
+CHyprError::~CHyprError() {
+    m_fFadeOpacity.unregister();
+}
+
 void CHyprError::queueCreate(std::string message, const CColor& color) {
     m_szQueued = message;
     m_cQueued  = color;
@@ -12,9 +21,16 @@ void CHyprError::createQueued() {
         m_tTexture.destroyTexture();
     }
 
+    m_fFadeOpacity.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+
+    m_fFadeOpacity.setValueAndWarp(0.f);
+    m_fFadeOpacity = 1.f;
+
     const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
 
-    const auto FONTSIZE = std::clamp((int)(10.f * (PMONITOR->vecPixelSize.x / 1920.f)), 8, 40);
+    const auto SCALE = PMONITOR->scale;
+
+    const auto FONTSIZE = std::clamp((int)(10.f * ((PMONITOR->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
 
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
@@ -26,20 +42,35 @@ void CHyprError::createQueued() {
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
-    const auto LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
+    const auto   LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
+
+    const double DEGREES = M_PI / 180.0;
+
+    const double PAD = 10 * SCALE;
+
+    const double X      = PAD;
+    const double Y      = PAD;
+    const double WIDTH  = PMONITOR->vecPixelSize.x - PAD * 2;
+    const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * LINECOUNT + 3;
+    const double RADIUS = PAD > HEIGHT / 2 ? HEIGHT / 2 - 1 : PAD;
+
+    m_bDamageBox = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
+
+    cairo_new_sub_path(CAIRO);
+    cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
+    cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + HEIGHT - RADIUS, RADIUS, 0 * DEGREES, 90 * DEGREES);
+    cairo_arc(CAIRO, X + RADIUS, Y + HEIGHT - RADIUS, RADIUS, 90 * DEGREES, 180 * DEGREES);
+    cairo_arc(CAIRO, X + RADIUS, Y + RADIUS, RADIUS, 180 * DEGREES, 270 * DEGREES);
+    cairo_close_path(CAIRO);
 
     cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
-    cairo_rectangle(CAIRO, 0, 0, PMONITOR->vecPixelSize.x, (FONTSIZE + 2 * (FONTSIZE / 10.f)) * LINECOUNT);
-
-    // outline
-    cairo_rectangle(CAIRO, 0, 0, 1, PMONITOR->vecPixelSize.y);                                                   // left
-    cairo_rectangle(CAIRO, PMONITOR->vecPixelSize.x - 1, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y); // right
-    cairo_rectangle(CAIRO, 0, PMONITOR->vecPixelSize.y - 1, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y); // bottom
-
-    cairo_fill(CAIRO);
+    cairo_fill_preserve(CAIRO);
+    cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
+    cairo_set_line_width(CAIRO, 2);
+    cairo_stroke(CAIRO);
 
     // draw the text with a common font
-    const CColor textColor = m_cQueued.r * m_cQueued.g * m_cQueued.b < 0.5f ? CColor(1.0, 1.0, 1.0, 1.0) : CColor(0, 0, 0, 1.0);
+    const CColor textColor = m_cQueued.r + m_cQueued.g + m_cQueued.b < 0.2f ? CColor(1.0, 1.0, 1.0, 1.0) : CColor(0, 0, 0, 1.0);
 
     cairo_select_font_face(CAIRO, "Noto Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(CAIRO, FONTSIZE);
@@ -52,7 +83,7 @@ void CHyprError::createQueued() {
             m_szQueued = m_szQueued.substr(NEWLPOS + 1);
         else
             m_szQueued = "";
-        cairo_move_to(CAIRO, 0, yoffset);
+        cairo_move_to(CAIRO, PAD + 1 + RADIUS, yoffset + PAD + 1);
         cairo_show_text(CAIRO, current.c_str());
         yoffset += FONTSIZE + (FONTSIZE / 10.f);
     }
@@ -92,12 +123,18 @@ void CHyprError::draw() {
     }
 
     if (m_bQueuedDestroy) {
-        m_bQueuedDestroy = false;
-        m_tTexture.destroyTexture();
-        m_bIsCreated = false;
-        m_szQueued   = "";
-        g_pHyprRenderer->damageMonitor(g_pCompositor->m_vMonitors.front().get());
-        return;
+        if (!m_fFadeOpacity.isBeingAnimated()) {
+            if (m_fFadeOpacity.fl() == 0.f) {
+                m_bQueuedDestroy = false;
+                m_tTexture.destroyTexture();
+                m_bIsCreated = false;
+                m_szQueued   = "";
+                return;
+            } else {
+                m_fFadeOpacity.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
+                m_fFadeOpacity = 0.f;
+            }
+        }
     }
 
     const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
@@ -105,9 +142,12 @@ void CHyprError::draw() {
     if (g_pHyprOpenGL->m_RenderData.pMonitor != PMONITOR)
         return; // wrong mon
 
-    wlr_box windowBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    wlr_box monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
 
-    g_pHyprOpenGL->renderTexture(m_tTexture, &windowBox, 1.f, 0);
+    if (m_fFadeOpacity.isBeingAnimated())
+        g_pHyprRenderer->damageBox(&m_bDamageBox);
+
+    g_pHyprOpenGL->renderTexture(m_tTexture, &monbox, m_fFadeOpacity.fl(), 0);
 }
 
 void CHyprError::destroy() {

@@ -4,6 +4,7 @@
 #include "../Compositor.hpp"
 #include <sys/utsname.h>
 #include <iomanip>
+#include <sstream>
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -29,38 +30,94 @@
 #endif
 #endif
 
-static const float transforms[][9] = {{
-        1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-    },{
-        0.0f, 1.0f, 0.0f,
-        -1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-    },{
-        -1.0f, 0.0f, 0.0f,
-        0.0f, -1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-    },{
-        0.0f, -1.0f, 0.0f,
-        1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-    },{
-        -1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-    },{
-        0.0f, 1.0f, 0.0f,
-        1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-    },{
-        1.0f, 0.0f, 0.0f,
-        0.0f, -1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-    },{
-        0.0f, -1.0f, 0.0f,
-        -1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
+static const float transforms[][9] = {
+    {
+        1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+    },
+    {
+        0.0f,
+        1.0f,
+        0.0f,
+        -1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+    },
+    {
+        -1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        -1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+    },
+    {
+        0.0f,
+        -1.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+    },
+    {
+        -1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+    },
+    {
+        0.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+    },
+    {
+        1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        -1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+    },
+    {
+        0.0f,
+        -1.0f,
+        0.0f,
+        -1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
     },
 };
 
@@ -231,6 +288,22 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0))
                 return id;
         }
+    } else if (in.find("prev") == 0) {
+        if (!g_pCompositor->m_pLastMonitor)
+            return INT_MAX;
+
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+        if (!PWORKSPACE)
+            return INT_MAX;
+
+        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->m_iPrevWorkspaceID);
+
+        if (!PLASTWORKSPACE)
+            return INT_MAX;
+
+        outName = PLASTWORKSPACE->m_szName;
+        return PLASTWORKSPACE->m_iID;
     } else {
         if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';
@@ -459,5 +532,21 @@ int64_t configStringToInt(const std::string& VALUE) {
     } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
         return 0;
     }
-    return stol(VALUE);
+    return std::stoll(VALUE);
+}
+
+double normalizeAngleRad(double ang) {
+    if (ang > M_PI * 2) {
+        while (ang > M_PI * 2)
+            ang -= M_PI * 2;
+        return ang;
+    }
+
+    if (ang < 0.0) {
+        while (ang < 0.0)
+            ang += M_PI * 2;
+        return ang;
+    }
+
+    return ang;
 }

@@ -26,6 +26,8 @@ enum eRenderPassMode
 };
 
 class CToplevelExportProtocolManager;
+class CInputManager;
+struct SSessionLockSurface;
 
 class CHyprRenderer {
   public:
@@ -44,7 +46,7 @@ class CHyprRenderer {
     bool                shouldRenderWindow(CWindow*);
     void                ensureCursorRenderingMode();
     bool                shouldRenderCursor();
-    void                calculateUVForWindowSurface(CWindow*, wlr_surface*, bool main = false);
+    void                calculateUVForSurface(CWindow*, wlr_surface*, bool main = false);
 
     bool                m_bWindowRequestedCursorHide = false;
     bool                m_bBlockSurfaceFeedback      = false;
@@ -62,6 +64,7 @@ class CHyprRenderer {
     void renderWorkspaceWithFullscreenWindow(CMonitor*, CWorkspace*, timespec*);
     void renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
     void renderLayer(SLayerSurface*, CMonitor*, timespec*);
+    void renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
     void renderDragIcon(CMonitor*, timespec*);
     void renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
 
@@ -69,6 +72,7 @@ class CHyprRenderer {
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportProtocolManager;
+    friend class CInputManager;
 };
 
 inline std::unique_ptr<CHyprRenderer> g_pHyprRenderer;

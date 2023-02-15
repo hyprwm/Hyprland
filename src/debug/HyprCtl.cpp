@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <sstream>
 #include <string>
 
 std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
@@ -24,6 +25,9 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "id": %i,
     "name": "%s",
     "description": "%s",
+    "make": "%s",
+    "model": "%s",
+    "serial": "%s",
     "width": %i,
     "height": %i,
     "refreshRate": %f,
@@ -39,7 +43,8 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "focused": %s,
     "dpmsStatus": %s
 },)#",
-                m->ID, escapeJSONStrings(m->szName).c_str(), escapeJSONStrings(m->output->description ? m->output->description : "").c_str(), (int)m->vecPixelSize.x,
+                m->ID, escapeJSONStrings(m->szName).c_str(), escapeJSONStrings(m->output->description ? m->output->description : "").c_str(),
+                (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x,
                 (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace,
                 escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName).c_str(), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
@@ -52,10 +57,12 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "]";
     } else {
         for (auto& m : g_pCompositor->m_vMonitors) {
-            result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tdescription: %s\n\tactive workspace: %i (%s)\n\treserved: %i %i %i %i\n\tscale: %.2f\n\ttransform: "
+            result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tdescription: %s\n\tmake: %s\n\tmodel: %s\n\tserial: %s\n\tactive workspace: %i (%s)\n\treserved: %i "
+                                "%i %i %i\n\tscale: %.2f\n\ttransform: "
                                 "%i\n\tfocused: %s\n\tdpmsStatus: %i\n\n",
                                 m->szName.c_str(), m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
-                                (m->output->description ? m->output->description : ""), m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(),
+                                (m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
+                                (m->output->serial ? m->output->serial : ""), m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(),
                                 (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale,
                                 (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus);
         }
@@ -112,6 +119,7 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
     "pinned": %s,
     "fullscreen": %s,
     "fullscreenMode": %i,
+    "fakeFullscreen": %s,
     "grouped": [%s],
     "swallowing": %s
 },)#",
@@ -124,11 +132,11 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             escapeJSONStrings(g_pXWaylandManager->getTitle(w)).c_str(), w->getPID(), ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"),
             (w->m_bIsFullscreen ? "true" : "false"),
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
-            getGroupedData(w, format).c_str(), (w->m_pSwallowed ? getFormat("\"0x%x\"", w->m_pSwallowed).c_str() : "null"));
+            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format).c_str(), (w->m_pSwallowed ? getFormat("\"0x%x\"", w->m_pSwallowed).c_str() : "null"));
     } else {
         return getFormat(
             "Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\txwayland: %i\n\tpinned: "
-            "%i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\tgrouped: %s\n\tswallowing: %x\n\n",
+            "%i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\tfakefullscreen: %i\n\tgrouped: %s\n\tswallowing: %x\n\n",
             w, w->m_szTitle.c_str(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y, (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y,
             w->m_iWorkspaceID,
             (w->m_iWorkspaceID == -1                                ? "" :
@@ -137,7 +145,7 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w).c_str(), g_pXWaylandManager->getTitle(w).c_str(), w->getPID(), (int)w->m_bIsX11,
             (int)w->m_bPinned, (int)w->m_bIsFullscreen,
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
-            getGroupedData(w, format).c_str(), w->m_pSwallowed);
+            (int)w->m_bFakeFullscreenState, getGroupedData(w, format).c_str(), w->m_pSwallowed);
     }
 }
 
@@ -233,7 +241,7 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 escapeJSONStrings(mon->szName).c_str());
 
             int layerLevel = 0;
-            for (auto& level : mon->m_aLayerSurfaceLists) {
+            for (auto& level : mon->m_aLayerSurfaceLayers) {
                 result += getFormat(
                     R"#(
         "%i": [
@@ -277,9 +285,10 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
     } else {
         for (auto& mon : g_pCompositor->m_vMonitors) {
             result += getFormat("Monitor %s:\n", mon->szName.c_str());
-            int layerLevel = 0;
-            for (auto& level : mon->m_aLayerSurfaceLists) {
-                result += getFormat("\tLayer level %i:\n", layerLevel);
+            int                                     layerLevel = 0;
+            static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
+            for (auto& level : mon->m_aLayerSurfaceLayers) {
+                result += getFormat("\tLayer level %i (%s):\n", layerLevel, levelNames[layerLevel].c_str());
 
                 for (auto& layer : level) {
                     result += getFormat("\t\tLayer %x: xywh: %i %i %i %i, namespace: %s\n", layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width,
@@ -461,6 +470,59 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return result;
 }
 
+std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string ret = "";
+    if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
+        ret += "animations:\n";
+
+        for (auto& ac : g_pConfigManager->getAnimationConfig()) {
+            ret += getFormat("\n\tname: %s\n\t\toverriden: %i\n\t\tbezier: %s\n\t\tenabled: %i\n\t\tspeed: %.2f\n\t\tstyle: %s\n", ac.first.c_str(), (int)ac.second.overriden,
+                             ac.second.internalBezier.c_str(), ac.second.internalEnabled, ac.second.internalSpeed, ac.second.internalStyle.c_str());
+        }
+
+        ret += "beziers:\n";
+
+        for (auto& bz : g_pAnimationManager->getAllBeziers()) {
+            ret += getFormat("\n\tname: %s\n", bz.first.c_str());
+        }
+    } else {
+        // json
+
+        ret += "[[";
+        for (auto& ac : g_pConfigManager->getAnimationConfig()) {
+            ret += getFormat(R"#(
+{
+    "name": "%s",
+    "overriden": %s,
+    "bezier": "%s",
+    "enabled": %s,
+    "speed": %.2f,
+    "style": "%s"
+},)#",
+                             ac.first.c_str(), ac.second.overriden ? "true" : "false", ac.second.internalBezier.c_str(), ac.second.internalEnabled ? "true" : "false",
+                             ac.second.internalSpeed, ac.second.internalStyle.c_str());
+        }
+
+        ret[ret.length() - 1] = ']';
+
+        ret += ",\n[";
+
+        for (auto& bz : g_pAnimationManager->getAllBeziers()) {
+            ret += getFormat(R"#(
+{
+    "name": "%s"
+},)#",
+                             bz.first.c_str());
+        }
+
+        ret.pop_back();
+
+        ret += "]]";
+    }
+
+    return ret;
+}
+
 std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string ret = "";
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
@@ -496,8 +558,8 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "dispatcher": "%s",
     "arg": "%s"
 },)#",
-                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.modmask, kb.submap.c_str(),
-                kb.key.c_str(), kb.keycode, kb.handler.c_str(), kb.arg.c_str());
+                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.modmask,
+                escapeJSONStrings(kb.submap).c_str(), escapeJSONStrings(kb.key).c_str(), kb.keycode, escapeJSONStrings(kb.handler).c_str(), escapeJSONStrings(kb.arg).c_str());
         }
         ret.pop_back();
         ret += "]";
@@ -608,6 +670,14 @@ std::string dispatchKeyword(std::string in) {
     if (COMMAND.contains("blur")) {
         for (auto& [m, rd] : g_pHyprOpenGL->m_mMonitorRenderResources) {
             rd.blurFBDirty = true;
+        }
+    }
+
+    // decorations will probably need a repaint
+    if (COMMAND.contains("decoration:") || COMMAND.contains("border")) {
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            g_pHyprRenderer->damageMonitor(m.get());
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }
     }
 
@@ -792,6 +862,104 @@ std::string switchXKBLayoutRequest(const std::string& request) {
     return "ok";
 }
 
+std::string dispatchSeterror(std::string request) {
+    CVarList    vars(request, 0, ' ');
+
+    std::string errorMessage = "";
+
+    if (vars.size() < 3) {
+        g_pHyprError->destroy();
+
+        if (vars.size() == 2 && !vars[1].find("dis"))
+            return "var 1 not color or disable";
+
+        return "ok";
+    }
+
+    const CColor COLOR = configStringToInt(vars[1]);
+
+    for (size_t i = 2; i < vars.size(); ++i)
+        errorMessage += vars[i] + ' ';
+
+    if (errorMessage.empty()) {
+        g_pHyprError->destroy();
+    } else {
+        errorMessage.pop_back(); // pop last space
+        g_pHyprError->queueCreate(errorMessage, COLOR);
+    }
+
+    return "ok";
+}
+
+std::string dispatchSetProp(std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    if (vars.size() < 4)
+        return "not enough args";
+
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+
+    if (!PWINDOW)
+        return "window not found";
+
+    const auto PROP = vars[2];
+    const auto VAL  = vars[3];
+
+    bool       lock = false;
+
+    if (vars.size() > 4) {
+        if (vars[4].find("lock") == 0) {
+            lock = true;
+        }
+    }
+
+    try {
+        if (PROP == "animationstyle") {
+            PWINDOW->m_sAdditionalConfigData.animationStyle = VAL;
+        } else if (PROP == "rounding") {
+            PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "forcenoblur") {
+            PWINDOW->m_sAdditionalConfigData.forceNoBlur.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "forceopaque") {
+            PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "forceopaqueoverriden") {
+            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverriden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "forceallowsinput") {
+            PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "forcenoanims") {
+            PWINDOW->m_sAdditionalConfigData.forceNoAnims.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "forcenoborder") {
+            PWINDOW->m_sAdditionalConfigData.forceNoBorder.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "forcenoshadow") {
+            PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "windowdancecompat") {
+            PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "nomaxsize") {
+            PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "dimaround") {
+            PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "alphaoverride") {
+            PWINDOW->m_sSpecialRenderData.alphaOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "alpha") {
+            PWINDOW->m_sSpecialRenderData.alpha.forceSetIgnoreLocked(std::stof(VAL), lock);
+        } else if (PROP == "alphainactiveoverride") {
+            PWINDOW->m_sSpecialRenderData.alphaInactiveOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "alphainactive") {
+            PWINDOW->m_sSpecialRenderData.alphaInactive.forceSetIgnoreLocked(std::stof(VAL), lock);
+        } else if (PROP == "activebordercolor") {
+            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "inactivebordercolor") {
+            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else {
+            return "prop not found";
+        }
+    } catch (std::exception& e) { return "error in parsing prop value: " + std::string(e.what()); }
+
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+    return "ok";
+}
+
 std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
     std::string curitem = "";
 
@@ -960,6 +1128,12 @@ std::string getReply(std::string request) {
         return cursorPosRequest(format);
     else if (request == "binds")
         return bindsRequest(format);
+    else if (request == "animations")
+        return animationsRequest(format);
+    else if (request.find("setprop") == 0)
+        return dispatchSetProp(request);
+    else if (request.find("seterror") == 0)
+        return dispatchSeterror(request);
     else if (request.find("switchxkblayout") == 0)
         return switchXKBLayoutRequest(request);
     else if (request.find("output") == 0)

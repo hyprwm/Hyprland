@@ -39,13 +39,15 @@ commands:
     getoption
     cursorpos
     switchxkblayout
+    seterror
+    setprop
 
 flags:
     -j -> output in JSON
     --batch -> execute a batch of commands, separated by ';'
 )#";
 
-void request(std::string arg, int minArgs = 0) {
+void              request(std::string arg, int minArgs = 0) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
@@ -168,7 +170,7 @@ void requestHyprpaper(std::string arg) {
 
 int dispatchRequest(int argc, char** argv) {
 
-    if (argc < 4) {
+    if (argc < 3) {
         std::cout << "Usage: hyprctl dispatch <dispatcher> <arg>\n\
             Execute a hyprland keybind dispatcher with the given argument";
         return 1;
@@ -339,8 +341,14 @@ int main(int argc, char** argv) {
         request(fullRequest);
     else if (fullRequest.contains("/cursorpos"))
         request(fullRequest);
+    else if (fullRequest.contains("/animations"))
+        request(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);
+    else if (fullRequest.contains("/seterror"))
+        request(fullRequest, 1);
+    else if (fullRequest.contains("/setprop"))
+        request(fullRequest, 3);
     else if (fullRequest.contains("/output"))
         exitStatus = outputRequest(argc, argv);
     else if (fullRequest.contains("/setcursor"))

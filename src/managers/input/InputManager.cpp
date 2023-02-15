@@ -1412,3 +1412,4 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
                 setCursorImageUntilUnset("right_side");
         }
     }
+}

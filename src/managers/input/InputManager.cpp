@@ -1375,7 +1375,9 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     const auto mouseCoords = getMouseCoordsInternal();
     wlr_box    box         = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-        if (w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+        if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+            unsetCursorImage();
+        } else {
             if (mouseCoords.y < box.y + CORNER) {
                 if (mouseCoords.x < box.x + CORNER)
                     setCursorImageUntilUnset("top_left_corner");
@@ -1387,8 +1389,6 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
                 else
                     setCursorImageUntilUnset("bottom_right_corner");
             }
-        } else {
-            unsetCursorImage();
         }
     } else {
         if (mouseCoords.y < box.y + CORNER) {

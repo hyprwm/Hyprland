@@ -6,8 +6,6 @@
 #include <systemd/sd-daemon.h> // for sd_notify
 #endif
 
-#include <wlr/types/wlr_single_pixel_buffer_v1.h>
-
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal %d", signo);
 

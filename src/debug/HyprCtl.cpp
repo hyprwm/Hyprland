@@ -41,14 +41,15 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "scale": %.2f,
     "transform": %i,
     "focused": %s,
-    "dpmsStatus": %s
+    "dpmsStatus": %s,
+    "vrr: %s"
 },)#",
                 m->ID, escapeJSONStrings(m->szName).c_str(), escapeJSONStrings(m->output->description ? m->output->description : "").c_str(),
                 (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x,
                 (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace,
                 escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName).c_str(), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
-                (m->dpmsStatus ? "true" : "false"));
+                (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"));
         }
 
         // remove trailing comma
@@ -59,12 +60,13 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         for (auto& m : g_pCompositor->m_vMonitors) {
             result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tdescription: %s\n\tmake: %s\n\tmodel: %s\n\tserial: %s\n\tactive workspace: %i (%s)\n\treserved: %i "
                                 "%i %i %i\n\tscale: %.2f\n\ttransform: "
-                                "%i\n\tfocused: %s\n\tdpmsStatus: %i\n\n",
+                                "%i\n\tfocused: %s\n\tdpmsStatus: %i\n\tvrr: %i\n\n",
                                 m->szName.c_str(), m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
                                 (m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
                                 (m->output->serial ? m->output->serial : ""), m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(),
                                 (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale,
-                                (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus);
+                                (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"),
+                                (int)m->dpmsStatus, (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED));
         }
     }
 

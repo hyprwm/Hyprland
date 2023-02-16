@@ -177,6 +177,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         }
     }
 
+    g_pProtocolManager->m_pToplevelExportProtocolManager->onMonitorRender(PMONITOR); // dispatch any toplevel sharing
+
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
@@ -284,8 +286,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 
     g_pHyprOpenGL->end();
-
-    g_pProtocolManager->m_pToplevelExportProtocolManager->onMonitorRender(PMONITOR); // dispatch any toplevel sharing
 
     // calc frame damage
     pixman_region32_t frameDamage;

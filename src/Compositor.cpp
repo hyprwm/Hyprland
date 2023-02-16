@@ -6,6 +6,8 @@
 #include <systemd/sd-daemon.h> // for sd_notify
 #endif
 
+#include <wlr/types/wlr_single_pixel_buffer_v1.h>
+
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal %d", signo);
 
@@ -196,6 +198,8 @@ CCompositor::CCompositor() {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throw std::runtime_error("wlr_headless_backend_create() failed!");
     }
+
+    wlr_single_pixel_buffer_manager_v1_create(m_sWLDisplay);
 
     wlr_multi_backend_add(m_sWLRBackend, m_sWLRHeadlessBackend);
 }

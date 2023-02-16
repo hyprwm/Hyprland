@@ -1,7 +1,6 @@
 #include "IHyprLayout.hpp"
 #include "../defines.hpp"
 #include "../Compositor.hpp"
-#include "../managers/input/InputManager.hpp"
 
 void IHyprLayout::onWindowCreated(CWindow* pWindow) {
     if (pWindow->m_bIsFloating) {
@@ -186,7 +185,7 @@ void IHyprLayout::onBeginDragWindow() {
             m_eGrabbedCorner = CORNER_BOTTOMRIGHT;
     }
 
-    g_pInputManager->setCursorImageUntilUnset("grab", CURSORICONBY_DRAGWINDOW);
+    g_pInputManager->setCursorImageUntilUnset("grab");
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
@@ -196,7 +195,7 @@ void IHyprLayout::onBeginDragWindow() {
 void IHyprLayout::onEndDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
-    g_pInputManager->unsetCursorImage(CURSORICONBY_DRAGWINDOW);
+    g_pInputManager->unsetCursorImage();
 
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW))
         return;

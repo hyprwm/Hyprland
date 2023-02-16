@@ -18,13 +18,6 @@ enum eMouseBindMode {
     MBIND_RESIZE
 };
 
-// higher value means higher priority
-enum eCursorIconSetBy {
-    CURSORICONBY_NONE = 0,
-    CURSORICONBY_BORDERHOVER,
-    CURSORICONBY_DRAGWINDOW,
-};
-
 struct STouchData {
     CWindow*       touchFocusWindow  = nullptr;
     SLayerSurface* touchFocusLS      = nullptr;
@@ -155,8 +148,8 @@ class CInputManager {
     bool shouldIgnoreVirtualKeyboard(SKeyboard*);
 
     // for special cursors that we choose
-    void        setCursorImageUntilUnset(std::string, eCursorIconSetBy);
-    void        unsetCursorImage(eCursorIconSetBy);
+    void        setCursorImageUntilUnset(std::string);
+    void        unsetCursorImage();
 
     std::string deviceNameToInternalString(std::string);
     std::string getNameForNewDevice(std::string);
@@ -170,7 +163,7 @@ class CInputManager {
     bool m_bLastInputTouch = false;
 
   private:
-    eCursorIconSetBy m_bCursorImageOverridenBy = CURSORICONBY_NONE;
+    bool m_bCursorImageOverriden = false;
 
     // for click behavior override
     eClickBehaviorMode m_ecbClickBehavior      = CLICKMODE_DEFAULT;

@@ -1377,42 +1377,48 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     const auto CORNER      = *PROUNDING + *PBORDERSIZE + 10;
     const auto mouseCoords = getMouseCoordsInternal();
     wlr_box    box         = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-    if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-        if (w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+
+    if (m_bCursorImageOverridenBy > CURSORICONBY_BORDERHOVER)
+        return;
+
+    if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && !w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+        unsetCursorImage(CURSORICONBY_BORDERHOVER);
+    } else {
+        if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+            if (w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+                if (mouseCoords.y < box.y + CORNER) {
+                    if (mouseCoords.x < box.x + CORNER)
+                        setCursorImageUntilUnset("top_left_corner", CURSORICONBY_BORDERHOVER);
+                    else
+                        setCursorImageUntilUnset("top_right_corner", CURSORICONBY_BORDERHOVER);
+                } else {
+                    if (mouseCoords.x < box.x + CORNER)
+                        setCursorImageUntilUnset("bottom_left_corner", CURSORICONBY_BORDERHOVER);
+                    else
+                        setCursorImageUntilUnset("bottom_right_corner", CURSORICONBY_BORDERHOVER);
+                }
+            }
+        } else {
             if (mouseCoords.y < box.y + CORNER) {
                 if (mouseCoords.x < box.x + CORNER)
                     setCursorImageUntilUnset("top_left_corner", CURSORICONBY_BORDERHOVER);
-                else
+                else if (mouseCoords.x > box.x + box.width - CORNER)
                     setCursorImageUntilUnset("top_right_corner", CURSORICONBY_BORDERHOVER);
-            } else {
+                else
+                    setCursorImageUntilUnset("top_side", CURSORICONBY_BORDERHOVER);
+            } else if (mouseCoords.y > box.y + box.height - CORNER) {
                 if (mouseCoords.x < box.x + CORNER)
                     setCursorImageUntilUnset("bottom_left_corner", CURSORICONBY_BORDERHOVER);
-                else
+                else if (mouseCoords.x > box.x + box.width - CORNER)
                     setCursorImageUntilUnset("bottom_right_corner", CURSORICONBY_BORDERHOVER);
+                else
+                    setCursorImageUntilUnset("bottom_side", CURSORICONBY_BORDERHOVER);
+            } else {
+                if (mouseCoords.x < box.x + CORNER)
+                    setCursorImageUntilUnset("left_side", CURSORICONBY_BORDERHOVER);
+                else if (mouseCoords.x > box.x + box.width - CORNER)
+                    setCursorImageUntilUnset("right_side", CURSORICONBY_BORDERHOVER);
             }
-        } else {
-            unsetCursorImage(CURSORICONBY_BORDERHOVER);
-        }
-    } else {
-        if (mouseCoords.y < box.y + CORNER) {
-            if (mouseCoords.x < box.x + CORNER)
-                setCursorImageUntilUnset("top_left_corner", CURSORICONBY_BORDERHOVER);
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("top_right_corner", CURSORICONBY_BORDERHOVER);
-            else
-                setCursorImageUntilUnset("top_side", CURSORICONBY_BORDERHOVER);
-        } else if (mouseCoords.y > box.y + box.height - CORNER) {
-            if (mouseCoords.x < box.x + CORNER)
-                setCursorImageUntilUnset("bottom_left_corner", CURSORICONBY_BORDERHOVER);
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("bottom_right_corner", CURSORICONBY_BORDERHOVER);
-            else
-                setCursorImageUntilUnset("bottom_side", CURSORICONBY_BORDERHOVER);
-        } else {
-            if (mouseCoords.x < box.x + CORNER)
-                setCursorImageUntilUnset("left_side", CURSORICONBY_BORDERHOVER);
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("right_side", CURSORICONBY_BORDERHOVER);
         }
     }
 }

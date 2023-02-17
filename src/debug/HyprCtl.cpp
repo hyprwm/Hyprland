@@ -42,7 +42,7 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "transform": %i,
     "focused": %s,
     "dpmsStatus": %s,
-    "vrr: %s"
+    "vrr": %s
 },)#",
                 m->ID, escapeJSONStrings(m->szName).c_str(), escapeJSONStrings(m->output->description ? m->output->description : "").c_str(),
                 (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x,

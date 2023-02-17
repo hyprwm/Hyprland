@@ -195,10 +195,13 @@ void IHyprLayout::onBeginDragWindow() {
 void IHyprLayout::onEndDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
-    g_pInputManager->unsetCursorImage();
-
-    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW))
+    if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
+        if (DRAGGINGWINDOW)
+            g_pInputManager->unsetCursorImage();
         return;
+    }
+
+    g_pInputManager->unsetCursorImage();
 
     g_pInputManager->currentlyDraggedWindow = nullptr;
 

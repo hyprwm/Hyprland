@@ -305,7 +305,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (pFoundWindow) {
         // change cursor icon if hovering over border, skip if mouse bind is active
-        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !g_pKeybindManager->m_bIsMouseBindActive && !pFoundWindow->hasPopupAt(mouseCoords)) {
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
             setCursorIconOnBorder(pFoundWindow);
         }
 
@@ -1368,48 +1368,72 @@ void CInputManager::releaseAllMouseButtons() {
 }
 
 void CInputManager::setCursorIconOnBorder(CWindow* w) {
+    // do not override cursor icons set by mouse binds
+    if (g_pKeybindManager->m_bIsMouseBindActive) {
+        m_eBorderIconDirection = BORDERICON_NONE;
+        return;
+    }
+
     static auto* const PROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
     static const auto* PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     // give a small leeway (10 px) for corner icon
-    const auto CORNER      = *PROUNDING + *PBORDERSIZE + 10;
-    const auto mouseCoords = getMouseCoordsInternal();
-    wlr_box    box         = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+    const auto           CORNER      = *PROUNDING + *PBORDERSIZE + 10;
+    const auto           mouseCoords = getMouseCoordsInternal();
+    wlr_box              box         = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+    eBorderIconDirection direction   = BORDERICON_NONE;
     if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
         if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
-            unsetCursorImage();
+            direction = BORDERICON_NONE;
         } else {
             if (mouseCoords.y < box.y + CORNER) {
                 if (mouseCoords.x < box.x + CORNER)
-                    setCursorImageUntilUnset("top_left_corner");
+                    direction = BORDERICON_UP_LEFT;
                 else
-                    setCursorImageUntilUnset("top_right_corner");
+                    direction = BORDERICON_UP_RIGHT;
             } else {
                 if (mouseCoords.x < box.x + CORNER)
-                    setCursorImageUntilUnset("bottom_left_corner");
+                    direction = BORDERICON_DOWN_LEFT;
                 else
-                    setCursorImageUntilUnset("bottom_right_corner");
+                    direction = BORDERICON_DOWN_RIGHT;
             }
         }
     } else {
         if (mouseCoords.y < box.y + CORNER) {
             if (mouseCoords.x < box.x + CORNER)
-                setCursorImageUntilUnset("top_left_corner");
+                direction = BORDERICON_UP_LEFT;
             else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("top_right_corner");
+                direction = BORDERICON_UP_RIGHT;
             else
-                setCursorImageUntilUnset("top_side");
+                direction = BORDERICON_UP;
         } else if (mouseCoords.y > box.y + box.height - CORNER) {
             if (mouseCoords.x < box.x + CORNER)
-                setCursorImageUntilUnset("bottom_left_corner");
+                direction = BORDERICON_DOWN_LEFT;
             else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("bottom_right_corner");
+                direction = BORDERICON_DOWN_RIGHT;
             else
-                setCursorImageUntilUnset("bottom_side");
+                direction = BORDERICON_DOWN;
         } else {
             if (mouseCoords.x < box.x + CORNER)
-                setCursorImageUntilUnset("left_side");
+                direction = BORDERICON_LEFT;
             else if (mouseCoords.x > box.x + box.width - CORNER)
-                setCursorImageUntilUnset("right_side");
+                direction = BORDERICON_RIGHT;
         }
+    }
+
+    if (direction == m_eBorderIconDirection)
+        return;
+
+    m_eBorderIconDirection = direction;
+
+    switch (direction) {
+        case BORDERICON_NONE: unsetCursorImage(); break;
+        case BORDERICON_UP: setCursorImageUntilUnset("top_side"); break;
+        case BORDERICON_DOWN: setCursorImageUntilUnset("bottom_side"); break;
+        case BORDERICON_LEFT: setCursorImageUntilUnset("left_side"); break;
+        case BORDERICON_RIGHT: setCursorImageUntilUnset("right_side"); break;
+        case BORDERICON_UP_LEFT: setCursorImageUntilUnset("top_left_corner"); break;
+        case BORDERICON_DOWN_LEFT: setCursorImageUntilUnset("bottom_left_corner"); break;
+        case BORDERICON_UP_RIGHT: setCursorImageUntilUnset("top_right_corner"); break;
+        case BORDERICON_DOWN_RIGHT: setCursorImageUntilUnset("bottom_right_corner"); break;
     }
 }

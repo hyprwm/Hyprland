@@ -7,7 +7,7 @@
 #include "render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
 #include "config/ConfigDataValues.hpp"
-#include "src/helpers/Vector2D.hpp"
+#include "helpers/Vector2D.hpp"
 
 enum eIdleInhibitMode
 {

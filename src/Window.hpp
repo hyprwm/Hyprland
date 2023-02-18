@@ -7,6 +7,7 @@
 #include "render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
 #include "config/ConfigDataValues.hpp"
+#include "helpers/Vector2D.hpp"
 
 enum eIdleInhibitMode
 {
@@ -297,7 +298,10 @@ class CWindow {
     bool                   isHidden();
     void                   applyDynamicRule(const SWindowRule& r);
     void                   updateDynamicRules();
+
     void                   onBorderAngleAnimEnd(void* ptr);
+    bool                   isInCurvedCorner(double x, double y);
+    bool                   hasPopupAt(const Vector2D& pos);
 
   private:
     // For hidden windows and stuff

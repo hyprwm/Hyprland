@@ -294,6 +294,14 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     return !found && !mouseBindWasActive;
 }
 
+void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
+    if (e->state == WLR_BUTTON_PRESSED) {
+        mouse("1resizewindow");
+    } else {
+        mouse("0resizewindow");
+    }
+}
+
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
     handleKeybinds(0, "switch:" + switchName, 0, 0, true, 0);
 }

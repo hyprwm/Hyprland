@@ -413,3 +413,57 @@ void CWindow::updateDynamicRules() {
         applyDynamicRule(r);
     }
 }
+
+// check if the point is "hidden" under a rounded corner of the window
+// it is assumed that the point is within the real window box (m_vRealPosition, m_vRealSize)
+// otherwise behaviour is undefined
+bool CWindow::isInCurvedCorner(double x, double y) {
+    static auto* const ROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    static auto* const BORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+
+    if (BORDERSIZE >= ROUNDING || ROUNDING == 0)
+        return false;
+
+    // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
+    double x0 = m_vRealPosition.vec().x + *ROUNDING;
+    double y0 = m_vRealPosition.vec().y + *ROUNDING;
+    double x1 = m_vRealPosition.vec().x + m_vRealSize.vec().x - *ROUNDING;
+    double y1 = m_vRealPosition.vec().y + m_vRealSize.vec().y - *ROUNDING;
+
+    if (x < x0 && y < y0) {
+        return Vector2D{x0, y0}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    }
+    if (x > x1 && y < y0) {
+        return Vector2D{x1, y0}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    }
+    if (x < x0 && y > y1) {
+        return Vector2D{x0, y1}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    }
+    if (x > x1 && y > y1) {
+        return Vector2D{x1, y1}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    }
+
+    return false;
+}
+
+void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
+    const auto DATA = (SExtensionFindingData*)data;
+
+    wlr_box    box = {DATA->origin.x + x, DATA->origin.y + y, surface->current.width, surface->current.height};
+
+    if (wlr_box_contains_point(&box, DATA->vec.x, DATA->vec.y))
+        *DATA->found = surface;
+}
+
+// checks if the wayland window has a popup at pos
+bool CWindow::hasPopupAt(const Vector2D& pos) {
+    if (m_bIsX11)
+        return false;
+
+    wlr_surface*          resultSurf = nullptr;
+    Vector2D              origin     = m_vRealPosition.vec();
+    SExtensionFindingData data       = {origin, pos, &resultSurf};
+    wlr_xdg_surface_for_each_popup_surface(m_uSurface.xdg, findExtensionForVector2D, &data);
+
+    return resultSurf;
+}

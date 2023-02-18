@@ -571,22 +571,18 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
     return nullptr;
 }
 
-void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
-    const auto DATA = (SExtensionFindingData*)data;
-
-    wlr_box    box = {DATA->origin.x + x, DATA->origin.y + y, surface->current.width, surface->current.height};
-
-    if (wlr_box_contains_point(&box, DATA->vec.x, DATA->vec.y))
-        *DATA->found = surface;
-}
-
 CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
-    const auto PMONITOR = getMonitorFromVector(pos);
+    const auto         PMONITOR          = getMonitorFromVector(pos);
+    static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;
+    static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     // special workspace
     if (PMONITOR->specialWorkspaceID) {
         for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-            wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
+            wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
+                           (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
             if ((*w)->m_bIsFloating && (*w)->m_iWorkspaceID == PMONITOR->specialWorkspaceID && (*w)->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) &&
                 !(*w)->isHidden() && !(*w)->m_bX11ShouldntFocus)
                 return (*w).get();
@@ -602,18 +598,14 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
     // pinned windows on top of floating regardless
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-        wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
+        wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
+                       (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
         if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && !(*w)->isHidden() && !(*w)->m_bX11ShouldntFocus && (*w)->m_bPinned) {
             if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))
                 return w->get();
 
             if (!(*w)->m_bIsX11) {
-                wlr_surface*          resultSurf = nullptr;
-                Vector2D              origin     = (*w)->m_vRealPosition.vec();
-                SExtensionFindingData data       = {origin, pos, &resultSurf};
-                wlr_xdg_surface_for_each_popup_surface((*w)->m_uSurface.xdg, findExtensionForVector2D, &data);
-
-                if (resultSurf)
+                if ((*w)->hasPopupAt(pos))
                     return w->get();
             }
         }
@@ -621,7 +613,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-        wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
+        wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
+                       (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
         if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden() && !(*w)->m_bPinned) {
             // OR windows should add focus to parent
             if ((*w)->m_bX11ShouldntFocus && (*w)->m_iX11Type != 2)
@@ -639,12 +632,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
             }
 
             if (!(*w)->m_bIsX11) {
-                wlr_surface*          resultSurf = nullptr;
-                Vector2D              origin     = (*w)->m_vRealPosition.vec();
-                SExtensionFindingData data       = {origin, pos, &resultSurf};
-                wlr_xdg_surface_for_each_popup_surface((*w)->m_uSurface.xdg, findExtensionForVector2D, &data);
-
-                if (resultSurf)
+                if ((*w)->hasPopupAt(pos))
                     return w->get();
             }
         }
@@ -653,12 +641,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // for windows, we need to check their extensions too, first.
     for (auto& w : m_vWindows) {
         if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->isHidden() && !w->m_bX11ShouldntFocus) {
-            wlr_surface*          resultSurf = nullptr;
-            Vector2D              origin     = w->m_vRealPosition.vec();
-            SExtensionFindingData data       = {origin, pos, &resultSurf};
-            wlr_xdg_surface_for_each_popup_surface(w->m_uSurface.xdg, findExtensionForVector2D, &data);
-
-            if (resultSurf)
+            if ((w)->hasPopupAt(pos))
                 return w.get();
         }
     }

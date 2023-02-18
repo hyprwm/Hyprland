@@ -45,12 +45,17 @@ void CInputManager::simulateMouseMovement() {
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
-    static auto* const PFOLLOWMOUSE   = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
-    static auto* const PMOUSEDPMS     = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
-    static auto* const PFOLLOWONDND   = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
-    static auto* const PHOGFOCUS      = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
-    static auto* const PFLOATBEHAVIOR = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
-    static auto* const PMOUSEFOCUSMON = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_focuses_monitor")->intValue;
+    static auto* const PFOLLOWMOUSE      = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PMOUSEDPMS        = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
+    static auto* const PFOLLOWONDND      = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
+    static auto* const PHOGFOCUS         = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
+    static auto* const PFLOATBEHAVIOR    = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
+    static auto* const PMOUSEFOCUSMON    = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_focuses_monitor")->intValue;
+    static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;
+    static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    static auto* const PRESIZECURSORICON = &g_pConfigManager->getConfigValuePtr("general:hover_icon_on_border")->intValue;
+    const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     m_pFoundSurfaceToFocus      = nullptr;
     m_pFoundLSToFocus           = nullptr;
@@ -180,7 +185,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         // only check floating because tiled cant be over fullscreen
         for (auto w = g_pCompositor->m_vWindows.rbegin(); w != g_pCompositor->m_vWindows.rend(); w++) {
-            wlr_box box = {(*w)->m_vRealPosition.vec().x, (*w)->m_vRealPosition.vec().y, (*w)->m_vRealSize.vec().x, (*w)->m_vRealSize.vec().y};
+            wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
+                           (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
             if ((((*w)->m_bIsFloating && (*w)->m_bIsMapped && ((*w)->m_bCreatedOverFullscreen || (*w)->m_bPinned)) ||
                  (g_pCompositor->isWorkspaceSpecial((*w)->m_iWorkspaceID) && PMONITOR->specialWorkspaceID)) &&
                 wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden()) {
@@ -298,6 +304,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     if (pFoundWindow) {
+        // change cursor icon if hovering over border, skip if mouse bind is active
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
+            setCursorIconOnBorder(pFoundWindow);
+        }
+
         if (*PFOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow &&
                 ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
@@ -417,12 +428,27 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
 void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
     // notify the keybind manager
-    static auto* const PPASSMOUSE   = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
-    const auto         PASS         = g_pKeybindManager->onMouseEvent(e);
-    static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PPASSMOUSE      = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
+    const auto         PASS            = g_pKeybindManager->onMouseEvent(e);
+    static auto* const PFOLLOWMOUSE    = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PRESIZEONBORDER = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;
 
     if (!PASS && !*PPASSMOUSE)
         return;
+
+    // clicking on border triggers resize
+    // TODO detect click on LS properly
+    if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
+        const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+        const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+        if (w && !w->m_bIsFullscreen) {
+            const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+            if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
+                g_pKeybindManager->resizeWithBorder(e);
+                return;
+            }
+        }
+    }
 
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
@@ -1339,4 +1365,75 @@ void CInputManager::releaseAllMouseButtons() {
     }
 
     m_lCurrentlyHeldButtons.clear();
+}
+
+void CInputManager::setCursorIconOnBorder(CWindow* w) {
+    // do not override cursor icons set by mouse binds
+    if (g_pKeybindManager->m_bIsMouseBindActive) {
+        m_eBorderIconDirection = BORDERICON_NONE;
+        return;
+    }
+
+    static auto* const PROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    static const auto* PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    // give a small leeway (10 px) for corner icon
+    const auto           CORNER      = *PROUNDING + *PBORDERSIZE + 10;
+    const auto           mouseCoords = getMouseCoordsInternal();
+    wlr_box              box         = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+    eBorderIconDirection direction   = BORDERICON_NONE;
+    if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+        if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+            direction = BORDERICON_NONE;
+        } else {
+            if (mouseCoords.y < box.y + CORNER) {
+                if (mouseCoords.x < box.x + CORNER)
+                    direction = BORDERICON_UP_LEFT;
+                else
+                    direction = BORDERICON_UP_RIGHT;
+            } else {
+                if (mouseCoords.x < box.x + CORNER)
+                    direction = BORDERICON_DOWN_LEFT;
+                else
+                    direction = BORDERICON_DOWN_RIGHT;
+            }
+        }
+    } else {
+        if (mouseCoords.y < box.y + CORNER) {
+            if (mouseCoords.x < box.x + CORNER)
+                direction = BORDERICON_UP_LEFT;
+            else if (mouseCoords.x > box.x + box.width - CORNER)
+                direction = BORDERICON_UP_RIGHT;
+            else
+                direction = BORDERICON_UP;
+        } else if (mouseCoords.y > box.y + box.height - CORNER) {
+            if (mouseCoords.x < box.x + CORNER)
+                direction = BORDERICON_DOWN_LEFT;
+            else if (mouseCoords.x > box.x + box.width - CORNER)
+                direction = BORDERICON_DOWN_RIGHT;
+            else
+                direction = BORDERICON_DOWN;
+        } else {
+            if (mouseCoords.x < box.x + CORNER)
+                direction = BORDERICON_LEFT;
+            else if (mouseCoords.x > box.x + box.width - CORNER)
+                direction = BORDERICON_RIGHT;
+        }
+    }
+
+    if (direction == m_eBorderIconDirection)
+        return;
+
+    m_eBorderIconDirection = direction;
+
+    switch (direction) {
+        case BORDERICON_NONE: unsetCursorImage(); break;
+        case BORDERICON_UP: setCursorImageUntilUnset("top_side"); break;
+        case BORDERICON_DOWN: setCursorImageUntilUnset("bottom_side"); break;
+        case BORDERICON_LEFT: setCursorImageUntilUnset("left_side"); break;
+        case BORDERICON_RIGHT: setCursorImageUntilUnset("right_side"); break;
+        case BORDERICON_UP_LEFT: setCursorImageUntilUnset("top_left_corner"); break;
+        case BORDERICON_DOWN_LEFT: setCursorImageUntilUnset("bottom_left_corner"); break;
+        case BORDERICON_UP_RIGHT: setCursorImageUntilUnset("top_right_corner"); break;
+        case BORDERICON_DOWN_RIGHT: setCursorImageUntilUnset("bottom_right_corner"); break;
+    }
 }

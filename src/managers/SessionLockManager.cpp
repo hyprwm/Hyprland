@@ -36,6 +36,9 @@ static void handleSurfaceDestroy(void* owner, void* data) {
     PSURFACE->hyprListener_destroy.removeCallback();
     PSURFACE->hyprListener_map.removeCallback();
 
+    if (PSURFACE->pWlrLockSurface->surface == g_pCompositor->m_pLastFocus)
+        g_pCompositor->m_pLastFocus = nullptr;
+
     g_pSessionLockManager->removeSessionLockSurface(PSURFACE);
 }
 

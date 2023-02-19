@@ -143,6 +143,11 @@ interface IHyprLayout {
     */
     virtual void onWindowFocusChange(CWindow*);
 
+    /*
+        Called for replacing any data a layout has for a new window
+    */
+    virtual void replaceWindowDataWith(CWindow * from, CWindow * to) = 0;
+
   private:
     Vector2D    m_vBeginDragXY;
     Vector2D    m_vLastDragXY;

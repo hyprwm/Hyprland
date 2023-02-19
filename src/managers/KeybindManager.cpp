@@ -777,6 +777,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
 
             g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACETOCHANGETO->m_szName});
+            EMIT_HOOK_EVENT("workspace", PWORKSPACETOCHANGETO);
         }
 
         // If the monitor is not the one our cursor's at, warp to it.
@@ -870,6 +871,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         g_pCompositor->warpCursorTo(PMONITOR->vecPosition + PMONITOR->vecSize / 2.f);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACE->m_szName});
+    EMIT_HOOK_EVENT("workspace", PWORKSPACE);
 
     g_pCompositor->setActiveMonitor(PMONITOR);
 
@@ -1051,6 +1053,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     // manually post event cuz it got ignored above
     g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", PWINDOW, PWORKSPACE->m_szName.c_str())});
+    EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{PWINDOW, PWORKSPACE}));
 
     PWINDOW->m_iWorkspaceID   = OLDWORKSPACEIDRETURN;
     const auto PNEXTCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
@@ -1150,8 +1153,8 @@ void CKeybindManager::focusUrgentOrLast(std::string args) {
 }
 
 void CKeybindManager::focusCurrentOrLast(std::string args) {
-    const auto PWINDOWPREV   = g_pCompositor->m_pLastWindow ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1]) :
-                                                              (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0]);
+    const auto PWINDOWPREV = g_pCompositor->m_pLastWindow ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1]) :
+                                                            (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0]);
 
     if (!PWINDOWPREV)
         return;
@@ -1687,6 +1690,7 @@ void CKeybindManager::setSubmap(std::string submap) {
         m_szCurrentSelectedSubmap = "";
         Debug::log(LOG, "Reset active submap to the default one.");
         g_pEventManager->postEvent(SHyprIPCEvent{"submap", ""});
+        EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
         return;
     }
 
@@ -1695,6 +1699,7 @@ void CKeybindManager::setSubmap(std::string submap) {
             m_szCurrentSelectedSubmap = submap;
             Debug::log(LOG, "Changed keybind submap to %s", submap.c_str());
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
+            EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
             return;
         }
     }

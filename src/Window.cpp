@@ -219,6 +219,7 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
         if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID); PWORKSPACE) {
             g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", this, PWORKSPACE->m_szName.c_str())});
+            EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
         }
 
         if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)

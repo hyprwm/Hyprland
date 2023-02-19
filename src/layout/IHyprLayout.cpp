@@ -317,6 +317,7 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("%x,%d", pWindow, (int)TILED)});
+    EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {
         const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);

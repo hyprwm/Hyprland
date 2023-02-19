@@ -741,6 +741,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
     PWORKSPACE->m_bHasFullscreenWindow = !PWORKSPACE->m_bHasFullscreenWindow;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"fullscreen", std::to_string((int)on)});
+    EMIT_HOOK_EVENT("fullscreen", pWindow);
 
     if (!pWindow->m_bIsFullscreen) {
         // if it got its fullscreen disabled, set back its node if it had one

@@ -801,6 +801,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
 
+        EMIT_HOOK_EVENT("activeWindow", nullptr);
+
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
         m_pLastFocus = nullptr;
@@ -871,6 +873,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("%x", pWindow)});
+
+    EMIT_HOOK_EVENT("activeWindow", pWindow);
 
     g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
 
@@ -1732,7 +1736,9 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", PWORKSPACEA->m_szName + "," + pMonitorB->szName});
+    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<void*>{PWORKSPACEA, pMonitorB}));
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", PWORKSPACEB->m_szName + "," + pMonitorA->szName});
+    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<void*>{PWORKSPACEB, pMonitorA}));
 }
 
 CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
@@ -1895,6 +1901,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", pWorkspace->m_szName + "," + pMonitor->szName});
+    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<void*>{pWorkspace, pMonitor}));
 }
 
 bool CCompositor::workspaceIDOutOfBounds(const int& id) {
@@ -2223,6 +2230,7 @@ void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
     const auto PWORKSPACE = getWorkspaceByID(pMonitor->activeWorkspace);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", pMonitor->szName + "," + PWORKSPACE->m_szName});
+    EMIT_HOOK_EVENT("focusedMon", pMonitor);
     m_pLastMonitor = pMonitor;
 }
 

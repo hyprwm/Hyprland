@@ -177,7 +177,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         }
     }
 
-    g_pProtocolManager->m_pToplevelExportProtocolManager->onMonitorRender(PMONITOR); // dispatch any toplevel sharing
+    EMIT_HOOK_EVENT("preRender", PMONITOR);
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -191,8 +191,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         Debug::log(CRIT, "Damage tracking mode -1 ????");
         return;
     }
-
-    g_pHyprOpenGL->preRender(PMONITOR);
 
     if (!wlr_output_damage_attach_render(PMONITOR->damage, &hasChanged, &damage)) {
         Debug::log(ERR, "Couldn't attach render to display %s ???", PMONITOR->szName.c_str());

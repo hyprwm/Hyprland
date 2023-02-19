@@ -2,7 +2,9 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 
-CInputMethodRelay::CInputMethodRelay() {}
+CInputMethodRelay::CInputMethodRelay() {
+    g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, std::any param) { onKeyboardFocus(std::any_cast<wlr_surface*>(param)); });
+}
 
 void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
     if (m_pWLRIME) {

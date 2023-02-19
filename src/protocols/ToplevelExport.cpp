@@ -37,6 +37,8 @@ CToplevelExportProtocolManager::CToplevelExportProtocolManager() {
     m_liDisplayDestroy.notify = handleDisplayDestroy;
     wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy);
 
+    g_pHookSystem->hookDynamic("preRender", [&](void* self, std::any data) { onMonitorRender(std::any_cast<CMonitor*>(data)); });
+
     Debug::log(LOG, "ToplevelExportManager started successfully!");
 }
 

@@ -50,8 +50,6 @@ class CToplevelExportProtocolManager {
     void removeClient(SToplevelClient* client, bool force = false);
     void removeFrame(SToplevelFrame* frame, bool force = false);
     void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);
-
-    void onMonitorRender(CMonitor* pMonitor);
     void displayDestroy();
     void onWindowUnmap(CWindow* pWindow);
 
@@ -67,4 +65,6 @@ class CToplevelExportProtocolManager {
     void                         shareFrame(SToplevelFrame* frame);
     bool                         copyFrameDmabuf(SToplevelFrame* frame);
     bool                         copyFrameShm(SToplevelFrame* frame, timespec* now);
+
+    void                         onMonitorRender(CMonitor* pMonitor);
 };

@@ -15,6 +15,7 @@ CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
 
     m_mDispatchers["exec"]                          = spawn;
+    m_mDispatchers["execr"]                         = spawnRaw;
     m_mDispatchers["killactive"]                    = killActive;
     m_mDispatchers["closewindow"]                   = kill;
     m_mDispatchers["togglefloating"]                = toggleActiveFloating;
@@ -530,6 +531,20 @@ void CKeybindManager::spawn(std::string args) {
     else
         args = "WAYLAND_DISPLAY=" + std::string(g_pCompositor->m_szWLDisplaySocket) + " " + args;
 
+    const uint64_t PROC = spawnRaw(args);
+
+    if (!RULES.empty()) {
+        const auto RULESLIST = CVarList(RULES, 0, ';');
+
+        for (auto& r : RULESLIST) {
+            g_pConfigManager->addExecRule({r, (unsigned long)PROC});
+        }
+
+        Debug::log(LOG, "Applied %i rule arguments for exec.", RULESLIST.size());
+    }
+}
+
+uint64_t CKeybindManager::spawnRaw(std::string args) {
     Debug::log(LOG, "Executing %s", args.c_str());
 
     int socket[2];
@@ -543,7 +558,7 @@ void CKeybindManager::spawn(std::string args) {
         close(socket[0]);
         close(socket[1]);
         Debug::log(LOG, "Fail to create the first fork");
-        return;
+        return 0;
     }
     if (child == 0) {
         // run in child
@@ -575,20 +590,12 @@ void CKeybindManager::spawn(std::string args) {
     waitpid(child, NULL, 0);
     if (child < 0) {
         Debug::log(LOG, "Fail to create the second fork");
-        return;
+        return 0;
     }
 
     Debug::log(LOG, "Process Created with pid %d", grandchild);
 
-    if (!RULES.empty()) {
-        const auto RULESLIST = CVarList(RULES, 0, ';');
-
-        for (auto& r : RULESLIST) {
-            g_pConfigManager->addExecRule({r, (unsigned long)grandchild});
-        }
-
-        Debug::log(LOG, "Applied %i rule arguments for exec.", RULESLIST.size());
-    }
+    return grandchild;
 }
 
 void CKeybindManager::killActive(std::string args) {
@@ -1158,8 +1165,8 @@ void CKeybindManager::focusUrgentOrLast(std::string args) {
 }
 
 void CKeybindManager::focusCurrentOrLast(std::string args) {
-    const auto PWINDOWPREV   = g_pCompositor->m_pLastWindow ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1]) :
-                                                              (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0]);
+    const auto PWINDOWPREV = g_pCompositor->m_pLastWindow ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1]) :
+                                                            (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0]);
 
     if (!PWINDOWPREV)
         return;

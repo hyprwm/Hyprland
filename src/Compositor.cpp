@@ -319,6 +319,9 @@ void CCompositor::startCompositor() {
     // properly and we dont get any bad mem reads.
     //
 
+    Debug::log(LOG, "Creating the HookSystem!");
+    g_pHookSystem = std::make_unique<CHookSystemManager>();
+
     Debug::log(LOG, "Creating the KeybindManager!");
     g_pKeybindManager = std::make_unique<CKeybindManager>();
 
@@ -788,6 +791,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
 
+        EMIT_HOOK_EVENT("activeWindow", nullptr);
+
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
         m_pLastFocus = nullptr;
@@ -859,6 +864,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("%x", pWindow)});
 
+    EMIT_HOOK_EVENT("activeWindow", pWindow);
+
     g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
 
     if (pWindow->m_phForeignToplevel)
@@ -901,7 +908,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         wlr_seat_keyboard_clear_focus(m_sSeat.seat);
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // unfocused
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
-        g_pInputManager->m_sIMERelay.onKeyboardFocus(nullptr);
+        EMIT_HOOK_EVENT("keyboardFocus", nullptr);
         m_pLastFocus = nullptr;
         return;
     }
@@ -912,8 +919,6 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         return;
 
     wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
-
-    g_pInputManager->m_sIMERelay.onKeyboardFocus(pSurface);
 
     wlr_seat_keyboard_focus_change_event event = {
         .seat        = m_sSeat.seat,
@@ -929,6 +934,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
 
     g_pXWaylandManager->activateSurface(pSurface, true);
     m_pLastFocus = pSurface;
+
+    EMIT_HOOK_EVENT("keyboardFocus", pSurface);
 }
 
 bool CCompositor::windowValidMapped(CWindow* pWindow) {
@@ -1719,7 +1726,9 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", PWORKSPACEA->m_szName + "," + pMonitorB->szName});
+    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<void*>{PWORKSPACEA, pMonitorB}));
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", PWORKSPACEB->m_szName + "," + pMonitorA->szName});
+    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<void*>{PWORKSPACEB, pMonitorA}));
 }
 
 CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
@@ -1882,6 +1891,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", pWorkspace->m_szName + "," + pMonitor->szName});
+    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<void*>{pWorkspace, pMonitor}));
 }
 
 bool CCompositor::workspaceIDOutOfBounds(const int& id) {
@@ -2210,6 +2220,7 @@ void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
     const auto PWORKSPACE = getWorkspaceByID(pMonitor->activeWorkspace);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", pMonitor->szName + "," + PWORKSPACE->m_szName});
+    EMIT_HOOK_EVENT("focusedMon", pMonitor);
     m_pLastMonitor = pMonitor;
 }
 

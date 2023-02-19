@@ -25,8 +25,9 @@ If your bug is one that doesn't crash Hyprland, but feels like invalid behavior,
 
 If your bug crashes Hyprland, append additionally:
 - The Hyprland log
-- Coredump / Coredump analysis (with a stacktrace)
 - Your config
+- (v0.22.0beta and up) The Hyprland Crash Report
+- (v0.21.0beta and below) Coredump / Coredump analysis (with a stacktrace)
 
 **Important**: Please do NOT use any package for reporting bugs! Clone and compile from source.
 
@@ -44,7 +45,7 @@ cat /tmp/hypr/$(ls -t /tmp/hypr/ | head -n 2 | tail -n 1)/hyprland.log
 
 basically, directories in /tmp/hypr are your sessions.
 
-## Obtaining the Hyprland coredump
+## Obtaining the Hyprland coredump (v0.21.0beta and below)
 If you are on systemd, you can simply use
 ```
 coredumpctl
@@ -56,6 +57,13 @@ exit coredumpctl (ctrl+c) and use
 coredumpctl info [PID]
 ```
 where `[PID]` is the PID you remembered.
+
+## Obtaining the Hyprland Crash Report (v0.22.0beta and up)
+Go to `~/.hyprland/` and you should find a file named `.hyprlandCrashReport[XXXX]` where `[XXXX]` is the PID of the process that crashed.
+
+If you do not see it, make sure you have "show hidden files" enabled in your file manager.
+
+Attach that file to your issue.
 
 ## Obtaining the debug Hyprland coredump
 A debug coredump provides more information for debugging and may speed up the process of fixing the bug.

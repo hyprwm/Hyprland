@@ -87,7 +87,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :
                       getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
-    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow) {
+    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && OPENINGON != PNODE) {
         m_lMasterNodesData.remove(*PNODE);
 
         OPENINGON->pWindow->insertWindowToGroup(pWindow);

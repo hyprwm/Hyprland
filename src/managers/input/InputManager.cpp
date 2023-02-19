@@ -1015,12 +1015,6 @@ void CInputManager::recheckConstraint(SMouse* pMouse) {
     } else {
         pixman_region32_clear(&pMouse->confinedTo);
     }
-
-    const auto PWINDOW     = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
-    const auto PWINDOWNAME = PWINDOW ? PWINDOW->m_szTitle : "";
-
-    Debug::log(LOG, "Constraint rechecked: %i, %i to %i, %i for %x (window name: %s)", PREGION->extents.x1, PREGION->extents.y1, PREGION->extents.x2, PREGION->extents.y2,
-               pMouse->currentConstraint->surface, PWINDOWNAME.c_str());
 }
 
 void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* constraint) {

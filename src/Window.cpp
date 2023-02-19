@@ -467,3 +467,71 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
 
     return resultSurf;
 }
+
+CWindow* CWindow::getGroupHead() {
+    CWindow* curr = this;
+    while (!curr->m_sGroupData.head)
+        curr = curr->m_sGroupData.pNextWindow;
+    return curr;
+}
+
+CWindow* CWindow::getGroupTail() {
+    CWindow* curr = this;
+    while (!curr->m_sGroupData.pNextWindow->m_sGroupData.head)
+        curr = curr->m_sGroupData.pNextWindow;
+    return curr;
+}
+
+CWindow* CWindow::getGroupCurrent() {
+    CWindow* curr = this;
+    while (curr->isHidden())
+        curr = curr->m_sGroupData.pNextWindow;
+    return curr;
+}
+
+void CWindow::setGroupCurrent(CWindow* pWindow) {
+    CWindow* curr     = this->m_sGroupData.pNextWindow;
+    bool     isMember = false;
+    while (curr != this) {
+        if (curr == pWindow) {
+            isMember = true;
+            break;
+        }
+        curr = curr->m_sGroupData.pNextWindow;
+    }
+
+    if (!isMember && pWindow != this)
+        return;
+
+    const auto PCURRENT = getGroupCurrent();
+
+    const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goalv();
+    const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goalv();
+
+    const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_pLastWindow;
+
+    PCURRENT->setHidden(true);
+    pWindow->setHidden(false);
+
+    g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
+
+    if (PCURRENT->m_bIsFloating) {
+        pWindow->m_vRealPosition.setValueAndWarp(PWINDOWPOS);
+        pWindow->m_vRealSize.setValueAndWarp(PWINDOWSIZE);
+    }
+
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+    if (CURRENTISFOCUS)
+        g_pCompositor->focusWindow(pWindow);
+}
+
+void CWindow::insertWindowToGroup(CWindow* pWindow) {
+    const auto PHEAD = getGroupHead();
+    const auto PTAIL = getGroupTail();
+
+    PTAIL->m_sGroupData.pNextWindow   = pWindow;
+    pWindow->m_sGroupData.pNextWindow = PHEAD;
+
+    setGroupCurrent(pWindow);
+}

@@ -635,11 +635,25 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
     if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID))
         return;
 
-    PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
+    if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
 
-    PWINDOW->updateDynamicRules();
+        const auto PCURRENT     = PWINDOW->getGroupCurrent();
+        PCURRENT->m_bIsFloating = !PCURRENT->m_bIsFloating;
+        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
 
-    g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
+        CWindow* curr = PCURRENT->m_sGroupData.pNextWindow;
+        while (curr != PCURRENT) {
+            curr->m_bIsFloating = PCURRENT->m_bIsFloating;
+            curr->updateDynamicRules();
+            curr = curr->m_sGroupData.pNextWindow;
+        }
+    } else {
+        PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
+
+        PWINDOW->updateDynamicRules();
+
+        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
+    }
 }
 
 void CKeybindManager::centerWindow(std::string args) {
@@ -1243,18 +1257,63 @@ void CKeybindManager::moveActiveTo(std::string args) {
 }
 
 void CKeybindManager::toggleGroup(std::string args) {
-    SLayoutMessageHeader header;
-    header.pWindow = g_pCompositor->m_pLastWindow;
-    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglegroup");
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW)
+        return;
+
+    if (!PWINDOW->m_sGroupData.pNextWindow) {
+        PWINDOW->m_sGroupData.pNextWindow = PWINDOW;
+        PWINDOW->m_sGroupData.head        = true;
+
+        PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
+
+        PWINDOW->updateWindowDecos();
+    } else {
+        if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW) {
+            PWINDOW->m_sGroupData.pNextWindow = nullptr;
+            PWINDOW->updateWindowDecos();
+        } else {
+            // enum all windows, remove their group state, readd to layout.
+            CWindow*              curr = PWINDOW;
+            std::vector<CWindow*> members;
+            do {
+                const auto PLASTWIN                = curr;
+                curr                               = curr->m_sGroupData.pNextWindow;
+                PLASTWIN->m_sGroupData.pNextWindow = nullptr;
+                curr->setHidden(false);
+                members.push_back(curr);
+            } while (curr != PWINDOW);
+
+            for (auto& w : members) {
+                if (w->m_sGroupData.head)
+                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
+                w->m_sGroupData.head = false;
+            }
+
+            for (auto& w : members) {
+                g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
+                w->updateWindowDecos();
+            }
+        }
+    }
+
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 }
 
 void CKeybindManager::changeGroupActive(std::string args) {
-    SLayoutMessageHeader header;
-    header.pWindow = g_pCompositor->m_pLastWindow;
-    if (args == "b")
-        g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "changegroupactiveb");
-    else
-        g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "changegroupactivef");
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW)
+        return;
+
+    if (!PWINDOW->m_sGroupData.pNextWindow)
+        return;
+
+    if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW)
+        return;
+
+    PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
 }
 
 void CKeybindManager::toggleSplit(std::string args) {

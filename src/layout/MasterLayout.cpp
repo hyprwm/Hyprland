@@ -83,6 +83,20 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
     const auto         WINDOWSONWORKSPACE = getNodesOnWorkspace(PNODE->workspaceID);
     float              lastSplitPercent   = 0.5f;
 
+    auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID ?
+                      getNodeFromWindow(g_pCompositor->m_pLastWindow) :
+                      getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
+
+    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow) {
+        m_lMasterNodesData.remove(*PNODE);
+
+        OPENINGON->pWindow->insertWindowToGroup(pWindow);
+
+        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
+        return;
+    }
+
     if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1) {
         for (auto& nd : m_lMasterNodesData) {
             if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
@@ -228,7 +242,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if (getNodesOnWorkspace(PWORKSPACE->m_iID) < 2) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
-                                         PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+                                     PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (PWORKSPACEDATA->orientation == ORIENTATION_LEFT || PWORKSPACEDATA->orientation == ORIENTATION_RIGHT) {
@@ -1008,6 +1022,17 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     }
 
     return 0;
+}
+
+void CHyprMasterLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {
+    const auto PNODE = getNodeFromWindow(from);
+
+    if (!PNODE)
+        return;
+
+    PNODE->pWindow = to;
+
+    applyNodeDataToWindow(PNODE);
 }
 
 void CHyprMasterLayout::onEnable() {

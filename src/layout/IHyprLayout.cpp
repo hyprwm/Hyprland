@@ -24,6 +24,36 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
     if (pWindow->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
+    if (pWindow->m_sGroupData.pNextWindow) {
+        if (pWindow->m_sGroupData.pNextWindow == pWindow)
+            pWindow->m_sGroupData.pNextWindow = nullptr;
+        else {
+            // find last window and update
+            CWindow*   curr           = pWindow;
+            const auto CURRWASVISIBLE = curr->getGroupCurrent() == curr;
+
+            while (curr->m_sGroupData.pNextWindow != pWindow)
+                curr = curr->m_sGroupData.pNextWindow;
+
+            if (CURRWASVISIBLE)
+                curr->setGroupCurrent(curr);
+
+            curr->m_sGroupData.pNextWindow = pWindow->m_sGroupData.pNextWindow;
+
+            pWindow->m_sGroupData.pNextWindow = nullptr;
+
+            if (pWindow->m_sGroupData.head) {
+                pWindow->m_sGroupData.head = false;
+                curr->m_sGroupData.head    = true;
+            }
+
+            if (pWindow == m_pLastTiledWindow)
+                m_pLastTiledWindow = nullptr;
+
+            return;
+        }
+    }
+
     if (pWindow->m_bIsFloating) {
         onWindowRemovedFloating(pWindow);
     } else {

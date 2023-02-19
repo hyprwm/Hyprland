@@ -50,6 +50,8 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             if (pWindow == m_pLastTiledWindow)
                 m_pLastTiledWindow = nullptr;
 
+            pWindow->setHidden(false);
+
             return;
         }
     }

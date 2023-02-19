@@ -34,7 +34,7 @@ void CrashReporter::createAndSaveCrash() {
 
     std::string finalCrashReport = "";
 
-    finalCrashReport += "--------------------------------------------\n   Hyprland Crash Log\n--------------------------------------------\n";
+    finalCrashReport += "--------------------------------------------\n   Hyprland Crash Report\n--------------------------------------------\n";
     finalCrashReport += getRandomMessage() + "\n\n";
 
     finalCrashReport += "Hyprland received signal 11 (SIGSEGV): Segmentation Fault\n\n";
@@ -85,7 +85,12 @@ void CrashReporter::createAndSaveCrash() {
     if (!HOME)
         return;
 
-    std::ofstream ofs(std::string(HOME) + "/.hyprlandDump" + std::to_string(PID), std::ios::trunc);
+    if (!std::filesystem::exists(std::string(HOME) + "/.hyprland")) {
+        std::filesystem::create_directory(std::string(HOME) + "/.hyprland");
+        std::filesystem::permissions(std::string(HOME) + "/.hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
+    }
+
+    std::ofstream ofs(std::string(HOME) + "/.hyprland/.hyprlandCrashReport" + std::to_string(PID), std::ios::trunc);
 
     ofs << finalCrashReport;
 

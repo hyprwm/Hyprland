@@ -344,6 +344,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         m_bLastFocusOnLS = false;
     } else {
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_eBorderIconDirection != BORDERICON_NONE) {
+            m_eBorderIconDirection = BORDERICON_NONE;
+            unsetCursorImage();
+        }
+
         if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
         }

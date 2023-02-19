@@ -1434,7 +1434,7 @@ void CKeybindManager::workspaceOpt(std::string args) {
             ptrs.push_back(w.get());
 
         for (auto& w : ptrs) {
-            if (!w->m_bIsMapped || w->m_iWorkspaceID != PWORKSPACE->m_iID)
+            if (!w->m_bIsMapped || w->m_iWorkspaceID != PWORKSPACE->m_iID || w->isHidden())
                 continue;
 
             if (!w->m_bRequestsFloat && w->m_bIsFloating != PWORKSPACE->m_bDefaultFloating) {

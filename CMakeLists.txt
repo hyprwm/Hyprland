@@ -100,6 +100,9 @@ target_compile_definitions(Hyprland PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
 target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_MESSAGE=\"${GIT_COMMIT_MESSAGE}\"")
 target_compile_definitions(Hyprland PRIVATE "-DGIT_DIRTY=\"${GIT_DIRTY}\"")
 
+ADD_LINK_OPTIONS( -rdynamic )
+SET(CMAKE_ENABLE_EXPORTS TRUE)
+
 target_link_libraries(Hyprland rt)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

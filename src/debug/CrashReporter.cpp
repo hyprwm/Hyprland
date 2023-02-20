@@ -70,7 +70,11 @@ void CrashReporter::createAndSaveCrash() {
     for (size_t i = 0; i < btSize; ++i) {
         finalCrashReport += getFormat("\t#%i | %s\n", i, btSymbols[i]);
 
+#ifdef __clang__
+        const auto CMD       = getFormat("llvm-addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)bt[i]);
+#else
         const auto CMD       = getFormat("addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)bt[i]);
+#endif
         const auto ADDR2LINE = replaceInString(execAndGet(CMD.c_str()), "\n", "\n\t\t");
         finalCrashReport += "\t\t" + ADDR2LINE.substr(0, ADDR2LINE.length() - 2);
     }

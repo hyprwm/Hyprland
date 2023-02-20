@@ -1055,7 +1055,7 @@ void Events::listener_requestMinimize(void* owner, void* data) {
     } else {
         const auto E = (wlr_foreign_toplevel_handle_v1_minimized_event*)data;
         g_pEventManager->postEvent({"minimize", getFormat("%x,%i", PWINDOW, E ? (int)E->minimized : 1)});
-        EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)(E ? (int)E->minimized : 1)}));
+        EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)(E ? (uint64_t)E->minimized : 1)}));
     }
 }
 

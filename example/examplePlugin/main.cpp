@@ -12,6 +12,11 @@ inline std::unique_ptr<CHyprCustomLayout> g_pCustomLayout;
 
 // Methods
 
+// Do NOT change this function.
+APICALL EXPORT std::string PLUGIN_API_VERSION() {
+    return HYPRLAND_API_VERSION;
+}
+
 static void onActiveWindowChange(void* self, std::any data) {
     try {
         auto* const PWINDOW = std::any_cast<CWindow*>(data);
@@ -35,5 +40,5 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
-    HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(ee6666ff) Goodbye World from a Hyprland plugin!");
+    HyprlandAPI::invokeHyprctlCommand("seterror", "disable");
 }

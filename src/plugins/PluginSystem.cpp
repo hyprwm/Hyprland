@@ -24,10 +24,20 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
 
     PLUGIN->m_pHandle = MODULE;
 
-    PPLUGIN_INIT_FUNC initFunc = (PPLUGIN_INIT_FUNC)dlsym(MODULE, PLUGIN_INIT_FUNC_STR);
+    PPLUGIN_API_VERSION_FUNC apiVerFunc = (PPLUGIN_API_VERSION_FUNC)dlsym(MODULE, PLUGIN_API_VERSION_FUNC_STR);
+    PPLUGIN_INIT_FUNC        initFunc   = (PPLUGIN_INIT_FUNC)dlsym(MODULE, PLUGIN_INIT_FUNC_STR);
 
-    if (!initFunc) {
-        Debug::log(ERR, " [PluginSystem] Plugin %s could not be loaded. (No init func)", path.c_str());
+    if (!apiVerFunc || !initFunc) {
+        Debug::log(ERR, " [PluginSystem] Plugin %s could not be loaded. (No apiver/init func)", path.c_str());
+        dlclose(MODULE);
+        m_vLoadedPlugins.pop_back();
+        return nullptr;
+    }
+
+    const std::string PLUGINAPIVER = apiVerFunc();
+
+    if (PLUGINAPIVER != HYPRLAND_API_VERSION) {
+        Debug::log(ERR, " [PluginSystem] Plugin %s could not be loaded. (API version mismatch)", path.c_str());
         dlclose(MODULE);
         m_vLoadedPlugins.pop_back();
         return nullptr;

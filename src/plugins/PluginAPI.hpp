@@ -15,6 +15,8 @@ See examples/examplePlugin for an example plugin
 
 */
 
+#define HYPRLAND_API_VERSION "0.1"
+
 #include <any>
 #include <functional>
 #include <string>
@@ -39,6 +41,16 @@ class IHyprLayout;
     These methods are for the plugin to implement
     Methods marked with REQUIRED are required.
 */
+
+/* 
+    called pre-plugin init.
+    In case of a version mismatch, will eject the .so.
+
+    This function should not be modified, see the example plugin.
+*/
+typedef REQUIRED std::string (*PPLUGIN_API_VERSION_FUNC)();
+#define PLUGIN_API_VERSION          pluginAPIVersion
+#define PLUGIN_API_VERSION_FUNC_STR "pluginAPIVersion"
 
 /*
     called on plugin init. Passes a handle as the parameter, which the plugin should keep for identification later.

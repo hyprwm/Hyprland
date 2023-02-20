@@ -14,6 +14,7 @@ executable('Hyprland', src,
     dependency('xkbcommon'),
     dependency('libinput'),
     xcb_dep,
+    backtrace_dep,
     systemd_dep,
 
     dependency('pixman-1'),

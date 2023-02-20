@@ -18,7 +18,7 @@ static void onActiveWindowChange(void* self, std::any data) {
     } catch (std::bad_any_cast& e) { HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(6666eeff)    [ExamplePlugin] Active window: None"); }
 }
 
-APICALL EXPORT PLUGIN_DESCRIPTION_INFO pluginInit(HANDLE handle) {
+APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
     HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(66ee66ff) Hello World from a Hyprland plugin!");
@@ -28,6 +28,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO pluginInit(HANDLE handle) {
     return {"ExamplePlugin", "An example plugin", "Vaxry", "1.0"};
 }
 
-APICALL EXPORT void pluginExit() {
+APICALL EXPORT void PLUGIN_EXIT() {
     HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(ee6666ff) Goodbye World from a Hyprland plugin!");
 }

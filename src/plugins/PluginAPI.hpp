@@ -45,7 +45,8 @@ typedef struct {
     Keep in mind this is executed synchronously, and as such any blocking calls to hyprland might hang. (e.g. system("hyprctl ..."))
 */
 typedef REQUIRED PLUGIN_DESCRIPTION_INFO (*PPLUGIN_INIT_FUNC)(HANDLE);
-#define PLUGIN_INIT_FUNC_NAME "pluginInit"
+#define PLUGIN_INIT          pluginInit
+#define PLUGIN_INIT_FUNC_STR "pluginInit"
 
 /*
     called on plugin unload, if that was a user action. If the plugin is being unloaded by an error,
@@ -54,7 +55,8 @@ typedef REQUIRED PLUGIN_DESCRIPTION_INFO (*PPLUGIN_INIT_FUNC)(HANDLE);
     Hooks are unloaded after exit.
 */
 typedef OPTIONAL void (*PPLUGIN_EXIT_FUNC)(void);
-#define PLUGIN_EXIT_FUNC_NAME "pluginExit"
+#define PLUGIN_EXIT          pluginExit
+#define PLUGIN_EXIT_FUNC_STR "pluginExit"
 
 /*
     End plugin methods

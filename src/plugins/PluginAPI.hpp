@@ -109,4 +109,11 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool removeLayout(HANDLE handle, IHyprLayout* layout);
+
+    /*
+        Queues a config reload. Does not take effect immediately.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool reloadConfig();
 };

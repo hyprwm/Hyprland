@@ -54,7 +54,9 @@ include_directories(. PRIVATE "subprojects/wlroots/include/")
 include_directories(. PRIVATE "subprojects/wlroots/build/include/")
 set(CMAKE_CXX_STANDARD 23)
 add_compile_options(-DWLR_USE_UNSTABLE)
-add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing)
+add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -g)
+ADD_LINK_OPTIONS( -rdynamic )
+SET(CMAKE_ENABLE_EXPORTS TRUE)
 
 message(STATUS "Checking deps...")
 
@@ -99,9 +101,6 @@ target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HA
 target_compile_definitions(Hyprland PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
 target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_MESSAGE=\"${GIT_COMMIT_MESSAGE}\"")
 target_compile_definitions(Hyprland PRIVATE "-DGIT_DIRTY=\"${GIT_DIRTY}\"")
-
-ADD_LINK_OPTIONS( -rdynamic )
-SET(CMAKE_ENABLE_EXPORTS TRUE)
 
 target_link_libraries(Hyprland rt)
 

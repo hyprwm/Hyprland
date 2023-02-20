@@ -84,4 +84,12 @@ namespace HyprlandAPI {
         returns: true on success, false on fail
     */
     APICALL bool unregisterCallback(HANDLE handle, HOOK_CALLBACK_FN* fn);
+
+    /*
+        Calls a hyprctl command.
+
+        returns: the output (as in hyprctl)
+    */
+    APICALL std::string invokeHyprctlCommand(const std::string& call, const std::string& args, const std::string& format = "");
+
 };

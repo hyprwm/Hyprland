@@ -1,5 +1,6 @@
 #include "PluginAPI.hpp"
 #include "../Compositor.hpp"
+#include "../debug/HyprCtl.hpp"
 
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
@@ -34,4 +35,9 @@ APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, HOOK_CALLBACK_FN* fn
     std::erase_if(PLUGIN->registeredCallbacks, [&](const auto& other) { return other.second == fn; });
 
     return true;
+}
+
+APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, const std::string& args, const std::string& format) {
+    std::string COMMAND = format + "/" + call + " " + args;
+    return HyprCtl::makeDynamicCall(COMMAND);
 }

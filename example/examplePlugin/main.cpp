@@ -11,21 +11,17 @@ inline HANDLE PHANDLE = nullptr;
 // Methods
 
 static void onActiveWindowChange(void* self, std::any data) {
-    auto* const PWINDOW = std::any_cast<CWindow*>(data);
+    try {
+        auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
-    std::thread(
-        [&](CWindow* pWindow) {
-            std::string text = "hyprctl seterror \"rgba(6666eeff)\" \"   [ExamplePlugin] Active window: \"" + (pWindow ? pWindow->m_szTitle : "");
-            system(text.c_str());
-        },
-        PWINDOW)
-        .detach();
+        HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(6666eeff)    [ExamplePlugin] Active window: " + (PWINDOW ? PWINDOW->m_szTitle : "None"));
+    } catch (std::bad_any_cast& e) { HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(6666eeff)    [ExamplePlugin] Active window: None"); }
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO pluginInit(HANDLE handle) {
     PHANDLE = handle;
 
-    std::thread([&]() { system("hyprctl seterror \"rgba(66ee66ff)\" Hello World from a Hyprland plugin!"); }).detach();
+    HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(66ee66ff) Hello World from a Hyprland plugin!");
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "activeWindow", [&](void* self, std::any data) { onActiveWindowChange(self, data); });
 
@@ -33,5 +29,5 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO pluginInit(HANDLE handle) {
 }
 
 APICALL EXPORT void pluginExit() {
-    std::thread([&]() { system("hyprctl seterror \"rgba(ee6666ff)\" Bye World from a Hyprland plugin!"); }).detach();
+    HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(ee6666ff) Goodbye World from a Hyprland plugin!");
 }

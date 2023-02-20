@@ -1202,6 +1202,10 @@ std::string getReply(std::string request) {
     return "unknown request";
 }
 
+std::string HyprCtl::makeDynamicCall(const std::string& input) {
+    return getReply(input);
+}
+
 int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;

@@ -69,6 +69,12 @@ file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
 
+include(CheckLibraryExists)
+check_library_exists(execinfo backtrace "" HAVE_LIBEXECINFO)
+if(HAVE_LIBEXECINFO)
+    target_link_libraries(Hyprland PRIVATE execinfo)
+endif()
+
 IF(LEGACY_RENDERER MATCHES true)
     message(STATUS "Using the legacy GLES2 renderer!")
     add_definitions( -DLEGACY_RENDERER )

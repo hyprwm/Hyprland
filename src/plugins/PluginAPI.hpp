@@ -17,6 +17,8 @@ See examples/examplePlugin for an example plugin
 
 #define HYPRLAND_API_VERSION "0.1"
 
+#include "../helpers/Color.hpp"
+
 #include <any>
 #include <functional>
 #include <string>
@@ -128,4 +130,11 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool reloadConfig();
+
+    /*
+        Adds a notification.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addNotification(HANDLE handle, const std::string& text, const CColor& color, const float timeMs);
 };

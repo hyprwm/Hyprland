@@ -19,6 +19,7 @@
 #include "managers/SessionLockManager.hpp"
 #include "managers/HookSystemManager.hpp"
 #include "debug/HyprDebugOverlay.hpp"
+#include "debug/HyprNotificationOverlay.hpp"
 #include "helpers/Monitor.hpp"
 #include "helpers/Workspace.hpp"
 #include "Window.hpp"

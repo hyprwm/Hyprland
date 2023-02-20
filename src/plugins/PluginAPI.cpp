@@ -68,3 +68,14 @@ APICALL bool HyprlandAPI::reloadConfig() {
     g_pConfigManager->m_bForceReload = true;
     return true;
 }
+
+APICALL bool HyprlandAPI::addNotification(HANDLE handle, const std::string& text, const CColor& color, const float timeMs) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    g_pHyprNotificationOverlay->addNotification(text, color, timeMs);
+
+    return true;
+}

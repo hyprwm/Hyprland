@@ -371,6 +371,9 @@ void CCompositor::startCompositor() {
     Debug::log(LOG, "Creating the HyprDebugOverlay!");
     g_pDebugOverlay = std::make_unique<CHyprDebugOverlay>();
 
+    Debug::log(LOG, "Creating the HyprNotificationOverlay!");
+    g_pHyprNotificationOverlay = std::make_unique<CHyprNotificationOverlay>();
+
     Debug::log(LOG, "Creating the PluginSystem!");
     g_pPluginSystem = std::make_unique<CPluginSystem>();
     //

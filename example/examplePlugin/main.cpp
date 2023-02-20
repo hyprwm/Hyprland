@@ -21,14 +21,14 @@ static void onActiveWindowChange(void* self, std::any data) {
     try {
         auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
-        HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(6666eeff)    [ExamplePlugin] Active window: " + (PWINDOW ? PWINDOW->m_szTitle : "None"));
+        HyprlandAPI::addNotification(PHANDLE, "[ExamplePlugin] Active window:" + (PWINDOW ? PWINDOW->m_szTitle : "None"), CColor{0.f, 0.5f, 1.f, 1.f}, 5000);
     } catch (std::bad_any_cast& e) { HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(6666eeff)    [ExamplePlugin] Active window: None"); }
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
-    HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(66ee66ff) Hello World from a Hyprland plugin!");
+    HyprlandAPI::addNotification(PHANDLE, "Hello World from an example plugin!", CColor{0.f, 1.f, 1.f, 1.f}, 5000);
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "activeWindow", [&](void* self, std::any data) { onActiveWindowChange(self, data); });
 

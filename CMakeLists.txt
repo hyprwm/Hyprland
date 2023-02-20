@@ -54,7 +54,7 @@ include_directories(. PRIVATE "subprojects/wlroots/include/")
 include_directories(. PRIVATE "subprojects/wlroots/build/include/")
 set(CMAKE_CXX_STANDARD 23)
 add_compile_options(-DWLR_USE_UNSTABLE)
-add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -g)
+add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing)
 ADD_LINK_OPTIONS( -rdynamic )
 SET(CMAKE_ENABLE_EXPORTS TRUE)
 

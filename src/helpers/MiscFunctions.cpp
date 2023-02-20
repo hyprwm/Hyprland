@@ -412,7 +412,11 @@ void logSystemInfo() {
 
     Debug::log(NONE, "\n");
 
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
+#else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
+#endif
     Debug::log(LOG, "GPU information:\n%s\n", GPUINFO.c_str());
 
     if (GPUINFO.contains("NVIDIA")) {

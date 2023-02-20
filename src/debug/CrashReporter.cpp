@@ -47,7 +47,11 @@ void CrashReporter::createAndSaveCrash() {
     finalCrashReport +=
         getFormat("\tSystem name: %s\n\tNode name: %s\n\tRelease: %s\n\tVersion: %s\n\n", unameInfo.sysname, unameInfo.nodename, unameInfo.release, unameInfo.version);
 
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
+#else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
+#endif
 
     finalCrashReport += "GPU:\n\t" + GPUINFO;
 

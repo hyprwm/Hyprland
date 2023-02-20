@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include "PluginAPI.hpp"
+#include <csetjmp>
 
 class CPlugin {
   public:
@@ -28,6 +29,8 @@ class CPluginSystem {
 
   private:
     std::vector<std::unique_ptr<CPlugin>> m_vLoadedPlugins;
+
+    jmp_buf                               m_jbPluginFaultJumpBuf;
 };
 
 inline std::unique_ptr<CPluginSystem> g_pPluginSystem;

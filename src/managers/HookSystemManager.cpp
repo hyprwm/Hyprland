@@ -47,10 +47,14 @@ void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, std:
         if (std::find(faultyHandles.begin(), faultyHandles.end(), cb.handle) != faultyHandles.end())
             continue;
 
-        if (!setjmp(m_jbHookFaultJumpBuf))
-            (*cb.fn)(cb.fn, data);
-        else {
-            // this module crashed.
+        try {
+            if (!setjmp(m_jbHookFaultJumpBuf))
+                (*cb.fn)(cb.fn, data);
+            else {
+                // this module crashed.
+                throw std::exception();
+            }
+        } catch (std::exception& e) {
             // TODO: this works only once...?
             faultyHandles.push_back(cb.handle);
             Debug::log(ERR, " [hookSystem] Hook from plugin %lx caused a SIGSEGV, queueing for unloading.", cb.handle);

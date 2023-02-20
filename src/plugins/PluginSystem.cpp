@@ -43,7 +43,20 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
         return nullptr;
     }
 
-    const auto PLUGINDATA = initFunc(MODULE);
+    PLUGIN_DESCRIPTION_INFO PLUGINDATA;
+
+    try {
+        if (!setjmp(m_jbPluginFaultJumpBuf))
+            PLUGINDATA = initFunc(MODULE);
+        else {
+            // this module crashed.
+            throw std::exception();
+        }
+    } catch (std::exception& e) {
+        Debug::log(ERR, " [PluginSystem] Plugin %s (Handle %lx) crashed in init. Unloading.", path.c_str(), MODULE);
+        unloadPlugin(PLUGIN, true); // Plugin could've already hooked/done something
+        return nullptr;
+    }
 
     PLUGIN->author      = PLUGINDATA.author;
     PLUGIN->description = PLUGINDATA.description;

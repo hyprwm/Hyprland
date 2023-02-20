@@ -52,6 +52,7 @@ if not have_xwayland
 add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
 endif
 
+backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
 systemd_dep = dependency('libsystemd', required: get_option('systemd'))
 
 if get_option('systemd').enabled() 

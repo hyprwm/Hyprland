@@ -4,6 +4,8 @@
 #include <execinfo.h>
 #include <fstream>
 
+#include "../plugins/PluginSystem.hpp"
+
 std::string getRandomMessage() {
 
     const std::vector<std::string>  MESSAGES = {"Sorry, didn't mean to...",
@@ -38,6 +40,16 @@ void CrashReporter::createAndSaveCrash() {
     finalCrashReport += getRandomMessage() + "\n\n";
 
     finalCrashReport += "Hyprland received signal 11 (SIGSEGV): Segmentation Fault\n\n";
+
+    if (!g_pPluginSystem->getAllPlugins().empty()) {
+        finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
+
+        for (auto& p : g_pPluginSystem->getAllPlugins()) {
+            finalCrashReport += getFormat("\t%s (%s) %s\n", p->name.c_str(), p->author.c_str(), p->version.c_str());
+        }
+
+        finalCrashReport += "\n\n";
+    }
 
     finalCrashReport += "System info:\n";
 

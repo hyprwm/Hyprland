@@ -4,6 +4,10 @@
 #include <execinfo.h>
 #include <fstream>
 
+#if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
+#include <sys/sysctl.h>
+#endif
+
 std::string getRandomMessage() {
 
     const std::vector<std::string>  MESSAGES = {"Sorry, didn't mean to...",
@@ -65,7 +69,31 @@ void CrashReporter::createAndSaveCrash() {
 
     btSize           = backtrace(bt, 1024);
     btSymbols        = backtrace_symbols(bt, btSize);
+
+#if defined(KERN_PROC_PATHNAME)
+    int mib[] = {
+	CTL_KERN,
+#if defined(__NetBSD__)
+	KERN_PROC_ARGS,
+	-1,
+	KERN_PROC_PATHNAME,
+#else
+	KERN_PROC,
+	KERN_PROC_PATHNAME,
+	-1,
+#endif
+    };
+    u_int      miblen = sizeof(mib) / sizeof(mib[0]);
+    char       exe[PATH_MAX] = "";
+    size_t     sz = sizeof(exe);
+    sysctl(mib, miblen, &exe, &sz, NULL, 0);
+    const auto FPATH = std::filesystem::canonical(exe);
+#elif defined(__OpenBSD__)
+    // Neither KERN_PROC_PATHNAME nor /proc are supported
+    const auto FPATH = std::filesystem::canonical("/usr/local/bin/Hyprland");
+#else
     const auto FPATH = std::filesystem::canonical("/proc/self/exe");
+#endif
 
     for (size_t i = 0; i < btSize; ++i) {
         finalCrashReport += getFormat("\t#%i | %s\n", i, btSymbols[i]);

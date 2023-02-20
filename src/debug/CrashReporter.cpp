@@ -59,23 +59,16 @@ void CrashReporter::createAndSaveCrash() {
     size_t btSize;
     char** btSymbols;
 
-    btSize    = backtrace(bt, 1024);
-    btSymbols = backtrace_symbols(bt, btSize);
+    btSize           = backtrace(bt, 1024);
+    btSymbols        = backtrace_symbols(bt, btSize);
+    const auto FPATH = std::filesystem::canonical("/proc/self/exe");
 
     for (size_t i = 0; i < btSize; ++i) {
         finalCrashReport += getFormat("\t#%i | %s\n", i, btSymbols[i]);
 
-        std::string btSymbol = btSymbols[i];
-        size_t      hlPos    = 0;
-        while (btSymbol.find("Hyprland", hlPos + 1) != std::string::npos) {
-            hlPos = btSymbol.find("Hyprland", hlPos + 1);
-        }
-
-        if (hlPos != 0) {
-            const auto CMD       = getFormat("addr2line -e %s -f 0x%lx", btSymbol.substr(0, hlPos + 8).c_str(), (uint64_t)bt[i]);
-            const auto ADDR2LINE = replaceInString(execAndGet(CMD.c_str()), "\n", "\n\t\t");
-            finalCrashReport += "\t\t" + ADDR2LINE.substr(0, ADDR2LINE.length() - 2);
-        }
+        const auto CMD       = getFormat("addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)bt[i]);
+        const auto ADDR2LINE = replaceInString(execAndGet(CMD.c_str()), "\n", "\n\t\t");
+        finalCrashReport += "\t\t" + ADDR2LINE.substr(0, ADDR2LINE.length() - 2);
     }
 
     free(btSymbols);

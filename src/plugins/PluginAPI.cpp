@@ -66,4 +66,5 @@ APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
 
 APICALL bool HyprlandAPI::reloadConfig() {
     g_pConfigManager->m_bForceReload = true;
+    return true;
 }

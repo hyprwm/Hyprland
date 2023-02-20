@@ -2,9 +2,16 @@
 #include "../../src/Compositor.hpp"
 
 void CHyprCustomLayout::onWindowCreatedTiling(CWindow* pWindow) {
-    const auto PMONITOR      = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-    pWindow->m_vRealPosition = PMONITOR->vecSize / 2.f - Vector2D{250, 250};
-    pWindow->m_vRealSize     = Vector2D{250, 250};
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto SIZE     = PMONITOR->vecSize;
+
+    // these are used for focus and move calculations, and are *required* to touch for moving focus to work properly.
+    pWindow->m_vPosition = Vector2D{(SIZE.x / 2.0) * (m_vWindowData.size() % 2), (SIZE.y / 2.0) * (int)(m_vWindowData.size() > 1)};
+    pWindow->m_vSize     = SIZE / 2.0;
+
+    // this is the actual pos and size of the window (where it's rendered)
+    pWindow->m_vRealPosition = pWindow->m_vPosition + Vector2D{10, 10};
+    pWindow->m_vRealSize     = pWindow->m_vSize - Vector2D{20, 20};
 
     const auto PDATA = &m_vWindowData.emplace_back();
     PDATA->pWindow   = pWindow;

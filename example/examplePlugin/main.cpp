@@ -36,6 +36,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addLayout(PHANDLE, "custom", g_pCustomLayout.get());
 
+    HyprlandAPI::reloadConfig();
+
     return {"ExamplePlugin", "An example plugin", "Vaxry", "1.0"};
 }
 

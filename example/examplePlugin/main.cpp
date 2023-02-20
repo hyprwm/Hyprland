@@ -21,7 +21,7 @@ static void onActiveWindowChange(void* self, std::any data) {
     try {
         auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
-        HyprlandAPI::addNotification(PHANDLE, "[ExamplePlugin] Active window:" + (PWINDOW ? PWINDOW->m_szTitle : "None"), CColor{0.f, 0.5f, 1.f, 1.f}, 5000);
+        HyprlandAPI::addNotification(PHANDLE, "[ExamplePlugin] Active window: " + (PWINDOW ? PWINDOW->m_szTitle : "None"), CColor{0.f, 0.5f, 1.f, 1.f}, 5000);
     } catch (std::bad_any_cast& e) { HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(6666eeff)    [ExamplePlugin] Active window: None"); }
 }
 

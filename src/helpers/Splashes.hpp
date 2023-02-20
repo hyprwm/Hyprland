@@ -4,6 +4,7 @@
 #include <string>
 
 inline const std::vector<std::string> SPLASHES = {
+    "\"Zoggers\" - The hyprland community",
     "Woo, animations!",
     "It's like Hypr, but better.",
     "Release 1.0 when?",

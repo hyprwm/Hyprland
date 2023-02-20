@@ -257,10 +257,11 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
 
         // if correct monitor draw hyprerror
-        if (PMONITOR == g_pCompositor->m_vMonitors.front().get()) {
-            g_pHyprNotificationOverlay->draw(PMONITOR);
+        if (PMONITOR == g_pCompositor->m_vMonitors.front().get())
             g_pHyprError->draw();
-        }
+
+        if (PMONITOR == g_pCompositor->m_pLastMonitor)
+            g_pHyprNotificationOverlay->draw(PMONITOR);
 
         // for drawing the debug overlay
         if (PMONITOR == g_pCompositor->m_vMonitors.front().get() && *PDEBUGOVERLAY == 1) {

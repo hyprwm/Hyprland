@@ -1,6 +1,15 @@
 #include "HyprNotificationOverlay.hpp"
 #include "../Compositor.hpp"
 
+CHyprNotificationOverlay::CHyprNotificationOverlay() {
+    g_pHookSystem->hookDynamic("focusedMon", [&](void* self, std::any param) {
+        if (m_dNotifications.size() == 0)
+            return;
+
+        g_pHyprRenderer->damageBox(&m_bLastDamage);
+    });
+}
+
 void CHyprNotificationOverlay::addNotification(const std::string& text, const CColor& color, const float timeMs) {
     const auto PNOTIF = m_dNotifications.emplace_back(std::make_unique<SNotification>()).get();
 
@@ -92,9 +101,16 @@ wlr_box CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
 
 void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
 
-    if (!m_pCairoSurface || !m_pCairo) {
+    if (m_pLastMonitor != pMonitor || !m_pCairo || !m_pCairoSurface) {
+
+        if (m_pCairo && m_pCairoSurface) {
+            cairo_destroy(m_pCairo);
+            cairo_surface_destroy(m_pCairoSurface);
+        }
+
         m_pCairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
         m_pCairo        = cairo_create(m_pCairoSurface);
+        m_pLastMonitor  = pMonitor;
     }
 
     // Draw the notifications
@@ -114,6 +130,9 @@ void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
     wlr_box damage = drawNotifications(pMonitor);
 
     g_pHyprRenderer->damageBox(&damage);
+    g_pHyprRenderer->damageBox(&m_bLastDamage);
+
+    m_bLastDamage = damage;
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(m_pCairoSurface);

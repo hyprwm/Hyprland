@@ -2,11 +2,13 @@
 
 #include "../../src/plugins/PluginAPI.hpp"
 #include "../../src/Window.hpp"
+#include "customLayout.hpp"
 
 #include <unistd.h>
 #include <thread>
 
-inline HANDLE PHANDLE = nullptr;
+inline HANDLE                             PHANDLE = nullptr;
+inline std::unique_ptr<CHyprCustomLayout> g_pCustomLayout;
 
 // Methods
 
@@ -24,6 +26,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::invokeHyprctlCommand("seterror", "rgba(66ee66ff) Hello World from a Hyprland plugin!");
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "activeWindow", [&](void* self, std::any data) { onActiveWindowChange(self, data); });
+
+    g_pCustomLayout = std::make_unique<CHyprCustomLayout>();
+
+    HyprlandAPI::addLayout(PHANDLE, "custom", g_pCustomLayout.get());
 
     return {"ExamplePlugin", "An example plugin", "Vaxry", "1.0"};
 }

@@ -41,3 +41,25 @@ APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, c
     std::string COMMAND = format + "/" + call + " " + args;
     return HyprCtl::makeDynamicCall(COMMAND);
 }
+
+APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    PLUGIN->registeredLayouts.push_back(layout);
+
+    return g_pLayoutManager->addLayout(name, layout);
+}
+
+APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    std::erase(PLUGIN->registeredLayouts, layout);
+
+    return g_pLayoutManager->removeLayout(layout);
+}

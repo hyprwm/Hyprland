@@ -14,6 +14,7 @@ class CPlugin {
 
     HANDLE                                                 m_pHandle = nullptr;
 
+    std::vector<IHyprLayout*>                              registeredLayouts;
     std::vector<std::pair<std::string, HOOK_CALLBACK_FN*>> registeredCallbacks;
 };
 

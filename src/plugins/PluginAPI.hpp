@@ -33,6 +33,8 @@ typedef struct {
 #define OPTIONAL
 #define HANDLE void*
 
+class IHyprLayout;
+
 /*
     These methods are for the plugin to implement
     Methods marked with REQUIRED are required.
@@ -94,4 +96,17 @@ namespace HyprlandAPI {
     */
     APICALL std::string invokeHyprctlCommand(const std::string& call, const std::string& args, const std::string& format = "");
 
+    /*
+        Adds a layout to Hyprland.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout);
+
+    /*
+        Removes an added layout from Hyprland.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool removeLayout(HANDLE handle, IHyprLayout* layout);
 };

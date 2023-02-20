@@ -19,7 +19,7 @@ int handleCritSignal(int signo, void* data) {
 
 void handleSegv(int sig) {
     CrashReporter::createAndSaveCrash();
-    exit(SIGSEGV);
+    abort();
 }
 
 CCompositor::CCompositor() {

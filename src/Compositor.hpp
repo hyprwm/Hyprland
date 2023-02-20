@@ -25,6 +25,7 @@
 #include "render/Renderer.hpp"
 #include "render/OpenGL.hpp"
 #include "hyprerror/HyprError.hpp"
+#include "plugins/PluginSystem.hpp"
 
 class CCompositor {
   public:

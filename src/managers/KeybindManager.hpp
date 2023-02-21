@@ -25,8 +25,7 @@ struct SKeybind {
     bool shadowed = false;
 };
 
-enum eFocusWindowMode
-{
+enum eFocusWindowMode {
     MODE_CLASS_REGEX = 0,
     MODE_TITLE_REGEX,
     MODE_ADDRESS,
@@ -54,6 +53,8 @@ class CKeybindManager {
     std::unordered_map<std::string, std::function<void(std::string)>> m_mDispatchers;
 
     wl_event_source*                                                  m_pActiveKeybindEventSource = nullptr;
+
+    bool                                                              m_bGroupsLocked = false;
 
     std::list<SKeybind>                                               m_lKeybinds;
 
@@ -133,6 +134,7 @@ class CKeybindManager {
     static void     pinActive(std::string);
     static void     mouse(std::string);
     static void     bringActiveToTop(std::string);
+    static void     lockGroups(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

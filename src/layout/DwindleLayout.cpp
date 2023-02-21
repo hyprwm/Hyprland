@@ -292,7 +292,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     }
 
     // if it's a group, add the window
-    if (OPENINGON->pWindow->m_sGroupData.pNextWindow) {
+    if (OPENINGON->pWindow->m_sGroupData.pNextWindow && !g_pKeybindManager->m_bGroupsLocked) {
         m_lDwindleNodesData.remove(*PNODE);
 
         OPENINGON->pWindow->insertWindowToGroup(pWindow);

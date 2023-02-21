@@ -60,6 +60,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["bringactivetotop"]              = bringActiveToTop;
     m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
     m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
+    m_mDispatchers["lockgroups"]                    = lockGroups;
 
     m_tScrollTimer.reset();
 }
@@ -2030,5 +2031,13 @@ void CKeybindManager::fakeFullscreenActive(std::string args) {
         g_pCompositor->m_pLastWindow->m_bFakeFullscreenState = !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState;
         g_pXWaylandManager->setWindowFullscreen(g_pCompositor->m_pLastWindow,
                                                 g_pCompositor->m_pLastWindow->m_bFakeFullscreenState || g_pCompositor->m_pLastWindow->m_bIsFullscreen);
+    }
+}
+
+void CKeybindManager::lockGroups(std::string args) {
+    if (args == "lock" || args.empty() || args == "lockgroups") {
+        g_pKeybindManager->m_bGroupsLocked = true;
+    } else {
+        g_pKeybindManager->m_bGroupsLocked = false;
     }
 }

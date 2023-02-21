@@ -88,7 +88,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bRequestsFloat = true;
     }
 
-    PWINDOW->m_bX11ShouldntFocus = PWINDOW->m_bX11ShouldntFocus || (PWINDOW->m_bIsX11 && PWINDOW->m_iX11Type == 2);
+    PWINDOW->m_bX11ShouldntFocus =
+        PWINDOW->m_bX11ShouldntFocus || (PWINDOW->m_bIsX11 && PWINDOW->m_iX11Type == 2 && !wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland));
 
     if (PWORKSPACE->m_bDefaultFloating)
         PWINDOW->m_bIsFloating = true;
@@ -417,7 +418,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.keyboard_interactive)
         PWINDOW->m_bNoInitialFocus = true;
 
-    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus && PWINDOW->m_iX11Type != 2 && !workspaceSilent) {
+    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus &&
+        (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland))) && !workspaceSilent) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(*PDIMSTRENGTH);
@@ -562,6 +564,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
     g_pEventManager->postEvent(
         SHyprIPCEvent{"openwindow", getFormat("%x,%s,%s,%s", PWINDOW, workspaceID.c_str(), g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), PWINDOW->m_szTitle.c_str())});
+    EMIT_HOOK_EVENT("openWindow", PWINDOW);
 
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
@@ -575,6 +578,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x", PWINDOW)});
+    EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
     g_pProtocolManager->m_pToplevelExportProtocolManager->onWindowUnmap(PWINDOW);
 
@@ -744,6 +748,7 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
     if (PWINDOW == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("%x", PWINDOW)});
+        EMIT_HOOK_EVENT("activeWindow", PWINDOW);
     }
 
     PWINDOW->updateDynamicRules();
@@ -828,6 +833,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
         return;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%x", PWINDOW)});
+    EMIT_HOOK_EVENT("urgent", PWINDOW);
 
     PWINDOW->m_bIsUrgent = true;
 
@@ -869,6 +875,7 @@ void Events::listener_activateX11(void* owner, void* data) {
         return;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%x", PWINDOW)});
+    EMIT_HOOK_EVENT("urgent", PWINDOW);
 
     if (!*PFOCUSONACTIVATE)
         return;
@@ -1044,11 +1051,13 @@ void Events::listener_requestMinimize(void* owner, void* data) {
         const auto E = (wlr_xwayland_minimize_event*)data;
 
         g_pEventManager->postEvent({"minimize", getFormat("%x,%i", PWINDOW, (int)E->minimize)});
+        EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)E->minimize}));
 
         wlr_xwayland_surface_set_minimized(PWINDOW->m_uSurface.xwayland, E->minimize && g_pCompositor->m_pLastWindow != PWINDOW); // fucking DXVK
     } else {
         const auto E = (wlr_foreign_toplevel_handle_v1_minimized_event*)data;
         g_pEventManager->postEvent({"minimize", getFormat("%x,%i", PWINDOW, E ? (int)E->minimized : 1)});
+        EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)(E ? (uint64_t)E->minimized : 1)}));
     }
 }
 

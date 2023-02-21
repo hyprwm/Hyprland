@@ -132,6 +132,7 @@ void CMonitor::onConnect(bool noRule) {
     //
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
+    EMIT_HOOK_EVENT("monitorAdded", this);
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->setActiveMonitor(this);
@@ -203,6 +204,7 @@ void CMonitor::onDisconnect() {
     Debug::log(LOG, "Removed monitor %s!", szName.c_str());
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
+    EMIT_HOOK_EVENT("monitorRemoved", this);
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");

@@ -219,6 +219,7 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
         if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID); PWORKSPACE) {
             g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", this, PWORKSPACE->m_szName.c_str())});
+            EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
         }
 
         if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
@@ -466,4 +467,90 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     wlr_xdg_surface_for_each_popup_surface(m_uSurface.xdg, findExtensionForVector2D, &data);
 
     return resultSurf;
+}
+
+CWindow* CWindow::getGroupHead() {
+    CWindow* curr = this;
+    while (!curr->m_sGroupData.head)
+        curr = curr->m_sGroupData.pNextWindow;
+    return curr;
+}
+
+CWindow* CWindow::getGroupTail() {
+    CWindow* curr = this;
+    while (!curr->m_sGroupData.pNextWindow->m_sGroupData.head)
+        curr = curr->m_sGroupData.pNextWindow;
+    return curr;
+}
+
+CWindow* CWindow::getGroupCurrent() {
+    CWindow* curr = this;
+    while (curr->isHidden())
+        curr = curr->m_sGroupData.pNextWindow;
+    return curr;
+}
+
+void CWindow::setGroupCurrent(CWindow* pWindow) {
+    CWindow* curr     = this->m_sGroupData.pNextWindow;
+    bool     isMember = false;
+    while (curr != this) {
+        if (curr == pWindow) {
+            isMember = true;
+            break;
+        }
+        curr = curr->m_sGroupData.pNextWindow;
+    }
+
+    if (!isMember && pWindow != this)
+        return;
+
+    const auto PCURRENT = getGroupCurrent();
+
+    const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goalv();
+    const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goalv();
+
+    const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_pLastWindow;
+
+    PCURRENT->setHidden(true);
+    pWindow->setHidden(false);
+
+    g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
+
+    if (PCURRENT->m_bIsFloating) {
+        pWindow->m_vRealPosition.setValueAndWarp(PWINDOWPOS);
+        pWindow->m_vRealSize.setValueAndWarp(PWINDOWSIZE);
+    }
+
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+    if (CURRENTISFOCUS)
+        g_pCompositor->focusWindow(pWindow);
+}
+
+void CWindow::insertWindowToGroup(CWindow* pWindow) {
+    const auto PHEAD = getGroupHead();
+    const auto PTAIL = getGroupTail();
+
+    if (pWindow->m_sGroupData.pNextWindow) {
+        std::vector<CWindow*> members;
+        CWindow*              curr = pWindow;
+        do {
+            const auto PLAST = curr;
+            members.push_back(curr);
+            curr                            = curr->m_sGroupData.pNextWindow;
+            PLAST->m_sGroupData.pNextWindow = nullptr;
+            PLAST->m_sGroupData.head        = false;
+        } while (curr != pWindow);
+
+        for (auto& w : members) {
+            insertWindowToGroup(w);
+        }
+
+        return;
+    }
+
+    PTAIL->m_sGroupData.pNextWindow   = pWindow;
+    pWindow->m_sGroupData.pNextWindow = PHEAD;
+
+    setGroupCurrent(pWindow);
 }

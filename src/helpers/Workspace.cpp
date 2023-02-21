@@ -37,6 +37,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     m_fAlpha.registerVar();
 
     g_pEventManager->postEvent({"createworkspace", m_szName}, true);
+    EMIT_HOOK_EVENT("createWorkspace", this);
 }
 
 CWorkspace::~CWorkspace() {
@@ -51,6 +52,7 @@ CWorkspace::~CWorkspace() {
     }
 
     g_pEventManager->postEvent({"destroyworkspace", m_szName}, true);
+    EMIT_HOOK_EVENT("destroyWorkspace", this);
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {

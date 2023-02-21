@@ -273,6 +273,12 @@ class CWindow {
     // for idle inhibiting windows
     eIdleInhibitMode m_eIdleInhibitMode = IDLEINHIBIT_NONE;
 
+    // for groups
+    struct SGroupData {
+        CWindow* pNextWindow = nullptr; // nullptr means no grouping. Self means single group.
+        bool     head        = false;
+    } m_sGroupData;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) {
         return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
@@ -302,6 +308,12 @@ class CWindow {
     void                   onBorderAngleAnimEnd(void* ptr);
     bool                   isInCurvedCorner(double x, double y);
     bool                   hasPopupAt(const Vector2D& pos);
+
+    CWindow*               getGroupHead();
+    CWindow*               getGroupTail();
+    CWindow*               getGroupCurrent();
+    void                   setGroupCurrent(CWindow* pWindow);
+    void                   insertWindowToGroup(CWindow* pWindow);
 
   private:
     // For hidden windows and stuff

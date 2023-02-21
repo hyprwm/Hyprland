@@ -166,6 +166,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     layersurface->fadingOut     = false;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
+    EMIT_HOOK_EVENT("openLayer", layersurface);
 
     g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
 }
@@ -176,6 +177,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     Debug::log(LOG, "LayerSurface %x unmapped", layersurface->layerSurface);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
+    EMIT_HOOK_EVENT("closeLayer", layersurface);
 
     if (!g_pCompositor->getMonitorFromID(layersurface->monitorID) || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");

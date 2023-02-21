@@ -65,8 +65,8 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                                 (m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
                                 (m->output->serial ? m->output->serial : ""), m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(),
                                 (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale,
-                                (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"),
-                                (int)m->dpmsStatus, (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED));
+                                (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
+                                (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED));
         }
     }
 
@@ -75,14 +75,16 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
 static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat format) {
     const bool isJson = format == HyprCtl::FORMAT_JSON;
-    if (g_pLayoutManager->getCurrentLayout()->getLayoutName() != "dwindle")
+    if (!w->m_sGroupData.pNextWindow)
         return isJson ? "" : "0";
 
-    SLayoutMessageHeader header;
-    header.pWindow          = w;
-    const auto groupMembers = std::any_cast<std::deque<CWindow*>>(g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "groupinfo"));
-    if (groupMembers.empty())
-        return isJson ? "" : "0";
+    std::vector<CWindow*> groupMembers;
+
+    CWindow*              curr = w;
+    do {
+        groupMembers.push_back(curr);
+        curr = curr->m_sGroupData.pNextWindow;
+    } while (curr != w);
 
     const auto         comma = isJson ? ", " : ",";
     const auto         fmt   = isJson ? "\"0x%x\"" : "%x";

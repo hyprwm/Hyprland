@@ -251,6 +251,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (!foundSurface) {
         if (!m_bEmptyFocusCursorSet) {
+            m_eBorderIconDirection = BORDERICON_NONE;
             if (g_pHyprRenderer->m_bHasARenderedCursor) {
                 // TODO: maybe wrap?
                 if (m_ecbClickBehavior == CLICKMODE_KILL)
@@ -304,7 +305,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     if (pFoundWindow) {
-        // change cursor icon if hovering over border, skip if mouse bind is active
+        // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
             setCursorIconOnBorder(pFoundWindow);
         }
@@ -343,6 +344,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         m_bLastFocusOnLS = false;
     } else {
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_eBorderIconDirection != BORDERICON_NONE) {
+            m_eBorderIconDirection = BORDERICON_NONE;
+            unsetCursorImage();
+        }
+
         if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
         }

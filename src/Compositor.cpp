@@ -632,7 +632,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
             if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y)) {
 
-                if ((*w)->m_iX11Type == 2) {
+                if ((*w)->m_bIsX11 && (*w)->m_iX11Type == 2 && !wlr_xwayland_or_surface_wants_focus((*w)->m_uSurface.xwayland)) {
                     // Override Redirect
                     return g_pCompositor->m_pLastWindow; // we kinda trick everything here.
                                                          // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.

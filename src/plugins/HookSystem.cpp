@@ -4,9 +4,10 @@
 #include <sys/mman.h>
 #include <cstring>
 
-CFunctionHook::CFunctionHook(void* source, void* destination) {
+CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) {
     m_pSource      = source;
     m_pDestination = destination;
+    m_pOwner       = owner;
 }
 
 CFunctionHook::~CFunctionHook() {
@@ -108,11 +109,15 @@ bool CFunctionHook::unhook() {
     return true;
 }
 
-CFunctionHook* CHookSystem::initHook(void* source, void* destination) {
-    return m_vHooks.emplace_back(std::make_unique<CFunctionHook>(source, destination)).get();
+CFunctionHook* CHookSystem::initHook(HANDLE owner, void* source, void* destination) {
+    return m_vHooks.emplace_back(std::make_unique<CFunctionHook>(owner, source, destination)).get();
 }
 
 bool CHookSystem::removeHook(CFunctionHook* hook) {
     std::erase_if(m_vHooks, [&](const auto& other) { return other.get() == hook; });
     return true; // todo: make false if not found
+}
+
+void CHookSystem::removeAllHooksFrom(HANDLE handle) {
+    std::erase_if(m_vHooks, [&](const auto& other) { return other->m_pOwner == handle; });
 }

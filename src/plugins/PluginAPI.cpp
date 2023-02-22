@@ -86,7 +86,7 @@ APICALL CFunctionHook* HyprlandAPI::createFunctionHook(HANDLE handle, const void
     if (!PLUGIN)
         return nullptr;
 
-    return g_pFunctionHookSystem->initHook((void*)source, (void*)destination);
+    return g_pFunctionHookSystem->initHook(handle, (void*)source, (void*)destination);
 }
 
 APICALL bool HyprlandAPI::removeFunctionHook(HANDLE handle, CFunctionHook* hook) {

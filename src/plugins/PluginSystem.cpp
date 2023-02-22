@@ -89,6 +89,8 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     for (auto& l : plugin->registeredLayouts)
         g_pLayoutManager->removeLayout(l);
 
+    g_pFunctionHookSystem->removeAllHooksFrom(plugin->m_pHandle);
+
     dlclose(plugin->m_pHandle);
 
     Debug::log(LOG, " [PluginSystem] Plugin %s unloaded.", plugin->name.c_str());

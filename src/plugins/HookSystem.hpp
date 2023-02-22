@@ -4,9 +4,11 @@
 #include <vector>
 #include <memory>
 
+typedef void* HANDLE;
+
 class CFunctionHook {
   public:
-    CFunctionHook(void* source, void* destination);
+    CFunctionHook(HANDLE owner, void* source, void* destination);
     ~CFunctionHook();
 
     bool hook();
@@ -26,14 +28,18 @@ class CFunctionHook {
     void*  m_pDestination    = nullptr;
     size_t m_iHookLen        = 0;
     size_t m_iTrampoLen      = 0;
+    HANDLE m_pOwner          = nullptr;
+    bool   m_bActive         = false;
 
-    bool   m_bActive = false;
+    friend class CHookSystem;
 };
 
 class CHookSystem {
   public:
-    CFunctionHook* initHook(void* source, void* destination);
+    CFunctionHook* initHook(HANDLE handle, void* source, void* destination);
     bool           removeHook(CFunctionHook* hook);
+
+    void           removeAllHooksFrom(HANDLE handle);
 
   private:
     std::vector<std::unique_ptr<CFunctionHook>> m_vHooks;

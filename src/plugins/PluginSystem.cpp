@@ -3,6 +3,10 @@
 #include <dlfcn.h>
 #include "../Compositor.hpp"
 
+CPluginSystem::CPluginSystem() {
+    g_pFunctionHookSystem = std::make_unique<CHookSystem>();
+}
+
 CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
 
     if (getPluginByPath(path)) {

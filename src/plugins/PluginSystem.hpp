@@ -21,6 +21,8 @@ class CPlugin {
 
 class CPluginSystem {
   public:
+    CPluginSystem();
+
     CPlugin*              loadPlugin(const std::string& path);
     void                  unloadPlugin(const CPlugin* plugin, bool eject = false);
     CPlugin*              getPluginByPath(const std::string& path);

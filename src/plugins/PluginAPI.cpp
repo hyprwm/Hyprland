@@ -79,3 +79,21 @@ APICALL bool HyprlandAPI::addNotification(HANDLE handle, const std::string& text
 
     return true;
 }
+
+APICALL CFunctionHook* HyprlandAPI::createFunctionHook(HANDLE handle, const void* source, const void* destination) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return nullptr;
+
+    return g_pFunctionHookSystem->initHook((void*)source, (void*)destination);
+}
+
+APICALL bool HyprlandAPI::removeFunctionHook(HANDLE handle, CFunctionHook* hook) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    return g_pFunctionHookSystem->removeHook(hook);
+}

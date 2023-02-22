@@ -18,6 +18,7 @@ See examples/examplePlugin for an example plugin
 #define HYPRLAND_API_VERSION "0.1"
 
 #include "../helpers/Color.hpp"
+#include "HookSystem.hpp"
 
 #include <any>
 #include <functional>
@@ -137,4 +138,22 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool addNotification(HANDLE handle, const std::string& text, const CColor& color, const float timeMs);
+
+    /*
+        Creates a trampoline function hook to an internal hl func.
+
+        returns: CFunctionHook*
+
+        !WARNING! Hooks are *not* guaranteed any API stability. Internal methods may be removed, added, or renamed. Consider preferring the API whenever possible.
+    */
+    APICALL CFunctionHook* createFunctionHook(HANDLE handle, const void* source, const void* destination);
+
+    /*
+        Removes a trampoline function hook. Will unhook if still hooked.
+
+        returns: true on success. False otherwise.
+
+        !WARNING! Hooks are *not* guaranteed any API stability. Internal methods may be removed, added, or renamed. Consider preferring the API whenever possible.
+    */
+    APICALL bool removeFunctionHook(HANDLE handle, CFunctionHook* hook);
 };

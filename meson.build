@@ -43,6 +43,10 @@ wlroots = subproject('wlroots', default_options: ['examples=false'])
 have_xwlr = wlroots.get_variable('features').get('xwayland')
 xcb_dep = dependency('xcb', required: get_option('xwayland'))
 
+cmake = import('cmake')
+udis = cmake.subproject('udis86')
+udis86 = udis.dependency('udis86')
+
 if get_option('xwayland').enabled() and not have_xwlr
 	error('Cannot enable Xwayland in Hyprland: wlroots has been built without Xwayland support')
 endif

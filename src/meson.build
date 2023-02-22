@@ -15,6 +15,7 @@ executable('Hyprland', src,
     dependency('libinput'),
     xcb_dep,
     systemd_dep,
+    udis86,
 
     dependency('pixman-1'),
     dependency('gl', 'opengl'),

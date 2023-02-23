@@ -91,6 +91,9 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
 
     g_pFunctionHookSystem->removeAllHooksFrom(plugin->m_pHandle);
 
+    for (auto& d : plugin->registeredDecorations)
+        HyprlandAPI::removeWindowDecoration(plugin->m_pHandle, d);
+
     dlclose(plugin->m_pHandle);
 
     Debug::log(LOG, " [PluginSystem] Plugin %s unloaded.", plugin->name.c_str());

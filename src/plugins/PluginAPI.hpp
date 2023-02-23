@@ -39,6 +39,8 @@ typedef struct {
 #define HANDLE void*
 
 class IHyprLayout;
+class CWindow;
+class IHyprWindowDecoration;
 
 /*
     These methods are for the plugin to implement
@@ -156,4 +158,18 @@ namespace HyprlandAPI {
         !WARNING! Hooks are *not* guaranteed any API stability. Internal methods may be removed, added, or renamed. Consider preferring the API whenever possible.
     */
     APICALL bool removeFunctionHook(HANDLE handle, CFunctionHook* hook);
+
+    /*
+        Adds a window decoration to a window
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addWindowDecoration(HANDLE handle, CWindow* pWindow, IHyprWindowDecoration* pDecoration);
+
+    /*
+        Removes a window decoration
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool removeWindowDecoration(HANDLE handle, IHyprWindowDecoration* pDecoration);
 };

@@ -4,6 +4,8 @@
 #include "PluginAPI.hpp"
 #include <csetjmp>
 
+class IHyprWindowDecoration;
+
 class CPlugin {
   public:
     std::string                                            name        = "";
@@ -16,6 +18,7 @@ class CPlugin {
     HANDLE                                                 m_pHandle = nullptr;
 
     std::vector<IHyprLayout*>                              registeredLayouts;
+    std::vector<IHyprWindowDecoration*>                    registeredDecorations;
     std::vector<std::pair<std::string, HOOK_CALLBACK_FN*>> registeredCallbacks;
 };
 

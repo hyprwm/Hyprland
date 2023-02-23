@@ -1,5 +1,6 @@
 #include "customLayout.hpp"
 #include "../../src/Compositor.hpp"
+#include "globals.hpp"
 
 void CHyprCustomLayout::onWindowCreatedTiling(CWindow* pWindow) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);

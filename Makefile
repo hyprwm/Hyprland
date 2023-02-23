@@ -157,6 +157,7 @@ all:
 	make clear
 	make fixwlr
 	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
 	make protocols
 	make release
 	cd hyprctl && make all && cd ..

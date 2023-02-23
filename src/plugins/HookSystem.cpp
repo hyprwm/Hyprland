@@ -67,7 +67,7 @@ bool CFunctionHook::hook() {
     memcpy((uint64_t*)m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // fixup jump addr
-    *(uint64_t*)(m_pSource + 2) = (uint64_t)(m_pDestination);
+    *(uint64_t*)((uint64_t*)m_pSource + 2) = (uint64_t)(m_pDestination);
 
     // revert mprot
     mprotect((uint64_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);

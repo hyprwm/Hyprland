@@ -21,7 +21,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     HANDLE MODULE = dlopen(path.c_str(), RTLD_LAZY);
 
     if (!MODULE) {
-        Debug::log(ERR, " [PluginSystem] Plugin %s could not be loaded.", path.c_str());
+        Debug::log(ERR, " [PluginSystem] Plugin %s could not be loaded: %s", path.c_str(), dlerror());
         m_vLoadedPlugins.pop_back();
         return nullptr;
     }

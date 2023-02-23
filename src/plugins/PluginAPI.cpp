@@ -110,6 +110,8 @@ APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, CWindow* pWindow, I
     PLUGIN->registeredDecorations.push_back(pDecoration);
 
     pWindow->m_dWindowDecorations.emplace_back(pDecoration);
+
+    return true;
 }
 
 APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecoration* pDecoration) {
@@ -128,4 +130,29 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
     }
 
     return false;
+}
+
+APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name, const SConfigValue& value) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!g_pPluginSystem->m_bAllowConfigVars)
+        return false;
+
+    if (!PLUGIN)
+        return false;
+
+    if (name.find("plugin:") != 0)
+        return false;
+
+    g_pConfigManager->addPluginConfigVar(handle, name, value);
+    return true;
+}
+
+APICALL SConfigValue* getConfigValue(HANDLE handle, const std::string& name) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return nullptr;
+
+    return g_pConfigManager->getConfigValuePtrSafe(name);
 }

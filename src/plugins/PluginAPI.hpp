@@ -41,6 +41,7 @@ typedef struct {
 class IHyprLayout;
 class CWindow;
 class IHyprWindowDecoration;
+struct SConfigValue;
 
 /*
     These methods are for the plugin to implement
@@ -82,6 +83,25 @@ typedef OPTIONAL void (*PPLUGIN_EXIT_FUNC)(void);
 */
 
 namespace HyprlandAPI {
+
+    /*
+        Add a config value.
+        All config values MUST be in the plugin: namespace
+        This method may only be called in "pluginInit"
+
+        After you have registered ALL of your config values, you may call `getConfigValue`
+
+        returns: true on success, false on fail
+    */
+    APICALL bool addConfigValue(HANDLE handle, const std::string& name, const SConfigValue& value);
+
+    /*
+        Get a config value.
+
+        returns: a pointer to the config value struct, which is guaranteed to be valid for the life of this plugin, unless another `addConfigValue` is called afterwards.
+                nullptr on error.
+    */
+    APICALL SConfigValue* getConfigValue(HANDLE handle, const std::string& name);
 
     /*
         Register a static (pointer) callback to a selected event.

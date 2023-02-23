@@ -50,17 +50,21 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     PLUGIN_DESCRIPTION_INFO PLUGINDATA;
 
     try {
-        if (!setjmp(m_jbPluginFaultJumpBuf))
-            PLUGINDATA = initFunc(MODULE);
-        else {
+        if (!setjmp(m_jbPluginFaultJumpBuf)) {
+            m_bAllowConfigVars = true;
+            PLUGINDATA         = initFunc(MODULE);
+        } else {
             // this module crashed.
             throw std::exception();
         }
     } catch (std::exception& e) {
+        m_bAllowConfigVars = false;
         Debug::log(ERR, " [PluginSystem] Plugin %s (Handle %lx) crashed in init. Unloading.", path.c_str(), MODULE);
         unloadPlugin(PLUGIN, true); // Plugin could've already hooked/done something
         return nullptr;
     }
+
+    m_bAllowConfigVars = false;
 
     PLUGIN->author      = PLUGINDATA.author;
     PLUGIN->description = PLUGINDATA.description;
@@ -93,6 +97,8 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
 
     for (auto& d : plugin->registeredDecorations)
         HyprlandAPI::removeWindowDecoration(plugin->m_pHandle, d);
+
+    g_pConfigManager->removePluginConfig(plugin->m_pHandle);
 
     dlclose(plugin->m_pHandle);
 

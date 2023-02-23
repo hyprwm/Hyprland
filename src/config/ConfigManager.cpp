@@ -291,7 +291,7 @@ void CConfigManager::init() {
 
 void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::string& VALUE) {
     if (configValues.find(COMMAND) == configValues.end()) {
-        if (COMMAND.find("device:") != 0 /* devices parsed later */) {
+        if (COMMAND.find("device:") != 0 /* devices parsed later */ && COMMAND.find("plugin:") != 0 /* plugins parsed later */) {
             if (COMMAND[0] == '$') {
                 // register a dynamic var
                 Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
@@ -326,6 +326,18 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         }
 
         CONFIGENTRY = &it->second.at(CONFIGVAR);
+    } else if (COMMAND.find("plugin:") == 0) {
+        for (auto& [handle, pMap] : pluginConfigs) {
+            auto it = std::find_if(pMap->begin(), pMap->end(), [&](const auto& other) { return other.first == COMMAND; });
+            if (it == pMap->end()) {
+                return; // plugin vars do not err, so we silently ignore.
+            }
+
+            CONFIGENTRY = &it->second;
+        }
+
+        if (!CONFIGENTRY)
+            return; // silent ignore
     } else {
         CONFIGENTRY = &configValues.at(COMMAND);
     }
@@ -1659,8 +1671,17 @@ SConfigValue* CConfigManager::getConfigValuePtr(const std::string& val) {
 SConfigValue* CConfigManager::getConfigValuePtrSafe(const std::string& val) {
     const auto IT = configValues.find(val);
 
-    if (IT == configValues.end())
+    if (IT == configValues.end()) {
+        // maybe plugin
+        for (auto& [pl, pMap] : pluginConfigs) {
+            const auto PLIT = pMap->find(val);
+
+            if (PLIT != pMap->end())
+                return &PLIT->second;
+        }
+
         return nullptr;
+    }
 
     return &(IT->second);
 }
@@ -1809,4 +1830,20 @@ ICustomConfigValueData::~ICustomConfigValueData() {
 
 std::unordered_map<std::string, SAnimationPropertyConfig> CConfigManager::getAnimationConfig() {
     return animationConfig;
+}
+
+void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, const SConfigValue& value) {
+    auto CONFIGMAPIT = std::find_if(pluginConfigs.begin(), pluginConfigs.end(), [&](const auto& other) { return other.first == handle; });
+
+    if (CONFIGMAPIT == pluginConfigs.end()) {
+        pluginConfigs.emplace(
+            std::pair<HANDLE, std::unique_ptr<std::unordered_map<std::string, SConfigValue>>>(handle, std::make_unique<std::unordered_map<std::string, SConfigValue>>()));
+        CONFIGMAPIT = std::find_if(pluginConfigs.begin(), pluginConfigs.end(), [&](const auto& other) { return other.first == handle; });
+    }
+
+    (*CONFIGMAPIT->second)[name] = value;
+}
+
+void CConfigManager::removePluginConfig(HANDLE handle) {
+    std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
 }

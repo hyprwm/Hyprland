@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-typedef void* HANDLE;
+#define HANDLE void*
 
 class CFunctionHook {
   public:

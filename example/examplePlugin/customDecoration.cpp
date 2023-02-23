@@ -1,6 +1,7 @@
 #include "customDecoration.hpp"
 #include "../../src/Window.hpp"
 #include "../../src/Compositor.hpp"
+#include "globals.hpp"
 
 CCustomDecoration::CCustomDecoration(CWindow* pWindow) {
     m_pWindow         = pWindow;
@@ -23,8 +24,9 @@ void CCustomDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    static auto* const PROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PCOLOR      = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:example:border_color")->intValue;
+    static auto* const PROUNDING   = &HyprlandAPI::getConfigValue(PHANDLE, "decoration:rounding")->intValue;
+    static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
 
     const auto         ROUNDING = !m_pWindow->m_sSpecialRenderData.rounding ?
                 0 :
@@ -49,7 +51,7 @@ void CCustomDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset
     g_pHyprOpenGL->scissor((wlr_box*)nullptr);
 
     scaleBox(&fullBox, pMonitor->scale);
-    g_pHyprOpenGL->renderBorder(&fullBox, CColor(0.f, 0.f, 0.f, a), *PROUNDING * pMonitor->scale + *PBORDERSIZE * 2);
+    g_pHyprOpenGL->renderBorder(&fullBox, CColor(*PCOLOR), *PROUNDING * pMonitor->scale + *PBORDERSIZE * 2, a);
 }
 
 eDecorationType CCustomDecoration::getDecorationType() {

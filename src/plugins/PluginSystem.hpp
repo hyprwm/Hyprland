@@ -32,6 +32,8 @@ class CPluginSystem {
     CPlugin*              getPluginByHandle(HANDLE handle);
     std::vector<CPlugin*> getAllPlugins();
 
+    bool                  m_bAllowConfigVars = false;
+
   private:
     std::vector<std::unique_ptr<CPlugin>> m_vLoadedPlugins;
 

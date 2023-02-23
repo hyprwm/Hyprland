@@ -1735,7 +1735,7 @@ void CKeybindManager::circleNext(std::string arg) {
     if (!g_pCompositor->m_pLastWindow) {
         // if we have a clear focus, find the first window and get the next focusable.
         if (g_pCompositor->getWindowsOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace) > 0) {
-            const auto PWINDOW = g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace), true);
+            const auto PWINDOW = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
             switchToWindow(PWINDOW);
         }

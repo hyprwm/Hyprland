@@ -12,7 +12,7 @@ index efc2dd5..0c6e8c1 100644
  
 -cmake = import('cmake')
 -udis = cmake.subproject('udis86')
--udis86 = udis.dependency('udis86')
+-udis86 = udis.dependency('libudis86')
 -
 -if get_option('xwayland').enabled() and not have_xwlr
 -	error('Cannot enable Xwayland in Hyprland: wlroots has been built without Xwayland support')

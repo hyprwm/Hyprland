@@ -28,7 +28,7 @@ static void onActiveWindowChange(void* self, std::any data) {
     } catch (std::bad_any_cast& e) { HyprlandAPI::addNotification(PHANDLE, "[ExamplePlugin] Active window: None", CColor{0.f, 0.5f, 1.f, 1.f}, 5000); }
 }
 
-void hkFocusWindow(void* thisptr /* member func */, CWindow* pWindow, wlr_surface* pSurface) {
+void hkFocusWindow(void* thisptr, CWindow* pWindow, wlr_surface* pSurface) {
     const auto PFIRSTWINDOW = g_pCompositor->m_vWindows.front().get();
 
     if (PFIRSTWINDOW != pWindow)

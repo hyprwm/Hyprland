@@ -33,7 +33,8 @@ void CCustomDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset
                 (m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying());
 
     // draw the border
-    wlr_box fullBox = {m_vLastWindowPos.x - *PBORDERSIZE, m_vLastWindowPos.y - *PBORDERSIZE, m_vLastWindowSize.x + 2.0 * *PBORDERSIZE, m_vLastWindowSize.y + 2.0 * *PBORDERSIZE};
+    wlr_box fullBox = {(int)(m_vLastWindowPos.x - *PBORDERSIZE), (int)(m_vLastWindowPos.y - *PBORDERSIZE), (int)(m_vLastWindowSize.x + 2.0 * *PBORDERSIZE),
+                       (int)(m_vLastWindowSize.y + 2.0 * *PBORDERSIZE)};
 
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
@@ -67,7 +68,7 @@ void CCustomDecoration::updateWindow(CWindow* pWindow) {
 }
 
 void CCustomDecoration::damageEntire() {
-    wlr_box dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
-                  m_seExtents.topLeft.y};
+    wlr_box dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y),
+                  (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
     g_pHyprRenderer->damageBox(&dm);
 }

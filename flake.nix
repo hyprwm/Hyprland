@@ -52,10 +52,13 @@
         version = props.version + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
         inherit (inputs.hyprland-protocols.packages.${prev.stdenv.hostPlatform.system}) hyprland-protocols;
+        inherit udis86;
       };
       hyprland-debug = hyprland.override {debug = true;};
       hyprland-no-hidpi = hyprland.override {hidpiXWayland = false;};
       hyprland-nvidia = hyprland.override {nvidiaPatches = true;};
+
+      udis86 = prev.callPackage ./nix/udis86.nix {};
 
       waybar-hyprland = prev.waybar.overrideAttrs (oldAttrs: {
         postPatch = ''

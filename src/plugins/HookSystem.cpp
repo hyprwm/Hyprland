@@ -1,6 +1,8 @@
 #include "HookSystem.hpp"
 
+#define register
 #include <udis86.h>
+#undef register
 #include <sys/mman.h>
 #include <unistd.h>
 #include <cstring>

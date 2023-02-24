@@ -1321,7 +1321,25 @@ void CKeybindManager::changeGroupActive(std::string args) {
     if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW)
         return;
 
-    PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
+    if (args != "b") {
+        // forward
+        PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
+        return;
+    }
+
+    // back
+    if (PWINDOW->m_sGroupData.head) {
+        PWINDOW->setGroupCurrent(PWINDOW->getGroupTail());
+        return;
+    }
+
+    auto prev = PWINDOW->getGroupHead();
+
+    while (prev->m_sGroupData.pNextWindow != PWINDOW) {
+        prev = prev->m_sGroupData.pNextWindow;
+    }
+
+    PWINDOW->setGroupCurrent(prev);
 }
 
 void CKeybindManager::toggleSplit(std::string args) {

@@ -1,6 +1,7 @@
 #include "PluginAPI.hpp"
 #include "../Compositor.hpp"
 #include "../debug/HyprCtl.hpp"
+#include <dlfcn.h>
 
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
@@ -155,4 +156,13 @@ APICALL SConfigValue* getConfigValue(HANDLE handle, const std::string& name) {
         return nullptr;
 
     return g_pConfigManager->getConfigValuePtrSafe(name);
+}
+
+APICALL void* getFunctionAddressFromSignature(HANDLE handle, const std::string& sig) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return nullptr;
+
+    return dlsym(nullptr, sig.c_str());
 }

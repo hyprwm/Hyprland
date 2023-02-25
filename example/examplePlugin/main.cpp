@@ -12,10 +12,12 @@
 
 // Methods
 inline std::unique_ptr<CHyprCustomLayout> g_pCustomLayout;
-inline CFunctionHook*                     g_pFocusHook  = nullptr;
-inline CFunctionHook*                     g_pMotionHook = nullptr;
+inline CFunctionHook*                     g_pFocusHook     = nullptr;
+inline CFunctionHook*                     g_pMotionHook    = nullptr;
+inline CFunctionHook*                     g_pMouseDownHook = nullptr;
 typedef void (*origFocusWindow)(void*, CWindow*, wlr_surface*);
 typedef void (*origMotion)(wlr_seat*, uint32_t, double, double);
+typedef void (*origMouseDownNormal)(void*, wlr_pointer_button_event*);
 
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
@@ -37,13 +39,18 @@ static void onNewWindow(void* self, std::any data) {
 }
 
 void hkFocusWindow(void* thisptr, CWindow* pWindow, wlr_surface* pSurface) {
-    HyprlandAPI::addNotification(PHANDLE, getFormat("FocusWindow with %lx %lx", pWindow, pSurface), CColor{0.f, 1.f, 1.f, 1.f}, 5000);
+    // HyprlandAPI::addNotification(PHANDLE, getFormat("FocusWindow with %lx %lx", pWindow, pSurface), CColor{0.f, 1.f, 1.f, 1.f}, 5000);
     (*(origFocusWindow)g_pFocusHook->m_pOriginal)(thisptr, pWindow, pSurface);
 }
 
 void hkNotifyMotion(wlr_seat* wlr_seat, uint32_t time_msec, double sx, double sy) {
-    HyprlandAPI::addNotification(PHANDLE, getFormat("NotifyMotion with %lf %lf", sx, sy), CColor{0.f, 1.f, 1.f, 1.f}, 5000);
+    // HyprlandAPI::addNotification(PHANDLE, getFormat("NotifyMotion with %lf %lf", sx, sy), CColor{0.f, 1.f, 1.f, 1.f}, 5000);
     (*(origMotion)g_pMotionHook->m_pOriginal)(wlr_seat, time_msec, sx, sy);
+}
+
+void hkProcessMouseDownNormal(void* thisptr, wlr_pointer_button_event* e) {
+    // HyprlandAPI::addNotification(PHANDLE, "Mouse down normal!", CColor{0.8f, 0.2f, 0.5f, 1.0f}, 5000);
+    (*(origMouseDownNormal)g_pMouseDownHook->m_pOriginal)(thisptr, e);
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -60,10 +67,18 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:example:border_color", SConfigValue{.intValue = configStringToInt("rgb(44ee44)")});
 
-    g_pFocusHook  = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&CCompositor::focusWindow, (void*)&hkFocusWindow);
+    // Hook a public member
+    g_pFocusHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&CCompositor::focusWindow, (void*)&hkFocusWindow);
+    // Hook a public non-member
     g_pMotionHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_seat_pointer_notify_motion, (void*)&hkNotifyMotion);
+    // Hook a private member (!WARNING: the signature may differ in clang. This one is for gcc ONLY.)
+    g_pMouseDownHook = HyprlandAPI::createFunctionHook(
+        PHANDLE, HyprlandAPI::getFunctionAddressFromSignature(PHANDLE, "_ZN13CInputManager22processMouseDownNormalEP24wlr_pointer_button_event"), (void*)&hkProcessMouseDownNormal);
+
+    // Enable our hooks
     g_pFocusHook->hook();
     g_pMotionHook->hook();
+    g_pMouseDownHook->hook();
 
     HyprlandAPI::reloadConfig();
 

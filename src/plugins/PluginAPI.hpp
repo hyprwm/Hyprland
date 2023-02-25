@@ -180,6 +180,14 @@ namespace HyprlandAPI {
     APICALL bool removeFunctionHook(HANDLE handle, CFunctionHook* hook);
 
     /*
+        Gets a function address from a signature.
+        This is useful for hooking private functions.
+
+        returns: function address, or nullptr on fail.
+    */
+    APICALL void* getFunctionAddressFromSignature(HANDLE handle, const std::string& sig);
+
+    /*
         Adds a window decoration to a window
 
         returns: true on success. False otherwise.

@@ -214,6 +214,16 @@ config:
 
 	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
 
+pluginenv:
+	make protocols
+
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
+	
+	make fixwlr
+	
+	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release -Dwerror=false -Dexamples=false
+	cd subprojects/wlroots && ninja -C build/
+
 configdebug:
 	make protocols
 

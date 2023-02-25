@@ -19,29 +19,34 @@ CFunctionHook::~CFunctionHook() {
     }
 }
 
-size_t probeMinimumJumpSize(void* start, size_t min) {
+size_t getInstructionLenAt(void* start) {
     ud_t udis;
 
     ud_init(&udis);
     ud_set_mode(&udis, 64);
+    ud_set_syntax(&udis, UD_SYN_INTEL);
+
+    size_t curOffset = 1;
+    size_t insSize   = 0;
+    while (true) {
+        ud_set_input_buffer(&udis, (uint8_t*)start, curOffset);
+        insSize = ud_disassemble(&udis);
+        if (insSize != curOffset)
+            break;
+        curOffset++;
+    }
+
+    return insSize;
+}
+
+size_t probeMinimumJumpSize(void* start, size_t min) {
 
     size_t size = 0;
 
-    while (true) {
-        size_t offset = 1;
-        while (true) {
-
-            ud_set_input_buffer(&udis, (uint8_t*)(start + size), offset);
-            if (offset != ud_disassemble(&udis))
-                break;
-
-            offset++;
-        }
-
-        size += offset;
-
-        if (size > min)
-            break;
+    while (size <= min) {
+        // find info about this instruction
+        size_t insLen = getInstructionLenAt(start + size);
+        size += insLen;
     }
 
     return size;
@@ -56,23 +61,35 @@ bool CFunctionHook::hook() {
 
     // movabs $0,%rax | jmpq *%rax
     static constexpr uint8_t ABSOLUTE_JMP_ADDRESS[] = {0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xE0};
+    // pushq %rax
+    static constexpr uint8_t PUSH_RAX[] = {0x50};
+    // popq %rax
+    static constexpr uint8_t POP_RAX[] = {0x58};
+    // nop
+    static constexpr uint8_t NOP = 0x90;
 
     // get minimum size to overwrite
-    const auto HOOKSIZE = probeMinimumJumpSize(m_pSource, sizeof(ABSOLUTE_JMP_ADDRESS));
+    const auto HOOKSIZE = probeMinimumJumpSize(m_pSource, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));
 
     // alloc trampoline
-    m_pTrampolineAddr = mmap(NULL, sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    m_pTrampolineAddr = mmap(NULL, sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE + sizeof(PUSH_RAX), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
     // populate trampoline
-    memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                           // first, original func bytes
-    memcpy(m_pTrampolineAddr + HOOKSIZE, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, our jump back
+    memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                                              // first, original func bytes
+    memcpy(m_pTrampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
+    memcpy(m_pTrampolineAddr + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
 
     // fixup trampoline addr
-    *(uint64_t*)(m_pTrampolineAddr + HOOKSIZE + 2) = (uint64_t)(m_pSource + HOOKSIZE);
+    *(uint64_t*)(m_pTrampolineAddr + HOOKSIZE + 2 + sizeof(PUSH_RAX)) = (uint64_t)(m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make jump to hk
     mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
     memcpy(m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
+
+    // make popq %rax and NOP all remaining
+    memcpy(m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
+    size_t currentOp = sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(POP_RAX);
+    memset(m_pSource + currentOp, NOP, HOOKSIZE - currentOp);
 
     // fixup jump addr
     *(uint64_t*)(m_pSource + 2) = (uint64_t)(m_pDestination);

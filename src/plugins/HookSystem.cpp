@@ -20,23 +20,31 @@ CFunctionHook::~CFunctionHook() {
 }
 
 size_t probeMinimumJumpSize(void* start, size_t min) {
-    int  currentOffset = 1;
-
     ud_t udis;
 
     ud_init(&udis);
     ud_set_mode(&udis, 64);
 
+    size_t size = 0;
+
     while (true) {
-        ud_set_input_buffer(&udis, (uint8_t*)start, currentOffset);
-        int size = ud_disassemble(&udis);
-        if (size != currentOffset && currentOffset > min) {
-            break;
+        size_t offset = 1;
+        while (true) {
+
+            ud_set_input_buffer(&udis, (uint8_t*)(start + size), offset);
+            if (offset != ud_disassemble(&udis))
+                break;
+
+            offset++;
         }
-        currentOffset++;
+
+        size += offset;
+
+        if (size > min)
+            break;
     }
 
-    return currentOffset;
+    return size;
 }
 
 bool CFunctionHook::hook() {
@@ -56,21 +64,21 @@ bool CFunctionHook::hook() {
     m_pTrampolineAddr = mmap(NULL, sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
     // populate trampoline
-    memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                                      // first, original func bytes
-    memcpy((uint64_t*)m_pTrampolineAddr + HOOKSIZE, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, our jump back
+    memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                           // first, original func bytes
+    memcpy(m_pTrampolineAddr + HOOKSIZE, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, our jump back
 
     // fixup trampoline addr
-    *(uint64_t*)((uint64_t*)m_pTrampolineAddr + HOOKSIZE + 2) = (uint64_t)((uint64_t*)m_pSource + HOOKSIZE);
+    *(uint64_t*)(m_pTrampolineAddr + HOOKSIZE + 2) = (uint64_t)(m_pSource + HOOKSIZE);
 
     // make jump to hk
-    mprotect((uint64_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
-    memcpy((uint64_t*)m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
+    mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
+    memcpy(m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // fixup jump addr
-    *(uint64_t*)((uint64_t*)m_pSource + 2) = (uint64_t)(m_pDestination);
+    *(uint64_t*)(m_pSource + 2) = (uint64_t)(m_pDestination);
 
     // revert mprot
-    mprotect((uint64_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
+    mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
 
     // set original addr to trampo addr
     m_pOriginal = m_pTrampolineAddr;
@@ -92,13 +100,13 @@ bool CFunctionHook::unhook() {
         return false;
 
     // allow write to src
-    mprotect((uint64_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
+    mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
 
     // write back original bytes
     memcpy(m_pSource, m_pTrampolineAddr, m_iHookLen);
 
     // revert mprot
-    mprotect((uint64_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
+    mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
 
     // unmap
     munmap(m_pTrampolineAddr, m_iTrampoLen);

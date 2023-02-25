@@ -67,6 +67,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:example:border_color", SConfigValue{.intValue = configStringToInt("rgb(44ee44)")});
 
+    HyprlandAPI::addDispatcher(PHANDLE, "example", [](std::string arg) { HyprlandAPI::addNotification(PHANDLE, "Arg passed: " + arg, CColor{0.5f, 0.5f, 0.7f, 1.0f}, 5000); });
+
     // Hook a public member
     g_pFocusHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&CCompositor::focusWindow, (void*)&hkFocusWindow);
     // Hook a public non-member

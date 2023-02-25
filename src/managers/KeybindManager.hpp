@@ -8,6 +8,7 @@
 
 class CInputManager;
 class CConfigManager;
+class CPluginSystem;
 
 struct SKeybind {
     std::string key     = "";

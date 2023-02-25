@@ -90,13 +90,19 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     for (auto& [k, v] : plugin->registeredCallbacks)
         g_pHookSystem->unhook(v);
 
-    for (auto& l : plugin->registeredLayouts)
+    const auto ls = plugin->registeredLayouts;
+    for (auto& l : ls)
         g_pLayoutManager->removeLayout(l);
 
     g_pFunctionHookSystem->removeAllHooksFrom(plugin->m_pHandle);
 
-    for (auto& d : plugin->registeredDecorations)
+    const auto rd = plugin->registeredDecorations;
+    for (auto& d : rd)
         HyprlandAPI::removeWindowDecoration(plugin->m_pHandle, d);
+
+    const auto rdi = plugin->registeredDispatchers;
+    for (auto& d : rdi)
+        HyprlandAPI::removeDispatcher(plugin->m_pHandle, d);
 
     g_pConfigManager->removePluginConfig(plugin->m_pHandle);
 

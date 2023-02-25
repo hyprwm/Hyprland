@@ -200,4 +200,18 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool removeWindowDecoration(HANDLE handle, IHyprWindowDecoration* pDecoration);
+
+    /*
+        Adds a keybind dispatcher.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addDispatcher(HANDLE handle, const std::string& name, std::function<void(std::string)> handler);
+
+    /*
+        Removes a keybind dispatcher.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool removeDispatcher(HANDLE handle, const std::string& name);
 };

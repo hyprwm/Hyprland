@@ -20,6 +20,7 @@ class CPlugin {
     std::vector<IHyprLayout*>                              registeredLayouts;
     std::vector<IHyprWindowDecoration*>                    registeredDecorations;
     std::vector<std::pair<std::string, HOOK_CALLBACK_FN*>> registeredCallbacks;
+    std::vector<std::string>                               registeredDispatchers;
 };
 
 class CPluginSystem {

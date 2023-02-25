@@ -112,7 +112,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
                 Vector2D hint = {PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y};
 
-                wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x + hint.x, CONSTRAINTPOS.y + hint.y);
+                if (hint != Vector2D{-1, -1})
+                    wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x + hint.x, CONSTRAINTPOS.y + hint.y);
 
                 return; // don't process anything else, the cursor is locked. The surface should not receive any further events.
                         // these are usually FPS games. They will use the relative motion.

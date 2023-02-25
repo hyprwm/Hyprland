@@ -60,6 +60,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["bringactivetotop"]              = bringActiveToTop;
     m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
     m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
+    m_mDispatchers["lockgroups"]                    = lockGroups;
 
     m_tScrollTimer.reset();
 }
@@ -257,15 +258,19 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
 
     bool found = false;
     if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
-        if (e->delta < 0) {
+        if (e->delta < 0)
             found = handleKeybinds(MODS, "mouse_down", 0, 0, true, 0);
-        } else {
+        else
             found = handleKeybinds(MODS, "mouse_up", 0, 0, true, 0);
-        }
-
-        if (found)
-            shadowKeybinds();
+    } else if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_HORIZONTAL) {
+        if (e->delta < 0)
+            found = handleKeybinds(MODS, "mouse_left", 0, 0, true, 0);
+        else
+            found = handleKeybinds(MODS, "mouse_right", 0, 0, true, 0);
     }
+
+    if (found)
+        shadowKeybinds();
 
     return !found;
 }
@@ -1316,7 +1321,14 @@ void CKeybindManager::changeGroupActive(std::string args) {
     if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW)
         return;
 
-    PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
+    if (args != "b" && args != "prev") {
+        PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
+    } else {
+        CWindow* curr = PWINDOW->m_sGroupData.pNextWindow;
+        while (curr->m_sGroupData.pNextWindow != PWINDOW)
+            curr = curr->m_sGroupData.pNextWindow;
+        PWINDOW->setGroupCurrent(curr);
+    }
 }
 
 void CKeybindManager::toggleSplit(std::string args) {
@@ -1730,7 +1742,7 @@ void CKeybindManager::circleNext(std::string arg) {
     if (!g_pCompositor->m_pLastWindow) {
         // if we have a clear focus, find the first window and get the next focusable.
         if (g_pCompositor->getWindowsOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace) > 0) {
-            const auto PWINDOW = g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace), true);
+            const auto PWINDOW = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
             switchToWindow(PWINDOW);
         }
@@ -2030,5 +2042,13 @@ void CKeybindManager::fakeFullscreenActive(std::string args) {
         g_pCompositor->m_pLastWindow->m_bFakeFullscreenState = !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState;
         g_pXWaylandManager->setWindowFullscreen(g_pCompositor->m_pLastWindow,
                                                 g_pCompositor->m_pLastWindow->m_bFakeFullscreenState || g_pCompositor->m_pLastWindow->m_bIsFullscreen);
+    }
+}
+
+void CKeybindManager::lockGroups(std::string args) {
+    if (args == "lock" || args.empty() || args == "lockgroups") {
+        g_pKeybindManager->m_bGroupsLocked = true;
+    } else {
+        g_pKeybindManager->m_bGroupsLocked = false;
     }
 }

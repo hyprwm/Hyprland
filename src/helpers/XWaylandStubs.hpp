@@ -155,10 +155,16 @@ inline wlr_xwayland_surface* wlr_xwayland_surface_from_wlr_surface(void*) {
     return nullptr;
 }
 
-inline void wlr_xwayland_surface_close(wlr_xwayland_surface*) {}
+inline void                  wlr_xwayland_surface_close(wlr_xwayland_surface*) {}
 
-inline void wlr_xwayland_surface_set_fullscreen(wlr_xwayland_surface*, bool) {}
+inline void                  wlr_xwayland_surface_set_fullscreen(wlr_xwayland_surface*, bool) {}
 
-inline void wlr_xwayland_surface_set_minimized(wlr_xwayland_surface*, bool) {}
+inline void                  wlr_xwayland_surface_set_minimized(wlr_xwayland_surface*, bool) {}
 
-inline wlr_xwayland_surface* wlr_xwayland_surface_try_from_wlr_surface(wlr_surface*) { return nullptr; }
+inline wlr_xwayland_surface* wlr_xwayland_surface_try_from_wlr_surface(wlr_surface*) {
+    return nullptr;
+}
+
+inline bool wlr_xwayland_or_surface_wants_focus(const wlr_xwayland_surface*) {
+    return false;
+}

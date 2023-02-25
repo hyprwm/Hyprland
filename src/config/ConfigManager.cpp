@@ -941,10 +941,20 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 }
 
 void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBlur) {
+    const bool  BYADDRESS = name.find("address:") == 0;
+    std::string matchName = name;
+
+    if (BYADDRESS) {
+        matchName = matchName.substr(9);
+    }
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
-                if (ls->szNamespace == name)
+                if (BYADDRESS) {
+                    if (getFormat("0x%x", ls.get()) == matchName)
+                        ls->forceBlur = forceBlur;
+                } else if (ls->szNamespace == matchName)
                     ls->forceBlur = forceBlur;
             }
         }

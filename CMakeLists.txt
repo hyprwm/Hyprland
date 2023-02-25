@@ -55,7 +55,7 @@ include_directories(. PRIVATE "subprojects/wlroots/build/include/")
 include_directories(. PRIVATE "subprojects/udis86/")
 set(CMAKE_CXX_STANDARD 23)
 add_compile_options(-DWLR_USE_UNSTABLE)
-add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith -g)
+add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith)
 ADD_LINK_OPTIONS( -rdynamic )
 SET(CMAKE_ENABLE_EXPORTS TRUE)
 
@@ -69,6 +69,12 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wa
 file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
+
+include(CheckLibraryExists)
+check_library_exists(execinfo backtrace "" HAVE_LIBEXECINFO)
+if(HAVE_LIBEXECINFO)
+    target_link_libraries(Hyprland PRIVATE execinfo)
+endif()
 
 IF(LEGACY_RENDERER MATCHES true)
     message(STATUS "Using the legacy GLES2 renderer!")

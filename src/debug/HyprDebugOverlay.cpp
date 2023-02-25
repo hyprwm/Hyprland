@@ -65,7 +65,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     const float FPS      = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
     const float idealFPS = m_dLastFrametimes.size();
 
-    cairo_select_font_face(g_pDebugOverlay->m_pCairo, "Noto Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(g_pDebugOverlay->m_pCairo, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
     cairo_set_font_size(g_pDebugOverlay->m_pCairo, 10);
     cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 1.f, 1.f, 1.f);

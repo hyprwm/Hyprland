@@ -111,7 +111,7 @@ void Events::listener_newConstraint(wl_listener* listener, void* data) {
 
         if (!CONSTRAINT->hintSet) {
             const auto PWINDOW       = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
-            CONSTRAINT->positionHint = g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_vRealPosition.goalv();
+            CONSTRAINT->positionHint = Vector2D{-1, -1};
         }
     }
 }
@@ -124,7 +124,7 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
 
         const auto PWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
-        if (PWINDOW) {
+        if (PWINDOW && PCONSTRAINT->positionHint != Vector2D{-1, -1}) {
             if (PWINDOW->m_bIsX11) {
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PCONSTRAINT->positionHint.x + PWINDOW->m_uSurface.xwayland->x,
                                 PWINDOW->m_uSurface.xwayland->y + PCONSTRAINT->positionHint.y);

@@ -1132,8 +1132,12 @@ void CKeybindManager::moveFocusTo(std::string args) {
             if (PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
                 // event
                 const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
+                const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOWTOCHANGETO->m_iWorkspaceID);
 
                 g_pCompositor->setActiveMonitor(PNEWMON);
+
+                g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
+                PNEWWORKSPACE->setActive(true);
             }
         }
     };

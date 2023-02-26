@@ -61,6 +61,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
     m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
     m_mDispatchers["lockgroups"]                    = lockGroups;
+    m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
 
     m_tScrollTimer.reset();
 }
@@ -1131,7 +1132,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
             if (PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
                 // event
-                const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
+                const auto PNEWMON       = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
                 const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOWTOCHANGETO->m_iWorkspaceID);
 
                 g_pCompositor->setActiveMonitor(PNEWMON);
@@ -2055,4 +2056,27 @@ void CKeybindManager::lockGroups(std::string args) {
     } else {
         g_pKeybindManager->m_bGroupsLocked = false;
     }
+}
+
+void CKeybindManager::moveIntoGroup(std::string args) {
+    char arg = args[0];
+
+    if (!isDirection(args)) {
+        Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        return;
+    }
+
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW || PWINDOW->m_bIsFloating)
+        return;
+
+    const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
+
+    if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+
+    PWINDOWINDIR->insertWindowToGroup(PWINDOW);
 }

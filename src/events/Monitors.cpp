@@ -197,6 +197,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
     }
 
+    PMONITOR->renderingActive = true;
+
     // we need to cleanup fading out when rendering the appropriate context
     g_pCompositor->cleanupFadingOut(PMONITOR->ID);
 
@@ -206,6 +208,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
         if (*PDAMAGEBLINK || *PVFR == 0)
             g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+
+        PMONITOR->renderingActive = false;
 
         return;
     }
@@ -309,11 +313,15 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     pixman_region32_fini(&frameDamage);
     pixman_region32_fini(&damage);
 
+    PMONITOR->renderingActive = false;
+
     if (!wlr_output_commit(PMONITOR->output))
         return;
 
-    if (*PDAMAGEBLINK || *PVFR == 0)
+    if (*PDAMAGEBLINK || *PVFR == 0 || PMONITOR->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+
+    PMONITOR->pendingFrame = false;
 
     if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;

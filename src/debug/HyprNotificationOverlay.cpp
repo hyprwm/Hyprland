@@ -132,6 +132,8 @@ void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
     g_pHyprRenderer->damageBox(&damage);
     g_pHyprRenderer->damageBox(&m_bLastDamage);
 
+    g_pCompositor->scheduleFrameForMonitor(pMonitor);
+
     m_bLastDamage = damage;
 
     // copy the data to an OpenGL texture we have

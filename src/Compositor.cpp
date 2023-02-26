@@ -2024,6 +2024,9 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
     if (!pMonitor->m_bEnabled)
         return;
 
+    if (pMonitor->renderingActive)
+        pMonitor->pendingFrame = true;
+
     wlr_output_schedule_frame(pMonitor->output);
 }
 

@@ -206,18 +206,22 @@ void IHyprLayout::onBeginDragWindow() {
 
     // get the grab corner
     if (m_vBeginDragXY.x < m_vBeginDragPositionXY.x + m_vBeginDragSizeXY.x / 2.0) {
-        if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0)
+        if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0) {
             m_eGrabbedCorner = CORNER_TOPLEFT;
-        else
+            g_pInputManager->setCursorImageUntilUnset("nw-resize");
+        } else {
             m_eGrabbedCorner = CORNER_BOTTOMLEFT;
+            g_pInputManager->setCursorImageUntilUnset("sw-resize");
+        }
     } else {
-        if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0)
+        if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0) {
             m_eGrabbedCorner = CORNER_TOPRIGHT;
-        else
+            g_pInputManager->setCursorImageUntilUnset("ne-resize");
+        } else {
             m_eGrabbedCorner = CORNER_BOTTOMRIGHT;
+            g_pInputManager->setCursorImageUntilUnset("se-resize");
+        }
     }
-
-    g_pInputManager->setCursorImageUntilUnset("grab");
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 

@@ -1033,7 +1033,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         }
 
         recalculateMonitor(header.pWindow->m_iMonitorID);
-    } else if (command == "orientationleft" || command == "orientationright" || command == "orientationtop" || command == "orientationbottom") {
+    } else if (command == "orientationleft" || command == "orientationright" || command == "orientationtop" || command == "orientationbottom" || command == "orientationcenter") {
         const auto PWINDOW = header.pWindow;
 
         if (!PWINDOW)
@@ -1051,6 +1051,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             PWORKSPACEDATA->orientation = ORIENTATION_TOP;
         else if (command == "orientationbottom")
             PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
+        else if (command == "orientationcenter")
+            PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
 
         recalculateMonitor(header.pWindow->m_iMonitorID);
 

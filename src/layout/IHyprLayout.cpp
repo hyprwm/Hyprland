@@ -223,6 +223,9 @@ void IHyprLayout::onBeginDragWindow() {
         }
     }
 
+    if (g_pInputManager->dragMode != MBIND_RESIZE)
+        g_pInputManager->setCursorImageUntilUnset("grab");
+
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     g_pKeybindManager->shadowKeybinds();

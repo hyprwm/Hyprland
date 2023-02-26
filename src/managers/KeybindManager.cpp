@@ -62,6 +62,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
     m_mDispatchers["lockgroups"]                    = lockGroups;
     m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
+    m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
 
     m_tScrollTimer.reset();
 }
@@ -2079,4 +2080,21 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
+}
+
+void CKeybindManager::moveOutOfGroup(std::string args) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW || !PWINDOW->m_sGroupData.pNextWindow)
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+
+    const auto GROUPSLOCKEDPREV = g_pKeybindManager->m_bGroupsLocked;
+
+    g_pKeybindManager->m_bGroupsLocked = true;
+
+    g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
+
+    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
 }

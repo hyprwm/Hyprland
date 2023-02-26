@@ -14,7 +14,8 @@ enum eOrientation : uint8_t
     ORIENTATION_LEFT = 0,
     ORIENTATION_TOP,
     ORIENTATION_RIGHT,
-    ORIENTATION_BOTTOM
+    ORIENTATION_BOTTOM,
+    ORIENTATION_CENTER
 };
 
 struct SMasterNodeData {

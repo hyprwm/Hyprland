@@ -577,15 +577,11 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* p
         case ORIENTATION_TOP: delta = pixResize.y / PMONITOR->vecSize.y; break;
         case ORIENTATION_CENTER:
             delta = pixResize.x / PMONITOR->vecSize.x;
-            if (!PNODE->isMaster)
-                // Need to account for slave windows on both sides of master
-                delta *= 2.0;
+            // Need to account for slave windows on both sides of master
+            delta = PNODE->isMaster ? delta : delta * -2.0;
             break;
         default: UNREACHABLE();
     }
-
-    if (!PNODE->isMaster)
-        delta *= -1.0;
 
     for (auto& n : m_lMasterNodesData) {
         if (n.isMaster && n.workspaceID == PMONITOR->activeWorkspace)

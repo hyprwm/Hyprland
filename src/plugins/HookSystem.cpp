@@ -82,15 +82,13 @@ bool CFunctionHook::hook() {
     // nop
     static constexpr uint8_t NOP = 0x90;
     /*
-        pushq %rax
         movabs $0,%rax
         callq *%rax
-        popq %rax
 
         offset for addr: 3
     */
-    static constexpr uint8_t CALL_WITH_RAX[]              = {0x50, 0x48, 0xB8, 0xEF, 0xBE, 0xAD, 0xDE, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x10, 0x58};
-    static constexpr size_t  CALL_WITH_RAX_ADDRESS_OFFSET = 3;
+    static constexpr uint8_t CALL_WITH_RAX[]              = {0x48, 0xB8, 0xEF, 0xBE, 0xAD, 0xDE, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x10};
+    static constexpr size_t  CALL_WITH_RAX_ADDRESS_OFFSET = 2;
 
     // get minimum size to overwrite
     const auto HOOKSIZE = probeMinimumJumpSize(m_pSource, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));

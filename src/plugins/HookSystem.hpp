@@ -22,14 +22,19 @@ class CFunctionHook {
     void*          m_pOriginal = nullptr;
 
   private:
-    void*  m_pSource         = nullptr;
-    void*  m_pFunctionAddr   = nullptr;
-    void*  m_pTrampolineAddr = nullptr;
-    void*  m_pDestination    = nullptr;
-    size_t m_iHookLen        = 0;
-    size_t m_iTrampoLen      = 0;
-    HANDLE m_pOwner          = nullptr;
-    bool   m_bActive         = false;
+    void*                                       m_pSource         = nullptr;
+    void*                                       m_pFunctionAddr   = nullptr;
+    void*                                       m_pTrampolineAddr = nullptr;
+    void*                                       m_pDestination    = nullptr;
+    size_t                                      m_iHookLen        = 0;
+    size_t                                      m_iTrampoLen      = 0;
+    HANDLE                                      m_pOwner          = nullptr;
+    bool                                        m_bActive         = false;
+
+    std::vector<std::pair<size_t, std::string>> m_vTrampolineRIPUses;
+
+    size_t                                      probeMinimumJumpSize(void* start, size_t min);
+    size_t                                      getInstructionLenAt(void* start);
 
     friend class CHookSystem;
 };

@@ -1,29 +1,51 @@
 #include "LayoutManager.hpp"
 
-IHyprLayout* CLayoutManager::getCurrentLayout() {
-    switch (m_iCurrentLayoutID) {
-        case LAYOUT_DWINDLE: return &m_cDwindleLayout;
-        case LAYOUT_MASTER: return &m_cMasterLayout;
-    }
+CLayoutManager::CLayoutManager() {
+    m_vLayouts.emplace_back(std::make_pair<>("dwindle", &m_cDwindleLayout));
+    m_vLayouts.emplace_back(std::make_pair<>("master", &m_cMasterLayout));
+}
 
-    // fallback
-    return &m_cDwindleLayout;
+IHyprLayout* CLayoutManager::getCurrentLayout() {
+    return m_vLayouts[m_iCurrentLayoutID].second;
 }
 
 void CLayoutManager::switchToLayout(std::string layout) {
-    if (layout == "dwindle") {
-        if (m_iCurrentLayoutID != LAYOUT_DWINDLE) {
+    for (size_t i = 0; i < m_vLayouts.size(); ++i) {
+        if (m_vLayouts[i].first == layout) {
             getCurrentLayout()->onDisable();
-            m_iCurrentLayoutID = LAYOUT_DWINDLE;
+            m_iCurrentLayoutID = i;
             getCurrentLayout()->onEnable();
+            return;
         }
-    } else if (layout == "master") {
-        if (m_iCurrentLayoutID != LAYOUT_MASTER) {
-            getCurrentLayout()->onDisable();
-            m_iCurrentLayoutID = LAYOUT_MASTER;
-            getCurrentLayout()->onEnable();
-        }
-    } else {
-        Debug::log(ERR, "Unknown layout %s!", layout.c_str());
     }
+
+    Debug::log(ERR, "Unknown layout!");
+}
+
+bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
+    if (std::find_if(m_vLayouts.begin(), m_vLayouts.end(), [&](const auto& other) { return other.first == name || other.second == layout; }) != m_vLayouts.end())
+        return false;
+
+    m_vLayouts.emplace_back(std::make_pair<>(name, layout));
+
+    Debug::log(LOG, "Added new layout %s at %lx", name.c_str(), layout);
+
+    return true;
+}
+
+bool CLayoutManager::removeLayout(IHyprLayout* layout) {
+    const auto IT = std::find_if(m_vLayouts.begin(), m_vLayouts.end(), [&](const auto& other) { return other.second == layout; });
+
+    if (IT == m_vLayouts.end() || IT->first == "dwindle" || IT->first == "master")
+        return false;
+
+    if (m_iCurrentLayoutID == IT - m_vLayouts.begin()) {
+        switchToLayout("dwindle");
+    }
+
+    Debug::log(LOG, "Removed a layout %s at %lx", IT->first.c_str(), layout);
+
+    std::erase(m_vLayouts, *IT);
+
+    return true;
 }

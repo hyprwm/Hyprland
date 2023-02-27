@@ -1668,6 +1668,9 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     } else {
         pWindow->m_cRealShadowColor.setValueAndWarp(CColor(0, 0, 0, 0)); // no shadow
     }
+
+    for (auto& d : pWindow->m_dWindowDecorations)
+        d->updateWindow(pWindow);
 }
 
 int CCompositor::getNextAvailableMonitorID() {

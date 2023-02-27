@@ -5,7 +5,8 @@
 #include "../helpers/MiscFunctions.hpp"
 
 namespace HyprCtl {
-    void startHyprCtlSocket();
+    void        startHyprCtlSocket();
+    std::string makeDynamicCall(const std::string& input);
 
     // very simple thread-safe request method
     inline bool             requestMade  = false;
@@ -18,8 +19,7 @@ namespace HyprCtl {
 
     inline int              iSocketFD = -1;
 
-    enum eHyprCtlOutputFormat
-    {
+    enum eHyprCtlOutputFormat {
         FORMAT_NORMAL = 0,
         FORMAT_JSON
     };

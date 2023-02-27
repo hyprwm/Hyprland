@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../includes.hpp"
+#include <cstdint>
 
 class CColor {
   public:
@@ -13,7 +13,7 @@ class CColor {
     uint64_t getAsHex();
 
     CColor   operator-(const CColor& c2) const {
-          return CColor(r - c2.r, g - c2.g, b - c2.b, a - c2.a);
+        return CColor(r - c2.r, g - c2.g, b - c2.b, a - c2.a);
     }
 
     CColor operator+(const CColor& c2) const {

@@ -18,6 +18,12 @@ int handleCritSignal(int signo, void* data) {
 }
 
 void handleSegv(int sig) {
+
+    if (g_pHookSystem->m_bCurrentEventPlugin) {
+        longjmp(g_pHookSystem->m_jbHookFaultJumpBuf, 1);
+        return;
+    }
+
     CrashReporter::createAndSaveCrash();
     abort();
 }
@@ -364,6 +370,12 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the HyprDebugOverlay!");
     g_pDebugOverlay = std::make_unique<CHyprDebugOverlay>();
+
+    Debug::log(LOG, "Creating the HyprNotificationOverlay!");
+    g_pHyprNotificationOverlay = std::make_unique<CHyprNotificationOverlay>();
+
+    Debug::log(LOG, "Creating the PluginSystem!");
+    g_pPluginSystem = std::make_unique<CPluginSystem>();
     //
     //
 
@@ -2011,6 +2023,9 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
 
     if (!pMonitor->m_bEnabled)
         return;
+
+    if (pMonitor->renderingActive)
+        pMonitor->pendingFrame = true;
 
     wlr_output_schedule_frame(pMonitor->output);
 }

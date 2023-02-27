@@ -18,6 +18,7 @@
   mount,
   pciutils,
   systemd,
+  udis86,
   wayland,
   wayland-protocols,
   wayland-scanner,
@@ -72,6 +73,7 @@ in
           libinput
           libxkbcommon
           mesa
+          udis86
           wayland
           wayland-protocols
           wayland-scanner

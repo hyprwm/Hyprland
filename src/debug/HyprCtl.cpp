@@ -1087,6 +1087,50 @@ std::string dispatchOutput(std::string request) {
     return "ok";
 }
 
+std::string dispatchPlugin(std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    if (vars.size() < 2)
+        return "not enough args";
+
+    const auto OPERATION = vars[1];
+    const auto PATH      = vars[2];
+
+    if (OPERATION == "load") {
+        if (vars.size() < 3)
+            return "not enough args";
+
+        const auto PLUGIN = g_pPluginSystem->loadPlugin(PATH);
+
+        if (!PLUGIN)
+            return "error in loading plugin";
+    } else if (OPERATION == "unload") {
+        if (vars.size() < 3)
+            return "not enough args";
+
+        const auto PLUGIN = g_pPluginSystem->getPluginByPath(PATH);
+
+        if (!PLUGIN)
+            return "plugin not loaded";
+
+        g_pPluginSystem->unloadPlugin(PLUGIN);
+    } else if (OPERATION == "list") {
+        const auto  PLUGINS = g_pPluginSystem->getAllPlugins();
+
+        std::string list = "";
+        for (auto& p : PLUGINS) {
+            list += getFormat("\nPlugin %s by %s:\n\tHandle: %lx\n\tVersion: %s\n\tDescription: %s\n", p->name.c_str(), p->author.c_str(), p->m_pHandle, p->version.c_str(),
+                              p->description.c_str());
+        }
+
+        return list;
+    } else {
+        return "unknown opt";
+    }
+
+    return "ok";
+}
+
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
@@ -1134,6 +1178,8 @@ std::string getReply(std::string request) {
         return bindsRequest(format);
     else if (request == "animations")
         return animationsRequest(format);
+    else if (request.find("plugin") == 0)
+        return dispatchPlugin(request);
     else if (request.find("setprop") == 0)
         return dispatchSetProp(request);
     else if (request.find("seterror") == 0)
@@ -1154,6 +1200,10 @@ std::string getReply(std::string request) {
         return dispatchBatch(request);
 
     return "unknown request";
+}
+
+std::string HyprCtl::makeDynamicCall(const std::string& input) {
+    return getReply(input);
 }
 
 int hyprCtlFDTick(int fd, uint32_t mask, void* data) {

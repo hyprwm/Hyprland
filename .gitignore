@@ -20,6 +20,7 @@ result*
 *-protocol.c
 *-protocol.h
 .ccls-cache
+*.so
 
 hyprctl/hyprctl
 

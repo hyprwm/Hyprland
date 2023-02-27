@@ -41,6 +41,7 @@ commands:
     switchxkblayout
     seterror
     setprop
+    plugin
 
 flags:
     -j -> output in JSON
@@ -349,6 +350,8 @@ int main(int argc, char** argv) {
         request(fullRequest, 1);
     else if (fullRequest.contains("/setprop"))
         request(fullRequest, 3);
+    else if (fullRequest.contains("/plugin"))
+        request(fullRequest, 1);
     else if (fullRequest.contains("/output"))
         exitStatus = outputRequest(argc, argv);
     else if (fullRequest.contains("/setcursor"))

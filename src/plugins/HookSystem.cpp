@@ -99,6 +99,9 @@ bool CFunctionHook::hook() {
     const auto TRAMPOLINE_SIZE = sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE + sizeof(PUSH_RAX) + m_vTrampolineRIPUses.size() * (sizeof(CALL_WITH_RAX) - 6);
     m_pTrampolineAddr          = mmap(NULL, TRAMPOLINE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
+    m_pOriginalBytes = malloc(HOOKSIZE);
+    memcpy(m_pOriginalBytes, m_pSource, HOOKSIZE);
+
     // populate trampoline
     memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                                              // first, original func bytes
     memcpy(m_pTrampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
@@ -156,7 +159,7 @@ bool CFunctionHook::unhook() {
     mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
 
     // write back original bytes
-    memcpy(m_pSource, m_pTrampolineAddr, m_iHookLen);
+    memcpy(m_pSource, m_pOriginalBytes, m_iHookLen);
 
     // revert mprot
     mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
@@ -169,6 +172,9 @@ bool CFunctionHook::unhook() {
     m_iHookLen        = 0;
     m_iTrampoLen      = 0;
     m_pTrampolineAddr = nullptr;
+    m_pOriginalBytes  = nullptr;
+
+    free(m_pOriginalBytes);
 
     return true;
 }

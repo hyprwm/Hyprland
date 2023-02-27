@@ -33,6 +33,8 @@ class CFunctionHook {
 
     std::vector<std::pair<size_t, std::string>> m_vTrampolineRIPUses;
 
+    void*                                       m_pOriginalBytes = nullptr;
+
     size_t                                      probeMinimumJumpSize(void* start, size_t min);
     size_t                                      getInstructionLenAt(void* start);
 

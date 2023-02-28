@@ -1,6 +1,7 @@
 #include "PluginSystem.hpp"
 
 #include <dlfcn.h>
+#include <ranges>
 #include "../Compositor.hpp"
 
 CPluginSystem::CPluginSystem() {
@@ -111,6 +112,11 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     Debug::log(LOG, " [PluginSystem] Plugin %s unloaded.", plugin->name.c_str());
 
     std::erase_if(m_vLoadedPlugins, [&](const auto& other) { return other->m_pHandle == plugin->m_pHandle; });
+}
+
+void CPluginSystem::unloadAllPlugins() {
+    for (auto& p : m_vLoadedPlugins | std::views::reverse)
+        unloadPlugin(p.get(), false); // Unload remaining plugins gracefully
 }
 
 CPlugin* CPluginSystem::getPluginByPath(const std::string& path) {

@@ -52,21 +52,22 @@ void CConfigManager::setDefaultVars() {
     configValues["general:hover_icon_on_border"].intValue    = 1;
     configValues["general:layout"].strValue                  = "dwindle";
 
-    configValues["misc:disable_hyprland_logo"].intValue      = 0;
-    configValues["misc:disable_splash_rendering"].intValue   = 0;
-    configValues["misc:vfr"].intValue                        = 1;
-    configValues["misc:vrr"].intValue                        = 0;
-    configValues["misc:mouse_move_enables_dpms"].intValue    = 0;
-    configValues["misc:always_follow_on_dnd"].intValue       = 1;
-    configValues["misc:layers_hog_keyboard_focus"].intValue  = 1;
-    configValues["misc:animate_manual_resizes"].intValue     = 0;
-    configValues["misc:disable_autoreload"].intValue         = 0;
-    configValues["misc:enable_swallow"].intValue             = 0;
-    configValues["misc:swallow_regex"].strValue              = STRVAL_EMPTY;
-    configValues["misc:focus_on_activate"].intValue          = 0;
-    configValues["misc:no_direct_scanout"].intValue          = 0;
-    configValues["misc:hide_cursor_on_touch"].intValue       = 1;
-    configValues["misc:mouse_move_focuses_monitor"].intValue = 1;
+    configValues["misc:disable_hyprland_logo"].intValue        = 0;
+    configValues["misc:disable_splash_rendering"].intValue     = 0;
+    configValues["misc:vfr"].intValue                          = 1;
+    configValues["misc:vrr"].intValue                          = 0;
+    configValues["misc:mouse_move_enables_dpms"].intValue      = 0;
+    configValues["misc:always_follow_on_dnd"].intValue         = 1;
+    configValues["misc:layers_hog_keyboard_focus"].intValue    = 1;
+    configValues["misc:animate_manual_resizes"].intValue       = 0;
+    configValues["misc:animate_mouse_windowdragging"].intValue = 0;
+    configValues["misc:disable_autoreload"].intValue           = 0;
+    configValues["misc:enable_swallow"].intValue               = 0;
+    configValues["misc:swallow_regex"].strValue                = STRVAL_EMPTY;
+    configValues["misc:focus_on_activate"].intValue            = 0;
+    configValues["misc:no_direct_scanout"].intValue            = 0;
+    configValues["misc:hide_cursor_on_touch"].intValue         = 1;
+    configValues["misc:mouse_move_focuses_monitor"].intValue   = 1;
 
     configValues["debug:int"].intValue             = 0;
     configValues["debug:log_damage"].intValue      = 0;
@@ -1837,3 +1838,4 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
 void CConfigManager::removePluginConfig(HANDLE handle) {
     std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
 }
+

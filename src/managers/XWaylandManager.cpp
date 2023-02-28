@@ -138,10 +138,6 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
 
 void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool force) {
 
-    const auto RESERVED = pWindow->getFullWindowReservedArea();
-
-    size = size - RESERVED.topLeft - RESERVED.bottomRight;
-
     if (!force &&
         ((pWindow->m_vReportedSize == size && pWindow->m_vRealPosition.vec() == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
         return;

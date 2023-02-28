@@ -272,7 +272,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     const auto DELTA     = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
     const auto TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
 
-    const auto PANIMATE = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
+    const auto PANIMATE = &g_pConfigManager->getConfigValuePtr("misc:animate_mouse_windowdragging")->intValue;
 
     if (abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f)
         return;

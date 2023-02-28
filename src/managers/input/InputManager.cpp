@@ -360,6 +360,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
+    EMIT_HOOK_EVENT("mouseButton", e);
+
     m_tmrLastCursorMovement.reset();
 
     if (e->state == WLR_BUTTON_PRESSED) {

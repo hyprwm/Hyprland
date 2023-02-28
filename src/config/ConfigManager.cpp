@@ -59,8 +59,8 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:mouse_move_enables_dpms"].intValue      = 0;
     configValues["misc:always_follow_on_dnd"].intValue         = 1;
     configValues["misc:layers_hog_keyboard_focus"].intValue    = 1;
-    configValues["misc:animate_manual_resizes"].intValue       = 0;
-    configValues["misc:animate_mouse_windowdragging"].intValue = 0;
+    configValues["misc:animate_manual_resizes"].intValue       = 1;
+    configValues["misc:animate_mouse_windowdragging"].intValue = 1;
     configValues["misc:disable_autoreload"].intValue           = 0;
     configValues["misc:enable_swallow"].intValue               = 0;
     configValues["misc:swallow_regex"].strValue                = STRVAL_EMPTY;
@@ -1838,4 +1838,3 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
 void CConfigManager::removePluginConfig(HANDLE handle) {
     std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
 }
-

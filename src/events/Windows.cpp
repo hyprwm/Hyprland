@@ -898,7 +898,7 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 
-    if (!PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen) {
+    if (!PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen || g_pInputManager->currentlyDraggedWindow == PWINDOW) {
         g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv(), true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(PWINDOW);

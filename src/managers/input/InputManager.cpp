@@ -302,9 +302,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         m_pFoundSurfaceToFocus = foundSurface;
     }
 
-    if (currentlyDraggedWindow && !refocus)
-        return;
-
     if (pFoundWindow) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
@@ -376,9 +373,6 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
             return;
         std::erase_if(m_lCurrentlyHeldButtons, [&](const auto& other) { return other == e->button; });
     }
-
-    if (currentlyDraggedWindow)
-        return;
 
     switch (m_ecbClickBehavior) {
         case CLICKMODE_DEFAULT: processMouseDownNormal(e); break;

@@ -7,3 +7,7 @@ IHyprWindowDecoration::~IHyprWindowDecoration() {}
 SWindowDecorationExtents IHyprWindowDecoration::getWindowDecorationReservedArea() {
     return SWindowDecorationExtents{};
 }
+
+bool IHyprWindowDecoration::allowsInput() {
+    return false;
+}

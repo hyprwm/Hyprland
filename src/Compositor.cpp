@@ -285,6 +285,10 @@ void CCompositor::cleanup() {
 
     m_bIsShuttingDown = true;
 
+    // unload all remaining plugins while the compositor is
+    // still in a normal working state.
+    g_pPluginSystem->unloadAllPlugins();
+
     m_pLastFocus  = nullptr;
     m_pLastWindow = nullptr;
 

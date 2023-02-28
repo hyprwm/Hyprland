@@ -179,6 +179,10 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         }
     }
 
+    const auto RESERVED = PWINDOW->getFullWindowReservedArea();
+    calcPos             = calcPos + RESERVED.topLeft;
+    calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
+
     if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID)) {
         // if special, we adjust the coords a bit
         static auto* const PSCALEFACTOR = &g_pConfigManager->getConfigValuePtr("dwindle:special_scale_factor")->floatValue;

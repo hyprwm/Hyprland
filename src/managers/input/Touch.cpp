@@ -15,6 +15,13 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     refocus();
 
+    if (m_ecbClickBehavior == CLICKMODE_KILL) {
+        wlr_pointer_button_event e;
+        e.state = WLR_BUTTON_PRESSED;
+        g_pInputManager->processMouseDownKill(&e);
+        return;
+    }
+
     m_bLastInputTouch = true;
 
     m_sTouchData.touchFocusWindow  = m_pFoundWindowToFocus;

@@ -308,6 +308,16 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             setCursorIconOnBorder(pFoundWindow);
         }
 
+        // if we're on an input deco, reset cursor
+        if (!VECINRECT(m_vLastCursorPosFloored, pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y,
+                       pFoundWindow->m_vRealPosition.vec().x + pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealPosition.vec().y + pFoundWindow->m_vRealSize.vec().y)) {
+            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+            cursorSurfaceInfo.bUsed = false;
+        } else if (!cursorSurfaceInfo.bUsed) {
+            cursorSurfaceInfo.bUsed = true;
+            wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, cursorSurfaceInfo.pSurface, cursorSurfaceInfo.vHotspot.x, cursorSurfaceInfo.vHotspot.y);
+        }
+
         if (*PFOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow &&
                 ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
@@ -398,6 +408,15 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
     if (m_ecbClickBehavior == CLICKMODE_KILL) {
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
         return;
+    }
+
+    cursorSurfaceInfo.pSurface = e->surface;
+
+    if (e->surface) {
+        hyprListener_CursorSurfaceDestroy.removeCallback();
+        hyprListener_CursorSurfaceDestroy.initCallback(
+            &e->surface->events.destroy, [&](void* owner, void* data) { cursorSurfaceInfo.pSurface = nullptr; }, this, "InputManager");
+        cursorSurfaceInfo.vHotspot = {e->hotspot_x, e->hotspot_y};
     }
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)

@@ -31,4 +31,6 @@ interface IHyprWindowDecoration {
     virtual void                     updateWindow(CWindow*) = 0;
 
     virtual void                     damageEntire() = 0;
+
+    virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 };

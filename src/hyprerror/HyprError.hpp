@@ -24,6 +24,8 @@ class CHyprError {
     CTexture          m_tTexture;
     CAnimatedVariable m_fFadeOpacity;
     wlr_box           m_bDamageBox = {0, 0, 0, 0};
+
+    bool              m_bMonitorChanged = false;
 };
 
 inline std::unique_ptr<CHyprError> g_pHyprError; // This is a full-screen error. Treat it with respect, and there can only be one at a time.

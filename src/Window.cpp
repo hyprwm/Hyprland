@@ -88,6 +88,22 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
 }
 
+SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
+    SWindowDecorationExtents extents;
+
+    for (auto& wd : m_dWindowDecorations) {
+        const auto RESERVED = wd->getWindowDecorationReservedArea();
+
+        if (RESERVED.bottomRight == Vector2D{} && RESERVED.topLeft == Vector2D{})
+            continue;
+
+        extents.topLeft     = extents.topLeft + RESERVED.topLeft;
+        extents.bottomRight = extents.bottomRight + RESERVED.bottomRight;
+    }
+
+    return extents;
+}
+
 void CWindow::updateWindowDecos() {
     for (auto& wd : m_dWindowDecorations)
         wd->updateWindow(this);

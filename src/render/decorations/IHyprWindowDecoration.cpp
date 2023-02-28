@@ -3,3 +3,7 @@
 #include "../../Window.hpp"
 
 IHyprWindowDecoration::~IHyprWindowDecoration() {}
+
+SWindowDecorationExtents IHyprWindowDecoration::getWindowDecorationReservedArea() {
+    return SWindowDecorationExtents{};
+}

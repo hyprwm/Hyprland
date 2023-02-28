@@ -33,4 +33,6 @@ interface IHyprWindowDecoration {
     virtual void                     damageEntire() = 0;
 
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
+
+    virtual bool                     allowsInput();
 };

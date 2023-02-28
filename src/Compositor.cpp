@@ -608,8 +608,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // special workspace
     if (PMONITOR->specialWorkspaceID) {
         for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-            wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
-                           (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
+            const auto BB  = w->get()->getWindowInputBox();
+            wlr_box    box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
             if ((*w)->m_bIsFloating && (*w)->m_iWorkspaceID == PMONITOR->specialWorkspaceID && (*w)->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) &&
                 !(*w)->isHidden() && !(*w)->m_bX11ShouldntFocus)
                 return (*w).get();
@@ -625,8 +625,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
     // pinned windows on top of floating regardless
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-        wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
-                       (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
+        const auto BB  = w->get()->getWindowInputBox();
+        wlr_box    box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
         if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && !(*w)->isHidden() && !(*w)->m_bX11ShouldntFocus && (*w)->m_bPinned) {
             if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))
                 return w->get();
@@ -640,8 +640,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-        wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
-                       (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
+        const auto BB  = w->get()->getWindowInputBox();
+        wlr_box    box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
         if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden() && !(*w)->m_bPinned) {
             // OR windows should add focus to parent
             if ((*w)->m_bX11ShouldntFocus && (*w)->m_iX11Type != 2)

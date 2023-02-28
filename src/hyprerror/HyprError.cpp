@@ -4,6 +4,22 @@
 CHyprError::CHyprError() {
     m_fFadeOpacity.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), nullptr, AVARDAMAGE_NONE);
     m_fFadeOpacity.registerVar();
+
+    g_pHookSystem->hookDynamic("focusedMon", [&](void* self, std::any param) {
+        if (!m_bIsCreated)
+            return;
+
+        g_pHyprRenderer->damageMonitor(g_pCompositor->m_pLastMonitor);
+        m_bMonitorChanged = true;
+    });
+
+    g_pHookSystem->hookDynamic("preRender", [&](void* self, std::any param) {
+        if (!m_bIsCreated)
+            return;
+
+        if (m_fFadeOpacity.isBeingAnimated() || m_bMonitorChanged)
+            g_pHyprRenderer->damageBox(&m_bDamageBox);
+    });
 }
 
 CHyprError::~CHyprError() {
@@ -54,7 +70,7 @@ void CHyprError::createQueued() {
     const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * LINECOUNT + 3;
     const double RADIUS = PAD > HEIGHT / 2 ? HEIGHT / 2 - 1 : PAD;
 
-    m_bDamageBox = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
+    m_bDamageBox = {0, 0, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
 
     cairo_new_sub_path(CAIRO);
     cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
@@ -137,15 +153,17 @@ void CHyprError::draw() {
         }
     }
 
-    const auto PMONITOR = g_pCompositor->m_vMonitors.front().get();
+    const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
 
-    if (g_pHyprOpenGL->m_RenderData.pMonitor != PMONITOR)
-        return; // wrong mon
+    wlr_box    monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
 
-    wlr_box monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    m_bDamageBox.x = (int)PMONITOR->vecPosition.x;
+    m_bDamageBox.y = (int)PMONITOR->vecPosition.y;
 
-    if (m_fFadeOpacity.isBeingAnimated())
+    if (m_fFadeOpacity.isBeingAnimated() || m_bMonitorChanged)
         g_pHyprRenderer->damageBox(&m_bDamageBox);
+
+    m_bMonitorChanged = false;
 
     g_pHyprOpenGL->renderTexture(m_tTexture, &monbox, m_fFadeOpacity.fl(), 0);
 }

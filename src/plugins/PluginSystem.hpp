@@ -29,6 +29,7 @@ class CPluginSystem {
 
     CPlugin*              loadPlugin(const std::string& path);
     void                  unloadPlugin(const CPlugin* plugin, bool eject = false);
+    void                  unloadAllPlugins();
     CPlugin*              getPluginByPath(const std::string& path);
     CPlugin*              getPluginByHandle(HANDLE handle);
     std::vector<CPlugin*> getAllPlugins();

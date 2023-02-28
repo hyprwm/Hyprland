@@ -498,10 +498,6 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
 
 void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
     if (windowExists(pWindow) && !pWindow->m_bFadingOut) {
-        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
-            std::erase_if(m_dUnmanagedX11Windows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
-        }
-
         // if X11, also check its children
         // and delete any needed
         if (pWindow->m_bIsX11) {
@@ -519,6 +515,10 @@ void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
             }
         }
 
+        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
+            std::erase_if(m_dUnmanagedX11Windows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
+        }
+
         std::erase_if(m_vWindows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
     }
 }
@@ -526,6 +526,11 @@ void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
 bool CCompositor::windowExists(CWindow* pWindow) {
     for (auto& w : m_vWindows) {
         if (w.get() == pWindow)
+            return true;
+    }
+
+    for (auto& u : m_dUnmanagedX11Windows) {
+        if (u.get() == pWindow)
             return true;
     }
 

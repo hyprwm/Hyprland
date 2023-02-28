@@ -155,6 +155,7 @@ class CWindow {
     DYNLISTENER(toplevelClose);
     DYNLISTENER(toplevelActivate);
     DYNLISTENER(toplevelFullscreen);
+    DYNLISTENER(setOverrideRedirect);
     // DYNLISTENER(newSubsurfaceWindow);
 
     union {

@@ -58,6 +58,7 @@ namespace Events {
     DYNLISTENFUNC(requestResize);
     DYNLISTENFUNC(requestMinimize);
     DYNLISTENFUNC(requestMaximize);
+    DYNLISTENFUNC(setOverrideRedirect);
 
     // Window subsurfaces
     // LISTENER(newSubsurfaceWindow);

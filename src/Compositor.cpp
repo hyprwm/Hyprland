@@ -18,14 +18,14 @@ int handleCritSignal(int signo, void* data) {
     return 0; // everything went fine
 }
 
-void handleSegv(int sig) {
+void handleUnrecoverableSignal(int sig) {
 
     if (g_pHookSystem->m_bCurrentEventPlugin) {
         longjmp(g_pHookSystem->m_jbHookFaultJumpBuf, 1);
         return;
     }
 
-    CrashReporter::createAndSaveCrash();
+    CrashReporter::createAndSaveCrash(sig);
     abort();
 }
 
@@ -74,7 +74,8 @@ CCompositor::CCompositor() {
 
     // register crit signal handler
     wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
-    signal(SIGSEGV, handleSegv);
+    signal(SIGSEGV, handleUnrecoverableSignal);
+    signal(SIGABRT, handleUnrecoverableSignal);
     //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);

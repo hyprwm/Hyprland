@@ -3,5 +3,5 @@
 #include "../defines.hpp"
 
 namespace CrashReporter {
-    void createAndSaveCrash();
+    void createAndSaveCrash(int sig);
 };

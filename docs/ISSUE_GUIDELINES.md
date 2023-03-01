@@ -59,7 +59,7 @@ coredumpctl info [PID]
 where `[PID]` is the PID you remembered.
 
 ## Obtaining the Hyprland Crash Report (v0.22.0beta and up)
-Go to `~/.hyprland/` and you should find a file named `.hyprlandCrashReport[XXXX]` where `[XXXX]` is the PID of the process that crashed.
+Go to `~/.hyprland/` and you should find a file named `hyprlandCrashReport[XXXX].txt` where `[XXXX]` is the PID of the process that crashed.
 
 If you do not see it, make sure you have "show hidden files" enabled in your file manager.
 

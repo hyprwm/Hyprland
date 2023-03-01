@@ -20,12 +20,17 @@ int handleCritSignal(int signo, void* data) {
 
 void handleUnrecoverableSignal(int sig) {
 
+    // remove our handlers
+    signal(SIGABRT, SIG_DFL);
+    signal(SIGSEGV, SIG_DFL);
+
     if (g_pHookSystem->m_bCurrentEventPlugin) {
         longjmp(g_pHookSystem->m_jbHookFaultJumpBuf, 1);
         return;
     }
 
     CrashReporter::createAndSaveCrash(sig);
+
     abort();
 }
 

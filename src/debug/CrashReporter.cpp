@@ -3,6 +3,7 @@
 #include <sys/utsname.h>
 #include <execinfo.h>
 #include <fstream>
+#include <signal.h>
 
 #include "../plugins/PluginSystem.hpp"
 
@@ -33,7 +34,7 @@ std::string getRandomMessage() {
     return MESSAGES[distribution(engine)];
 }
 
-void CrashReporter::createAndSaveCrash() {
+void CrashReporter::createAndSaveCrash(int sig) {
 
     // get the backtrace
     const int   PID = getpid();
@@ -43,7 +44,7 @@ void CrashReporter::createAndSaveCrash() {
     finalCrashReport += "--------------------------------------------\n   Hyprland Crash Report\n--------------------------------------------\n";
     finalCrashReport += getRandomMessage() + "\n\n";
 
-    finalCrashReport += "Hyprland received signal 11 (SIGSEGV): Segmentation Fault\n\n";
+    finalCrashReport += getFormat("Hyprland received signal %d (%s): Segmentation Fault\n\n", sig, strsignal(sig));
 
     if (!g_pPluginSystem->getAllPlugins().empty()) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";

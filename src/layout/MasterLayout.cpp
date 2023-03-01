@@ -1,5 +1,6 @@
 #include "MasterLayout.hpp"
 #include "../Compositor.hpp"
+#include <ranges>
 
 SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(CWindow* pWindow) {
     for (auto& nd : m_lMasterNodesData) {
@@ -175,9 +176,9 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
     m_lMasterNodesData.remove(*PNODE);
 
     if (getMastersOnWorkspace(WORKSPACEID) == getNodesOnWorkspace(WORKSPACEID) && MASTERSLEFT > 1) {
-        for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
-            if (it->workspaceID == WORKSPACEID) {
-                it->isMaster = false;
+        for (auto& nd : m_lMasterNodesData | std::views::reverse) {
+            if (nd.workspaceID == WORKSPACEID) {
+                nd.isMaster = false;
                 break;
             }
         }
@@ -781,23 +782,23 @@ CWindow* CHyprMasterLayout::getNextWindow(CWindow* pWindow, bool next) {
     } else {
         if (PNODE->isMaster) {
             // focus the last non master
-            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
-                if (it->pWindow != pWindow && it->workspaceID == pWindow->m_iWorkspaceID) {
-                    return it->pWindow;
+            for (auto& nd : m_lMasterNodesData | std::views::reverse) {
+                if (nd.pWindow != pWindow && nd.workspaceID == pWindow->m_iWorkspaceID) {
+                    return nd.pWindow;
                 }
             }
         } else {
             // focus previous
             bool reached = false;
             bool found   = false;
-            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
-                if (it->pWindow == pWindow) {
+            for (auto& nd : m_lMasterNodesData | std::views::reverse) {
+                if (nd.pWindow == pWindow) {
                     reached = true;
                     continue;
                 }
 
-                if (it->workspaceID == pWindow->m_iWorkspaceID && reached) {
-                    return it->pWindow;
+                if (nd.workspaceID == pWindow->m_iWorkspaceID && reached) {
+                    return nd.pWindow;
                 }
             }
             if (!found) {
@@ -1037,9 +1038,9 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
-            for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
-                if (it->workspaceID == header.pWindow->m_iWorkspaceID && it->isMaster) {
-                    it->isMaster = false;
+            for (auto& nd : m_lMasterNodesData | std::views::reverse) {
+                if (nd.workspaceID == header.pWindow->m_iWorkspaceID && nd.isMaster) {
+                    nd.isMaster = false;
                     break;
                 }
             }

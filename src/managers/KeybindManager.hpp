@@ -40,6 +40,7 @@ class CKeybindManager {
     bool                                                              onKeyEvent(wlr_keyboard_key_event*, SKeyboard*);
     bool                                                              onAxisEvent(wlr_pointer_axis_event*);
     bool                                                              onMouseEvent(wlr_pointer_button_event*);
+    bool                                                              onTouchDownEvent(wlr_touch_down_event*);
     void                                                              resizeWithBorder(wlr_pointer_button_event*);
     void                                                              onSwitchEvent(const std::string&);
     void                                                              onSwitchOnEvent(const std::string&);
@@ -72,6 +73,7 @@ class CKeybindManager {
     uint32_t                  m_uTimeLastMs    = 0;
     uint32_t                  m_uLastCode      = 0;
     uint32_t                  m_uLastMouseCode = 0;
+    uint32_t                  m_uLastTouchId   = 0;
 
     bool                      m_bIsMouseBindActive = false;
 

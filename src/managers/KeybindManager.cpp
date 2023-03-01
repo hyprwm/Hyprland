@@ -1,4 +1,5 @@
 #include "KeybindManager.hpp"
+#include "input/InputManager.hpp"
 
 #include <regex>
 
@@ -337,6 +338,22 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     }
 
     return !found && !mouseBindWasActive;
+}
+
+bool CKeybindManager::onTouchDownEvent(wlr_touch_down_event* e) {
+    const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+
+    bool       found = false;
+
+    m_uLastTouchId = e->touch_id;
+    m_uLastCode    = 0;
+    // m_uTimeLastMs    = e->time_msec;
+
+    bool mouseBindWasActive = ensureMouseBindState();
+    // TODO
+    // found = handleKeybinds(MODS, "touch:", 0, 0, true, 0);
+    // if (found)
+    //    shadowKeybinds();
 }
 
 void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {

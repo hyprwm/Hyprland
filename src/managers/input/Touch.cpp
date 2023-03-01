@@ -2,9 +2,10 @@
 #include "../../Compositor.hpp"
 
 void CInputManager::onTouchDown(wlr_touch_down_event* e) {
-    auto       PMONITOR = g_pCompositor->getMonitorFromName(e->touch->output_name ? e->touch->output_name : "");
+    static auto* const PPASSMOUSE = &g_pConfigManager->getConfigValuePtr("binds:pass_mouse_when_bound")->intValue;
+    auto               PMONITOR   = g_pCompositor->getMonitorFromName(e->touch->output_name ? e->touch->output_name : "");
 
-    const auto PDEVIT = std::find_if(m_lTouchDevices.begin(), m_lTouchDevices.end(), [&](const STouchDevice& other) { return other.pWlrDevice == &e->touch->base; });
+    const auto         PDEVIT = std::find_if(m_lTouchDevices.begin(), m_lTouchDevices.end(), [&](const STouchDevice& other) { return other.pWlrDevice == &e->touch->base; });
 
     if (PDEVIT != m_lTouchDevices.end() && !PDEVIT->boundOutput.empty())
         PMONITOR = g_pCompositor->getMonitorFromName(PDEVIT->boundOutput);
@@ -12,6 +13,11 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
     PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor;
 
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
+
+    const auto PASS = g_pKeybindManager->onTouchDownEvent(e);
+    if (!PASS && !*PPASSMOUSE) {
+        return;
+    }
 
     refocus();
 

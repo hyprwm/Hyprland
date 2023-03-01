@@ -122,6 +122,10 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     free(btSymbols);
 
+    finalCrashReport += "\n\nLog tail:\n";
+
+    finalCrashReport += execAndGet(("cat \"" + Debug::logFile + "\" | tail -n 50").c_str());
+
     const auto HOME = getenv("HOME");
 
     if (!HOME)

@@ -715,6 +715,8 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->hyprListener_mapWindow.removeCallback();
     PWINDOW->hyprListener_unmapWindow.removeCallback();
     PWINDOW->hyprListener_destroyWindow.removeCallback();
+    PWINDOW->hyprListener_configureX11.removeCallback();
+    PWINDOW->hyprListener_setOverrideRedirect.removeCallback();
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
@@ -970,9 +972,9 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 void Events::listener_setOverrideRedirect(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    if (!PWINDOW->m_bIsMapped && PWINDOW->m_uSurface.xwayland->mapped) {
-        Events::listener_mapWindow(PWINDOW, nullptr);
-    }
+    //if (!PWINDOW->m_bIsMapped && PWINDOW->m_uSurface.xwayland->mapped) {
+    //    Events::listener_mapWindow(PWINDOW, nullptr);
+    //}
 }
 
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {

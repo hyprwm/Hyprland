@@ -2125,9 +2125,9 @@ SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
 Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, const Vector2D& relativeTo) {
     const auto PMONITOR = m_pLastMonitor; // TODO: It's unclear if this will always return correct monitor
 
-    bool xIsPercent = false;
-    bool yIsPercent = false;
-    bool isExact = false;
+    bool       xIsPercent = false;
+    bool       yIsPercent = false;
+    bool       isExact    = false;
 
     if (!args.contains(' '))
         return relativeTo;
@@ -2136,18 +2136,18 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     std::string y = args.substr(args.find_first_of(' ') + 1);
 
     if (x == "exact") {
-        x = y.substr(0, y.find_first_of(' '));
-        y = y.substr(y.find_first_of(' ') + 1);
+        x       = y.substr(0, y.find_first_of(' '));
+        y       = y.substr(y.find_first_of(' ') + 1);
         isExact = true;
     }
 
-    if (x.contains('%')){
+    if (x.contains('%')) {
         xIsPercent = true;
-        x = x.substr(0, x.length()-1);
+        x          = x.substr(0, x.length() - 1);
     }
-    if (y.contains('%')){
+    if (y.contains('%')) {
         yIsPercent = true;
-        y = y.substr(0, y.length()-1);
+        y          = y.substr(0, y.length() - 1);
     }
 
     if (!isNumber(x) || !isNumber(y)) {
@@ -2162,8 +2162,8 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
         X = xIsPercent ? std::stof(x) * 0.01 * PMONITOR->vecSize.x : std::stoi(x);
         Y = yIsPercent ? std::stof(y) * 0.01 * PMONITOR->vecSize.y : std::stoi(y);
     } else {
-        X = xIsPercent ? std::stof(x) * 0.01 * relativeTo.x + relativeTo.x: std::stoi(x) + relativeTo.x;
-        Y = yIsPercent ? std::stof(y) * 0.01 * relativeTo.y + relativeTo.y: std::stoi(y) + relativeTo.y;
+        X = xIsPercent ? std::stof(x) * 0.01 * relativeTo.x + relativeTo.x : std::stoi(x) + relativeTo.x;
+        Y = yIsPercent ? std::stof(y) * 0.01 * relativeTo.y + relativeTo.y : std::stoi(y) + relativeTo.y;
     }
 
     if (X < 0 || Y < 0) {

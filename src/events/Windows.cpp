@@ -61,9 +61,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (g_pInputManager->m_bLastFocusOnLS) // waybar fix
         g_pInputManager->releaseAllMouseButtons();
 
-    if (PWINDOW->m_iX11Type == 2)
-        g_pCompositor->moveUnmanagedX11ToWindows(PWINDOW);
-
     // Set all windows tiled regardless of anything
     g_pXWaylandManager->setWindowStyleTiled(PWINDOW, WLR_EDGE_LEFT | WLR_EDGE_RIGHT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM);
 
@@ -985,8 +982,7 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     if (XWSURFACE->parent)
         Debug::log(LOG, "Window parent data: %s at %x", XWSURFACE->parent->_class, XWSURFACE->parent);
 
-    const auto PNEWWINDOW = XWSURFACE->override_redirect ? g_pCompositor->m_dUnmanagedX11Windows.emplace_back(std::make_unique<CWindow>()).get() :
-                                                           g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
+    const auto PNEWWINDOW = (CWindow*)g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
 
     PNEWWINDOW->m_uSurface.xwayland = XWSURFACE;
     PNEWWINDOW->m_iX11Type          = XWSURFACE->override_redirect ? 2 : 1;

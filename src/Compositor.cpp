@@ -142,11 +142,17 @@ CCompositor::CCompositor() {
     m_sWLRCursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(m_sWLRCursor, m_sWLROutputLayout);
 
-    m_sWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, 24);
-    wlr_xcursor_manager_load(m_sWLRXCursorMgr, 1);
-
     if (const auto XCURSORENV = getenv("XCURSOR_SIZE"); !XCURSORENV || std::string(XCURSORENV).empty())
         setenv("XCURSOR_SIZE", "24", true);
+
+    const auto XCURSORENV = getenv("XCURSOR_SIZE");
+    int        cursorSize = 24;
+    try {
+        cursorSize = std::stoi(XCURSORENV);
+    } catch (std::exception& e) { Debug::log(ERR, "XCURSOR_SIZE invalid in check #2? (%s)", XCURSORENV); }
+
+    m_sWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, cursorSize);
+    wlr_xcursor_manager_load(m_sWLRXCursorMgr, 1);
 
     m_sSeat.seat = wlr_seat_create(m_sWLDisplay, "seat0");
 

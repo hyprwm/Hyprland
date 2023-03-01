@@ -1230,9 +1230,8 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         if (!valid || !w->m_bFadingOut || w->m_fAlpha.fl() == 0.f) {
             if (valid && !w->m_bReadyToDelete)
                 continue;
-
-            g_pHyprOpenGL->m_mWindowFramebuffers[w].release();
-            g_pHyprOpenGL->m_mWindowFramebuffers.erase(w);
+            
+            std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return other.first == w; });
             w->m_bFadingOut = false;
             removeWindowFromVectorSafe(w);
             std::erase(m_vWindowsFadingOut, w);

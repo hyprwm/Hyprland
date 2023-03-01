@@ -6,7 +6,8 @@ enum eDecorationType
 {
     DECORATION_NONE = -1,
     DECORATION_GROUPBAR,
-    DECORATION_SHADOW
+    DECORATION_SHADOW,
+    DECORATION_CUSTOM
 };
 
 struct SWindowDecorationExtents {
@@ -30,4 +31,8 @@ interface IHyprWindowDecoration {
     virtual void                     updateWindow(CWindow*) = 0;
 
     virtual void                     damageEntire() = 0;
+
+    virtual SWindowDecorationExtents getWindowDecorationReservedArea();
+
+    virtual bool                     allowsInput();
 };

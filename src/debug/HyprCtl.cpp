@@ -108,6 +108,8 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
         return getFormat(
             R"#({
     "address": "0x%x",
+    "mapped": %s,
+    "hidden": %s,
     "at": [%i, %i],
     "size": [%i, %i],
     "workspace": {
@@ -127,7 +129,8 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
     "grouped": [%s],
     "swallowing": %s
 },)#",
-            w, (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y, (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
+            w, (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
+            (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
             escapeJSONStrings(w->m_iWorkspaceID == -1                                ? "" :
                                   g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName :
                                                                                        std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)))
@@ -139,10 +142,11 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format).c_str(), (w->m_pSwallowed ? getFormat("\"0x%x\"", w->m_pSwallowed).c_str() : "null"));
     } else {
         return getFormat(
-            "Window %x -> %s:\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: %i\n\txwayland: %i\n\tpinned: "
+            "Window %x -> %s:\n\tmapped: %i\n\thidden: %i\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: "
+            "%i\n\txwayland: %i\n\tpinned: "
             "%i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\tfakefullscreen: %i\n\tgrouped: %s\n\tswallowing: %x\n\n",
-            w, w->m_szTitle.c_str(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y, (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y,
-            w->m_iWorkspaceID,
+            w, w->m_szTitle.c_str(), (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y, (int)w->m_vRealSize.goalv().x,
+            (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
             (w->m_iWorkspaceID == -1                                ? "" :
                  g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() :
                                                                       std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()),
@@ -159,9 +163,7 @@ std::string clientsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "[";
 
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped) {
-                result += getWindowData(w.get(), format);
-            }
+            result += getWindowData(w.get(), format);
         }
 
         // remove trailing comma
@@ -171,9 +173,7 @@ std::string clientsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped) {
-                result += getWindowData(w.get(), format);
-            }
+            result += getWindowData(w.get(), format);
         }
     }
     return result;
@@ -1087,6 +1087,50 @@ std::string dispatchOutput(std::string request) {
     return "ok";
 }
 
+std::string dispatchPlugin(std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    if (vars.size() < 2)
+        return "not enough args";
+
+    const auto OPERATION = vars[1];
+    const auto PATH      = vars[2];
+
+    if (OPERATION == "load") {
+        if (vars.size() < 3)
+            return "not enough args";
+
+        const auto PLUGIN = g_pPluginSystem->loadPlugin(PATH);
+
+        if (!PLUGIN)
+            return "error in loading plugin";
+    } else if (OPERATION == "unload") {
+        if (vars.size() < 3)
+            return "not enough args";
+
+        const auto PLUGIN = g_pPluginSystem->getPluginByPath(PATH);
+
+        if (!PLUGIN)
+            return "plugin not loaded";
+
+        g_pPluginSystem->unloadPlugin(PLUGIN);
+    } else if (OPERATION == "list") {
+        const auto  PLUGINS = g_pPluginSystem->getAllPlugins();
+
+        std::string list = "";
+        for (auto& p : PLUGINS) {
+            list += getFormat("\nPlugin %s by %s:\n\tHandle: %lx\n\tVersion: %s\n\tDescription: %s\n", p->name.c_str(), p->author.c_str(), p->m_pHandle, p->version.c_str(),
+                              p->description.c_str());
+        }
+
+        return list;
+    } else {
+        return "unknown opt";
+    }
+
+    return "ok";
+}
+
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
@@ -1134,6 +1178,8 @@ std::string getReply(std::string request) {
         return bindsRequest(format);
     else if (request == "animations")
         return animationsRequest(format);
+    else if (request.find("plugin") == 0)
+        return dispatchPlugin(request);
     else if (request.find("setprop") == 0)
         return dispatchSetProp(request);
     else if (request.find("seterror") == 0)
@@ -1154,6 +1200,10 @@ std::string getReply(std::string request) {
         return dispatchBatch(request);
 
     return "unknown request";
+}
+
+std::string HyprCtl::makeDynamicCall(const std::string& input) {
+    return getReply(input);
 }
 
 int hyprCtlFDTick(int fd, uint32_t mask, void* data) {

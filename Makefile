@@ -157,6 +157,7 @@ all:
 	make clear
 	make fixwlr
 	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
 	make protocols
 	make release
 	cd hyprctl && make all && cd ..
@@ -165,6 +166,7 @@ install:
 	make clear
 	make fixwlr
 	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc) && cd ../..
 	make protocols
 	make release
 	cd hyprctl && make all && cd ..
@@ -210,6 +212,18 @@ config:
 	cd subprojects/wlroots && ninja -C build/
 
 	cd subprojects/wlroots && ninja -C build/ install
+
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
+
+pluginenv:
+	make protocols
+
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
+	
+	make fixwlr
+	
+	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release -Dwerror=false -Dexamples=false
+	cd subprojects/wlroots && ninja -C build/
 
 configdebug:
 	make protocols

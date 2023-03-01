@@ -155,6 +155,7 @@ class CWindow {
     DYNLISTENER(toplevelClose);
     DYNLISTENER(toplevelActivate);
     DYNLISTENER(toplevelFullscreen);
+    DYNLISTENER(setOverrideRedirect);
     // DYNLISTENER(newSubsurfaceWindow);
 
     union {
@@ -286,34 +287,36 @@ class CWindow {
     }
 
     // methods
-    wlr_box                getFullWindowBoundingBox();
-    wlr_box                getWindowIdealBoundingBoxIgnoreReserved();
-    void                   updateWindowDecos();
-    pid_t                  getPID();
-    IHyprWindowDecoration* getDecorationByType(eDecorationType);
-    void                   removeDecorationByType(eDecorationType);
-    void                   createToplevelHandle();
-    void                   destroyToplevelHandle();
-    void                   updateToplevel();
-    void                   updateSurfaceOutputs();
-    void                   moveToWorkspace(int);
-    CWindow*               X11TransientFor();
-    void                   onUnmap();
-    void                   onMap();
-    void                   setHidden(bool hidden);
-    bool                   isHidden();
-    void                   applyDynamicRule(const SWindowRule& r);
-    void                   updateDynamicRules();
+    wlr_box                  getFullWindowBoundingBox();
+    wlr_box                  getWindowInputBox();
+    wlr_box                  getWindowIdealBoundingBoxIgnoreReserved();
+    void                     updateWindowDecos();
+    pid_t                    getPID();
+    IHyprWindowDecoration*   getDecorationByType(eDecorationType);
+    void                     removeDecorationByType(eDecorationType);
+    void                     createToplevelHandle();
+    void                     destroyToplevelHandle();
+    void                     updateToplevel();
+    void                     updateSurfaceOutputs();
+    void                     moveToWorkspace(int);
+    CWindow*                 X11TransientFor();
+    void                     onUnmap();
+    void                     onMap();
+    void                     setHidden(bool hidden);
+    bool                     isHidden();
+    void                     applyDynamicRule(const SWindowRule& r);
+    void                     updateDynamicRules();
+    SWindowDecorationExtents getFullWindowReservedArea();
 
-    void                   onBorderAngleAnimEnd(void* ptr);
-    bool                   isInCurvedCorner(double x, double y);
-    bool                   hasPopupAt(const Vector2D& pos);
+    void                     onBorderAngleAnimEnd(void* ptr);
+    bool                     isInCurvedCorner(double x, double y);
+    bool                     hasPopupAt(const Vector2D& pos);
 
-    CWindow*               getGroupHead();
-    CWindow*               getGroupTail();
-    CWindow*               getGroupCurrent();
-    void                   setGroupCurrent(CWindow* pWindow);
-    void                   insertWindowToGroup(CWindow* pWindow);
+    CWindow*                 getGroupHead();
+    CWindow*                 getGroupTail();
+    CWindow*                 getGroupCurrent();
+    void                     setGroupCurrent(CWindow* pWindow);
+    void                     insertWindowToGroup(CWindow* pWindow);
 
   private:
     // For hidden windows and stuff

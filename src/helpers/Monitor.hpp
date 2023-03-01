@@ -42,6 +42,9 @@ class CMonitor {
     bool                enabled10bit  = false; // as above, this can be TRUE even if 10 bit failed.
     bool                createdByUser = false;
 
+    bool                pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
+    bool                renderingActive = false;
+
     // mirroring
     CMonitor*              pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;

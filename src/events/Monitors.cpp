@@ -197,6 +197,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
     }
 
+    PMONITOR->renderingActive = true;
+
     // we need to cleanup fading out when rendering the appropriate context
     g_pCompositor->cleanupFadingOut(PMONITOR->ID);
 
@@ -206,6 +208,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
         if (*PDAMAGEBLINK || *PVFR == 0)
             g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+
+        PMONITOR->renderingActive = false;
 
         return;
     }
@@ -256,9 +260,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
         g_pHyprRenderer->renderAllClientsForMonitor(PMONITOR->ID, &now);
 
-        // if correct monitor draw hyprerror
-        if (PMONITOR == g_pCompositor->m_vMonitors.front().get())
+        if (PMONITOR == g_pCompositor->m_pLastMonitor) {
+            g_pHyprNotificationOverlay->draw(PMONITOR);
             g_pHyprError->draw();
+        }
 
         // for drawing the debug overlay
         if (PMONITOR == g_pCompositor->m_vMonitors.front().get() && *PDEBUGOVERLAY == 1) {
@@ -306,11 +311,15 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     pixman_region32_fini(&frameDamage);
     pixman_region32_fini(&damage);
 
+    PMONITOR->renderingActive = false;
+
     if (!wlr_output_commit(PMONITOR->output))
         return;
 
-    if (*PDAMAGEBLINK || *PVFR == 0)
+    if (*PDAMAGEBLINK || *PVFR == 0 || PMONITOR->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+
+    PMONITOR->pendingFrame = false;
 
     if (*PDEBUGOVERLAY == 1) {
         const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;

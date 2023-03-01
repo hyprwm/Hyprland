@@ -69,11 +69,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown)
         return;
 
-    if (!g_pCompositor->m_sSeat.mouse) {
-        Debug::log(ERR, "BUG THIS: Mouse move on mouse nullptr!");
-        return;
-    }
-
     if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS) {
         // enable dpms
         g_pKeybindManager->dpms("on");
@@ -85,13 +80,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored && !refocus)
         return;
 
+    EMIT_HOOK_EVENT("mouseMove", MOUSECOORDSFLOORED);
+
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
     // constraints
     // All constraints TODO: multiple mice?
-    if (g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient && !g_pSessionLockManager->isSessionLocked()) {
+    if (g_pCompositor->m_sSeat.mouse && g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient && !g_pSessionLockManager->isSessionLocked()) {
         // XWayland windows sometimes issue constraints weirdly.
         // TODO: We probably should search their parent. wlr_xwayland_surface->parent
         const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
@@ -311,6 +308,18 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             setCursorIconOnBorder(pFoundWindow);
         }
 
+        // if we're on an input deco, reset cursor. Don't on overriden
+        if (!m_bCursorImageOverriden) {
+            if (!VECINRECT(m_vLastCursorPosFloored, pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y,
+                           pFoundWindow->m_vRealPosition.vec().x + pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealPosition.vec().y + pFoundWindow->m_vRealSize.vec().y)) {
+                wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+                cursorSurfaceInfo.bUsed = false;
+            } else if (!cursorSurfaceInfo.bUsed) {
+                cursorSurfaceInfo.bUsed = true;
+                wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, cursorSurfaceInfo.pSurface, cursorSurfaceInfo.vHotspot.x, cursorSurfaceInfo.vHotspot.y);
+            }
+        }
+
         if (*PFOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow &&
                 ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
@@ -365,6 +374,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
 
+    EMIT_HOOK_EVENT("mouseButton", e);
+
     m_tmrLastCursorMovement.reset();
 
     if (e->state == WLR_BUTTON_PRESSED) {
@@ -399,6 +410,15 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
     if (m_ecbClickBehavior == CLICKMODE_KILL) {
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
         return;
+    }
+
+    cursorSurfaceInfo.pSurface = e->surface;
+
+    if (e->surface) {
+        hyprListener_CursorSurfaceDestroy.removeCallback();
+        hyprListener_CursorSurfaceDestroy.initCallback(
+            &e->surface->events.destroy, [&](void* owner, void* data) { cursorSurfaceInfo.pSurface = nullptr; }, this, "InputManager");
+        cursorSurfaceInfo.vHotspot = {e->hotspot_x, e->hotspot_y};
     }
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
@@ -462,7 +482,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
                 break;
 
-            if (!g_pCompositor->m_sSeat.mouse->currentConstraint)
+            if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)
                 refocus();
 
             // if clicked on a floating window make it top
@@ -1094,7 +1114,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
 }
 
 void CInputManager::unconstrainMouse() {
-    if (!g_pCompositor->m_sSeat.mouse->currentConstraint)
+    if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)
         return;
 
     const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);

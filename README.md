@@ -42,6 +42,7 @@ Although Hyprland is pretty stable, it may have some bugs.
 # Features
 
 - Easily expandable and readable codebase
+- Plugin support
 - Config reloaded instantly upon saving
 - Custom bezier curve based animations
 - Dual Kawase blur

@@ -88,6 +88,59 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
 }
 
+wlr_box CWindow::getWindowInputBox() {
+    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+
+    if (m_sAdditionalConfigData.dimAround) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    }
+
+    SWindowDecorationExtents maxExtents = {{*PBORDERSIZE + 2, *PBORDERSIZE + 2}, {*PBORDERSIZE + 2, *PBORDERSIZE + 2}};
+
+    for (auto& wd : m_dWindowDecorations) {
+
+        if (!wd->allowsInput())
+            continue;
+
+        const auto EXTENTS = wd->getWindowDecorationExtents();
+
+        if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
+            maxExtents.topLeft.x = EXTENTS.topLeft.x;
+
+        if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
+            maxExtents.topLeft.y = EXTENTS.topLeft.y;
+
+        if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
+            maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
+
+        if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
+            maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
+    }
+
+    // Add extents to the real base BB and return
+    wlr_box finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
+                        m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
+
+    return finalBox;
+}
+
+SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
+    SWindowDecorationExtents extents;
+
+    for (auto& wd : m_dWindowDecorations) {
+        const auto RESERVED = wd->getWindowDecorationReservedArea();
+
+        if (RESERVED.bottomRight == Vector2D{} && RESERVED.topLeft == Vector2D{})
+            continue;
+
+        extents.topLeft     = extents.topLeft + RESERVED.topLeft;
+        extents.bottomRight = extents.bottomRight + RESERVED.bottomRight;
+    }
+
+    return extents;
+}
+
 void CWindow::updateWindowDecos() {
     for (auto& wd : m_dWindowDecorations)
         wd->updateWindow(this);

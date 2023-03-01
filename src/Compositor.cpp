@@ -18,6 +18,12 @@ int handleCritSignal(int signo, void* data) {
 }
 
 void handleSegv(int sig) {
+
+    if (g_pHookSystem->m_bCurrentEventPlugin) {
+        longjmp(g_pHookSystem->m_jbHookFaultJumpBuf, 1);
+        return;
+    }
+
     CrashReporter::createAndSaveCrash();
     abort();
 }
@@ -279,6 +285,10 @@ void CCompositor::cleanup() {
 
     m_bIsShuttingDown = true;
 
+    // unload all remaining plugins while the compositor is
+    // still in a normal working state.
+    g_pPluginSystem->unloadAllPlugins();
+
     m_pLastFocus  = nullptr;
     m_pLastWindow = nullptr;
 
@@ -364,6 +374,12 @@ void CCompositor::startCompositor() {
 
     Debug::log(LOG, "Creating the HyprDebugOverlay!");
     g_pDebugOverlay = std::make_unique<CHyprDebugOverlay>();
+
+    Debug::log(LOG, "Creating the HyprNotificationOverlay!");
+    g_pHyprNotificationOverlay = std::make_unique<CHyprNotificationOverlay>();
+
+    Debug::log(LOG, "Creating the PluginSystem!");
+    g_pPluginSystem = std::make_unique<CPluginSystem>();
     //
     //
 
@@ -486,10 +502,6 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
 
 void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
     if (windowExists(pWindow) && !pWindow->m_bFadingOut) {
-        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
-            std::erase_if(m_dUnmanagedX11Windows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
-        }
-
         // if X11, also check its children
         // and delete any needed
         if (pWindow->m_bIsX11) {
@@ -507,6 +519,10 @@ void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
             }
         }
 
+        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
+            std::erase_if(m_dUnmanagedX11Windows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
+        }
+
         std::erase_if(m_vWindows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
     }
 }
@@ -514,6 +530,11 @@ void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
 bool CCompositor::windowExists(CWindow* pWindow) {
     for (auto& w : m_vWindows) {
         if (w.get() == pWindow)
+            return true;
+    }
+
+    for (auto& u : m_dUnmanagedX11Windows) {
+        if (u.get() == pWindow)
             return true;
     }
 
@@ -591,8 +612,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     // special workspace
     if (PMONITOR->specialWorkspaceID) {
         for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-            wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
-                           (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
+            const auto BB  = w->get()->getWindowInputBox();
+            wlr_box    box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
             if ((*w)->m_bIsFloating && (*w)->m_iWorkspaceID == PMONITOR->specialWorkspaceID && (*w)->m_bIsMapped && wlr_box_contains_point(&box, pos.x, pos.y) &&
                 !(*w)->isHidden() && !(*w)->m_bX11ShouldntFocus)
                 return (*w).get();
@@ -608,8 +629,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
     // pinned windows on top of floating regardless
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-        wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
-                       (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
+        const auto BB  = w->get()->getWindowInputBox();
+        wlr_box    box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
         if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && !(*w)->isHidden() && !(*w)->m_bX11ShouldntFocus && (*w)->m_bPinned) {
             if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y))
                 return w->get();
@@ -623,8 +644,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
     // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
     for (auto w = m_vWindows.rbegin(); w != m_vWindows.rend(); w++) {
-        wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
-                       (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
+        const auto BB  = w->get()->getWindowInputBox();
+        wlr_box    box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
         if ((*w)->m_bIsFloating && (*w)->m_bIsMapped && isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden() && !(*w)->m_bPinned) {
             // OR windows should add focus to parent
             if ((*w)->m_bX11ShouldntFocus && (*w)->m_iX11Type != 2)
@@ -1656,6 +1677,9 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     } else {
         pWindow->m_cRealShadowColor.setValueAndWarp(CColor(0, 0, 0, 0)); // no shadow
     }
+
+    for (auto& d : pWindow->m_dWindowDecorations)
+        d->updateWindow(pWindow);
 }
 
 int CCompositor::getNextAvailableMonitorID() {
@@ -2012,6 +2036,9 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
     if (!pMonitor->m_bEnabled)
         return;
 
+    if (pMonitor->renderingActive)
+        pMonitor->pendingFrame = true;
+
     wlr_output_schedule_frame(pMonitor->output);
 }
 
@@ -2032,7 +2059,7 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
     }
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || w->isHidden())
+        if (!w->m_bIsMapped || (w->isHidden() && !w->m_sGroupData.pNextWindow))
             continue;
 
         switch (mode) {

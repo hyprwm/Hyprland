@@ -109,10 +109,8 @@ void Events::listener_newConstraint(wl_listener* listener, void* data) {
     if (g_pCompositor->m_pLastFocus == PCONSTRAINT->surface) {
         g_pInputManager->constrainMouse(CONSTRAINT->pMouse, PCONSTRAINT);
 
-        if (!CONSTRAINT->hintSet) {
-            const auto PWINDOW       = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+        if (!CONSTRAINT->hintSet)
             CONSTRAINT->positionHint = Vector2D{-1, -1};
-        }
     }
 }
 

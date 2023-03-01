@@ -7,21 +7,18 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode
-{
+enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode
-{
+enum eMouseBindMode {
     MBIND_INVALID = -1,
     MBIND_MOVE    = 0,
     MBIND_RESIZE
 };
 
-enum eBorderIconDirection
-{
+enum eBorderIconDirection {
     BORDERICON_NONE,
     BORDERICON_UP,
     BORDERICON_DOWN,
@@ -214,12 +211,12 @@ class CInputManager {
     void setCursorIconOnBorder(CWindow* w);
 
     // cursor surface
-    struct cursorSI {
-        wlr_surface* pSurface = nullptr;
-        Vector2D     vHotspot;
-        bool         bUsed = false;
-    } cursorSurfaceInfo;
-    DYNLISTENER(CursorSurfaceDestroy);
+    // struct cursorSI {
+    //     wlr_surface* pSurface = nullptr;
+    //     Vector2D     vHotspot;
+    //     bool         bUsed = false;
+    // } cursorSurfaceInfo;
+    // DYNLISTENER(CursorSurfaceDestroy);
 
     friend class CKeybindManager;
 };

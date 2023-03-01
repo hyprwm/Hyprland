@@ -124,6 +124,7 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:use_active_for_splits"].intValue    = 1;
 
     configValues["master:special_scale_factor"].floatValue = 0.8f;
+    configValues["master:mfact"].floatValue = 0.55f;
     configValues["master:new_is_master"].intValue          = 1;
     configValues["master:always_center_master"].intValue   = 0;
     configValues["master:new_on_top"].intValue             = 0;

@@ -512,15 +512,6 @@ void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
                 if (w->m_pX11Parent == pWindow)
                     std::erase_if(m_vWindows, [&](std::unique_ptr<CWindow>& el) { return el.get() == w.get(); });
             }
-
-            for (auto& w : m_dUnmanagedX11Windows) {
-                if (w->m_pX11Parent == pWindow)
-                    std::erase_if(m_dUnmanagedX11Windows, [&](std::unique_ptr<CWindow>& el) { return el.get() == w.get(); });
-            }
-        }
-
-        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
-            std::erase_if(m_dUnmanagedX11Windows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
         }
 
         std::erase_if(m_vWindows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
@@ -530,11 +521,6 @@ void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
 bool CCompositor::windowExists(CWindow* pWindow) {
     for (auto& w : m_vWindows) {
         if (w.get() == pWindow)
-            return true;
-    }
-
-    for (auto& u : m_dUnmanagedX11Windows) {
-        if (u.get() == pWindow)
             return true;
     }
 
@@ -1230,7 +1216,7 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         if (!valid || !w->m_bFadingOut || w->m_fAlpha.fl() == 0.f) {
             if (valid && !w->m_bReadyToDelete)
                 continue;
-            
+
             std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return other.first == w; });
             w->m_bFadingOut = false;
             removeWindowFromVectorSafe(w);
@@ -1992,16 +1978,6 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     g_pHyprRenderer->setWindowScanoutMode(pWindow);
 
     g_pConfigManager->ensureVRR(PMONITOR);
-}
-
-void CCompositor::moveUnmanagedX11ToWindows(CWindow* pWindow) {
-    for (auto it = m_dUnmanagedX11Windows.begin(); it != m_dUnmanagedX11Windows.end(); it++) {
-        if (it->get() == pWindow) {
-            m_vWindows.emplace_back(std::move(*it));
-            m_dUnmanagedX11Windows.erase(it);
-            return;
-        }
-    }
 }
 
 CWindow* CCompositor::getX11Parent(CWindow* pWindow) {

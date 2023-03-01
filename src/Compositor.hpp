@@ -87,7 +87,6 @@ class CCompositor {
     std::vector<std::shared_ptr<CMonitor>>    m_vMonitors;
     std::vector<std::shared_ptr<CMonitor>>    m_vRealMonitors; // for all monitors, even those turned off
     std::vector<std::unique_ptr<CWindow>>     m_vWindows;
-    std::deque<std::unique_ptr<CWindow>>      m_dUnmanagedX11Windows;
     std::vector<std::unique_ptr<SXDGPopup>>   m_vXDGPopups;
     std::vector<std::unique_ptr<CWorkspace>>  m_vWorkspaces;
     std::vector<std::unique_ptr<SSubsurface>> m_vSubsurfaces;
@@ -166,7 +165,6 @@ class CCompositor {
     CMonitor*      getMonitorFromString(const std::string&);
     bool           workspaceIDOutOfBounds(const int&);
     void           setWindowFullscreen(CWindow*, bool, eFullscreenMode);
-    void           moveUnmanagedX11ToWindows(CWindow*);
     CWindow*       getX11Parent(CWindow*);
     void           scheduleFrameForMonitor(CMonitor*);
     void           addToFadingOutSafe(SLayerSurface*);

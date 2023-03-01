@@ -1,6 +1,7 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "wlr/types/wlr_switch.h"
+#include <ranges>
 
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     static auto* const PSENS      = &g_pConfigManager->getConfigValuePtr("general:sensitivity")->floatValue;
@@ -182,13 +183,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
 
         // only check floating because tiled cant be over fullscreen
-        for (auto w = g_pCompositor->m_vWindows.rbegin(); w != g_pCompositor->m_vWindows.rend(); w++) {
-            wlr_box box = {(*w)->m_vRealPosition.vec().x - BORDER_GRAB_AREA, (*w)->m_vRealPosition.vec().y - BORDER_GRAB_AREA, (*w)->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
-                           (*w)->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
-            if ((((*w)->m_bIsFloating && (*w)->m_bIsMapped && ((*w)->m_bCreatedOverFullscreen || (*w)->m_bPinned)) ||
-                 (g_pCompositor->isWorkspaceSpecial((*w)->m_iWorkspaceID) && PMONITOR->specialWorkspaceID)) &&
-                wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible((*w)->m_iWorkspaceID) && !(*w)->isHidden()) {
-                pFoundWindow = (*w).get();
+        for (auto& w : g_pCompositor->m_vWindows | std::views::reverse) {
+            wlr_box box = {w->m_vRealPosition.vec().x - BORDER_GRAB_AREA, w->m_vRealPosition.vec().y - BORDER_GRAB_AREA, w->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
+                           w->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
+            if (((w->m_bIsFloating && w->m_bIsMapped && (w->m_bCreatedOverFullscreen || w->m_bPinned)) ||
+                 (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID) && PMONITOR->specialWorkspaceID)) &&
+                wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden()) {
+                pFoundWindow = w.get();
                 break;
             }
         }

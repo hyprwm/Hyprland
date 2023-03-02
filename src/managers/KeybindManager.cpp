@@ -2059,6 +2059,8 @@ void CKeybindManager::fakeFullscreenActive(std::string args) {
 void CKeybindManager::lockGroups(std::string args) {
     if (args == "lock" || args.empty() || args == "lockgroups") {
         g_pKeybindManager->m_bGroupsLocked = true;
+    } else if (args == "toggle") {
+        g_pKeybindManager->m_bGroupsLocked = !g_pKeybindManager->m_bGroupsLocked;
     } else {
         g_pKeybindManager->m_bGroupsLocked = false;
     }

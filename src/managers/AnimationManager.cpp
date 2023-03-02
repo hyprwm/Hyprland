@@ -1,9 +1,23 @@
 #include "AnimationManager.hpp"
 #include "../Compositor.hpp"
 
+int wlTick(void* data) {
+
+    float refreshRate = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor->refreshRate : 60.f;
+
+    wl_event_source_timer_update(g_pAnimationManager->m_pAnimationTick, 1000 / refreshRate);
+
+    g_pAnimationManager->tick();
+
+    return 0;
+}
+
 CAnimationManager::CAnimationManager() {
     std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
     m_mBezierCurves["default"].setup(&points);
+
+    m_pAnimationTick = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, &wlTick, nullptr);
+    wl_event_source_timer_update(m_pAnimationTick, 1);
 }
 
 void CAnimationManager::removeAllBeziers() {

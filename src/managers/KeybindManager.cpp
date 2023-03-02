@@ -359,7 +359,7 @@ bool CKeybindManager::onTouchUpEvent(wlr_touch_up_event* e) {
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
     // TODO CKeybindManager::pass(), also see CInputManager::onTouchDown()
-    m_uLastTouchId = e->touch_id;
+    m_uLastTouchId = e->touch_id; // TODO might not be needed
     m_uLastCode    = 0;
     m_uTimeLastMs  = e->time_msec;
 

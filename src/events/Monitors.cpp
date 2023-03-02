@@ -151,7 +151,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (PMONITOR->ID == g_pHyprRenderer->m_pMostHzMonitor->ID ||
         *PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
-        g_pAnimationManager->tick();
 
         g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
 

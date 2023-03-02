@@ -26,6 +26,8 @@ class CAnimationManager {
 
     std::list<CAnimatedVariable*>                 m_lAnimatedVariables;
 
+    wl_event_source*                              m_pAnimationTick;
+
   private:
     bool                                          deltaSmallToFlip(const Vector2D& a, const Vector2D& b);
     bool                                          deltaSmallToFlip(const CColor& a, const CColor& b);

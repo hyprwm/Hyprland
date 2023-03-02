@@ -85,7 +85,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto         WINDOWSONWORKSPACE = getNodesOnWorkspace(PNODE->workspaceID);
     static auto* const PMFACT   = &g_pConfigManager->getConfigValuePtr("master:mfact")->floatValue;
-    float lastSplitPercent = *PMFACT;
+    float              lastSplitPercent = *PMFACT;
 
     auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID ?
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :

@@ -19,6 +19,7 @@ class CHyprMonitorDebugOverlay {
     std::deque<float>                              m_dLastFrametimes;
     std::deque<float>                              m_dLastRenderTimes;
     std::deque<float>                              m_dLastRenderTimesNoOverlay;
+    std::deque<float>                              m_dLastAnimationTicks;
     std::chrono::high_resolution_clock::time_point m_tpLastFrame;
     CMonitor*                                      m_pMonitor = nullptr;
     wlr_box                                        m_wbLastDrawnBox;

@@ -45,24 +45,27 @@ float CBezierCurve::getXForT(float t) {
 
 // Todo: this probably can be done better and faster
 float CBezierCurve::getYForPoint(float x) {
-    // binary search for the range UPDOWN X
-    float upperT = 1;
-    float lowerT = 0;
-    float mid    = 0.5;
+    if (x >= 1.0)
+        return 1.0;
 
-    while (std::abs(upperT - lowerT) > INVBAKEDPOINTS) {
-        if (m_aPointsBaked[((int)(mid * (float)BAKEDPOINTS))].x > x) {
+    // binary search for the range UPDOWN X
+    int upperT = BAKEDPOINTS - 1;
+    int lowerT = 0;
+    int mid    = upperT / 2;
+
+    while (std::abs(upperT - lowerT) > 1) {
+        if (m_aPointsBaked[mid].x > x) {
             upperT = mid;
         } else {
             lowerT = mid;
         }
 
-        mid = (upperT + lowerT) / 2.f;
+        mid = (upperT + lowerT) / 2;
     }
 
     // in the name of performance i shall make a hack
-    const auto LOWERPOINT = &m_aPointsBaked[std::clamp((int)((float)BAKEDPOINTS * lowerT), 0, BAKEDPOINTS - 1)];
-    const auto UPPERPOINT = &m_aPointsBaked[std::clamp((int)((float)BAKEDPOINTS * upperT), 0, BAKEDPOINTS - 1)];
+    const auto LOWERPOINT = &m_aPointsBaked[std::clamp(lowerT, 0, BAKEDPOINTS - 1)];
+    const auto UPPERPOINT = &m_aPointsBaked[std::clamp(upperT, 0, BAKEDPOINTS - 1)];
 
     const auto PERCINDELTA = (x - LOWERPOINT->x) / (UPPERPOINT->x - LOWERPOINT->x);
 

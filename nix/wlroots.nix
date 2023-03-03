@@ -7,7 +7,9 @@
   fetchpatch,
   lib,
   hwdata,
-  hidpiXWayland ? true,
+  libliftoff,
+  libdisplay-info,
+  hidpiXWayland ? false,
   enableXWayland ? true,
   nvidiaPatches ? false,
 }:
@@ -58,7 +60,7 @@ assert (lib.assertMsg (hidpiXWayland -> enableXWayland) ''
           ''
           else ""
         );
-      buildInputs = old.buildInputs ++ [hwdata];
+      buildInputs = old.buildInputs ++ [hwdata libliftoff libdisplay-info];
     }))
   .override {
     xwayland = xwayland.overrideAttrs (old: {

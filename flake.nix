@@ -32,7 +32,24 @@
       "x86_64-linux"
     ];
 
-    pkgsFor = nixpkgs.legacyPackages;
+    pkgsFor = genSystems (system:
+      import nixpkgs {
+        inherit system;
+        overlays = [
+          (_: prev: {
+            libdisplay-info = prev.libdisplay-info.overrideAttrs (old: {
+              version = "0.1.1+date=2023-03-02";
+              src = prev.fetchFromGitLab {
+                domain = "gitlab.freedesktop.org";
+                owner = "emersion";
+                repo = old.pname;
+                rev = "147d6611a64a6ab04611b923e30efacaca6fc678";
+                sha256 = "sha256-/q79o13Zvu7x02SBGu0W5yQznQ+p7ltZ9L6cMW5t/o4=";
+              };
+            });
+          })
+        ];
+      });
 
     props = builtins.fromJSON (builtins.readFile ./props.json);
 

@@ -69,5 +69,5 @@ float CBezierCurve::getYForPoint(float x) {
     if (std::isnan(PERCINDELTA) || std::isinf(PERCINDELTA)) // can sometimes happen for VERY small x
         return 0.f;
 
-    return LOWERPOINT->y + (UPPERPOINT->y - UPPERPOINT->y) * PERCINDELTA;
+    return LOWERPOINT->y + (UPPERPOINT->y - LOWERPOINT->y) * PERCINDELTA;
 }

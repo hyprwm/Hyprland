@@ -311,7 +311,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         for (auto& [handle, pMap] : pluginConfigs) {
             auto it = std::find_if(pMap->begin(), pMap->end(), [&](const auto& other) { return other.first == COMMAND; });
             if (it == pMap->end()) {
-                return; // plugin vars do not err, so we silently ignore.
+                continue; // May be in another plugin
             }
 
             CONFIGENTRY = &it->second;

@@ -35,6 +35,10 @@ void CAnimationManager::addBezierWithName(std::string name, const Vector2D& p1, 
 
 void CAnimationManager::tick() {
 
+    static std::chrono::time_point lastTick = std::chrono::high_resolution_clock::now();
+    m_fLastTickTime                         = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
+    lastTick                                = std::chrono::high_resolution_clock::now();
+
     bool               animGlobalDisabled = false;
 
     static auto* const PANIMENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;

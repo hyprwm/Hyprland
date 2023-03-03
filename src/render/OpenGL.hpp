@@ -103,9 +103,6 @@ class CHyprOpenGLImpl {
     void                                       saveBufferForMirror();
     void                                       renderMirrored();
 
-    void                                       onWindowResizeStart(CWindow*);
-    void                                       onWindowResizeEnd(CWindow*);
-
     void                                       applyScreenShader(const std::string& path);
 
     SCurrentRenderData                         m_RenderData;

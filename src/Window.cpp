@@ -355,9 +355,6 @@ void CWindow::onMap() {
     m_cRealShadowColor.registerVar();
     m_fDimPercent.registerVar();
 
-    m_vRealSize.setCallbackOnEnd([&](void* ptr) { g_pHyprOpenGL->onWindowResizeEnd(this); }, false);
-    m_vRealSize.setCallbackOnBegin([&](void* ptr) { g_pHyprOpenGL->onWindowResizeStart(this); }, false);
-
     m_fBorderAngleAnimationProgress.setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
 
     m_fBorderAngleAnimationProgress.setValueAndWarp(0.f);

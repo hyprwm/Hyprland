@@ -1204,10 +1204,6 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     wlr_output_rollback(PMONITOR->output);
 }
 
-void CHyprOpenGLImpl::onWindowResizeStart(CWindow* pWindow) {}
-
-void CHyprOpenGLImpl::onWindowResizeEnd(CWindow* pWindow) {}
-
 void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     RASSERT(m_RenderData.pMonitor, "Tried to render snapshot rect without begin()!");
     const auto         PWINDOW = *pWindow;

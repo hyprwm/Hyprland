@@ -61,8 +61,8 @@ float CBezierCurve::getYForPoint(float x) {
     }
 
     // in the name of performance i shall make a hack
-    const auto LOWERPOINT = &m_aPointsBaked[std::clamp((int)((float)BAKEDPOINTS * lowerT), 0, 199)];
-    const auto UPPERPOINT = &m_aPointsBaked[std::clamp((int)((float)BAKEDPOINTS * upperT), 0, 199)];
+    const auto LOWERPOINT = &m_aPointsBaked[std::clamp((int)((float)BAKEDPOINTS * lowerT), 0, BAKEDPOINTS - 1)];
+    const auto UPPERPOINT = &m_aPointsBaked[std::clamp((int)((float)BAKEDPOINTS * upperT), 0, BAKEDPOINTS - 1)];
 
     const auto PERCINDELTA = (x - LOWERPOINT->x) / (UPPERPOINT->x - LOWERPOINT->x);
 

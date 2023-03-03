@@ -3,7 +3,7 @@
 #include "../defines.hpp"
 #include <deque>
 
-constexpr int   BAKEDPOINTS    = 200;
+constexpr int   BAKEDPOINTS    = 255;
 constexpr float INVBAKEDPOINTS = 1.f / BAKEDPOINTS;
 
 // an implementation of a cubic bezier curve

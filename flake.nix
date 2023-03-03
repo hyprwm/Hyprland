@@ -47,6 +47,17 @@
                 sha256 = "sha256-/q79o13Zvu7x02SBGu0W5yQznQ+p7ltZ9L6cMW5t/o4=";
               };
             });
+
+            libliftoff = prev.libliftoff.overrideAttrs (old: {
+              version = "0.5.0-dev";
+              src = prev.fetchFromGitLab {
+                domain = "gitlab.freedesktop.org";
+                owner = "emersion";
+                repo = old.pname;
+                rev = "d98ae243280074b0ba44bff92215ae8d785658c0";
+                sha256 = "sha256-DjwlS8rXE7srs7A8+tHqXyUsFGtucYSeq6X0T/pVOc8=";
+              };
+            });
           })
         ];
       });

@@ -156,7 +156,7 @@ clear:
 all:
 	make clear
 	make fixwlr
-	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
+	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032" && cd ../..
 	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
 	make protocols
 	make release
@@ -165,17 +165,17 @@ all:
 install:
 	make clear
 	make fixwlr
-	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 /usr/lib/ && cd ../..
+	cd ./subprojects/wlroots && meson build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032" && cd ../..
 	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -H./ -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc) && cd ../..
 	make protocols
 	make release
 	cd hyprctl && make all && cd ..
 
-	mkdir -p /usr/share/wayland-sessions
+	mkdir -p ${PREFIX}/share/wayland-sessions
 	mkdir -p ${PREFIX}/bin
 	cp ./build/Hyprland ${PREFIX}/bin
 	cp ./hyprctl/hyprctl ${PREFIX}/bin
-	if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop /usr/share/wayland-sessions; fi
+	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
 	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
@@ -191,7 +191,7 @@ uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
 	rm -f ${PREFIX}/bin/Hyprland
 	rm -f ${PREFIX}/bin/hyprctl
-	rm -f /usr/lib/libwlroots.so.12032
+	rm -f ${PREFIX}/lib/libwlroots.so.12032
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/man/man1/Hyprland.1
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1
@@ -208,7 +208,7 @@ config:
 
 	make fixwlr
 
-	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release -Dwerror=false -Dexamples=false
+	cd subprojects/wlroots && meson ./build --prefix=${PREFIX} --buildtype=release -Dwerror=false -Dexamples=false
 	cd subprojects/wlroots && ninja -C build/
 
 	cd subprojects/wlroots && ninja -C build/ install
@@ -222,7 +222,7 @@ pluginenv:
 	
 	make fixwlr
 	
-	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=release -Dwerror=false -Dexamples=false
+	cd subprojects/wlroots && meson ./build --prefix=${PREFIX} --buildtype=release -Dwerror=false -Dexamples=false
 	cd subprojects/wlroots && ninja -C build/
 
 configdebug:
@@ -230,7 +230,7 @@ configdebug:
 
 	make fixwlr
 
-	cd subprojects/wlroots && meson ./build --prefix=/usr --buildtype=debug -Dwerror=false -Dexamples=false -Db_sanitize=address
+	cd subprojects/wlroots && meson ./build --prefix=${PREFIX} --buildtype=debug -Dwerror=false -Dexamples=false -Db_sanitize=address
 	cd subprojects/wlroots && ninja -C build/
 
 	cd subprojects/wlroots && ninja -C build/ install

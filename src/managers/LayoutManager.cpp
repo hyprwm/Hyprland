@@ -12,6 +12,9 @@ IHyprLayout* CLayoutManager::getCurrentLayout() {
 void CLayoutManager::switchToLayout(std::string layout) {
     for (size_t i = 0; i < m_vLayouts.size(); ++i) {
         if (m_vLayouts[i].first == layout) {
+            if (i == m_iCurrentLayoutID)
+                return;
+
             getCurrentLayout()->onDisable();
             m_iCurrentLayoutID = i;
             getCurrentLayout()->onEnable();

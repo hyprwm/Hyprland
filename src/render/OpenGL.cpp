@@ -31,6 +31,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     pixman_region32_init(&m_rOriginalDamageRegion);
 
     RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
+
+    m_Timer.reset();
 }
 
 GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
@@ -303,8 +305,15 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    m_sFinalScreenShader.proj      = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
-    m_sFinalScreenShader.tex       = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
+    m_sFinalScreenShader.proj = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
+    m_sFinalScreenShader.tex  = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
+    m_sFinalScreenShader.time = glGetUniformLocation(m_sFinalScreenShader.program, "time");
+    if (m_sFinalScreenShader.time != -1 && g_pConfigManager->getInt("debug:damage_tracking") != 0) {
+        // The screen shader uses the "time" uniform
+        // Since the screen shader could change every frame, damage tracking *needs* to be disabled
+        g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'time', which requires debug:damage_tracking to be switched off.\n"
+                                        "WARNING: Disabling damage tracking will *massively* increase GPU utilization!");
+    }
     m_sFinalScreenShader.texAttrib = glGetAttribLocation(m_sFinalScreenShader.program, "texcoord");
     m_sFinalScreenShader.posAttrib = glGetAttribLocation(m_sFinalScreenShader.program, "pos");
 }
@@ -511,6 +520,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
 #endif
     glUniform1i(shader->tex, 0);
+
+    if (usingFinalShader && g_pConfigManager->getInt("debug:damage_tracking") == 0) {
+        glUniform1f(shader->time, m_Timer.getSeconds());
+    } else if (usingFinalShader) {
+        // Don't let time be unitialised
+        glUniform1f(shader->time, 0.f);
+    }
+
     if (!usingFinalShader) {
         glUniform1f(shader->alpha, alpha);
         glUniform1i(shader->discardOpaque, (int)discardOpaque);

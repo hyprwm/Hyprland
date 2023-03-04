@@ -37,6 +37,8 @@ class CShader {
     GLint  gradientLength;
     GLint  angle;
 
+    GLint  time;
+
     GLint  getUniformLocation(const std::string&);
 
     void   destroy();

@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Color.hpp"
+#include "../helpers/Timer.hpp"
 #include <list>
 #include <unordered_map>
 
@@ -133,6 +134,7 @@ class CHyprOpenGLImpl {
     bool              m_bApplyFinalShader = false;
 
     CShader           m_sFinalScreenShader;
+    CTimer            m_Timer;
 
     GLuint            createProgram(const std::string&, const std::string&, bool dynamic = false);
     GLuint            compileShader(const GLuint&, std::string, bool dynamic = false);

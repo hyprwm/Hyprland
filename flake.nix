@@ -101,6 +101,10 @@
       };
     };
 
+    checks = genSystems (system:
+      (lib.filterAttrs (n: _: (lib.hasPrefix "hyprland" n) && !(lib.hasSuffix "debug" n)) self.packages.${system})
+      // {inherit (self.packages.${system}) xdg-desktop-portal-hyprland;});
+
     packages = genSystems (system:
       (self.overlays.default null pkgsFor.${system})
       // {

@@ -1116,9 +1116,7 @@ void CHyprRenderer::damageRegion(pixman_region32_t* rg) {
 
 void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, pixman_region32_t* pRegion) {
     for (auto& mirror : pMonitor->mirrors) {
-        Vector2D scale = {mirror->vecSize.x / pMonitor->vecSize.x, mirror->vecSize.y / pMonitor->vecSize.y};
-
-        Debug::log(LOG, "mirrors: dmw %s for %s [%.2f, %.2f]", pMonitor->output->name, mirror->output->name, scale.x, scale.y);
+        Vector2D          scale = {mirror->vecSize.x / pMonitor->vecSize.x, mirror->vecSize.y / pMonitor->vecSize.y};
 
         pixman_region32_t rg;
         pixman_region32_init(&rg);
@@ -1129,8 +1127,6 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, pixman_region32_t* pRe
 
         g_pCompositor->scheduleFrameForMonitor(mirror);
     }
-
-    Debug::log(LOG, "mirrors: dmw %s", pMonitor->output->name);
 }
 
 void CHyprRenderer::renderDragIcon(CMonitor* pMonitor, timespec* time) {

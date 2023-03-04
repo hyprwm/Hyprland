@@ -195,6 +195,13 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.applyTint            = glGetUniformLocation(prog, "applyTint");
     m_RenderData.pCurrentMonData->m_shRGBA.tint                 = glGetUniformLocation(prog, "tint");
 
+    prog                                                     = createProgram(TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU);
+    m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.program   = prog;
+    m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.proj      = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.tex       = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.posAttrib = glGetAttribLocation(prog, "pos");
+
     prog                                                        = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
     m_RenderData.pCurrentMonData->m_shRGBX.program              = prog;
     m_RenderData.pCurrentMonData->m_shRGBX.tex                  = glGetUniformLocation(prog, "tex");
@@ -489,11 +496,16 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         shader           = &m_sFinalScreenShader;
         usingFinalShader = true;
     } else {
-        switch (tex.m_iType) {
-            case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shRGBA; break;
-            case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shRGBX; break;
-            case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shEXT; break;
-            default: RASSERT(false, "tex.m_iTarget unsupported!");
+        if (m_bApplyFinalShader) {
+            shader           = &m_RenderData.pCurrentMonData->m_shPASSTHRURGBA;
+            usingFinalShader = true;
+        } else {
+            switch (tex.m_iType) {
+                case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shRGBA; break;
+                case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shRGBX; break;
+                case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shEXT; break;
+                default: RASSERT(false, "tex.m_iTarget unsupported!");
+            }
         }
     }
 

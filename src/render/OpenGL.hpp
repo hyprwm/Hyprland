@@ -41,6 +41,7 @@ struct SMonitorRenderData {
     bool    m_bShadersInitialized = false;
     CShader m_shQUAD;
     CShader m_shRGBA;
+    CShader m_shPASSTHRURGBA;
     CShader m_shRGBX;
     CShader m_shEXT;
     CShader m_shBLUR1;

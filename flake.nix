@@ -79,6 +79,7 @@
         stdenv = prev.gcc12Stdenv;
         version = props.version + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
+        commit = self.rev or "";
         inherit (inputs.hyprland-protocols.packages.${prev.stdenv.hostPlatform.system}) hyprland-protocols;
         inherit udis86;
       };

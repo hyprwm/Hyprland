@@ -32,6 +32,7 @@
   nvidiaPatches ? false,
   withSystemd ? true,
   version ? "git",
+  commit,
 }: let
   assertXWayland = lib.assertMsg (hidpiXWayland -> enableXWayland) ''
     Hyprland: cannot have hidpiXWayland when enableXWayland is false.
@@ -102,6 +103,9 @@ in
       postPatch = ''
         # Fix hardcoded paths to /usr installation
         sed -i "s#/usr#$out#" src/render/OpenGL.cpp
+        substituteInPlace meson.build \
+          --replace "@GIT_COMMIT_HASH@" '${commit}' \
+          --replace "@GIT_DIRTY@" '${if commit == "" then "dirty" else ""}'
       '';
 
       passthru.providedSessions = ["hyprland"];

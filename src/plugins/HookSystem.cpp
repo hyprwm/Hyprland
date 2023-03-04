@@ -57,7 +57,7 @@ size_t CFunctionHook::probeMinimumJumpSize(void* start, size_t min) {
 
     while (size <= min) {
         // find info about this instruction
-        size_t insLen = getInstructionLenAt(start + size);
+        size_t insLen = getInstructionLenAt((uint8_t*)start + size);
         size += insLen;
     }
 
@@ -102,37 +102,37 @@ bool CFunctionHook::hook() {
 
     // populate trampoline
     memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                                              // first, original func bytes
-    memcpy(m_pTrampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
-    memcpy(m_pTrampolineAddr + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
+    memcpy((uint8_t*)m_pTrampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
+    memcpy((uint8_t*)m_pTrampolineAddr + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
 
     // fix trampoline %rip calls
     for (size_t i = 0; i < m_vTrampolineRIPUses.size(); ++i) {
         size_t callOffset      = i * (sizeof(CALL_WITH_RAX) - 6 /* callq [rip + x] */) + m_vTrampolineRIPUses[i].first;
-        size_t realCallAddress = (uint64_t)m_pSource + callOffset + 6 + *((uint32_t*)(m_pSource + callOffset + 2));
+        size_t realCallAddress = (uint64_t)m_pSource + callOffset + 6 + *((uint32_t*)((uint8_t*)m_pSource + callOffset + 2));
 
-        memmove(m_pTrampolineAddr + callOffset + sizeof(CALL_WITH_RAX), m_pTrampolineAddr + callOffset + 6, TRAMPOLINE_SIZE - callOffset - 6);
-        memcpy(m_pTrampolineAddr + callOffset, CALL_WITH_RAX, sizeof(CALL_WITH_RAX));
+        memmove((uint8_t*)m_pTrampolineAddr + callOffset + sizeof(CALL_WITH_RAX), (uint8_t*)m_pTrampolineAddr + callOffset + 6, TRAMPOLINE_SIZE - callOffset - 6);
+        memcpy((uint8_t*)m_pTrampolineAddr + callOffset, CALL_WITH_RAX, sizeof(CALL_WITH_RAX));
 
-        *(uint64_t*)(m_pTrampolineAddr + callOffset + CALL_WITH_RAX_ADDRESS_OFFSET) = (uint64_t)realCallAddress;
+        *(uint64_t*)((uint8_t*)m_pTrampolineAddr + callOffset + CALL_WITH_RAX_ADDRESS_OFFSET) = (uint64_t)realCallAddress;
     }
 
     // fixup trampoline addr
-    *(uint64_t*)(m_pTrampolineAddr + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)(m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS));
+    *(uint64_t*)((uint8_t*)m_pTrampolineAddr + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make jump to hk
-    mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
+    mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
     memcpy(m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make popq %rax and NOP all remaining
-    memcpy(m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
+    memcpy((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
     size_t currentOp = sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(POP_RAX);
-    memset(m_pSource + currentOp, NOP, HOOKSIZE - currentOp);
+    memset((uint8_t*)m_pSource + currentOp, NOP, HOOKSIZE - currentOp);
 
     // fixup jump addr
-    *(uint64_t*)(m_pSource + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)(m_pDestination);
+    *(uint64_t*)((uint8_t*)m_pSource + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)(m_pDestination);
 
     // revert mprot
-    mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
+    mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
 
     // set original addr to trampo addr
     m_pOriginal = m_pTrampolineAddr;
@@ -154,13 +154,13 @@ bool CFunctionHook::unhook() {
         return false;
 
     // allow write to src
-    mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
+    mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
 
     // write back original bytes
     memcpy(m_pSource, m_pOriginalBytes, m_iHookLen);
 
     // revert mprot
-    mprotect(m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
+    mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
 
     // unmap
     munmap(m_pTrampolineAddr, m_iTrampoLen);

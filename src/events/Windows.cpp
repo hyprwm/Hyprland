@@ -970,7 +970,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 }
 
 void Events::listener_setOverrideRedirect(void* owner, void* data) {
-    const auto PWINDOW = (CWindow*)owner;
+    // const auto PWINDOW = (CWindow*)owner;
 
     //if (!PWINDOW->m_bIsMapped && PWINDOW->m_uSurface.xwayland->mapped) {
     //    Events::listener_mapWindow(PWINDOW, nullptr);

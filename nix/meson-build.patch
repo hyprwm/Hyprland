@@ -2,6 +2,18 @@ diff --git a/meson.build b/meson.build
 index f380255..abd7cd3 100644
 --- a/meson.build
 +++ b/meson.build
+@@ -21,9 +21,9 @@ else
+ endif
+ 
+ GIT_BRANCH = run_command('git', 'rev-parse', '--abbrev-ref', 'HEAD', check: false).stdout().strip()
+-GIT_COMMIT_HASH = run_command('git', 'rev-parse', 'HEAD', check: false).stdout().strip()
++GIT_COMMIT_HASH = '@GIT_COMMIT_HASH@'
+ GIT_COMMIT_MESSAGE = run_command('sh', '-c', 'git show | head -n 5 | tail -n 1', check: false).stdout().strip()
+-GIT_DIRTY = run_command('sh', '-c', 'git diff-index --quiet HEAD -- || echo "dirty"', check: false).stdout().strip()
++GIT_DIRTY = '@GIT_DIRTY@'
+ 
+ add_project_arguments(
+   [
 @@ -39,23 +39,8 @@ add_project_arguments(
    ],
    language: 'cpp')

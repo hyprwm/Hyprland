@@ -84,8 +84,8 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
     static auto* const PNEWISMASTER = &g_pConfigManager->getConfigValuePtr("master:new_is_master")->intValue;
 
     const auto         WINDOWSONWORKSPACE = getNodesOnWorkspace(PNODE->workspaceID);
-    static auto* const PMFACT   = &g_pConfigManager->getConfigValuePtr("master:mfact")->floatValue;
-    float              lastSplitPercent = *PMFACT;
+    static auto* const PMFACT             = &g_pConfigManager->getConfigValuePtr("master:mfact")->floatValue;
+    float              lastSplitPercent   = *PMFACT;
 
     auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID ?
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :
@@ -257,7 +257,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if (getNodesOnWorkspace(PWORKSPACE->m_iID) < 2 && !centerMasterWindow) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
-                                     PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+                                         PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT) {

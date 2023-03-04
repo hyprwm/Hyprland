@@ -659,7 +659,7 @@ void countSubsurfacesIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
-    if (!pMonitor->mirrors.empty())
+    if (!pMonitor->mirrors.empty() || pMonitor->isMirror())
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
@@ -1116,7 +1116,9 @@ void CHyprRenderer::damageRegion(pixman_region32_t* rg) {
 
 void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, pixman_region32_t* pRegion) {
     for (auto& mirror : pMonitor->mirrors) {
-        Vector2D          scale = {mirror->vecSize.x / pMonitor->vecSize.x, mirror->vecSize.y / pMonitor->vecSize.y};
+        Vector2D scale = {mirror->vecSize.x / pMonitor->vecSize.x, mirror->vecSize.y / pMonitor->vecSize.y};
+
+        Debug::log(LOG, "mirrors: dmw %s for %s [%.2f, %.2f]", pMonitor->output->name, mirror->output->name, scale.x, scale.y);
 
         pixman_region32_t rg;
         pixman_region32_init(&rg);
@@ -1124,7 +1126,11 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, pixman_region32_t* pRe
         wlr_region_scale_xy(&rg, &rg, scale.x, scale.y);
         pMonitor->addDamage(&rg);
         pixman_region32_fini(&rg);
+
+        g_pCompositor->scheduleFrameForMonitor(mirror);
     }
+
+    Debug::log(LOG, "mirrors: dmw %s", pMonitor->output->name);
 }
 
 void CHyprRenderer::renderDragIcon(CMonitor* pMonitor, timespec* time) {
@@ -1463,7 +1469,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 
     // updato wlroots
-    wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
+    if (!pMonitor->isMirror())
+        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
 
     // updato us
     arrangeLayersForMonitor(pMonitor->ID);

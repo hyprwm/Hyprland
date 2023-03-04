@@ -407,7 +407,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
 
-        vecPosition = Vector2D(-1337420, -1337420);
+        vecPosition = PMIRRORMON->vecPosition;
 
         pMirrorOf = PMIRRORMON;
 

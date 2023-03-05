@@ -209,7 +209,7 @@ std::string removeBeginEndSpacesTabs(std::string str) {
     }
 
     int countAfter = 0;
-    while (str.length() != 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
+    while ((int)str.length() - countAfter - 1 >= 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
         countAfter++;
     }
 

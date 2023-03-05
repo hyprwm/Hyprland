@@ -1051,6 +1051,15 @@ void CConfigManager::handleEnv(const std::string& command, const std::string& va
     }
 
     setenv(ARGS[0].c_str(), ARGS[1].c_str(), 1);
+
+    if (command.back() == 'd') {
+        // dbus
+        const auto CMD = "systemctl --user import-environment " + ARGS[0] +
+            " && hash dbus-update-activation-environment 2>/dev/null && "
+            "dbus-update-activation-environment --systemd " +
+            ARGS[0];
+        handleRawExec("", CMD.c_str());
+    }
 }
 
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
@@ -1097,7 +1106,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
-    else if (COMMAND == "env")
+    else if (COMMAND.find("env") == 0)
         handleEnv(COMMAND, VALUE);
     else {
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);

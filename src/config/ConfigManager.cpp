@@ -1608,6 +1608,12 @@ void CConfigManager::dispatchExecOnce() {
     if (firstExecDispatched || isFirstLaunch)
         return;
 
+    // update dbus env
+    handleRawExec(
+        "",
+        "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && hash dbus-update-activation-environment 2>/dev/null && "
+        "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE");
+
     firstExecDispatched = true;
 
     for (auto& c : firstExecRequests) {

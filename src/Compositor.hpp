@@ -28,6 +28,12 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
+enum eManagersInitStage
+{
+    STAGE_PRIORITY = 0,
+    STAGE_LATE
+};
+
 class CCompositor {
   public:
     CCompositor();
@@ -93,6 +99,7 @@ class CCompositor {
     std::vector<CWindow*>                     m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
 
+    void                                      initServer();
     void                                      startCompositor();
     void                                      cleanup();
 
@@ -188,6 +195,7 @@ class CCompositor {
   private:
     void     initAllSignals();
     void     setRandomSplash();
+    void     initManagers(eManagersInitStage stage);
 
     uint64_t m_iHyprlandPID = 0;
 };

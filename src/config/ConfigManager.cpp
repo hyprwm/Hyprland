@@ -10,6 +10,8 @@
 #include <fstream>
 #include <iostream>
 
+extern "C" char** environ;
+
 CConfigManager::CConfigManager() {
     configValues["general:col.active_border"].data       = std::make_shared<CGradientValueData>(0xffffffff);
     configValues["general:col.inactive_border"].data     = std::make_shared<CGradientValueData>(0xff444444);

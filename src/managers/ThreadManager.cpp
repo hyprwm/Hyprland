@@ -18,8 +18,6 @@ int handleTimer(void* data) {
 }
 
 CThreadManager::CThreadManager() {
-    g_pConfigManager->init();
-
     HyprCtl::startHyprCtlSocket();
 
     m_esConfigTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, handleTimer, this);

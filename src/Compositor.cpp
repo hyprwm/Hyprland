@@ -35,8 +35,6 @@ void handleUnrecoverableSignal(int sig) {
 }
 
 CCompositor::CCompositor() {
-    wlr_log_init(WLR_INFO, NULL);
-
     m_iHyprlandPID = getpid();
 
     m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
@@ -72,7 +70,21 @@ CCompositor::CCompositor() {
     setRandomSplash();
 
     Debug::log(LOG, "\nCurrent splash: %s\n\n", m_szCurrentSplash.c_str());
+}
 
+CCompositor::~CCompositor() {
+    cleanup();
+}
+
+void CCompositor::setRandomSplash() {
+    std::random_device              dev;
+    std::mt19937                    engine(dev());
+    std::uniform_int_distribution<> distribution(0, SPLASHES.size() - 1);
+
+    m_szCurrentSplash = SPLASHES[distribution(engine)];
+}
+
+void CCompositor::initServer() {
     m_sWLDisplay = wl_display_create();
 
     m_sWLEventLoop = wl_display_get_event_loop(m_sWLDisplay);
@@ -82,6 +94,14 @@ CCompositor::CCompositor() {
     signal(SIGSEGV, handleUnrecoverableSignal);
     signal(SIGABRT, handleUnrecoverableSignal);
     //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
+
+    initManagers(STAGE_PRIORITY);
+
+    wlr_log_init(WLR_INFO, NULL);
+
+    const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");
+    if (LOGWLR && std::string(LOGWLR) == "1")
+        wlr_log_init(WLR_DEBUG, Debug::wlrLog);
 
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);
 
@@ -226,18 +246,8 @@ CCompositor::CCompositor() {
     wlr_single_pixel_buffer_manager_v1_create(m_sWLDisplay);
 
     wlr_multi_backend_add(m_sWLRBackend, m_sWLRHeadlessBackend);
-}
 
-CCompositor::~CCompositor() {
-    cleanup();
-}
-
-void CCompositor::setRandomSplash() {
-    std::random_device              dev;
-    std::mt19937                    engine(dev());
-    std::uniform_int_distribution<> distribution(0, SPLASHES.size() - 1);
-
-    m_szCurrentSplash = SPLASHES[distribution(engine)];
+    initManagers(STAGE_LATE);
 }
 
 void CCompositor::initAllSignals() {
@@ -337,70 +347,69 @@ void CCompositor::cleanup() {
                                                                                       // the PID should not be reused.
 }
 
+void CCompositor::initManagers(eManagersInitStage stage) {
+    switch (stage) {
+        case STAGE_PRIORITY: {
+            Debug::log(LOG, "Creating the HookSystem!");
+            g_pHookSystem = std::make_unique<CHookSystemManager>();
+
+            Debug::log(LOG, "Creating the KeybindManager!");
+            g_pKeybindManager = std::make_unique<CKeybindManager>();
+
+            Debug::log(LOG, "Creating the AnimationManager!");
+            g_pAnimationManager = std::make_unique<CAnimationManager>();
+
+            Debug::log(LOG, "Creating the ConfigManager!");
+            g_pConfigManager = std::make_unique<CConfigManager>();
+
+            Debug::log(LOG, "Creating the CHyprError!");
+            g_pHyprError = std::make_unique<CHyprError>();
+
+            Debug::log(LOG, "Creating the LayoutManager!");
+            g_pLayoutManager = std::make_unique<CLayoutManager>();
+
+            g_pConfigManager->init();
+        } break;
+        case STAGE_LATE: {
+            Debug::log(LOG, "Creating the ThreadManager!");
+            g_pThreadManager = std::make_unique<CThreadManager>();
+
+            Debug::log(LOG, "Creating the InputManager!");
+            g_pInputManager = std::make_unique<CInputManager>();
+
+            Debug::log(LOG, "Creating the CHyprOpenGLImpl!");
+            g_pHyprOpenGL = std::make_unique<CHyprOpenGLImpl>();
+
+            Debug::log(LOG, "Creating the HyprRenderer!");
+            g_pHyprRenderer = std::make_unique<CHyprRenderer>();
+
+            Debug::log(LOG, "Creating the XWaylandManager!");
+            g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
+
+            Debug::log(LOG, "Creating the ProtocolManager!");
+            g_pProtocolManager = std::make_unique<CProtocolManager>();
+
+            Debug::log(LOG, "Creating the SessionLockManager!");
+            g_pSessionLockManager = std::make_unique<CSessionLockManager>();
+
+            Debug::log(LOG, "Creating the EventManager!");
+            g_pEventManager = std::make_unique<CEventManager>();
+            g_pEventManager->startThread();
+
+            Debug::log(LOG, "Creating the HyprDebugOverlay!");
+            g_pDebugOverlay = std::make_unique<CHyprDebugOverlay>();
+
+            Debug::log(LOG, "Creating the HyprNotificationOverlay!");
+            g_pHyprNotificationOverlay = std::make_unique<CHyprNotificationOverlay>();
+
+            Debug::log(LOG, "Creating the PluginSystem!");
+            g_pPluginSystem = std::make_unique<CPluginSystem>();
+        } break;
+        default: UNREACHABLE();
+    }
+}
+
 void CCompositor::startCompositor() {
-    // Init all the managers BEFORE we start with the wayland server so that ALL of the stuff is initialized
-    // properly and we dont get any bad mem reads.
-    //
-
-    Debug::log(LOG, "Creating the HookSystem!");
-    g_pHookSystem = std::make_unique<CHookSystemManager>();
-
-    Debug::log(LOG, "Creating the KeybindManager!");
-    g_pKeybindManager = std::make_unique<CKeybindManager>();
-
-    Debug::log(LOG, "Creating the AnimationManager!");
-    g_pAnimationManager = std::make_unique<CAnimationManager>();
-
-    Debug::log(LOG, "Creating the LayoutManager!");
-    g_pLayoutManager = std::make_unique<CLayoutManager>();
-
-    Debug::log(LOG, "Creating the ConfigManager!");
-    g_pConfigManager = std::make_unique<CConfigManager>();
-
-    Debug::log(LOG, "Creating the CHyprError!");
-    g_pHyprError = std::make_unique<CHyprError>();
-
-    Debug::log(LOG, "Creating the ThreadManager!");
-    g_pThreadManager = std::make_unique<CThreadManager>();
-
-    Debug::log(LOG, "Creating the InputManager!");
-    g_pInputManager = std::make_unique<CInputManager>();
-
-    Debug::log(LOG, "Creating the CHyprOpenGLImpl!");
-    g_pHyprOpenGL = std::make_unique<CHyprOpenGLImpl>();
-
-    Debug::log(LOG, "Creating the HyprRenderer!");
-    g_pHyprRenderer = std::make_unique<CHyprRenderer>();
-
-    Debug::log(LOG, "Creating the XWaylandManager!");
-    g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
-
-    Debug::log(LOG, "Creating the ProtocolManager!");
-    g_pProtocolManager = std::make_unique<CProtocolManager>();
-
-    Debug::log(LOG, "Creating the SessionLockManager!");
-    g_pSessionLockManager = std::make_unique<CSessionLockManager>();
-
-    Debug::log(LOG, "Creating the EventManager!");
-    g_pEventManager = std::make_unique<CEventManager>();
-    g_pEventManager->startThread();
-
-    Debug::log(LOG, "Creating the HyprDebugOverlay!");
-    g_pDebugOverlay = std::make_unique<CHyprDebugOverlay>();
-
-    Debug::log(LOG, "Creating the HyprNotificationOverlay!");
-    g_pHyprNotificationOverlay = std::make_unique<CHyprNotificationOverlay>();
-
-    Debug::log(LOG, "Creating the PluginSystem!");
-    g_pPluginSystem = std::make_unique<CPluginSystem>();
-    //
-    //
-
-    // firefox wont detect wl
-    setenv("MOZ_ENABLE_WAYLAND", "1", 1);
-
-    setenv("XDG_CURRENT_DESKTOP", "Hyprland", 1);
-
     initAllSignals();
 
     // get socket, avoid using 0

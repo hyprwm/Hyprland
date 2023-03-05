@@ -20,6 +20,8 @@ int main(int argc, char** argv) {
     setenv("HYPRLAND_CMD", cmd.c_str(), 1);
     setenv("XDG_BACKEND", "wayland", 1);
     setenv("_JAVA_AWT_WM_NONREPARENTING", "1", 1);
+    setenv("MOZ_ENABLE_WAYLAND", "1", 1);
+    setenv("XDG_CURRENT_DESKTOP", "Hyprland", 1);
 
     // parse some args
     std::string configPath;
@@ -50,14 +52,12 @@ int main(int argc, char** argv) {
 
     std::cout << "Welcome to Hyprland!\n";
 
-    const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");
-    if (LOGWLR && std::string(LOGWLR) == "1")
-        wlr_log_init(WLR_DEBUG, Debug::wlrLog);
-
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
     g_pCompositor                     = std::make_unique<CCompositor>();
     g_pCompositor->explicitConfigPath = configPath;
+
+    g_pCompositor->initServer();
 
     Debug::log(LOG, "Hyprland init finished.");
 

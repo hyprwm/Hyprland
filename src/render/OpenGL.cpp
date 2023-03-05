@@ -32,7 +32,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
     RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
-    m_Timer.reset();
+    m_tGlobalTimer.reset();
 }
 
 GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
@@ -522,7 +522,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glUniform1i(shader->tex, 0);
 
     if (usingFinalShader && g_pConfigManager->getInt("debug:damage_tracking") == 0) {
-        glUniform1f(shader->time, m_Timer.getSeconds());
+        glUniform1f(shader->time, m_tGlobalTimer.getSeconds());
     } else if (usingFinalShader) {
         // Don't let time be unitialised
         glUniform1f(shader->time, 0.f);

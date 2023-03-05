@@ -1039,6 +1039,20 @@ void CConfigManager::handleBindWS(const std::string& command, const std::string&
     boundWorkspaces.push_back({ARGS[0], ARGS[1]});
 }
 
+void CConfigManager::handleEnv(const std::string& command, const std::string& value) {
+    if (!isFirstLaunch)
+        return;
+
+    const auto ARGS = CVarList(value, 2);
+
+    if (ARGS[0].empty()) {
+        parseError = "env empty";
+        return;
+    }
+
+    setenv(ARGS[0].c_str(), ARGS[1].c_str(), 1);
+}
+
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
     if (dynamic) {
         parseError      = "";
@@ -1083,6 +1097,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
+    else if (COMMAND == "env")
+        handleEnv(COMMAND, VALUE);
     else {
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
         needsLayoutRecalc = 2;

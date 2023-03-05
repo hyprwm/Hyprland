@@ -215,10 +215,13 @@ class CConfigManager {
     bool                                                                                       firstExecDispatched = false;
     std::deque<std::string>                                                                    firstExecRequests;
 
+    std::unordered_map<std::string, std::string>                                               environmentVariables;
+
     // internal methods
     void         setDefaultVars();
     void         setDefaultAnimationVars();
     void         setDeviceDefaultVars(const std::string&);
+    void         populateEnvironment();
 
     void         setAnimForChildren(SAnimationPropertyConfig* const);
     void         updateBlurredLS(const std::string&, const bool);

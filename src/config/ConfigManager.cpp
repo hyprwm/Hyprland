@@ -31,6 +31,18 @@ CConfigManager::CConfigManager() {
 
     Debug::disableLogs = &configValues["debug:disable_logs"].intValue;
     Debug::disableTime = &configValues["debug:disable_time"].intValue;
+
+    populateEnvironment();
+}
+
+void CConfigManager::populateEnvironment() {
+    environmentVariables.clear();
+    for (char** env = environ; *env; ++env) {
+        const std::string ENVVAR       = *env;
+        const auto        VARIABLE     = ENVVAR.substr(0, ENVVAR.find_first_of('='));
+        const auto        VALUE        = ENVVAR.substr(ENVVAR.find_first_of('=') + 1);
+        environmentVariables[VARIABLE] = VALUE;
+    }
 }
 
 void CConfigManager::setDefaultVars() {
@@ -1140,10 +1152,22 @@ void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equals
     while (dollarPlace != std::string::npos) {
 
         const auto STRAFTERDOLLAR = line.substr(dollarPlace + 1);
+        bool       found          = false;
         for (auto& [var, value] : configDynamicVars) {
             if (STRAFTERDOLLAR.find(var) == 0) {
                 line.replace(dollarPlace, var.length() + 1, value);
+                found = true;
                 break;
+            }
+        }
+
+        if (!found) {
+            // maybe env?
+            for (auto& [var, value] : environmentVariables) {
+                if (STRAFTERDOLLAR.find(var) == 0) {
+                    line.replace(dollarPlace, var.length() + 1, value);
+                    break;
+                }
             }
         }
 

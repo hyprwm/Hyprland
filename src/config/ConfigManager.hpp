@@ -244,6 +244,7 @@ class CConfigManager {
     void         handleSubmap(const std::string&, const std::string&);
     void         handleBlurLS(const std::string&, const std::string&);
     void         handleBindWS(const std::string&, const std::string&);
+    void         handleEnv(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

@@ -15,7 +15,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     // TODO should I use ensureMouseBindState()
     if (g_pKeybindManager->m_bIsMouseBindActive) {
-        // deny all touch events as long as mouse bind is active
+        // deny all touch events when mouse bind is active
         return;
     }
 
@@ -75,6 +75,11 @@ void CInputManager::onTouchUp(wlr_touch_up_event* e) {
 }
 
 void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
+    // TODO might not be needed
+    updateDragIcon();
+
+    g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
+
     if (m_sTouchData.touchFocusWindow && g_pCompositor->windowValidMapped(m_sTouchData.touchFocusWindow)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusWindow->m_iMonitorID);
 

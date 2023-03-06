@@ -1130,6 +1130,7 @@ void CInputManager::updateDragIcon() {
             m_sDrag.pos = getMouseCoordsInternal();
             break;
         }
+        // TODO case for WLR_DRAG_GRAB_KEYBOARD_TOUCh ?
         default: break;
     }
 }

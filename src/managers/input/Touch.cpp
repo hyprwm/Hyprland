@@ -11,6 +11,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor;
 
+    // TODO might need to use result of this:
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
 
     // TODO should I use ensureMouseBindState()
@@ -75,7 +76,7 @@ void CInputManager::onTouchUp(wlr_touch_up_event* e) {
 }
 
 void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
-    // TODO might not be needed
+    // TODO might need to consider "misc:always_follow_on_dnd"
     updateDragIcon();
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());

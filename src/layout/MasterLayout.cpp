@@ -122,7 +122,8 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
             return;
         }
     } else {
-        PNODE->isMaster = false;
+        PNODE->isMaster   = false;
+        PNODE->percMaster = lastSplitPercent;
 
         // first, check if it isn't too big.
         if (const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow);

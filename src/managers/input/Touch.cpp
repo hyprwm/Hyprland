@@ -14,7 +14,6 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
     // TODO might need to use result of this:
     wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
 
-    // TODO should I use ensureMouseBindState()
     // TODO probably better to let new touch "inherit" dragging window
     if (g_pKeybindManager->m_bIsMouseBindActive) {
         // deny all touch events when mouse bind is active

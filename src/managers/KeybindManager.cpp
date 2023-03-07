@@ -344,8 +344,11 @@ bool CKeybindManager::onTouchDownEvent(wlr_touch_down_event* e) {
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
     m_uLastTouchId = e->touch_id;
-    m_uLastCode    = 0;
-    m_uTimeLastMs  = e->time_msec;
+    // TODO these are for `pass`, also reset m_uLastTouchId in click & key events,
+    // and handle touch in pass
+    m_uLastMouseCode = 0;
+    m_uLastCode      = 0;
+    m_uTimeLastMs    = e->time_msec;
 
     bool mouseBindWasActive = ensureMouseBindState();
     bool found              = handleKeybinds(MODS, "touch", 0, 0, true, 0);
@@ -355,11 +358,12 @@ bool CKeybindManager::onTouchDownEvent(wlr_touch_down_event* e) {
     return !found && !mouseBindWasActive;
 }
 
+// TODO maybe merge with onTouchDownEvent
 bool CKeybindManager::onTouchUpEvent(wlr_touch_up_event* e) {
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
-    // TODO CKeybindManager::pass(), also see CInputManager::onTouchDown()
-    m_uLastTouchId = e->touch_id; // TODO might not be needed
+    // TODO maybe deny event if current event doesn't match m_uLastTouchId
+    m_uLastTouchId = e->touch_id;
     m_uLastCode    = 0;
     m_uTimeLastMs  = e->time_msec;
 

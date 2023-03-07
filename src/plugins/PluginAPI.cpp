@@ -39,8 +39,10 @@ APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, HOOK_CALLBACK_FN* fn
 }
 
 APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, const std::string& args, const std::string& format) {
-    std::string COMMAND = format + "/" + call + " " + args;
-    return HyprCtl::makeDynamicCall(COMMAND);
+    if (args.empty())
+        return HyprCtl::makeDynamicCall(format + "/" + call);
+    else
+        return HyprCtl::makeDynamicCall(format + "/" + call + " " + args);
 }
 
 APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout) {

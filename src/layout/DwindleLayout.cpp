@@ -219,7 +219,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    static auto* const PUSEACTIVE = &g_pConfigManager->getConfigValuePtr("dwindle:use_active_for_splits")->intValue;
+    static auto* const PUSEACTIVE    = &g_pConfigManager->getConfigValuePtr("dwindle:use_active_for_splits")->intValue;
+    static auto* const PDEFAULTSPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:default_split_ratio")->floatValue;
 
     // Populate the node with our window's data
     PNODE->workspaceID = pWindow->m_iWorkspaceID;
@@ -317,6 +318,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     NEWPARENT->workspaceID = OPENINGON->workspaceID;
     NEWPARENT->pParent     = OPENINGON->pParent;
     NEWPARENT->isNode      = true; // it is a node
+    NEWPARENT->splitRatio  = std::clamp(*PDEFAULTSPLIT, 0.1f, 1.9f);
 
     const auto PWIDTHMULTIPLIER = &g_pConfigManager->getConfigValuePtr("dwindle:split_width_multiplier")->floatValue;
 

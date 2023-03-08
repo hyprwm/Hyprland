@@ -939,7 +939,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         wlr_seat_keyboard_clear_focus(m_sSeat.seat);
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // unfocused
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
-        EMIT_HOOK_EVENT("keyboardFocus", nullptr);
+        EMIT_HOOK_EVENT("keyboardFocus", (wlr_surface*)nullptr);
         m_pLastFocus = nullptr;
         return;
     }

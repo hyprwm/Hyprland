@@ -59,6 +59,10 @@ assert (lib.assertMsg (hidpiXWayland -> enableXWayland) ''
           else ""
         );
       buildInputs = old.buildInputs ++ [hwdata libliftoff libdisplay-info];
+
+      NIX_CFLAGS_COMPILE = toString [
+        "-Wno-error=maybe-uninitialized"
+      ];
     }))
   .override {
     xwayland = xwayland.overrideAttrs (old: {

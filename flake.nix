@@ -66,6 +66,10 @@
             rev = "d98ae243280074b0ba44bff92215ae8d785658c0";
             sha256 = "sha256-DjwlS8rXE7srs7A8+tHqXyUsFGtucYSeq6X0T/pVOc8=";
           };
+
+          NIX_CFLAGS_COMPILE = toString [
+            "-Wno-error=sign-conversion"
+          ];
         });
       };
       hyprland = prev.callPackage ./nix/default.nix {

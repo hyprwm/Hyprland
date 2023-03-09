@@ -942,7 +942,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
     std::string matchName = name;
 
     if (BYADDRESS) {
-        matchName = matchName.substr(9);
+        matchName = matchName.substr(8);
     }
 
     for (auto& m : g_pCompositor->m_vMonitors) {

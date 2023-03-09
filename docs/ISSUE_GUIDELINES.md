@@ -3,14 +3,14 @@
 First of all, please remember to:
 - Check that your issue is not a duplicate
 - Read the [FAQ](https://github.com/vaxerski/Hyprland/wiki/FAQ)
-- Read the [Configuring Page](https://github.com/vaxerski/Hyprland/wiki/Configuring-Hyprland)
+- Read the [Configuring Page](https://wiki.hyprland.org/Configuring/Configuring-Hyprland)
 
 <br/>
 
 # Reporting suggestions
 Suggestions are welcome.
 
-Many features can be implemented using bash scripts and Hyprland sockets, read up on those [Here](https://github.com/vaxerski/Hyprland/wiki/IPC). Please do not suggest features that can be implemented as such.
+Many features can be implemented using bash scripts and Hyprland sockets, read up on those [Here](https://wiki.hyprland.org/IPC). Please do not suggest features that can be implemented as such.
 
 <br/>
 

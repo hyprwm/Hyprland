@@ -558,12 +558,17 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
     if (!isMember && pWindow != this)
         return;
 
-    const auto PCURRENT = getGroupCurrent();
+    const auto PCURRENT   = getGroupCurrent();
+    const bool FULLSCREEN = PCURRENT->m_bIsFullscreen;
+    const auto WORKSPACE  = g_pCompositor->getWorkspaceByID(PCURRENT->m_iWorkspaceID);
 
     const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goalv();
     const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goalv();
 
     const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_pLastWindow;
+
+    if (FULLSCREEN)
+        g_pCompositor->setWindowFullscreen(PCURRENT, false, WORKSPACE->m_efFullscreenMode);
 
     PCURRENT->setHidden(true);
     pWindow->setHidden(false);
@@ -579,6 +584,9 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
 
     if (CURRENTISFOCUS)
         g_pCompositor->focusWindow(pWindow);
+
+    if (FULLSCREEN)
+        g_pCompositor->setWindowFullscreen(pWindow, true, WORKSPACE->m_efFullscreenMode);
 }
 
 void CWindow::insertWindowToGroup(CWindow* pWindow) {

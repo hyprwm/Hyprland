@@ -1340,6 +1340,15 @@ void CKeybindManager::changeGroupActive(std::string args) {
 void CKeybindManager::toggleSplit(std::string args) {
     SLayoutMessageHeader header;
     header.pWindow = g_pCompositor->m_pLastWindow;
+
+    if (!header.pWindow)
+        return;
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(header.pWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow)
+        return;
+
     g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglesplit");
 }
 

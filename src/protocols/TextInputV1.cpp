@@ -192,8 +192,8 @@ void CTextInputV1ProtocolManager::handleSetSurroundingText(wl_client* client, wl
 
 void CTextInputV1ProtocolManager::handleSetContentType(wl_client* client, wl_resource* resource, uint32_t hint, uint32_t purpose) {
     const auto PTI          = tiFromResource(resource);
-    PTI->pendingContentType = {true, hint == ZWP_TEXT_INPUT_V1_CONTENT_HINT_DEFAULT ? ZWP_TEXT_INPUT_V1_CONTENT_HINT_NONE : hint,
-                               purpose > ZWP_TEXT_INPUT_V1_CONTENT_PURPOSE_PASSWORD ? hint + 1 : hint};
+    PTI->pendingContentType = {true, hint == (uint32_t)ZWP_TEXT_INPUT_V1_CONTENT_HINT_DEFAULT ? (uint32_t)ZWP_TEXT_INPUT_V1_CONTENT_HINT_NONE : hint,
+                               purpose > (uint32_t)ZWP_TEXT_INPUT_V1_CONTENT_PURPOSE_PASSWORD ? hint + 1 : hint};
 }
 
 void CTextInputV1ProtocolManager::handleSetCursorRectangle(wl_client* client, wl_resource* resource, int32_t x, int32_t y, int32_t width, int32_t height) {

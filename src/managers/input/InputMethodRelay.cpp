@@ -45,10 +45,10 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
                 wlr_text_input_v3_send_done(PTI->pWlrInput);
             } else {
                 if (PIMR->m_pWLRIME->current.preedit.text) {
-                    zwp_text_input_v1_send_preedit_string(PTI->pV1Input->resourceImpl, PTI->pV1Input->serial, PIMR->m_pWLRIME->current.preedit.text, "");
                     zwp_text_input_v1_send_preedit_cursor(PTI->pV1Input->resourceImpl, 0);
                     zwp_text_input_v1_send_preedit_styling(PTI->pV1Input->resourceImpl, 0, std::string(PIMR->m_pWLRIME->current.preedit.text).length() - 1,
                                                            ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_ACTIVE);
+                    zwp_text_input_v1_send_preedit_string(PTI->pV1Input->resourceImpl, PTI->pV1Input->serial, PIMR->m_pWLRIME->current.preedit.text, "");
                 }
 
                 if (PIMR->m_pWLRIME->current.commit_text) {
@@ -58,6 +58,9 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
                 if (PIMR->m_pWLRIME->current.delete_.before_length || PIMR->m_pWLRIME->current.delete_.after_length) {
                     zwp_text_input_v1_send_delete_surrounding_text(PTI->pV1Input->resourceImpl, PIMR->m_pWLRIME->current.delete_.before_length,
                                                                    PIMR->m_pWLRIME->current.delete_.after_length);
+
+                    if (PIMR->m_pWLRIME->current.preedit.text)
+                        zwp_text_input_v1_send_commit_string(PTI->pV1Input->resourceImpl, PTI->pV1Input->serial, PIMR->m_pWLRIME->current.preedit.text);
                 }
             }
         },

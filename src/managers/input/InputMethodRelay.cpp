@@ -302,10 +302,14 @@ void CInputMethodRelay::onNewTextInput(wlr_text_input_v3* pInput) {
     createNewTextInput(pInput);
 }
 
-void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
+void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInputV1* pTIV1) {
     const auto PTEXTINPUT = &m_lTextInputs.emplace_back();
 
     PTEXTINPUT->pWlrInput = pInput;
+    PTEXTINPUT->pV1Input  = pTIV1;
+
+    if (pTIV1)
+        pTIV1->pTextInput = PTEXTINPUT;
 
     PTEXTINPUT->hyprListener_textInputEnable.initCallback(
         &pInput->events.enable,
@@ -320,7 +324,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
             Debug::log(LOG, "Enable TextInput");
 
             wlr_input_method_v2_send_activate(g_pInputManager->m_sIMERelay.m_pWLRIME);
-            g_pInputManager->m_sIMERelay.commitIMEState(PINPUT->pWlrInput);
+            g_pInputManager->m_sIMERelay.commitIMEState(PINPUT);
         },
         PTEXTINPUT, "textInput");
 
@@ -339,7 +343,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
                 return;
             }
 
-            g_pInputManager->m_sIMERelay.commitIMEState(PINPUT->pWlrInput);
+            g_pInputManager->m_sIMERelay.commitIMEState(PINPUT);
         },
         PTEXTINPUT, "textInput");
 
@@ -357,7 +361,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
 
             wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
 
-            g_pInputManager->m_sIMERelay.commitIMEState(PINPUT->pWlrInput);
+            g_pInputManager->m_sIMERelay.commitIMEState(PINPUT);
         },
         PTEXTINPUT, "textInput");
 
@@ -374,7 +378,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
             if (PINPUT->pWlrInput->current_enabled) {
                 wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
 
-                g_pInputManager->m_sIMERelay.commitIMEState(PINPUT->pWlrInput);
+                g_pInputManager->m_sIMERelay.commitIMEState(PINPUT);
             }
 
             g_pInputManager->m_sIMERelay.setPendingSurface(PINPUT, nullptr);
@@ -384,26 +388,40 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput) {
             PINPUT->hyprListener_textInputDisable.removeCallback();
             PINPUT->hyprListener_textInputEnable.removeCallback();
 
-            g_pInputManager->m_sIMERelay.removeTextInput(PINPUT->pWlrInput);
+            g_pInputManager->m_sIMERelay.removeTextInput(PINPUT);
         },
         PTEXTINPUT, "textInput");
 }
 
-void CInputMethodRelay::removeTextInput(wlr_text_input_v3* pInput) {
-    m_lTextInputs.remove_if([&](const auto& other) { return other.pWlrInput == pInput; });
+void CInputMethodRelay::removeTextInput(STextInput* pInput) {
+    m_lTextInputs.remove_if([&](const auto& other) { return other.pWlrInput == pInput->pWlrInput && other.pV1Input == pInput->pV1Input; });
 }
 
-void CInputMethodRelay::commitIMEState(wlr_text_input_v3* pInput) {
+void CInputMethodRelay::commitIMEState(STextInput* pInput) {
     if (!m_pWLRIME)
         return;
 
-    if (pInput->active_features & WLR_TEXT_INPUT_V3_FEATURE_SURROUNDING_TEXT)
-        wlr_input_method_v2_send_surrounding_text(m_pWLRIME, pInput->current.surrounding.text, pInput->current.surrounding.cursor, pInput->current.surrounding.anchor);
+    if (pInput->pWlrInput) {
+        // V3
+        if (pInput->pWlrInput->active_features & WLR_TEXT_INPUT_V3_FEATURE_SURROUNDING_TEXT)
+            wlr_input_method_v2_send_surrounding_text(m_pWLRIME, pInput->pWlrInput->current.surrounding.text, pInput->pWlrInput->current.surrounding.cursor,
+                                                      pInput->pWlrInput->current.surrounding.anchor);
 
-    wlr_input_method_v2_send_text_change_cause(m_pWLRIME, pInput->current.text_change_cause);
+        wlr_input_method_v2_send_text_change_cause(m_pWLRIME, pInput->pWlrInput->current.text_change_cause);
 
-    if (pInput->active_features & WLR_TEXT_INPUT_V3_FEATURE_CONTENT_TYPE)
-        wlr_input_method_v2_send_content_type(m_pWLRIME, pInput->current.content_type.hint, pInput->current.content_type.purpose);
+        if (pInput->pWlrInput->active_features & WLR_TEXT_INPUT_V3_FEATURE_CONTENT_TYPE)
+            wlr_input_method_v2_send_content_type(m_pWLRIME, pInput->pWlrInput->current.content_type.hint, pInput->pWlrInput->current.content_type.purpose);
+    } else {
+        // V1
+        if (pInput->pV1Input->pendingSurrounding.isPending)
+            wlr_input_method_v2_send_surrounding_text(m_pWLRIME, pInput->pV1Input->pendingSurrounding.text.c_str(), pInput->pV1Input->pendingSurrounding.cursor,
+                                                      pInput->pV1Input->pendingSurrounding.anchor);
+
+        wlr_input_method_v2_send_text_change_cause(m_pWLRIME, 0);
+
+        if (pInput->pV1Input->pendingContentType.isPending)
+            wlr_input_method_v2_send_content_type(m_pWLRIME, pInput->pV1Input->pendingContentType.hint, pInput->pV1Input->pendingContentType.purpose);
+    }
 
     for (auto& p : m_lIMEPopups) {
         updateInputPopup(&p);
@@ -416,6 +434,9 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
     if (!m_pWLRIME)
         return;
 
+    auto focusedSurface = [](STextInput* pTI) -> wlr_surface* { return pTI->pWlrInput ? pTI->pWlrInput->focused_surface : pTI->pV1Input->focusedSurface; };
+    auto client         = [](STextInput* pTI) -> wl_client* { return pTI->pWlrInput ? wl_resource_get_client(pTI->pWlrInput->resource) : pTI->pV1Input->client; };
+
     for (auto& ti : m_lTextInputs) {
         if (ti.pPendingSurface) {
 
@@ -424,20 +445,26 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
 
         } else if (ti.pWlrInput->focused_surface) {
 
-            if (pSurface != ti.pWlrInput->focused_surface) {
+            if (pSurface != focusedSurface(&ti)) {
                 wlr_input_method_v2_send_deactivate(m_pWLRIME);
-                commitIMEState(ti.pWlrInput);
+                commitIMEState(&ti);
 
-                wlr_text_input_v3_send_leave(ti.pWlrInput);
+                if (ti.pWlrInput)
+                    wlr_text_input_v3_send_leave(ti.pWlrInput);
+                else
+                    zwp_text_input_v1_send_leave(ti.pV1Input->resourceImpl);
             } else {
                 continue;
             }
         }
 
-        if (pSurface && wl_resource_get_client(ti.pWlrInput->resource) == wl_resource_get_client(pSurface->resource)) {
+        if (pSurface && client(&ti) == wl_resource_get_client(pSurface->resource)) {
 
             if (m_pWLRIME) {
-                wlr_text_input_v3_send_enter(ti.pWlrInput, pSurface);
+                if (ti.pWlrInput)
+                    wlr_text_input_v3_send_enter(ti.pWlrInput, pSurface);
+                else
+                    zwp_text_input_v1_send_enter(ti.pV1Input->resourceImpl, pSurface->resource);
             } else {
                 setPendingSurface(&ti, pSurface);
             }

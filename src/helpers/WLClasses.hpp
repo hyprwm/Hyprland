@@ -297,8 +297,11 @@ struct SSwipeGesture {
     CMonitor*   pMonitor = nullptr;
 };
 
+struct STextInputV1;
+
 struct STextInput {
     wlr_text_input_v3* pWlrInput = nullptr;
+    STextInputV1*      pV1Input  = nullptr;
 
     wlr_surface*       pPendingSurface = nullptr;
 

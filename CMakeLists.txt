@@ -140,5 +140,6 @@ target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/wlr-foreign-toplevel-management-unstable-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/hyprland-toplevel-export-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/fractional-scale-v1-protocol.o
+        ${CMAKE_SOURCE_DIR}/text-input-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
 )

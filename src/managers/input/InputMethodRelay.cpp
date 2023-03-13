@@ -375,7 +375,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
                 return;
             }
 
-            if (PINPUT->pWlrInput->current_enabled) {
+            if (PINPUT->pWlrInput && PINPUT->pWlrInput->current_enabled) {
                 wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
 
                 g_pInputManager->m_sIMERelay.commitIMEState(PINPUT);

@@ -47,47 +47,47 @@ void CTextInputV1ProtocolManager::bindManager(wl_client* client, void* data, uin
 
 //
 
-void handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface) {
+static void handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleActivate(client, resource, seat, surface);
 }
 
-void handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat) {
+static void handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleDeactivate(client, resource, seat);
 }
 
-void handleShowInputPanel(wl_client* client, wl_resource* resource) {
+static void handleShowInputPanel(wl_client* client, wl_resource* resource) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleShowInputPanel(client, resource);
 }
 
-void handleHideInputPanel(wl_client* client, wl_resource* resource) {
+static void handleHideInputPanel(wl_client* client, wl_resource* resource) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleHideInputPanel(client, resource);
 }
 
-void handleReset(wl_client* client, wl_resource* resource) {
+static void handleReset(wl_client* client, wl_resource* resource) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleReset(client, resource);
 }
 
-void handleSetSurroundingText(wl_client* client, wl_resource* resource, const char* text, uint32_t cursor, uint32_t anchor) {
+static void handleSetSurroundingText(wl_client* client, wl_resource* resource, const char* text, uint32_t cursor, uint32_t anchor) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleSetSurroundingText(client, resource, text, cursor, anchor);
 }
 
-void handleSetContentType(wl_client* client, wl_resource* resource, uint32_t hint, uint32_t purpose) {
+static void handleSetContentType(wl_client* client, wl_resource* resource, uint32_t hint, uint32_t purpose) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleSetContentType(client, resource, hint, purpose);
 }
 
-void handleSetCursorRectangle(wl_client* client, wl_resource* resource, int32_t x, int32_t y, int32_t width, int32_t height) {
+static void handleSetCursorRectangle(wl_client* client, wl_resource* resource, int32_t x, int32_t y, int32_t width, int32_t height) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleSetCursorRectangle(client, resource, x, y, width, height);
 }
 
-void handleSetPreferredLanguage(wl_client* client, wl_resource* resource, const char* language) {
+static void handleSetPreferredLanguage(wl_client* client, wl_resource* resource, const char* language) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleSetPreferredLanguage(client, resource, language);
 }
 
-void handleCommitState(wl_client* client, wl_resource* resource, uint32_t serial) {
+static void handleCommitState(wl_client* client, wl_resource* resource, uint32_t serial) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleCommitState(client, resource, serial);
 }
 
-void handleInvokeAction(wl_client* client, wl_resource* resource, uint32_t button, uint32_t index) {
+static void handleInvokeAction(wl_client* client, wl_resource* resource, uint32_t button, uint32_t index) {
     g_pProtocolManager->m_pTextInputV1ProtocolManager->handleInvokeAction(client, resource, button, index);
 }
 

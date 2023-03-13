@@ -182,6 +182,7 @@ void CTextInputV1ProtocolManager::handleHideInputPanel(wl_client* client, wl_res
 void CTextInputV1ProtocolManager::handleReset(wl_client* client, wl_resource* resource) {
     const auto PTI                    = tiFromResource(resource);
     PTI->pendingSurrounding.isPending = false;
+    PTI->pendingContentType.isPending = false;
 }
 
 void CTextInputV1ProtocolManager::handleSetSurroundingText(wl_client* client, wl_resource* resource, const char* text, uint32_t cursor, uint32_t anchor) {

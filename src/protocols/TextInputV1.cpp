@@ -35,7 +35,7 @@ static void createTI(wl_client* client, wl_resource* resource, uint32_t id) {
 }
 
 static const struct zwp_text_input_manager_v1_interface textInputManagerImpl = {
-    .create_text_input = &createTI,
+    .create_text_input = createTI,
 };
 
 void CTextInputV1ProtocolManager::bindManager(wl_client* client, void* data, uint32_t version, uint32_t id) {
@@ -92,17 +92,17 @@ void handleInvokeAction(wl_client* client, wl_resource* resource, uint32_t butto
 }
 
 static const struct zwp_text_input_v1_interface textInputImpl = {
-    .activate               = &handleActivate,
-    .deactivate             = &handleDeactivate,
-    .show_input_panel       = &handleShowInputPanel,
-    .hide_input_panel       = &handleHideInputPanel,
-    .reset                  = &handleReset,
-    .set_surrounding_text   = &handleSetSurroundingText,
-    .set_content_type       = &handleSetContentType,
-    .set_cursor_rectangle   = &handleSetCursorRectangle,
-    .set_preferred_language = &handleSetPreferredLanguage,
-    .commit_state           = &handleCommitState,
-    .invoke_action          = &handleInvokeAction,
+    .activate               = handleActivate,
+    .deactivate             = handleDeactivate,
+    .show_input_panel       = handleShowInputPanel,
+    .hide_input_panel       = handleHideInputPanel,
+    .reset                  = handleReset,
+    .set_surrounding_text   = handleSetSurroundingText,
+    .set_content_type       = handleSetContentType,
+    .set_cursor_rectangle   = handleSetCursorRectangle,
+    .set_preferred_language = handleSetPreferredLanguage,
+    .commit_state           = handleCommitState,
+    .invoke_action          = handleInvokeAction,
 };
 
 void CTextInputV1ProtocolManager::removeTI(STextInputV1* pTI) {

@@ -258,7 +258,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if (getNodesOnWorkspace(PWORKSPACE->m_iID) < 2 && !centerMasterWindow) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
-                                         PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+                                     PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT) {
@@ -752,67 +752,20 @@ CWindow* CHyprMasterLayout::getNextWindow(CWindow* pWindow, bool next) {
 
     const auto PNODE = getNodeFromWindow(pWindow);
 
-    if (next) {
-        if (PNODE->isMaster) {
-            // focus the first non master
-            for (auto n : m_lMasterNodesData) {
-                if (n.pWindow != pWindow && n.workspaceID == pWindow->m_iWorkspaceID) {
-                    return n.pWindow;
-                }
-            }
-        } else {
-            // focus next
-            bool reached = false;
-            bool found   = false;
-            for (auto n : m_lMasterNodesData) {
-                if (n.pWindow == pWindow) {
-                    reached = true;
-                    continue;
-                }
+    auto       nodes = m_lMasterNodesData;
+    if (!next)
+        std::reverse(nodes.begin(), nodes.end());
 
-                if (n.workspaceID == pWindow->m_iWorkspaceID && reached) {
-                    return n.pWindow;
-                }
-            }
-            if (!found) {
-                const auto PMASTER = getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
+    const auto NODEIT = std::find(nodes.begin(), nodes.end(), *PNODE);
 
-                if (PMASTER)
-                    return PMASTER->pWindow;
-            }
-        }
-    } else {
-        if (PNODE->isMaster) {
-            // focus the last non master
-            for (auto& nd : m_lMasterNodesData | std::views::reverse) {
-                if (nd.pWindow != pWindow && nd.workspaceID == pWindow->m_iWorkspaceID) {
-                    return nd.pWindow;
-                }
-            }
-        } else {
-            // focus previous
-            bool reached = false;
-            bool found   = false;
-            for (auto& nd : m_lMasterNodesData | std::views::reverse) {
-                if (nd.pWindow == pWindow) {
-                    reached = true;
-                    continue;
-                }
+    const bool ISMASTER = PNODE->isMaster;
 
-                if (nd.workspaceID == pWindow->m_iWorkspaceID && reached) {
-                    return nd.pWindow;
-                }
-            }
-            if (!found) {
-                const auto PMASTER = getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
+    auto CANDIDATE = std::find_if(NODEIT, nodes.end(), [&](const auto& other) { return other != *PNODE && ISMASTER == other.isMaster && other.workspaceID == PNODE->workspaceID; });
+    if (CANDIDATE == nodes.end())
+        CANDIDATE =
+            std::find_if(nodes.begin(), nodes.end(), [&](const auto& other) { return other != *PNODE && ISMASTER != other.isMaster && other.workspaceID == PNODE->workspaceID; });
 
-                if (PMASTER)
-                    return PMASTER->pWindow;
-            }
-        }
-    }
-
-    return nullptr;
+    return CANDIDATE == nodes.end() ? nullptr : CANDIDATE->pWindow;
 }
 
 bool CHyprMasterLayout::prepareLoseFocus(CWindow* pWindow) {

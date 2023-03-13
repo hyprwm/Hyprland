@@ -110,8 +110,8 @@ void CTextInputV1ProtocolManager::removeTI(STextInputV1* pTI) {
     if (TI == m_pClients.end())
         return;
 
-    if ((*TI)->resourceImpl)
-        wl_resource_destroy((*TI)->resourceImpl);
+    // if ((*TI)->resourceImpl)
+    //  wl_resource_destroy((*TI)->resourceImpl);
 
     std::erase_if(m_pClients, [&](const auto& other) { return other.get() == pTI; });
 }
@@ -123,6 +123,9 @@ STextInputV1* tiFromResource(wl_resource* resource) {
 
 static void destroyTI(wl_resource* resource) {
     const auto TI = tiFromResource(resource);
+
+    if (!TI)
+        return;
 
     if (TI->resourceImpl) {
         wl_resource_set_user_data(resource, nullptr);
@@ -148,6 +151,14 @@ void CTextInputV1ProtocolManager::createTI(wl_client* client, wl_resource* resou
     }
 
     wl_resource_set_implementation(PTI->resourceImpl, &textInputImpl, PTI, &destroyTI);
+    wl_resource_set_user_data(PTI->resourceImpl, PTI);
+
+    wl_signal_init(&PTI->sEnable);
+    wl_signal_init(&PTI->sDisable);
+    wl_signal_init(&PTI->sDestroy);
+    wl_signal_init(&PTI->sCommit);
+
+    g_pInputManager->m_sIMERelay.createNewTextInput(nullptr, PTI);
 }
 
 void CTextInputV1ProtocolManager::handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface) {
@@ -195,6 +206,7 @@ void CTextInputV1ProtocolManager::handleSetPreferredLanguage(wl_client* client, 
 
 void CTextInputV1ProtocolManager::handleCommitState(wl_client* client, wl_resource* resource, uint32_t serial) {
     const auto PTI = tiFromResource(resource);
+    PTI->serial    = serial;
     PTI->pTextInput->hyprListener_textInputCommit.emit(nullptr);
 }
 

@@ -17,6 +17,13 @@ struct STextInputV1 {
 
     STextInput*  pTextInput = nullptr;
 
+    wl_signal    sEnable;
+    wl_signal    sDisable;
+    wl_signal    sCommit;
+    wl_signal    sDestroy;
+
+    uint32_t     serial = 0;
+
     struct SPendingSurr {
         bool        isPending = false;
         std::string text      = "";

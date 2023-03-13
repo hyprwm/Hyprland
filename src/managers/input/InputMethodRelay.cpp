@@ -28,20 +28,36 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
                 return;
             }
 
-            if (PIMR->m_pWLRIME->current.preedit.text) {
-                wlr_text_input_v3_send_preedit_string(PTI->pWlrInput, PIMR->m_pWLRIME->current.preedit.text, PIMR->m_pWLRIME->current.preedit.cursor_begin,
-                                                      PIMR->m_pWLRIME->current.preedit.cursor_end);
-            }
+            if (PTI->pWlrInput) {
+                if (PIMR->m_pWLRIME->current.preedit.text) {
+                    wlr_text_input_v3_send_preedit_string(PTI->pWlrInput, PIMR->m_pWLRIME->current.preedit.text, PIMR->m_pWLRIME->current.preedit.cursor_begin,
+                                                          PIMR->m_pWLRIME->current.preedit.cursor_end);
+                }
 
-            if (PIMR->m_pWLRIME->current.commit_text) {
-                wlr_text_input_v3_send_commit_string(PTI->pWlrInput, PIMR->m_pWLRIME->current.commit_text);
-            }
+                if (PIMR->m_pWLRIME->current.commit_text) {
+                    wlr_text_input_v3_send_commit_string(PTI->pWlrInput, PIMR->m_pWLRIME->current.commit_text);
+                }
 
-            if (PIMR->m_pWLRIME->current.delete_.before_length || PIMR->m_pWLRIME->current.delete_.after_length) {
-                wlr_text_input_v3_send_delete_surrounding_text(PTI->pWlrInput, PIMR->m_pWLRIME->current.delete_.before_length, PIMR->m_pWLRIME->current.delete_.after_length);
-            }
+                if (PIMR->m_pWLRIME->current.delete_.before_length || PIMR->m_pWLRIME->current.delete_.after_length) {
+                    wlr_text_input_v3_send_delete_surrounding_text(PTI->pWlrInput, PIMR->m_pWLRIME->current.delete_.before_length, PIMR->m_pWLRIME->current.delete_.after_length);
+                }
 
-            wlr_text_input_v3_send_done(PTI->pWlrInput);
+                wlr_text_input_v3_send_done(PTI->pWlrInput);
+            } else {
+                if (PIMR->m_pWLRIME->current.preedit.text) {
+                    zwp_text_input_v1_send_preedit_string(PTI->pV1Input->resourceImpl, PTI->pV1Input->serial, PIMR->m_pWLRIME->current.preedit.text,
+                                                          PIMR->m_pWLRIME->current.preedit.text);
+                }
+
+                if (PIMR->m_pWLRIME->current.commit_text) {
+                    zwp_text_input_v1_send_commit_string(PTI->pV1Input->resourceImpl, PTI->pV1Input->serial, PIMR->m_pWLRIME->current.commit_text);
+                }
+
+                if (PIMR->m_pWLRIME->current.delete_.before_length || PIMR->m_pWLRIME->current.delete_.after_length) {
+                    zwp_text_input_v1_send_delete_surrounding_text(PTI->pV1Input->resourceImpl, PIMR->m_pWLRIME->current.delete_.before_length,
+                                                                   PIMR->m_pWLRIME->current.delete_.after_length);
+                }
+            }
         },
         this, "IMERelay");
 
@@ -62,9 +78,12 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
             Debug::log(LOG, "IME Destroy");
 
             if (PTI) {
-                setPendingSurface(PTI, PTI->pWlrInput->focused_surface);
+                setPendingSurface(PTI, focusedSurface(PTI));
 
-                wlr_text_input_v3_send_leave(PTI->pWlrInput);
+                if (PTI->pWlrInput)
+                    wlr_text_input_v3_send_leave(PTI->pWlrInput);
+                else
+                    zwp_text_input_v1_send_leave(PTI->pV1Input->resourceImpl);
             }
         },
         this, "IMERelay");
@@ -122,9 +141,17 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
     const auto PTI = getFocusableTextInput();
 
     if (PTI) {
-        wlr_text_input_v3_send_enter(PTI->pWlrInput, PTI->pPendingSurface);
+        if (PTI->pWlrInput)
+            wlr_text_input_v3_send_enter(PTI->pWlrInput, PTI->pPendingSurface);
+        else
+            zwp_text_input_v1_send_enter(PTI->pV1Input->resourceImpl, PTI->pPendingSurface->resource);
+
         setPendingSurface(PTI, nullptr);
     }
+}
+
+wlr_surface* CInputMethodRelay::focusedSurface(STextInput* pTI) {
+    return pTI->pWlrInput ? pTI->pWlrInput->focused_surface : pTI->pV1Input->focusedSurface;
 }
 
 void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
@@ -136,12 +163,12 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
 
     const auto PFOCUSEDTI = getFocusedTextInput();
 
-    if (!PFOCUSEDTI || !PFOCUSEDTI->pWlrInput->focused_surface)
+    if (!PFOCUSEDTI || !focusedSurface(PFOCUSEDTI))
         return;
 
-    bool       cursorRect      = PFOCUSEDTI->pWlrInput->current.features & WLR_TEXT_INPUT_V3_FEATURE_CURSOR_RECTANGLE;
-    const auto PFOCUSEDSURFACE = PFOCUSEDTI->pWlrInput->focused_surface;
-    auto       cursorBox       = PFOCUSEDTI->pWlrInput->current.cursor_rectangle;
+    bool       cursorRect      = PFOCUSEDTI->pWlrInput ? PFOCUSEDTI->pWlrInput->current.features & WLR_TEXT_INPUT_V3_FEATURE_CURSOR_RECTANGLE : true;
+    const auto PFOCUSEDSURFACE = focusedSurface(PFOCUSEDTI);
+    auto       cursorBox       = PFOCUSEDTI->pWlrInput ? PFOCUSEDTI->pWlrInput->current.cursor_rectangle : PFOCUSEDTI->pV1Input->cursorRectangle;
 
     Vector2D   parentPos;
     Vector2D   parentSize;
@@ -238,12 +265,12 @@ void CInputMethodRelay::damagePopup(SIMEPopup* pPopup) {
 
     const auto PFOCUSEDTI = getFocusedTextInput();
 
-    if (!PFOCUSEDTI || !PFOCUSEDTI->pWlrInput->focused_surface)
+    if (!PFOCUSEDTI || !focusedSurface(PFOCUSEDTI))
         return;
 
     Vector2D   parentPos;
 
-    const auto PFOCUSEDSURFACE = PFOCUSEDTI->pWlrInput->focused_surface;
+    const auto PFOCUSEDSURFACE = focusedSurface(PFOCUSEDTI);
 
     if (wlr_layer_surface_v1_try_from_wlr_surface(PFOCUSEDSURFACE)) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromWlr(wlr_layer_surface_v1_try_from_wlr_surface(PFOCUSEDSURFACE));
@@ -279,8 +306,9 @@ SIMEKbGrab* CInputMethodRelay::getIMEKeyboardGrab(SKeyboard* pKeyboard) {
 }
 
 STextInput* CInputMethodRelay::getFocusedTextInput() {
+
     for (auto& ti : m_lTextInputs) {
-        if (ti.pWlrInput->focused_surface) {
+        if (focusedSurface(&ti)) {
             return &ti;
         }
     }
@@ -312,7 +340,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
         pTIV1->pTextInput = PTEXTINPUT;
 
     PTEXTINPUT->hyprListener_textInputEnable.initCallback(
-        &pInput->events.enable,
+        pInput ? &pInput->events.enable : &pTIV1->sEnable,
         [](void* owner, void* data) {
             const auto PINPUT = (STextInput*)owner;
 
@@ -329,7 +357,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
         PTEXTINPUT, "textInput");
 
     PTEXTINPUT->hyprListener_textInputCommit.initCallback(
-        &pInput->events.commit,
+        pInput ? &pInput->events.commit : &pTIV1->sCommit,
         [](void* owner, void* data) {
             const auto PINPUT = (STextInput*)owner;
 
@@ -348,7 +376,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
         PTEXTINPUT, "textInput");
 
     PTEXTINPUT->hyprListener_textInputDisable.initCallback(
-        &pInput->events.disable,
+        pInput ? &pInput->events.disable : &pTIV1->sDisable,
         [](void* owner, void* data) {
             const auto PINPUT = (STextInput*)owner;
 
@@ -366,7 +394,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
         PTEXTINPUT, "textInput");
 
     PTEXTINPUT->hyprListener_textInputDestroy.initCallback(
-        &pInput->events.destroy,
+        pInput ? &pInput->events.destroy : &pTIV1->sDestroy,
         [](void* owner, void* data) {
             const auto PINPUT = (STextInput*)owner;
 
@@ -434,8 +462,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
     if (!m_pWLRIME)
         return;
 
-    auto focusedSurface = [](STextInput* pTI) -> wlr_surface* { return pTI->pWlrInput ? pTI->pWlrInput->focused_surface : pTI->pV1Input->focusedSurface; };
-    auto client         = [](STextInput* pTI) -> wl_client* { return pTI->pWlrInput ? wl_resource_get_client(pTI->pWlrInput->resource) : pTI->pV1Input->client; };
+    auto client = [](STextInput* pTI) -> wl_client* { return pTI->pWlrInput ? wl_resource_get_client(pTI->pWlrInput->resource) : pTI->pV1Input->client; };
 
     for (auto& ti : m_lTextInputs) {
         if (ti.pPendingSurface) {
@@ -443,7 +470,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
             if (pSurface != ti.pPendingSurface)
                 setPendingSurface(&ti, nullptr);
 
-        } else if (ti.pWlrInput->focused_surface) {
+        } else if (focusedSurface(&ti)) {
 
             if (pSurface != focusedSurface(&ti)) {
                 wlr_input_method_v2_send_deactivate(m_pWLRIME);
@@ -451,8 +478,10 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
 
                 if (ti.pWlrInput)
                     wlr_text_input_v3_send_leave(ti.pWlrInput);
-                else
+                else {
                     zwp_text_input_v1_send_leave(ti.pV1Input->resourceImpl);
+                    ti.pV1Input->focusedSurface = nullptr;
+                }
             } else {
                 continue;
             }
@@ -463,8 +492,10 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
             if (m_pWLRIME) {
                 if (ti.pWlrInput)
                     wlr_text_input_v3_send_enter(ti.pWlrInput, pSurface);
-                else
+                else {
                     zwp_text_input_v1_send_enter(ti.pV1Input->resourceImpl, pSurface->resource);
+                    ti.pV1Input->focusedSurface = pSurface;
+                }
             } else {
                 setPendingSurface(&ti, pSurface);
             }

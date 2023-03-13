@@ -44,7 +44,8 @@ class CInputMethodRelay {
     DYNLISTENER(IMEGrab);
     DYNLISTENER(IMENewPopup);
 
-    void createNewTextInput(wlr_text_input_v3*, STextInputV1* tiv1 = nullptr);
+    void         createNewTextInput(wlr_text_input_v3*, STextInputV1* tiv1 = nullptr);
+    wlr_surface* focusedSurface(STextInput* pInput);
 
     friend class CHyprRenderer;
     friend class CInputManager;

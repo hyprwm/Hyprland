@@ -297,7 +297,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         if (!PWORKSPACE)
             return INT_MAX;
 
-        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->m_iPrevWorkspaceID);
+        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->m_sPrevWorkspace.iID);
 
         if (!PLASTWORKSPACE)
             return INT_MAX;
@@ -470,8 +470,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string dir = "/proc/" + std::to_string(pid) + "/status";
-    FILE*       infile;
+    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
+    FILE*             infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)

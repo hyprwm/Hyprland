@@ -23,7 +23,11 @@ class CWorkspace {
     uint64_t    m_iMonitorID = -1;
     // Previous workspace ID is stored during a workspace change, allowing travel
     // to the previous workspace.
-    int                          m_iPrevWorkspaceID     = -1;
+    struct SPrevWorkspaceData {
+        int         iID  = -1;
+        std::string name = "";
+    } m_sPrevWorkspace;
+
     bool                         m_bHasFullscreenWindow = false;
     eFullscreenMode              m_efFullscreenMode     = FULLSCREEN_FULL;
 

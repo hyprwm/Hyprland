@@ -2096,6 +2096,8 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
+
+    PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
 }
 
 void CKeybindManager::moveOutOfGroup(std::string args) {

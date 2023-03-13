@@ -5,11 +5,11 @@
 #define TEXT_INPUT_VERSION 1
 
 static void bindManagerInt(wl_client* client, void* data, uint32_t version, uint32_t id) {
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->bindManager(client, data, version, id);
+    g_pProtocolManager->m_pTextInputV1ProtocolManager->bindManager(client, data, version, id);
 }
 
 static void handleDisplayDestroy(struct wl_listener* listener, void* data) {
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->displayDestroy();
+    g_pProtocolManager->m_pTextInputV1ProtocolManager->displayDestroy();
 }
 
 void CTextInputV1ProtocolManager::displayDestroy() {

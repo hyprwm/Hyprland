@@ -16,7 +16,7 @@
 
 Hyprland is a dynamic tiling Wayland compositor based on wlroots that doesn't sacrifice on its looks.
 
-It supports multiple layouts, fancy effects, has a very flexible IPC model allowing for a lot of customization, and more.
+It supports multiple layouts, fancy effects, has a very flexible IPC model allowing for a lot of customization, a powerful plugin system and more.
 <br>
 <br>
 

@@ -113,6 +113,8 @@ void CTextInputV1ProtocolManager::removeTI(STextInputV1* pTI) {
     // if ((*TI)->resourceImpl)
     //  wl_resource_destroy((*TI)->resourceImpl);
 
+    g_pInputManager->m_sIMERelay.removeTextInput((*TI)->pTextInput);
+
     std::erase_if(m_pClients, [&](const auto& other) { return other.get() == pTI; });
 }
 
@@ -130,6 +132,8 @@ static void destroyTI(wl_resource* resource) {
     if (TI->resourceImpl) {
         wl_resource_set_user_data(resource, nullptr);
     }
+
+    g_pInputManager->m_sIMERelay.removeTextInput(TI->pTextInput);
 
     TI->pTextInput->hyprListener_textInputDestroy.emit(nullptr);
 

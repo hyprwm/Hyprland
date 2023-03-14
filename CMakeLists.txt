@@ -53,7 +53,7 @@ endif()
 include_directories(
   .
   "subprojects/wlroots/include/"
-  "subprojects/wlroots/build/"
+  "subprojects/wlroots/build/include/"
   "subprojects/udis86/")
 set(CMAKE_CXX_STANDARD 23)
 add_compile_definitions(WLR_USE_UNSTABLE)

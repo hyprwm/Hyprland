@@ -5,7 +5,7 @@ include(CheckIncludeFile)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/props.json PROPS)
 string(JSON VER GET ${PROPS} version)
 
-project(Hyprland 
+project(Hyprland
     DESCRIPTION "A Modern C++ Wayland Compositor"
     VERSION ${VER}
 )
@@ -42,22 +42,24 @@ execute_process(
 #
 #
 
-IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake")
-    add_definitions( -DHYPRLAND_DEBUG )
-ELSE()
-    add_compile_options( -O3 )
+    add_compile_definitions(HYPRLAND_DEBUG)
+else()
+    add_compile_options(-O3)
     message(STATUS "Configuring Hyprland in Release with CMake")
-ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+endif()
 
-include_directories(. PRIVATE "subprojects/wlroots/include/")
-include_directories(. PRIVATE "subprojects/wlroots/build/include/")
-include_directories(. PRIVATE "subprojects/udis86/")
+include_directories(
+  .
+  "subprojects/wlroots/include/"
+  "subprojects/wlroots/build/include/"
+  "subprojects/udis86/")
 set(CMAKE_CXX_STANDARD 23)
-add_compile_options(-DWLR_USE_UNSTABLE)
+add_compile_definitions(WLR_USE_UNSTABLE)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith)
-ADD_LINK_OPTIONS( -rdynamic )
-SET(CMAKE_ENABLE_EXPORTS TRUE)
+add_link_options(-rdynamic)
+set(CMAKE_ENABLE_EXPORTS TRUE)
 
 message(STATUS "Checking deps...")
 
@@ -66,7 +68,7 @@ find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm egl xkbcommon libinput) # we do not check for wlroots, as we provide it ourselves
 
-file(GLOB_RECURSE SRCFILES "src/*.cpp")
+file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
 
@@ -76,38 +78,40 @@ if(HAVE_LIBEXECINFO)
     target_link_libraries(Hyprland PRIVATE execinfo)
 endif()
 
-IF(LEGACY_RENDERER MATCHES true)
+if(LEGACY_RENDERER)
     message(STATUS "Using the legacy GLES2 renderer!")
-    add_definitions( -DLEGACY_RENDERER )
-ENDIF(LEGACY_RENDERER MATCHES true)
+    add_compile_definitions(LEGACY_RENDERER)
+endif()
 
-IF(NO_XWAYLAND MATCHES true)
+if(NO_XWAYLAND)
     message(STATUS "Using the NO_XWAYLAND flag, disabling XWayland!")
-    add_definitions( -DNO_XWAYLAND )
-ELSE()
+    add_compile_definitions(NO_XWAYLAND)
+else()
     message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
     pkg_check_modules(xcbdep REQUIRED xcb)
     target_link_libraries(Hyprland xcb)
-ENDIF(NO_XWAYLAND MATCHES true)
+endif()
 
-IF(NO_SYSTEMD MATCHES true)
+if(NO_SYSTEMD)
     message(STATUS "SYSTEMD support is disabled...")
-ELSE()
+else()
     message(STATUS "SYSTEMD support is requested (NO_SYSTEMD not defined) checking deps...")
     pkg_check_modules(LIBSYSTEMD libsystemd)
     check_include_file("systemd/sd-daemon.h" SYSTEMDH)
-    IF(LIBSYSTEMD_FOUND AND SYSTEMDH)
-        add_definitions( -DUSES_SYSTEMD )
+    if(LIBSYSTEMD_FOUND AND SYSTEMDH)
+        add_compile_definitions(USES_SYSTEMD)
         target_link_libraries(Hyprland "${LIBSYSTEMD_LIBRARIES}")
-    ELSE()
+    else()
         message(WARNING "Systemd support requested but libsystemd or systemd headers were not found")
-    ENDIF(LIBSYSTEMD_FOUND AND SYSTEMDH)
-ENDIF(NO_SYSTEMD MATCHES true)
+    endif()
+endif()
 
-target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
-target_compile_definitions(Hyprland PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
-target_compile_definitions(Hyprland PRIVATE "-DGIT_COMMIT_MESSAGE=\"${GIT_COMMIT_MESSAGE}\"")
-target_compile_definitions(Hyprland PRIVATE "-DGIT_DIRTY=\"${GIT_DIRTY}\"")
+target_compile_definitions(Hyprland
+    PRIVATE
+    "GIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\""
+    "GIT_BRANCH=\"${GIT_BRANCH}\""
+    "GIT_COMMIT_MESSAGE=\"${GIT_COMMIT_MESSAGE}\""
+    "GIT_DIRTY=\"${GIT_DIRTY}\"")
 
 target_link_libraries(Hyprland rt)
 
@@ -119,15 +123,14 @@ message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland PkgConfig::deps)
 
-IF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Setting debug flags")
 
     target_link_libraries(Hyprland asan)
 
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -no-pie -fno-builtin -fsanitize=address")
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg -no-pie -fno-builtin")
-    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg -no-pie -fno-builtin")
-ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    add_compile_options(-pg -no-pie -fno-builtin -fsanitize=address)
+    add_link_options(-pg -no-pie -fno-builtin)
+endif()
 
 target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us

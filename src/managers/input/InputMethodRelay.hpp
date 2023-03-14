@@ -4,6 +4,7 @@
 #include "../../helpers/WLClasses.hpp"
 
 class CInputManager;
+struct STextInputV1;
 
 class CInputMethodRelay {
   public:
@@ -14,8 +15,8 @@ class CInputMethodRelay {
 
     wlr_input_method_v2* m_pWLRIME = nullptr;
 
-    void                 commitIMEState(wlr_text_input_v3*);
-    void                 removeTextInput(wlr_text_input_v3*);
+    void                 commitIMEState(STextInput* pInput);
+    void                 removeTextInput(STextInput* pInput);
 
     void                 onKeyboardFocus(wlr_surface*);
 
@@ -43,8 +44,10 @@ class CInputMethodRelay {
     DYNLISTENER(IMEGrab);
     DYNLISTENER(IMENewPopup);
 
-    void createNewTextInput(wlr_text_input_v3*);
+    void         createNewTextInput(wlr_text_input_v3*, STextInputV1* tiv1 = nullptr);
+    wlr_surface* focusedSurface(STextInput* pInput);
 
     friend class CHyprRenderer;
     friend class CInputManager;
+    friend class CTextInputV1ProtocolManager;
 };

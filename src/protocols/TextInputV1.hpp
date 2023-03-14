@@ -24,6 +24,8 @@ struct STextInputV1 {
 
     uint32_t     serial = 0;
 
+    bool         active = false;
+
     struct SPendingSurr {
         bool        isPending = false;
         std::string text      = "";

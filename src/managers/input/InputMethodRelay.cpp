@@ -371,7 +371,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
                 return;
             }
 
-            if (!PINPUT->pWlrInput->current_enabled) {
+            if (!(PINPUT->pWlrInput ? PINPUT->pWlrInput->current_enabled : PINPUT->pV1Input->active)) {
                 Debug::log(WARN, "Disabled TextInput commit?");
                 return;
             }
@@ -486,6 +486,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
                 else {
                     zwp_text_input_v1_send_leave(ti.pV1Input->resourceImpl);
                     ti.pV1Input->focusedSurface = nullptr;
+                    ti.pV1Input->active         = false;
                 }
             } else {
                 continue;
@@ -500,6 +501,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
                 else {
                     zwp_text_input_v1_send_enter(ti.pV1Input->resourceImpl, pSurface->resource);
                     ti.pV1Input->focusedSurface = pSurface;
+                    ti.pV1Input->active         = true;
                 }
             } else {
                 setPendingSurface(&ti, pSurface);

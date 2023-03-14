@@ -179,6 +179,7 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
     bool       cursorRect      = PFOCUSEDTI->pWlrInput ? PFOCUSEDTI->pWlrInput->current.features & WLR_TEXT_INPUT_V3_FEATURE_CURSOR_RECTANGLE : true;
     const auto PFOCUSEDSURFACE = focusedSurface(PFOCUSEDTI);
     auto       cursorBox       = PFOCUSEDTI->pWlrInput ? PFOCUSEDTI->pWlrInput->current.cursor_rectangle : PFOCUSEDTI->pV1Input->cursorRectangle;
+    CMonitor*  pMonitor        = nullptr;
 
     Vector2D   parentPos;
     Vector2D   parentSize;
@@ -189,6 +190,7 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
         if (PLS) {
             parentPos  = Vector2D(PLS->geometry.x, PLS->geometry.y) + g_pCompositor->getMonitorFromID(PLS->monitorID)->vecPosition;
             parentSize = Vector2D(PLS->geometry.width, PLS->geometry.height);
+            pMonitor   = g_pCompositor->getMonitorFromID(PLS->monitorID);
         }
     } else {
         const auto PWINDOW = g_pCompositor->getWindowFromSurface(PFOCUSEDSURFACE);
@@ -196,6 +198,7 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
         if (PWINDOW) {
             parentPos  = PWINDOW->m_vRealPosition.goalv();
             parentSize = PWINDOW->m_vRealSize.goalv();
+            pMonitor   = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
         }
     }
 
@@ -203,9 +206,16 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
         cursorBox = {0, 0, (int)parentSize.x, (int)parentSize.y};
     }
 
-    // todo: anti-overflow
+    if (!pMonitor)
+        return;
 
     wlr_box finalBox = cursorBox;
+
+    if (cursorBox.y + parentPos.y + pPopup->pSurface->surface->current.height > pMonitor->vecPosition.y + pMonitor->vecSize.y)
+        finalBox.y -= pPopup->pSurface->surface->current.height + finalBox.height;
+
+    if (cursorBox.x + parentPos.x + pPopup->pSurface->surface->current.width > pMonitor->vecPosition.x + pMonitor->vecSize.x)
+        finalBox.x -= (cursorBox.x + parentPos.x + pPopup->pSurface->surface->current.width) - (pMonitor->vecPosition.x + pMonitor->vecSize.x);
 
     pPopup->x = finalBox.x;
     pPopup->y = finalBox.y + finalBox.height;

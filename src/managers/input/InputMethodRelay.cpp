@@ -211,7 +211,7 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
 
     wlr_box finalBox = cursorBox;
 
-    if (cursorBox.y + parentPos.y + pPopup->pSurface->surface->current.height > pMonitor->vecPosition.y + pMonitor->vecSize.y)
+    if (cursorBox.y + parentPos.y + pPopup->pSurface->surface->current.height + finalBox.height > pMonitor->vecPosition.y + pMonitor->vecSize.y)
         finalBox.y -= pPopup->pSurface->surface->current.height + finalBox.height;
 
     if (cursorBox.x + parentPos.x + pPopup->pSurface->surface->current.width > pMonitor->vecPosition.x + pMonitor->vecSize.x)

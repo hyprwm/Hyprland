@@ -133,10 +133,9 @@ static void destroyTI(wl_resource* resource) {
         wl_resource_set_user_data(resource, nullptr);
     }
 
-    g_pInputManager->m_sIMERelay.removeTextInput(TI->pTextInput);
-
     TI->pTextInput->hyprListener_textInputDestroy.emit(nullptr);
 
+    g_pInputManager->m_sIMERelay.removeTextInput(TI->pTextInput);
     g_pProtocolManager->m_pTextInputV1ProtocolManager->removeTI(TI);
 }
 

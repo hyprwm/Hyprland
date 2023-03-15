@@ -106,6 +106,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Attempted to render frame on inactive session!");
+
+        if (g_pCompositor->m_bUnsafeState)
+            g_pConfigManager->performMonitorReload();
+
         return; // cannot draw on session inactive (different tty)
     }
 
@@ -350,6 +354,9 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     Debug::log(LOG, "Destroy called for monitor %s", pMonitor->output->name);
 
     pMonitor->onDisconnect();
+
+    pMonitor->output                 = nullptr;
+    pMonitor->m_bRenderingInitPassed = false;
 
     // cleanup if not unsafe
     if (!g_pCompositor->m_bUnsafeState) {

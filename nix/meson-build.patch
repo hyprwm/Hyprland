@@ -1,5 +1,5 @@
 diff --git a/meson.build b/meson.build
-index f3802553..a6538d84 100644
+index f3802553..6a924a79 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -21,9 +21,9 @@ else
@@ -14,14 +14,14 @@ index f3802553..a6538d84 100644
  
  add_project_arguments(
    [
-@@ -39,21 +39,11 @@ add_project_arguments(
+@@ -39,21 +39,8 @@ add_project_arguments(
    ],
    language: 'cpp')
  
 -wlroots = subproject('wlroots', default_options: ['examples=false'])
 -have_xwlr = wlroots.get_variable('features').get('xwayland')
- xcb_dep = dependency('xcb', required: get_option('xwayland'))
- 
+-xcb_dep = dependency('xcb', required: get_option('xwayland'))
+-
 -cmake = import('cmake')
 -udis = cmake.subproject('udis86')
 -udis86 = udis.dependency('libudis86')
@@ -29,31 +29,20 @@ index f3802553..a6538d84 100644
 -if get_option('xwayland').enabled() and not have_xwlr
 -	error('Cannot enable Xwayland in Hyprland: wlroots has been built without Xwayland support')
 -endif
- have_xwayland = xcb_dep.found() and have_xwlr
+-have_xwayland = xcb_dep.found() and have_xwlr
 -
- if not have_xwayland
--add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
+-if not have_xwayland
+-  add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
++if get_option('xwayland').disabled()
 +  add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
  endif
  
  backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
-@@ -61,9 +51,9 @@ systemd_dep = dependency('libsystemd', required: get_option('systemd'))
- 
- if get_option('systemd').enabled() 
-   if systemd_dep.found()
--        add_project_arguments('-DUSES_SYSTEMD', language: 'cpp')
-+    add_project_arguments('-DUSES_SYSTEMD', language: 'cpp')
-   else 
--	error('Cannot enable systemd in Hyprland: libsystemd was not found')
-+  	error('Cannot enable systemd in Hyprland: libsystemd was not found')
-   endif
- endif
- 
 diff --git a/src/meson.build b/src/meson.build
-index 7b658d31..da8baa56 100644
+index 7b658d31..60aa4057 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -7,7 +7,7 @@ executable('Hyprland', src,
+@@ -7,16 +7,16 @@ executable('Hyprland', src,
      server_protos,
      dependency('wayland-server'),
      dependency('wayland-client'),
@@ -62,8 +51,10 @@ index 7b658d31..da8baa56 100644
      dependency('cairo'),
      dependency('libdrm'),
      dependency('egl'),
-@@ -16,7 +16,7 @@ executable('Hyprland', src,
-     xcb_dep,
+     dependency('xkbcommon'),
+     dependency('libinput'),
+-    xcb_dep,
++    dependency('xcb', required: get_option('xwayland')),
      backtrace_dep,
      systemd_dep,
 -    udis86,

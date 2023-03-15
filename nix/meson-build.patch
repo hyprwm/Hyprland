@@ -1,5 +1,5 @@
 diff --git a/meson.build b/meson.build
-index f380255..abd7cd3 100644
+index f3802553..a6538d84 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -21,9 +21,9 @@ else
@@ -14,7 +14,7 @@ index f380255..abd7cd3 100644
  
  add_project_arguments(
    [
-@@ -39,23 +39,8 @@ add_project_arguments(
+@@ -39,21 +39,11 @@ add_project_arguments(
    ],
    language: 'cpp')
  
@@ -29,17 +29,28 @@ index f380255..abd7cd3 100644
 -if get_option('xwayland').enabled() and not have_xwlr
 -	error('Cannot enable Xwayland in Hyprland: wlroots has been built without Xwayland support')
 -endif
--have_xwayland = xcb_dep.found() and have_xwlr
+ have_xwayland = xcb_dep.found() and have_xwlr
 -
--if not have_xwayland
+ if not have_xwayland
 -add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
--endif
--
++  add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
+ endif
+ 
  backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
- systemd_dep = dependency('libsystemd', required: get_option('systemd'))
+@@ -61,9 +51,9 @@ systemd_dep = dependency('libsystemd', required: get_option('systemd'))
+ 
+ if get_option('systemd').enabled() 
+   if systemd_dep.found()
+-        add_project_arguments('-DUSES_SYSTEMD', language: 'cpp')
++    add_project_arguments('-DUSES_SYSTEMD', language: 'cpp')
+   else 
+-	error('Cannot enable systemd in Hyprland: libsystemd was not found')
++  	error('Cannot enable systemd in Hyprland: libsystemd was not found')
+   endif
+ endif
  
 diff --git a/src/meson.build b/src/meson.build
-index 7b658d3..da8baa5 100644
+index 7b658d31..da8baa56 100644
 --- a/src/meson.build
 +++ b/src/meson.build
 @@ -7,7 +7,7 @@ executable('Hyprland', src,

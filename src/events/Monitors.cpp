@@ -20,6 +20,9 @@ void Events::listener_change(wl_listener* listener, void* data) {
     const auto CONFIG = wlr_output_configuration_v1_create();
 
     for (auto& m : g_pCompositor->m_vMonitors) {
+        if (!m->output)
+            continue;
+
         const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m->output);
 
         // TODO: clients off of disabled

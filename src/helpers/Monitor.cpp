@@ -214,6 +214,8 @@ void CMonitor::onDisconnect() {
 
         g_pCompositor->m_bUnsafeState = true;
 
+        std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
+
         return;
     }
 

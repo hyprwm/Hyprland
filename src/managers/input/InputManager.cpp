@@ -1307,13 +1307,16 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
         [&](void* owner, void* data) {
             const auto PDEVICE = (SSwitchDevice*)owner;
             const auto NAME    = std::string(PDEVICE->pWlrDevice->name);
+            const auto E       = (wlr_switch_toggle_event*)data;
+
+            if (PDEVICE->status != -1 && PDEVICE->status == E->switch_state)
+                return;
 
             Debug::log(LOG, "Switch %s fired, triggering binds.", NAME.c_str());
 
             g_pKeybindManager->onSwitchEvent(NAME);
 
-            const auto event_data = (wlr_switch_toggle_event*)data;
-            switch (event_data->switch_state) {
+            switch (E->switch_state) {
                 case WLR_SWITCH_STATE_ON:
                     Debug::log(LOG, "Switch %s turn on, triggering binds.", NAME.c_str());
                     g_pKeybindManager->onSwitchOnEvent(NAME);
@@ -1323,6 +1326,8 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
                     g_pKeybindManager->onSwitchOffEvent(NAME);
                     break;
             }
+
+            PDEVICE->status = E->switch_state;
         },
         PNEWDEV, "SwitchDevice");
 }

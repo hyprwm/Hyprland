@@ -1394,7 +1394,18 @@ void CKeybindManager::focusMonitor(std::string arg) {
     if (!PMONITOR || PMONITOR == g_pCompositor->m_pLastMonitor)
         return;
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
     changeworkspace("[internal]" + std::to_string(PMONITOR->activeWorkspace));
+
+    // remember last workspace (internal calls don't preserve it)
+
+    const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    if (PNEWWORKSPACE == PWORKSPACE)
+        return;
+
+    PNEWWORKSPACE->m_sPrevWorkspace.iID  = PWORKSPACE->m_iID;
+    PNEWWORKSPACE->m_sPrevWorkspace.name = PWORKSPACE->m_szName;
 }
 
 void CKeybindManager::moveCursorToCorner(std::string arg) {

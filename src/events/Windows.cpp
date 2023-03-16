@@ -694,6 +694,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_bMappedX11 || PWINDOW->isHidden() || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
         return;
 
+    PWINDOW->updateSurfaceOutputs();
+
     g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
 
     // Debug::log(LOG, "Window %x committed", PWINDOW); // SPAM!

@@ -963,7 +963,7 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
     if (!pKeyboard->enabled)
         return;
 
-    static auto* const PDPMS = &g_pConfigManager->getConfigValuePtr("key_press_enables_dpms")->intValue;
+    static auto* const PDPMS = &g_pConfigManager->getConfigValuePtr("misc:key_press_enables_dpms")->intValue;
     if (*PDPMS && g_pCompositor->m_bDPMSStateON) {
         // enable dpms
         g_pKeybindManager->dpms("on");

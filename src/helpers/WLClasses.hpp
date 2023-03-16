@@ -358,6 +358,8 @@ struct STouchDevice {
 struct SSwitchDevice {
     wlr_input_device* pWlrDevice = nullptr;
 
+    int               status = -1; // uninitialized
+
     DYNLISTENER(destroy);
     DYNLISTENER(toggle);
 

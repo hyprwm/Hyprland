@@ -1836,6 +1836,9 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
         const auto DESCRIPTION = name.substr(5);
 
         for (auto& m : m_vMonitors) {
+            if (!m->output)
+                continue;
+
             if (m->output->description && std::string(m->output->description).find(DESCRIPTION) == 0) {
                 return m.get();
             }

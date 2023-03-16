@@ -1761,6 +1761,9 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
 
 void CConfigManager::ensureDPMS() {
     for (auto& rm : g_pCompositor->m_vRealMonitors) {
+        if (!rm->output)
+            continue;
+
         auto rule = getMonitorRuleFor(rm->szName, rm->output->description ? rm->output->description : "");
 
         if (rule.disabled == rm->m_bEnabled) {
@@ -1774,6 +1777,9 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
     static auto* const PVRR = &getConfigValuePtr("misc:vrr")->intValue;
 
     static auto        ensureVRRForDisplay = [&](CMonitor* m) -> void {
+        if (!m->output)
+            return;
+
         if (*PVRR == 0) {
             if (m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 0);

@@ -1661,6 +1661,9 @@ void CKeybindManager::forceRendererReload(std::string args) {
     bool overAgain = false;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
+        if (!m->output)
+            continue;
+
         auto rule = g_pConfigManager->getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule, true)) {
             overAgain = true;

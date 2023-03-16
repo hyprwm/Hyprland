@@ -20,6 +20,9 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "[";
 
         for (auto& m : g_pCompositor->m_vMonitors) {
+            if (!m->output)
+                continue;
+
             result += getFormat(
                 R"#({
     "id": %i,
@@ -58,6 +61,9 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "]";
     } else {
         for (auto& m : g_pCompositor->m_vMonitors) {
+            if (!m->output)
+                continue;
+
             result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tdescription: %s\n\tmake: %s\n\tmodel: %s\n\tserial: %s\n\tactive workspace: %i (%s)\n\treserved: %i "
                                 "%i %i %i\n\tscale: %.2f\n\ttransform: "
                                 "%i\n\tfocused: %s\n\tdpmsStatus: %i\n\tvrr: %i\n\n",

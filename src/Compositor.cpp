@@ -151,7 +151,6 @@ void CCompositor::initServer() {
     m_sWLRDataDevMgr    = wlr_data_device_manager_create(m_sWLDisplay);
 
     wlr_export_dmabuf_manager_v1_create(m_sWLDisplay);
-    wlr_screencopy_manager_v1_create(m_sWLDisplay);
     wlr_data_control_manager_v1_create(m_sWLDisplay);
     wlr_gamma_control_manager_v1_create(m_sWLDisplay);
     wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);

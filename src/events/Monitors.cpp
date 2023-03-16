@@ -322,6 +322,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (!wlr_output_commit(PMONITOR->output))
         return;
 
+    g_pProtocolManager->m_pScreencopyProtocolManager->onRenderEnd(PMONITOR);
+
     if (*PDAMAGEBLINK || *PVFR == 0 || PMONITOR->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 

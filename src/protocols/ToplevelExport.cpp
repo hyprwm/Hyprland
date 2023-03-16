@@ -47,11 +47,11 @@ wlr_foreign_toplevel_handle_v1* zwlrHandleFromResource(wl_resource* resource) {
     return (wlr_foreign_toplevel_handle_v1*)wl_resource_get_user_data(resource);
 }
 
-void handleCaptureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, uint32_t handle) {
+static void handleCaptureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, uint32_t handle) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, g_pCompositor->getWindowFromHandle(handle));
 }
 
-void handleCaptureToplevelWithWlr(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* handle) {
+static void handleCaptureToplevelWithWlr(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* handle) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, g_pCompositor->getWindowFromZWLRHandle(handle));
 }
 
@@ -59,11 +59,11 @@ static void handleDestroy(wl_client* client, wl_resource* resource) {
     wl_resource_destroy(resource);
 }
 
-void handleCopyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage) {
+static void handleCopyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->copyFrame(client, resource, buffer, ignore_damage);
 }
 
-void handleDestroyFrame(wl_client* client, wl_resource* resource) {
+static void handleDestroyFrame(wl_client* client, wl_resource* resource) {
     wl_resource_destroy(resource);
 }
 
@@ -75,12 +75,12 @@ static const struct hyprland_toplevel_export_manager_v1_interface toplevelExport
 
 static const struct hyprland_toplevel_export_frame_v1_interface toplevelFrameImpl = {.copy = handleCopyFrame, .destroy = handleDestroyFrame};
 
-SToplevelClient*                                                clientFromResource(wl_resource* resource) {
+static SToplevelClient*                                         clientFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_manager_v1_interface, &toplevelExportManagerImpl));
     return (SToplevelClient*)wl_resource_get_user_data(resource);
 }
 
-SToplevelFrame* frameFromResource(wl_resource* resource) {
+static SToplevelFrame* frameFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_frame_v1_interface, &toplevelFrameImpl));
     return (SToplevelFrame*)wl_resource_get_user_data(resource);
 }
@@ -122,7 +122,7 @@ void CToplevelExportProtocolManager::bindManager(wl_client* client, void* data, 
     Debug::log(LOG, "ToplevelExportManager bound successfully!");
 }
 
-void handleFrameResourceDestroy(wl_resource* resource) {
+static void handleFrameResourceDestroy(wl_resource* resource) {
     const auto PFRAME = frameFromResource(resource);
 
     g_pProtocolManager->m_pToplevelExportProtocolManager->removeFrame(PFRAME);

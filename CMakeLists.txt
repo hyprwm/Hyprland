@@ -72,6 +72,15 @@ file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
 
+if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message(STATUS "Setting debug flags")
+
+    target_link_libraries(Hyprland asan)
+
+    add_compile_options(-pg -no-pie -fno-builtin -fsanitize=address)
+    add_link_options(-pg -no-pie -fno-builtin)
+endif()
+
 include(CheckLibraryExists)
 check_library_exists(execinfo backtrace "" HAVE_LIBEXECINFO)
 if(HAVE_LIBEXECINFO)
@@ -123,15 +132,6 @@ message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland PkgConfig::deps)
 
-if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-    message(STATUS "Setting debug flags")
-
-    target_link_libraries(Hyprland asan)
-
-    add_compile_options(-pg -no-pie -fno-builtin -fsanitize=address)
-    add_link_options(-pg -no-pie -fno-builtin)
-endif()
-
 target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us
         pixman-1
@@ -144,5 +144,6 @@ target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/hyprland-toplevel-export-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/fractional-scale-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/text-input-unstable-v1-protocol.o
+        ${CMAKE_SOURCE_DIR}/wlr-screencopy-unstable-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
 )

@@ -15,6 +15,8 @@ struct SLayerRule {
 struct SLayerSurface {
     SLayerSurface();
 
+    void                  applyRules();
+
     wlr_layer_surface_v1* layerSurface;
     wl_list               link;
 
@@ -40,7 +42,8 @@ struct SLayerSurface {
     bool                      noProcess     = false;
     bool                      noAnimations  = false;
 
-    bool                      forceBlur = false;
+    bool                      forceBlur  = false;
+    bool                      ignoreZero = false;
 
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) const {

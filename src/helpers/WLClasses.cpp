@@ -6,3 +6,18 @@ SLayerSurface::SLayerSurface() {
     alpha.m_pLayer = this;
     alpha.registerVar();
 }
+
+void SLayerSurface::applyRules() {
+    noAnimations = false;
+    forceBlur    = false;
+    ignoreZero   = false;
+
+    for (auto& rule : g_pConfigManager->getMatchingRules(this)) {
+        if (rule.rule == "noanim")
+            noAnimations = true;
+        else if (rule.rule == "blur")
+            forceBlur = true;
+        else if (rule.rule == "ignorezero")
+            ignoreZero = true;
+    }
+}

@@ -768,7 +768,7 @@ bool windowRuleValid(const std::string& RULE) {
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return !(RULE != "noanim");
+    return !(RULE != "noanim" && RULE != "blur" && RULE != "ignorezero");
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
@@ -800,9 +800,8 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
     const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE == "" || VALUE == "") {
+    if (RULE == "" || VALUE == "")
         return;
-    }
 
     if (RULE == "unset") {
         std::erase_if(m_dLayerRules, [&](const SLayerRule& other) { return other.targetNamespace == VALUE; });
@@ -816,6 +815,11 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
     }
 
     m_dLayerRules.push_back({VALUE, RULE});
+
+    for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto& lsl : m->m_aLayerSurfaceLayers)
+            for (auto& ls : lsl)
+                ls->applyRules();
 }
 
 void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {

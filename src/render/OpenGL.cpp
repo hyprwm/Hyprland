@@ -190,6 +190,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.texAttrib            = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shRGBA.posAttrib            = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBA.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
+    m_RenderData.pCurrentMonData->m_shRGBA.discardAlphaZero     = glGetUniformLocation(prog, "discardAlphaZero");
     m_RenderData.pCurrentMonData->m_shRGBA.topLeft              = glGetUniformLocation(prog, "topLeft");
     m_RenderData.pCurrentMonData->m_shRGBA.fullSize             = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBA.radius               = glGetUniformLocation(prog, "radius");
@@ -466,15 +467,15 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
     renderTexture(CTexture(tex), pBox, alpha, round, false, allowCustomUV);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowCustomUV) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardActive, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowCustomUV, true);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardActive, false, allowCustomUV, true);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA,
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardActive, bool noAA,
                                                       bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
@@ -542,7 +543,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     if (!usingFinalShader) {
         glUniform1f(shader->alpha, alpha);
-        glUniform1i(shader->discardOpaque, (int)discardOpaque);
+
+        if (discardActive) {
+            glUniform1i(shader->discardOpaque, !!(m_RenderData.discardMode & DISCARD_OPAQUE));
+            glUniform1i(shader->discardAlphaZero, !!(m_RenderData.discardMode & DISCARD_ALPHAZERO));
+        } else {
+            glUniform1i(shader->discardOpaque, 0);
+            glUniform1i(shader->discardAlphaZero, 0);
+        }
     }
 
     wlr_box transformedBox;

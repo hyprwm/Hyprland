@@ -376,7 +376,11 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.w                     = pLayer->geometry.width;
     renderdata.h                     = pLayer->geometry.height;
     renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+
+    if (pLayer->ignoreZero)
+        g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHAZERO;
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
+    g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHAZERO;
 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;

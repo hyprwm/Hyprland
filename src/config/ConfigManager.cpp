@@ -1650,10 +1650,15 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
     std::vector<SLayerRule> returns;
 
     for (auto& lr : m_dLayerRules) {
-        std::regex NSCHECK(lr.targetNamespace);
+        if (lr.targetNamespace.find("address:0x") == 0) {
+            if (getFormat("address:0x%x", pLS) != lr.targetNamespace)
+                continue;
+        } else {
+            std::regex NSCHECK(lr.targetNamespace);
 
-        if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
-            continue;
+            if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
+                continue;
+        }
 
         // hit
         returns.push_back(lr);

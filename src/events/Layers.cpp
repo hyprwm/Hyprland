@@ -121,10 +121,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     if (!PMONITOR)
         return;
 
-    for (auto& rule : g_pConfigManager->getMatchingRules(layersurface)) {
-        if (rule.rule == "noanim")
-            layersurface->noAnimations = true;
-    }
+    layersurface->applyRules();
 
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);

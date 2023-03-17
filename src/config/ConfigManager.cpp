@@ -1664,6 +1664,9 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
         returns.push_back(lr);
     }
 
+    if (pLS->layerSurface->_namespace && shouldBlurLS(pLS->layerSurface->_namespace))
+        returns.push_back({pLS->layerSurface->_namespace, "blur"});
+
     return returns;
 }
 

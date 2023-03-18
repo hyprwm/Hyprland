@@ -838,7 +838,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             if (anotherMonitor)
                 g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
 
-            g_pCompositor->focusWindow(PWINDOW, g_pXWaylandManager->getWindowSurface(PWINDOW));
+            g_pCompositor->focusWindow(PWINDOW, PWINDOW->m_pWLSurface.wlr());
 
             if (g_pCompositor->cursorOnReservedArea()) // fix focus on bars etc
                 g_pInputManager->refocus();
@@ -1857,9 +1857,9 @@ void CKeybindManager::pass(std::string regexp) {
     // pass all mf shit
     if (!XWTOXW) {
         if (g_pKeybindManager->m_uLastCode != 0)
-            wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+            wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
         else
-            wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), 1, 1);
+            wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), 1, 1);
     }
 
     wlr_keyboard_modifiers kbmods = {g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0};
@@ -1905,7 +1905,7 @@ void CKeybindManager::pass(std::string regexp) {
     if (g_pKeybindManager->m_uLastCode != 0)
         wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
     else
-        wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), SL.x, SL.y);
+        wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), SL.x, SL.y);
 }
 
 void CKeybindManager::layoutmsg(std::string msg) {

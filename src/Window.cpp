@@ -265,9 +265,9 @@ void CWindow::updateSurfaceOutputs() {
     const auto PNEWMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
     if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)
-        wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendLeaveIter, PLASTMONITOR->output);
+        wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
 
-    wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendEnterIter, PNEWMONITOR->output);
+    wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
 }
 
 void CWindow::moveToWorkspace(int workspaceID) {
@@ -280,7 +280,7 @@ void CWindow::moveToWorkspace(int workspaceID) {
         }
 
         if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(g_pXWaylandManager->getWindowSurface(this), PMONITOR->scale);
+            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PMONITOR->scale);
     }
 }
 
@@ -335,6 +335,8 @@ void CWindow::onUnmap() {
 }
 
 void CWindow::onMap() {
+
+    m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(this));
 
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
     m_vRealPosition.resetAllCallbacks();

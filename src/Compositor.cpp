@@ -872,7 +872,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     m_pLastWindow = PLASTWINDOW;
 
-    const auto PWINDOWSURFACE = pSurface ? pSurface : g_pXWaylandManager->getWindowSurface(pWindow);
+    const auto PWINDOWSURFACE = pSurface ? pSurface : pWindow->m_pWLSurface.wlr();
 
     focusSurface(PWINDOWSURFACE, pWindow);
 
@@ -926,8 +926,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
 
-    if (m_sSeat.seat->keyboard_state.focused_surface == pSurface ||
-        (pWindowOwner && m_sSeat.seat->keyboard_state.focused_surface == g_pXWaylandManager->getWindowSurface(pWindowOwner)))
+    if (m_sSeat.seat->keyboard_state.focused_surface == pSurface || (pWindowOwner && m_sSeat.seat->keyboard_state.focused_surface == pWindowOwner->m_pWLSurface.wlr()))
         return; // Don't focus when already focused on this.
 
     if (g_pSessionLockManager->isSessionLocked()) {
@@ -1038,7 +1037,7 @@ CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
         if (!w->m_bIsMapped || w->m_bFadingOut || !w->m_bMappedX11)
             continue;
 
-        if (g_pXWaylandManager->getWindowSurface(w.get()) == pSurface)
+        if (w->m_pWLSurface.wlr() == pSurface)
             return w.get();
     }
 
@@ -1188,7 +1187,7 @@ bool CCompositor::isWindowActive(CWindow* pWindow) {
     if (!windowValidMapped(pWindow))
         return false;
 
-    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+    const auto PSURFACE = pWindow->m_pWLSurface.wlr();
 
     return PSURFACE == m_pLastFocus || pWindow == m_pLastWindow;
 }
@@ -1525,11 +1524,11 @@ CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
     const auto PSURFACE = pMouse->currentConstraint->surface;
 
     for (auto& w : m_vWindows) {
-        if (w->isHidden() || !w->m_bMappedX11 || !w->m_bIsMapped || !g_pXWaylandManager->getWindowSurface(w.get()))
+        if (w->isHidden() || !w->m_bMappedX11 || !w->m_bIsMapped || !w->m_pWLSurface.exists())
             continue;
 
         if (w->m_bIsX11) {
-            if (PSURFACE == g_pXWaylandManager->getWindowSurface(w.get()))
+            if (PSURFACE == w->m_pWLSurface.wlr())
                 return w.get();
         } else {
             std::pair<wlr_surface*, bool> check = {PSURFACE, false};

@@ -1653,6 +1653,9 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
     std::vector<SLayerRule> returns;
 
+    if (!pLS->layerSurface || pLS->fadingOut)
+        return returns;
+
     for (auto& lr : m_dLayerRules) {
         if (lr.targetNamespace.find("address:0x") == 0) {
             if (getFormat("address:0x%x", pLS) != lr.targetNamespace)

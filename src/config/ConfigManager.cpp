@@ -558,6 +558,12 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         } else if (ARGS[argno] == "bitdepth") {
             newrule.enable10bit = ARGS[argno + 1] == "10";
             argno++;
+        } else if (ARGS[argno] == "transform") {
+            newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
+            argno++;
+        } else if (ARGS[argno] == "workspace") {
+            m_mDefaultWorkspaces[newrule.name] = ARGS[argno + 1];
+            argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax");
             parseError = "invalid syntax at \"" + ARGS[argno] + "\"";
@@ -982,12 +988,7 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
     const auto ARGS = CVarList(value);
 
-    for (auto& mr : m_dMonitorRules) {
-        if (mr.name == ARGS[0]) {
-            mr.defaultWorkspace = ARGS[1];
-            break;
-        }
-    }
+    m_mDefaultWorkspaces[ARGS[0]] = ARGS[1];
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
@@ -1925,4 +1926,11 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
 
 void CConfigManager::removePluginConfig(HANDLE handle) {
     std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
+}
+
+std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
+    const auto IT = std::find_if(m_mDefaultWorkspaces.begin(), m_mDefaultWorkspaces.end(), [&](const auto& other) { return other.first == name; });
+    if (IT == m_mDefaultWorkspaces.end())
+        return "";
+    return IT->second;
 }

@@ -125,11 +125,21 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (MONITORSTR == "unset") {
                     PWINDOW->m_iMonitorID = PMONITOR->ID;
                 } else {
-                    const long int MONITOR = std::stoi(MONITORSTR);
-                    if (!g_pCompositor->getMonitorFromID(MONITOR))
-                        PWINDOW->m_iMonitorID = 0;
-                    else
-                        PWINDOW->m_iMonitorID = MONITOR;
+                    if (isNumber(MONITORSTR)) {
+                        const long int MONITOR = std::stoi(MONITORSTR);
+                        if (!g_pCompositor->getMonitorFromID(MONITOR))
+                            PWINDOW->m_iMonitorID = 0;
+                        else
+                            PWINDOW->m_iMonitorID = MONITOR;
+                    } else {
+                        const auto PMONITOR = g_pCompositor->getMonitorFromName(MONITORSTR);
+                        if (PMONITOR)
+                            PWINDOW->m_iMonitorID = PMONITOR->ID;
+                        else {
+                            Debug::log(ERR, "No monitor in monitor %s rule", MONITORSTR.c_str());
+                            continue;
+                        }
+                    }
                 }
 
                 PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;

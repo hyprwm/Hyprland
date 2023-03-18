@@ -317,6 +317,7 @@ class CWindow {
     CWindow*                 getGroupCurrent();
     void                     setGroupCurrent(CWindow* pWindow);
     void                     insertWindowToGroup(CWindow* pWindow);
+    void                     updateGroupOutputs();
 
   private:
     // For hidden windows and stuff

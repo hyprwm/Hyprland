@@ -187,7 +187,7 @@ class CConfigManager {
   private:
     std::deque<std::string>                                                                    configPaths;       // stores all the config paths
     std::unordered_map<std::string, time_t>                                                    configModifyTimes; // stores modify times
-    std::unordered_map<std::string, std::string>                                               configDynamicVars; // stores dynamic vars declared by the user
+    std::vector<std::pair<std::string, std::string>>                                           configDynamicVars; // stores dynamic vars declared by the user
     std::unordered_map<std::string, SConfigValue>                                              configValues;
     std::unordered_map<std::string, std::unordered_map<std::string, SConfigValue>>             deviceConfigs; // stores device configs
 
@@ -215,7 +215,7 @@ class CConfigManager {
     bool                                                                                       firstExecDispatched = false;
     std::deque<std::string>                                                                    firstExecRequests;
 
-    std::unordered_map<std::string, std::string>                                               environmentVariables;
+    std::vector<std::pair<std::string, std::string>>                                           environmentVariables;
 
     // internal methods
     void         setDefaultVars();

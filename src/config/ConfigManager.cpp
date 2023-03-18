@@ -40,11 +40,13 @@ CConfigManager::CConfigManager() {
 void CConfigManager::populateEnvironment() {
     environmentVariables.clear();
     for (char** env = environ; *env; ++env) {
-        const std::string ENVVAR       = *env;
-        const auto        VARIABLE     = ENVVAR.substr(0, ENVVAR.find_first_of('='));
-        const auto        VALUE        = ENVVAR.substr(ENVVAR.find_first_of('=') + 1);
-        environmentVariables[VARIABLE] = VALUE;
+        const std::string ENVVAR   = *env;
+        const auto        VARIABLE = ENVVAR.substr(0, ENVVAR.find_first_of('='));
+        const auto        VALUE    = ENVVAR.substr(ENVVAR.find_first_of('=') + 1);
+        environmentVariables.emplace_back(std::make_pair<>(VARIABLE, VALUE));
     }
+
+    std::sort(environmentVariables.begin(), environmentVariables.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
 }
 
 void CConfigManager::setDefaultVars() {
@@ -293,7 +295,9 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
             if (COMMAND[0] == '$') {
                 // register a dynamic var
                 Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
-                configDynamicVars[COMMAND.substr(1)] = VALUE;
+                configDynamicVars.emplace_back(std::make_pair<>(COMMAND.substr(1), VALUE));
+
+                std::sort(configDynamicVars.begin(), configDynamicVars.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
             } else {
                 parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
             }

@@ -1074,6 +1074,10 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
 void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFramebuffer) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    if (!PMONITOR || !PMONITOR->output)
+        return;
+
     wlr_output_attach_render(PMONITOR->output, nullptr);
 
     // we need to "damage" the entire monitor
@@ -1129,6 +1133,10 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFra
 void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    if (!PMONITOR || !PMONITOR->output)
+        return;
+
     wlr_output_attach_render(PMONITOR->output, nullptr);
 
     // we need to "damage" the entire monitor
@@ -1189,6 +1197,10 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pLayer->monitorID);
+
+    if (!PMONITOR || !PMONITOR->output)
+        return;
+
     wlr_output_attach_render(PMONITOR->output, nullptr);
 
     // we need to "damage" the entire monitor

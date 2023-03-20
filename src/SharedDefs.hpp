@@ -7,5 +7,6 @@ enum eIcons
     ICON_HINT,
     ICON_ERROR,
     ICON_CONFUSED,
+    ICON_OK,
     ICON_NONE
 };

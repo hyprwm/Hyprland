@@ -222,7 +222,7 @@ namespace HyprlandAPI {
         data has to contain:
          - text: std::string or const char*
          - time: uint64_t
-         - color: CColor
+         - color: CColor -> CColor(0) will apply the default color for the notification icon
 
         data may contain:
          - icon: eIcons

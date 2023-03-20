@@ -40,7 +40,7 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CC
     const auto PNOTIF = m_dNotifications.emplace_back(std::make_unique<SNotification>()).get();
 
     PNOTIF->text  = text;
-    PNOTIF->color = color;
+    PNOTIF->color = color == CColor(0) ? ICONS_COLORS[icon] : color;
     PNOTIF->started.reset();
     PNOTIF->timeMs = timeMs;
     PNOTIF->icon   = icon;

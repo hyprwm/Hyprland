@@ -189,6 +189,7 @@ class CCompositor {
     void           setActiveMonitor(CMonitor*);
     bool           isWorkspaceSpecial(const int&);
     int            getNewSpecialID();
+    void           performUserChecks();
 
     std::string    explicitConfigPath;
 

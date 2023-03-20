@@ -2292,3 +2292,13 @@ int CCompositor::getNewSpecialID() {
 
     return highest + 1;
 }
+
+void CCompositor::performUserChecks() {
+    static constexpr auto BAD_PORTALS = {"kde", "gnome", "wlr"};
+
+    if (std::ranges::any_of(BAD_PORTALS, [&](const std::string& portal) { return std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/" + portal + ".portal"); })) {
+        // bad portal detected
+        g_pHyprNotificationOverlay->addNotification("You have one or more incompatible xdg-desktop-portal impls installed. Please remove incompatible ones to avoid issues.",
+                                                    ICONS_COLORS[ICON_ERROR], 15000, ICON_ERROR);
+    }
+}

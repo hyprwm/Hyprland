@@ -193,3 +193,51 @@ APICALL bool HyprlandAPI::removeDispatcher(HANDLE handle, const std::string& nam
 
     return true;
 }
+
+APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::string, std::any>& data) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    try {
+        auto iterator = data.find("text");
+        if (iterator == data.end())
+            return false;
+
+        // mandatory
+        std::string text;
+        try {
+            text = std::any_cast<std::string>(iterator->second);
+        } catch (std::exception& e) {
+            // attempt const char*
+            text = std::any_cast<const char*>(iterator->second);
+        }
+
+        iterator = data.find("time");
+        if (iterator == data.end())
+            return false;
+
+        const auto TIME = std::any_cast<uint64_t>(iterator->second);
+
+        iterator = data.find("color");
+        if (iterator == data.end())
+            return false;
+
+        const auto COLOR = std::any_cast<CColor>(iterator->second);
+
+        // optional
+        eIcons icon = ICON_NONE;
+        iterator    = data.find("icon");
+        if (iterator != data.end())
+            icon = std::any_cast<eIcons>(iterator->second);
+
+        g_pHyprNotificationOverlay->addNotification(text, COLOR, TIME, icon);
+
+    } catch (std::exception& e) {
+        // bad any_cast most likely, plugin error
+        return false;
+    }
+
+    return true;
+}

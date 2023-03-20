@@ -6,6 +6,7 @@
 #include "../Window.hpp"
 #include "SubsurfaceTree.hpp"
 #include "AnimatedVariable.hpp"
+#include "WLSurface.hpp"
 
 struct SLayerRule {
     std::string targetNamespace = "";
@@ -19,6 +20,9 @@ struct SLayerSurface {
 
     wlr_layer_surface_v1* layerSurface;
     wl_list               link;
+
+    CWLSurface            surface;
+    std::list<CWLSurface> popupSurfaces;
 
     DYNLISTENER(destroyLayerSurface);
     DYNLISTENER(mapLayerSurface);
@@ -172,6 +176,7 @@ class CMonitor;
 
 struct SXDGPopup {
     CWindow*       parentWindow = nullptr;
+    SLayerSurface* parentLS     = nullptr;
     SXDGPopup*     parentPopup  = nullptr;
     wlr_xdg_popup* popup        = nullptr;
     CMonitor*      monitor      = nullptr;

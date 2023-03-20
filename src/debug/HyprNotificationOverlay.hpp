@@ -4,6 +4,7 @@
 #include "../helpers/Timer.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../render/Texture.hpp"
+#include "../SharedDefs.hpp"
 
 #include <deque>
 
@@ -14,16 +15,6 @@ enum eIconBackend
     ICONS_BACKEND_NONE = 0,
     ICONS_BACKEND_NF,
     ICONS_BACKEND_FA
-};
-
-enum eIcons
-{
-    ICON_WARNING = 0,
-    ICON_INFO,
-    ICON_HINT,
-    ICON_ERROR,
-    ICON_CONFUSED,
-    ICON_NONE
 };
 
 static const std::array<std::array<std::string, ICON_NONE + 1>, 3 /* backends */> ICONS_ARRAY = {std::array<std::string, ICON_NONE + 1>{"[!]", "[i]", "[Hint]", "[Err]", "[?]", ""},

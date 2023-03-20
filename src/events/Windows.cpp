@@ -73,7 +73,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // registers the animated vars and stuff
     PWINDOW->onMap();
 
-    const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(PWINDOW);
+    const auto PWINDOWSURFACE = PWINDOW->m_pWLSurface.wlr();
 
     if (!PWINDOWSURFACE) {
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
@@ -492,7 +492,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
 
-    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);
+    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(PWINDOW->m_pWLSurface.wlr(), addViewCoords, PWINDOW, PWINDOW);
 
     PWINDOW->updateToplevel();
 
@@ -575,7 +575,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PMONITOR->scale);
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -708,7 +708,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
 
     PWINDOW->updateSurfaceOutputs();
 
-    g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
+    g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
 
     // Debug::log(LOG, "Window %x committed", PWINDOW); // SPAM!
 }

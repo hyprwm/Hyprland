@@ -130,7 +130,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             }
 
             if (CONSTRAINTWINDOW->m_bIsX11) {
-                foundSurface = g_pXWaylandManager->getWindowSurface(CONSTRAINTWINDOW);
+                foundSurface = CONSTRAINTWINDOW->m_pWLSurface.wlr();
                 surfacePos   = CONSTRAINTWINDOW->m_vRealPosition.vec();
             } else {
                 g_pCompositor->vectorWindowToSurface(mouseCoords, CONSTRAINTWINDOW, surfaceCoords);
@@ -198,7 +198,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             surfacePos   = Vector2D(-1337, -1337);
         } else {
-            foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+            foundSurface = pFoundWindow->m_pWLSurface.wlr();
             surfacePos   = pFoundWindow->m_vRealPosition.vec();
         }
     }
@@ -232,7 +232,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (!pFoundWindow->m_bIsX11) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             } else {
-                foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+                foundSurface = pFoundWindow->m_pWLSurface.wlr();
                 surfacePos   = pFoundWindow->m_vRealPosition.vec();
             }
         }
@@ -1127,7 +1127,7 @@ void CInputManager::unconstrainMouse() {
     const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
     if (CONSTRAINTWINDOW) {
-        g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(CONSTRAINTWINDOW), false);
+        g_pXWaylandManager->activateSurface(CONSTRAINTWINDOW->m_pWLSurface.wlr(), false);
     }
 
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);

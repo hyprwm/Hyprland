@@ -285,7 +285,7 @@ void CWindow::moveToWorkspace(int workspaceID) {
     }
 
     if (PMONITOR)
-        g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(g_pXWaylandManager->getWindowSurface(m_pWLSurface.wlr()), PMONITOR->scale);
+        g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PMONITOR->scale);
 }
 
 CWindow* CWindow::X11TransientFor() {

@@ -986,8 +986,9 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWORKSPACE = g_pCompositor->createNewWorkspace(WORKSPACEID, OLDWORKSPACE->m_iMonitorID, workspaceName);
     }
 
-    PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
     PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
+    PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
+    PWINDOW->updateGroupOutputs();
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_FULL);
@@ -1273,6 +1274,8 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+
+    g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.vec() + PLASTWINDOW->m_vRealSize.vec() / 2.0);
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

@@ -77,6 +77,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pMouseDownHook = HyprlandAPI::createFunctionHook(
         PHANDLE, HyprlandAPI::getFunctionAddressFromSignature(PHANDLE, "_ZN13CInputManager22processMouseDownNormalEP24wlr_pointer_button_event"), (void*)&hkProcessMouseDownNormal);
 
+    // fancy notifications
+    HyprlandAPI::addNotificationV2(PHANDLE, {{"text", "Example hint"}, {"time", (uint64_t)10000}, {"color", CColor(0.2, 0.2, 0.9, 1.0)}, {"icon", ICON_HINT}});
+
     // Enable our hooks
     g_pFocusHook->hook();
     g_pMotionHook->hook();

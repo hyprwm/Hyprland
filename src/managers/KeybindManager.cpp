@@ -1274,6 +1274,8 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+
+    g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.vec() + PLASTWINDOW->m_vRealSize.vec() / 2.0);
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

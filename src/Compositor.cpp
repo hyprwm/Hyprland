@@ -1715,6 +1715,11 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == PWORKSPACEA->m_iID) {
+            if (w->m_bPinned) {
+                w->m_iWorkspaceID = PWORKSPACEB->m_iID;
+                continue;
+            }
+
             w->m_iMonitorID = pMonitorB->ID;
 
             // additionally, move floating and fs windows manually
@@ -1735,6 +1740,11 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == PWORKSPACEB->m_iID) {
+            if (w->m_bPinned) {
+                w->m_iWorkspaceID = PWORKSPACEA->m_iID;
+                continue;
+            }
+
             w->m_iMonitorID = pMonitorA->ID;
 
             // additionally, move floating and fs windows manually
@@ -1747,17 +1757,6 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
             }
 
             w->updateToplevel();
-        }
-    }
-
-    // fix pinned windows
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == pMonitorA->activeWorkspace && w->m_bPinned) {
-            w->m_iWorkspaceID = PWORKSPACEB->m_iID;
-        }
-
-        if (w->m_iWorkspaceID == pMonitorB->activeWorkspace && w->m_bPinned) {
-            w->m_iWorkspaceID = PWORKSPACEA->m_iID;
         }
     }
 
@@ -1910,6 +1909,11 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == pWorkspace->m_iID) {
+            if (w->m_bPinned) {
+                w->m_iWorkspaceID = nextWorkspaceOnMonitorID;
+                continue;
+            }
+
             w->m_iMonitorID = pMonitor->ID;
 
             // additionally, move floating and fs windows manually

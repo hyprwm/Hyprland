@@ -772,7 +772,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         if (pWindow->m_sAdditionalConfigData.forceNoBlur)
             return false;
 
-        const auto  PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+        const auto  PSURFACE = pWindow->m_pWLSurface.wlr();
 
         const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
         const float A          = pWindow->m_fAlpha.fl() * pWindow->m_fActiveInactiveAlpha.fl() * PWORKSPACE->m_fAlpha.fl();

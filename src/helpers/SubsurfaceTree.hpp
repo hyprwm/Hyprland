@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include <list>
+#include "WLSurface.hpp"
 
 struct SSubsurface;
 class CWindow;
@@ -9,7 +10,8 @@ class CWindow;
 typedef void (*applyGlobalOffsetFn)(void*, int*, int*);
 
 struct SSurfaceTreeNode {
-    wlr_surface* pSurface = nullptr;
+    CWLSurface* pSurface = nullptr; // actual surface
+    CWLSurface  pInternalSurface;   // not present for head nodes to not dupe wlr_surface ownership
 
     DYNLISTENER(newSubsurface);
     DYNLISTENER(commit);

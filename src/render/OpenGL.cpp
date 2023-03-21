@@ -652,15 +652,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     wlr_region_transform(&damage, &damage, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
                          m_RenderData.pMonitor->vecTransformedSize.y);
 
-    {
-        auto BLURRADIUS = *PBLURSIZE * pow(2, *PBLURPASSES);
-
-        if(std::isnan(BLURRADIUS) || BLURRADIUS > std::numeric_limits<int>::max()){
-            BLURRADIUS = 0;
-        }
-
-        wlr_region_expand(&damage, &damage, BLURRADIUS);
-    }
+    wlr_region_expand(&damage, &damage, *PBLURPASSES > 10 ? pow(2, 15) : *PBLURSIZE * pow(2, *PBLURPASSES));
 
     // helper
     const auto    PMIRRORFB     = &m_RenderData.pCurrentMonData->mirrorFB;

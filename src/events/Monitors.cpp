@@ -101,6 +101,13 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         const auto POS = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
         if (g_pCompositor->m_sSeat.mouse)
             wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
+    } else {
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (w->m_iMonitorID == PNEWMONITOR->ID) {
+                w->m_iLastSurfaceMonitorID = -1;
+                w->updateSurfaceOutputs();
+            }
+        }
     }
 }
 

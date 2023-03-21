@@ -66,11 +66,20 @@ message(STATUS "Checking deps...")
 find_package(Threads REQUIRED)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm egl xkbcommon libinput) # we do not check for wlroots, as we provide it ourselves
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm egl xkbcommon libinput pango pangocairo) # we do not check for wlroots, as we provide it ourselves
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
+
+if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message(STATUS "Setting debug flags")
+
+    target_link_libraries(Hyprland asan)
+
+    add_compile_options(-pg -no-pie -fno-builtin -fsanitize=address)
+    add_link_options(-pg -no-pie -fno-builtin)
+endif()
 
 include(CheckLibraryExists)
 check_library_exists(execinfo backtrace "" HAVE_LIBEXECINFO)
@@ -122,15 +131,6 @@ include(CPack)
 message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland PkgConfig::deps)
-
-if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-    message(STATUS "Setting debug flags")
-
-    target_link_libraries(Hyprland asan)
-
-    add_compile_options(-pg -no-pie -fno-builtin -fsanitize=address)
-    add_link_options(-pg -no-pie -fno-builtin)
-endif()
 
 target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us

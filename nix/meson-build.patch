@@ -1,5 +1,5 @@
 diff --git a/meson.build b/meson.build
-index f380255..abd7cd3 100644
+index f3802553..6a924a79 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -21,9 +21,9 @@ else
@@ -14,14 +14,14 @@ index f380255..abd7cd3 100644
  
  add_project_arguments(
    [
-@@ -39,23 +39,8 @@ add_project_arguments(
+@@ -39,21 +39,8 @@ add_project_arguments(
    ],
    language: 'cpp')
  
 -wlroots = subproject('wlroots', default_options: ['examples=false'])
 -have_xwlr = wlroots.get_variable('features').get('xwayland')
- xcb_dep = dependency('xcb', required: get_option('xwayland'))
- 
+-xcb_dep = dependency('xcb', required: get_option('xwayland'))
+-
 -cmake = import('cmake')
 -udis = cmake.subproject('udis86')
 -udis86 = udis.dependency('libudis86')
@@ -32,17 +32,17 @@ index f380255..abd7cd3 100644
 -have_xwayland = xcb_dep.found() and have_xwlr
 -
 -if not have_xwayland
--add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
--endif
--
- backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
- systemd_dep = dependency('libsystemd', required: get_option('systemd'))
+-  add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
++if get_option('xwayland').disabled()
++  add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
+ endif
  
+ backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
 diff --git a/src/meson.build b/src/meson.build
-index 7b658d3..da8baa5 100644
+index 7b658d31..60aa4057 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -7,7 +7,7 @@ executable('Hyprland', src,
+@@ -7,16 +7,16 @@ executable('Hyprland', src,
      server_protos,
      dependency('wayland-server'),
      dependency('wayland-client'),
@@ -51,8 +51,10 @@ index 7b658d3..da8baa5 100644
      dependency('cairo'),
      dependency('libdrm'),
      dependency('egl'),
-@@ -16,7 +16,7 @@ executable('Hyprland', src,
-     xcb_dep,
+     dependency('xkbcommon'),
+     dependency('libinput'),
+-    xcb_dep,
++    dependency('xcb', required: get_option('xwayland')),
      backtrace_dep,
      systemd_dep,
 -    udis86,

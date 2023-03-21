@@ -265,23 +265,27 @@ void CWindow::updateSurfaceOutputs() {
     const auto PNEWMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
     if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)
-        wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendLeaveIter, PLASTMONITOR->output);
+        wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
 
-    wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(this), sendEnterIter, PNEWMONITOR->output);
+    wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
 }
 
 void CWindow::moveToWorkspace(int workspaceID) {
-    if (m_iWorkspaceID != workspaceID) {
-        m_iWorkspaceID = workspaceID;
+    if (m_iWorkspaceID == workspaceID)
+        return;
 
-        if (const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID); PWORKSPACE) {
-            g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", this, PWORKSPACE->m_szName.c_str())});
-            EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
-        }
+    m_iWorkspaceID = workspaceID;
 
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(g_pXWaylandManager->getWindowSurface(this), PMONITOR->scale);
+    const auto PMONITOR   = g_pCompositor->getMonitorFromID(m_iMonitorID);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+
+    if (PWORKSPACE) {
+        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", this, PWORKSPACE->m_szName.c_str())});
+        EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
     }
+
+    if (PMONITOR)
+        g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PMONITOR->scale);
 }
 
 CWindow* CWindow::X11TransientFor() {
@@ -335,6 +339,8 @@ void CWindow::onUnmap() {
 }
 
 void CWindow::onMap() {
+
+    m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(this));
 
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
     m_vRealPosition.resetAllCallbacks();
@@ -615,4 +621,21 @@ void CWindow::insertWindowToGroup(CWindow* pWindow) {
     pWindow->m_sGroupData.pNextWindow = PHEAD;
 
     setGroupCurrent(pWindow);
+}
+
+void CWindow::updateGroupOutputs() {
+    if (!m_sGroupData.pNextWindow)
+        return;
+
+    CWindow* curr = m_sGroupData.pNextWindow;
+
+    while (curr != this) {
+        curr->m_iMonitorID = m_iMonitorID;
+        curr->moveToWorkspace(m_iWorkspaceID);
+
+        curr->m_vRealPosition = m_vRealPosition.goalv();
+        curr->m_vRealSize     = m_vRealSize.goalv();
+
+        curr = curr->m_sGroupData.pNextWindow;
+    }
 }

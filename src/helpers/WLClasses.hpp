@@ -6,6 +6,7 @@
 #include "../Window.hpp"
 #include "SubsurfaceTree.hpp"
 #include "AnimatedVariable.hpp"
+#include "WLSurface.hpp"
 
 struct SLayerRule {
     std::string targetNamespace = "";
@@ -15,8 +16,13 @@ struct SLayerRule {
 struct SLayerSurface {
     SLayerSurface();
 
+    void                  applyRules();
+
     wlr_layer_surface_v1* layerSurface;
     wl_list               link;
+
+    CWLSurface            surface;
+    std::list<CWLSurface> popupSurfaces;
 
     DYNLISTENER(destroyLayerSurface);
     DYNLISTENER(mapLayerSurface);
@@ -40,7 +46,8 @@ struct SLayerSurface {
     bool                      noProcess     = false;
     bool                      noAnimations  = false;
 
-    bool                      forceBlur = false;
+    bool                      forceBlur  = false;
+    bool                      ignoreZero = false;
 
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) const {
@@ -169,6 +176,7 @@ class CMonitor;
 
 struct SXDGPopup {
     CWindow*       parentWindow = nullptr;
+    SLayerSurface* parentLS     = nullptr;
     SXDGPopup*     parentPopup  = nullptr;
     wlr_xdg_popup* popup        = nullptr;
     CMonitor*      monitor      = nullptr;
@@ -357,6 +365,8 @@ struct STouchDevice {
 
 struct SSwitchDevice {
     wlr_input_device* pWlrDevice = nullptr;
+
+    int               status = -1; // uninitialized
 
     DYNLISTENER(destroy);
     DYNLISTENER(toggle);

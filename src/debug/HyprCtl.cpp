@@ -20,6 +20,9 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "[";
 
         for (auto& m : g_pCompositor->m_vMonitors) {
+            if (!m->output)
+                continue;
+
             result += getFormat(
                 R"#({
     "id": %i,
@@ -58,6 +61,9 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "]";
     } else {
         for (auto& m : g_pCompositor->m_vMonitors) {
+            if (!m->output)
+                continue;
+
             result += getFormat("Monitor %s (ID %i):\n\t%ix%i@%f at %ix%i\n\tdescription: %s\n\tmake: %s\n\tmodel: %s\n\tserial: %s\n\tactive workspace: %i (%s)\n\treserved: %i "
                                 "%i %i %i\n\tscale: %.2f\n\ttransform: "
                                 "%i\n\tfocused: %s\n\tdpmsStatus: %i\n\tvrr: %i\n\n",
@@ -1131,6 +1137,47 @@ std::string dispatchPlugin(std::string request) {
     return "ok";
 }
 
+std::string dispatchNotify(std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    if (vars.size() < 5)
+        return "not enough args";
+
+    const auto ICON = vars[1];
+
+    if (!isNumber(ICON))
+        return "invalid arg 1";
+
+    int icon = -1;
+    try {
+        icon = std::stoi(ICON);
+    } catch (std::exception& e) { return "invalid arg 1"; }
+
+    if (icon == -1 || icon > ICON_NONE) {
+        icon = ICON_NONE;
+    }
+
+    const auto TIME = vars[2];
+    int        time = 0;
+    try {
+        time = std::stoi(TIME);
+    } catch (std::exception& e) { return "invalid arg 2"; }
+
+    CColor      color = configStringToInt(vars[3]);
+
+    std::string message = "";
+
+    for (size_t i = 4; i < vars.size(); ++i) {
+        message += vars[i] + " ";
+    }
+
+    message.pop_back();
+
+    g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon);
+
+    return "ok";
+}
+
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
@@ -1180,6 +1227,8 @@ std::string getReply(std::string request) {
         return animationsRequest(format);
     else if (request.find("plugin") == 0)
         return dispatchPlugin(request);
+    else if (request.find("notify") == 0)
+        return dispatchNotify(request);
     else if (request.find("setprop") == 0)
         return dispatchSetProp(request);
     else if (request.find("seterror") == 0)

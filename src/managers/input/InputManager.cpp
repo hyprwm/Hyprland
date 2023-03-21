@@ -130,7 +130,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             }
 
             if (CONSTRAINTWINDOW->m_bIsX11) {
-                foundSurface = g_pXWaylandManager->getWindowSurface(CONSTRAINTWINDOW);
+                foundSurface = CONSTRAINTWINDOW->m_pWLSurface.wlr();
                 surfacePos   = CONSTRAINTWINDOW->m_vRealPosition.vec();
             } else {
                 g_pCompositor->vectorWindowToSurface(mouseCoords, CONSTRAINTWINDOW, surfaceCoords);
@@ -198,7 +198,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             surfacePos   = Vector2D(-1337, -1337);
         } else {
-            foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+            foundSurface = pFoundWindow->m_pWLSurface.wlr();
             surfacePos   = pFoundWindow->m_vRealPosition.vec();
         }
     }
@@ -232,7 +232,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (!pFoundWindow->m_bIsX11) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             } else {
-                foundSurface = g_pXWaylandManager->getWindowSurface(pFoundWindow);
+                foundSurface = pFoundWindow->m_pWLSurface.wlr();
                 surfacePos   = pFoundWindow->m_vRealPosition.vec();
             }
         }
@@ -963,8 +963,8 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
     if (!pKeyboard->enabled)
         return;
 
-    static auto* const PDPMS = &g_pConfigManager->getConfigValuePtr("key_press_enables_dpms")->intValue;
-    if (*PDPMS && g_pCompositor->m_bDPMSStateON) {
+    static auto* const PDPMS = &g_pConfigManager->getConfigValuePtr("misc:key_press_enables_dpms")->intValue;
+    if (*PDPMS && !g_pCompositor->m_bDPMSStateON) {
         // enable dpms
         g_pKeybindManager->dpms("on");
     }
@@ -1127,7 +1127,7 @@ void CInputManager::unconstrainMouse() {
     const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
     if (CONSTRAINTWINDOW) {
-        g_pXWaylandManager->activateSurface(g_pXWaylandManager->getWindowSurface(CONSTRAINTWINDOW), false);
+        g_pXWaylandManager->activateSurface(CONSTRAINTWINDOW->m_pWLSurface.wlr(), false);
     }
 
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);
@@ -1307,13 +1307,16 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
         [&](void* owner, void* data) {
             const auto PDEVICE = (SSwitchDevice*)owner;
             const auto NAME    = std::string(PDEVICE->pWlrDevice->name);
+            const auto E       = (wlr_switch_toggle_event*)data;
+
+            if (PDEVICE->status != -1 && PDEVICE->status == E->switch_state)
+                return;
 
             Debug::log(LOG, "Switch %s fired, triggering binds.", NAME.c_str());
 
             g_pKeybindManager->onSwitchEvent(NAME);
 
-            const auto event_data = (wlr_switch_toggle_event*)data;
-            switch (event_data->switch_state) {
+            switch (E->switch_state) {
                 case WLR_SWITCH_STATE_ON:
                     Debug::log(LOG, "Switch %s turn on, triggering binds.", NAME.c_str());
                     g_pKeybindManager->onSwitchOnEvent(NAME);
@@ -1323,6 +1326,8 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
                     g_pKeybindManager->onSwitchOffEvent(NAME);
                     break;
             }
+
+            PDEVICE->status = E->switch_state;
         },
         PNEWDEV, "SwitchDevice");
 }

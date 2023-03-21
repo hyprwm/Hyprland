@@ -872,7 +872,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     m_pLastWindow = PLASTWINDOW;
 
-    const auto PWINDOWSURFACE = pSurface ? pSurface : g_pXWaylandManager->getWindowSurface(pWindow);
+    const auto PWINDOWSURFACE = pSurface ? pSurface : pWindow->m_pWLSurface.wlr();
 
     focusSurface(PWINDOWSURFACE, pWindow);
 
@@ -926,8 +926,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
 
-    if (m_sSeat.seat->keyboard_state.focused_surface == pSurface ||
-        (pWindowOwner && m_sSeat.seat->keyboard_state.focused_surface == g_pXWaylandManager->getWindowSurface(pWindowOwner)))
+    if (m_sSeat.seat->keyboard_state.focused_surface == pSurface || (pWindowOwner && m_sSeat.seat->keyboard_state.focused_surface == pWindowOwner->m_pWLSurface.wlr()))
         return; // Don't focus when already focused on this.
 
     if (g_pSessionLockManager->isSessionLocked()) {
@@ -1038,7 +1037,7 @@ CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
         if (!w->m_bIsMapped || w->m_bFadingOut || !w->m_bMappedX11)
             continue;
 
-        if (g_pXWaylandManager->getWindowSurface(w.get()) == pSurface)
+        if (w->m_pWLSurface.wlr() == pSurface)
             return w.get();
     }
 
@@ -1188,7 +1187,7 @@ bool CCompositor::isWindowActive(CWindow* pWindow) {
     if (!windowValidMapped(pWindow))
         return false;
 
-    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+    const auto PSURFACE = pWindow->m_pWLSurface.wlr();
 
     return PSURFACE == m_pLastFocus || pWindow == m_pLastWindow;
 }
@@ -1525,11 +1524,11 @@ CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
     const auto PSURFACE = pMouse->currentConstraint->surface;
 
     for (auto& w : m_vWindows) {
-        if (w->isHidden() || !w->m_bMappedX11 || !w->m_bIsMapped || !g_pXWaylandManager->getWindowSurface(w.get()))
+        if (w->isHidden() || !w->m_bMappedX11 || !w->m_bIsMapped || !w->m_pWLSurface.exists())
             continue;
 
         if (w->m_bIsX11) {
-            if (PSURFACE == g_pXWaylandManager->getWindowSurface(w.get()))
+            if (PSURFACE == w->m_pWLSurface.wlr())
                 return w.get();
         } else {
             std::pair<wlr_surface*, bool> check = {PSURFACE, false};
@@ -1715,6 +1714,11 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == PWORKSPACEA->m_iID) {
+            if (w->m_bPinned) {
+                w->m_iWorkspaceID = PWORKSPACEB->m_iID;
+                continue;
+            }
+
             w->m_iMonitorID = pMonitorB->ID;
 
             // additionally, move floating and fs windows manually
@@ -1735,6 +1739,11 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == PWORKSPACEB->m_iID) {
+            if (w->m_bPinned) {
+                w->m_iWorkspaceID = PWORKSPACEA->m_iID;
+                continue;
+            }
+
             w->m_iMonitorID = pMonitorA->ID;
 
             // additionally, move floating and fs windows manually
@@ -1747,17 +1756,6 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
             }
 
             w->updateToplevel();
-        }
-    }
-
-    // fix pinned windows
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == pMonitorA->activeWorkspace && w->m_bPinned) {
-            w->m_iWorkspaceID = PWORKSPACEB->m_iID;
-        }
-
-        if (w->m_iWorkspaceID == pMonitorB->activeWorkspace && w->m_bPinned) {
-            w->m_iWorkspaceID = PWORKSPACEA->m_iID;
         }
     }
 
@@ -1836,6 +1834,9 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
         const auto DESCRIPTION = name.substr(5);
 
         for (auto& m : m_vMonitors) {
+            if (!m->output)
+                continue;
+
             if (m->output->description && std::string(m->output->description).find(DESCRIPTION) == 0) {
                 return m.get();
             }
@@ -1907,6 +1908,11 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == pWorkspace->m_iID) {
+            if (w->m_bPinned) {
+                w->m_iWorkspaceID = nextWorkspaceOnMonitorID;
+                continue;
+            }
+
             w->m_iMonitorID = pMonitor->ID;
 
             // additionally, move floating and fs windows manually
@@ -2285,4 +2291,19 @@ int CCompositor::getNewSpecialID() {
     }
 
     return highest + 1;
+}
+
+void CCompositor::performUserChecks() {
+    static constexpr auto BAD_PORTALS = {"kde", "gnome"};
+
+    if (std::ranges::any_of(BAD_PORTALS, [&](const std::string& portal) { return std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/" + portal + ".portal"); })) {
+        // bad portal detected
+        g_pHyprNotificationOverlay->addNotification("You have one or more incompatible xdg-desktop-portal impls installed. Please remove incompatible ones to avoid issues.",
+                                                    CColor(0), 15000, ICON_ERROR);
+    }
+
+    if (std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/hyprland.portal") && std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/wlr.portal")) {
+        g_pHyprNotificationOverlay->addNotification("You have xdg-desktop-portal-hyprland and -wlr installed simultaneously. Please uninstall one to avoid issues.", CColor(0),
+                                                    15000, ICON_ERROR);
+    }
 }

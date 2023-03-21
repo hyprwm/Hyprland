@@ -367,7 +367,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     // cleanup if not unsafe
     if (!g_pCompositor->m_bUnsafeState) {
-        Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->output->name);
+        Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->szName.c_str());
 
         std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
     }

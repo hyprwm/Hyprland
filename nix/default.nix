@@ -1,8 +1,6 @@
 {
   lib,
   stdenv,
-  fetchFromGitHub,
-  fetchpatch,
   pkg-config,
   meson,
   ninja,
@@ -15,7 +13,7 @@
   libxcb,
   libxkbcommon,
   mesa,
-  mount,
+  pango,
   pciutils,
   systemd,
   udis86,
@@ -74,6 +72,7 @@ in
           libinput
           libxkbcommon
           mesa
+          pango
           udis86
           wayland
           wayland-protocols

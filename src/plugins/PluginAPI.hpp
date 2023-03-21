@@ -19,6 +19,7 @@ See examples/examplePlugin for an example plugin
 
 #include "../helpers/Color.hpp"
 #include "HookSystem.hpp"
+#include "../SharedDefs.hpp"
 
 #include <any>
 #include <functional>
@@ -214,4 +215,19 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool removeDispatcher(HANDLE handle, const std::string& name);
+
+    /*
+        Adds a notification.
+
+        data has to contain:
+         - text: std::string or const char*
+         - time: uint64_t
+         - color: CColor -> CColor(0) will apply the default color for the notification icon
+
+        data may contain:
+         - icon: eIcons
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::string, std::any>& data);
 };

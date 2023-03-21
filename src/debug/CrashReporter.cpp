@@ -46,6 +46,8 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += getFormat("Hyprland received signal %d (%s)\n\n", sig, strsignal(sig));
 
+    finalCrashReport += getFormat("Version: %s\n\n", GIT_COMMIT_HASH);
+
     if (!g_pPluginSystem->getAllPlugins().empty()) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 

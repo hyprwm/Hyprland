@@ -203,21 +203,23 @@ void CHyprMasterLayout::recalculateMonitor(const int& monid) {
     }
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
-        if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL)
-            return;
-
         // massive hack from the fullscreen func
-        const auto      PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
-        SMasterNodeData fakeNode;
-        fakeNode.pWindow         = PFULLWINDOW;
-        fakeNode.position        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-        fakeNode.size            = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-        fakeNode.workspaceID     = PWORKSPACE->m_iID;
-        PFULLWINDOW->m_vPosition = fakeNode.position;
-        PFULLWINDOW->m_vSize     = fakeNode.size;
+        if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
+            PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
+            PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
+        } else if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
+            SMasterNodeData fakeNode;
+            fakeNode.pWindow         = PFULLWINDOW;
+            fakeNode.position        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size            = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID     = PWORKSPACE->m_iID;
+            PFULLWINDOW->m_vPosition = fakeNode.position;
+            PFULLWINDOW->m_vSize     = fakeNode.size;
 
-        applyNodeDataToWindow(&fakeNode);
+            applyNodeDataToWindow(&fakeNode);
+        }
 
         return;
     }
@@ -258,7 +260,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if (getNodesOnWorkspace(PWORKSPACE->m_iID) < 2 && !centerMasterWindow) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
-                                     PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+                                         PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT) {

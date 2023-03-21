@@ -8,6 +8,7 @@
 #include <deque>
 #include "config/ConfigDataValues.hpp"
 #include "helpers/Vector2D.hpp"
+#include "helpers/WLSurface.hpp"
 
 enum eIdleInhibitMode
 {
@@ -157,6 +158,9 @@ class CWindow {
     DYNLISTENER(toplevelFullscreen);
     DYNLISTENER(setOverrideRedirect);
     // DYNLISTENER(newSubsurfaceWindow);
+
+    CWLSurface            m_pWLSurface;
+    std::list<CWLSurface> m_lPopupSurfaces;
 
     union {
         wlr_xdg_surface*      xdg;
@@ -317,6 +321,7 @@ class CWindow {
     CWindow*                 getGroupCurrent();
     void                     setGroupCurrent(CWindow* pWindow);
     void                     insertWindowToGroup(CWindow* pWindow);
+    void                     updateGroupOutputs();
 
   private:
     // For hidden windows and stuff

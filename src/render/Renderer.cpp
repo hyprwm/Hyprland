@@ -250,7 +250,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     if (ignoreAllGeometry)
         decorate = false;
 
-    renderdata.surface   = g_pXWaylandManager->getWindowSurface(pWindow);
+    renderdata.surface   = pWindow->m_pWLSurface.wlr();
     renderdata.w         = std::max(pWindow->m_vRealSize.vec().x, 5.0); // clamp the size to min 5,
     renderdata.h         = std::max(pWindow->m_vRealSize.vec().y, 5.0); // otherwise we'll have issues later with invalid boxes
     renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
@@ -313,7 +313,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             for (auto& wd : pWindow->m_dWindowDecorations)
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
 
-        wlr_surface_for_each_surface(g_pXWaylandManager->getWindowSurface(pWindow), renderSurface, &renderdata);
+        wlr_surface_for_each_surface(pWindow->m_pWLSurface.wlr(), renderSurface, &renderdata);
 
         if (renderdata.decorate && pWindow->m_sSpecialRenderData.border) {
             static auto* const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
@@ -376,7 +376,11 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.w                     = pLayer->geometry.width;
     renderdata.h                     = pLayer->geometry.height;
     renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+
+    if (pLayer->ignoreZero)
+        g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHAZERO;
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
+    g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHAZERO;
 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
@@ -706,7 +710,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (surfaceCount != 1)
         return false;
 
-    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+    const auto PSURFACE = PCANDIDATE->m_pWLSurface.wlr();
 
     if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
         return false;
@@ -741,7 +745,7 @@ void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
         return;
 
     if (!pWindow->m_bIsFullscreen) {
-        wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, g_pXWaylandManager->getWindowSurface(pWindow), nullptr);
+        wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface.wlr(), nullptr);
         Debug::log(LOG, "Scanout mode OFF set for %x", pWindow);
         return;
     }
@@ -758,7 +762,7 @@ void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
     if (!wlr_linux_dmabuf_feedback_v1_init_with_options(&feedback, &INIT_OPTIONS))
         return;
 
-    wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, g_pXWaylandManager->getWindowSurface(pWindow), &feedback);
+    wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface.wlr(), &feedback);
     wlr_linux_dmabuf_feedback_v1_finish(&feedback);
 
     Debug::log(LOG, "Scanout mode ON set for %x", pWindow);
@@ -1031,6 +1035,9 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
     pixman_region32_init(&damageBoxForEach);
 
     for (auto& m : g_pCompositor->m_vMonitors) {
+        if (!m->output)
+            continue;
+
         double lx = 0, ly = 0;
         wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m->output, &lx, &ly);
 
@@ -1480,8 +1487,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     Debug::log(LOG, "Monitor %s data dump: res %ix%i@%.2fHz, scale %.2f, transform %i, pos %ix%i, 10b %i", pMonitor->szName.c_str(), (int)pMonitor->vecPixelSize.x,
                (int)pMonitor->vecPixelSize.y, pMonitor->refreshRate, pMonitor->scale, (int)pMonitor->transform, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y,
                (int)pMonitor->enabled10bit);
-
-    g_pInputManager->refocus();
 
     return true;
 }

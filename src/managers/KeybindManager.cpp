@@ -838,7 +838,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             if (anotherMonitor)
                 g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
 
-            g_pCompositor->focusWindow(PWINDOW, g_pXWaylandManager->getWindowSurface(PWINDOW));
+            g_pCompositor->focusWindow(PWINDOW, PWINDOW->m_pWLSurface.wlr());
 
             if (g_pCompositor->cursorOnReservedArea()) // fix focus on bars etc
                 g_pInputManager->refocus();
@@ -986,8 +986,9 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         PWORKSPACE = g_pCompositor->createNewWorkspace(WORKSPACEID, OLDWORKSPACE->m_iMonitorID, workspaceName);
     }
 
-    PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
     PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
+    PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
+    PWINDOW->updateGroupOutputs();
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_FULL);
@@ -1273,6 +1274,8 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+
+    g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.vec() + PLASTWINDOW->m_vRealSize.vec() / 2.0);
 }
 
 void CKeybindManager::toggleGroup(std::string args) {
@@ -1394,7 +1397,18 @@ void CKeybindManager::focusMonitor(std::string arg) {
     if (!PMONITOR || PMONITOR == g_pCompositor->m_pLastMonitor)
         return;
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
     changeworkspace("[internal]" + std::to_string(PMONITOR->activeWorkspace));
+
+    // remember last workspace (internal calls don't preserve it)
+
+    const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    if (PNEWWORKSPACE == PWORKSPACE)
+        return;
+
+    PNEWWORKSPACE->m_sPrevWorkspace.iID  = PWORKSPACE->m_iID;
+    PNEWWORKSPACE->m_sPrevWorkspace.name = PWORKSPACE->m_szName;
 }
 
 void CKeybindManager::moveCursorToCorner(std::string arg) {
@@ -1661,6 +1675,9 @@ void CKeybindManager::forceRendererReload(std::string args) {
     bool overAgain = false;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
+        if (!m->output)
+            continue;
+
         auto rule = g_pConfigManager->getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule, true)) {
             overAgain = true;
@@ -1843,9 +1860,9 @@ void CKeybindManager::pass(std::string regexp) {
     // pass all mf shit
     if (!XWTOXW) {
         if (g_pKeybindManager->m_uLastCode != 0)
-            wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+            wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
         else
-            wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), 1, 1);
+            wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), 1, 1);
     }
 
     wlr_keyboard_modifiers kbmods = {g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0};
@@ -1891,7 +1908,7 @@ void CKeybindManager::pass(std::string regexp) {
     if (g_pKeybindManager->m_uLastCode != 0)
         wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PLASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
     else
-        wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, g_pXWaylandManager->getWindowSurface(PWINDOW), SL.x, SL.y);
+        wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), SL.x, SL.y);
 }
 
 void CKeybindManager::layoutmsg(std::string msg) {

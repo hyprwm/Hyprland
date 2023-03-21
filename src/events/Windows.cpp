@@ -73,7 +73,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // registers the animated vars and stuff
     PWINDOW->onMap();
 
-    const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(PWINDOW);
+    const auto PWINDOWSURFACE = PWINDOW->m_pWLSurface.wlr();
 
     if (!PWINDOWSURFACE) {
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
@@ -125,11 +125,21 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (MONITORSTR == "unset") {
                     PWINDOW->m_iMonitorID = PMONITOR->ID;
                 } else {
-                    const long int MONITOR = std::stoi(MONITORSTR);
-                    if (!g_pCompositor->getMonitorFromID(MONITOR))
-                        PWINDOW->m_iMonitorID = 0;
-                    else
-                        PWINDOW->m_iMonitorID = MONITOR;
+                    if (isNumber(MONITORSTR)) {
+                        const long int MONITOR = std::stoi(MONITORSTR);
+                        if (!g_pCompositor->getMonitorFromID(MONITOR))
+                            PWINDOW->m_iMonitorID = 0;
+                        else
+                            PWINDOW->m_iMonitorID = MONITOR;
+                    } else {
+                        const auto PMONITOR = g_pCompositor->getMonitorFromName(MONITORSTR);
+                        if (PMONITOR)
+                            PWINDOW->m_iMonitorID = PMONITOR->ID;
+                        else {
+                            Debug::log(ERR, "No monitor in monitor %s rule", MONITORSTR.c_str());
+                            continue;
+                        }
+                    }
                 }
 
                 PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
@@ -482,7 +492,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
 
-    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);
+    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(PWINDOW->m_pWLSurface.wlr(), addViewCoords, PWINDOW, PWINDOW);
 
     PWINDOW->updateToplevel();
 
@@ -565,7 +575,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PMONITOR->scale);
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -665,8 +675,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
     // do the animation thing
-    PWINDOW->m_vOriginalClosedPos  = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
-    PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
+    if (PMONITOR) {
+        PWINDOW->m_vOriginalClosedPos  = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
+        PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
+    }
 
     if (!PWINDOW->m_bX11DoesntWantBorders)                                                  // don't animate out if they weren't animated in.
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.vec() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it
@@ -694,7 +706,9 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_bMappedX11 || PWINDOW->isHidden() || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
         return;
 
-    g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
+    PWINDOW->updateSurfaceOutputs();
+
+    g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
 
     // Debug::log(LOG, "Window %x committed", PWINDOW); // SPAM!
 }

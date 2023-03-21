@@ -40,11 +40,13 @@ CConfigManager::CConfigManager() {
 void CConfigManager::populateEnvironment() {
     environmentVariables.clear();
     for (char** env = environ; *env; ++env) {
-        const std::string ENVVAR       = *env;
-        const auto        VARIABLE     = ENVVAR.substr(0, ENVVAR.find_first_of('='));
-        const auto        VALUE        = ENVVAR.substr(ENVVAR.find_first_of('=') + 1);
-        environmentVariables[VARIABLE] = VALUE;
+        const std::string ENVVAR   = *env;
+        const auto        VARIABLE = ENVVAR.substr(0, ENVVAR.find_first_of('='));
+        const auto        VALUE    = ENVVAR.substr(ENVVAR.find_first_of('=') + 1);
+        environmentVariables.emplace_back(std::make_pair<>(VARIABLE, VALUE));
     }
+
+    std::sort(environmentVariables.begin(), environmentVariables.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
 }
 
 void CConfigManager::setDefaultVars() {
@@ -293,7 +295,9 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
             if (COMMAND[0] == '$') {
                 // register a dynamic var
                 Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
-                configDynamicVars[COMMAND.substr(1)] = VALUE;
+                configDynamicVars.emplace_back(std::make_pair<>(COMMAND.substr(1), VALUE));
+
+                std::sort(configDynamicVars.begin(), configDynamicVars.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
             } else {
                 parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
             }
@@ -554,6 +558,12 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         } else if (ARGS[argno] == "bitdepth") {
             newrule.enable10bit = ARGS[argno + 1] == "10";
             argno++;
+        } else if (ARGS[argno] == "transform") {
+            newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
+            argno++;
+        } else if (ARGS[argno] == "workspace") {
+            m_mDefaultWorkspaces[newrule.name] = ARGS[argno + 1];
+            argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax");
             parseError = "invalid syntax at \"" + ARGS[argno] + "\"";
@@ -768,7 +778,7 @@ bool windowRuleValid(const std::string& RULE) {
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return !(RULE != "noanim");
+    return !(RULE != "noanim" && RULE != "blur" && RULE != "ignorezero");
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
@@ -800,9 +810,8 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
     const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE == "" || VALUE == "") {
+    if (RULE == "" || VALUE == "")
         return;
-    }
 
     if (RULE == "unset") {
         std::erase_if(m_dLayerRules, [&](const SLayerRule& other) { return other.targetNamespace == VALUE; });
@@ -816,6 +825,11 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
     }
 
     m_dLayerRules.push_back({VALUE, RULE});
+
+    for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto& lsl : m->m_aLayerSurfaceLayers)
+            for (auto& ls : lsl)
+                ls->applyRules();
 }
 
 void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
@@ -974,12 +988,7 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
     const auto ARGS = CVarList(value);
 
-    for (auto& mr : m_dMonitorRules) {
-        if (mr.name == ARGS[0]) {
-            mr.defaultWorkspace = ARGS[1];
-            break;
-        }
-    }
+    m_mDefaultWorkspaces[ARGS[0]] = ARGS[1];
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
@@ -1645,15 +1654,26 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
     std::vector<SLayerRule> returns;
 
-    for (auto& lr : m_dLayerRules) {
-        std::regex NSCHECK(lr.targetNamespace);
+    if (!pLS->layerSurface || pLS->fadingOut)
+        return returns;
 
-        if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
-            continue;
+    for (auto& lr : m_dLayerRules) {
+        if (lr.targetNamespace.find("address:0x") == 0) {
+            if (getFormat("address:0x%x", pLS) != lr.targetNamespace)
+                continue;
+        } else {
+            std::regex NSCHECK(lr.targetNamespace);
+
+            if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
+                continue;
+        }
 
         // hit
         returns.push_back(lr);
     }
+
+    if (pLS->layerSurface->_namespace && shouldBlurLS(pLS->layerSurface->_namespace))
+        returns.push_back({pLS->layerSurface->_namespace, "blur"});
 
     return returns;
 }
@@ -1686,6 +1706,9 @@ void CConfigManager::dispatchExecOnce() {
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
         wlr_ext_workspace_handle_v1_set_name(ws->m_pWlrHandle, ws->m_szName.c_str());
     }
+
+    // check for user's possible errors with their setup and notify them if needed
+    g_pCompositor->performUserChecks();
 }
 
 void CConfigManager::performMonitorReload() {
@@ -1761,6 +1784,9 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
 
 void CConfigManager::ensureDPMS() {
     for (auto& rm : g_pCompositor->m_vRealMonitors) {
+        if (!rm->output)
+            continue;
+
         auto rule = getMonitorRuleFor(rm->szName, rm->output->description ? rm->output->description : "");
 
         if (rule.disabled == rm->m_bEnabled) {
@@ -1774,6 +1800,9 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
     static auto* const PVRR = &getConfigValuePtr("misc:vrr")->intValue;
 
     static auto        ensureVRRForDisplay = [&](CMonitor* m) -> void {
+        if (!m->output)
+            return;
+
         if (*PVRR == 0) {
             if (m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
@@ -1900,4 +1929,11 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
 
 void CConfigManager::removePluginConfig(HANDLE handle) {
     std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
+}
+
+std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
+    const auto IT = std::find_if(m_mDefaultWorkspaces.begin(), m_mDefaultWorkspaces.end(), [&](const auto& other) { return other.first == name; });
+    if (IT == m_mDefaultWorkspaces.end())
+        return "";
+    return IT->second;
 }

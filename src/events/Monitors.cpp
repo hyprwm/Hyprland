@@ -234,7 +234,11 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             // TODO: can this be optimized?
             static auto* const PBLURSIZE   = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
             static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
-            const auto         BLURRADIUS  = *PBLURSIZE * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
+            auto               BLURRADIUS  = *PBLURSIZE * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
+
+            if(std::isnan(BLURRADIUS) || BLURRADIUS > std::numeric_limits<int>::max()){
+                BLURRADIUS = 0;
+            }
 
             // now, prep the damage, get the extended damage region
             wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring

@@ -26,6 +26,8 @@
       gaps_out = ${toString gaps_outside}
       col.active_border = ${active_border_color}
       col.inactive_border = ${inactive_border_color}
+      col.group_border_active = ${toString active_group_border_color}
+      col.group_border = ${toString inactive_group_border_color}
       cursor_inactive_timeout = ${toString cursor_inactive_timeout}
       layout = ${toString layout}
       no_cursor_warps = ${lib.boolToString no_cursor_warps}
@@ -139,7 +141,7 @@
     misc {
       disable_hyprland_logo = ${lib.boolToString disable_hyprland_logo}
       disable_splash_rendering = ${lib.boolToString disable_splash_rendering}
-      no_vfr = ${lib.boolToString no_vfr}
+      vfr = ${lib.boolToString vfr}
       mouse_move_enables_dpms = ${lib.boolToString mouse_move_enables_dpms}
       always_follow_on_dnd = ${lib.boolToString always_follow_on_dnd}
       layers_hog_keyboard_focus = ${lib.boolToString layers_hog_keyboard_focus}
@@ -168,8 +170,6 @@
     # <https://wiki.hyprland.org/Configuring/Dwindle-Layout/>
     dwindle {
       pseudotile = ${lib.boolToString pseudotile}
-      col.group_border_active = ${toString active_group_border_color}
-      col.group_border = ${toString inactive_group_border_color}
       force_split = ${toString force_split}
       preserve_split = ${lib.boolToString preserve_split}
       special_scale_factor = ${toString special_scale_factor}

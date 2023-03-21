@@ -8,18 +8,6 @@
     description = lib.mdDoc '''';
     example = lib.literalExpression "";
   };
-  active_group_border_color = lib.mkOption {
-    type = types.singleLineStr;
-    default = "0x66FFFF00";
-    description = lib.mdDoc '''';
-    example = lib.literalExpression "";
-  };
-  inactive_group_border_color = lib.mkOption {
-    type = types.singleLineStr;
-    default = "0x66777700";
-    description = lib.mdDoc '''';
-    example = lib.literalExpression "";
-  };
   force_split = lib.mkOption {
     type = types.enum [0 1 2];
     default = 0;

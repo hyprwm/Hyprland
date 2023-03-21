@@ -14,7 +14,7 @@
     description = lib.mdDoc '''';
     example = lib.literalExpression "";
   };
-  no_vfr = lib.mkOption {
+  vfr = lib.mkOption {
     type = types.bool;
     default = true;
     description = lib.mdDoc '''';

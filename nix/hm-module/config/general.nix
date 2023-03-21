@@ -69,6 +69,18 @@
     '';
     # example = lib.literalExpression "";
   };
+  active_group_border_color = lib.mkOption {
+    type = types.singleLineStr;
+    default = "0x66FFFF00";
+    description = lib.mdDoc '''';
+    example = lib.literalExpression "";
+  };
+  inactive_group_border_color = lib.mkOption {
+    type = types.singleLineStr;
+    default = "0x66777700";
+    description = lib.mdDoc '''';
+    example = lib.literalExpression "";
+  };
   cursor_inactive_timeout = lib.mkOption {
     type = types.ints.positive;
     default = 0;

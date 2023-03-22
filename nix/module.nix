@@ -47,7 +47,7 @@ in {
       };
       hidpi = mkOption {
         type = types.bool;
-        default = true;
+        default = false;
         description = ''
           Enable HiDPI XWayland.
         '';

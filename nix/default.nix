@@ -25,7 +25,7 @@
   xwayland,
   debug ? false,
   enableXWayland ? true,
-  hidpiXWayland ? true,
+  hidpiXWayland ? false,
   legacyRenderer ? false,
   nvidiaPatches ? false,
   withSystemd ? true,

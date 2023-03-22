@@ -34,7 +34,7 @@ index 5a36dc21..83981a87 100644
 +	return (val + xwm->scale/2) / xwm->scale;
 +}
 +
- const char *const atom_map[ATOM_LAST] = {
+ static const char *const atom_map[ATOM_LAST] = {
  	[WL_SURFACE_ID] = "WL_SURFACE_ID",
  	[WL_SURFACE_SERIAL] = "WL_SURFACE_SERIAL",
 @@ -90,6 +98,7 @@ const char *const atom_map[ATOM_LAST] = {

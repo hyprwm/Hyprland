@@ -85,6 +85,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:no_direct_scanout"].intValue            = 0;
     configValues["misc:hide_cursor_on_touch"].intValue         = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue   = 1;
+    configValues["misc:suppress_portal_warnings"].intValue     = 0;
 
     configValues["debug:int"].intValue             = 0;
     configValues["debug:log_damage"].intValue      = 0;

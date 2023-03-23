@@ -33,6 +33,8 @@ void CWLSurface::destroy() {
     if (g_pCompositor->m_pLastFocus == m_pWLRSurface)
         g_pCompositor->m_pLastFocus = nullptr;
 
+    m_pWLRSurface = nullptr;
+
     Debug::log(LOG, "CWLSurface %x called destroy()", this);
 }
 

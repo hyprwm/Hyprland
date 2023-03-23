@@ -173,11 +173,6 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
 
     ASSERT(PPOPUP);
 
-    if (PPOPUP->parentWindow)
-        std::erase(PPOPUP->parentWindow->m_lPopupSurfaces, PPOPUP->popup->base->surface);
-    else if (PPOPUP->parentLS)
-        std::erase(PPOPUP->parentLS->popupSurfaces, PPOPUP->popup->base->surface);
-
     SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);
 
     int lx = 0, ly = 0;
@@ -187,6 +182,11 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
     wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
 
     g_pHyprRenderer->damageBox(lx - extents.x, ly - extents.y, extents.width + 2, extents.height + 2);
+
+    if (PPOPUP->parentWindow)
+        std::erase(PPOPUP->parentWindow->m_lPopupSurfaces, PPOPUP->popup->base->surface);
+    else if (PPOPUP->parentLS)
+        std::erase(PPOPUP->parentLS->popupSurfaces, PPOPUP->popup->base->surface);
 
     PPOPUP->pSurfaceTree = nullptr;
 

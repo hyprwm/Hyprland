@@ -155,6 +155,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             g_pHyprRenderer->renderMonitor(PMONITOR);
         else
             wl_event_source_timer_update(PMONITOR->renderTimer, TIMETOSLEEP);
+    } else {
+        g_pHyprRenderer->renderMonitor(PMONITOR);
     }
 }
 

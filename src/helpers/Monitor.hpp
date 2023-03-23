@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <memory>
+#include "Timer.hpp"
 
 struct SMonitorRule;
 
@@ -44,6 +45,10 @@ class CMonitor {
 
     bool                pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                renderingActive = false;
+
+    wl_event_source*    renderTimer  = nullptr; // for RAT
+    bool                RATScheduled = false;
+    CTimer              lastPresentationTimer;
 
     // mirroring
     CMonitor*              pMirrorOf = nullptr;

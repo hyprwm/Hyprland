@@ -9,6 +9,7 @@ class CWLSurface {
     ~CWLSurface();
 
     void assign(wlr_surface* pSurface);
+    void unassign();
 
     CWLSurface(const CWLSurface&) = delete;
     CWLSurface(CWLSurface&&)      = delete;

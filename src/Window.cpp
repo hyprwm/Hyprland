@@ -336,6 +336,8 @@ void CWindow::onUnmap() {
     m_vRealSize.setCallbackOnBegin(nullptr);
 
     std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other == this; });
+
+    m_pWLSurface.unassign();
 }
 
 void CWindow::onMap() {

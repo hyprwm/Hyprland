@@ -11,6 +11,10 @@ void CWLSurface::assign(wlr_surface* pSurface) {
     init();
 }
 
+void CWLSurface::unassign() {
+    destroy();
+}
+
 CWLSurface::~CWLSurface() {
     destroy();
 }

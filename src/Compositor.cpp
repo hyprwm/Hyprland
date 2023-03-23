@@ -315,12 +315,6 @@ void CCompositor::cleanup() {
     m_pLastFocus  = nullptr;
     m_pLastWindow = nullptr;
 
-    // accumulate all PIDs for killing, also request closing.
-    for (auto& w : m_vWindows) {
-        if (w->m_bIsMapped && !w->isHidden())
-            m_dProcessPIDsOnShutdown.push_back(w->getPID());
-    }
-
     // end threads
     g_pEventManager->m_tThread = std::thread();
 
@@ -346,9 +340,6 @@ void CCompositor::cleanup() {
     wl_display_terminate(m_sWLDisplay);
 
     m_sWLDisplay = nullptr;
-
-    g_pKeybindManager->spawn("sleep 5 && kill -9 " + std::to_string(m_iHyprlandPID)); // this is to prevent that random "freezing"
-                                                                                      // the PID should not be reused.
 }
 
 void CCompositor::initManagers(eManagersInitStage stage) {

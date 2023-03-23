@@ -148,12 +148,13 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
         PMONITOR->RATScheduled = true;
 
-        const auto ESTRENDERTIME = avg + *PRATSAFE;
+        const auto ESTRENDERTIME = std::ceil(avg + *PRATSAFE);
+        const auto TIMETOSLEEP   = std::floor(MSLEFT - ESTRENDERTIME);
 
         if (MSLEFT < 1 || MSLEFT < ESTRENDERTIME)
             g_pHyprRenderer->renderMonitor(PMONITOR);
         else
-            wl_event_source_timer_update(PMONITOR->renderTimer, MSLEFT - ESTRENDERTIME);
+            wl_event_source_timer_update(PMONITOR->renderTimer, TIMETOSLEEP);
     }
 }
 

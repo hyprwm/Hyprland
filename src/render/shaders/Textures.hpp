@@ -145,6 +145,7 @@ uniform vec2 fullSize;
 uniform float radius;
 
 uniform int discardOpaque;
+uniform int discardAlphaZero;
 
 uniform int applyTint;
 uniform vec3 tint;
@@ -231,6 +232,7 @@ uniform vec2 fullSize;
 uniform float radius;
 
 uniform int discardOpaque;
+uniform int discardAlphaZero;
 
 uniform int applyTint;
 uniform vec3 tint;

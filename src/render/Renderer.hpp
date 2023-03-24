@@ -31,33 +31,35 @@ struct SSessionLockSurface;
 
 class CHyprRenderer {
   public:
-    void                renderAllClientsForMonitor(const int&, timespec*);
-    void                outputMgrApplyTest(wlr_output_configuration_v1*, bool);
-    void                arrangeLayersForMonitor(const int&);
-    void                damageSurface(wlr_surface*, double, double);
-    void                damageWindow(CWindow*);
-    void                damageBox(wlr_box*);
-    void                damageBox(const int& x, const int& y, const int& w, const int& h);
-    void                damageRegion(pixman_region32_t*);
-    void                damageMonitor(CMonitor*);
-    void                damageMirrorsWith(CMonitor*, pixman_region32_t*);
-    bool                applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
-    bool                shouldRenderWindow(CWindow*, CMonitor*);
-    bool                shouldRenderWindow(CWindow*);
-    void                ensureCursorRenderingMode();
-    bool                shouldRenderCursor();
-    void                calculateUVForSurface(CWindow*, wlr_surface*, bool main = false);
+    void                            renderMonitor(CMonitor* pMonitor);
+    void                            renderAllClientsForMonitor(const int&, timespec*);
+    void                            outputMgrApplyTest(wlr_output_configuration_v1*, bool);
+    void                            arrangeLayersForMonitor(const int&);
+    void                            damageSurface(wlr_surface*, double, double);
+    void                            damageWindow(CWindow*);
+    void                            damageBox(wlr_box*);
+    void                            damageBox(const int& x, const int& y, const int& w, const int& h);
+    void                            damageRegion(pixman_region32_t*);
+    void                            damageMonitor(CMonitor*);
+    void                            damageMirrorsWith(CMonitor*, pixman_region32_t*);
+    bool                            applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
+    bool                            shouldRenderWindow(CWindow*, CMonitor*);
+    bool                            shouldRenderWindow(CWindow*);
+    void                            ensureCursorRenderingMode();
+    bool                            shouldRenderCursor();
+    void                            calculateUVForSurface(CWindow*, wlr_surface*, bool main = false);
+    std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
 
-    bool                m_bWindowRequestedCursorHide = false;
-    bool                m_bBlockSurfaceFeedback      = false;
-    bool                m_bRenderingSnapshot         = false;
-    CWindow*            m_pLastScanout               = nullptr;
-    CMonitor*           m_pMostHzMonitor             = nullptr;
+    bool                            m_bWindowRequestedCursorHide = false;
+    bool                            m_bBlockSurfaceFeedback      = false;
+    bool                            m_bRenderingSnapshot         = false;
+    CWindow*                        m_pLastScanout               = nullptr;
+    CMonitor*                       m_pMostHzMonitor             = nullptr;
 
-    DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
+    DAMAGETRACKINGMODES             damageTrackingModeFromStr(const std::string&);
 
-    bool                attemptDirectScanout(CMonitor*);
-    void                setWindowScanoutMode(CWindow*);
+    bool                            attemptDirectScanout(CMonitor*);
+    void                            setWindowScanoutMode(CWindow*);
 
   private:
     void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);

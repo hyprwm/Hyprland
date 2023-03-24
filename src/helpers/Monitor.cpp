@@ -2,6 +2,12 @@
 
 #include "../Compositor.hpp"
 
+int ratHandler(void* data) {
+    g_pHyprRenderer->renderMonitor((CMonitor*)data);
+
+    return 1;
+}
+
 void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -156,9 +162,16 @@ void CMonitor::onConnect(bool noRule) {
 
     if (!found)
         g_pCompositor->setActiveMonitor(this);
+
+    renderTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ratHandler, this);
 }
 
 void CMonitor::onDisconnect() {
+
+    if (renderTimer) {
+        wl_event_source_remove(renderTimer);
+        renderTimer = nullptr;
+    }
 
     if (!m_bEnabled || g_pCompositor->m_bIsShuttingDown)
         return;

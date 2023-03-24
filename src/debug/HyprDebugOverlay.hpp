@@ -7,6 +7,8 @@
 #include <cairo/cairo.h>
 #include <unordered_map>
 
+class CHyprRenderer;
+
 class CHyprMonitorDebugOverlay {
   public:
     int  draw(int offset);
@@ -23,6 +25,8 @@ class CHyprMonitorDebugOverlay {
     std::chrono::high_resolution_clock::time_point m_tpLastFrame;
     CMonitor*                                      m_pMonitor = nullptr;
     wlr_box                                        m_wbLastDrawnBox;
+
+    friend class CHyprRenderer;
 };
 
 class CHyprDebugOverlay {
@@ -41,6 +45,7 @@ class CHyprDebugOverlay {
     CTexture                                                m_tTexture;
 
     friend class CHyprMonitorDebugOverlay;
+    friend class CHyprRenderer;
 };
 
 inline std::unique_ptr<CHyprDebugOverlay> g_pDebugOverlay;

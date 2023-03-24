@@ -89,13 +89,14 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:render_ahead_of_time"].intValue         = 0;
     configValues["misc:render_ahead_safezone"].intValue        = 1;
 
-    configValues["debug:int"].intValue             = 0;
-    configValues["debug:log_damage"].intValue      = 0;
-    configValues["debug:overlay"].intValue         = 0;
-    configValues["debug:damage_blink"].intValue    = 0;
-    configValues["debug:disable_logs"].intValue    = 0;
-    configValues["debug:disable_time"].intValue    = 1;
-    configValues["debug:damage_tracking"].intValue = DAMAGE_TRACKING_FULL;
+    configValues["debug:int"].intValue                = 0;
+    configValues["debug:log_damage"].intValue         = 0;
+    configValues["debug:overlay"].intValue            = 0;
+    configValues["debug:damage_blink"].intValue       = 0;
+    configValues["debug:disable_logs"].intValue       = 0;
+    configValues["debug:disable_time"].intValue       = 1;
+    configValues["debug:enable_stdout_logs"].intValue = 0;
+    configValues["debug:damage_tracking"].intValue    = DAMAGE_TRACKING_FULL;
 
     configValues["decoration:rounding"].intValue               = 0;
     configValues["decoration:blur"].intValue                   = 1;
@@ -1395,6 +1396,8 @@ void CConfigManager::loadConfigLoadVars() {
 
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
+
+    Debug::disableStdout = !configValues["debug:enable_stdout_logs"].intValue;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty

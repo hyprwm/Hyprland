@@ -85,6 +85,10 @@ void CCompositor::setRandomSplash() {
 }
 
 void CCompositor::initServer() {
+
+    Debug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
+    Debug::disableStdout = true;
+
     m_sWLDisplay = wl_display_create();
 
     m_sWLEventLoop = wl_display_get_event_loop(m_sWLDisplay);

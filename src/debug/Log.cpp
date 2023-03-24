@@ -75,5 +75,6 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
     ofs.close();
 
     // log it to the stdout too.
-    std::cout << output << "\n";
+    if (!disableStdout)
+        std::cout << output << "\n";
 }

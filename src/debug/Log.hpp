@@ -20,6 +20,7 @@ namespace Debug {
     void               wlrLog(wlr_log_importance level, const char* fmt, va_list args);
 
     inline std::string logFile;
-    inline int64_t*    disableLogs = nullptr;
-    inline int64_t*    disableTime = nullptr;
+    inline int64_t*    disableLogs   = nullptr;
+    inline int64_t*    disableTime   = nullptr;
+    inline bool        disableStdout = false;
 };

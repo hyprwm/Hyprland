@@ -188,11 +188,12 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
             std::find_if(SubsurfaceTree::surfaceTreeNodes.begin(), SubsurfaceTree::surfaceTreeNodes.end(), [&](const SSurfaceTreeNode& other) { return &other == PNODE; });
 
         if (IT != SubsurfaceTree::surfaceTreeNodes.end()) {
-            int lx = 0, ly = 0;
-            addSurfaceGlobalOffset(PNODE, &lx, &ly);
-
-            wlr_box extents = {lx, ly, 0, 0};
             if (PNODE->pSurface && PNODE->pSurface->exists()) {
+                int lx = 0, ly = 0;
+                addSurfaceGlobalOffset(PNODE, &lx, &ly);
+
+                wlr_box extents = {lx, ly, 0, 0};
+
                 extents.width  = PNODE->pSurface->wlr()->current.width;
                 extents.height = PNODE->pSurface->wlr()->current.height;
 

@@ -23,6 +23,9 @@ void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {
     ofs << "[wlr] " << output << "\n";
 
     ofs.close();
+
+    if (!disableStdout)
+        std::cout << output << "\n";
 }
 
 void Debug::log(LogLevel level, const char* fmt, ...) {

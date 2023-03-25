@@ -1946,3 +1946,11 @@ std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
         return "";
     return IT->second;
 }
+
+std::vector<SWindowRule> CConfigManager::getAllWindowRules() {
+    std::vector<SWindowRule> rules{m_dWindowRules.size()};
+    for (int i = 0; i < m_dWindowRules.size(); ++i)
+        rules[i] = m_dWindowRules[i];
+
+    return rules;
+}

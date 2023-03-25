@@ -156,6 +156,7 @@ class CConfigManager {
 
     std::vector<SWindowRule>                                        getMatchingRules(CWindow*);
     std::vector<SLayerRule>                                         getMatchingRules(SLayerSurface*);
+    std::vector<SWindowRule>                                        getAllWindowRules();
 
     std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
 

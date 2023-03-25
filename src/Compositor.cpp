@@ -2308,4 +2308,12 @@ void CCompositor::performUserChecks() {
                                                         15000, ICON_ERROR);
         }
     }
+
+    for (auto& wr : g_pConfigManager->getAllWindowRules()) {
+        if (wr.szRule == "immediate" && !g_pHyprRenderer->m_bTearingSupported) {
+            g_pHyprNotificationOverlay->addNotification("You have an \"immediate\" window rule set up, but immediate presentations are not available on your configuration. Try adding env = WLR_DRM_NO_ATOMIC,1 to your config.",
+                                                        CColor(0), 15000, ICON_WARNING);
+            break;
+        }
+    }
 }

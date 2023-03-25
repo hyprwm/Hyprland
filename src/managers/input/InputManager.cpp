@@ -303,7 +303,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         m_pFoundSurfaceToFocus = foundSurface;
     }
 
-    if (pFoundWindow) {
+    if (pFoundWindow && g_pInputManager->currentlyDraggedWindow == nullptr) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
             setCursorIconOnBorder(pFoundWindow);

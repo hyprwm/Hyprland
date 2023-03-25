@@ -325,7 +325,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow &&
                 ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
-                if (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
+                if (g_pInputManager->currentlyDraggedWindow == nullptr && (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus))
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             } else if (*PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
@@ -349,7 +349,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             m_bLastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus)
+            if (g_pInputManager->currentlyDraggedWindow == nullptr && ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus))
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
 

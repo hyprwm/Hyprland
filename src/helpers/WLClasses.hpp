@@ -375,3 +375,14 @@ struct SSwitchDevice {
         return pWlrDevice == other.pWlrDevice;
     }
 };
+
+struct STearingController {
+    wlr_tearing_control_v1* pWlrHint = nullptr;
+
+    DYNLISTENER(set);
+    DYNLISTENER(destroy);
+
+    bool operator==(const STearingController& other) {
+        return pWlrHint == other.pWlrHint;
+    }
+};

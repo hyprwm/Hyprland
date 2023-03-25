@@ -161,4 +161,7 @@ namespace Events {
 
     // Session Lock
     LISTENER(newSessionLock);
+
+    // Tearing
+    LISTENER(newTearingObject);
 };

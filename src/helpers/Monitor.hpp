@@ -49,6 +49,7 @@ class CMonitor {
     wl_event_source*    renderTimer  = nullptr; // for RAT
     bool                RATScheduled = false;
     CTimer              lastPresentationTimer;
+    CTimer              lastFrameTimer;
 
     // mirroring
     CMonitor*              pMirrorOf = nullptr;
@@ -56,6 +57,8 @@ class CMonitor {
 
     // for the special workspace. 0 means not open.
     int                                                        specialWorkspaceID = 0;
+
+    CWindow*                                                   m_pSolitaryClient            = nullptr;
 
     std::array<std::vector<std::unique_ptr<SLayerSurface>>, 4> m_aLayerSurfaceLayers;
 

@@ -2,6 +2,17 @@
 #include "../Compositor.hpp"
 #include "linux-dmabuf-unstable-v1-protocol.h"
 
+void backendTearIter(wlr_backend* b, void* data) {
+    if (wlr_backend_is_drm(b) && wlr_drm_supports_async_page_flips(b)) {
+        ((CHyprRenderer*)data)->m_bTearingSupported = true;
+        return;
+    }
+}
+
+CHyprRenderer::CHyprRenderer() {
+    wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, backendTearIter, this);
+}
+
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE = wlr_surface_get_texture(surface);
     const auto RDATA   = (SRenderData*)data;
@@ -662,33 +673,40 @@ void countSubsurfacesIter(wlr_surface* pSurface, int x, int y, void* data) {
     *(int*)data += 1;
 }
 
-bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
+void CHyprRenderer::updateSolitaryClient(CMonitor* pMonitor) {
+    pMonitor->m_pSolitaryClient = nullptr;
+
     if (!pMonitor->mirrors.empty() || pMonitor->isMirror())
-        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+        return; // do not DS if this monitor is being mirrored. Will break the functionality.
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
 
     if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || g_pCompositor->m_sSeat.exclusiveClient || pMonitor->specialWorkspaceID)
-        return false;
+        return;
 
     const auto PCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
     if (!PCANDIDATE)
-        return false; // ????
+        return; // ????
 
     if (PCANDIDATE->m_fAlpha.fl() != 1.f || PCANDIDATE->m_fActiveInactiveAlpha.fl() != 1.f || PWORKSPACE->m_fAlpha.fl() != 1.f)
-        return false;
+        return;
 
     if (PCANDIDATE->m_vRealSize.vec() != pMonitor->vecSize || PCANDIDATE->m_vRealPosition.vec() != pMonitor->vecPosition || PCANDIDATE->m_vRealPosition.isBeingAnimated() ||
         PCANDIDATE->m_vRealSize.isBeingAnimated())
-        return false;
+        return;
 
     if (!pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty())
-        return false;
+        return;
 
     for (auto& topls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         if (topls->alpha.fl() != 0.f)
-            return false;
+            return;
+    }
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_bIsMapped && !w->isHidden() && w->m_iWorkspaceID == PCANDIDATE->m_iWorkspaceID && w->m_bCreatedOverFullscreen && w->m_bIsFloating)
+            return;
     }
 
     // check if it did not open any subsurfaces or shit
@@ -698,25 +716,32 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 
         // check opaque
         if (PCANDIDATE->m_uSurface.xwayland->has_alpha)
-            return false;
+            return;
     } else {
         wlr_xdg_surface_for_each_surface(PCANDIDATE->m_uSurface.xdg, countSubsurfacesIter, &surfaceCount);
         wlr_xdg_surface_for_each_popup_surface(PCANDIDATE->m_uSurface.xdg, countSubsurfacesIter, &surfaceCount);
 
         if (!PCANDIDATE->m_uSurface.xdg->surface->opaque)
-            return false;
+            return;
     }
 
     if (surfaceCount != 1)
-        return false;
+        return;
 
     const auto PSURFACE = PCANDIDATE->m_pWLSurface.wlr();
 
     if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
+        return;
+
+    pMonitor->m_pSolitaryClient = PCANDIDATE;
+}
+
+bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
+    if (!pMonitor->m_pSolitaryClient)
         return false;
 
     // finally, we should be GTG.
-    wlr_output_attach_buffer(pMonitor->output, &PSURFACE->buffer->base);
+    wlr_output_attach_buffer(pMonitor->output, &pMonitor->m_pSolitaryClient->m_pWLSurface.wlr()->buffer->base);
 
     if (!wlr_output_test(pMonitor->output)) {
         return false;
@@ -724,13 +749,13 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    wlr_surface_send_frame_done(PSURFACE, &now);
-    wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, PSURFACE, pMonitor->output);
+    wlr_surface_send_frame_done(pMonitor->m_pSolitaryClient->m_pWLSurface.wlr(), &now);
+    wlr_presentation_surface_sampled_on_output(g_pCompositor->m_sWLRPresentation, pMonitor->m_pSolitaryClient->m_pWLSurface.wlr(), pMonitor->output);
 
     if (wlr_output_commit(pMonitor->output)) {
         if (!m_pLastScanout) {
-            m_pLastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to %x: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
+            m_pLastScanout = pMonitor->m_pSolitaryClient;
+            Debug::log(LOG, "Entered a direct scanout to %x: \"%s\"", pMonitor->m_pSolitaryClient, pMonitor->m_pSolitaryClient->m_szTitle.c_str());
         }
     } else {
         m_pLastScanout = nullptr;
@@ -740,7 +765,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     return true;
 }
 
-void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
+void CHyprRenderer::renderMonitor(CMonitor* pMonitor, bool async) {
     static std::chrono::high_resolution_clock::time_point startRender        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
@@ -797,6 +822,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 
     // Direct scanout first
+    updateSolitaryClient(pMonitor);
+
     if (!*PNODIRECTSCANOUT) {
         if (attemptDirectScanout(pMonitor)) {
             return;
@@ -942,6 +969,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     pixman_region32_fini(&damage);
 
     pMonitor->renderingActive = false;
+
+    if (m_bTearingSupported && async) {
+        wlr_output_state_set_async_page_flip(&pMonitor->output->pending, true);
+    }
+
+    pMonitor->lastFrameTimer.reset();
 
     if (!wlr_output_commit(pMonitor->output))
         return;

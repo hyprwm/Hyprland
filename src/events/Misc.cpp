@@ -230,3 +230,32 @@ void Events::listener_newSessionLock(wl_listener* listener, void* data) {
 
     g_pSessionLockManager->onNewSessionLock((wlr_session_lock_v1*)data);
 }
+
+void Events::listener_newTearingObject(wl_listener* listener, void* data) {
+        Debug::log(LOG, "New tearing object at %x", data);
+
+    const auto foundHint = wlr_tearing_control_manager_v1_surface_hint_from_surface(g_pCompositor->m_sWLRTearingMgr, ((wlr_tearing_control_v1*)data)->surface);
+
+    Debug::log(LOG, "Surface associated: %x, check 2: %i", ((wlr_tearing_control_v1*)data)->surface, foundHint);
+
+    const auto NEWCTRL = &g_pHyprRenderer->m_lTearingControllers.emplace_back();
+    NEWCTRL->pWlrHint = (wlr_tearing_control_v1*)data;
+
+    NEWCTRL->hyprListener_destroy.initCallback(&NEWCTRL->pWlrHint->events.destroy, [&] (void* owner, void* data) {
+        Debug::log(LOG, "Destroyed %x tearing", ((STearingController*)owner)->pWlrHint);
+
+        g_pHyprRenderer->m_lTearingControllers.remove(*((STearingController*)owner));
+    }, NEWCTRL, "TearingController");
+
+    NEWCTRL->hyprListener_set.initCallback(&NEWCTRL->pWlrHint->events.set_hint, [&] (void* owner, void* data) {
+        const auto TEARINGHINT = (STearingController*)owner;
+
+        const auto PWINDOW = g_pCompositor->getWindowFromSurface(TEARINGHINT->pWlrHint->surface);
+
+        if (PWINDOW) {
+            PWINDOW->m_bTearingHint = TEARINGHINT->pWlrHint->hint;
+
+            Debug::log(LOG, "Hint %x (window %x) set tearing hint to %d", TEARINGHINT->pWlrHint, PWINDOW, TEARINGHINT->pWlrHint->hint);
+        }
+    }, NEWCTRL, "TearingController");
+}

@@ -31,7 +31,9 @@ struct SSessionLockSurface;
 
 class CHyprRenderer {
   public:
-    void                            renderMonitor(CMonitor* pMonitor);
+    CHyprRenderer();
+
+    void                            renderMonitor(CMonitor* pMonitor, bool async = false);
     void                            renderAllClientsForMonitor(const int&, timespec*);
     void                            outputMgrApplyTest(wlr_output_configuration_v1*, bool);
     void                            arrangeLayersForMonitor(const int&);
@@ -53,13 +55,17 @@ class CHyprRenderer {
     bool                            m_bWindowRequestedCursorHide = false;
     bool                            m_bBlockSurfaceFeedback      = false;
     bool                            m_bRenderingSnapshot         = false;
+    bool                            m_bTearingSupported          = false;
     CWindow*                        m_pLastScanout               = nullptr;
     CMonitor*                       m_pMostHzMonitor             = nullptr;
 
     DAMAGETRACKINGMODES             damageTrackingModeFromStr(const std::string&);
 
     bool                            attemptDirectScanout(CMonitor*);
+    void                            updateSolitaryClient(CMonitor*);
     void                            setWindowScanoutMode(CWindow*);
+
+    std::list<STearingController> m_lTearingControllers;
 
   private:
     void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);

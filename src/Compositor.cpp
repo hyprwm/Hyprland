@@ -242,6 +242,8 @@ void CCompositor::initServer() {
 
     m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
 
+    m_sWLRTearingMgr = wlr_tearing_control_manager_v1_create(m_sWLDisplay, 1);
+
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throw std::runtime_error("wlr_headless_backend_create() failed!");
@@ -298,6 +300,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
+    addWLSignal(&m_sWLRTearingMgr->events.new_object, &Events::listen_newTearingObject, m_sWLRTearingMgr, "TearingMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");

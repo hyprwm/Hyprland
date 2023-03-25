@@ -235,8 +235,26 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
             }
         }
 
-    if (pNode->pSurface && pNode->pSurface->exists())
+    if (pNode->pSurface && pNode->pSurface->exists()) {
         g_pHyprRenderer->damageSurface(pNode->pSurface->wlr(), lx, ly);
+
+        if (pNode->pWindowOwner && &pNode->pWindowOwner->m_pWLSurface == pNode->pSurface && pNode->pSurface->wlr()->current.committed & WLR_SURFACE_STATE_BUFFER
+            && pNode->pWindowOwner->m_iLastTearingSeq != pNode->pSurface->wlr()->current.seq) {
+            const auto PMONITOR = g_pCompositor->getMonitorFromID(pNode->pWindowOwner->m_iMonitorID);
+            pNode->pWindowOwner->m_iLastTearingSeq = pNode->pSurface->wlr()->current.seq;
+
+            if (!PMONITOR)
+                return;
+
+            g_pHyprRenderer->updateSolitaryClient(PMONITOR);
+
+            if (PMONITOR->m_pSolitaryClient != pNode->pWindowOwner)
+                return;
+
+            if (pNode->pWindowOwner->canBeTorn())
+                g_pHyprRenderer->renderMonitor(PMONITOR, true);
+        }
+    }
 }
 
 void Events::listener_destroySubsurface(void* owner, void* data) {

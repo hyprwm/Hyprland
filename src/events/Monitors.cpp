@@ -131,6 +131,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     PMONITOR->lastPresentationTimer.reset();
 
+    if (PMONITOR->m_pSolitaryClient && PMONITOR->m_pSolitaryClient->canBeTorn())
+        return; // the client shall schedule repaints
+
     if (*PENABLERAT) {
         if (!PMONITOR->RATScheduled) {
             // render

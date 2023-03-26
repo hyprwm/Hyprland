@@ -79,6 +79,15 @@ void CGlobalShortcutsProtocolManager::registerShortcut(wl_client* client, wl_res
         return;
     }
 
+    for (auto& c : m_vClients) {
+        for (auto& sh : c->shortcuts) {
+            if (sh->appid == app_id && sh->id == id) {
+                wl_resource_post_error(resource, HYPRLAND_GLOBAL_SHORTCUTS_MANAGER_V1_ERROR_ALREADY_TAKEN, "Combination is taken");
+                return;
+            }
+        }
+    }
+
     const auto PSHORTCUT   = PCLIENT->shortcuts.emplace_back(std::make_unique<SShortcut>()).get();
     PSHORTCUT->id          = id;
     PSHORTCUT->description = description;

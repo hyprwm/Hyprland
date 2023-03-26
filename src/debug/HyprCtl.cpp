@@ -533,6 +533,29 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return ret;
 }
 
+std::string globalShortcutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string ret       = "";
+    const auto  SHORTCUTS = g_pProtocolManager->m_pGlobalShortcutsProtocolManager->getAllShortcuts();
+    if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
+        for (auto& sh : SHORTCUTS)
+            ret += getFormat("%s:%s -> %s\n", sh.appid.c_str(), sh.id.c_str(), sh.description.c_str());
+    } else {
+        ret += "[";
+        for (auto& sh : SHORTCUTS) {
+            ret += getFormat(R"#(
+{
+    "name": "%s",
+    "description": "%s"
+},)#",
+                             escapeJSONStrings(sh.appid + ":" + sh.id).c_str(), escapeJSONStrings(sh.description).c_str());
+        }
+        ret.pop_back();
+        ret += "]\n";
+    }
+
+    return ret;
+}
+
 std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string ret = "";
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
@@ -1225,6 +1248,8 @@ std::string getReply(std::string request) {
         return cursorPosRequest(format);
     else if (request == "binds")
         return bindsRequest(format);
+    else if (request == "globalshortcuts")
+        return globalShortcutsRequest(format);
     else if (request == "animations")
         return animationsRequest(format);
     else if (request.find("plugin") == 0)

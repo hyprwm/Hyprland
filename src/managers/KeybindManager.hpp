@@ -139,6 +139,7 @@ class CKeybindManager {
     static void     lockGroups(std::string);
     static void     moveIntoGroup(std::string);
     static void     moveOutOfGroup(std::string);
+    static void     global(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

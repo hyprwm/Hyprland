@@ -406,6 +406,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.forceNoBorder = true;
     } else if (r.szRule == "noshadow") {
         m_sAdditionalConfigData.forceNoShadow = true;
+    } else if (r.szRule == "forcergbx") {
+        m_sAdditionalConfigData.forceRGBX = true;
     } else if (r.szRule == "opaque") {
         if (!m_sAdditionalConfigData.forceOpaqueOverriden)
             m_sAdditionalConfigData.forceOpaque = true;
@@ -470,6 +472,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.animationStyle = std::string("");
     m_sAdditionalConfigData.rounding       = -1;
     m_sAdditionalConfigData.dimAround      = false;
+    m_sAdditionalConfigData.forceRGBX      = false;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {

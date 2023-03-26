@@ -119,6 +119,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool> windowDanceCompat    = false;
     CWindowOverridableVar<bool> noMaxSize            = false;
     CWindowOverridableVar<bool> dimAround            = false;
+    CWindowOverridableVar<bool> forceRGBX            = false;
 };
 
 struct SWindowRule {

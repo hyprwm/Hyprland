@@ -583,6 +583,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
+    if (!PWINDOW->m_pWLSurface.exists() || !PWINDOW->m_bIsMapped) {
+        Debug::log(WARN, "Window %x unmapped without being mapped??", PWINDOW);
+        PWINDOW->m_bFadingOut = false;
+        return;
+    }
+
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
@@ -1007,7 +1013,6 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     PNEWWINDOW->m_pX11Parent = g_pCompositor->getX11Parent(PNEWWINDOW);
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XWSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XWayland Window");
-    PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XWSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XWSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_setOverrideRedirect.initCallback(&XWSURFACE->events.set_override_redirect, &Events::listener_setOverrideRedirect, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_configureX11.initCallback(&XWSURFACE->events.request_configure, &Events::listener_configureX11, PNEWWINDOW, "XWayland Window");
@@ -1026,7 +1031,6 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
-    PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XDGSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XDGSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XDG Window");
 }
 

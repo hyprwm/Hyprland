@@ -338,6 +338,8 @@ void CWindow::onUnmap() {
     std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other == this; });
 
     m_pWLSurface.unassign();
+
+    hyprListener_unmapWindow.removeCallback();
 }
 
 void CWindow::onMap() {
@@ -369,6 +371,8 @@ void CWindow::onMap() {
     m_fBorderAngleAnimationProgress = 1.f;
 
     g_pCompositor->m_vWindowFocusHistory.push_back(this);
+
+    hyprListener_unmapWindow.initCallback(m_bIsX11 ? &m_uSurface.xwayland->events.unmap : &m_uSurface.xdg->events.unmap, &Events::listener_unmapWindow, this, "CWindow");
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {

@@ -175,7 +175,7 @@ class CInputManager {
     bool m_bLastInputTouch = false;
 
   private:
-    bool                 m_bCursorImageOverriden = false;
+    bool                 m_bCursorImageOverridden = false;
     eBorderIconDirection m_eBorderIconDirection  = BORDERICON_NONE;
 
     // for click behavior override

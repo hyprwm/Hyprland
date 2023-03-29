@@ -111,7 +111,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<int>  rounding             = -1; // -1 means no
     CWindowOverridableVar<bool> forceNoBlur          = false;
     CWindowOverridableVar<bool> forceOpaque          = false;
-    CWindowOverridableVar<bool> forceOpaqueOverriden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
+    CWindowOverridableVar<bool> forceOpaqueOverridden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
     CWindowOverridableVar<bool> forceAllowsInput     = false;
     CWindowOverridableVar<bool> forceNoAnims         = false;
     CWindowOverridableVar<bool> forceNoBorder        = false;

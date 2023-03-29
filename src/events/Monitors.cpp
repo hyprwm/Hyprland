@@ -44,7 +44,7 @@ void Events::listener_change(wl_listener* listener, void* data) {
 }
 
 void Events::listener_newOutput(wl_listener* listener, void* data) {
-    // new monitor added, let's accomodate for that.
+    // new monitor added, let's accommodate for that.
     const auto OUTPUT = (wlr_output*)data;
 
     // for warping the cursor on launch

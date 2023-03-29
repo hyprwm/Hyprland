@@ -53,7 +53,7 @@ struct SMonitorAdditionalReservedArea {
 };
 
 struct SAnimationPropertyConfig {
-    bool                      overriden = true;
+    bool                      overridden = true;
 
     std::string               internalBezier  = "";
     std::string               internalStyle   = "";

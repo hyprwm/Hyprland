@@ -67,7 +67,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // Foreign Toplevel
     PWINDOW->createToplevelHandle();
 
-    // checks if the window wants borders and sets the appriopriate flag
+    // checks if the window wants borders and sets the appropriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
 
     // registers the animated vars and stuff
@@ -808,7 +808,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
             }
         }
 
-        // Disable the maximize flag when we recieve a de-fullscreen request
+        // Disable the maximize flag when we receive a de-fullscreen request
         PWINDOW->m_bWasMaximized &= REQUESTED->fullscreen;
 
         requestedFullState = REQUESTED->fullscreen;

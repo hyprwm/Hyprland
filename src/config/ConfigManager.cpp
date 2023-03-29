@@ -611,8 +611,8 @@ void CConfigManager::handleBezier(const std::string& command, const std::string&
 
 void CConfigManager::setAnimForChildren(SAnimationPropertyConfig* const ANIM) {
     for (auto& [name, anim] : animationConfig) {
-        if (anim.pParentAnimation == ANIM && !anim.overriden) {
-            // if a child isnt overriden, set the values of the parent
+        if (anim.pParentAnimation == ANIM && !anim.overridden) {
+            // if a child isnt overridden, set the values of the parent
             anim.pValues = ANIM->pValues;
 
             setAnimForChildren(&anim);
@@ -635,7 +635,7 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
         return;
     }
 
-    PANIM->second.overriden = true;
+    PANIM->second.overridden = true;
     PANIM->second.pValues   = &PANIM->second;
 
     // on/off

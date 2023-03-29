@@ -413,7 +413,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
     } else if (r.szRule == "forcergbx") {
         m_sAdditionalConfigData.forceRGBX = true;
     } else if (r.szRule == "opaque") {
-        if (!m_sAdditionalConfigData.forceOpaqueOverriden)
+        if (!m_sAdditionalConfigData.forceOpaqueOverridden)
             m_sAdditionalConfigData.forceOpaque = true;
     } else if (r.szRule.find("rounding") == 0) {
         try {
@@ -470,7 +470,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceNoBlur      = false;
     m_sAdditionalConfigData.forceNoBorder    = false;
     m_sAdditionalConfigData.forceNoShadow    = false;
-    if (!m_sAdditionalConfigData.forceOpaqueOverriden)
+    if (!m_sAdditionalConfigData.forceOpaqueOverridden)
         m_sAdditionalConfigData.forceOpaque = false;
     m_sAdditionalConfigData.forceNoAnims   = false;
     m_sAdditionalConfigData.animationStyle = std::string("");

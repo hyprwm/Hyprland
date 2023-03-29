@@ -309,8 +309,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             setCursorIconOnBorder(pFoundWindow);
         }
 
-        // if we're on an input deco, reset cursor. Don't on overriden
-        // if (!m_bCursorImageOverriden) {
+        // if we're on an input deco, reset cursor. Don't on overridden
+        // if (!m_bCursorImageOverridden) {
         //     if (!VECINRECT(m_vLastCursorPosFloored, pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y,
         //                    pFoundWindow->m_vRealPosition.vec().x + pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealPosition.vec().y + pFoundWindow->m_vRealSize.vec().y)) {
         //         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
@@ -405,7 +405,7 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
         g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
     }
 
-    if (m_bCursorImageOverriden) {
+    if (m_bCursorImageOverridden) {
         return;
     }
 
@@ -1339,14 +1339,14 @@ void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
 
 void CInputManager::setCursorImageUntilUnset(std::string name) {
     wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, name.c_str(), g_pCompositor->m_sWLRCursor);
-    m_bCursorImageOverriden = true;
+    m_bCursorImageOverridden = true;
 }
 
 void CInputManager::unsetCursorImage() {
-    if (!m_bCursorImageOverriden)
+    if (!m_bCursorImageOverridden)
         return;
 
-    m_bCursorImageOverriden = false;
+    m_bCursorImageOverridden = false;
     if (!g_pHyprRenderer->m_bWindowRequestedCursorHide)
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
 }

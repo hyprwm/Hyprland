@@ -73,9 +73,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pFocusHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&CCompositor::focusWindow, (void*)&hkFocusWindow);
     // Hook a public non-member
     g_pMotionHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_seat_pointer_notify_motion, (void*)&hkNotifyMotion);
-    // Hook a private member (!WARNING: the signature may differ in clang. This one is for gcc ONLY.)
-    g_pMouseDownHook = HyprlandAPI::createFunctionHook(
-        PHANDLE, HyprlandAPI::getFunctionAddressFromSignature(PHANDLE, "_ZN13CInputManager22processMouseDownNormalEP24wlr_pointer_button_event"), (void*)&hkProcessMouseDownNormal);
+    // Hook a private member
+    static const auto METHODS = HyprlandAPI::findFunctionsByName(PHANDLE, "processMouseDownNormal");
+    g_pMouseDownHook          = HyprlandAPI::createFunctionHook(PHANDLE, METHODS[0].address, (void*)&hkProcessMouseDownNormal);
 
     // fancy notifications
     HyprlandAPI::addNotificationV2(PHANDLE, {{"text", "Example hint"}, {"time", (uint64_t)10000}, {"color", CColor(0.2, 0.2, 0.9, 1.0)}, {"icon", ICON_HINT}});

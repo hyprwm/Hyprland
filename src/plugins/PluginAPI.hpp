@@ -33,6 +33,12 @@ typedef struct {
     std::string version;
 } PLUGIN_DESCRIPTION_INFO;
 
+struct SFunctionMatch {
+    void*       address = nullptr;
+    std::string signature;
+    std::string demangled;
+};
+
 #define APICALL extern "C"
 #define EXPORT  __attribute__((visibility("default")))
 #define REQUIRED
@@ -230,4 +236,13 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::string, std::any>& data);
+
+    /*
+        Returns a vector of found functions matching the provided name.
+
+        These addresses will not change, and should be made static. Lookups are slow.
+
+        Empty means either none found or handle was invalid
+    */
+    APICALL std::vector<SFunctionMatch> findFunctionsByName(HANDLE handle, const std::string& name);
 };

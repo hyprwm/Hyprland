@@ -45,6 +45,13 @@ cat /tmp/hypr/$(ls -t /tmp/hypr/ | head -n 2 | tail -n 1)/hyprland.log
 
 basically, directories in /tmp/hypr are your sessions.
 
+## Obtaining the Hyprland Crash Report (v0.22.0beta and up)
+
+If you have `$XDG_CACHE_HOME` set, the crash report directory is `$XDG_CACHE_HOME/hyprland`. If not, it's `~/.hyprland`
+
+Go to the crash report directory and you should find a file named `hyprlandCrashReport[XXXX].txt` where `[XXXX]` is the PID of the process that crashed.
+
+Attach that file to your issue.
 ## Obtaining the Hyprland coredump (v0.21.0beta and below)
 If you are on systemd, you can simply use
 ```
@@ -57,13 +64,6 @@ exit coredumpctl (ctrl+c) and use
 coredumpctl info [PID]
 ```
 where `[PID]` is the PID you remembered.
-
-## Obtaining the Hyprland Crash Report (v0.22.0beta and up)
-Go to `~/.hyprland/` and you should find a file named `hyprlandCrashReport[XXXX].txt` where `[XXXX]` is the PID of the process that crashed.
-
-If you do not see it, make sure you have "show hidden files" enabled in your file manager.
-
-Attach that file to your issue.
 
 ## Obtaining the debug Hyprland coredump
 A debug coredump provides more information for debugging and may speed up the process of fixing the bug.

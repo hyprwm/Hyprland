@@ -191,8 +191,10 @@ namespace HyprlandAPI {
         This is useful for hooking private functions.
 
         returns: function address, or nullptr on fail.
+
+        Deprecated because of findFunctionsByName.
     */
-    APICALL void* getFunctionAddressFromSignature(HANDLE handle, const std::string& sig);
+    APICALL [[deprecated]] void* getFunctionAddressFromSignature(HANDLE handle, const std::string& sig);
 
     /*
         Adds a window decoration to a window

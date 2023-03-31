@@ -7,6 +7,8 @@
 #include <sys/sysctl.h>
 #endif
 
+#include <sstream>
+
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 

@@ -141,7 +141,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
             std::filesystem::permissions(std::string(HOME) + "/.hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
         }
 
-        ofs(std::string(HOME) + "/.hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt", std::ios::trunc);
+        ofs::open(std::string(HOME) + "/.hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt", std::ios::trunc);
 
     } else if (CACHE_HOME) {
         if (!std::filesystem::exists(std::string(CACHE_HOME) + "/hyprland")) {
@@ -149,7 +149,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
             std::filesystem::permissions(std::string(CACHE_HOME) + "/hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
         }
 
-        ofs(std::string(CACHE_HOME) + "/hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt", std::ios::trunc);
+        ofs::open(std::string(CACHE_HOME) + "/hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt", std::ios::trunc);
     } else {
         return;
     }

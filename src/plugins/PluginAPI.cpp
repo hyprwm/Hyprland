@@ -7,6 +7,8 @@
 #include <sys/sysctl.h>
 #endif
 
+#include <sstream>
+
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
@@ -277,8 +279,13 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     const auto FPATH = std::filesystem::canonical("/proc/self/exe");
 #endif
 
+#ifdef __clang__
+    const auto SYMBOLS          = execAndGet(("llvm-nm -D -j " + FPATH.string()).c_str());
+    const auto SYMBOLSDEMANGLED = execAndGet(("llvm-nm -D -j --demangle " + FPATH.string()).c_str());
+#else
     const auto SYMBOLS          = execAndGet(("nm -D -j " + FPATH.string()).c_str());
     const auto SYMBOLSDEMANGLED = execAndGet(("nm -D -j --demangle=auto " + FPATH.string()).c_str());
+#endif
 
     auto       demangledFromID = [&](size_t id) -> std::string {
         size_t pos   = 0;

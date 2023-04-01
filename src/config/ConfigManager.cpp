@@ -82,7 +82,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:enable_swallow"].intValue               = 0;
     configValues["misc:swallow_regex"].strValue                = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue            = 0;
-    configValues["misc:no_direct_scanout"].intValue            = 0;
+    configValues["misc:no_direct_scanout"].intValue            = 1;
     configValues["misc:hide_cursor_on_touch"].intValue         = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue   = 1;
     configValues["misc:suppress_portal_warnings"].intValue     = 0;
@@ -636,7 +636,7 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
     }
 
     PANIM->second.overridden = true;
-    PANIM->second.pValues   = &PANIM->second;
+    PANIM->second.pValues    = &PANIM->second;
 
     // on/off
     PANIM->second.internalEnabled = ARGS[1] == "1";

@@ -202,6 +202,10 @@ class CInputManager {
     SLayerSurface* m_pFoundLSToFocus      = nullptr;
     CWindow*       m_pFoundWindowToFocus  = nullptr;
 
+    // for holding focus on buttons held
+    bool m_bFocusHeldByButtons   = false;
+    bool m_bRefocusHeldByButtons = false;
+
     // for releasing mouse buttons
     std::list<uint32_t> m_lCurrentlyHeldButtons;
 

@@ -145,6 +145,32 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     // update stuff
     updateDragIcon();
 
+    if (!m_sDrag.drag && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus) {
+        if (m_bLastFocusOnLS) {
+            foundSurface       = g_pCompositor->m_pLastFocus;
+            pFoundLayerSurface = g_pCompositor->getLayerSurfaceFromSurface(foundSurface);
+            if (pFoundLayerSurface) {
+                surfacePos              = g_pCompositor->getLayerSurfaceFromSurface(foundSurface)->position;
+                m_bFocusHeldByButtons   = true;
+                m_bRefocusHeldByButtons = refocus;
+            } else {
+                // ?
+                foundSurface       = nullptr;
+                pFoundLayerSurface = nullptr;
+            }
+        } else if (g_pCompositor->m_pLastWindow) {
+            foundSurface = g_pCompositor->m_pLastFocus;
+
+            if (!g_pCompositor->m_pLastWindow->m_bIsX11)
+                g_pCompositor->vectorWindowToSurface(mouseCoords, g_pCompositor->m_pLastWindow, surfaceCoords);
+            else
+                surfacePos = g_pCompositor->m_pLastWindow->m_vRealPosition.vec();
+
+            m_bFocusHeldByButtons   = true;
+            m_bRefocusHeldByButtons = refocus;
+        }
+    }
+
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
     if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && (*PMOUSEFOCUSMON || refocus)) {
@@ -390,6 +416,16 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
         case CLICKMODE_DEFAULT: processMouseDownNormal(e); break;
         case CLICKMODE_KILL: processMouseDownKill(e); break;
         default: break;
+    }
+
+    if (m_bFocusHeldByButtons && m_lCurrentlyHeldButtons.empty() && e->state == WLR_BUTTON_RELEASED) {
+        if (m_bRefocusHeldByButtons)
+            refocus();
+        else
+            simulateMouseMovement();
+
+        m_bFocusHeldByButtons   = false;
+        m_bRefocusHeldByButtons = false;
     }
 }
 

@@ -284,6 +284,11 @@ void CWindow::moveToWorkspace(int workspaceID) {
         EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
     }
 
+    if (m_pSwallowed) {
+        m_pSwallowed->moveToWorkspace(workspaceID);
+        m_pSwallowed->m_iMonitorID = m_iMonitorID;
+    }
+
     if (PMONITOR)
         g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PMONITOR->scale);
 }

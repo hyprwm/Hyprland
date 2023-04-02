@@ -2164,7 +2164,7 @@ SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
                         return;
                     }
                 };
-                
+
                 if (!ls->layerSurface || !ls->mapped)
                     continue;
 

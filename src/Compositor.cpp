@@ -2150,10 +2150,27 @@ void CCompositor::closeWindow(CWindow* pWindow) {
 }
 
 SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
+    std::pair<wlr_surface*, bool> result = {pSurface, false};
+
     for (auto& m : m_vMonitors) {
         for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
                 if (ls->layerSurface && ls->layerSurface->surface == pSurface)
+                    return ls.get();
+
+                static auto iter = [](wlr_surface* surf, int x, int y, void* data) -> void {
+                    if (surf == ((std::pair<wlr_surface*, bool>*)data)->first) {
+                        *(bool*)data = true;
+                        return;
+                    }
+                };
+                
+                if (!ls->layerSurface || !ls->mapped)
+                    continue;
+
+                wlr_surface_for_each_surface(ls->layerSurface->surface, iter, &result);
+
+                if (result.second)
                     return ls.get();
             }
         }

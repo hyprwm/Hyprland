@@ -519,8 +519,17 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
                 break;
 
-            if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)
-                refocus();
+            if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) {
+                // a bit hacky
+                // if we only pressed one button, allow us to refocus. m_lCurrentlyHeldButtons.size() > 0 will stick the focus
+                if (m_lCurrentlyHeldButtons.size() == 1) {
+                    const auto COPY = m_lCurrentlyHeldButtons;
+                    m_lCurrentlyHeldButtons.clear();
+                    refocus();
+                    m_lCurrentlyHeldButtons = COPY;
+                } else
+                    refocus();
+            }
 
             // if clicked on a floating window make it top
             if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)

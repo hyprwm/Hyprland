@@ -28,8 +28,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -116,7 +115,6 @@ class CCompositor {
     bool                                      m_bDPMSStateON    = true;
     bool                                      m_bUnsafeState    = false; // unsafe state is when there is no monitors.
     bool                                      m_bIsShuttingDown = false;
-    std::deque<uint64_t>                      m_dProcessPIDsOnShutdown; // stores PIDs of apps to kill later when shutting down
 
     // ------------------------------------------------- //
 
@@ -189,6 +187,7 @@ class CCompositor {
     void           setActiveMonitor(CMonitor*);
     bool           isWorkspaceSpecial(const int&);
     int            getNewSpecialID();
+    void           performUserChecks();
 
     std::string    explicitConfigPath;
 

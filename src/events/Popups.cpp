@@ -86,10 +86,11 @@ void Events::listener_newPopup(void* owner, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
-    PNEWPOPUP->popup   = WLRPOPUP;
-    PNEWPOPUP->lx      = layersurface->position.x;
-    PNEWPOPUP->ly      = layersurface->position.y;
-    PNEWPOPUP->monitor = PMONITOR;
+    PNEWPOPUP->popup    = WLRPOPUP;
+    PNEWPOPUP->lx       = layersurface->position.x;
+    PNEWPOPUP->ly       = layersurface->position.y;
+    PNEWPOPUP->monitor  = PMONITOR;
+    PNEWPOPUP->parentLS = layersurface;
     createNewPopup(WLRPOPUP, PNEWPOPUP);
 }
 
@@ -148,6 +149,11 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
 
     Debug::log(LOG, "New XDG Popup mapped at %d %d", (int)PPOPUP->lx, (int)PPOPUP->ly);
 
+    if (PPOPUP->parentWindow)
+        PPOPUP->parentWindow->m_lPopupSurfaces.emplace_back(PPOPUP->popup->base->surface);
+    else if (PPOPUP->parentLS)
+        PPOPUP->parentLS->popupSurfaces.emplace_back(PPOPUP->popup->base->surface);
+
     PPOPUP->pSurfaceTree = SubsurfaceTree::createTreeRoot(PPOPUP->popup->base->surface, addPopupGlobalCoords, PPOPUP, PPOPUP->parentWindow);
 
     int lx = 0, ly = 0;
@@ -176,6 +182,11 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
     wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
 
     g_pHyprRenderer->damageBox(lx - extents.x, ly - extents.y, extents.width + 2, extents.height + 2);
+
+    if (PPOPUP->parentWindow)
+        std::erase(PPOPUP->parentWindow->m_lPopupSurfaces, PPOPUP->popup->base->surface);
+    else if (PPOPUP->parentLS)
+        std::erase(PPOPUP->parentLS->popupSurfaces, PPOPUP->popup->base->surface);
 
     PPOPUP->pSurfaceTree = nullptr;
 

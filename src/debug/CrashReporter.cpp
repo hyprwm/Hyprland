@@ -46,6 +46,8 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += getFormat("Hyprland received signal %d (%s)\n\n", sig, strsignal(sig));
 
+    finalCrashReport += getFormat("Version: %s\n\n", GIT_COMMIT_HASH);
+
     if (!g_pPluginSystem->getAllPlugins().empty()) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
@@ -127,16 +129,30 @@ void CrashReporter::createAndSaveCrash(int sig) {
     finalCrashReport += execAndGet(("cat \"" + Debug::logFile + "\" | tail -n 50").c_str());
 
     const auto HOME = getenv("HOME");
+    const auto CACHE_HOME = getenv("XDG_CACHE_HOME");
 
     if (!HOME)
         return;
 
-    if (!std::filesystem::exists(std::string(HOME) + "/.hyprland")) {
-        std::filesystem::create_directory(std::string(HOME) + "/.hyprland");
-        std::filesystem::permissions(std::string(HOME) + "/.hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
-    }
+    std::ofstream ofs;
+    if (!CACHE_HOME) {
+        if (!std::filesystem::exists(std::string(HOME) + "/.hyprland")) {
+            std::filesystem::create_directory(std::string(HOME) + "/.hyprland");
+            std::filesystem::permissions(std::string(HOME) + "/.hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
+        }
 
-    std::ofstream ofs(std::string(HOME) + "/.hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt", std::ios::trunc);
+        ofs.open(std::string(HOME) + "/.hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt", std::ios::trunc);
+
+    } else if (CACHE_HOME) {
+        if (!std::filesystem::exists(std::string(CACHE_HOME) + "/hyprland")) {
+            std::filesystem::create_directory(std::string(CACHE_HOME) + "/hyprland");
+            std::filesystem::permissions(std::string(CACHE_HOME) + "/hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
+        }
+
+        ofs.open(std::string(CACHE_HOME) + "/hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt", std::ios::trunc);
+    } else {
+        return;
+    }
 
     ofs << finalCrashReport;
 

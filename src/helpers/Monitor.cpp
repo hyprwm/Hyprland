@@ -2,6 +2,12 @@
 
 #include "../Compositor.hpp"
 
+int ratHandler(void* data) {
+    g_pHyprRenderer->renderMonitor((CMonitor*)data);
+
+    return 1;
+}
+
 void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -156,9 +162,16 @@ void CMonitor::onConnect(bool noRule) {
 
     if (!found)
         g_pCompositor->setActiveMonitor(this);
+
+    renderTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ratHandler, this);
 }
 
 void CMonitor::onDisconnect() {
+
+    if (renderTimer) {
+        wl_event_source_remove(renderTimer);
+        renderTimer = nullptr;
+    }
 
     if (!m_bEnabled || g_pCompositor->m_bIsShuttingDown)
         return;
@@ -213,6 +226,8 @@ void CMonitor::onDisconnect() {
         hyprListener_monitorDestroy.removeCallback();
 
         g_pCompositor->m_bUnsafeState = true;
+
+        std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
 
         return;
     }
@@ -295,13 +310,15 @@ int CMonitor::findAvailableDefaultWS() {
 void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
     // Workspace
     std::string newDefaultWorkspaceName = "";
-    int64_t     WORKSPACEID = monitorRule.defaultWorkspace == "" ? findAvailableDefaultWS() : getWorkspaceIDFromString(monitorRule.defaultWorkspace, newDefaultWorkspaceName);
+    int64_t     WORKSPACEID             = g_pConfigManager->getDefaultWorkspaceFor(szName).empty() ?
+                        findAvailableDefaultWS() :
+                        getWorkspaceIDFromString(g_pConfigManager->getDefaultWorkspaceFor(szName), newDefaultWorkspaceName);
 
     if (WORKSPACEID == INT_MAX || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
         WORKSPACEID             = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 
-        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", monitorRule.defaultWorkspace.c_str());
+        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName).c_str());
     }
 
     auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);

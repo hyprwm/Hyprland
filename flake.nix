@@ -81,8 +81,9 @@
         inherit udis86;
       };
       hyprland-debug = hyprland.override {debug = true;};
-      hyprland-no-hidpi = hyprland.override {hidpiXWayland = false;};
+      hyprland-hidpi = hyprland.override {hidpiXWayland = true;};
       hyprland-nvidia = hyprland.override {nvidiaPatches = true;};
+      hyprland-no-hidpi = builtins.trace "hyprland-no-hidpi was removed. Please use the default package." hyprland;
 
       udis86 = prev.callPackage ./nix/udis86.nix {};
 

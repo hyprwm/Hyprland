@@ -112,6 +112,8 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     layersurface->layerSurface->mapped = true;
     layersurface->mapped               = true;
 
+    layersurface->surface = layersurface->layerSurface->surface;
+
     // anim
     layersurface->alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
 
@@ -121,10 +123,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     if (!PMONITOR)
         return;
 
-    for (auto& rule : g_pConfigManager->getMatchingRules(layersurface)) {
-        if (rule.rule == "noanim")
-            layersurface->noAnimations = true;
-    }
+    layersurface->applyRules();
 
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
@@ -210,12 +209,15 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
+    const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == layersurface->layerSurface->surface;
+
+    layersurface->surface = nullptr;
+
     if (!PMONITOR)
         return;
 
     // refocus if needed
-    if (layersurface->layerSurface->surface == g_pCompositor->m_pLastFocus) {
-
+    if (WASLASTFOCUS) {
         Vector2D       surfaceCoords;
         SLayerSurface* pFoundLayerSurface = nullptr;
         wlr_surface*   foundSurface       = nullptr;

@@ -6,11 +6,11 @@
 #include <iomanip>
 #include <sstream>
 
-#if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
 #if defined(__DragonFly__)
 #include <sys/kinfo.h> // struct kinfo_proc
-#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#elif defined(__FreeBSD__)
 #include <sys/user.h> // struct kinfo_proc
 #endif
 
@@ -23,7 +23,7 @@
 #endif
 #if defined(__DragonFly__)
 #define KP_PPID(kp) kp.kp_ppid
-#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#elif defined(__FreeBSD__)
 #define KP_PPID(kp) kp.ki_ppid
 #else
 #define KP_PPID(kp) kp.p_ppid

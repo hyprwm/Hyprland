@@ -67,13 +67,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // Foreign Toplevel
     PWINDOW->createToplevelHandle();
 
-    // checks if the window wants borders and sets the appriopriate flag
+    // checks if the window wants borders and sets the appropriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
 
     // registers the animated vars and stuff
     PWINDOW->onMap();
 
-    const auto PWINDOWSURFACE = g_pXWaylandManager->getWindowSurface(PWINDOW);
+    const auto PWINDOWSURFACE = PWINDOW->m_pWLSurface.wlr();
 
     if (!PWINDOWSURFACE) {
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
@@ -125,11 +125,21 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (MONITORSTR == "unset") {
                     PWINDOW->m_iMonitorID = PMONITOR->ID;
                 } else {
-                    const long int MONITOR = std::stoi(MONITORSTR);
-                    if (!g_pCompositor->getMonitorFromID(MONITOR))
-                        PWINDOW->m_iMonitorID = 0;
-                    else
-                        PWINDOW->m_iMonitorID = MONITOR;
+                    if (isNumber(MONITORSTR)) {
+                        const long int MONITOR = std::stoi(MONITORSTR);
+                        if (!g_pCompositor->getMonitorFromID(MONITOR))
+                            PWINDOW->m_iMonitorID = 0;
+                        else
+                            PWINDOW->m_iMonitorID = MONITOR;
+                    } else {
+                        const auto PMONITOR = g_pCompositor->getMonitorFromName(MONITORSTR);
+                        if (PMONITOR)
+                            PWINDOW->m_iMonitorID = PMONITOR->ID;
+                        else {
+                            Debug::log(ERR, "No monitor in monitor %s rule", MONITORSTR.c_str());
+                            continue;
+                        }
+                    }
                 }
 
                 PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
@@ -482,7 +492,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
 
-    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(g_pXWaylandManager->getWindowSurface(PWINDOW), addViewCoords, PWINDOW, PWINDOW);
+    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(PWINDOW->m_pWLSurface.wlr(), addViewCoords, PWINDOW, PWINDOW);
 
     PWINDOW->updateToplevel();
 
@@ -565,13 +575,19 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PMONITOR->scale);
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
+
+    if (!PWINDOW->m_pWLSurface.exists() || !PWINDOW->m_bIsMapped) {
+        Debug::log(WARN, "Window %x unmapped without being mapped??", PWINDOW);
+        PWINDOW->m_bFadingOut = false;
+        return;
+    }
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
@@ -665,8 +681,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
     // do the animation thing
-    PWINDOW->m_vOriginalClosedPos  = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
-    PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
+    if (PMONITOR) {
+        PWINDOW->m_vOriginalClosedPos  = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
+        PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
+    }
 
     if (!PWINDOW->m_bX11DoesntWantBorders)                                                  // don't animate out if they weren't animated in.
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.vec() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it
@@ -696,7 +714,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
 
     PWINDOW->updateSurfaceOutputs();
 
-    g_pHyprRenderer->damageSurface(g_pXWaylandManager->getWindowSurface(PWINDOW), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
+    g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
 
     // Debug::log(LOG, "Window %x committed", PWINDOW); // SPAM!
 }
@@ -790,7 +808,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
             }
         }
 
-        // Disable the maximize flag when we recieve a de-fullscreen request
+        // Disable the maximize flag when we receive a de-fullscreen request
         PWINDOW->m_bWasMaximized &= REQUESTED->fullscreen;
 
         requestedFullState = REQUESTED->fullscreen;
@@ -995,7 +1013,6 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     PNEWWINDOW->m_pX11Parent = g_pCompositor->getX11Parent(PNEWWINDOW);
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XWSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XWayland Window");
-    PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XWSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XWSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_setOverrideRedirect.initCallback(&XWSURFACE->events.set_override_redirect, &Events::listener_setOverrideRedirect, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_configureX11.initCallback(&XWSURFACE->events.request_configure, &Events::listener_configureX11, PNEWWINDOW, "XWayland Window");
@@ -1014,7 +1031,6 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
-    PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XDGSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XDGSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XDG Window");
 }
 

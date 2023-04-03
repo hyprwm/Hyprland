@@ -15,6 +15,7 @@ class CShader {
     GLint  posAttrib;
     GLint  texAttrib;
     GLint  discardOpaque;
+    GLint  discardAlphaZero;
 
     GLint  topLeft;
     GLint  bottomRight;

@@ -34,16 +34,15 @@ struct SConfigValue {
 };
 
 struct SMonitorRule {
-    std::string         name             = "";
-    Vector2D            resolution       = Vector2D(1280, 720);
-    Vector2D            offset           = Vector2D(0, 0);
-    float               scale            = 1;
-    float               refreshRate      = 60;
-    std::string         defaultWorkspace = "";
-    bool                disabled         = false;
-    wl_output_transform transform        = WL_OUTPUT_TRANSFORM_NORMAL;
-    std::string         mirrorOf         = "";
-    bool                enable10bit      = false;
+    std::string         name        = "";
+    Vector2D            resolution  = Vector2D(1280, 720);
+    Vector2D            offset      = Vector2D(0, 0);
+    float               scale       = 1;
+    float               refreshRate = 60;
+    bool                disabled    = false;
+    wl_output_transform transform   = WL_OUTPUT_TRANSFORM_NORMAL;
+    std::string         mirrorOf    = "";
+    bool                enable10bit = false;
 };
 
 struct SMonitorAdditionalReservedArea {
@@ -54,7 +53,7 @@ struct SMonitorAdditionalReservedArea {
 };
 
 struct SAnimationPropertyConfig {
-    bool                      overriden = true;
+    bool                      overridden = true;
 
     std::string               internalBezier  = "";
     std::string               internalStyle   = "";
@@ -150,6 +149,7 @@ class CConfigManager {
     SConfigValue*                                                   getConfigValuePtrSafe(const std::string&);
 
     SMonitorRule                                                    getMonitorRuleFor(const std::string&, const std::string& displayName = "");
+    std::string                                                     getDefaultWorkspaceFor(const std::string&);
 
     CMonitor*                                                       getBoundMonitorForWS(const std::string&);
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
@@ -187,7 +187,7 @@ class CConfigManager {
   private:
     std::deque<std::string>                                                                    configPaths;       // stores all the config paths
     std::unordered_map<std::string, time_t>                                                    configModifyTimes; // stores modify times
-    std::unordered_map<std::string, std::string>                                               configDynamicVars; // stores dynamic vars declared by the user
+    std::vector<std::pair<std::string, std::string>>                                           configDynamicVars; // stores dynamic vars declared by the user
     std::unordered_map<std::string, SConfigValue>                                              configValues;
     std::unordered_map<std::string, std::unordered_map<std::string, SConfigValue>>             deviceConfigs; // stores device configs
 
@@ -208,6 +208,7 @@ class CConfigManager {
     bool                                                                                       isFirstLaunch = true; // For exec-once
 
     std::deque<SMonitorRule>                                                                   m_dMonitorRules;
+    std::unordered_map<std::string, std::string>                                               m_mDefaultWorkspaces;
     std::deque<SWindowRule>                                                                    m_dWindowRules;
     std::deque<SLayerRule>                                                                     m_dLayerRules;
     std::deque<std::string>                                                                    m_dBlurLSNamespaces;
@@ -215,7 +216,7 @@ class CConfigManager {
     bool                                                                                       firstExecDispatched = false;
     std::deque<std::string>                                                                    firstExecRequests;
 
-    std::unordered_map<std::string, std::string>                                               environmentVariables;
+    std::vector<std::pair<std::string, std::string>>                                           environmentVariables;
 
     // internal methods
     void         setDefaultVars();

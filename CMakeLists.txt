@@ -66,7 +66,7 @@ message(STATUS "Checking deps...")
 find_package(Threads REQUIRED)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm egl xkbcommon libinput) # we do not check for wlroots, as we provide it ourselves
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm egl xkbcommon libinput pango pangocairo) # we do not check for wlroots, as we provide it ourselves
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 

@@ -3,8 +3,8 @@
 #include "../Compositor.hpp"
 
 void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
-    *lx += node->pSurface->current.dx;
-    *ly += node->pSurface->current.dy;
+    *lx += node->pSurface->wlr()->current.dx;
+    *ly += node->pSurface->wlr()->current.dy;
 
     if (node->offsetfn) {
         // This is the root node
@@ -23,7 +23,13 @@ void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
 SSurfaceTreeNode* createTree(wlr_surface* pSurface, CWindow* pWindow) {
     const auto PNODE = &SubsurfaceTree::surfaceTreeNodes.emplace_back();
 
-    PNODE->pSurface     = pSurface;
+    if (pSurface->data)
+        PNODE->pSurface = (CWLSurface*)pSurface->data;
+    else {
+        PNODE->pInternalSurface = pSurface;
+        PNODE->pSurface         = &PNODE->pInternalSurface;
+    }
+
     PNODE->pWindowOwner = pWindow;
 
     PNODE->hyprListener_newSubsurface.initCallback(&pSurface->events.new_subsurface, &Events::listener_newSubsurfaceNode, PNODE, "SurfaceTreeNode");
@@ -88,9 +94,9 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
     pNode->hyprListener_newSubsurface.removeCallback();
 
     // damage
-    if (pNode->pSurface) {
+    if (pNode->pSurface && pNode->pSurface->exists()) {
         wlr_box extents = {};
-        wlr_surface_get_extends(pNode->pSurface, &extents);
+        wlr_surface_get_extends(pNode->pSurface->wlr(), &extents);
 
         int lx = 0, ly = 0;
         addSurfaceGlobalOffset(pNode, &lx, &ly);
@@ -182,13 +188,14 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
             std::find_if(SubsurfaceTree::surfaceTreeNodes.begin(), SubsurfaceTree::surfaceTreeNodes.end(), [&](const SSurfaceTreeNode& other) { return &other == PNODE; });
 
         if (IT != SubsurfaceTree::surfaceTreeNodes.end()) {
-            int lx = 0, ly = 0;
-            addSurfaceGlobalOffset(PNODE, &lx, &ly);
+            if (PNODE->pSurface && PNODE->pSurface->exists()) {
+                int lx = 0, ly = 0;
+                addSurfaceGlobalOffset(PNODE, &lx, &ly);
 
-            wlr_box extents = {lx, ly, 0, 0};
-            if (PNODE->pSurface) {
-                extents.width  = PNODE->pSurface->current.width;
-                extents.height = PNODE->pSurface->current.height;
+                wlr_box extents = {lx, ly, 0, 0};
+
+                extents.width  = PNODE->pSurface->wlr()->current.width;
+                extents.height = PNODE->pSurface->wlr()->current.height;
 
                 g_pHyprRenderer->damageBox(&extents);
             }
@@ -228,7 +235,8 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
             }
         }
 
-    g_pHyprRenderer->damageSurface(pNode->pSurface, lx, ly);
+    if (pNode->pSurface && pNode->pSurface->exists())
+        g_pHyprRenderer->damageSurface(pNode->pSurface->wlr(), lx, ly);
 }
 
 void Events::listener_destroySubsurface(void* owner, void* data) {

@@ -19,6 +19,7 @@ See examples/examplePlugin for an example plugin
 
 #include "../helpers/Color.hpp"
 #include "HookSystem.hpp"
+#include "../SharedDefs.hpp"
 
 #include <any>
 #include <functional>
@@ -31,6 +32,12 @@ typedef struct {
     std::string author;
     std::string version;
 } PLUGIN_DESCRIPTION_INFO;
+
+struct SFunctionMatch {
+    void*       address = nullptr;
+    std::string signature;
+    std::string demangled;
+};
 
 #define APICALL extern "C"
 #define EXPORT  __attribute__((visibility("default")))
@@ -184,8 +191,10 @@ namespace HyprlandAPI {
         This is useful for hooking private functions.
 
         returns: function address, or nullptr on fail.
+
+        Deprecated because of findFunctionsByName.
     */
-    APICALL void* getFunctionAddressFromSignature(HANDLE handle, const std::string& sig);
+    APICALL [[deprecated]] void* getFunctionAddressFromSignature(HANDLE handle, const std::string& sig);
 
     /*
         Adds a window decoration to a window
@@ -214,4 +223,28 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool removeDispatcher(HANDLE handle, const std::string& name);
+
+    /*
+        Adds a notification.
+
+        data has to contain:
+         - text: std::string or const char*
+         - time: uint64_t
+         - color: CColor -> CColor(0) will apply the default color for the notification icon
+
+        data may contain:
+         - icon: eIcons
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::string, std::any>& data);
+
+    /*
+        Returns a vector of found functions matching the provided name.
+
+        These addresses will not change, and should be made static. Lookups are slow.
+
+        Empty means either none found or handle was invalid
+    */
+    APICALL std::vector<SFunctionMatch> findFunctionsByName(HANDLE handle, const std::string& name);
 };

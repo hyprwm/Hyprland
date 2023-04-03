@@ -348,8 +348,6 @@ void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
     zwlr_screencopy_frame_v1_send_ready(frame->resource, tvSecHi, tvSecLo, now.tv_nsec);
 }
 void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
-    const auto PMONITOR = frame->pMonitor;
-
     if (!frame->withDamage)
         return;
 

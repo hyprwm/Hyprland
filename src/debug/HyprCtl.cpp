@@ -486,7 +486,7 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         ret += "animations:\n";
 
         for (auto& ac : g_pConfigManager->getAnimationConfig()) {
-            ret += getFormat("\n\tname: %s\n\t\toverriden: %i\n\t\tbezier: %s\n\t\tenabled: %i\n\t\tspeed: %.2f\n\t\tstyle: %s\n", ac.first.c_str(), (int)ac.second.overriden,
+            ret += getFormat("\n\tname: %s\n\t\toverriden: %i\n\t\tbezier: %s\n\t\tenabled: %i\n\t\tspeed: %.2f\n\t\tstyle: %s\n", ac.first.c_str(), (int)ac.second.overridden,
                              ac.second.internalBezier.c_str(), ac.second.internalEnabled, ac.second.internalSpeed, ac.second.internalStyle.c_str());
         }
 
@@ -503,13 +503,13 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
             ret += getFormat(R"#(
 {
     "name": "%s",
-    "overriden": %s,
+    "overridden": %s,
     "bezier": "%s",
     "enabled": %s,
     "speed": %.2f,
     "style": "%s"
 },)#",
-                             ac.first.c_str(), ac.second.overriden ? "true" : "false", ac.second.internalBezier.c_str(), ac.second.internalEnabled ? "true" : "false",
+                             ac.first.c_str(), ac.second.overridden ? "true" : "false", ac.second.internalBezier.c_str(), ac.second.internalEnabled ? "true" : "false",
                              ac.second.internalSpeed, ac.second.internalStyle.c_str());
         }
 
@@ -933,7 +933,7 @@ std::string dispatchSetProp(std::string request) {
         } else if (PROP == "forceopaque") {
             PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forceopaqueoverriden") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverriden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forceallowsinput") {
             PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forcenoanims") {
@@ -960,6 +960,8 @@ std::string dispatchSetProp(std::string request) {
             PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "inactivebordercolor") {
             PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "forcergbx") {
+            PWINDOW->m_sAdditionalConfigData.forceRGBX.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else {
             return "prop not found";
         }
@@ -1137,6 +1139,47 @@ std::string dispatchPlugin(std::string request) {
     return "ok";
 }
 
+std::string dispatchNotify(std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    if (vars.size() < 5)
+        return "not enough args";
+
+    const auto ICON = vars[1];
+
+    if (!isNumber(ICON))
+        return "invalid arg 1";
+
+    int icon = -1;
+    try {
+        icon = std::stoi(ICON);
+    } catch (std::exception& e) { return "invalid arg 1"; }
+
+    if (icon == -1 || icon > ICON_NONE) {
+        icon = ICON_NONE;
+    }
+
+    const auto TIME = vars[2];
+    int        time = 0;
+    try {
+        time = std::stoi(TIME);
+    } catch (std::exception& e) { return "invalid arg 2"; }
+
+    CColor      color = configStringToInt(vars[3]);
+
+    std::string message = "";
+
+    for (size_t i = 4; i < vars.size(); ++i) {
+        message += vars[i] + " ";
+    }
+
+    message.pop_back();
+
+    g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon);
+
+    return "ok";
+}
+
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
@@ -1186,6 +1229,8 @@ std::string getReply(std::string request) {
         return animationsRequest(format);
     else if (request.find("plugin") == 0)
         return dispatchPlugin(request);
+    else if (request.find("notify") == 0)
+        return dispatchNotify(request);
     else if (request.find("setprop") == 0)
         return dispatchSetProp(request);
     else if (request.find("seterror") == 0)

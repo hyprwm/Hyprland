@@ -40,11 +40,13 @@ CConfigManager::CConfigManager() {
 void CConfigManager::populateEnvironment() {
     environmentVariables.clear();
     for (char** env = environ; *env; ++env) {
-        const std::string ENVVAR       = *env;
-        const auto        VARIABLE     = ENVVAR.substr(0, ENVVAR.find_first_of('='));
-        const auto        VALUE        = ENVVAR.substr(ENVVAR.find_first_of('=') + 1);
-        environmentVariables[VARIABLE] = VALUE;
+        const std::string ENVVAR   = *env;
+        const auto        VARIABLE = ENVVAR.substr(0, ENVVAR.find_first_of('='));
+        const auto        VALUE    = ENVVAR.substr(ENVVAR.find_first_of('=') + 1);
+        environmentVariables.emplace_back(std::make_pair<>(VARIABLE, VALUE));
     }
+
+    std::sort(environmentVariables.begin(), environmentVariables.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
 }
 
 void CConfigManager::setDefaultVars() {
@@ -74,23 +76,27 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:key_press_enables_dpms"].intValue       = 0;
     configValues["misc:always_follow_on_dnd"].intValue         = 1;
     configValues["misc:layers_hog_keyboard_focus"].intValue    = 1;
-    configValues["misc:animate_manual_resizes"].intValue       = 1;
-    configValues["misc:animate_mouse_windowdragging"].intValue = 1;
+    configValues["misc:animate_manual_resizes"].intValue       = 0;
+    configValues["misc:animate_mouse_windowdragging"].intValue = 0;
     configValues["misc:disable_autoreload"].intValue           = 0;
     configValues["misc:enable_swallow"].intValue               = 0;
     configValues["misc:swallow_regex"].strValue                = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue            = 0;
-    configValues["misc:no_direct_scanout"].intValue            = 0;
+    configValues["misc:no_direct_scanout"].intValue            = 1;
     configValues["misc:hide_cursor_on_touch"].intValue         = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue   = 1;
+    configValues["misc:suppress_portal_warnings"].intValue     = 0;
+    configValues["misc:render_ahead_of_time"].intValue         = 0;
+    configValues["misc:render_ahead_safezone"].intValue        = 1;
 
-    configValues["debug:int"].intValue             = 0;
-    configValues["debug:log_damage"].intValue      = 0;
-    configValues["debug:overlay"].intValue         = 0;
-    configValues["debug:damage_blink"].intValue    = 0;
-    configValues["debug:disable_logs"].intValue    = 0;
-    configValues["debug:disable_time"].intValue    = 1;
-    configValues["debug:damage_tracking"].intValue = DAMAGE_TRACKING_FULL;
+    configValues["debug:int"].intValue                = 0;
+    configValues["debug:log_damage"].intValue         = 0;
+    configValues["debug:overlay"].intValue            = 0;
+    configValues["debug:damage_blink"].intValue       = 0;
+    configValues["debug:disable_logs"].intValue       = 0;
+    configValues["debug:disable_time"].intValue       = 1;
+    configValues["debug:enable_stdout_logs"].intValue = 0;
+    configValues["debug:damage_tracking"].intValue    = DAMAGE_TRACKING_FULL;
 
     configValues["decoration:rounding"].intValue               = 0;
     configValues["decoration:blur"].intValue                   = 1;
@@ -293,7 +299,9 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
             if (COMMAND[0] == '$') {
                 // register a dynamic var
                 Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
-                configDynamicVars[COMMAND.substr(1)] = VALUE;
+                configDynamicVars.emplace_back(std::make_pair<>(COMMAND.substr(1), VALUE));
+
+                std::sort(configDynamicVars.begin(), configDynamicVars.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
             } else {
                 parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
             }
@@ -554,6 +562,12 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         } else if (ARGS[argno] == "bitdepth") {
             newrule.enable10bit = ARGS[argno + 1] == "10";
             argno++;
+        } else if (ARGS[argno] == "transform") {
+            newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
+            argno++;
+        } else if (ARGS[argno] == "workspace") {
+            m_mDefaultWorkspaces[newrule.name] = ARGS[argno + 1];
+            argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax");
             parseError = "invalid syntax at \"" + ARGS[argno] + "\"";
@@ -597,8 +611,8 @@ void CConfigManager::handleBezier(const std::string& command, const std::string&
 
 void CConfigManager::setAnimForChildren(SAnimationPropertyConfig* const ANIM) {
     for (auto& [name, anim] : animationConfig) {
-        if (anim.pParentAnimation == ANIM && !anim.overriden) {
-            // if a child isnt overriden, set the values of the parent
+        if (anim.pParentAnimation == ANIM && !anim.overridden) {
+            // if a child isnt overridden, set the values of the parent
             anim.pValues = ANIM->pValues;
 
             setAnimForChildren(&anim);
@@ -621,8 +635,8 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
         return;
     }
 
-    PANIM->second.overriden = true;
-    PANIM->second.pValues   = &PANIM->second;
+    PANIM->second.overridden = true;
+    PANIM->second.pValues    = &PANIM->second;
 
     // on/off
     PANIM->second.internalEnabled = ARGS[1] == "1";
@@ -744,6 +758,8 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
             g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
+        else if (KEY.find("code:") == 0 && isNumber(KEY.substr(5)))
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
         else
             g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
     }
@@ -764,11 +780,11 @@ bool windowRuleValid(const std::string& RULE) {
              RULE.find("maxsize") != 0 && RULE.find("pseudo") != 0 && RULE.find("monitor") != 0 && RULE.find("idleinhibit") != 0 && RULE != "nofocus" && RULE != "noblur" &&
              RULE != "noshadow" && RULE != "noborder" && RULE != "center" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" && RULE != "nofullscreenrequest" &&
              RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" && RULE != "windowdance" && RULE != "maximize" && RULE.find("animation") != 0 &&
-             RULE.find("rounding") != 0 && RULE.find("workspace") != 0 && RULE.find("bordercolor") != 0);
+             RULE.find("rounding") != 0 && RULE.find("workspace") != 0 && RULE.find("bordercolor") != 0 && RULE != "forcergbx");
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return !(RULE != "noanim");
+    return !(RULE != "noanim" && RULE != "blur" && RULE != "ignorezero");
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
@@ -800,9 +816,8 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
     const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE == "" || VALUE == "") {
+    if (RULE == "" || VALUE == "")
         return;
-    }
 
     if (RULE == "unset") {
         std::erase_if(m_dLayerRules, [&](const SLayerRule& other) { return other.targetNamespace == VALUE; });
@@ -816,6 +831,11 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
     }
 
     m_dLayerRules.push_back({VALUE, RULE});
+
+    for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto& lsl : m->m_aLayerSurfaceLayers)
+            for (auto& ls : lsl)
+                ls->applyRules();
 }
 
 void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
@@ -974,12 +994,7 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
 void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
     const auto ARGS = CVarList(value);
 
-    for (auto& mr : m_dMonitorRules) {
-        if (mr.name == ARGS[0]) {
-            mr.defaultWorkspace = ARGS[1];
-            break;
-        }
-    }
+    m_mDefaultWorkspaces[ARGS[0]] = ARGS[1];
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
@@ -1382,6 +1397,8 @@ void CConfigManager::loadConfigLoadVars() {
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
 
+    Debug::disableStdout = !configValues["debug:enable_stdout_logs"].intValue;
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty
         g_pHyprOpenGL->markBlurDirtyForMonitor(m.get());
@@ -1645,15 +1662,26 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
     std::vector<SLayerRule> returns;
 
-    for (auto& lr : m_dLayerRules) {
-        std::regex NSCHECK(lr.targetNamespace);
+    if (!pLS->layerSurface || pLS->fadingOut)
+        return returns;
 
-        if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
-            continue;
+    for (auto& lr : m_dLayerRules) {
+        if (lr.targetNamespace.find("address:0x") == 0) {
+            if (getFormat("address:0x%x", pLS) != lr.targetNamespace)
+                continue;
+        } else {
+            std::regex NSCHECK(lr.targetNamespace);
+
+            if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
+                continue;
+        }
 
         // hit
         returns.push_back(lr);
     }
+
+    if (pLS->layerSurface->_namespace && shouldBlurLS(pLS->layerSurface->_namespace))
+        returns.push_back({pLS->layerSurface->_namespace, "blur"});
 
     return returns;
 }
@@ -1663,10 +1691,11 @@ void CConfigManager::dispatchExecOnce() {
         return;
 
     // update dbus env
-    handleRawExec(
-        "",
-        "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && hash dbus-update-activation-environment 2>/dev/null && "
-        "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE");
+    if (g_pCompositor->m_sWLRSession)
+        handleRawExec(
+            "",
+            "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && hash dbus-update-activation-environment 2>/dev/null && "
+            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE");
 
     firstExecDispatched = true;
 
@@ -1686,6 +1715,9 @@ void CConfigManager::dispatchExecOnce() {
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
         wlr_ext_workspace_handle_v1_set_name(ws->m_pWlrHandle, ws->m_szName.c_str());
     }
+
+    // check for user's possible errors with their setup and notify them if needed
+    g_pCompositor->performUserChecks();
 }
 
 void CConfigManager::performMonitorReload() {
@@ -1906,4 +1938,11 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
 
 void CConfigManager::removePluginConfig(HANDLE handle) {
     std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
+}
+
+std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
+    const auto IT = std::find_if(m_mDefaultWorkspaces.begin(), m_mDefaultWorkspaces.end(), [&](const auto& other) { return other.first == name; });
+    if (IT == m_mDefaultWorkspaces.end())
+        return "";
+    return IT->second;
 }

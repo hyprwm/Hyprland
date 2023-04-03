@@ -190,6 +190,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.texAttrib            = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shRGBA.posAttrib            = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBA.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
+    m_RenderData.pCurrentMonData->m_shRGBA.discardAlphaZero     = glGetUniformLocation(prog, "discardAlphaZero");
     m_RenderData.pCurrentMonData->m_shRGBA.topLeft              = glGetUniformLocation(prog, "topLeft");
     m_RenderData.pCurrentMonData->m_shRGBA.fullSize             = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBA.radius               = glGetUniformLocation(prog, "radius");
@@ -212,6 +213,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBX.texAttrib            = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shRGBX.posAttrib            = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBX.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
+    m_RenderData.pCurrentMonData->m_shRGBX.discardAlphaZero     = glGetUniformLocation(prog, "discardAlphaZero");
     m_RenderData.pCurrentMonData->m_shRGBX.topLeft              = glGetUniformLocation(prog, "topLeft");
     m_RenderData.pCurrentMonData->m_shRGBX.fullSize             = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBX.radius               = glGetUniformLocation(prog, "radius");
@@ -227,6 +229,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shEXT.posAttrib            = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shEXT.texAttrib            = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shEXT.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
+    m_RenderData.pCurrentMonData->m_shEXT.discardAlphaZero     = glGetUniformLocation(prog, "discardAlphaZero");
     m_RenderData.pCurrentMonData->m_shEXT.topLeft              = glGetUniformLocation(prog, "topLeft");
     m_RenderData.pCurrentMonData->m_shEXT.fullSize             = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shEXT.radius               = glGetUniformLocation(prog, "radius");
@@ -466,15 +469,15 @@ void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, wlr_box* pBox, float alpha
     renderTexture(CTexture(tex), pBox, alpha, round, false, allowCustomUV);
 }
 
-void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardopaque, bool allowCustomUV) {
+void CHyprOpenGLImpl::renderTexture(const CTexture& tex, wlr_box* pBox, float alpha, int round, bool discardActive, bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardopaque, false, allowCustomUV, true);
+    renderTextureInternalWithDamage(tex, pBox, alpha, m_RenderData.pDamage, round, discardActive, false, allowCustomUV, true);
 
     scissor((wlr_box*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardOpaque, bool noAA,
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_box* pBox, float alpha, pixman_region32_t* damage, int round, bool discardActive, bool noAA,
                                                       bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
@@ -518,6 +521,9 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         }
     }
 
+    if (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceRGBX)
+        shader = &m_RenderData.pCurrentMonData->m_shRGBX;
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex.m_iTarget, tex.m_iTexID);
 
@@ -542,7 +548,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     if (!usingFinalShader) {
         glUniform1f(shader->alpha, alpha);
-        glUniform1i(shader->discardOpaque, (int)discardOpaque);
+
+        if (discardActive) {
+            glUniform1i(shader->discardOpaque, !!(m_RenderData.discardMode & DISCARD_OPAQUE));
+            glUniform1i(shader->discardAlphaZero, !!(m_RenderData.discardMode & DISCARD_ALPHAZERO));
+        } else {
+            glUniform1i(shader->discardOpaque, 0);
+            glUniform1i(shader->discardAlphaZero, 0);
+        }
     }
 
     wlr_box transformedBox;
@@ -560,7 +573,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         glUniform1f(shader->radius, round);
         glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 
-        if (allowDim && m_pCurrentWindow && *PDIMINACTIVE && m_pCurrentWindow != g_pCompositor->m_pLastWindow) {
+        if (allowDim && m_pCurrentWindow && *PDIMINACTIVE) {
             glUniform1i(shader->applyTint, 1);
             const auto DIM = m_pCurrentWindow->m_fDimPercent.fl();
             glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
@@ -643,7 +656,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     pixman_region32_copy(&damage, originalDamage);
     wlr_region_transform(&damage, &damage, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
                          m_RenderData.pMonitor->vecTransformedSize.y);
-    wlr_region_expand(&damage, &damage, pow(2, *PBLURPASSES) * *PBLURSIZE);
+    wlr_region_expand(&damage, &damage, *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES));
 
     // helper
     const auto    PMIRRORFB     = &m_RenderData.pCurrentMonData->mirrorFB;
@@ -764,7 +777,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         if (pWindow->m_sAdditionalConfigData.forceNoBlur)
             return false;
 
-        const auto  PSURFACE = g_pXWaylandManager->getWindowSurface(pWindow);
+        const auto  PSURFACE = pWindow->m_pWLSurface.wlr();
 
         const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
         const float A          = pWindow->m_fAlpha.fl() * pWindow->m_fActiveInactiveAlpha.fl() * PWORKSPACE->m_fAlpha.fl();
@@ -865,7 +878,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
         return;
 
     if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) ||
-        (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur)) {
+        (m_pCurrentWindow && (m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur || m_pCurrentWindow->m_sAdditionalConfigData.forceRGBX))) {
         renderTexture(tex, pBox, a, round, false, true);
         return;
     }
@@ -1066,6 +1079,10 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
 void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFramebuffer) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    if (!PMONITOR || !PMONITOR->output)
+        return;
+
     wlr_output_attach_render(PMONITOR->output, nullptr);
 
     // we need to "damage" the entire monitor
@@ -1121,6 +1138,10 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFra
 void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    if (!PMONITOR || !PMONITOR->output)
+        return;
+
     wlr_output_attach_render(PMONITOR->output, nullptr);
 
     // we need to "damage" the entire monitor
@@ -1181,6 +1202,10 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pLayer->monitorID);
+
+    if (!PMONITOR || !PMONITOR->output)
+        return;
+
     wlr_output_attach_render(PMONITOR->output, nullptr);
 
     // we need to "damage" the entire monitor

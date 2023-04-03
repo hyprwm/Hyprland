@@ -8,6 +8,7 @@
 #include <deque>
 #include "config/ConfigDataValues.hpp"
 #include "helpers/Vector2D.hpp"
+#include "helpers/WLSurface.hpp"
 
 enum eIdleInhibitMode
 {
@@ -110,7 +111,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<int>  rounding             = -1; // -1 means no
     CWindowOverridableVar<bool> forceNoBlur          = false;
     CWindowOverridableVar<bool> forceOpaque          = false;
-    CWindowOverridableVar<bool> forceOpaqueOverriden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
+    CWindowOverridableVar<bool> forceOpaqueOverridden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
     CWindowOverridableVar<bool> forceAllowsInput     = false;
     CWindowOverridableVar<bool> forceNoAnims         = false;
     CWindowOverridableVar<bool> forceNoBorder        = false;
@@ -118,6 +119,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool> windowDanceCompat    = false;
     CWindowOverridableVar<bool> noMaxSize            = false;
     CWindowOverridableVar<bool> dimAround            = false;
+    CWindowOverridableVar<bool> forceRGBX            = false;
 };
 
 struct SWindowRule {
@@ -157,6 +159,9 @@ class CWindow {
     DYNLISTENER(toplevelFullscreen);
     DYNLISTENER(setOverrideRedirect);
     // DYNLISTENER(newSubsurfaceWindow);
+
+    CWLSurface            m_pWLSurface;
+    std::list<CWLSurface> m_lPopupSurfaces;
 
     union {
         wlr_xdg_surface*      xdg;
@@ -317,6 +322,7 @@ class CWindow {
     CWindow*                 getGroupCurrent();
     void                     setGroupCurrent(CWindow* pWindow);
     void                     insertWindowToGroup(CWindow* pWindow);
+    void                     updateGroupOutputs();
 
   private:
     // For hidden windows and stuff

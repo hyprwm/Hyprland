@@ -76,10 +76,6 @@ int main(int argc, char** argv) {
     if (g_pCompositor->m_sWLDisplay)
         wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
 
-    // kill all clients
-    for (auto& c : g_pCompositor->m_dProcessPIDsOnShutdown)
-        kill(c, SIGKILL);
-
     if (g_pCompositor->m_sWLDisplay)
         wl_display_destroy(g_pCompositor->m_sWLDisplay);
 

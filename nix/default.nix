@@ -1,8 +1,6 @@
 {
   lib,
   stdenv,
-  fetchFromGitHub,
-  fetchpatch,
   pkg-config,
   meson,
   ninja,
@@ -15,7 +13,7 @@
   libxcb,
   libxkbcommon,
   mesa,
-  mount,
+  pango,
   pciutils,
   systemd,
   udis86,
@@ -27,7 +25,7 @@
   xwayland,
   debug ? false,
   enableXWayland ? true,
-  hidpiXWayland ? true,
+  hidpiXWayland ? false,
   legacyRenderer ? false,
   nvidiaPatches ? false,
   withSystemd ? true,
@@ -74,6 +72,7 @@ in
           libinput
           libxkbcommon
           mesa
+          pango
           udis86
           wayland
           wayland-protocols
@@ -90,8 +89,9 @@ in
         else "release";
 
       mesonFlags = builtins.concatLists [
-        (lib.optional (!enableXWayland) "-Dxwayland=disabled")
-        (lib.optional legacyRenderer "-DLEGACY_RENDERER:STRING=true")
+        ["-Dauto_features=disabled"]
+        (lib.optional enableXWayland "-Dxwayland=enabled")
+        (lib.optional legacyRenderer "-Dlegacy_renderer=enabled")
         (lib.optional withSystemd "-Dsystemd=enabled")
       ];
 

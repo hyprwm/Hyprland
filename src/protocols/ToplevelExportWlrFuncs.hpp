@@ -1,5 +1,8 @@
 #include <GLES2/gl2ext.h>
 
+#ifndef DRM_WLR_FUNCS
+#define DRM_WLR_FUNCS
+
 struct wlr_pixel_format_info {
     uint32_t drm_format;
 
@@ -156,9 +159,9 @@ static const struct wlr_pixel_format_info pixel_format_info[] = {
     },
 };
 
-static const size_t                 pixel_format_info_size = sizeof(pixel_format_info) / sizeof(pixel_format_info[0]);
+static const size_t                        pixel_format_info_size = sizeof(pixel_format_info) / sizeof(pixel_format_info[0]);
 
-const struct wlr_pixel_format_info* drm_get_pixel_format_info(uint32_t fmt) {
+static const struct wlr_pixel_format_info* drm_get_pixel_format_info(uint32_t fmt) {
     for (size_t i = 0; i < pixel_format_info_size; ++i) {
         if (pixel_format_info[i].drm_format == fmt) {
             return &pixel_format_info[i];
@@ -168,15 +171,15 @@ const struct wlr_pixel_format_info* drm_get_pixel_format_info(uint32_t fmt) {
     return NULL;
 }
 
-uint32_t convert_wl_shm_format_to_drm(enum wl_shm_format fmt) {
+/*static uint32_t convert_wl_shm_format_to_drm(enum wl_shm_format fmt) {
     switch (fmt) {
         case WL_SHM_FORMAT_XRGB8888: return DRM_FORMAT_XRGB8888;
         case WL_SHM_FORMAT_ARGB8888: return DRM_FORMAT_ARGB8888;
         default: return (uint32_t)fmt;
     }
-}
+}*/
 
-enum wl_shm_format convert_drm_format_to_wl_shm(uint32_t fmt) {
+static enum wl_shm_format convert_drm_format_to_wl_shm(uint32_t fmt) {
     switch (fmt) {
         case DRM_FORMAT_XRGB8888: return WL_SHM_FORMAT_XRGB8888;
         case DRM_FORMAT_ARGB8888: return WL_SHM_FORMAT_ARGB8888;
@@ -295,7 +298,7 @@ static const struct wlr_gles2_pixel_format formats[] = {
 #endif
 };
 
-const struct wlr_gles2_pixel_format* get_gles2_format_from_drm(uint32_t fmt) {
+static const struct wlr_gles2_pixel_format* get_gles2_format_from_drm(uint32_t fmt) {
     for (size_t i = 0; i < sizeof(formats) / sizeof(*formats); ++i) {
         if (formats[i].drm_format == fmt) {
             return &formats[i];
@@ -303,3 +306,5 @@ const struct wlr_gles2_pixel_format* get_gles2_format_from_drm(uint32_t fmt) {
     }
     return NULL;
 }
+
+#endif

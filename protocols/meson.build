@@ -26,6 +26,7 @@ protocols = [
   ['wlr-foreign-toplevel-management-unstable-v1.xml'],
   ['wlr-layer-shell-unstable-v1.xml'],
   ['wlr-output-power-management-unstable-v1.xml'],
+  ['wlr-screencopy-unstable-v1.xml'],
   ['ext-workspace-unstable-v1.xml'],
   ['pointer-constraints-unstable-v1.xml'],
   ['tablet-unstable-v2.xml'],

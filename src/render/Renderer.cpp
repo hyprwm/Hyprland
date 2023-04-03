@@ -662,7 +662,7 @@ void countSubsurfacesIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
-    if (!pMonitor->mirrors.empty() || pMonitor->isMirror())
+    if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
@@ -820,6 +820,10 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         return;
     }
 
+    const bool UNLOCK_SC = g_pHyprRenderer->m_bSoftwareCursorsLocked;
+    if (UNLOCK_SC)
+        wlr_output_lock_software_cursors(pMonitor->output, true);
+
     if (!wlr_output_damage_attach_render(pMonitor->damage, &hasChanged, &damage)) {
         Debug::log(ERR, "Couldn't attach render to display %s ???", pMonitor->szName.c_str());
         return;
@@ -938,12 +942,23 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprRenderer->damageMirrorsWith(pMonitor, &frameDamage);
 
     pixman_region32_fini(&frameDamage);
-    pixman_region32_fini(&damage);
 
     pMonitor->renderingActive = false;
 
-    if (!wlr_output_commit(pMonitor->output))
+    if (!wlr_output_commit(pMonitor->output)) {
+        pixman_region32_fini(&damage);
+
+        if (UNLOCK_SC)
+            wlr_output_lock_software_cursors(pMonitor->output, false);
+
         return;
+    }
+
+    g_pProtocolManager->m_pScreencopyProtocolManager->onRenderEnd(pMonitor);
+    pixman_region32_fini(&damage);
+
+    if (UNLOCK_SC)
+        wlr_output_lock_software_cursors(pMonitor->output, false);
 
     if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(pMonitor);

@@ -117,6 +117,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool shouldFocus      = true;
     bool workspaceSpecial = false;
 
+    PWINDOW->m_szInitialTitle = g_pXWaylandManager->getTitle(PWINDOW);
+    PWINDOW->m_szInitialClass = g_pXWaylandManager->getAppIDClass(PWINDOW);
+
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {
             try {

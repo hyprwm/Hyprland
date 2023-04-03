@@ -349,10 +349,15 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10);
 
+    if (frame->overlayCursor)
+        wlr_output_lock_software_cursors(PMONITOR->output, true);
+
     if (!wlr_output_attach_render(PMONITOR->output, nullptr)) {
         Debug::log(ERR, "[toplevel_export] Couldn't attach render");
         pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);
+        if (frame->overlayCursor)
+            wlr_output_lock_software_cursors(PMONITOR->output, false);
         return false;
     }
 
@@ -364,6 +369,28 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     g_pHyprRenderer->renderWindow(frame->pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
+    if (frame->overlayCursor && wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y)) {
+        // hack le massive
+        wlr_output_cursor* cursor;
+        const auto         OFFSET = frame->pWindow->m_vRealPosition.vec() - PMONITOR->vecPosition;
+        wl_list_for_each(cursor, &PMONITOR->output->cursors, link) {
+            if (!cursor->enabled || !cursor->visible || PMONITOR->output->hardware_cursor == cursor) {
+                continue;
+            }
+            cursor->x -= OFFSET.x;
+            cursor->y -= OFFSET.y;
+        }
+        wlr_output_render_software_cursors(PMONITOR->output, NULL);
+        wl_list_for_each(cursor, &PMONITOR->output->cursors, link) {
+            if (!cursor->enabled || !cursor->visible || PMONITOR->output->hardware_cursor == cursor) {
+                continue;
+            }
+            cursor->x += OFFSET.x;
+            cursor->y += OFFSET.y;
+        }
+        wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+    }
+
     // copy pixels
     const auto PFORMAT = get_gles2_format_from_drm(format);
     if (!PFORMAT) {
@@ -371,6 +398,8 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
         g_pHyprOpenGL->end();
         pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);
+        if (frame->overlayCursor)
+            wlr_output_lock_software_cursors(PMONITOR->output, false);
         return false;
     }
 
@@ -387,6 +416,9 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     pixman_region32_fini(&fakeDamage);
 
     wlr_buffer_end_data_ptr_access(frame->buffer);
+
+    if (frame->overlayCursor)
+        wlr_output_lock_software_cursors(PMONITOR->output, false);
 
     return true;
 }

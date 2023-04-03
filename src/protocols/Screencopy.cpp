@@ -24,11 +24,6 @@ static SScreencopyFrame* frameFromResource(wl_resource*);
 
 CScreencopyProtocolManager::CScreencopyProtocolManager() {
 
-#ifndef GLES32
-    Debug::log(WARN, "Screensharing is not supported on LEGACY_RENDERER!");
-    return;
-#endif
-
     m_pGlobal = wl_global_create(g_pCompositor->m_sWLDisplay, &zwlr_screencopy_manager_v1_interface, SCREENCOPY_VERSION, this, bindManagerInt);
 
     if (!m_pGlobal) {

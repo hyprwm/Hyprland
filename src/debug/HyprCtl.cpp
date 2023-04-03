@@ -1290,7 +1290,7 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     close(ACCEPTEDCONNECTION);
 
     if (g_pConfigManager->m_bWantsMonitorReload) {
-        g_pConfigManager->ensureDPMS();
+        g_pConfigManager->ensureMonitorStatus();
     }
 
     return 0;

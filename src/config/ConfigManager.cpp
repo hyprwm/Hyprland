@@ -1387,7 +1387,7 @@ void CConfigManager::loadConfigLoadVars() {
     if (!isFirstLaunch && !m_bNoMonitorReload) {
         // check
         performMonitorReload();
-        ensureDPMS();
+        ensureMonitorStatus();
         ensureVRR();
     }
 
@@ -1791,7 +1791,7 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
     return false;
 }
 
-void CConfigManager::ensureDPMS() {
+void CConfigManager::ensureMonitorStatus() {
     for (auto& rm : g_pCompositor->m_vRealMonitors) {
         if (!rm->output)
             continue;

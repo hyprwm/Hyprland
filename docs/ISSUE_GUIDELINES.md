@@ -74,9 +74,7 @@ Make sure you're on latest git. Run `git pull --recurse-submodules` to sync ever
 > Note: The config file used will be `hyprlandd.conf` instead of `hyprland.conf`
 
 2. `cd ~`
-3. For your own convenience, launch Hyprland from a tty with the envvar `ASAN_OPTIONS="log_path=asan.log"`:
- - If using a wrapper, add `export ASAN_OPTIONS="log_path=asan.log"` in a separate line before the `exec Hyprland` line.
- - If launching straight from the tty, execute `ASAN_OPTIONS="log_path=asan.log" ~/path/to/Hyprland`
+3. For your own convenience, launch Hyprland from a tty with the envvar `ASAN_OPTIONS="log_path=asan.log" ~/path/to/Hyprland`
 4. Reproduce the crash. Hyprland should instantly close.
 5. Check out your `~` and find a file called `asan.log.XXXXX` where `XXXXX` will be a number corresponding to the PID of the Hyprland instance that crashed.
 6. That is your coredump. Attach it to your issue.

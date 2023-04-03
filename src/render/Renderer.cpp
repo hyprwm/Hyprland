@@ -826,6 +826,10 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     if (!wlr_output_damage_attach_render(pMonitor->damage, &hasChanged, &damage)) {
         Debug::log(ERR, "Couldn't attach render to display %s ???", pMonitor->szName.c_str());
+
+        if (UNLOCK_SC)
+            wlr_output_lock_software_cursors(pMonitor->output, false);
+
         return;
     }
 
@@ -842,6 +846,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             g_pCompositor->scheduleFrameForMonitor(pMonitor);
 
         pMonitor->renderingActive = false;
+
+        if (UNLOCK_SC)
+            wlr_output_lock_software_cursors(pMonitor->output, false);
 
         return;
     }

@@ -20,6 +20,8 @@ void CScreencopyProtocolManager::displayDestroy() {
     wl_global_destroy(m_pGlobal);
 }
 
+static SScreencopyFrame* frameFromResource(wl_resource*);
+
 CScreencopyProtocolManager::CScreencopyProtocolManager() {
 
 #ifndef GLES32
@@ -58,7 +60,9 @@ static void handleCopyFrame(wl_client* client, wl_resource* resource, wl_resourc
 }
 
 static void handleCopyWithDamage(wl_client* client, wl_resource* resource, wl_resource* buffer) {
-    handleCopyFrame(client, resource, buffer); // todo
+    const auto PFRAME  = frameFromResource(resource);
+    PFRAME->withDamage = true;
+    handleCopyFrame(client, resource, buffer);
 }
 
 static void handleDestroyFrame(wl_client* client, wl_resource* resource) {
@@ -77,12 +81,12 @@ static const struct zwlr_screencopy_frame_v1_interface screencopyFrameImpl = {
     .copy_with_damage = handleCopyWithDamage,
 };
 
-SScreencopyClient* clientFromResource(wl_resource* resource) {
+static SScreencopyClient* clientFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &zwlr_screencopy_manager_v1_interface, &screencopyMgrImpl));
     return (SScreencopyClient*)wl_resource_get_user_data(resource);
 }
 
-SScreencopyFrame* frameFromResource(wl_resource* resource) {
+static SScreencopyFrame* frameFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &zwlr_screencopy_frame_v1_interface, &screencopyFrameImpl));
     return (SScreencopyFrame*)wl_resource_get_user_data(resource);
 }
@@ -275,6 +279,10 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
     PFRAME->buffer = PBUFFER;
 
     m_vFramesAwaitingWrite.emplace_back(PFRAME);
+
+    g_pHyprRenderer->m_bDirectScanoutBlocked = true;
+    if (PFRAME->overlayCursor)
+        g_pHyprRenderer->m_bSoftwareCursorsLocked = true;
 }
 
 void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
@@ -290,8 +298,6 @@ void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
             continue;
         }
 
-        // todo: damage
-
         shareFrame(f);
 
         framesToRemove.push_back(f);
@@ -300,13 +306,24 @@ void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
     for (auto& f : framesToRemove) {
         removeFrame(f);
     }
+
+    g_pHyprRenderer->m_bSoftwareCursorsLocked = false;
+
+    if (m_vFramesAwaitingWrite.empty()) {
+        g_pHyprRenderer->m_bDirectScanoutBlocked = false;
+    } else {
+        for (auto& f : m_vFramesAwaitingWrite) {
+            if (f->overlayCursor) {
+                g_pHyprRenderer->m_bSoftwareCursorsLocked = true;
+                break;
+            }
+        }
+    }
 }
 
 void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
-    if (!frame->buffer)
+    if (!frame->buffer || (!pixman_region32_not_empty(g_pHyprOpenGL->m_RenderData.pDamage) && frame->withDamage))
         return;
-
-    // TODO: damage
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -325,10 +342,21 @@ void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
     }
 
     zwlr_screencopy_frame_v1_send_flags(frame->resource, flags);
-    // todo: send damage
+    sendFrameDamage(frame);
     uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
     uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
     zwlr_screencopy_frame_v1_send_ready(frame->resource, tvSecHi, tvSecLo, now.tv_nsec);
+}
+void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
+    const auto PMONITOR = frame->pMonitor;
+
+    if (!frame->withDamage)
+        return;
+
+    PIXMAN_DAMAGE_FOREACH(g_pHyprOpenGL->m_RenderData.pDamage) {
+        const auto RECT = RECTSARR[i];
+        zwlr_screencopy_frame_v1_send_damage(frame->resource, RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1);
+    }
 }
 
 bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {

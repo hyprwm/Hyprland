@@ -27,6 +27,7 @@ struct SScreencopyFrame {
     int                shmStride    = 0;
 
     bool               overlayCursor = false;
+    bool               withDamage    = false;
 
     wlr_buffer_cap     bufferCap = WLR_BUFFER_CAP_SHM;
 
@@ -64,6 +65,7 @@ class CScreencopyProtocolManager {
     std::vector<SScreencopyFrame*> m_vFramesAwaitingWrite;
 
     void                           shareFrame(SScreencopyFrame* frame);
+    void                           sendFrameDamage(SScreencopyFrame* frame);
     bool                           copyFrameDmabuf(SScreencopyFrame* frame);
     bool                           copyFrameShm(SScreencopyFrame* frame, timespec* now);
 };

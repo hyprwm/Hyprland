@@ -53,6 +53,8 @@ class CHyprRenderer {
     bool                m_bRenderingSnapshot         = false;
     CWindow*            m_pLastScanout               = nullptr;
     CMonitor*           m_pMostHzMonitor             = nullptr;
+    bool                m_bDirectScanoutBlocked      = false;
+    bool                m_bSoftwareCursorsLocked     = false;
 
     DAMAGETRACKINGMODES damageTrackingModeFromStr(const std::string&);
 

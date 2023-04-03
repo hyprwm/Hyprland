@@ -659,7 +659,7 @@ void countSubsurfacesIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
-    if (!pMonitor->mirrors.empty() || pMonitor->isMirror())
+    if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);

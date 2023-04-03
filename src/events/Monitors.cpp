@@ -253,8 +253,9 @@ void Events::listener_monitorFrame(void* owner, void* data) {
             PMONITOR->forceFullFrames = 0;
     }
 
-    // TODO: this is getting called with extents being 0,0,0,0 should it be?
-    // potentially can save on resources.
+    const bool UNLOCK_SC = g_pHyprRenderer->m_bSoftwareCursorsLocked;
+    if (UNLOCK_SC)
+        wlr_output_lock_software_cursors(PMONITOR->output, true);
 
     g_pHyprOpenGL->begin(PMONITOR, &damage);
 
@@ -315,14 +316,23 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         g_pHyprRenderer->damageMirrorsWith(PMONITOR, &frameDamage);
 
     pixman_region32_fini(&frameDamage);
-    pixman_region32_fini(&damage);
 
     PMONITOR->renderingActive = false;
 
-    if (!wlr_output_commit(PMONITOR->output))
+    if (!wlr_output_commit(PMONITOR->output)) {
+        pixman_region32_fini(&damage);
+
+        if (UNLOCK_SC)
+            wlr_output_lock_software_cursors(PMONITOR->output, false);
+
         return;
+    }
 
     g_pProtocolManager->m_pScreencopyProtocolManager->onRenderEnd(PMONITOR);
+    pixman_region32_fini(&damage);
+
+    if (UNLOCK_SC)
+        wlr_output_lock_software_cursors(PMONITOR->output, false);
 
     if (*PDAMAGEBLINK || *PVFR == 0 || PMONITOR->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);

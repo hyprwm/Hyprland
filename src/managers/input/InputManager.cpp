@@ -1472,7 +1472,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB, box.y - *PEXTENDBORDERGRAB, box.width + 2 * *PEXTENDBORDERGRAB, box.height + 2 * *PEXTENDBORDERGRAB};
 
-    if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y)) {
+    if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;
     } else if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
         if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {

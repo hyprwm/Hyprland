@@ -171,7 +171,7 @@ class CConfigManager {
     bool                      m_bWantsMonitorReload = false;
     bool                      m_bForceReload        = false;
     bool                      m_bNoMonitorReload    = false;
-    void                      ensureDPMS();
+    void                      ensureMonitorStatus();
     void                      ensureVRR(CMonitor* pMonitor = nullptr);
 
     std::string               parseKeyword(const std::string&, const std::string&, bool dynamic = false);

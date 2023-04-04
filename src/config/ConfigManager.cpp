@@ -1161,6 +1161,16 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         // Update window border colors
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
+        // manual crash
+        if (configValues["debug:manual_crash"].intValue && !m_bManualCrashInitiated) {
+            m_bManualCrashInitiated = true;
+            g_pHyprNotificationOverlay->addNotification("Manual crash has been set up. Set debug:manual_crash back to 0 in order to crash the compositor.", CColor(0), 5000,
+                                                        ICON_INFO);
+        } else if (m_bManualCrashInitiated && !configValues["debug:manual_crash"].intValue) {
+            // cowabunga it is
+            g_pHyprRenderer->initiateManualCrash();
+        }
+
         return retval;
     }
 

@@ -213,7 +213,8 @@ class CConfigManager {
     std::deque<SLayerRule>                                                                     m_dLayerRules;
     std::deque<std::string>                                                                    m_dBlurLSNamespaces;
 
-    bool                                                                                       firstExecDispatched = false;
+    bool                                                                                       firstExecDispatched     = false;
+    bool                                                                                       m_bManualCrashInitiated = false;
     std::deque<std::string>                                                                    firstExecRequests;
 
     std::vector<std::pair<std::string, std::string>>                                           environmentVariables;

@@ -97,6 +97,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:disable_time"].intValue       = 1;
     configValues["debug:enable_stdout_logs"].intValue = 0;
     configValues["debug:damage_tracking"].intValue    = DAMAGE_TRACKING_FULL;
+    configValues["debug:manual_crash"].intValue       = 0;
 
     configValues["decoration:rounding"].intValue               = 0;
     configValues["decoration:blur"].intValue                   = 1;
@@ -1396,6 +1397,15 @@ void CConfigManager::loadConfigLoadVars() {
 
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
+
+    // manual crash
+    if (configValues["debug:manual_crash"].intValue && !m_bManualCrashInitiated) {
+        m_bManualCrashInitiated = true;
+        g_pHyprNotificationOverlay->addNotification("Manual crash has been set up. Set debug:manual_crash back to 0 in order to crash the compositor.", CColor(0), 5000, ICON_INFO);
+    } else if (m_bManualCrashInitiated && !configValues["debug:manual_crash"].intValue) {
+        // cowabunga it is
+        g_pHyprRenderer->initiateManualCrash();
+    }
 
     Debug::disableStdout = !configValues["debug:enable_stdout_logs"].intValue;
 

@@ -23,8 +23,7 @@ inline const float fullVerts[] = {
 };
 inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
-enum eDiscardMode
-{
+enum eDiscardMode {
     DISCARD_OPAQUE    = 1,
     DISCARD_ALPHAZERO = 1 << 1
 };
@@ -55,6 +54,7 @@ struct SMonitorRenderData {
     CShader m_shBLUR2;
     CShader m_shSHADOW;
     CShader m_shBORDER1;
+    CShader m_shGLITCH;
     //
 };
 

@@ -1791,3 +1791,30 @@ std::tuple<float, float, float> CHyprRenderer::getRenderTimes(CMonitor* pMonitor
 
     return std::make_tuple<>(avgRenderTime, maxRenderTime, minRenderTime);
 }
+
+static int handleCrashLoop(void* data) {
+
+    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - (int)(g_pHyprRenderer->m_fCrashingDistort * 2.f)) + "s.", CColor(0), 5000,
+                                                ICON_INFO);
+
+    g_pHyprRenderer->m_fCrashingDistort += 0.5f;
+
+    if (g_pHyprRenderer->m_fCrashingDistort >= 5.5f)
+        *((int*)nullptr) = 1337;
+
+    wl_event_source_timer_update(g_pHyprRenderer->m_pCrashingLoop, 1000);
+
+    return 1;
+}
+
+void CHyprRenderer::initiateManualCrash() {
+    g_pHyprNotificationOverlay->addNotification("Manual crash initiated. Farewell...", CColor(0), 5000, ICON_INFO);
+
+    m_pCrashingLoop = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, handleCrashLoop, nullptr);
+    wl_event_source_timer_update(m_pCrashingLoop, 1000);
+
+    m_bCrashingInProgress = true;
+    m_fCrashingDistort    = 0.5;
+
+    g_pConfigManager->setInt("debug:damage_tracking", 0);
+}

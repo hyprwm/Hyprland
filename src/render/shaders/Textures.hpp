@@ -258,3 +258,36 @@ void main() {
     gl_FragColor = pixColor * alpha;
 }
 )#";
+
+static const std::string FRAGGLITCH = R"#(
+precision mediump float;
+varying vec2 v_texcoord;
+uniform sampler2D tex;
+uniform float time;
+uniform float distort;
+uniform vec2 screenSize;
+
+float rand(float co){
+    return fract(sin(dot(vec2(co, co), vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+void main() {
+    float ABERR_OFFSET = 4.0 * (distort / 5.5);
+    float TEAR_AMOUNT = 9000.0 * (1.0 - (distort / 5.5));
+    float TEAR_BANDS = 108.0 / 2.0 * (distort / 5.5) * 2.0;
+
+    float offset = (mod(rand(floor(v_texcoord.y * TEAR_BANDS)) * 318.772 * time, 20.0) - 10.0) / TEAR_AMOUNT;
+
+    vec2 pixCoord = vec2(v_texcoord.x + offset, v_texcoord.y);
+    vec4 pixColor = texture2D(tex, pixCoord);
+    vec4 pixColorLeft = texture2D(tex, pixCoord + vec2(ABERR_OFFSET / screenSize.x, 0));
+    vec4 pixColorRight = texture2D(tex, pixCoord + vec2(-ABERR_OFFSET / screenSize.x, 0));
+
+    pixColor[0] = pixColorLeft[0];
+    pixColor[2] = pixColorRight[2];
+
+    pixColor[0] += distort / 90.0;
+
+    gl_FragColor = pixColor;
+}
+)#";

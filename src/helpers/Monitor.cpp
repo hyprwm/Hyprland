@@ -131,6 +131,8 @@ void CMonitor::onConnect(bool noRule) {
     setupDefaultWS(monitorRule);
 
     scale = monitorRule.scale;
+    if (scale < 0.1)
+        scale = getDefaultScale();
 
     m_pThisWrap = nullptr;
 

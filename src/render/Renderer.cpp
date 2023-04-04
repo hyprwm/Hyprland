@@ -1816,5 +1816,7 @@ void CHyprRenderer::initiateManualCrash() {
     m_bCrashingInProgress = true;
     m_fCrashingDistort    = 0.5;
 
+    g_pHyprOpenGL->m_tGlobalTimer.reset();
+
     g_pConfigManager->setInt("debug:damage_tracking", 0);
 }

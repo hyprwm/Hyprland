@@ -8,20 +8,42 @@ self: {
   defaultHyprlandPackage = self.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
     hidpiXWayland = cfg.xwayland.hidpi;
-    nvidiaPatches = cfg.nvidiaPatches;
+    inherit (cfg) nvidiaPatches;
   };
 in {
+  meta.maintainers = [lib.maintainers.fufexan];
+
   options.wayland.windowManager.hyprland = {
-    enable = lib.mkEnableOption "hyprland wayland compositor";
+    enable =
+      lib.mkEnableOption null
+      // {
+        description = lib.mdDoc ''
+          Whether to enable Hyprland, the dynamic tiling Wayland compositor
+          that doesn't sacrifice on its looks.
+
+          You can manually launch Hyprland by executing {command}`Hyprland` on
+          a TTY.
+
+          See <https://wiki.hyprland.org> for more information.
+        '';
+      };
 
     package = lib.mkOption {
       type = with lib.types; nullOr package;
       default = defaultHyprlandPackage;
-      description = ''
-        Hyprland package to use. Will override the 'xwayland' option.
+      defaultText = lib.literalExpression ''
+        hyprland.packages.''${pkgs.stdenv.hostPlatform.system}.default.override {
+          enableXWayland = config.wayland.windowManager.hyprland.xwayland.enable;
+          hidpiXWayland = config.wayland.windowManager.hyprland.xwayland.hidpi;
+          inherit (config.wayland.windowManager.hyprland) nvidiaPatches;
+        }
+      '';
+      description = lib.mdDoc ''
+        Hyprland package to use. Will override the 'xwayland' and
+        'nvidiaPatches' options.
 
         Defaults to the one provided by the flake. Set it to
-        <literal>pkgs.hyprland</literal> to use the one provided by nixpkgs or
+        {package}`pkgs.hyprland` to use the one provided by nixpkgs or
         if you have an overlay.
 
         Set to null to not add any Hyprland package to your path. This should
@@ -32,83 +54,56 @@ in {
     systemdIntegration = lib.mkOption {
       type = lib.types.bool;
       default = pkgs.stdenv.isLinux;
-      description = ''
-        Whether to enable <filename>hyprland-session.target</filename> on
-        hyprland startup. This links to <filename>graphical-session.target</filename>.
+      description = lib.mdDoc ''
+        Whether to enable {file}`hyprland-session.target` on
+        hyprland startup. This links to {file}`graphical-session.target`.
         Some important environment variables will be imported to systemd
         and dbus user environment before reaching the target, including
-        <itemizedlist>
-          <listitem><para><literal>DISPLAY</literal></para></listitem>
-          <listitem><para><literal>WAYLAND_DISPLAY</literal></para></listitem>
-          <listitem><para><literal>HYPRLAND_INSTANCE_SIGNATURE</literal></para></listitem>
-          <listitem><para><literal>XDG_CURRENT_DESKTOP</literal></para></listitem>
-        </itemizedlist>
+        - {env}`DISPLAY`
+        - {env}`HYPRLAND_INSTANCE_SIGNATURE`
+        - {env}`WAYLAND_DISPLAY`
+        - {env}`XDG_CURRENT_DESKTOP`
       '';
     };
 
-    disableAutoreload = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      defaultText = lib.literalExpression "false";
-      example = lib.literalExpression "true";
-      description = ''
-        Whether to disable automatically reloading Hyprland's configuration when
-        rebuilding the Home Manager profile.
-      '';
-    };
+    disableAutoreload =
+      lib.mkEnableOption null
+      // {
+        description = lib.mdDoc ''
+          Whether to disable automatically reloading Hyprland's configuration when
+          rebuilding the Home Manager profile.
+        '';
+      };
 
     xwayland = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = ''
-          Enable XWayland.
-        '';
-      };
-      hidpi = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = ''
-          Enable HiDPI XWayland.
-        '';
-      };
+      enable = lib.mkEnableOption (lib.mdDoc "XWayland") // {default = true;};
+      hidpi =
+        lib.mkEnableOption null
+        // {
+          description = lib.mdDoc ''
+            Enable HiDPI XWayland, based on [XWayland MR 733](https://gitlab.freedesktop.org/xorg/xserver/-/merge_requests/733).
+            See <https://wiki.hyprland.org/Nix/Options-Overrides/#xwayland-hidpi> for more info.
+          '';
+        };
     };
 
-    nvidiaPatches = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      defaultText = lib.literalExpression "false";
-      example = lib.literalExpression "true";
-      description = ''
-        Patch wlroots for better Nvidia support.
-      '';
-    };
+    nvidiaPatches = lib.mkEnableOption (lib.mdDoc "patching wlroots for better Nvidia support.");
 
     extraConfig = lib.mkOption {
       type = lib.types.nullOr lib.types.lines;
       default = "";
-      description = ''
-        Extra configuration lines to add to ~/.config/hypr/hyprland.conf.
+      description = lib.mdDoc ''
+        Extra configuration lines to add to {file}`~/.config/hypr/hyprland.conf`.
       '';
     };
 
-    recommendedEnvironment = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      defaultText = lib.literalExpression "true";
-      example = lib.literalExpression "false";
-      description = ''
-        Whether to set the recommended environment variables.
-      '';
-    };
-
-    imports = [
-      (
-        lib.mkRenamedOptionModule
-        ["wayland" "windowManager" "hyprland" "xwayland"]
-        ["wayland" "windowManager" "hyprland" "xwayland" "enable"]
-      )
-    ];
+    recommendedEnvironment =
+      lib.mkEnableOption null
+      // {
+        description = lib.mdDoc ''
+          Whether to set the recommended environment variables.
+        '';
+      };
   };
 
   config = lib.mkIf cfg.enable {
@@ -116,9 +111,8 @@ in {
       lib.optional (cfg.package != null) cfg.package
       ++ lib.optional cfg.xwayland.enable pkgs.xwayland;
 
-    home.sessionVariables = lib.mkIf cfg.recommendedEnvironment {
-      NIXOS_OZONE_WL = "1";
-    };
+    home.sessionVariables =
+      lib.mkIf cfg.recommendedEnvironment {NIXOS_OZONE_WL = "1";};
 
     xdg.configFile."hypr/hyprland.conf" = lib.mkIf (cfg.extraConfig != null) {
       text =
@@ -133,13 +127,15 @@ in {
           then defaultHyprlandPackage
           else cfg.package;
       in
-        lib.mkIf (!cfg.disableAutoreload) ''(  # execute in subshell so that `shopt` won't affect other scripts
-          shopt -s nullglob  # so that nothing is done if /tmp/hypr/ does not exist or is empty
-          for instance in /tmp/hypr/*; do
-            HYPRLAND_INSTANCE_SIGNATURE=''${instance##*/} ${hyprlandPackage}/bin/hyprctl reload config-only \
-              || true  # ignore dead instance(s)
-          done
-        )'';
+        lib.mkIf (!cfg.disableAutoreload) ''
+          (  # execute in subshell so that `shopt` won't affect other scripts
+            shopt -s nullglob  # so that nothing is done if /tmp/hypr/ does not exist or is empty
+            for instance in /tmp/hypr/*; do
+              HYPRLAND_INSTANCE_SIGNATURE=''${instance##*/} ${hyprlandPackage}/bin/hyprctl reload config-only \
+                || true  # ignore dead instance(s)
+            done
+          )
+        '';
     };
 
     systemd.user.targets.hyprland-session = lib.mkIf cfg.systemdIntegration {
@@ -149,13 +145,6 @@ in {
         BindsTo = ["graphical-session.target"];
         Wants = ["graphical-session-pre.target"];
         After = ["graphical-session-pre.target"];
-      };
-    };
-
-    systemd.user.targets.tray = {
-      Unit = {
-        Description = "Home Manager System Tray";
-        Requires = ["graphical-session-pre.target"];
       };
     };
   };

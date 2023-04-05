@@ -105,7 +105,11 @@ in
         sed -i "s#/usr#$out#" src/render/OpenGL.cpp
         substituteInPlace meson.build \
           --replace "@GIT_COMMIT_HASH@" '${commit}' \
-          --replace "@GIT_DIRTY@" '${if commit == "" then "dirty" else ""}'
+          --replace "@GIT_DIRTY@" '${
+          if commit == ""
+          then "dirty"
+          else ""
+        }'
       '';
 
       passthru.providedSessions = ["hyprland"];

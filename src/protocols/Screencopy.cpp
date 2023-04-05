@@ -171,7 +171,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     PFRAME->shmFormat = wlr_output_preferred_read_format(PFRAME->pMonitor->output);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture output");
-        zwlr_screencopy_frame_v1_send_failed(resource);
+        zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;
     }
@@ -179,7 +179,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     const auto PSHMINFO = drm_get_pixel_format_info(PFRAME->shmFormat);
     if (!PSHMINFO) {
         Debug::log(ERR, "No pixel format supported by renderer in capture output");
-        zwlr_screencopy_frame_v1_send_failed(resource);
+        zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;
     }

@@ -1,4 +1,3 @@
-# Copied from https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/programs/sway.nix
 inputs: {
   config,
   lib,
@@ -11,88 +10,82 @@ with lib; let
   defaultHyprlandPackage = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
     hidpiXWayland = cfg.xwayland.hidpi;
-    nvidiaPatches = cfg.nvidiaPatches;
+    inherit (cfg) nvidiaPatches;
   };
 in {
-  imports = [
-    (mkRemovedOptionModule ["programs" "hyprland" "extraPackages"] "extraPackages has been removed. Use environment.systemPackages instead.")
-  ];
+  # disables Nixpkgs Hyprland module to avoid conflicts
+  disabledModules = ["programs/hyprland.nix"];
 
   options.programs.hyprland = {
-    enable = mkEnableOption ''
-      Hyprland, the dynamic tiling Wayland compositor that doesn't sacrifice on its looks.
-      You can manually launch Hyprland by executing "exec Hyprland" on a TTY.
-      A configuration file will be generated in ~/.config/hypr/hyprland.conf.
-      See <link xlink:href="https://github.com/vaxerski/Hyprland/wiki" /> for
-      more information.
-    '';
+    enable =
+      mkEnableOption null
+      // {
+        description = mdDoc ''
+          Hyprland, the dynamic tiling Wayland compositor that doesn't sacrifice on its looks.
+
+          You can manually launch Hyprland by executing {command}`Hyprland` on a TTY.
+
+          A configuration file will be generated in {file}`~/.config/hypr/hyprland.conf`.
+          See <https://wiki.hyprland.org> for more information.
+        '';
+      };
 
     package = mkOption {
-      type = types.nullOr types.package;
+      type = types.path;
       default = defaultHyprlandPackage;
-      defaultText = literalExpression "<Hyprland flake>.packages.<system>.default";
-      example = literalExpression "<Hyprland flake>.packages.<system>.default.override { }";
-      description = ''
-        Hyprland package to use.
+      defaultText = literalExpression ''
+        hyprland.packages.''${pkgs.stdenv.hostPlatform.system}.default.override {
+          enableXWayland = config.programs.hyprland.xwayland.enable;
+          hidpiXWayland = config.programs.hyprland.xwayland.hidpi;
+          inherit (config.programs.hyprland) nvidiaPatches;
+        }
+      '';
+      example = literalExpression "pkgs.hyprland";
+      description = mdDoc ''
+        The Hyprland package to use.
+        Setting this option will make {option}`programs.hyprland.xwayland` and
+        {option}`programs.hyprland.nvidiaPatches` not work.
       '';
     };
 
     xwayland = {
-      enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = ''
-          Enable XWayland.
-        '';
-      };
-      hidpi = mkOption {
-        type = types.bool;
-        default = false;
-        description = ''
-          Enable HiDPI XWayland.
-        '';
-      };
+      enable = mkEnableOption (mdDoc "XWayland") // {default = true;};
+      hidpi =
+        mkEnableOption null
+        // {
+          description = mdDoc ''
+            Enable HiDPI XWayland, based on [XWayland MR 733](https://gitlab.freedesktop.org/xorg/xserver/-/merge_requests/733).
+            See <https://wiki.hyprland.org/Nix/Options-Overrides/#xwayland-hidpi> for more info.
+          '';
+        };
     };
 
-    nvidiaPatches = mkOption {
-      type = types.bool;
-      default = false;
-      example = literalExpression "true";
-      description = ''
-        Patch wlroots for better Nvidia support.
-      '';
-    };
-
-    recommendedEnvironment = mkOption {
-      type = types.bool;
-      default = true;
-      defaultText = literalExpression "true";
-      example = literalExpression "false";
-      description = ''
-        Whether to set the recommended environment variables.
-      '';
-    };
+    nvidiaPatches = mkEnableOption (mdDoc "patching wlroots for better Nvidia support");
   };
 
   config = mkIf cfg.enable {
     environment = {
-      systemPackages = lib.optional (cfg.package != null) cfg.package;
+      systemPackages = [cfg.package];
 
-      sessionVariables = mkIf cfg.recommendedEnvironment {
-        NIXOS_OZONE_WL = "1";
+      sessionVariables = {
+        NIXOS_OZONE_WL = mkDefault "1";
       };
     };
+
     fonts.enableDefaultFonts = mkDefault true;
     hardware.opengl.enable = mkDefault true;
+
     programs = {
       dconf.enable = mkDefault true;
       xwayland.enable = mkDefault true;
     };
+
     security.polkit.enable = true;
-    services.xserver.displayManager.sessionPackages = lib.optional (cfg.package != null) cfg.package;
+
+    services.xserver.displayManager.sessionPackages = [cfg.package];
+
     xdg.portal = {
       enable = mkDefault true;
-      # xdg-desktop-portal-hyprland
       extraPortals = lib.mkIf (cfg.package != null) [
         (inputs.xdph.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland.override {
           hyprland-share-picker = inputs.xdph.packages.${pkgs.stdenv.hostPlatform.system}.hyprland-share-picker.override {

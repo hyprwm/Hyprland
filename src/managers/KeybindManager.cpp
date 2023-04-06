@@ -103,7 +103,7 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
         modMask |= WLR_MODIFIER_CAPS;
     if (mods.contains("CTRL") || mods.contains("CONTROL"))
         modMask |= WLR_MODIFIER_CTRL;
-    if (mods.contains("ALT"))
+    if (mods.contains("ALT") || mods.contains("MOD1"))
         modMask |= WLR_MODIFIER_ALT;
     if (mods.contains("MOD2"))
         modMask |= WLR_MODIFIER_MOD2;

@@ -665,6 +665,9 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
+    if (!wlr_output_is_direct_scanout_allowed(pMonitor->output))
+        return false;
+
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
 
     if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || g_pCompositor->m_sSeat.exclusiveClient || pMonitor->specialWorkspaceID)

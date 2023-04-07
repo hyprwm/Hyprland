@@ -66,6 +66,7 @@ class CMonitor {
     DYNLISTENER(monitorDestroy);
     DYNLISTENER(monitorStateRequest);
     DYNLISTENER(monitorDamage);
+    DYNLISTENER(monitorNeedsFrame);
 
     // hack: a group = workspaces on a monitor.
     // I don't really care lol :P

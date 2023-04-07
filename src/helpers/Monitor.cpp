@@ -21,10 +21,12 @@ void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorFrame.removeCallback();
     hyprListener_monitorStateRequest.removeCallback();
     hyprListener_monitorDamage.removeCallback();
+    hyprListener_monitorNeedsFrame.removeCallback();
     hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this);
     hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this);
     hyprListener_monitorStateRequest.initCallback(&output->events.request_state, &Events::listener_monitorStateRequest, this);
     hyprListener_monitorDamage.initCallback(&output->events.damage, &Events::listener_monitorDamage, this);
+    hyprListener_monitorNeedsFrame.initCallback(&output->events.needs_frame, &Events::listener_monitorNeedsFrame, this);
 
     if (m_bEnabled) {
         wlr_output_enable(output, 1);
@@ -218,6 +220,7 @@ void CMonitor::onDisconnect() {
 
     hyprListener_monitorFrame.removeCallback();
     hyprListener_monitorDamage.removeCallback();
+    hyprListener_monitorNeedsFrame.removeCallback();
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto& ls : m_aLayerSurfaceLayers[i]) {
@@ -293,13 +296,13 @@ void CMonitor::onDisconnect() {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    wlr_damage_ring_add(&damage, rg);
-    g_pCompositor->scheduleFrameForMonitor(this);
+    if (wlr_damage_ring_add(&damage, rg))
+        g_pCompositor->scheduleFrameForMonitor(this);
 }
 
 void CMonitor::addDamage(const wlr_box* box) {
-    wlr_damage_ring_add_box(&damage, box);
-    g_pCompositor->scheduleFrameForMonitor(this);
+    if (wlr_damage_ring_add_box(&damage, box))
+        g_pCompositor->scheduleFrameForMonitor(this);
 }
 
 bool CMonitor::isMirror() {

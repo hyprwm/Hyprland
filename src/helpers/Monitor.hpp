@@ -12,6 +12,9 @@ struct SMonitorRule;
 
 class CMonitor {
   public:
+    CMonitor();
+    ~CMonitor();
+
     Vector2D    vecPosition        = Vector2D(-1, -1); // means unset
     Vector2D    vecSize            = Vector2D(0, 0);
     Vector2D    vecPixelSize       = Vector2D(0, 0);
@@ -29,9 +32,9 @@ class CMonitor {
     Vector2D    vecReservedBottomRight = Vector2D(0, 0);
 
     // WLR stuff
+    wlr_damage_ring     damage;
     wlr_output*         output          = nullptr;
     float               refreshRate     = 60;
-    wlr_output_damage*  damage          = nullptr;
     int                 framesToSkip    = 0;
     int                 forceFullFrames = 0;
     bool                noFrameSchedule = false;

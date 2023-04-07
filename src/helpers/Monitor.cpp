@@ -8,6 +8,14 @@ int ratHandler(void* data) {
     return 1;
 }
 
+CMonitor::CMonitor() {
+    wlr_damage_ring_init(&damage);
+}
+
+CMonitor::~CMonitor() {
+    wlr_damage_ring_finish(&damage);
+}
+
 void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -114,12 +122,12 @@ void CMonitor::onConnect(bool noRule) {
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
+    wlr_damage_ring_set_bounds(&damage, vecTransformedSize.x, vecTransformedSize.y);
+
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
     Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %x", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x,
                (int)vecPixelSize.y, output);
-
-    damage = wlr_output_damage_create(output);
 
     // add a WLR workspace group
     if (!pWLRWorkspaceGroupHandle) {
@@ -253,8 +261,6 @@ void CMonitor::onDisconnect() {
 
     activeWorkspace = -1;
 
-    wlr_output_damage_destroy(damage);
-
     wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
 
     wlr_output_enable(output, false);
@@ -284,11 +290,11 @@ void CMonitor::onDisconnect() {
 }
 
 void CMonitor::addDamage(pixman_region32_t* rg) {
-    wlr_output_damage_add(damage, rg);
+    wlr_damage_ring_add(&damage, rg);
 }
 
 void CMonitor::addDamage(wlr_box* box) {
-    wlr_output_damage_add_box(damage, box);
+    wlr_damage_ring_add_box(&damage, box);
 }
 
 bool CMonitor::isMirror() {

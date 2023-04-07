@@ -297,6 +297,9 @@ void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
             continue;
         }
 
+        if (f->pMonitor != pMonitor)
+            continue;
+
         shareFrame(f);
 
         framesToRemove.push_back(f);

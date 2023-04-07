@@ -17,11 +17,11 @@
 
 
 void help() {
-    std::cout << "usage: Hyprland [arg [...]]." << std::endl;
-    std::cout << "\nArguments:" << std::endl;
-    std::cout << "  --help              -h       - Show this message again" << std::endl;
-    std::cout << "  --config FILE       -c FILE  - Specify config file to use" << std::endl;
-    std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why'd u do that?)" << std::endl;
+    std::cout << "usage: Hyprland [arg [...]].\n";
+    std::cout << "\nArguments:\n";
+    std::cout << "  --help              -h       - Show this message again\n";
+    std::cout << "  --config FILE       -c FILE  - Specify config file to use\n";
+    std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why'd u do that?)\n";
 }
 
 
@@ -46,17 +46,11 @@ int main(int argc, char** argv) {
     std::string configPath;
     bool ignoreSudo = false;
 
-    // Opinion: All of this code is a mess. Try to do something with that, folks? Pretty please?
-    // Some code might be not so good. I'm working at that at 3 am.
-
-    // You can remove that.
-    std::cout << "Argument parsing and code reformatting patch (nitrogenez@github.com)" << std::endl;
-
     std::vector<std::string> args { argv + 1, argv + argc };
 
     for (auto it = args.begin(); it != args.end(); it++) {
         if (it->compare("--i-am-really-stupid") == 0 && !ignoreSudo) {
-            std::cout << "[ WARNING ] Running Hyprland with superuser privileges might damage your system" << std::endl;
+            std::cout << "[ WARNING ] Running Hyprland with superuser privileges might damage your system\n";
 
             ignoreSudo = true;
         }
@@ -69,7 +63,7 @@ int main(int argc, char** argv) {
             std::string next_arg = std::next(it)->c_str();
 
             if (!std::filesystem::exists(next_arg)) {
-                std::cerr << "[ ERROR ] Config path '" << next_arg << "' doesn't exist!" << std::endl;
+                std::cerr << "[ ERROR ] Config path '" << next_arg << "' doesn't exist!\n";
                 help();
 
                 return 1;
@@ -81,19 +75,14 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Funny thing.
-    // We don't *really* need that check, because in most cases `root` user
-    // doesn't have XDG_RUNTIME_DIR envar set, which causes runtime error.
-
-    // But if set, then yes, that needs to be checked.
-
-    // We don't need to display that message when no superuser privs are found
     if (!ignoreSudo && Init::isSudo()) {
-        std::cerr << "[ ERROR ] Hyprland was launched with superuser priveleges, but the privileges check is not omitted." << std::endl;
+        std::cerr << "[ ERROR ] Hyprland was launched with superuser priveleges, but the privileges check is not omitted.\n";
+        std::cerr << "          Hint: Use --i-am-really-stupid flag to omit that check.\n";
+
         return 1;
     }
     else if (ignoreSudo && Init::isSudo()) {
-        std::cout << "Superuser privileges check is omitted. I hope you know what you're doing" << std::endl;
+        std::cout << "Superuser privileges check is omitted. I hope you know what you're doing.\n";
     }
 
     std::cout << "Welcome to Hyprland!\n";

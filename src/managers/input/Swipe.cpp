@@ -6,7 +6,7 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
     static auto* const PSWIPEFINGERS = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_fingers")->intValue;
     static auto* const PSWIPENEW     = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
 
-    if (e->fingers != *PSWIPEFINGERS || *PSWIPE == 0)
+    if (e->fingers != *PSWIPEFINGERS || *PSWIPE == 0 || g_pSessionLockManager->isSessionLocked())
         return;
 
     int onMonitor = 0;

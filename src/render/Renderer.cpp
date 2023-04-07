@@ -815,8 +815,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     // check the damage
     pixman_region32_t damage;
-    bool              hasChanged;
-    pixman_region32_init(&damage);
+    bool              hasChanged = pMonitor->output->needs_frame || !pixman_region32_not_empty(&pMonitor->damage.current);
+    int               bufferAge;
 
     if (*PDAMAGETRACKINGMODE == -1) {
         Debug::log(CRIT, "Damage tracking mode -1 ????");
@@ -827,7 +827,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, true);
 
-    if (!wlr_output_damage_attach_render(pMonitor->damage, &hasChanged, &damage)) {
+    if (!wlr_output_attach_render(pMonitor->output, &bufferAge)) {
         Debug::log(ERR, "Couldn't attach render to display %s ???", pMonitor->szName.c_str());
 
         if (UNLOCK_SC)
@@ -835,6 +835,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         return;
     }
+
+    pixman_region32_init(&damage);
+    wlr_damage_ring_get_buffer_damage(&pMonitor->damage, bufferAge, &damage);
 
     pMonitor->renderingActive = true;
 
@@ -954,6 +957,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     pixman_region32_fini(&frameDamage);
 
     pMonitor->renderingActive = false;
+
+    wlr_damage_ring_rotate(&pMonitor->damage);
 
     if (!wlr_output_commit(pMonitor->output)) {
         pixman_region32_fini(&damage);
@@ -1249,8 +1254,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     }
 
     // damage the monitor if can
-    if (PMONITOR->damage)
-        damageMonitor(PMONITOR);
+    damageMonitor(PMONITOR);
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
 
@@ -1722,6 +1726,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     // updato wlroots
     if (!pMonitor->isMirror())
         wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
+
+    wlr_damage_ring_set_bounds(&pMonitor->damage, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
 
     // updato us
     arrangeLayersForMonitor(pMonitor->ID);

@@ -12,18 +12,16 @@
 #include <filesystem>
 
 #ifdef USES_SYSTEMD
-    #include <systemd/sd-daemon.h> // for sd_notify
+#include <systemd/sd-daemon.h> // for sd_notify
 #endif
-
 
 void help() {
     std::cout << "usage: Hyprland [arg [...]].\n";
     std::cout << "\nArguments:\n";
     std::cout << "  --help              -h       - Show this message again\n";
     std::cout << "  --config FILE       -c FILE  - Specify config file to use\n";
-    std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why'd u do that?)\n";
+    std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why would u do that?)\n";
 }
-
 
 int main(int argc, char** argv) {
 
@@ -41,12 +39,11 @@ int main(int argc, char** argv) {
     setenv("MOZ_ENABLE_WAYLAND", "1", 1);
     setenv("XDG_CURRENT_DESKTOP", "Hyprland", 1);
 
-
     // parse some args
-    std::string configPath;
-    bool ignoreSudo = false;
+    std::string              configPath;
+    bool                     ignoreSudo = false;
 
-    std::vector<std::string> args { argv + 1, argv + argc };
+    std::vector<std::string> args{argv + 1, argv + argc};
 
     for (auto it = args.begin(); it != args.end(); it++) {
         if (it->compare("--i-am-really-stupid") == 0 && !ignoreSudo) {
@@ -77,11 +74,10 @@ int main(int argc, char** argv) {
 
     if (!ignoreSudo && Init::isSudo()) {
         std::cerr << "[ ERROR ] Hyprland was launched with superuser priveleges, but the privileges check is not omitted.\n";
-        std::cerr << "          Hint: Use --i-am-really-stupid flag to omit that check.\n";
+        std::cerr << "          Hint: Use the --i-am-really-stupid flag to omit that check.\n";
 
         return 1;
-    }
-    else if (ignoreSudo && Init::isSudo()) {
+    } else if (ignoreSudo && Init::isSudo()) {
         std::cout << "Superuser privileges check is omitted. I hope you know what you're doing.\n";
     }
 

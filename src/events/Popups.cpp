@@ -173,6 +173,9 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
 
     ASSERT(PPOPUP);
 
+    if (PPOPUP->popup->base->surface == g_pCompositor->m_pLastFocus)
+        g_pInputManager->releaseAllMouseButtons();
+
     SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);
 
     int lx = 0, ly = 0;

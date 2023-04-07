@@ -218,6 +218,8 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     // refocus if needed
     if (WASLASTFOCUS) {
+        g_pInputManager->releaseAllMouseButtons();
+
         Vector2D       surfaceCoords;
         SLayerSurface* pFoundLayerSurface = nullptr;
         wlr_surface*   foundSurface       = nullptr;

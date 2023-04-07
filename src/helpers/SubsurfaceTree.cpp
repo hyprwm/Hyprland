@@ -184,6 +184,9 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
 
     Debug::log(LOG, "Subsurface %x unmapped", subsurface);
 
+    if (subsurface->pSubsurface->surface == g_pCompositor->m_pLastFocus)
+        g_pInputManager->releaseAllMouseButtons();
+
     if (subsurface->pChild) {
         const auto PNODE = subsurface->pChild;
 

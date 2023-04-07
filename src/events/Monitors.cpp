@@ -203,3 +203,9 @@ void Events::listener_monitorDamage(void* owner, void* data) {
 
     PMONITOR->addDamage(E->damage);
 }
+
+void Events::listener_monitorNeedsFrame(void* owner, void* data) {
+    const auto PMONITOR = (CMonitor*)owner;
+
+    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+}

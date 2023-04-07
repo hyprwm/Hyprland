@@ -45,6 +45,19 @@ struct SMonitorRule {
     bool                enable10bit = false;
 };
 
+struct SWorkspaceRule {
+    std::string monitor         = "";
+    std::string workspaceString = "";
+    std::string workspaceName   = "";
+    int         workspaceId     = -1338;
+    int64_t     gapsIn          = 5;
+    int64_t     gapsOut         = 20;
+    int64_t     borderSize      = 1;
+    int         border          = 1;
+    int         rounding        = 1;
+    int         decorate        = 1;
+};
+
 struct SMonitorAdditionalReservedArea {
     int top    = 0;
     int bottom = 0;
@@ -149,6 +162,7 @@ class CConfigManager {
     SConfigValue*                                                   getConfigValuePtrSafe(const std::string&);
 
     SMonitorRule                                                    getMonitorRuleFor(const std::string&, const std::string& displayName = "");
+    SWorkspaceRule                                                  getWorkspaceRuleFor(CWorkspace*);
     std::string                                                     getDefaultWorkspaceFor(const std::string&);
 
     CMonitor*                                                       getBoundMonitorForWS(const std::string&);
@@ -208,7 +222,7 @@ class CConfigManager {
     bool                                                                                       isFirstLaunch = true; // For exec-once
 
     std::deque<SMonitorRule>                                                                   m_dMonitorRules;
-    std::unordered_map<std::string, std::string>                                               m_mDefaultWorkspaces;
+    std::unordered_map<int, SWorkspaceRule>                                                    m_mWorkspaceRules;
     std::deque<SWindowRule>                                                                    m_dWindowRules;
     std::deque<SLayerRule>                                                                     m_dLayerRules;
     std::deque<std::string>                                                                    m_dBlurLSNamespaces;
@@ -242,7 +256,7 @@ class CConfigManager {
     void         handleWindowRule(const std::string&, const std::string&);
     void         handleLayerRule(const std::string&, const std::string&);
     void         handleWindowRuleV2(const std::string&, const std::string&);
-    void         handleDefaultWorkspace(const std::string&, const std::string&);
+    void         handleWorkspaceRules(const std::string&, const std::string&);
     void         handleBezier(const std::string&, const std::string&);
     void         handleAnimation(const std::string&, const std::string&);
     void         handleSource(const std::string&, const std::string&);

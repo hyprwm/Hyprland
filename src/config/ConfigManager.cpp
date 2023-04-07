@@ -573,7 +573,19 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
-            m_mDefaultWorkspaces[newrule.name] = ARGS[argno + 1];
+            std::string    name = "";
+            int            wsId = getWorkspaceIDFromString(ARGS[argno + 1], name);
+
+            SWorkspaceRule wsRule;
+            wsRule.monitor         = newrule.name;
+            wsRule.workspaceString = ARGS[argno + 1];
+            wsRule.workspaceName   = name;
+            wsRule.workspaceId     = wsId;
+            wsRule.gapsIn          = configValues["general:gaps_in"].intValue;
+            wsRule.gapsOut         = configValues["general:gaps_out"].intValue;
+            wsRule.borderSize      = configValues["general:border_size"].intValue;
+
+            m_mWorkspaceRules[wsId] = wsRule;
             argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax");
@@ -999,10 +1011,23 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
     updateBlurredLS(value, true);
 }
 
-void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
-    const auto ARGS = CVarList(value);
+void CConfigManager::handleWorkspaceRules(const std::string& command, const std::string& value) {
+    const auto     ARGS = CVarList(value);
 
-    m_mDefaultWorkspaces[ARGS[0]] = ARGS[1];
+    std::string    name = "";
+    int            id   = getWorkspaceIDFromString(ARGS[1], name);
+    SWorkspaceRule wsRule;
+    wsRule.monitor         = ARGS[0];
+    wsRule.workspaceString = ARGS[1];
+    wsRule.workspaceName   = name;
+    wsRule.workspaceId     = id;
+    wsRule.gapsIn          = std::stoi(ARGS[2]);
+    wsRule.gapsOut         = std::stoi(ARGS[3]);
+    wsRule.borderSize      = std::stoi(ARGS[4]);
+    wsRule.border          = configStringToInt(ARGS[5]);
+    wsRule.rounding        = configStringToInt(ARGS[6]);
+    wsRule.decorate        = configStringToInt(ARGS[7]);
+    m_mWorkspaceRules[id]  = wsRule;
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
@@ -1130,7 +1155,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "unbind")
         handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace")
-        handleDefaultWorkspace(COMMAND, VALUE);
+        handleWorkspaceRules(COMMAND, VALUE);
     else if (COMMAND == "windowrule")
         handleWindowRule(COMMAND, VALUE);
     else if (COMMAND == "windowrulev2")
@@ -1302,6 +1327,7 @@ void CConfigManager::loadConfigLoadVars() {
     deviceConfigs.clear();
     m_dBlurLSNamespaces.clear();
     boundWorkspaces.clear();
+    m_mWorkspaceRules.clear();
     setDefaultAnimationVars(); // reset anims
 
     // paths
@@ -1595,6 +1621,17 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const st
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
     return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-1, -1), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
+}
+
+SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
+    if (m_mWorkspaceRules.contains(pWorkspace->m_iID)) {
+        return m_mWorkspaceRules.at(pWorkspace->m_iID);
+    }
+
+    const auto IT = std::find_if(m_mWorkspaceRules.begin(), m_mWorkspaceRules.end(), [&](const auto& other) { return other.second.workspaceName == pWorkspace->m_szName; });
+    if (IT == m_mWorkspaceRules.end())
+        return SWorkspaceRule{};
+    return IT->second;
 }
 
 std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
@@ -1979,8 +2016,8 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
 }
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
-    const auto IT = std::find_if(m_mDefaultWorkspaces.begin(), m_mDefaultWorkspaces.end(), [&](const auto& other) { return other.first == name; });
-    if (IT == m_mDefaultWorkspaces.end())
+    const auto IT = std::find_if(m_mWorkspaceRules.begin(), m_mWorkspaceRules.end(), [&](const auto& other) { return other.second.monitor == name; });
+    if (IT == m_mWorkspaceRules.end())
         return "";
-    return IT->second;
+    return IT->second.workspaceString;
 }

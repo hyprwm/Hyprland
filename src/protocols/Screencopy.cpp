@@ -348,7 +348,6 @@ void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
     uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
     uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
     zwlr_screencopy_frame_v1_send_ready(frame->resource, tvSecHi, tvSecLo, now.tv_nsec);
-    removeFrame(frame);
 }
 void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
     if (!frame->withDamage)

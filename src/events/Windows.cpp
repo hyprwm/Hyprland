@@ -637,6 +637,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         wasLastWindow                = true;
         g_pCompositor->m_pLastWindow = nullptr;
         g_pCompositor->m_pLastFocus  = nullptr;
+
+        g_pInputManager->releaseAllMouseButtons();
     }
 
     PWINDOW->m_bMappedX11 = false;

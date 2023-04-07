@@ -65,6 +65,7 @@ class CMonitor {
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);
     DYNLISTENER(monitorStateRequest);
+    DYNLISTENER(monitorDamage);
 
     // hack: a group = workspaces on a monitor.
     // I don't really care lol :P
@@ -73,8 +74,8 @@ class CMonitor {
     // methods
     void                       onConnect(bool noRule);
     void                       onDisconnect();
-    void                       addDamage(pixman_region32_t* rg);
-    void                       addDamage(wlr_box* box);
+    void                       addDamage(const pixman_region32_t* rg);
+    void                       addDamage(const wlr_box* box);
     void                       setMirror(const std::string&);
     bool                       isMirror();
     float                      getDefaultScale();

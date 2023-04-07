@@ -196,3 +196,10 @@ void Events::listener_monitorStateRequest(void* owner, void* data) {
 
     wlr_output_commit_state(PMONITOR->output, E->state);
 }
+
+void Events::listener_monitorDamage(void* owner, void* data) {
+    const auto PMONITOR = (CMonitor*)owner;
+    const auto E        = (wlr_output_event_damage*)data;
+
+    PMONITOR->addDamage(E->damage);
+}

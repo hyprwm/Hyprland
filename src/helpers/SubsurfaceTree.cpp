@@ -3,6 +3,9 @@
 #include "../Compositor.hpp"
 
 void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
+    if (!node->pSurface || !node->pSurface->exists())
+        return;
+
     *lx += node->pSurface->wlr()->current.dx;
     *ly += node->pSurface->wlr()->current.dy;
 

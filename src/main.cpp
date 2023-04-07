@@ -20,7 +20,7 @@ void help() {
     std::cout << "\nArguments:\n";
     std::cout << "  --help              -h       - Show this message again\n";
     std::cout << "  --config FILE       -c FILE  - Specify config file to use\n";
-    std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why would u do that?)\n";
+    std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why would you do that?)\n";
 }
 
 int main(int argc, char** argv) {

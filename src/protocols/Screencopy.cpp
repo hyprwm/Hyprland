@@ -136,7 +136,8 @@ void CScreencopyProtocolManager::removeFrame(SScreencopyFrame* frame, bool force
     std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other == frame; });
 
     wl_resource_set_user_data(frame->resource, nullptr);
-    wlr_buffer_unlock(frame->buffer);
+    if (frame->buffer && frame->buffer->n_locks > 0)
+        wlr_buffer_unlock(frame->buffer);
     removeClient(frame->client, force);
     m_lFrames.remove(*frame);
 }
@@ -278,6 +279,9 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
     g_pHyprRenderer->m_bDirectScanoutBlocked = true;
     if (PFRAME->overlayCursor)
         g_pHyprRenderer->m_bSoftwareCursorsLocked = true;
+
+    if (!PFRAME->withDamage)
+        g_pCompositor->scheduleFrameForMonitor(PFRAME->pMonitor);
 }
 
 void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
@@ -317,7 +321,7 @@ void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
 }
 
 void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
-    if (!frame->buffer || (!pixman_region32_not_empty(g_pHyprOpenGL->m_RenderData.pDamage) && frame->withDamage))
+    if (!frame->buffer)
         return;
 
     timespec now;
@@ -341,15 +345,14 @@ void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
     uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
     uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
     zwlr_screencopy_frame_v1_send_ready(frame->resource, tvSecHi, tvSecLo, now.tv_nsec);
+    removeFrame(frame);
 }
 void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
     if (!frame->withDamage)
         return;
 
-    PIXMAN_DAMAGE_FOREACH(g_pHyprOpenGL->m_RenderData.pDamage) {
-        const auto RECT = RECTSARR[i];
-        zwlr_screencopy_frame_v1_send_damage(frame->resource, RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1);
-    }
+    const auto RECT = pixman_region32_extents(g_pHyprOpenGL->m_RenderData.pDamage);
+    zwlr_screencopy_frame_v1_send_damage(frame->resource, RECT->x1, RECT->y1, RECT->x2 - RECT->x1, RECT->y2 - RECT->y1);
 }
 
 bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {

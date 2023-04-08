@@ -82,7 +82,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:enable_swallow"].intValue               = 0;
     configValues["misc:swallow_regex"].strValue                = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue            = 0;
-    configValues["misc:no_direct_scanout"].intValue            = 0;
+    configValues["misc:no_direct_scanout"].intValue            = 1;
     configValues["misc:hide_cursor_on_touch"].intValue         = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue   = 1;
     configValues["misc:suppress_portal_warnings"].intValue     = 0;
@@ -97,6 +97,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:disable_time"].intValue       = 1;
     configValues["debug:enable_stdout_logs"].intValue = 0;
     configValues["debug:damage_tracking"].intValue    = DAMAGE_TRACKING_FULL;
+    configValues["debug:manual_crash"].intValue       = 0;
 
     configValues["decoration:rounding"].intValue               = 0;
     configValues["decoration:blur"].intValue                   = 1;
@@ -611,8 +612,8 @@ void CConfigManager::handleBezier(const std::string& command, const std::string&
 
 void CConfigManager::setAnimForChildren(SAnimationPropertyConfig* const ANIM) {
     for (auto& [name, anim] : animationConfig) {
-        if (anim.pParentAnimation == ANIM && !anim.overriden) {
-            // if a child isnt overriden, set the values of the parent
+        if (anim.pParentAnimation == ANIM && !anim.overridden) {
+            // if a child isnt overridden, set the values of the parent
             anim.pValues = ANIM->pValues;
 
             setAnimForChildren(&anim);
@@ -635,8 +636,8 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
         return;
     }
 
-    PANIM->second.overriden = true;
-    PANIM->second.pValues   = &PANIM->second;
+    PANIM->second.overridden = true;
+    PANIM->second.pValues    = &PANIM->second;
 
     // on/off
     PANIM->second.internalEnabled = ARGS[1] == "1";
@@ -1160,6 +1161,18 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         // Update window border colors
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
+        // manual crash
+        if (configValues["debug:manual_crash"].intValue && !m_bManualCrashInitiated) {
+            m_bManualCrashInitiated = true;
+            if (g_pHyprNotificationOverlay) {
+                g_pHyprNotificationOverlay->addNotification("Manual crash has been set up. Set debug:manual_crash back to 0 in order to crash the compositor.", CColor(0), 5000,
+                                                            ICON_INFO);
+            }
+        } else if (m_bManualCrashInitiated && !configValues["debug:manual_crash"].intValue) {
+            // cowabunga it is
+            g_pHyprRenderer->initiateManualCrash();
+        }
+
         return retval;
     }
 
@@ -1387,7 +1400,7 @@ void CConfigManager::loadConfigLoadVars() {
     if (!isFirstLaunch && !m_bNoMonitorReload) {
         // check
         performMonitorReload();
-        ensureDPMS();
+        ensureMonitorStatus();
         ensureVRR();
     }
 
@@ -1396,6 +1409,15 @@ void CConfigManager::loadConfigLoadVars() {
 
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
+
+    // manual crash
+    if (configValues["debug:manual_crash"].intValue && !m_bManualCrashInitiated) {
+        m_bManualCrashInitiated = true;
+        g_pHyprNotificationOverlay->addNotification("Manual crash has been set up. Set debug:manual_crash back to 0 in order to crash the compositor.", CColor(0), 5000, ICON_INFO);
+    } else if (m_bManualCrashInitiated && !configValues["debug:manual_crash"].intValue) {
+        // cowabunga it is
+        g_pHyprRenderer->initiateManualCrash();
+    }
 
     Debug::disableStdout = !configValues["debug:enable_stdout_logs"].intValue;
 
@@ -1791,7 +1813,7 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
     return false;
 }
 
-void CConfigManager::ensureDPMS() {
+void CConfigManager::ensureMonitorStatus() {
     for (auto& rm : g_pCompositor->m_vRealMonitors) {
         if (!rm->output)
             continue;

@@ -126,6 +126,8 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
     "monitor": %i,
     "class": "%s",
     "title": "%s",
+    "initialClass": "%s",
+    "initialTitle": "%s",
     "pid": %i,
     "xwayland": %s,
     "pinned": %s,
@@ -142,13 +144,14 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
                                                                                        std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)))
                 .c_str(),
             ((int)w->m_bIsFloating == 1 ? "true" : "false"), w->m_iMonitorID, escapeJSONStrings(g_pXWaylandManager->getAppIDClass(w)).c_str(),
-            escapeJSONStrings(g_pXWaylandManager->getTitle(w)).c_str(), w->getPID(), ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"),
-            (w->m_bIsFullscreen ? "true" : "false"),
+            escapeJSONStrings(g_pXWaylandManager->getTitle(w)).c_str(), escapeJSONStrings(w->m_szInitialClass).c_str(), escapeJSONStrings(w->m_szInitialTitle).c_str(), w->getPID(),
+            ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"), (w->m_bIsFullscreen ? "true" : "false"),
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
             w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format).c_str(), (w->m_pSwallowed ? getFormat("\"0x%x\"", w->m_pSwallowed).c_str() : "null"));
     } else {
         return getFormat(
-            "Window %x -> %s:\n\tmapped: %i\n\thidden: %i\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: %s\n\tpid: "
+            "Window %x -> %s:\n\tmapped: %i\n\thidden: %i\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: "
+            "%s\n\tinitialClass: %s\n\tinitialTitle: %s\n\tpid: "
             "%i\n\txwayland: %i\n\tpinned: "
             "%i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\tfakefullscreen: %i\n\tgrouped: %s\n\tswallowing: %x\n\n",
             w, w->m_szTitle.c_str(), (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y, (int)w->m_vRealSize.goalv().x,
@@ -156,8 +159,8 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             (w->m_iWorkspaceID == -1                                ? "" :
                  g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName.c_str() :
                                                                       std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID)).c_str()),
-            (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w).c_str(), g_pXWaylandManager->getTitle(w).c_str(), w->getPID(), (int)w->m_bIsX11,
-            (int)w->m_bPinned, (int)w->m_bIsFullscreen,
+            (int)w->m_bIsFloating, w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w).c_str(), g_pXWaylandManager->getTitle(w).c_str(), w->m_szInitialClass.c_str(),
+            w->m_szInitialTitle.c_str(), w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
             (int)w->m_bFakeFullscreenState, getGroupedData(w, format).c_str(), w->m_pSwallowed);
     }
@@ -486,7 +489,7 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
         ret += "animations:\n";
 
         for (auto& ac : g_pConfigManager->getAnimationConfig()) {
-            ret += getFormat("\n\tname: %s\n\t\toverriden: %i\n\t\tbezier: %s\n\t\tenabled: %i\n\t\tspeed: %.2f\n\t\tstyle: %s\n", ac.first.c_str(), (int)ac.second.overriden,
+            ret += getFormat("\n\tname: %s\n\t\toverriden: %i\n\t\tbezier: %s\n\t\tenabled: %i\n\t\tspeed: %.2f\n\t\tstyle: %s\n", ac.first.c_str(), (int)ac.second.overridden,
                              ac.second.internalBezier.c_str(), ac.second.internalEnabled, ac.second.internalSpeed, ac.second.internalStyle.c_str());
         }
 
@@ -503,13 +506,13 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
             ret += getFormat(R"#(
 {
     "name": "%s",
-    "overriden": %s,
+    "overridden": %s,
     "bezier": "%s",
     "enabled": %s,
     "speed": %.2f,
     "style": "%s"
 },)#",
-                             ac.first.c_str(), ac.second.overriden ? "true" : "false", ac.second.internalBezier.c_str(), ac.second.internalEnabled ? "true" : "false",
+                             ac.first.c_str(), ac.second.overridden ? "true" : "false", ac.second.internalBezier.c_str(), ac.second.internalEnabled ? "true" : "false",
                              ac.second.internalSpeed, ac.second.internalStyle.c_str());
         }
 
@@ -956,7 +959,7 @@ std::string dispatchSetProp(std::string request) {
         } else if (PROP == "forceopaque") {
             PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forceopaqueoverriden") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverriden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forceallowsinput") {
             PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forcenoanims") {
@@ -1178,7 +1181,7 @@ std::string dispatchNotify(std::string request) {
         icon = std::stoi(ICON);
     } catch (std::exception& e) { return "invalid arg 1"; }
 
-    if (icon == -1 || icon > ICON_NONE) {
+    if (icon > ICON_NONE || icon < 0) {
         icon = ICON_NONE;
     }
 
@@ -1312,7 +1315,7 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     close(ACCEPTEDCONNECTION);
 
     if (g_pConfigManager->m_bWantsMonitorReload) {
-        g_pConfigManager->ensureDPMS();
+        g_pConfigManager->ensureMonitorStatus();
     }
 
     return 0;

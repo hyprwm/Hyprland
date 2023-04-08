@@ -45,6 +45,13 @@ cat /tmp/hypr/$(ls -t /tmp/hypr/ | head -n 2 | tail -n 1)/hyprland.log
 
 basically, directories in /tmp/hypr are your sessions.
 
+## Obtaining the Hyprland Crash Report (v0.22.0beta and up)
+
+If you have `$XDG_CACHE_HOME` set, the crash report directory is `$XDG_CACHE_HOME/hyprland`. If not, it's `~/.hyprland`
+
+Go to the crash report directory and you should find a file named `hyprlandCrashReport[XXXX].txt` where `[XXXX]` is the PID of the process that crashed.
+
+Attach that file to your issue.
 ## Obtaining the Hyprland coredump (v0.21.0beta and below)
 If you are on systemd, you can simply use
 ```
@@ -58,13 +65,6 @@ coredumpctl info [PID]
 ```
 where `[PID]` is the PID you remembered.
 
-## Obtaining the Hyprland Crash Report (v0.22.0beta and up)
-Go to `~/.hyprland/` and you should find a file named `hyprlandCrashReport[XXXX].txt` where `[XXXX]` is the PID of the process that crashed.
-
-If you do not see it, make sure you have "show hidden files" enabled in your file manager.
-
-Attach that file to your issue.
-
 ## Obtaining the debug Hyprland coredump
 A debug coredump provides more information for debugging and may speed up the process of fixing the bug.
 
@@ -74,9 +74,7 @@ Make sure you're on latest git. Run `git pull --recurse-submodules` to sync ever
 > Note: The config file used will be `hyprlandd.conf` instead of `hyprland.conf`
 
 2. `cd ~`
-3. For your own convenience, launch Hyprland from a tty with the envvar `ASAN_OPTIONS="log_path=asan.log"`:
- - If using a wrapper, add `export ASAN_OPTIONS="log_path=asan.log"` in a separate line before the `exec Hyprland` line.
- - If launching straight from the tty, execute `ASAN_OPTIONS="log_path=asan.log" ~/path/to/Hyprland`
+3. For your own convenience, launch Hyprland from a tty with the envvar `ASAN_OPTIONS="log_path=asan.log" ~/path/to/Hyprland`
 4. Reproduce the crash. Hyprland should instantly close.
 5. Check out your `~` and find a file called `asan.log.XXXXX` where `XXXXX` will be a number corresponding to the PID of the Hyprland instance that crashed.
 6. That is your coredump. Attach it to your issue.

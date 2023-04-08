@@ -47,11 +47,11 @@ wlr_foreign_toplevel_handle_v1* zwlrHandleFromResource(wl_resource* resource) {
     return (wlr_foreign_toplevel_handle_v1*)wl_resource_get_user_data(resource);
 }
 
-void handleCaptureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, uint32_t handle) {
+static void handleCaptureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, uint32_t handle) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, g_pCompositor->getWindowFromHandle(handle));
 }
 
-void handleCaptureToplevelWithWlr(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* handle) {
+static void handleCaptureToplevelWithWlr(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* handle) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, g_pCompositor->getWindowFromZWLRHandle(handle));
 }
 
@@ -59,11 +59,11 @@ static void handleDestroy(wl_client* client, wl_resource* resource) {
     wl_resource_destroy(resource);
 }
 
-void handleCopyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage) {
+static void handleCopyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->copyFrame(client, resource, buffer, ignore_damage);
 }
 
-void handleDestroyFrame(wl_client* client, wl_resource* resource) {
+static void handleDestroyFrame(wl_client* client, wl_resource* resource) {
     wl_resource_destroy(resource);
 }
 
@@ -75,12 +75,12 @@ static const struct hyprland_toplevel_export_manager_v1_interface toplevelExport
 
 static const struct hyprland_toplevel_export_frame_v1_interface toplevelFrameImpl = {.copy = handleCopyFrame, .destroy = handleDestroyFrame};
 
-SToplevelClient*                                                clientFromResource(wl_resource* resource) {
+static SToplevelClient*                                         clientFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_manager_v1_interface, &toplevelExportManagerImpl));
     return (SToplevelClient*)wl_resource_get_user_data(resource);
 }
 
-SToplevelFrame* frameFromResource(wl_resource* resource) {
+static SToplevelFrame* frameFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_frame_v1_interface, &toplevelFrameImpl));
     return (SToplevelFrame*)wl_resource_get_user_data(resource);
 }
@@ -122,7 +122,7 @@ void CToplevelExportProtocolManager::bindManager(wl_client* client, void* data, 
     Debug::log(LOG, "ToplevelExportManager bound successfully!");
 }
 
-void handleFrameResourceDestroy(wl_resource* resource) {
+static void handleFrameResourceDestroy(wl_resource* resource) {
     const auto PFRAME = frameFromResource(resource);
 
     g_pProtocolManager->m_pToplevelExportProtocolManager->removeFrame(PFRAME);
@@ -349,10 +349,15 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10);
 
+    if (frame->overlayCursor)
+        wlr_output_lock_software_cursors(PMONITOR->output, true);
+
     if (!wlr_output_attach_render(PMONITOR->output, nullptr)) {
         Debug::log(ERR, "[toplevel_export] Couldn't attach render");
         pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);
+        if (frame->overlayCursor)
+            wlr_output_lock_software_cursors(PMONITOR->output, false);
         return false;
     }
 
@@ -364,6 +369,28 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     g_pHyprRenderer->renderWindow(frame->pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
+    if (frame->overlayCursor && wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y)) {
+        // hack le massive
+        wlr_output_cursor* cursor;
+        const auto         OFFSET = frame->pWindow->m_vRealPosition.vec() - PMONITOR->vecPosition;
+        wl_list_for_each(cursor, &PMONITOR->output->cursors, link) {
+            if (!cursor->enabled || !cursor->visible || PMONITOR->output->hardware_cursor == cursor) {
+                continue;
+            }
+            cursor->x -= OFFSET.x;
+            cursor->y -= OFFSET.y;
+        }
+        wlr_output_render_software_cursors(PMONITOR->output, NULL);
+        wl_list_for_each(cursor, &PMONITOR->output->cursors, link) {
+            if (!cursor->enabled || !cursor->visible || PMONITOR->output->hardware_cursor == cursor) {
+                continue;
+            }
+            cursor->x += OFFSET.x;
+            cursor->y += OFFSET.y;
+        }
+        wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+    }
+
     // copy pixels
     const auto PFORMAT = get_gles2_format_from_drm(format);
     if (!PFORMAT) {
@@ -371,6 +398,8 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
         g_pHyprOpenGL->end();
         pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);
+        if (frame->overlayCursor)
+            wlr_output_lock_software_cursors(PMONITOR->output, false);
         return false;
     }
 
@@ -387,6 +416,9 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     pixman_region32_fini(&fakeDamage);
 
     wlr_buffer_end_data_ptr_access(frame->buffer);
+
+    if (frame->overlayCursor)
+        wlr_output_lock_software_cursors(PMONITOR->output, false);
 
     return true;
 }

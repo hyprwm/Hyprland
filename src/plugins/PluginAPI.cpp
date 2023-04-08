@@ -3,6 +3,12 @@
 #include "../debug/HyprCtl.hpp"
 #include <dlfcn.h>
 
+#if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
+#include <sys/sysctl.h>
+#endif
+
+#include <sstream>
+
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
@@ -240,4 +246,77 @@ APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::stri
     }
 
     return true;
+}
+
+APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE handle, const std::string& name) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return std::vector<SFunctionMatch>{};
+
+#if defined(KERN_PROC_PATHNAME)
+    int mib[] = {
+        CTL_KERN,
+#if defined(__NetBSD__)
+        KERN_PROC_ARGS,
+        -1,
+        KERN_PROC_PATHNAME,
+#else
+        KERN_PROC,
+        KERN_PROC_PATHNAME,
+        -1,
+#endif
+    };
+    u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
+    char   exe[PATH_MAX] = "";
+    size_t sz            = sizeof(exe);
+    sysctl(mib, miblen, &exe, &sz, NULL, 0);
+    const auto FPATH = std::filesystem::canonical(exe);
+#elif defined(__OpenBSD__)
+    // Neither KERN_PROC_PATHNAME nor /proc are supported
+    const auto FPATH = std::filesystem::canonical("/usr/local/bin/Hyprland");
+#else
+    const auto FPATH = std::filesystem::canonical("/proc/self/exe");
+#endif
+
+#ifdef __clang__
+    const auto SYMBOLS          = execAndGet(("llvm-nm -D -j " + FPATH.string()).c_str());
+    const auto SYMBOLSDEMANGLED = execAndGet(("llvm-nm -D -j --demangle " + FPATH.string()).c_str());
+#else
+    const auto SYMBOLS          = execAndGet(("nm -D -j " + FPATH.string()).c_str());
+    const auto SYMBOLSDEMANGLED = execAndGet(("nm -D -j --demangle=auto " + FPATH.string()).c_str());
+#endif
+
+    auto       demangledFromID = [&](size_t id) -> std::string {
+        size_t pos   = 0;
+        size_t count = 0;
+        while (count < id) {
+            pos++;
+            pos = SYMBOLSDEMANGLED.find('\n', pos);
+            if (pos == std::string::npos)
+                return "";
+            count++;
+        }
+
+        return SYMBOLSDEMANGLED.substr(pos, SYMBOLSDEMANGLED.find('\n', pos + 1) - pos);
+    };
+
+    std::vector<SFunctionMatch> matches;
+
+    std::istringstream          inStream(SYMBOLS);
+    std::string                 line;
+    int                         lineNo = 0;
+    while (std::getline(inStream, line)) {
+        if (line.contains(name)) {
+            void* address = dlsym(nullptr, line.c_str());
+
+            if (!address)
+                continue;
+
+            matches.push_back({address, line, demangledFromID(lineNo)});
+        }
+        lineNo++;
+    }
+
+    return matches;
 }

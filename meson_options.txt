@@ -1,2 +1,3 @@
 option('xwayland', type: 'feature', value: 'auto', description: 'Enable support for X11 applications')
 option('systemd', type: 'feature', value: 'auto', description: 'Enable systemd integration')
+option('legacy_renderer', type: 'feature', value: 'disabled', description: 'Enable legacy renderer')

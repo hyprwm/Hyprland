@@ -58,6 +58,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PRESIZECURSORICON = &g_pConfigManager->getConfigValuePtr("general:hover_icon_on_border")->intValue;
     const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
+    const auto         FOLLOWMOUSE = *PFOLLOWONDND && m_sDrag.drag ? 1 : *PFOLLOWMOUSE;
+
     m_pFoundSurfaceToFocus      = nullptr;
     m_pFoundLSToFocus           = nullptr;
     m_pFoundWindowToFocus       = nullptr;
@@ -142,6 +144,33 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // update stuff
     updateDragIcon();
+
+    if (!m_sDrag.drag && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus) {
+        if (m_bLastFocusOnLS) {
+            foundSurface       = g_pCompositor->m_pLastFocus;
+            pFoundLayerSurface = g_pCompositor->getLayerSurfaceFromSurface(foundSurface);
+            if (pFoundLayerSurface) {
+                surfacePos              = g_pCompositor->getLayerSurfaceFromSurface(foundSurface)->position;
+                m_bFocusHeldByButtons   = true;
+                m_bRefocusHeldByButtons = refocus;
+            } else {
+                // ?
+                foundSurface       = nullptr;
+                pFoundLayerSurface = nullptr;
+            }
+        } else if (g_pCompositor->m_pLastWindow) {
+            foundSurface = g_pCompositor->m_pLastFocus;
+            pFoundWindow = g_pCompositor->m_pLastWindow;
+
+            if (!g_pCompositor->m_pLastWindow->m_bIsX11)
+                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, g_pCompositor->m_pLastWindow, surfaceCoords);
+            else
+                surfacePos = g_pCompositor->m_pLastWindow->m_vRealPosition.vec();
+
+            m_bFocusHeldByButtons   = true;
+            m_bRefocusHeldByButtons = refocus;
+        }
+    }
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
@@ -309,8 +338,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             setCursorIconOnBorder(pFoundWindow);
         }
 
-        // if we're on an input deco, reset cursor. Don't on overriden
-        // if (!m_bCursorImageOverriden) {
+        // if we're on an input deco, reset cursor. Don't on overridden
+        // if (!m_bCursorImageOverridden) {
         //     if (!VECINRECT(m_vLastCursorPosFloored, pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y,
         //                    pFoundWindow->m_vRealPosition.vec().x + pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealPosition.vec().y + pFoundWindow->m_vRealSize.vec().y)) {
         //         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
@@ -321,14 +350,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         //     }
         // }
 
-        if (*PFOLLOWMOUSE != 1 && !refocus) {
+        if (FOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow &&
                 ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
-                if (*PFOLLOWMOUSE != 3 && allowKeyboardRefocus)
+                if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
-            } else if (*PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
+            } else if (FOLLOWMOUSE == 2 || FOLLOWMOUSE == 3) {
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
@@ -339,17 +368,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 }
             }
 
-            if (*PFOLLOWONDND && m_sDrag.dragIcon) {
-                wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
-            }
-
-            if (*PFOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_pLastWindow)
+            if (FOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_pLastWindow)
                 wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
 
             m_bLastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            if ((*PFOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus)
+            if ((FOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus)
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
         }
 
@@ -360,7 +385,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             unsetCursorImage();
         }
 
-        if (pFoundLayerSurface && pFoundLayerSurface->layerSurface->current.keyboard_interactive && *PFOLLOWMOUSE != 3 && allowKeyboardRefocus) {
+        if (pFoundLayerSurface && (pFoundLayerSurface->layerSurface->current.keyboard_interactive || pFoundLayerSurface->layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP) &&
+            FOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
         }
 
@@ -392,6 +418,16 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
         case CLICKMODE_KILL: processMouseDownKill(e); break;
         default: break;
     }
+
+    if (m_bFocusHeldByButtons && m_lCurrentlyHeldButtons.empty() && e->state == WLR_BUTTON_RELEASED) {
+        if (m_bRefocusHeldByButtons)
+            refocus();
+        else
+            simulateMouseMovement();
+
+        m_bFocusHeldByButtons   = false;
+        m_bRefocusHeldByButtons = false;
+    }
 }
 
 void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e) {
@@ -404,7 +440,7 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
         g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
     }
 
-    if (m_bCursorImageOverriden) {
+    if (m_bCursorImageOverridden) {
         return;
     }
 
@@ -483,8 +519,17 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
                 break;
 
-            if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)
-                refocus();
+            if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) {
+                // a bit hacky
+                // if we only pressed one button, allow us to refocus. m_lCurrentlyHeldButtons.size() > 0 will stick the focus
+                if (m_lCurrentlyHeldButtons.size() == 1) {
+                    const auto COPY = m_lCurrentlyHeldButtons;
+                    m_lCurrentlyHeldButtons.clear();
+                    refocus();
+                    m_lCurrentlyHeldButtons = COPY;
+                } else
+                    refocus();
+            }
 
             // if clicked on a floating window make it top
             if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
@@ -1338,14 +1383,14 @@ void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
 
 void CInputManager::setCursorImageUntilUnset(std::string name) {
     wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, name.c_str(), g_pCompositor->m_sWLRCursor);
-    m_bCursorImageOverriden = true;
+    m_bCursorImageOverridden = true;
 }
 
 void CInputManager::unsetCursorImage() {
-    if (!m_bCursorImageOverriden)
+    if (!m_bCursorImageOverridden)
         return;
 
-    m_bCursorImageOverriden = false;
+    m_bCursorImageOverridden = false;
     if (!g_pHyprRenderer->m_bWindowRequestedCursorHide)
         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
 }
@@ -1417,14 +1462,19 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
         return;
     }
 
-    static auto* const PROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static const auto* PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PROUNDING         = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    static const auto* PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static const auto* PEXTENDBORDERGRAB = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
     // give a small leeway (10 px) for corner icon
-    const auto           CORNER      = *PROUNDING + *PBORDERSIZE + 10;
-    const auto           mouseCoords = getMouseCoordsInternal();
-    wlr_box              box         = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-    eBorderIconDirection direction   = BORDERICON_NONE;
-    if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+    const auto           CORNER           = *PROUNDING + *PBORDERSIZE + 10;
+    const auto           mouseCoords      = getMouseCoordsInternal();
+    wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+    eBorderIconDirection direction        = BORDERICON_NONE;
+    wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB, box.y - *PEXTENDBORDERGRAB, box.width + 2 * *PEXTENDBORDERGRAB, box.height + 2 * *PEXTENDBORDERGRAB};
+
+    if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
+        direction = BORDERICON_NONE;
+    } else if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
         if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
             direction = BORDERICON_NONE;
         } else {

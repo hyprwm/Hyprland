@@ -12,6 +12,9 @@ struct SMonitorRule;
 
 class CMonitor {
   public:
+    CMonitor();
+    ~CMonitor();
+
     Vector2D    vecPosition        = Vector2D(-1, -1); // means unset
     Vector2D    vecSize            = Vector2D(0, 0);
     Vector2D    vecPixelSize       = Vector2D(0, 0);
@@ -29,9 +32,9 @@ class CMonitor {
     Vector2D    vecReservedBottomRight = Vector2D(0, 0);
 
     // WLR stuff
+    wlr_damage_ring     damage;
     wlr_output*         output          = nullptr;
     float               refreshRate     = 60;
-    wlr_output_damage*  damage          = nullptr;
     int                 framesToSkip    = 0;
     int                 forceFullFrames = 0;
     bool                noFrameSchedule = false;
@@ -62,6 +65,8 @@ class CMonitor {
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);
     DYNLISTENER(monitorStateRequest);
+    DYNLISTENER(monitorDamage);
+    DYNLISTENER(monitorNeedsFrame);
 
     // hack: a group = workspaces on a monitor.
     // I don't really care lol :P
@@ -70,8 +75,8 @@ class CMonitor {
     // methods
     void                       onConnect(bool noRule);
     void                       onDisconnect();
-    void                       addDamage(pixman_region32_t* rg);
-    void                       addDamage(wlr_box* box);
+    void                       addDamage(const pixman_region32_t* rg);
+    void                       addDamage(const wlr_box* box);
     void                       setMirror(const std::string&);
     bool                       isMirror();
     float                      getDefaultScale();

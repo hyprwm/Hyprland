@@ -104,7 +104,7 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
         modMask |= WLR_MODIFIER_CAPS;
     if (mods.contains("CTRL") || mods.contains("CONTROL"))
         modMask |= WLR_MODIFIER_CTRL;
-    if (mods.contains("ALT"))
+    if (mods.contains("ALT") || mods.contains("MOD1"))
         modMask |= WLR_MODIFIER_ALT;
     if (mods.contains("MOD2"))
         modMask |= WLR_MODIFIER_MOD2;
@@ -386,7 +386,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
-            Debug::log(ERR, "Inavlid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
+            Debug::log(ERR, "Invalid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
         } else {
             // call the dispatcher
             Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %s, %d)", modmask, key.c_str(), keysym);
@@ -473,11 +473,11 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         // vtnr is bugged for some reason.
         unsigned int ttynum = 0;
-#if defined(__linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(VT_GETSTATE)
         struct vt_stat st;
         if (!ioctl(0, VT_GETSTATE, &st))
             ttynum = st.v_active;
-#elif defined(__DragonFly__) || defined(__FreeBSD__)
+#elif defined(VT_GETACTIVE)
         int vt;
         if (!ioctl(0, VT_GETACTIVE, &vt))
             ttynum = vt;
@@ -1154,7 +1154,8 @@ void CKeybindManager::moveFocusTo(std::string args) {
         }
     };
 
-    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+    const auto PWINDOWTOCHANGETO = PLASTWINDOW->m_bIsFullscreen ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, arg == 'u' || arg == 't' || arg == 'r') :
+                                                                  g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     if (PWINDOWTOCHANGETO) {
         switchToWindow(PWINDOWTOCHANGETO);
@@ -1927,7 +1928,7 @@ void CKeybindManager::toggleOpaque(std::string unused) {
         return;
 
     PWINDOW->m_sAdditionalConfigData.forceOpaque          = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
-    PWINDOW->m_sAdditionalConfigData.forceOpaqueOverriden = true;
+    PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden = true;
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 }

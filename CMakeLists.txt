@@ -145,5 +145,6 @@ target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/hyprland-global-shortcuts-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/fractional-scale-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/text-input-unstable-v1-protocol.o
+        ${CMAKE_SOURCE_DIR}/wlr-screencopy-unstable-v1-protocol.o
         ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
 )

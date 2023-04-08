@@ -205,6 +205,16 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.posAttrib = glGetAttribLocation(prog, "pos");
 
+    prog                                               = createProgram(TEXVERTSRC, FRAGGLITCH);
+    m_RenderData.pCurrentMonData->m_shGLITCH.program   = prog;
+    m_RenderData.pCurrentMonData->m_shGLITCH.proj      = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shGLITCH.tex       = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shGLITCH.texAttrib = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shGLITCH.posAttrib = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shGLITCH.distort   = glGetUniformLocation(prog, "distort");
+    m_RenderData.pCurrentMonData->m_shGLITCH.time      = glGetUniformLocation(prog, "time");
+    m_RenderData.pCurrentMonData->m_shGLITCH.fullSize  = glGetUniformLocation(prog, "screenSize");
+
     prog                                                        = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
     m_RenderData.pCurrentMonData->m_shRGBX.program              = prog;
     m_RenderData.pCurrentMonData->m_shRGBX.tex                  = glGetUniformLocation(prog, "tex");
@@ -318,7 +328,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     m_sFinalScreenShader.proj = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
     m_sFinalScreenShader.tex  = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
     m_sFinalScreenShader.time = glGetUniformLocation(m_sFinalScreenShader.program, "time");
-    if (m_sFinalScreenShader.time != -1 && g_pConfigManager->getInt("debug:damage_tracking") != 0) {
+    if (m_sFinalScreenShader.time != -1 && g_pConfigManager->getInt("debug:damage_tracking") != 0 && !g_pHyprRenderer->m_bCrashingInProgress) {
         // The screen shader uses the "time" uniform
         // Since the screen shader could change every frame, damage tracking *needs* to be disabled
         g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'time', which requires debug:damage_tracking to be switched off.\n"
@@ -502,9 +512,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-    bool usingFinalShader = false;
+    bool       usingFinalShader = false;
 
-    if (m_bApplyFinalShader && m_sFinalScreenShader.program) {
+    const bool CRASHING = m_bApplyFinalShader && g_pHyprRenderer->m_bCrashingInProgress;
+
+    if (CRASHING) {
+        shader           = &m_RenderData.pCurrentMonData->m_shGLITCH;
+        usingFinalShader = true;
+    } else if (m_bApplyFinalShader && m_sFinalScreenShader.program) {
         shader           = &m_sFinalScreenShader;
         usingFinalShader = true;
     } else {
@@ -539,11 +554,16 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 #endif
     glUniform1i(shader->tex, 0);
 
-    if (usingFinalShader && g_pConfigManager->getInt("debug:damage_tracking") == 0) {
+    if ((usingFinalShader && g_pConfigManager->getInt("debug:damage_tracking") == 0) || CRASHING) {
         glUniform1f(shader->time, m_tGlobalTimer.getSeconds());
     } else if (usingFinalShader && shader->time > 0) {
         // Don't let time be unitialised
         glUniform1f(shader->time, 0.f);
+    }
+
+    if (CRASHING) {
+        glUniform1f(shader->distort, g_pHyprRenderer->m_fCrashingDistort);
+        glUniform2f(shader->fullSize, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
     }
 
     if (!usingFinalShader) {
@@ -573,7 +593,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
         glUniform1f(shader->radius, round);
         glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 
-        if (allowDim && m_pCurrentWindow && *PDIMINACTIVE && m_pCurrentWindow != g_pCompositor->m_pLastWindow) {
+        if (allowDim && m_pCurrentWindow && *PDIMINACTIVE) {
             glUniform1i(shader->applyTint, 1);
             const auto DIM = m_pCurrentWindow->m_fDimPercent.fl();
             glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
@@ -935,7 +955,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    if (USENEWOPTIMIZE)
+    if (USENEWOPTIMIZE && !(m_RenderData.discardMode & DISCARD_ALPHAZERO))
         renderRect(pBox, CColor(0, 0, 0, 0), round);
     else
         renderTexture(tex, pBox, a, round, true, true); // discard opaque

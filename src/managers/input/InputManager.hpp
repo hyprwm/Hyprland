@@ -7,18 +7,21 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode {
+enum eClickBehaviorMode
+{
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode {
+enum eMouseBindMode
+{
     MBIND_INVALID = -1,
     MBIND_MOVE    = 0,
     MBIND_RESIZE
 };
 
-enum eBorderIconDirection {
+enum eBorderIconDirection
+{
     BORDERICON_NONE,
     BORDERICON_UP,
     BORDERICON_DOWN,
@@ -154,8 +157,6 @@ class CInputManager {
     // for shared mods
     uint32_t accumulateModsFromAllKBs();
 
-    CWindow* m_pFollowOnDnDBegin = nullptr;
-
     // for virtual keyboards: whether we should respect them as normal ones
     bool shouldIgnoreVirtualKeyboard(SKeyboard*);
 
@@ -175,8 +176,8 @@ class CInputManager {
     bool m_bLastInputTouch = false;
 
   private:
-    bool                 m_bCursorImageOverriden = false;
-    eBorderIconDirection m_eBorderIconDirection  = BORDERICON_NONE;
+    bool                 m_bCursorImageOverridden = false;
+    eBorderIconDirection m_eBorderIconDirection   = BORDERICON_NONE;
 
     // for click behavior override
     eClickBehaviorMode m_ecbClickBehavior      = CLICKMODE_DEFAULT;
@@ -200,6 +201,10 @@ class CInputManager {
     wlr_surface*   m_pFoundSurfaceToFocus = nullptr;
     SLayerSurface* m_pFoundLSToFocus      = nullptr;
     CWindow*       m_pFoundWindowToFocus  = nullptr;
+
+    // for holding focus on buttons held
+    bool m_bFocusHeldByButtons   = false;
+    bool m_bRefocusHeldByButtons = false;
 
     // for releasing mouse buttons
     std::list<uint32_t> m_lCurrentlyHeldButtons;

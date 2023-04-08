@@ -89,8 +89,9 @@ in
         else "release";
 
       mesonFlags = builtins.concatLists [
-        (lib.optional (!enableXWayland) "-Dxwayland=disabled")
-        (lib.optional legacyRenderer "-DLEGACY_RENDERER:STRING=true")
+        ["-Dauto_features=disabled"]
+        (lib.optional enableXWayland "-Dxwayland=enabled")
+        (lib.optional legacyRenderer "-Dlegacy_renderer=enabled")
         (lib.optional withSystemd "-Dsystemd=enabled")
       ];
 

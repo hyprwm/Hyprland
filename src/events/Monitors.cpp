@@ -44,7 +44,7 @@ void Events::listener_change(wl_listener* listener, void* data) {
 }
 
 void Events::listener_newOutput(wl_listener* listener, void* data) {
-    // new monitor added, let's accomodate for that.
+    // new monitor added, let's accommodate for that.
     const auto OUTPUT = (wlr_output*)data;
 
     // for warping the cursor on launch
@@ -195,4 +195,17 @@ void Events::listener_monitorStateRequest(void* owner, void* data) {
     const auto E        = (wlr_output_event_request_state*)data;
 
     wlr_output_commit_state(PMONITOR->output, E->state);
+}
+
+void Events::listener_monitorDamage(void* owner, void* data) {
+    const auto PMONITOR = (CMonitor*)owner;
+    const auto E        = (wlr_output_event_damage*)data;
+
+    PMONITOR->addDamage(E->damage);
+}
+
+void Events::listener_monitorNeedsFrame(void* owner, void* data) {
+    const auto PMONITOR = (CMonitor*)owner;
+
+    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 }

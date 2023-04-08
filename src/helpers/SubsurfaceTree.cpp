@@ -3,6 +3,9 @@
 #include "../Compositor.hpp"
 
 void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
+    if (!node->pSurface || !node->pSurface->exists())
+        return;
+
     *lx += node->pSurface->wlr()->current.dx;
     *ly += node->pSurface->wlr()->current.dy;
 
@@ -180,6 +183,9 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
     SSubsurface* subsurface = (SSubsurface*)owner;
 
     Debug::log(LOG, "Subsurface %x unmapped", subsurface);
+
+    if (subsurface->pSubsurface->surface == g_pCompositor->m_pLastFocus)
+        g_pInputManager->releaseAllMouseButtons();
 
     if (subsurface->pChild) {
         const auto PNODE = subsurface->pChild;

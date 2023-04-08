@@ -67,7 +67,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // Foreign Toplevel
     PWINDOW->createToplevelHandle();
 
-    // checks if the window wants borders and sets the appriopriate flag
+    // checks if the window wants borders and sets the appropriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
 
     // registers the animated vars and stuff
@@ -116,6 +116,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool requestsMaximize = false;
     bool shouldFocus      = true;
     bool workspaceSpecial = false;
+
+    PWINDOW->m_szInitialTitle = g_pXWaylandManager->getTitle(PWINDOW);
+    PWINDOW->m_szInitialClass = g_pXWaylandManager->getAppIDClass(PWINDOW);
 
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {
@@ -583,6 +586,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "Window %x unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
+    if (!PWINDOW->m_pWLSurface.exists() || !PWINDOW->m_bIsMapped) {
+        Debug::log(WARN, "Window %x unmapped without being mapped??", PWINDOW);
+        PWINDOW->m_bFadingOut = false;
+        return;
+    }
+
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%x", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
@@ -628,6 +637,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         wasLastWindow                = true;
         g_pCompositor->m_pLastWindow = nullptr;
         g_pCompositor->m_pLastFocus  = nullptr;
+
+        g_pInputManager->releaseAllMouseButtons();
     }
 
     PWINDOW->m_bMappedX11 = false;
@@ -802,7 +813,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
             }
         }
 
-        // Disable the maximize flag when we recieve a de-fullscreen request
+        // Disable the maximize flag when we receive a de-fullscreen request
         PWINDOW->m_bWasMaximized &= REQUESTED->fullscreen;
 
         requestedFullState = REQUESTED->fullscreen;
@@ -1007,7 +1018,6 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     PNEWWINDOW->m_pX11Parent = g_pCompositor->getX11Parent(PNEWWINDOW);
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XWSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XWayland Window");
-    PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XWSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XWSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_setOverrideRedirect.initCallback(&XWSURFACE->events.set_override_redirect, &Events::listener_setOverrideRedirect, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_configureX11.initCallback(&XWSURFACE->events.request_configure, &Events::listener_configureX11, PNEWWINDOW, "XWayland Window");
@@ -1026,7 +1036,6 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
-    PNEWWINDOW->hyprListener_unmapWindow.initCallback(&XDGSURFACE->events.unmap, &Events::listener_unmapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XDGSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XDG Window");
 }
 

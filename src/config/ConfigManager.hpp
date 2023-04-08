@@ -53,7 +53,7 @@ struct SMonitorAdditionalReservedArea {
 };
 
 struct SAnimationPropertyConfig {
-    bool                      overriden = true;
+    bool                      overridden = true;
 
     std::string               internalBezier  = "";
     std::string               internalStyle   = "";
@@ -171,7 +171,7 @@ class CConfigManager {
     bool                      m_bWantsMonitorReload = false;
     bool                      m_bForceReload        = false;
     bool                      m_bNoMonitorReload    = false;
-    void                      ensureDPMS();
+    void                      ensureMonitorStatus();
     void                      ensureVRR(CMonitor* pMonitor = nullptr);
 
     std::string               parseKeyword(const std::string&, const std::string&, bool dynamic = false);
@@ -213,7 +213,8 @@ class CConfigManager {
     std::deque<SLayerRule>                                                                     m_dLayerRules;
     std::deque<std::string>                                                                    m_dBlurLSNamespaces;
 
-    bool                                                                                       firstExecDispatched = false;
+    bool                                                                                       firstExecDispatched     = false;
+    bool                                                                                       m_bManualCrashInitiated = false;
     std::deque<std::string>                                                                    firstExecRequests;
 
     std::vector<std::pair<std::string, std::string>>                                           environmentVariables;

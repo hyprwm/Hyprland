@@ -6,7 +6,7 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
     static auto* const PSWIPEFINGERS = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_fingers")->intValue;
     static auto* const PSWIPENEW     = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
 
-    if (e->fingers != *PSWIPEFINGERS || *PSWIPE == 0)
+    if (e->fingers != *PSWIPEFINGERS || *PSWIPE == 0 || g_pSessionLockManager->isSessionLocked())
         return;
 
     int onMonitor = 0;
@@ -56,9 +56,21 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : "m-1", wsname);
     auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : "m+1", wsname);
 
-    if ((workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID || (workspaceIDRight == workspaceIDLeft && workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID)) &&
-        *PSWIPENEW) {
-        workspaceIDRight = m_sActiveSwipe.pWorkspaceBegin->m_iID > 0 ? m_sActiveSwipe.pWorkspaceBegin->m_iID + 1 : 1;
+    // If we've been swiping off the right end with PSWIPENEW enabled, there is
+    // no workspace there yet, and we need to choose an ID for a new one now.
+    // With multiple monitors, it might not be appropriate to choose one more
+    // than the ID of the workspace we're swiping from, because that ID might
+    // just be on another monitor.  It's also not just the smallest unused ID,
+    // because that could be a gap in the existing workspace numbers, and it'd
+    // be counterintuitive to swipe rightwards onto a new workspace and end up
+    // left of where we started.  Instead, it's one more than the greatest
+    // workspace ID that currently exists.
+    if (workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID && *PSWIPENEW) {
+        int maxWorkspace = 0;
+        for (const auto& ws : g_pCompositor->m_vWorkspaces) {
+            maxWorkspace = std::max(maxWorkspace, ws->m_iID);
+        }
+        workspaceIDRight = maxWorkspace + 1;
     }
 
     auto        PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER

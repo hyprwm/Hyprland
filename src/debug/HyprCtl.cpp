@@ -1158,7 +1158,7 @@ std::string dispatchNotify(std::string request) {
         icon = std::stoi(ICON);
     } catch (std::exception& e) { return "invalid arg 1"; }
 
-    if (icon == -1 || icon > ICON_NONE) {
+    if (icon > ICON_NONE || icon < 0) {
         icon = ICON_NONE;
     }
 

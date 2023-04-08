@@ -103,11 +103,11 @@ hyprland-toplevel-export-v1-protocol.o: hyprland-toplevel-export-v1-protocol.h
 
 hyprland-global-shortcuts-v1-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
-		protocols/hyprland-global-shortcuts-v1.xml $@
+		subprojects/hyprland-protocols/protocols/hyprland-global-shortcuts-v1.xml $@
 
 hyprland-global-shortcuts-v1-protocol.c:
 	$(WAYLAND_SCANNER) private-code \
-		protocols/hyprland-global-shortcuts-v1.xml $@
+		subprojects/hyprland-protocols/protocols/hyprland-global-shortcuts-v1.xml $@
 
 hyprland-global-shortcuts-v1-protocol.o: hyprland-global-shortcuts-v1-protocol.h
 

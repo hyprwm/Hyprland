@@ -30,7 +30,8 @@ protocols = [
   ['pointer-constraints-unstable-v1.xml'],
   ['tablet-unstable-v2.xml'],
   ['idle.xml'],
-  [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml']
+  [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml'],
+  [hl_protocol_dir, 'protocols/hyprland-global-shortcuts-v1.xml']
 ]
 wl_protos_src = []
 wl_protos_headers = []

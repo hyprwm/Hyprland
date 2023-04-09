@@ -63,6 +63,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["lockgroups"]                    = lockGroups;
     m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
     m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
+    m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
 }
@@ -352,7 +353,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
     for (auto& k : m_lKeybinds) {
         if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap ||
-            (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse") || k.shadowed)
+            (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse" && k.handler != "global") || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -425,7 +426,10 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const int& 
 
     for (auto& k : m_lKeybinds) {
 
-        bool       shadow = false;
+        bool shadow = false;
+
+        if (k.handler == "global")
+            continue; // can't be shadowed
 
         const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
         const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
@@ -2138,4 +2142,17 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
     g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+}
+
+void CKeybindManager::global(std::string args) {
+    const auto APPID = args.substr(0, args.find_first_of(':'));
+    const auto NAME  = args.substr(args.find_first_of(':') + 1);
+
+    if (APPID.empty() || NAME.empty())
+        return;
+
+    if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))
+        return;
+
+    g_pProtocolManager->m_pGlobalShortcutsProtocolManager->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
 }

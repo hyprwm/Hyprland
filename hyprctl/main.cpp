@@ -43,6 +43,7 @@ commands:
     setprop
     plugin
     notify
+    globalshortcuts
 
 flags:
     -j -> output in JSON
@@ -344,6 +345,8 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/cursorpos"))
         request(fullRequest);
     else if (fullRequest.contains("/animations"))
+        request(fullRequest);
+    else if (fullRequest.contains("/globalshortcuts"))
         request(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);

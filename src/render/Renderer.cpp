@@ -815,8 +815,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     // check the damage
     pixman_region32_t damage;
-    bool              hasChanged = pMonitor->output->needs_frame || !pixman_region32_not_empty(&pMonitor->damage.current);
+    bool              hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
     int               bufferAge;
+
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
+        return;
 
     if (*PDAMAGETRACKINGMODE == -1) {
         Debug::log(CRIT, "Damage tracking mode -1 ????");
@@ -843,21 +846,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     // we need to cleanup fading out when rendering the appropriate context
     g_pCompositor->cleanupFadingOut(pMonitor->ID);
-
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0) {
-        pixman_region32_fini(&damage);
-        wlr_output_rollback(pMonitor->output);
-
-        if (*PDAMAGEBLINK || *PVFR == 0)
-            g_pCompositor->scheduleFrameForMonitor(pMonitor);
-
-        pMonitor->renderingActive = false;
-
-        if (UNLOCK_SC)
-            wlr_output_lock_software_cursors(pMonitor->output, false);
-
-        return;
-    }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0 ||

@@ -64,6 +64,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["lockgroups"]                    = lockGroups;
     m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
     m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
+    m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
 }
@@ -174,7 +175,7 @@ bool CKeybindManager::ensureMouseBindState() {
     return false;
 }
 
-bool CKeybindManager::trySetActiveMonitor(CMonitor* monitor, const bool moveFocus) {
+bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     if (!monitor)
         return false;
 
@@ -192,9 +193,6 @@ bool CKeybindManager::trySetActiveMonitor(CMonitor* monitor, const bool moveFocu
     PNEWWORKSPACE->setActive(true);
     PNEWWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
 
-    if (!moveFocus)
-        return true;
-
     const auto PNEWWINDOW = PNEWWORKSPACE->getLastFocusedWindow();
     if (PNEWWINDOW) {
         g_pCompositor->focusWindow(PNEWWINDOW);
@@ -207,11 +205,6 @@ bool CKeybindManager::trySetActiveMonitor(CMonitor* monitor, const bool moveFocu
     }
 
     return true;
-}
-
-bool CKeybindManager::tryMoveFocusToMonitorInDirection(const char& dir) {
-    const auto PNEWMONITOR = g_pCompositor->getMonitorInDirection(dir);
-    return trySetActiveMonitor(PNEWMONITOR, true);
 }
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
@@ -1158,7 +1151,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
     if (!PLASTWINDOW) {
-        tryMoveFocusToMonitorInDirection(arg);
+        tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg));
         return;
     }
 
@@ -1206,7 +1199,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     Debug::log(LOG, "No window found in direction %c, looking for a monitor", arg);
 
-    if (tryMoveFocusToMonitorInDirection(arg))
+    if (tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir)))
         return;
 
     static auto* const PNOFALLBACK = &g_pConfigManager->getConfigValuePtr("general:no_focus_fallback")->intValue;
@@ -1317,10 +1310,10 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
     if (args.find("mon:") == 0) {
         const auto PNEWMONITOR = g_pCompositor->getMonitorFromString(args.substr(4));
-        if (!trySetActiveMonitor(PNEWMONITOR, false))
+        if (!PNEWMONITOR)
             return;
 
-        moveActiveToWorkspace(std::to_string(g_pCompositor->m_pLastMonitor->activeWorkspace));
+        moveActiveToWorkspace(std::to_string(PNEWMONITOR->activeWorkspace));
         return;
     }
 
@@ -1345,9 +1338,6 @@ void CKeybindManager::moveActiveTo(std::string args) {
     // Otherwise, we always want to move to the next monitor in that direction
     const auto PMONITORTOCHANGETO = g_pCompositor->getMonitorInDirection(arg);
     if (!PMONITORTOCHANGETO)
-        return;
-
-    if (!trySetActiveMonitor(PMONITORTOCHANGETO, false))
         return;
 
     moveActiveToWorkspace(std::to_string(PMONITORTOCHANGETO->activeWorkspace));
@@ -1468,7 +1458,7 @@ void CKeybindManager::alterSplitRatio(std::string args) {
 
 void CKeybindManager::focusMonitor(std::string arg) {
     const auto PMONITOR = g_pCompositor->getMonitorFromString(arg);
-    trySetActiveMonitor(PMONITOR, true);
+    tryMoveFocusToMonitor(PMONITOR);
 }
 
 void CKeybindManager::moveCursorToCorner(std::string arg) {

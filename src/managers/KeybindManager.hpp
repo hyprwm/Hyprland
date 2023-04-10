@@ -26,8 +26,7 @@ struct SKeybind {
     bool shadowed = false;
 };
 
-enum eFocusWindowMode
-{
+enum eFocusWindowMode {
     MODE_CLASS_REGEX = 0,
     MODE_TITLE_REGEX,
     MODE_ADDRESS,
@@ -90,8 +89,7 @@ class CKeybindManager {
     void                      updateXKBTranslationState();
     bool                      ensureMouseBindState();
 
-    static bool               tryMoveFocusToMonitorInDirection(const char&);
-    static bool               trySetActiveMonitor(CMonitor* monitor, const bool moveFocus);
+    static bool               tryMoveFocusToMonitor(CMonitor* monitor);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);

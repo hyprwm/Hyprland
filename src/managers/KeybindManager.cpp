@@ -63,7 +63,6 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["lockgroups"]                    = lockGroups;
     m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
     m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
-    m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
 }
@@ -174,18 +173,27 @@ bool CKeybindManager::ensureMouseBindState() {
     return false;
 }
 
-bool CKeybindManager::tryMoveFocusToMonitorInDirection(const char& dir) {
-    const auto PNEWMONITOR = g_pCompositor->getMonitorInDirection(dir);
-    if (!PNEWMONITOR)
+bool CKeybindManager::trySetActiveMonitor(CMonitor* monitor, const bool moveFocus) {
+    if (!monitor)
         return false;
 
-    Debug::log(LOG, "switching to monitor");
-    const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PNEWMONITOR->activeWorkspace);
-    g_pCompositor->setActiveMonitor(PNEWMONITOR);
+    const auto LASTMONITOR = g_pCompositor->m_pLastMonitor;
+    if (LASTMONITOR == monitor) {
+        Debug::log(LOG, "Tried to move to active monitor");
+        return false;
+    }
+
+    const auto PWORKSPACE    = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+    const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(monitor->activeWorkspace);
+
+    g_pCompositor->setActiveMonitor(monitor);
     g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
     PNEWWORKSPACE->setActive(true);
+    PNEWWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
 
-    // Focus window on new monitor
+    if (!moveFocus)
+        return true;
+
     const auto PNEWWINDOW = PNEWWORKSPACE->getLastFocusedWindow();
     if (PNEWWINDOW) {
         g_pCompositor->focusWindow(PNEWWINDOW);
@@ -193,11 +201,16 @@ bool CKeybindManager::tryMoveFocusToMonitorInDirection(const char& dir) {
         g_pCompositor->warpCursorTo(middle);
     } else {
         g_pCompositor->focusWindow(nullptr);
-        Vector2D middle = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+        Vector2D middle = monitor->vecPosition + monitor->vecSize / 2.f;
         g_pCompositor->warpCursorTo(middle);
     }
 
     return true;
+}
+
+bool CKeybindManager::tryMoveFocusToMonitorInDirection(const char& dir) {
+    const auto PNEWMONITOR = g_pCompositor->getMonitorInDirection(dir);
+    return trySetActiveMonitor(PNEWMONITOR, true);
 }
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
@@ -614,14 +627,14 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
             _exit(0);
         }
         close(socket[0]);
-        write(socket[1], &grandchild, sizeof(grandchild));
+        std::ignore = write(socket[1], &grandchild, sizeof(grandchild));
         close(socket[1]);
         // exit child
         _exit(0);
     }
     // run in parent
     close(socket[1]);
-    read(socket[0], &grandchild, sizeof(grandchild));
+    std::ignore = read(socket[0], &grandchild, sizeof(grandchild));
     close(socket[0]);
     // clear child and leave child to init
     waitpid(child, NULL, 0);
@@ -1278,27 +1291,14 @@ void CKeybindManager::focusCurrentOrLast(std::string args) {
 }
 
 void CKeybindManager::moveActiveTo(std::string args) {
-    char       arg = args[0];
-
-    const auto LASTMONITOR = g_pCompositor->m_pLastMonitor;
+    char arg = args[0];
 
     if (args.find("mon:") == 0) {
-        // hack: save the active window
-        const auto PACTIVE = g_pCompositor->m_pLastWindow;
-
-        // monitor
-        focusMonitor(args.substr(4));
-
-        if (LASTMONITOR == g_pCompositor->m_pLastMonitor) {
-            Debug::log(ERR, "moveActiveTo: moving to an invalid mon");
+        const auto PNEWMONITOR = g_pCompositor->getMonitorFromString(args.substr(4));
+        if (!trySetActiveMonitor(PNEWMONITOR, false))
             return;
-        }
-
-        // restore the active
-        g_pCompositor->focusWindow(PACTIVE);
 
         moveActiveToWorkspace(std::to_string(g_pCompositor->m_pLastMonitor->activeWorkspace));
-
         return;
     }
 
@@ -1312,14 +1312,24 @@ void CKeybindManager::moveActiveTo(std::string args) {
     if (!PLASTWINDOW || PLASTWINDOW->m_bIsFullscreen)
         return;
 
+    // If the window to change to is on the same workspace, switch them
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+    if (PWINDOWTOCHANGETO && PWINDOWTOCHANGETO->m_iWorkspaceID == PLASTWINDOW->m_iWorkspaceID) {
+        g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+        g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.vec() + PLASTWINDOW->m_vRealSize.vec() / 2.0);
+        return;
+    }
 
-    if (!PWINDOWTOCHANGETO)
+    // Otherwise, we always want to move to the next monitor in that direction
+    const auto PMONITORTOCHANGETO = g_pCompositor->getMonitorInDirection(arg);
+    if (!PMONITORTOCHANGETO)
         return;
 
-    g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+    if (!trySetActiveMonitor(PMONITORTOCHANGETO, false))
+        return;
 
-    g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.vec() + PLASTWINDOW->m_vRealSize.vec() / 2.0);
+    moveActiveToWorkspace(std::to_string(PMONITORTOCHANGETO->activeWorkspace));
+    return;
 }
 
 void CKeybindManager::toggleGroup(std::string args) {
@@ -1437,22 +1447,7 @@ void CKeybindManager::alterSplitRatio(std::string args) {
 
 void CKeybindManager::focusMonitor(std::string arg) {
     const auto PMONITOR = g_pCompositor->getMonitorFromString(arg);
-
-    if (!PMONITOR || PMONITOR == g_pCompositor->m_pLastMonitor)
-        return;
-
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
-
-    changeworkspace("[internal]" + std::to_string(PMONITOR->activeWorkspace));
-
-    // remember last workspace (internal calls don't preserve it)
-
-    const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-    if (PNEWWORKSPACE == PWORKSPACE)
-        return;
-
-    PNEWWORKSPACE->m_sPrevWorkspace.iID  = PWORKSPACE->m_iID;
-    PNEWWORKSPACE->m_sPrevWorkspace.name = PWORKSPACE->m_szName;
+    trySetActiveMonitor(PMONITOR, true);
 }
 
 void CKeybindManager::moveCursorToCorner(std::string arg) {
@@ -1966,7 +1961,7 @@ void CKeybindManager::toggleOpaque(std::string unused) {
     if (!PWINDOW)
         return;
 
-    PWINDOW->m_sAdditionalConfigData.forceOpaque          = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
+    PWINDOW->m_sAdditionalConfigData.forceOpaque           = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
     PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden = true;
 
     g_pHyprRenderer->damageWindow(PWINDOW);
@@ -2181,17 +2176,4 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
     g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
-}
-
-void CKeybindManager::global(std::string args) {
-    const auto APPID = args.substr(0, args.find_first_of(':'));
-    const auto NAME  = args.substr(args.find_first_of(':') + 1);
-
-    if (APPID.empty() || NAME.empty())
-        return;
-
-    if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))
-        return;
-
-    g_pProtocolManager->m_pGlobalShortcutsProtocolManager->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
 }

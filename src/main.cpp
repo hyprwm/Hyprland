@@ -50,9 +50,7 @@ int main(int argc, char** argv) {
             std::cout << "[ WARNING ] Running Hyprland with superuser privileges might damage your system\n";
 
             ignoreSudo = true;
-        }
-
-        else if (it->compare("-c") == 0 || it->compare("--config") == 0) {
+        } else if (it->compare("-c") == 0 || it->compare("--config") == 0) {
             if (std::next(it)->c_str() == nullptr) {
                 help();
                 return 1;
@@ -68,7 +66,13 @@ int main(int argc, char** argv) {
 
             configPath = next_arg;
             Debug::log(LOG, "User-specified config location: '%s'", configPath.c_str());
+
+            it++;
+
             continue;
+        } else {
+            help();
+            return 0;
         }
     }
 

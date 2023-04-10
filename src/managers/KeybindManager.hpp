@@ -90,6 +90,8 @@ class CKeybindManager {
     void                      updateXKBTranslationState();
     bool                      ensureMouseBindState();
 
+    static bool               tryMoveFocusToMonitorInDirection(const char&);
+
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);
     static void     kill(std::string);

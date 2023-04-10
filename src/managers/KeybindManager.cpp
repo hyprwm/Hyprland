@@ -175,9 +175,8 @@ bool CKeybindManager::ensureMouseBindState() {
 
 bool CKeybindManager::tryMoveFocusToMonitorInDirection(const char& dir) {
     const auto PNEWMONITOR = g_pCompositor->getMonitorInDirection(dir);
-    if (!PNEWMONITOR) {
+    if (!PNEWMONITOR)
         return false;
-    }
 
     Debug::log(LOG, "switching to monitor");
     const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PNEWMONITOR->activeWorkspace);
@@ -1189,21 +1188,18 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     Debug::log(LOG, "No window found in direction %c, looking for a monitor", arg);
 
-    if (tryMoveFocusToMonitorInDirection(arg)) {
+    if (tryMoveFocusToMonitorInDirection(arg))
         return;
-    }
 
     static auto* const PNOFALLBACK = &g_pConfigManager->getConfigValuePtr("general:no_focus_fallback")->intValue;
-    if (*PNOFALLBACK) {
+    if (*PNOFALLBACK)
         return;
-    }
 
     Debug::log(LOG, "No monitor found in direction %c, falling back to next window on current workspace", arg);
 
     const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
-    if (PWINDOWNEXT) {
+    if (PWINDOWNEXT)
         switchToWindow(PWINDOWNEXT);
-    }
 }
 
 void CKeybindManager::focusUrgentOrLast(std::string args) {

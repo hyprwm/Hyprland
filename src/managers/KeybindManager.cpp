@@ -2172,19 +2172,6 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
 }
 
-void CKeybindManager::global(std::string args) {
-    const auto APPID = args.substr(0, args.find_first_of(':'));
-    const auto NAME  = args.substr(args.find_first_of(':') + 1);
-
-    if (APPID.empty() || NAME.empty())
-        return;
-
-    if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))
-        return;
-
-    g_pProtocolManager->m_pGlobalShortcutsProtocolManager->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
-}
-
 void CKeybindManager::moveOutOfGroup(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
@@ -2200,4 +2187,17 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
     g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+}
+
+void CKeybindManager::global(std::string args) {
+    const auto APPID = args.substr(0, args.find_first_of(':'));
+    const auto NAME  = args.substr(args.find_first_of(':') + 1);
+
+    if (APPID.empty() || NAME.empty())
+        return;
+
+    if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))
+        return;
+
+    g_pProtocolManager->m_pGlobalShortcutsProtocolManager->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
 }

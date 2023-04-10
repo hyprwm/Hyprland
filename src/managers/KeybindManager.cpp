@@ -378,7 +378,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     }
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed)
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap ||
+            (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse" && k.handler != "global") || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -405,11 +406,6 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             // suppress down event
             m_kHeldBack = keysym;
             return true;
-        }
-
-        if (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse" && k.handler != "global") {
-            found = true; // avoid sending a release event
-            continue;
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
@@ -1970,7 +1966,7 @@ void CKeybindManager::toggleOpaque(std::string unused) {
     if (!PWINDOW)
         return;
 
-    PWINDOW->m_sAdditionalConfigData.forceOpaque           = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
+    PWINDOW->m_sAdditionalConfigData.forceOpaque          = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
     PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden = true;
 
     g_pHyprRenderer->damageWindow(PWINDOW);

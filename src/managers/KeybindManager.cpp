@@ -174,6 +174,32 @@ bool CKeybindManager::ensureMouseBindState() {
     return false;
 }
 
+bool CKeybindManager::tryMoveFocusToMonitorInDirection(const char& dir) {
+    const auto PNEWMONITOR = g_pCompositor->getMonitorInDirection(dir);
+    if (!PNEWMONITOR)
+        return false;
+
+    Debug::log(LOG, "switching to monitor");
+    const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PNEWMONITOR->activeWorkspace);
+    g_pCompositor->setActiveMonitor(PNEWMONITOR);
+    g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
+    PNEWWORKSPACE->setActive(true);
+
+    // Focus window on new monitor
+    const auto PNEWWINDOW = PNEWWORKSPACE->getLastFocusedWindow();
+    if (PNEWWINDOW) {
+        g_pCompositor->focusWindow(PNEWWINDOW);
+        Vector2D middle = PNEWWINDOW->m_vRealPosition.goalv() + PNEWWINDOW->m_vRealSize.goalv() / 2.f;
+        g_pCompositor->warpCursorTo(middle);
+    } else {
+        g_pCompositor->focusWindow(nullptr);
+        Vector2D middle = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+        g_pCompositor->warpCursorTo(middle);
+    }
+
+    return true;
+}
+
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
     if (!g_pCompositor->m_bSessionActive) {
         m_dPressedKeycodes.clear();
@@ -1121,9 +1147,10 @@ void CKeybindManager::moveFocusTo(std::string args) {
     }
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
-
-    if (!PLASTWINDOW)
+    if (!PLASTWINDOW) {
+        tryMoveFocusToMonitorInDirection(arg);
         return;
+    }
 
     // remove constraints
     g_pInputManager->unconstrainMouse();
@@ -1161,14 +1188,26 @@ void CKeybindManager::moveFocusTo(std::string args) {
     const auto PWINDOWTOCHANGETO = PLASTWINDOW->m_bIsFullscreen ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, arg == 'u' || arg == 't' || arg == 'r') :
                                                                   g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
+    // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {
         switchToWindow(PWINDOWTOCHANGETO);
-    } else {
-        const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
-        if (PWINDOWNEXT) {
-            switchToWindow(PWINDOWNEXT);
-        }
+        return;
     }
+
+    Debug::log(LOG, "No window found in direction %c, looking for a monitor", arg);
+
+    if (tryMoveFocusToMonitorInDirection(arg))
+        return;
+
+    static auto* const PNOFALLBACK = &g_pConfigManager->getConfigValuePtr("general:no_focus_fallback")->intValue;
+    if (*PNOFALLBACK)
+        return;
+
+    Debug::log(LOG, "No monitor found in direction %c, falling back to next window on current workspace", arg);
+
+    const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
+    if (PWINDOWNEXT)
+        switchToWindow(PWINDOWNEXT);
 }
 
 void CKeybindManager::focusUrgentOrLast(std::string args) {

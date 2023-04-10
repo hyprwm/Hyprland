@@ -628,14 +628,14 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
             _exit(0);
         }
         close(socket[0]);
-        std::ignore = write(socket[1], &grandchild, sizeof(grandchild));
+        write(socket[1], &grandchild, sizeof(grandchild));
         close(socket[1]);
         // exit child
         _exit(0);
     }
     // run in parent
     close(socket[1]);
-    std::ignore = read(socket[0], &grandchild, sizeof(grandchild));
+    read(socket[0], &grandchild, sizeof(grandchild));
     close(socket[0]);
     // clear child and leave child to init
     waitpid(child, NULL, 0);
@@ -2180,6 +2180,19 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
 
     PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
+}
+
+void CKeybindManager::global(std::string args) {
+    const auto APPID = args.substr(0, args.find_first_of(':'));
+    const auto NAME  = args.substr(args.find_first_of(':') + 1);
+
+    if (APPID.empty() || NAME.empty())
+        return;
+
+    if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))
+        return;
+
+    g_pProtocolManager->m_pGlobalShortcutsProtocolManager->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
 }
 
 void CKeybindManager::moveOutOfGroup(std::string args) {

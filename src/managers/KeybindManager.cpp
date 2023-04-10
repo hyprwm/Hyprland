@@ -1193,6 +1193,11 @@ void CKeybindManager::moveFocusTo(std::string args) {
         return;
     }
 
+    static auto* const PNOFALLBACK = &g_pConfigManager->getConfigValuePtr("general:no_focus_fallback")->intValue;
+    if (*PNOFALLBACK) {
+        return;
+    }
+
     Debug::log(LOG, "No monitor found in direction %c, falling back to next window on current workspace", arg);
 
     const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);

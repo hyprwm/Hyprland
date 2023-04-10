@@ -15,7 +15,7 @@ void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {
     std::ofstream ofs;
     ofs.open(logFile, std::ios::out | std::ios::app);
 
-    vasprintf(&outputStr, fmt, args);
+    std::ignore = vasprintf(&outputStr, fmt, args);
 
     std::string output = std::string(outputStr);
     free(outputStr);
@@ -67,7 +67,7 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
 
     va_list args;
     va_start(args, fmt);
-    vasprintf(&outputStr, fmt, args);
+    std::ignore = vasprintf(&outputStr, fmt, args);
     va_end(args);
 
     std::string output = std::string(outputStr);

@@ -161,7 +161,7 @@ std::string getFormat(const char* fmt, ...) {
 
     va_list args;
     va_start(args, fmt);
-    vasprintf(&outputStr, fmt, args);
+    std::ignore = vasprintf(&outputStr, fmt, args);
     va_end(args);
 
     std::string output = std::string(outputStr);

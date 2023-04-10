@@ -110,6 +110,7 @@ class CKeybindManager {
     static void     focusCurrentOrLast(std::string);
     static void     centerWindow(std::string);
     static void     moveActiveTo(std::string);
+    static void     swapActive(std::string);
     static void     toggleGroup(std::string);
     static void     changeGroupActive(std::string);
     static void     alterSplitRatio(std::string);

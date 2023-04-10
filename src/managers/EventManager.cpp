@@ -108,7 +108,7 @@ void CEventManager::flushEvents() {
     for (auto& ev : m_dQueuedEvents) {
         std::string eventString = (ev.event + ">>" + ev.data).substr(0, 1022) + "\n";
         for (auto& fd : m_dAcceptedSocketFDs) {
-            write(fd.first, eventString.c_str(), eventString.length());
+            std::ignore = write(fd.first, eventString.c_str(), eventString.length());
         }
     }
 

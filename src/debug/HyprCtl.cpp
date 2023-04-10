@@ -1310,7 +1310,7 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
         reply = "Err: " + std::string(e.what());
     }
 
-    write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
+    std::ignore = write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
 
     close(ACCEPTEDCONNECTION);
 

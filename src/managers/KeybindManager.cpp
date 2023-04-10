@@ -28,6 +28,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pseudo"]                        = toggleActivePseudo;
     m_mDispatchers["movefocus"]                     = moveFocusTo;
     m_mDispatchers["movewindow"]                    = moveActiveTo;
+    m_mDispatchers["swapwindow"]                    = swapActive;
     m_mDispatchers["centerwindow"]                  = centerWindow;
     m_mDispatchers["togglegroup"]                   = toggleGroup;
     m_mDispatchers["changegroupactive"]             = changeGroupActive;
@@ -1290,6 +1291,27 @@ void CKeybindManager::focusCurrentOrLast(std::string args) {
     switchToWindow(PWINDOWPREV);
 }
 
+void CKeybindManager::swapActive(std::string args) {
+    char arg = args[0];
+
+    if (!isDirection(args)) {
+        Debug::log(ERR, "Cannot move window in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        return;
+    }
+
+    Debug::log(LOG, "Swapping active window in direction %c", arg);
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+    if (!PLASTWINDOW || PLASTWINDOW->m_bIsFullscreen)
+        return;
+
+    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+    if (!PWINDOWTOCHANGETO)
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+    g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.vec() + PLASTWINDOW->m_vRealSize.vec() / 2.0);
+}
+
 void CKeybindManager::moveActiveTo(std::string args) {
     char arg = args[0];
 
@@ -1329,7 +1351,6 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     moveActiveToWorkspace(std::to_string(PMONITORTOCHANGETO->activeWorkspace));
-    return;
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

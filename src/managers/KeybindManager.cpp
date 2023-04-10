@@ -1153,14 +1153,34 @@ void CKeybindManager::moveFocusTo(std::string args) {
     const auto PWINDOWTOCHANGETO = PLASTWINDOW->m_bIsFullscreen ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, arg == 'u' || arg == 't' || arg == 'r') :
                                                                   g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
+    // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {
         switchToWindow(PWINDOWTOCHANGETO);
-    } else {
-        const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
-        if (PWINDOWNEXT) {
-            switchToWindow(PWINDOWNEXT);
+        return;
+    }
+
+    Debug::log(LOG, "No window found in direction %c, looking for a monitor", arg);
+
+    // No window found in direction, switch to workspace in direction
+    const auto PNEXTMONITOR = g_pCompositor->getMonitorInDirection(arg);
+    if (PNEXTMONITOR && PNEXTMONITOR->activeWorkspace != -1) {
+        const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PNEXTMONITOR->activeWorkspace);
+        if (PNEWWORKSPACE) {
+            g_pCompositor->focusWindow(nullptr);
+            g_pCompositor->setActiveMonitor(PNEXTMONITOR);
+            g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
+            PNEWWORKSPACE->setActive(true);
+            return;
         }
     }
+
+    Debug::log(LOG, "No monitor found in direction %c", arg);
+
+    // TODO: Add option to disable looping/falling back to any next window?
+    // const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
+    // if (PWINDOWNEXT) {
+    //     switchToWindow(PWINDOWNEXT);
+    // }
 }
 
 void CKeybindManager::focusUrgentOrLast(std::string args) {

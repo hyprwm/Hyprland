@@ -1199,7 +1199,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     Debug::log(LOG, "No window found in direction %c, looking for a monitor", arg);
 
-    if (tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir)))
+    if (tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg)))
         return;
 
     static auto* const PNOFALLBACK = &g_pConfigManager->getConfigValuePtr("general:no_focus_fallback")->intValue;

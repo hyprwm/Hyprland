@@ -1113,9 +1113,37 @@ void CKeybindManager::moveFocusTo(std::string args) {
     }
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+    if (!PLASTWINDOW) {
+        // Try to move to monitor in direction
+        const auto PNEWMONITOR = g_pCompositor->getMonitorInDirection(arg);
+        if (!PNEWMONITOR) {
+            return;
+        }
 
-    if (!PLASTWINDOW)
+        const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PNEWMONITOR->activeWorkspace);
+        if (!PNEWWORKSPACE) {
+            return;
+        }
+
+        g_pCompositor->setActiveMonitor(PNEWMONITOR);
+        g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
+        PNEWWORKSPACE->setActive(true);
+
+        // Focus window on new monitor
+        // TODO: Try to find any window on the monitor if none have been
+        // focused yet?
+        const auto PNEWWINDOW = PNEWWORKSPACE->getLastFocusedWindow();
+        if (PNEWWINDOW) {
+            g_pCompositor->focusWindow(PNEWWINDOW);
+            Vector2D middle = PNEWWINDOW->m_vRealPosition.goalv() + PNEWWINDOW->m_vRealSize.goalv() / 2.f;
+            g_pCompositor->warpCursorTo(middle);
+        } else {
+            Vector2D middle = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+            g_pCompositor->warpCursorTo(middle);
+        }
+
         return;
+    }
 
     // remove constraints
     g_pInputManager->unconstrainMouse();
@@ -1162,14 +1190,18 @@ void CKeybindManager::moveFocusTo(std::string args) {
     Debug::log(LOG, "No window found in direction %c, looking for a monitor", arg);
 
     // No window found in direction, switch to workspace in direction
-    const auto PNEXTMONITOR = g_pCompositor->getMonitorInDirection(arg);
-    if (PNEXTMONITOR && PNEXTMONITOR->activeWorkspace != -1) {
-        const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PNEXTMONITOR->activeWorkspace);
+    const auto PNEWMONITOR = g_pCompositor->getMonitorInDirection(arg);
+    if (PNEWMONITOR && PNEWMONITOR->activeWorkspace != -1) {
+        const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PNEWMONITOR->activeWorkspace);
         if (PNEWWORKSPACE) {
             g_pCompositor->focusWindow(nullptr);
-            g_pCompositor->setActiveMonitor(PNEXTMONITOR);
+            g_pCompositor->setActiveMonitor(PNEWMONITOR);
             g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
             PNEWWORKSPACE->setActive(true);
+
+            Vector2D middle = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+            g_pCompositor->warpCursorTo(middle);
+
             return;
         }
     }

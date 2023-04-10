@@ -194,7 +194,8 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "[";
 
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            const auto PLASTW = w->getLastFocusedWindow();
+            const auto PLASTW   = w->getLastFocusedWindow();
+            const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
 
             result += getFormat(
                 R"#({
@@ -206,9 +207,8 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "lastwindow": "0x%x",
     "lastwindowtitle": "%s"
 },)#",
-                w->m_iID, escapeJSONStrings(w->m_szName).c_str(), escapeJSONStrings(g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName).c_str(),
-                g_pCompositor->getWindowsOnWorkspace(w->m_iID), ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), PLASTW,
-                PLASTW ? escapeJSONStrings(PLASTW->m_szTitle).c_str() : "");
+                w->m_iID, escapeJSONStrings(w->m_szName).c_str(), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?").c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
+                ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), PLASTW, PLASTW ? escapeJSONStrings(PLASTW->m_szTitle).c_str() : "");
         }
 
         // remove trailing comma
@@ -217,10 +217,11 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            const auto PLASTW = w->getLastFocusedWindow();
+            const auto PLASTW   = w->getLastFocusedWindow();
+            const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
             result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\tlastwindow: 0x%x\n\tlastwindowtitle: %s\n\n", w->m_iID,
-                                w->m_szName.c_str(), g_pCompositor->getMonitorFromID(w->m_iMonitorID)->szName.c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
-                                (int)w->m_bHasFullscreenWindow, PLASTW, PLASTW ? PLASTW->m_szTitle.c_str() : "");
+                                w->m_szName.c_str(), PMONITOR ? PMONITOR->szName.c_str() : "?", g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow,
+                                PLASTW, PLASTW ? PLASTW->m_szTitle.c_str() : "");
         }
     }
     return result;

@@ -143,3 +143,19 @@ CWindow* CWorkspace::getLastFocusedWindow() {
 
     return m_pLastFocusedWindow;
 }
+
+void CWorkspace::rememberPrevWorkspace(const CWorkspace* prev) {
+    if (!prev) {
+        m_sPrevWorkspace.iID  = -1;
+        m_sPrevWorkspace.name = "";
+        return;
+    }
+
+    if (prev->m_sPrevWorkspace.iID == m_sPrevWorkspace.iID) {
+        Debug::log(LOG, "Tried to set prev workspace to the same as current one");
+        return;
+    }
+
+    m_sPrevWorkspace.iID  = prev->m_iID;
+    m_sPrevWorkspace.name = prev->m_szName;
+}

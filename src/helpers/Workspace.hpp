@@ -3,8 +3,7 @@
 #include "../defines.hpp"
 #include "AnimatedVariable.hpp"
 
-enum eFullscreenMode : uint8_t
-{
+enum eFullscreenMode : uint8_t {
     FULLSCREEN_FULL = 0,
     FULLSCREEN_MAXIMIZED
 };
@@ -56,4 +55,5 @@ class CWorkspace {
     void     moveToMonitor(const int&);
 
     CWindow* getLastFocusedWindow();
+    void     rememberPrevWorkspace(const CWorkspace* prevWorkspace);
 };

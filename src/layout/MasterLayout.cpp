@@ -177,7 +177,7 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
     m_lMasterNodesData.remove(*PNODE);
 
-    if (getMastersOnWorkspace(WORKSPACEID) == getNodesOnWorkspace(WORKSPACEID) && MASTERSLEFT > 1) {
+    if (getMastersOnWorkspace(WORKSPACEID) >= getNodesOnWorkspace(WORKSPACEID) && MASTERSLEFT > 1) {
         for (auto& nd : m_lMasterNodesData | std::views::reverse) {
             if (nd.workspaceID == WORKSPACEID) {
                 nd.isMaster = false;
@@ -255,19 +255,25 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     }
 
     const auto MASTERS = getMastersOnWorkspace(PWORKSPACE->m_iID);
-
+    const auto WINDOWS = getNodesOnWorkspace(PWORKSPACE->m_iID);
     //compute placement of master window(s)
-    if (getNodesOnWorkspace(PWORKSPACE->m_iID) < 2 && !centerMasterWindow) {
+    if (WINDOWS < 2 && !centerMasterWindow) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
                                          PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT) {
-        float       heightLeft = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y;
-        int         nodesLeft  = MASTERS;
-        float       nextY      = 0;
-        const float WIDTH      = (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) * PMASTERNODE->percMaster;
+        float heightLeft = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y;
+        int   nodesLeft  = MASTERS;
+        float nextY      = 0;
+        float WIDTH      = 0;
+
+        if (WINDOWS == MASTERS && !centerMasterWindow)
+            WIDTH = (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x);
+        else
+            WIDTH = (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) * PMASTERNODE->percMaster;
+        ;
 
         for (auto& n : m_lMasterNodesData) {
             if (n.workspaceID == PWORKSPACE->m_iID && n.isMaster) {
@@ -953,13 +959,15 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const auto PNODE = getNodeFromWindow(header.pWindow);
 
-        const auto WINDOWS   = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
-        const auto MASTERS   = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
-        const bool MIN_SPLIT = g_pCompositor->getConfigValuePtr("master:allow_small_split") == "false";
+        const auto WINDOWS = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto MASTERS = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
+        //const bool SMALL_SPLIT = true;
+        bool SMALL_SPLIT = false;
+        if (g_pConfigManager->getConfigValuePtr("master:allow_small_split")->intValue == 1)
+            SMALL_SPLIT = true;
 
-        if (MASTERS + 2 > WINDOWS && MIN_SPLIT)
+        if (MASTERS + 2 > WINDOWS && !SMALL_SPLIT)
             return 0;
-
         prepareLoseFocus(header.pWindow);
 
         if (!PNODE || PNODE->isMaster) {

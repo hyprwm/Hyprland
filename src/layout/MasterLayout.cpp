@@ -953,10 +953,11 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const auto PNODE = getNodeFromWindow(header.pWindow);
 
-        const auto WINDOWS = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
-        const auto MASTERS = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto WINDOWS   = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto MASTERS   = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const bool MIN_SPLIT = g_pCompositor->getConfigValuePtr("master:allow_small_split") == "false";
 
-        if (MASTERS + 2 > WINDOWS)
+        if (MASTERS + 2 > WINDOWS && MIN_SPLIT)
             return 0;
 
         prepareLoseFocus(header.pWindow);

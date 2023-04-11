@@ -144,6 +144,9 @@ void CConfigManager::setDefaultVars() {
     configValues["master:orientation"].strValue            = "left";
     configValues["master:inherit_fullscreen"].intValue     = 1;
 
+    //master cannot be increased when you have 2 windows or less open by default
+    configValues["master:split_master_lt_2"].strValue = "false";
+
     configValues["animations:enabled"].intValue = 1;
 
     configValues["input:follow_mouse"].intValue                     = 1;

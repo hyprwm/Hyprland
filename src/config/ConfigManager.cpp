@@ -581,9 +581,6 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             wsRule.workspaceString = ARGS[argno + 1];
             wsRule.workspaceName   = name;
             wsRule.workspaceId     = wsId;
-            wsRule.gapsIn          = configValues["general:gaps_in"].intValue;
-            wsRule.gapsOut         = configValues["general:gaps_out"].intValue;
-            wsRule.borderSize      = configValues["general:border_size"].intValue;
 
             m_mWorkspaceRules[wsId] = wsRule;
             argno++;
@@ -1012,22 +1009,47 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
 }
 
 void CConfigManager::handleWorkspaceRules(const std::string& command, const std::string& value) {
-    const auto     ARGS = CVarList(value);
+    const auto     MONITOR_DELIM   = value.find_first_of(',');
+    const auto     WORKSPACE_DELIM = value.find_first_of(',', MONITOR_DELIM + 1);
 
-    std::string    name = "";
-    int            id   = getWorkspaceIDFromString(ARGS[1], name);
     SWorkspaceRule wsRule;
-    wsRule.monitor         = ARGS[0];
-    wsRule.workspaceString = ARGS[1];
-    wsRule.workspaceName   = name;
-    wsRule.workspaceId     = id;
-    wsRule.gapsIn          = std::stoi(ARGS[2]);
-    wsRule.gapsOut         = std::stoi(ARGS[3]);
-    wsRule.borderSize      = std::stoi(ARGS[4]);
-    wsRule.border          = configStringToInt(ARGS[5]);
-    wsRule.rounding        = configStringToInt(ARGS[6]);
-    wsRule.decorate        = configStringToInt(ARGS[7]);
-    m_mWorkspaceRules[id]  = wsRule;
+    wsRule.monitor         = value.substr(0, MONITOR_DELIM);
+    wsRule.workspaceString = value.substr(MONITOR_DELIM + 1, (WORKSPACE_DELIM - MONITOR_DELIM - 1));
+
+    std::string name = "";
+    int         id   = getWorkspaceIDFromString(wsRule.workspaceString, name);
+
+    if (id == INT_MAX) {
+        Debug::log(ERR, "Invalid workspace identifier found: %s", wsRule.workspaceString.c_str());
+        parseError = "Invalid workspace identifier found: " + wsRule.workspaceString;
+        return;
+    }
+
+    auto        rules = value.substr(WORKSPACE_DELIM + 1);
+
+    size_t      pos = 0;
+    std::string rule;
+    while ((pos = rules.find(',')) != std::string::npos) {
+        rule = rules.substr(0, pos);
+        Debug::log(INFO, "found rule: %s", rule.c_str());
+        if (rule.find("gapsin:") != std::string::npos)
+            wsRule.gapsIn = std::stoi(rule.substr(7));
+        else if (rule.find("gapsout:") != std::string::npos)
+            wsRule.gapsOut = std::stoi(rule.substr(8));
+        else if (rule.find("bordersize:") != std::string::npos)
+            wsRule.borderSize = std::stoi(rule.substr(11));
+        else if (rule.find("border:") != std::string::npos)
+            wsRule.border = configStringToInt(rule.substr(7));
+        else if (rule.find("rounding:") != std::string::npos)
+            wsRule.rounding = configStringToInt(rule.substr(9));
+        else if (rule.find("decorate:") != std::string::npos)
+            wsRule.decorate = configStringToInt(rule.substr(9));
+        rules.erase(0, pos + 1);
+    }
+
+    wsRule.workspaceId    = id;
+    wsRule.workspaceName  = name;
+    m_mWorkspaceRules[id] = wsRule;
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {

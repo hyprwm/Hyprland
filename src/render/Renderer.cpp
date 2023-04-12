@@ -59,28 +59,29 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
 }
 
-bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
+bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWorkspace* pWorkspace) {
     wlr_box geometry = pWindow->getFullWindowBoundingBox();
 
     if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
+        return false;
+
+    if (pWindow->m_iWorkspaceID == -1)
         return false;
 
     if (pWindow->m_bPinned)
         return true;
 
     // now check if it has the same workspace
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-
-    if (PWORKSPACE && PWORKSPACE->m_iMonitorID == pMonitor->ID) {
-        if (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated() || PWORKSPACE->m_bForceRendering) {
+    if (pWorkspace && pWorkspace->m_iMonitorID == pMonitor->ID) {
+        if (pWorkspace->m_vRenderOffset.isBeingAnimated() || pWorkspace->m_fAlpha.isBeingAnimated() || pWorkspace->m_bForceRendering) {
             return true;
         } else {
-            if (!(!PWORKSPACE->m_bHasFullscreenWindow || pWindow->m_bIsFullscreen || (pWindow->m_bIsFloating && pWindow->m_bCreatedOverFullscreen)))
+            if (!(!pWorkspace->m_bHasFullscreenWindow || pWindow->m_bIsFullscreen || (pWindow->m_bIsFloating && pWindow->m_bCreatedOverFullscreen)))
                 return false;
         }
     }
 
-    if (pWindow->m_iWorkspaceID == pMonitor->activeWorkspace)
+    if (pWindow->m_iWorkspaceID == pWorkspace->m_iID)
         return true;
 
     // if not, check if it maybe is active on a different monitor.
@@ -99,6 +100,9 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
         return false;
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+    if (pWindow->m_iWorkspaceID == -1)
+        return false;
 
     if (pWindow->m_bPinned || PWORKSPACE->m_bForceRendering)
         return true;
@@ -190,7 +194,7 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
             if (w->m_iWorkspaceID != pMonitor->specialWorkspaceID)
                 continue;
 
-            if (!shouldRenderWindow(w.get(), pMonitor))
+            if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
                 continue;
 
             // render the bad boy
@@ -411,7 +415,7 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
     wlr_surface_for_each_surface(pSurface->pWlrLockSurface->surface, renderSurface, &renderdata);
 }
 
-void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* time, const Vector2D& translate, const float& scale) {
+void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
     static auto* const     PDIMSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
 
     const SRenderModifData RENDERMODIFDATA = {translate, scale};
@@ -444,10 +448,9 @@ void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* tim
 
     // if there is a fullscreen window, render it and then do not render anymore.
     // fullscreen window will hide other windows and top layers
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
 
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
-        renderWorkspaceWithFullscreenWindow(pMonitor, PWORKSPACE, time);
+    if (pWorkspace->m_bHasFullscreenWindow) {
+        renderWorkspaceWithFullscreenWindow(pMonitor, pWorkspace, time);
         g_pHyprOpenGL->m_RenderData.renderModif = {};
         return;
     }
@@ -465,7 +468,7 @@ void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* tim
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue; // special are in the third pass
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
         // render active window after all others of this pass
@@ -492,7 +495,7 @@ void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* tim
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue; // special are in the third pass
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
         // render the bad boy
@@ -510,7 +513,7 @@ void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* tim
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
         // render the bad boy
@@ -528,7 +531,7 @@ void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* tim
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
         // render the bad boy
@@ -544,7 +547,7 @@ void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* tim
         if (!g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
         if (!renderedSpecialBG) {
@@ -1006,7 +1009,7 @@ void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, 
         translate = Vector2D{};
     }
 
-    renderAllClientsForMonitor(pMonitor, now, translate, scale);
+    renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
 }
 
 void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {

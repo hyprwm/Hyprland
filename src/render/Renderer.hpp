@@ -42,7 +42,7 @@ class CHyprRenderer {
     void                            damageMonitor(CMonitor*);
     void                            damageMirrorsWith(CMonitor*, pixman_region32_t*);
     bool                            applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
-    bool                            shouldRenderWindow(CWindow*, CMonitor*);
+    bool                            shouldRenderWindow(CWindow*, CMonitor*, CWorkspace*);
     bool                            shouldRenderWindow(CWindow*);
     void                            ensureCursorRenderingMode();
     bool                            shouldRenderCursor();
@@ -77,7 +77,7 @@ class CHyprRenderer {
     void renderDragIcon(CMonitor*, timespec*);
     void renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
     void renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const wlr_box& geometry);
-    void renderAllClientsForMonitor(CMonitor* pMonitor, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+    void renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
     bool m_bHasARenderedCursor = true;
 

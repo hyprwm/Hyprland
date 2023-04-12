@@ -21,20 +21,27 @@ CConfigManager::CConfigManager() {
     setDefaultVars();
     setDefaultAnimationVars();
 
-    std::string CONFIGPATH;
-    if (g_pCompositor->explicitConfigPath == "") {
-        static const char* const ENVHOME = getenv("HOME");
-        CONFIGPATH                       = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
-    } else {
-        CONFIGPATH = g_pCompositor->explicitConfigPath;
-    }
-
-    configPaths.emplace_back(CONFIGPATH);
+    configPaths.emplace_back(getMainConfigPath());
 
     Debug::disableLogs = &configValues["debug:disable_logs"].intValue;
     Debug::disableTime = &configValues["debug:disable_time"].intValue;
 
     populateEnvironment();
+}
+
+std::string CConfigManager::getMainConfigPath() {
+    if (!g_pCompositor->explicitConfigPath.empty())
+        return g_pCompositor->explicitConfigPath;
+
+    static const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
+    std::string        configPath;
+    if (!xdgConfigHome)
+        configPath = getenv("HOME") + std::string("/.config");
+    else
+        configPath = xdgConfigHome;
+    std::string configDebug = "/hypr/hyprlandd.conf";
+    std::string config      = "/hypr/hyprland.conf";
+    return configPath + (ISDEBUG ? configDebug : config);
 }
 
 void CConfigManager::populateEnvironment() {
@@ -284,9 +291,7 @@ void CConfigManager::init() {
 
     loadConfigLoadVars();
 
-    const char* const ENVHOME = getenv("HOME");
-
-    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    const std::string CONFIGPATH = getMainConfigPath();
 
     struct stat       fileStat;
     int               err = stat(CONFIGPATH.c_str(), &fileStat);
@@ -1304,49 +1309,48 @@ void CConfigManager::loadConfigLoadVars() {
 
     // paths
     configPaths.clear();
+    std::string mainConfigPath = getMainConfigPath();
+    configPaths.push_back(mainConfigPath);
+    std::string configPath = mainConfigPath.substr(0, mainConfigPath.find_last_of('/'));
+    // find_last_of never returns npos since main_config atleast has /hpyr/
 
-    std::string              CONFIGPATH;
-
-    static const char* const ENVHOME          = getenv("HOME");
-    const std::string        CONFIGPARENTPATH = ENVHOME + (std::string) "/.config/hypr/";
-
-    if (g_pCompositor->explicitConfigPath == "") {
-        CONFIGPATH = CONFIGPARENTPATH + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
-    } else {
-        CONFIGPATH = g_pCompositor->explicitConfigPath;
+    if (!std::filesystem::is_directory(configPath)) {
+        Debug::log(WARN, "Creating config home directory");
+        try {
+            std::filesystem::create_directories(configPath);
+        } catch (...) {
+            parseError = "Broken config file! (Could not create directory)";
+            return;
+        }
     }
 
-    configPaths.push_back(CONFIGPATH);
+    if (!std::filesystem::exists(mainConfigPath)) {
+        Debug::log(WARN, "No config file found; attempting to generate.");
+        std::ofstream ofs;
+        ofs.open(mainConfigPath, std::ios::trunc);
+        ofs << AUTOCONFIG;
+        ofs.close();
+    }
 
     std::ifstream ifs;
-    ifs.open(CONFIGPATH);
+    ifs.open(mainConfigPath);
 
     if (!ifs.good()) {
-        if (g_pCompositor->explicitConfigPath == "") {
-            Debug::log(WARN, "Config reading error. (No file? Attempting to generate, backing up old one if exists)");
-            try {
-                std::filesystem::rename(CONFIGPATH, CONFIGPATH + ".backup");
-            } catch (...) { /* Probably doesn't exist */
-            }
+        Debug::log(WARN, "Config reading error. Attempting to generate, backing up old one if exists");
 
-            try {
-                if (!std::filesystem::is_directory(CONFIGPARENTPATH))
-                    std::filesystem::create_directories(CONFIGPARENTPATH);
-            } catch (...) {
-                parseError = "Broken config file! (Could not create directory)";
-                return;
-            }
-        }
+        ifs.close();
 
+        if (std::filesystem::exists(mainConfigPath))
+            std::filesystem::rename(mainConfigPath, mainConfigPath + ".backup");
+
+        // Create default config
         std::ofstream ofs;
-        ofs.open(CONFIGPATH, std::ios::trunc);
-
+        ofs.open(mainConfigPath, std::ios::trunc);
         ofs << AUTOCONFIG;
-
         ofs.close();
 
-        ifs.open(CONFIGPATH);
-
+        // Try to re-open
+        ifs.open(mainConfigPath);
         if (!ifs.good()) {
             parseError = "Broken config file! (Could not open)";
             return;
@@ -1359,17 +1363,16 @@ void CConfigManager::loadConfigLoadVars() {
         while (std::getline(ifs, line)) {
             // Read line by line.
             try {
-                configCurrentPath = "~/.config/hypr/hyprland.conf";
                 parseLine(line);
             } catch (...) {
                 Debug::log(ERR, "Error reading line from config. Line:");
                 Debug::log(NONE, "%s", line.c_str());
 
-                parseError += "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): Line parsing error.";
+                parseError += "Config error at line " + std::to_string(linenum) + " (" + mainConfigPath + "): Line parsing error.";
             }
 
             if (parseError != "" && parseError.find("Config error at line") != 0) {
-                parseError = "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): " + parseError;
+                parseError = "Config error at line " + std::to_string(linenum) + " (" + mainConfigPath + "): " + parseError;
             }
 
             ++linenum;
@@ -1396,7 +1399,7 @@ void CConfigManager::loadConfigLoadVars() {
     if (parseError != "")
         g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
     else if (configValues["autogenerated"].intValue == 1)
-        g_pHyprError->queueCreate("Warning: You're using an autogenerated config! (config file: " + CONFIGPATH + " )\nSUPER+Q -> kitty\nSUPER+M -> exit Hyprland",
+        g_pHyprError->queueCreate("Warning: You're using an autogenerated config! (config file: " + mainConfigPath + " )\nSUPER+Q -> kitty\nSUPER+M -> exit Hyprland",
                                   CColor(1.0, 1.0, 70.0 / 255.0, 1.0));
     else
         g_pHyprError->destroy();
@@ -1442,14 +1445,7 @@ void CConfigManager::loadConfigLoadVars() {
 }
 
 void CConfigManager::tick() {
-    std::string CONFIGPATH;
-    if (g_pCompositor->explicitConfigPath.empty()) {
-        static const char* const ENVHOME = getenv("HOME");
-        CONFIGPATH                       = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
-    } else {
-        CONFIGPATH = g_pCompositor->explicitConfigPath;
-    }
-
+    std::string CONFIGPATH = getMainConfigPath();
     if (!std::filesystem::exists(CONFIGPATH)) {
         Debug::log(ERR, "Config doesn't exist??");
         return;

@@ -411,11 +411,12 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
     wlr_surface_for_each_surface(pSurface->pWlrLockSurface->surface, renderSurface, &renderdata);
 }
 
-void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
-    const auto         PMONITOR    = g_pCompositor->getMonitorFromID(ID);
-    static auto* const PDIMSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
+void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* time, const Vector2D& translate, const float& scale) {
+    static auto* const     PDIMSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
 
-    if (!PMONITOR)
+    const SRenderModifData RENDERMODIFDATA = {translate, scale};
+
+    if (!pMonitor)
         return;
 
     if (!g_pCompositor->m_sSeat.exclusiveClient && g_pSessionLockManager->isSessionLocked()) {
@@ -425,12 +426,17 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         return;
     }
 
+    // todo: matrices are buggy atm for some reason, but probably would be preferable in the long run
+    // g_pHyprOpenGL->saveMatrix();
+    // g_pHyprOpenGL->setMatrixScaleTranslate(translate, scale);
+    g_pHyprOpenGL->m_RenderData.renderModif = RENDERMODIFDATA;
+
     // Render layer surfaces below windows for monitor
-    for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-        renderLayer(ls.get(), PMONITOR, time);
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+        renderLayer(ls.get(), pMonitor, time);
     }
-    for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-        renderLayer(ls.get(), PMONITOR, time);
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+        renderLayer(ls.get(), pMonitor, time);
     }
 
     // pre window pass
@@ -438,10 +444,10 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
 
     // if there is a fullscreen window, render it and then do not render anymore.
     // fullscreen window will hide other windows and top layers
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
-        renderWorkspaceWithFullscreenWindow(PMONITOR, PWORKSPACE, time);
+        renderWorkspaceWithFullscreenWindow(pMonitor, PWORKSPACE, time);
         return;
     }
 
@@ -458,7 +464,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue; // special are in the third pass
 
-        if (!shouldRenderWindow(w.get(), PMONITOR))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         // render active window after all others of this pass
@@ -468,11 +474,11 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         }
 
         // render the bad boy
-        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_MAIN);
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_MAIN);
     }
 
     if (lastWindow)
-        renderWindow(lastWindow, PMONITOR, time, true, RENDER_PASS_MAIN);
+        renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
 
     // Non-floating popup
     for (auto& w : g_pCompositor->m_vWindows) {
@@ -485,11 +491,11 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue; // special are in the third pass
 
-        if (!shouldRenderWindow(w.get(), PMONITOR))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_POPUP);
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_POPUP);
     }
 
     // floating on top
@@ -503,11 +509,11 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
-        if (!shouldRenderWindow(w.get(), PMONITOR))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_ALL);
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // pinned always above
@@ -521,11 +527,11 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
-        if (!shouldRenderWindow(w.get(), PMONITOR))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_ALL);
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // and then special
@@ -537,7 +543,7 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         if (!g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
-        if (!shouldRenderWindow(w.get(), PMONITOR))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         if (!renderedSpecialBG) {
@@ -547,9 +553,9 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
                 const auto SPECIALANIMPROGRS =
                     PSPECIALWORKSPACE->m_vRenderOffset.isBeingAnimated() ? PSPECIALWORKSPACE->m_vRenderOffset.getCurveValue() : PSPECIALWORKSPACE->m_fAlpha.getCurveValue();
 
-                const bool ANIMOUT = !PMONITOR->specialWorkspaceID;
+                const bool ANIMOUT = !pMonitor->specialWorkspaceID;
 
-                wlr_box    monbox = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+                wlr_box    monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
                 g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
             }
 
@@ -557,34 +563,39 @@ void CHyprRenderer::renderAllClientsForMonitor(const int& ID, timespec* time) {
         }
 
         // render the bad boy
-        renderWindow(w.get(), PMONITOR, time, true, RENDER_PASS_ALL);
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // Render surfaces above windows for monitor
-    for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        renderLayer(ls.get(), PMONITOR, time);
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        renderLayer(ls.get(), pMonitor, time);
     }
 
     // Render IME popups
     for (auto& imep : g_pInputManager->m_sIMERelay.m_lIMEPopups) {
-        renderIMEPopup(&imep, PMONITOR, time);
+        renderIMEPopup(&imep, pMonitor, time);
     }
 
-    for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ls.get(), PMONITOR, time);
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+        renderLayer(ls.get(), pMonitor, time);
     }
 
-    renderDragIcon(PMONITOR, time);
+    renderDragIcon(pMonitor, time);
 
+    //g_pHyprOpenGL->restoreMatrix();
+    g_pHyprOpenGL->m_RenderData.renderModif = {};
+}
+
+void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now) {
     if (g_pSessionLockManager->isSessionLocked()) {
-        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
 
         if (!PSLS) {
             // locked with no surface, fill with red
             wlr_box boxe = {0, 0, INT16_MAX, INT16_MAX};
             g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));
         } else {
-            renderSessionLockSurface(PSLS, PMONITOR, time);
+            renderSessionLockSurface(PSLS, pMonitor, now);
         }
     }
 }
@@ -892,7 +903,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
         g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
-        renderAllClientsForMonitor(pMonitor->ID, &now);
+        renderWorkspace(pMonitor, g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace), &now, {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y});
+
+        renderLockscreen(pMonitor, &now);
 
         if (pMonitor == g_pCompositor->m_pLastMonitor) {
             g_pHyprNotificationOverlay->draw(pMonitor);
@@ -979,6 +992,20 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, µs);
         }
     }
+}
+
+void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const wlr_box& geometry) {
+
+    Vector2D translate = {geometry.x, geometry.y};
+    float    scale     = (float)geometry.width / pMonitor->vecPixelSize.x;
+
+    if (DELTALESSTHAN((double)geometry.width / (double)geometry.height, pMonitor->vecPixelSize.x / pMonitor->vecPixelSize.y, 0.01)) {
+        Debug::log(ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");
+        scale     = 1.f;
+        translate = Vector2D{};
+    }
+
+    renderAllClientsForMonitor(pMonitor, now, translate, scale);
 }
 
 void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {

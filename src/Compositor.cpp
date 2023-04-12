@@ -811,7 +811,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
 
-        EMIT_HOOK_EVENT("activeWindow", nullptr);
+        EMIT_HOOK_EVENT("activeWindow", (CWindow*)nullptr);
 
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 

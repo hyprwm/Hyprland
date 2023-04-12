@@ -1009,41 +1009,52 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
 }
 
 void CConfigManager::handleWorkspaceRules(const std::string& command, const std::string& value) {
-    const auto     MONITOR_DELIM   = value.find_first_of(',');
-    const auto     WORKSPACE_DELIM = value.find_first_of(',', MONITOR_DELIM + 1);
+    // This can either be the monitor or the workspace identifier
+    const auto     FIRST_DELIM = value.find_first_of(',');
 
+    std::string    name        = "";
+    auto           first_ident = removeBeginEndSpacesTabs(value.substr(0, FIRST_DELIM));
+    int            id          = getWorkspaceIDFromString(first_ident, name);
+
+    auto           rules = value.substr(FIRST_DELIM + 1);
     SWorkspaceRule wsRule;
-    wsRule.monitor         = value.substr(0, MONITOR_DELIM);
-    wsRule.workspaceString = value.substr(MONITOR_DELIM + 1, (WORKSPACE_DELIM - MONITOR_DELIM - 1));
-
-    std::string name = "";
-    int         id   = getWorkspaceIDFromString(wsRule.workspaceString, name);
-
+    wsRule.workspaceString = first_ident;
     if (id == INT_MAX) {
-        Debug::log(ERR, "Invalid workspace identifier found: %s", wsRule.workspaceString.c_str());
-        parseError = "Invalid workspace identifier found: " + wsRule.workspaceString;
-        return;
+        // it could be the monitor. If so, second value MUST be
+        // the workspace.
+        const auto WORKSPACE_DELIM = value.find_first_of(',', FIRST_DELIM + 1);
+        auto       wsIdent         = removeBeginEndSpacesTabs(value.substr(FIRST_DELIM + 1, (WORKSPACE_DELIM - FIRST_DELIM - 1)));
+        id                         = getWorkspaceIDFromString(wsIdent, name);
+        if (id == INT_MAX) {
+            Debug::log(ERR, "Invalid workspace identifier found: %s", wsIdent.c_str());
+            parseError = "Invalid workspace identifier found: " + wsIdent;
+            return;
+        }
+        wsRule.monitor         = first_ident;
+        wsRule.workspaceString = wsIdent;
+        rules                  = value.substr(WORKSPACE_DELIM + 1);
     }
-
-    auto        rules = value.substr(WORKSPACE_DELIM + 1);
 
     size_t      pos = 0;
     std::string rule;
     while ((pos = rules.find(',')) != std::string::npos) {
-        rule = rules.substr(0, pos);
-        Debug::log(INFO, "found rule: %s", rule.c_str());
-        if (rule.find("gapsin:") != std::string::npos)
-            wsRule.gapsIn = std::stoi(rule.substr(7));
-        else if (rule.find("gapsout:") != std::string::npos)
-            wsRule.gapsOut = std::stoi(rule.substr(8));
-        else if (rule.find("bordersize:") != std::string::npos)
-            wsRule.borderSize = std::stoi(rule.substr(11));
-        else if (rule.find("border:") != std::string::npos)
-            wsRule.border = configStringToInt(rule.substr(7));
-        else if (rule.find("rounding:") != std::string::npos)
-            wsRule.rounding = configStringToInt(rule.substr(9));
-        else if (rule.find("decorate:") != std::string::npos)
-            wsRule.decorate = configStringToInt(rule.substr(9));
+        rule         = rules.substr(0, pos);
+        size_t delim = std::string::npos;
+        Debug::log(INFO, "found workspacerule: %s", rule.c_str());
+        if ((delim = rule.find("gapsin:")) != std::string::npos)
+            wsRule.gapsIn = std::stoi(rule.substr(delim + 7));
+        else if ((delim = rule.find("gapsout:")) != std::string::npos)
+            wsRule.gapsOut = std::stoi(rule.substr(delim + 8));
+        else if ((delim = rule.find("bordersize:")) != std::string::npos)
+            wsRule.borderSize = std::stoi(rule.substr(delim + 11));
+        else if ((delim = rule.find("border:")) != std::string::npos)
+            wsRule.border = configStringToInt(rule.substr(delim + 7));
+        else if ((delim = rule.find("rounding:")) != std::string::npos)
+            wsRule.rounding = configStringToInt(rule.substr(delim + 9));
+        else if ((delim = rule.find("decorate:")) != std::string::npos)
+            wsRule.decorate = configStringToInt(rule.substr(delim + 9));
+        else if ((delim = rule.find("monitor:")) != std::string::npos)
+            wsRule.monitor = rule.substr(delim + 8);
         rules.erase(0, pos + 1);
     }
 

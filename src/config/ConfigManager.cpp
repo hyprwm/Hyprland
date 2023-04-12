@@ -82,6 +82,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:disable_autoreload"].intValue           = 0;
     configValues["misc:enable_swallow"].intValue               = 0;
     configValues["misc:swallow_regex"].strValue                = STRVAL_EMPTY;
+    configValues["misc:swallow_exception_regex"].strValue      = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue            = 0;
     configValues["misc:no_direct_scanout"].intValue            = 1;
     configValues["misc:hide_cursor_on_touch"].intValue         = 1;

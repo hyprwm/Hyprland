@@ -51,11 +51,20 @@ static void handleDestroy(wl_client* client, wl_resource* resource) {
 }
 
 static void handleCopyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer) {
+    const auto PFRAME = frameFromResource(resource);
+
+    if (!PFRAME)
+        return;
+
     g_pProtocolManager->m_pScreencopyProtocolManager->copyFrame(client, resource, buffer);
 }
 
 static void handleCopyWithDamage(wl_client* client, wl_resource* resource, wl_resource* buffer) {
-    const auto PFRAME  = frameFromResource(resource);
+    const auto PFRAME = frameFromResource(resource);
+
+    if (!PFRAME)
+        return;
+
     PFRAME->withDamage = true;
     handleCopyFrame(client, resource, buffer);
 }
@@ -206,10 +215,9 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     zwlr_screencopy_frame_v1_send_buffer(PFRAME->resource, convert_drm_format_to_wl_shm(PFRAME->shmFormat), PFRAME->box.width, PFRAME->box.height, PFRAME->shmStride);
 
     if (wl_resource_get_version(resource) >= 3) {
-        // todo
-        // if (PFRAME->dmabufFormat != DRM_FORMAT_INVALID) {
-        //     zwlr_screencopy_frame_v1_send_linux_dmabuf(PFRAME->resource, PFRAME->dmabufFormat, PFRAME->box.width, PFRAME->box.height);
-        // }
+        if (PFRAME->dmabufFormat != DRM_FORMAT_INVALID) {
+            zwlr_screencopy_frame_v1_send_linux_dmabuf(PFRAME->resource, PFRAME->dmabufFormat, PFRAME->box.width, PFRAME->box.height);
+        }
 
         zwlr_screencopy_frame_v1_send_buffer_done(PFRAME->resource);
     }
@@ -284,7 +292,17 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         g_pCompositor->scheduleFrameForMonitor(PFRAME->pMonitor);
 }
 
+void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
+    m_pLastMonitorBackBuffer = e->buffer;
+    shareAllFrames(pMonitor, true);
+    m_pLastMonitorBackBuffer = nullptr;
+}
+
 void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
+    shareAllFrames(pMonitor, false);
+}
+
+void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor, bool dmabuf) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 
@@ -297,7 +315,7 @@ void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
             continue;
         }
 
-        if (f->pMonitor != pMonitor)
+        if (f->pMonitor != pMonitor || dmabuf != (f->bufferCap == WLR_BUFFER_CAP_DMABUF))
             continue;
 
         shareFrame(f);
@@ -349,6 +367,7 @@ void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
     uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
     zwlr_screencopy_frame_v1_send_ready(frame->resource, tvSecHi, tvSecLo, now.tv_nsec);
 }
+
 void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
     if (!frame->withDamage)
         return;
@@ -408,7 +427,27 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 }
 
 bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
-    // todo
-    Debug::log(ERR, "DMABUF copying not impl'd!");
-    return false;
+    wlr_texture* sourceTex = wlr_texture_from_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer);
+    if (!sourceTex)
+        return false;
+
+    float glMatrix[9];
+    wlr_matrix_identity(glMatrix);
+    wlr_matrix_scale(glMatrix, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
+    wlr_matrix_translate(glMatrix, -frame->box.x, -frame->box.y);
+
+    if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, frame->buffer)) {
+        wlr_texture_destroy(sourceTex);
+        return false;
+    }
+
+    float color[] = {0, 0, 0, 0};
+    wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, color);
+    wlr_render_texture_with_matrix(g_pCompositor->m_sWLRRenderer, sourceTex, glMatrix, 1.0f);
+
+    wlr_texture_destroy(sourceTex);
+
+    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+
+    return true;
 }

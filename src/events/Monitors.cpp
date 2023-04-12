@@ -212,3 +212,11 @@ void Events::listener_monitorNeedsFrame(void* owner, void* data) {
 
     g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 }
+
+void Events::listener_monitorCommit(void* owner, void* data) {
+    const auto PMONITOR = (CMonitor*)owner;
+
+    const auto E = (wlr_output_event_commit*)data;
+
+    g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR, E);
+}

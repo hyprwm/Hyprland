@@ -404,6 +404,13 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
+    wlr_box newBox = *box;
+    scaleBox(&newBox, m_RenderData.renderModif.scale);
+    newBox.x += m_RenderData.renderModif.translate.x;
+    newBox.y += m_RenderData.renderModif.translate.y;
+
+    box = &newBox;
+
     float matrix[9];
     wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,
                            m_RenderData.pMonitor->output->transform_matrix); // TODO: write own, don't use WLR here
@@ -497,12 +504,17 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     if (!pixman_region32_not_empty(m_RenderData.pDamage))
         return;
 
+    wlr_box newBox = *pBox;
+    scaleBox(&newBox, m_RenderData.renderModif.scale);
+    newBox.x += m_RenderData.renderModif.translate.x;
+    newBox.y += m_RenderData.renderModif.translate.y;
+
     static auto* const PDIMINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:dim_inactive")->intValue;
 
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float      matrix[9];
-    wlr_matrix_project_box(matrix, pBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+    wlr_matrix_project_box(matrix, &newBox, TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -579,7 +591,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     }
 
     wlr_box transformedBox;
-    wlr_box_transform(&transformedBox, pBox, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
+    wlr_box_transform(&transformedBox, &newBox, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
                       m_RenderData.pMonitor->vecTransformedSize.y);
 
     const auto         TOPLEFT           = Vector2D(transformedBox.x, transformedBox.y);
@@ -847,6 +859,9 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
 
 void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
+    const auto SAVEDRENDERMODIF = m_RenderData.renderModif;
+    m_RenderData.renderModif    = {}; // fix shit
+
     // make the fake dmg
     pixman_region32_t fakeDamage;
     pixman_region32_init_rect(&fakeDamage, 0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
@@ -868,6 +883,8 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     m_RenderData.pCurrentMonData->primaryFB.bind();
 
     m_RenderData.pCurrentMonData->blurFBDirty = false;
+
+    m_RenderData.renderModif = SAVEDRENDERMODIF;
 }
 
 void CHyprOpenGLImpl::preWindowPass() {
@@ -969,8 +986,11 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     // render our great blurred FB
     static auto* const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
     m_bEndFrame                           = true; // fix transformed
+    const auto SAVEDRENDERMODIF           = m_RenderData.renderModif;
+    m_RenderData.renderModif              = {}; // fix shit
     renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 1.f : a, &damage, 0, false, false, false);
-    m_bEndFrame = false;
+    m_bEndFrame              = false;
+    m_RenderData.renderModif = SAVEDRENDERMODIF;
 
     // render the window, but clear stencil
     glClearStencil(0);
@@ -1003,10 +1023,17 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     static auto* const PBORDERSIZE  = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
+    wlr_box            newBox = *box;
+    scaleBox(&newBox, m_RenderData.renderModif.scale);
+    newBox.x += m_RenderData.renderModif.translate.x;
+    newBox.y += m_RenderData.renderModif.translate.y;
+
+    box = &newBox;
+
     if (*PBORDERSIZE < 1)
         return;
 
-    int scaledBorderSize = *PBORDERSIZE * m_RenderData.pMonitor->scale;
+    int scaledBorderSize = *PBORDERSIZE * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale;
 
     // adjust box
     box->x -= scaledBorderSize;
@@ -1088,12 +1115,6 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib);
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-    // fix back box
-    box->x += scaledBorderSize;
-    box->y += scaledBorderSize;
-    box->width -= 2 * scaledBorderSize;
-    box->height -= 2 * scaledBorderSize;
 }
 
 void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFramebuffer) {
@@ -1363,6 +1384,13 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     if (!pixman_region32_not_empty(m_RenderData.pDamage))
         return;
 
+    wlr_box newBox = *box;
+    scaleBox(&newBox, m_RenderData.renderModif.scale);
+    newBox.x += m_RenderData.renderModif.translate.x;
+    newBox.y += m_RenderData.renderModif.translate.y;
+
+    box = &newBox;
+
     static auto* const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->intValue;
 
     const auto         SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
@@ -1593,4 +1621,17 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     Debug::log(LOG, "Monitor %s -> destroyed all render data", pMonitor->szName.c_str());
 
     wlr_output_rollback(pMonitor->output);
+}
+
+void CHyprOpenGLImpl::saveMatrix() {
+    memcpy(m_RenderData.savedProjection, m_RenderData.projection, 9 * sizeof(float));
+}
+
+void CHyprOpenGLImpl::setMatrixScaleTranslate(const Vector2D& translate, const float& scale) {
+    wlr_matrix_scale(m_RenderData.projection, scale, scale);
+    wlr_matrix_translate(m_RenderData.projection, translate.x, translate.y);
+}
+
+void CHyprOpenGLImpl::restoreMatrix() {
+    memcpy(m_RenderData.projection, m_RenderData.savedProjection, 9 * sizeof(float));
 }

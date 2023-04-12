@@ -10,14 +10,16 @@
 struct SMonitorRule;
 
 // TODO: add fuller damage tracking for updating only parts of a window
-enum DAMAGETRACKINGMODES {
+enum DAMAGETRACKINGMODES
+{
     DAMAGE_TRACKING_INVALID = -1,
     DAMAGE_TRACKING_NONE    = 0,
     DAMAGE_TRACKING_MONITOR,
     DAMAGE_TRACKING_FULL
 };
 
-enum eRenderPassMode {
+enum eRenderPassMode
+{
     RENDER_PASS_ALL = 0,
     RENDER_PASS_MAIN,
     RENDER_PASS_POPUP
@@ -30,7 +32,6 @@ struct SSessionLockSurface;
 class CHyprRenderer {
   public:
     void                            renderMonitor(CMonitor* pMonitor);
-    void                            renderAllClientsForMonitor(const int&, timespec*);
     void                            outputMgrApplyTest(wlr_output_configuration_v1*, bool);
     void                            arrangeLayersForMonitor(const int&);
     void                            damageSurface(wlr_surface*, double, double);
@@ -47,6 +48,7 @@ class CHyprRenderer {
     bool                            shouldRenderCursor();
     void                            calculateUVForSurface(CWindow*, wlr_surface*, bool main = false);
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
+    void                            renderLockscreen(CMonitor* pMonitor, timespec* now);
 
     bool                            m_bWindowRequestedCursorHide = false;
     bool                            m_bBlockSurfaceFeedback      = false;
@@ -74,6 +76,8 @@ class CHyprRenderer {
     void renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
     void renderDragIcon(CMonitor*, timespec*);
     void renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
+    void renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const wlr_box& geometry);
+    void renderAllClientsForMonitor(CMonitor* pMonitor, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
     bool m_bHasARenderedCursor = true;
 

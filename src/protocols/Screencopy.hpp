@@ -54,6 +54,7 @@ class CScreencopyProtocolManager {
     void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer);
 
     void onRenderEnd(CMonitor* pMonitor);
+    void onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e);
 
   private:
     wl_global*                     m_pGlobal = nullptr;
@@ -64,6 +65,9 @@ class CScreencopyProtocolManager {
 
     std::vector<SScreencopyFrame*> m_vFramesAwaitingWrite;
 
+    wlr_buffer*                    m_pLastMonitorBackBuffer = nullptr;
+
+    void                           shareAllFrames(CMonitor* pMonitor, bool dmabuf);
     void                           shareFrame(SScreencopyFrame* frame);
     void                           sendFrameDamage(SScreencopyFrame* frame);
     bool                           copyFrameDmabuf(SScreencopyFrame* frame);

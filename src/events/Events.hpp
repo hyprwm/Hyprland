@@ -100,6 +100,7 @@ namespace Events {
     DYNLISTENFUNC(monitorStateRequest);
     DYNLISTENFUNC(monitorDamage);
     DYNLISTENFUNC(monitorNeedsFrame);
+    DYNLISTENFUNC(monitorCommit);
 
     // XWayland
     LISTENER(readyXWayland);

@@ -153,8 +153,8 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
     if (!PNODE)
         return;
 
-    static const auto  WORKSPACEID = PNODE->workspaceID;
-    static const auto  MASTERSLEFT = getMastersOnWorkspace(WORKSPACEID);
+    const auto         WORKSPACEID = PNODE->workspaceID;
+    const auto         MASTERSLEFT = getMastersOnWorkspace(WORKSPACEID);
     static const auto* SMALLSPLIT  = &g_pConfigManager->getConfigValuePtr("master:allow_small_split")->intValue;
 
     pWindow->m_sSpecialRenderData.rounding = true;
@@ -968,8 +968,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const auto         PNODE = getNodeFromWindow(header.pWindow);
 
-        static const auto  WINDOWS    = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
-        static const auto  MASTERS    = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto         WINDOWS    = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto         MASTERS    = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
         static const auto* SMALLSPLIT = &g_pConfigManager->getConfigValuePtr("master:allow_small_split")->intValue;
 
         if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)

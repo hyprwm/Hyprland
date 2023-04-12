@@ -19,6 +19,9 @@ void Events::listener_change(wl_listener* listener, void* data) {
     // layout got changed, let's update monitors.
     const auto CONFIG = wlr_output_configuration_v1_create();
 
+    if (!CONFIG)
+        return;
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         if (!m->output)
             continue;

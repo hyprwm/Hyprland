@@ -448,6 +448,7 @@ void CHyprRenderer::renderAllClientsForMonitor(CMonitor* pMonitor, timespec* tim
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         renderWorkspaceWithFullscreenWindow(pMonitor, PWORKSPACE, time);
+        g_pHyprOpenGL->m_RenderData.renderModif = {};
         return;
     }
 

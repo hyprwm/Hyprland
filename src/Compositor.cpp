@@ -1864,7 +1864,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
     // fix old mon
     int nextWorkspaceOnMonitorID = -1;
     for (auto& w : m_vWorkspaces) {
-        if (w->m_iMonitorID == POLDMON->ID && w->m_iID != pWorkspace->m_iID) {
+        if (w->m_iMonitorID == POLDMON->ID && w->m_iID != pWorkspace->m_iID && !w->m_bIsSpecialWorkspace) {
             nextWorkspaceOnMonitorID = w->m_iID;
             break;
         }

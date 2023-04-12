@@ -1456,7 +1456,7 @@ void CConfigManager::tick() {
         int         err = stat(cf.c_str(), &fileStat);
         if (err != 0) {
             Debug::log(WARN, "Error at ticking config at %s, error %i: %s", cf.c_str(), err, strerror(err));
-            return;
+            continue;
         }
 
         // check if we need to reload cfg

@@ -1,5 +1,6 @@
 #include "AnimationManager.hpp"
 #include "../Compositor.hpp"
+#include "HookSystemManager.hpp"
 
 int wlTick(void* data) {
 
@@ -8,6 +9,8 @@ int wlTick(void* data) {
     wl_event_source_timer_update(g_pAnimationManager->m_pAnimationTick, 1000 / refreshRate);
 
     g_pAnimationManager->tick();
+
+    EMIT_HOOK_EVENT("tick", nullptr);
 
     return 0;
 }

@@ -1090,6 +1090,10 @@ CWorkspace* CCompositor::getWorkspaceByID(const int& id) {
 void CCompositor::sanityCheckWorkspaces() {
     auto it = m_vWorkspaces.begin();
     while (it != m_vWorkspaces.end()) {
+
+        if ((*it)->m_bIndestructible)
+            continue;
+
         const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace((*it)->m_iID);
 
         if ((*it)->m_bIsSpecialWorkspace && WINDOWSONWORKSPACE == 0) {
@@ -1884,8 +1888,12 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing %d", nextWorkspaceOnMonitorID);
 
+    pWorkspace->m_bIndestructible = true; // so that changeworkspace doesn't yeet it if it's empty
+
     g_pKeybindManager->focusMonitor(std::to_string(POLDMON->ID));
     g_pKeybindManager->changeworkspace(std::to_string(nextWorkspaceOnMonitorID));
+
+    pWorkspace->m_bIndestructible = false;
 
     // move the workspace
 

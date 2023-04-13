@@ -114,9 +114,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool        requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen ||
         (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen) ||
         (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->fullscreen);
-    bool requestsMaximize = false;
-    bool shouldFocus      = true;
-    bool workspaceSpecial = false;
+    bool requestsFakeFullscreen = requestsFullscreen;
+    bool requestsMaximize       = false;
+    bool shouldFocus            = true;
+    bool workspaceSpecial       = false;
 
     PWINDOW->m_szInitialTitle = g_pXWaylandManager->getTitle(PWINDOW);
     PWINDOW->m_szInitialClass = g_pXWaylandManager->getAppIDClass(PWINDOW);
@@ -182,6 +183,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bNoFullscreenRequest = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen = true;
+        } else if (r.szRule == "fakefullscreen") {
+            requestsFakeFullscreen = true;
         } else if (r.szRule == "windowdance") {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat = true;
         } else if (r.szRule == "nomaxsize") {
@@ -476,17 +479,21 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
     PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
 
-    if ((requestsFullscreen || requestsMaximize) && !PWINDOW->m_bNoFullscreenRequest) {
+    if ((requestsFullscreen || requestsMaximize || requestsFakeFullscreen) && !PWINDOW->m_bNoFullscreenRequest) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWORKSPACE->m_bHasFullscreenWindow) {
             const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
             g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
         }
 
-        PWINDOW->m_vRealPosition.warp();
-        PWINDOW->m_vRealSize.warp();
-
-        g_pCompositor->setWindowFullscreen(PWINDOW, true, requestsFullscreen ? FULLSCREEN_FULL : FULLSCREEN_MAXIMIZED);
+        if (requestsFakeFullscreen && !PWINDOW->m_bFakeFullscreenState) {
+            PWINDOW->m_bFakeFullscreenState = !PWINDOW->m_bFakeFullscreenState;
+            g_pXWaylandManager->setWindowFullscreen(PWINDOW, true);
+        } else {
+            PWINDOW->m_vRealPosition.warp();
+            PWINDOW->m_vRealSize.warp();
+            g_pCompositor->setWindowFullscreen(PWINDOW, true, requestsFullscreen ? FULLSCREEN_FULL : FULLSCREEN_MAXIMIZED);
+        }
     }
 
     if (pFullscreenWindow && workspaceSilent) {

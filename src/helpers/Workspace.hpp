@@ -3,7 +3,8 @@
 #include "../defines.hpp"
 #include "AnimatedVariable.hpp"
 
-enum eFullscreenMode : uint8_t {
+enum eFullscreenMode : uint8_t
+{
     FULLSCREEN_FULL = 0,
     FULLSCREEN_MAXIMIZED
 };
@@ -46,8 +47,11 @@ class CWorkspace {
     CWindow* m_pLastFocusedWindow = nullptr;
 
     // user-set
-    bool     m_bDefaultFloating = false;
-    bool     m_bDefaultPseudo   = false;
+    bool m_bDefaultFloating = false;
+    bool m_bDefaultPseudo   = false;
+
+    // don't destroy in sanity check
+    bool     m_bIndestructible = false;
 
     void     startAnim(bool in, bool left, bool instant = false);
     void     setActive(bool on);

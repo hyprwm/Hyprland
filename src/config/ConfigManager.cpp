@@ -1310,6 +1310,7 @@ void CConfigManager::loadConfigLoadVars() {
     // paths
     configPaths.clear();
     std::string mainConfigPath = getMainConfigPath();
+    Debug::log(LOG, "Using config: %s", mainConfigPath.c_str());
     configPaths.push_back(mainConfigPath);
     std::string configPath = mainConfigPath.substr(0, mainConfigPath.find_last_of('/'));
     // find_last_of never returns npos since main_config atleast has /hpyr/

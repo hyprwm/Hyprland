@@ -1141,7 +1141,12 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     const auto PNEXTCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
     PWINDOW->m_iWorkspaceID   = workspaceToMoveTo;
 
-    g_pCompositor->focusWindow(PNEXTCANDIDATE);
+    if (PNEXTCANDIDATE)
+        g_pCompositor->focusWindow(PNEXTCANDIDATE);
+    else if (const auto PFIRSTONWS = g_pCompositor->getFirstWindowOnWorkspace(OLDWORKSPACEIDRETURN); PFIRSTONWS)
+        g_pCompositor->focusWindow(PFIRSTONWS);
+    else
+        g_pInputManager->refocus();
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {

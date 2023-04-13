@@ -961,7 +961,8 @@ void CKeybindManager::changeworkspace(std::string args) {
         g_pCompositor->warpCursorTo(PMONITOR->vecPosition + PMONITOR->vecSize / 2.f);
 
     // Destroy old workspace if it is empty
-    g_pCompositor->sanityCheckWorkspaces();
+    if (!internal)
+        g_pCompositor->sanityCheckWorkspaces();
 
     Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
 }

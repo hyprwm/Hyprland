@@ -1888,12 +1888,8 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing %d", nextWorkspaceOnMonitorID);
 
-    pWorkspace->m_bIndestructible = true; // so that changeworkspace doesn't yeet it if it's empty
-
     g_pKeybindManager->focusMonitor(std::to_string(POLDMON->ID));
-    g_pKeybindManager->changeworkspace(std::to_string(nextWorkspaceOnMonitorID));
-
-    pWorkspace->m_bIndestructible = false;
+    g_pKeybindManager->changeworkspace("[internal]" + std::to_string(nextWorkspaceOnMonitorID));
 
     // move the workspace
 

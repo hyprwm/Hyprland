@@ -143,9 +143,7 @@ void CConfigManager::setDefaultVars() {
     configValues["master:no_gaps_when_only"].intValue      = 0;
     configValues["master:orientation"].strValue            = "left";
     configValues["master:inherit_fullscreen"].intValue     = 1;
-
-    //master cannot be increased when you have 2 windows or less open by default
-    configValues["master:allow_small_split"].intValue = 0;
+    configValues["master:allow_small_split"].intValue      = 0;
 
     configValues["animations:enabled"].intValue = 1;
 

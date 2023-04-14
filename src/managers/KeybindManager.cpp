@@ -912,7 +912,6 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
         return;
 
     auto       pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
-    const auto PMONITOR   = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
     const auto OLDMIDDLE  = PWINDOW->middle();
 
     if (pWorkspace) {

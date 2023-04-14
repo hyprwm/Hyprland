@@ -1144,8 +1144,8 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     if (PNEXTCANDIDATE)
         g_pCompositor->focusWindow(PNEXTCANDIDATE);
-    else if (const auto PFIRSTONWS = g_pCompositor->getFirstWindowOnWorkspace(OLDWORKSPACEIDRETURN); PFIRSTONWS)
-        g_pCompositor->focusWindow(PFIRSTONWS);
+    else if (const auto PWINDOWATLAST = g_pCompositor->vectorToWindowIdeal(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f); PWINDOWATLAST)
+        g_pCompositor->focusWindow(PWINDOWATLAST);
     else
         g_pInputManager->refocus();
 }

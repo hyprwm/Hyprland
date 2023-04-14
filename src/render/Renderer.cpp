@@ -71,12 +71,12 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
     if (pWindow->m_bPinned)
         return true;
 
-    // now check if it has the same workspace
-    if (pWorkspace && pWorkspace->m_iMonitorID == pMonitor->ID) {
-        if (pWorkspace->m_vRenderOffset.isBeingAnimated() || pWorkspace->m_fAlpha.isBeingAnimated() || pWorkspace->m_bForceRendering) {
+    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_iMonitorID == pMonitor->ID) {
+        if (PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() || PWINDOWWORKSPACE->m_bForceRendering) {
             return true;
         } else {
-            if (!(!pWorkspace->m_bHasFullscreenWindow || pWindow->m_bIsFullscreen || (pWindow->m_bIsFloating && pWindow->m_bCreatedOverFullscreen)))
+            if (!(!PWINDOWWORKSPACE->m_bHasFullscreenWindow || pWindow->m_bIsFullscreen || (pWindow->m_bIsFloating && pWindow->m_bCreatedOverFullscreen)))
                 return false;
         }
     }

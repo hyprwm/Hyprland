@@ -291,6 +291,17 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     if (PMONITOR)
         g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PMONITOR->scale);
+
+    if (!m_bIsMapped)
+        return;
+
+    wlr_surface_for_each_surface(
+        m_pWLSurface.wlr(),
+        [](wlr_surface* surf, int x, int y, void* data) {
+            const auto PMONITOR = g_pCompositor->getMonitorFromID(((CWindow*)data)->m_iMonitorID);
+            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
+        },
+        this);
 }
 
 CWindow* CWindow::X11TransientFor() {

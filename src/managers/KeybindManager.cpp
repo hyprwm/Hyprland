@@ -882,9 +882,6 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
-    // hacky, but works lol
-    // TODO: this sucks
-
     CWindow*   PWINDOW = nullptr;
 
     const auto ORIGINALARGS = args;

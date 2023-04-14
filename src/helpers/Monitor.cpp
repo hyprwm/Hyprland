@@ -509,7 +509,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
         }
 
         // set some flags and fire event
-        POLDWORKSPACE->setActive(false);
+        g_pCompositor->deactivateAllWLRWorkspaces();
         pWorkspace->setActive(true);
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_szName});
         EMIT_HOOK_EVENT("workspace", pWorkspace);

@@ -475,3 +475,81 @@ float CMonitor::getDefaultScale() {
         return 1.5;
     return 1;
 }
+
+void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
+    if (!pWorkspace || pWorkspace->m_iID == activeWorkspace)
+        return;
+
+    if (pWorkspace->m_bIsSpecialWorkspace) {
+        Debug::log(ERR, "BUG THIS: Attempted to changeWorkspace to special!");
+        return;
+    }
+
+    const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(activeWorkspace);
+
+    activeWorkspace = pWorkspace->m_iID;
+
+    if (!internal) {
+        const auto ANIMTOLEFT = pWorkspace->m_iID > POLDWORKSPACE->m_iID;
+        POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
+        pWorkspace->startAnim(true, ANIMTOLEFT);
+
+        // move pinned windows
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (w->m_iWorkspaceID == POLDWORKSPACE->m_iID && w->m_bPinned) {
+                w->m_iWorkspaceID = pWorkspace->m_iID;
+            }
+        }
+
+        if (const auto PLASTWINDOW = pWorkspace->getLastFocusedWindow(); PLASTWINDOW)
+            g_pCompositor->focusWindow(PLASTWINDOW);
+        else {
+            g_pCompositor->focusWindow(nullptr);
+            g_pInputManager->refocus();
+        }
+
+        // set some flags and fire event
+        POLDWORKSPACE->setActive(false);
+        pWorkspace->setActive(true);
+        g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_szName});
+        EMIT_HOOK_EVENT("workspace", pWorkspace);
+    }
+}
+
+void CMonitor::changeWorkspace(const int& id, bool internal) {
+    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal);
+}
+
+void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
+    if (!pWorkspace) {
+        // remove special if exists
+        if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL)
+            EXISTINGSPECIAL->startAnim(false, false);
+        specialWorkspaceID = 0;
+
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
+
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(activeWorkspace);
+        if (const auto PLAST = PWORKSPACE->getLastFocusedWindow(); PLAST)
+            g_pCompositor->focusWindow(PLAST);
+        else
+            g_pInputManager->refocus();
+
+        return;
+    }
+
+    // open special
+    specialWorkspaceID = pWorkspace->m_iID;
+    pWorkspace->startAnim(true, true);
+
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
+
+    if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
+        g_pCompositor->focusWindow(PLAST);
+    else
+        g_pInputManager->refocus();
+}
+
+void CMonitor::setSpecialWorkspace(const int& id) {
+    setSpecialWorkspace(g_pCompositor->getWorkspaceByID(id));
+}

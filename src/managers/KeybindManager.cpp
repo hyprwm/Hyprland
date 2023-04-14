@@ -728,41 +728,30 @@ void CKeybindManager::changeworkspace(std::string args) {
     int         workspaceToChangeTo = 0;
     std::string workspaceName       = "";
 
-    // Flag needed so that the previous workspace is not recorded when switching
-    // to a previous workspace.
-    bool isSwitchingToPrevious = false;
+    // Workspace_back_and_forth being enabled means that an attempt to switch to
+    // the current workspace will instead switch to the previous.
+    static auto* const PBACKANDFORTH         = &g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth")->intValue;
+    static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
 
-    bool internal = false;
+    const auto         PMONITOR          = g_pCompositor->m_pLastMonitor;
+    const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
-    if (args.find("[internal]") == 0) {
-        workspaceToChangeTo   = std::stoi(args.substr(10));
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
-        if (PWORKSPACE)
-            workspaceName = PWORKSPACE->m_szName;
-
-        internal = true;
-    } else if (args.find("previous") == 0) {
-        const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
-
+    if (args.find("previous") == 0) {
         // Do nothing if there's no previous workspace, otherwise switch to it.
         if (PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1) {
             Debug::log(LOG, "No previous workspace to change to");
             return;
         } else {
-            workspaceToChangeTo = PCURRENTWORKSPACE->m_sPrevWorkspace.iID;
+            workspaceToChangeTo = PCURRENTWORKSPACE->m_iID;
 
-            if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo); PWORKSPACETOCHANGETO)
+            if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->m_sPrevWorkspace.iID); PWORKSPACETOCHANGETO)
                 workspaceName = PWORKSPACETOCHANGETO->m_szName;
             else
-                workspaceName = PCURRENTWORKSPACE->m_sPrevWorkspace.name.empty() ? std::to_string(workspaceToChangeTo) : PCURRENTWORKSPACE->m_sPrevWorkspace.name;
+                workspaceName =
+                    PCURRENTWORKSPACE->m_sPrevWorkspace.name.empty() ? std::to_string(PCURRENTWORKSPACE->m_sPrevWorkspace.iID) : PCURRENTWORKSPACE->m_sPrevWorkspace.name;
 
-            // If the previous workspace ID isn't reset, cycles can form when continually going
-            // to the previous workspace again and again.
-            static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
             if (!*PALLOWWORKSPACECYCLES)
                 PCURRENTWORKSPACE->m_sPrevWorkspace = {-1, ""};
-            else
-                isSwitchingToPrevious = true;
         }
     } else {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
@@ -773,198 +762,66 @@ void CKeybindManager::changeworkspace(std::string args) {
         return;
     }
 
-    // Workspace_back_and_forth being enabled means that an attempt to switch to
-    // the current workspace will instead switch to the previous.
-    const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
-    static auto* const PBACKANDFORTH     = &g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth")->intValue;
-
-    if (*PBACKANDFORTH && PCURRENTWORKSPACE && PCURRENTWORKSPACE->m_iID == workspaceToChangeTo && PCURRENTWORKSPACE->m_sPrevWorkspace.iID != -1 && !internal) {
-
-        const auto PPREVWORKSPACE = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->m_sPrevWorkspace.iID);
-
-        workspaceToChangeTo = PCURRENTWORKSPACE->m_sPrevWorkspace.iID;
-
-        if (PPREVWORKSPACE)
-            workspaceName = PPREVWORKSPACE->m_szName;
-        else
-            workspaceName = PCURRENTWORKSPACE->m_sPrevWorkspace.name.empty() ? std::to_string(workspaceToChangeTo) : PCURRENTWORKSPACE->m_sPrevWorkspace.name;
-
-        // If the previous workspace ID isn't reset, cycles can form when continually going
-        // to the previous workspace again and again.
-        static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
-        if (!*PALLOWWORKSPACECYCLES)
-            PCURRENTWORKSPACE->m_sPrevWorkspace = {-1, ""};
-        else
-            isSwitchingToPrevious = true;
-
-    } else if (PCURRENTWORKSPACE && PCURRENTWORKSPACE->m_iID == workspaceToChangeTo && !internal)
-        return;
-
-    // remove constraints
     g_pInputManager->unconstrainMouse();
-
     g_pInputManager->m_bEmptyFocusCursorSet = false;
 
-    // if it's not internal, we will unfocus to prevent stuck focus
-    if (!internal)
-        g_pCompositor->focusWindow(nullptr);
+    if (workspaceToChangeTo == PCURRENTWORKSPACE->m_iID) {
+        if (!*PBACKANDFORTH || PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1)
+            return;
 
-    // if it exists, we warp to it
-    if (g_pCompositor->getWorkspaceByID(workspaceToChangeTo)) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(workspaceToChangeTo)->m_iMonitorID);
+        auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->m_sPrevWorkspace.iID);
 
-        const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+        if (pWorkspaceToChangeTo) {
+            const auto PMONITORWORKSPACEOWNER = PMONITOR->ID == pWorkspaceToChangeTo->m_iMonitorID ? PMONITOR : g_pCompositor->getMonitorFromID(pWorkspaceToChangeTo->m_iMonitorID);
 
-        if (!isSwitchingToPrevious && !internal) {
-            // Remember previous workspace.
-            PWORKSPACETOCHANGETO->m_sPrevWorkspace.iID  = g_pCompositor->m_pLastMonitor->activeWorkspace;
-            PWORKSPACETOCHANGETO->m_sPrevWorkspace.name = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace)->m_szName;
-        }
+            if (!PMONITORWORKSPACEOWNER)
+                return;
 
-        if (g_pCompositor->isWorkspaceSpecial(workspaceToChangeTo))
-            PWORKSPACETOCHANGETO->m_iMonitorID = PMONITOR->ID;
+            const auto PREVWSDATA = pWorkspaceToChangeTo->m_sPrevWorkspace;
 
-        // if it's not visible, make it visible.
-        if (!g_pCompositor->isWorkspaceVisible(workspaceToChangeTo)) {
-            const auto OLDWORKSPACEID = PMONITOR->activeWorkspace;
+            PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo);
 
-            // fix pinned windows
-            for (auto& w : g_pCompositor->m_vWindows) {
-                if (w->m_iWorkspaceID == PMONITOR->activeWorkspace && w->m_bPinned) {
-                    w->m_iWorkspaceID = workspaceToChangeTo;
-                }
+            if (PMONITOR != PMONITORWORKSPACEOWNER) {
+                g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
+                if (const auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW)
+                    g_pCompositor->focusWindow(PLASTWINDOW);
+                else
+                    g_pInputManager->refocus();
             }
 
-            // change it
-            if (!g_pCompositor->isWorkspaceSpecial(workspaceToChangeTo))
-                PMONITOR->activeWorkspace = workspaceToChangeTo;
-            else
-                PMONITOR->specialWorkspaceID = workspaceToChangeTo;
-
-            // here and only here begin anim. we don't want to anim visible workspaces on other monitors.
-            // check if anim left or right
-            const auto ANIMTOLEFT = workspaceToChangeTo > OLDWORKSPACEID;
-
-            // start anim on old workspace
-            g_pCompositor->getWorkspaceByID(OLDWORKSPACEID)->startAnim(false, ANIMTOLEFT);
-
-            // start anim on new workspace
-            PWORKSPACETOCHANGETO->startAnim(true, ANIMTOLEFT);
-
-            g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACETOCHANGETO->m_szName});
-            EMIT_HOOK_EVENT("workspace", PWORKSPACETOCHANGETO);
+            if (*PALLOWWORKSPACECYCLES)
+                pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
+        } else {
+            pWorkspaceToChangeTo = g_pCompositor->createNewWorkspace(PCURRENTWORKSPACE->m_sPrevWorkspace.iID, PMONITOR->ID, PCURRENTWORKSPACE->m_sPrevWorkspace.name);
+            PMONITOR->changeWorkspace(pWorkspaceToChangeTo);
         }
-
-        // If the monitor is not the one our cursor's at, warp to it.
-        const bool anotherMonitor = PMONITOR != g_pCompositor->m_pLastMonitor;
-        if (anotherMonitor)
-            g_pCompositor->warpCursorTo(PMONITOR->vecPosition + PMONITOR->vecSize / 2.f);
-
-        // set active and deactivate all other in wlr
-        g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACETOCHANGETO->m_pWlrHandle);
-        PWORKSPACETOCHANGETO->setActive(true);
-
-        // recalc layout
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWORKSPACETOCHANGETO->m_iMonitorID);
-
-        Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
-
-        // focus
-        if (const auto PWINDOW = PWORKSPACETOCHANGETO->getLastFocusedWindow(); PWINDOW) {
-            // warp and focus
-            if (anotherMonitor)
-                g_pCompositor->warpCursorTo(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f);
-
-            g_pCompositor->focusWindow(PWINDOW, PWINDOW->m_pWLSurface.wlr());
-
-            if (g_pCompositor->cursorOnReservedArea()) // fix focus on bars etc
-                g_pInputManager->refocus();
-        } else if (g_pCompositor->getWindowsOnWorkspace(PWORKSPACETOCHANGETO->m_iID) > 0)
-            g_pInputManager->refocus();
-        else {
-            // if there are no windows on the workspace, just unfocus the window on the previous workspace
-            g_pCompositor->focusWindow(nullptr);
-        }
-
-        // set the new monitor as the last (no warps would bug otherwise)
-        g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromID(PWORKSPACETOCHANGETO->m_iMonitorID));
-
-        // mark the monitor dirty
-        g_pHyprRenderer->damageMonitor(PMONITOR);
 
         return;
     }
 
-    // Workspace doesn't exist, create and switch
-    const auto BOUNDMON = g_pConfigManager->getBoundMonitorForWS(workspaceName);
+    auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+    if (!pWorkspaceToChangeTo)
+        pWorkspaceToChangeTo = g_pCompositor->createNewWorkspace(workspaceToChangeTo, PMONITOR->ID);
 
-    const auto PMONITOR = BOUNDMON ? BOUNDMON : g_pCompositor->getMonitorFromCursor();
-
-    const auto OLDWORKSPACE = PMONITOR->activeWorkspace;
-
-    // get anim direction
-    const auto ANIMTOLEFT = workspaceToChangeTo > OLDWORKSPACE;
-
-    // start anim on old workspace
-    if (const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(OLDWORKSPACE); POLDWORKSPACE)
-        POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
-
-    const auto PWORKSPACE = g_pCompositor->createNewWorkspace(workspaceToChangeTo, PMONITOR->ID, workspaceName);
-
-    const bool ANOTHERMONITOR = PMONITOR != g_pCompositor->m_pLastMonitor;
-
-    if (!isSwitchingToPrevious) {
-        // Remember previous workspace.
-        PWORKSPACE->m_sPrevWorkspace.iID = OLDWORKSPACE;
-        if (const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(OLDWORKSPACE); POLDWORKSPACE)
-            PWORKSPACE->m_sPrevWorkspace.name = POLDWORKSPACE->m_szName;
+    if (pWorkspaceToChangeTo->m_bIsSpecialWorkspace) {
+        PMONITOR->setSpecialWorkspace(pWorkspaceToChangeTo);
+        return;
     }
 
-    // start anim on new workspace
-    PWORKSPACE->startAnim(true, ANIMTOLEFT);
+    const auto PMONITORWORKSPACEOWNER = PMONITOR->ID == pWorkspaceToChangeTo->m_iMonitorID ? PMONITOR : g_pCompositor->getMonitorFromID(pWorkspaceToChangeTo->m_iMonitorID);
 
-    PMONITOR->specialWorkspaceID = 0;
+    PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo);
+    g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->vecPosition + PMONITORWORKSPACEOWNER->vecSize / 2.f);
 
-    // fix pinned windows
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == PMONITOR->activeWorkspace && w->m_bPinned) {
-            w->m_iWorkspaceID = workspaceToChangeTo;
-        }
+    if (PMONITOR != PMONITORWORKSPACEOWNER) {
+        g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
+        if (const auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW)
+            g_pCompositor->focusWindow(PLASTWINDOW);
+        else
+            g_pInputManager->refocus();
     }
 
-    if (!g_pCompositor->isWorkspaceSpecial(workspaceToChangeTo))
-        PMONITOR->activeWorkspace = workspaceToChangeTo;
-    else
-        PMONITOR->specialWorkspaceID = workspaceToChangeTo;
-
-    // set active and deactivate all other
-    g_pCompositor->deactivateAllWLRWorkspaces(PWORKSPACE->m_pWlrHandle);
-    PWORKSPACE->setActive(true);
-
-    // mark the monitor dirty
-    g_pHyprRenderer->damageMonitor(PMONITOR);
-
-    // some stuf with the cursor and focus
-    if (g_pCompositor->m_pLastMonitor != PMONITOR)
-        g_pCompositor->warpCursorTo(PMONITOR->vecPosition + PMONITOR->vecSize / 2.f);
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PWORKSPACE->m_szName});
-    EMIT_HOOK_EVENT("workspace", PWORKSPACE);
-
-    g_pCompositor->setActiveMonitor(PMONITOR);
-
-    // focus (clears the last)
-    g_pInputManager->refocus();
-
-    // Events
-    if (ANOTHERMONITOR)
-        g_pCompositor->warpCursorTo(PMONITOR->vecPosition + PMONITOR->vecSize / 2.f);
-
-    // Destroy old workspace if it is empty
-    if (!internal)
-        g_pCompositor->sanityCheckWorkspaces();
-
-    Debug::log(LOG, "Changed to workspace %i", workspaceToChangeTo);
+    pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
 }
 
 void CKeybindManager::fullscreenActive(std::string args) {
@@ -993,8 +850,6 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (!PWINDOW)
         return;
 
-    const auto OLDWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-
     // hack
     std::string workspaceName;
     const auto  WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
@@ -1009,59 +864,21 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         return;
     }
 
-    auto       PSAVEDSIZE    = PWINDOW->m_bIsFloating && PWINDOW->m_bIsFullscreen ? PWINDOW->m_vLastFloatingSize : PWINDOW->m_vRealSize.goalv();
-    auto       PSAVEDPOS     = PWINDOW->m_bIsFloating && PWINDOW->m_bIsFullscreen ? PWINDOW->m_vLastFloatingPosition : PWINDOW->m_vRealPosition.goalv();
-    const bool WASFULLSCREEN = PWINDOW->m_bIsFullscreen;
+    auto pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
-
-    auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
-
-    if (PWORKSPACE == OLDWORKSPACE) {
-        Debug::log(LOG, "Not moving to workspace because it didn't change.");
-        return;
-    }
-
-    if (!PWORKSPACE) {
-        // create
-        PWORKSPACE = g_pCompositor->createNewWorkspace(WORKSPACEID, OLDWORKSPACE->m_iMonitorID, workspaceName);
-    }
-
-    PWINDOW->m_iMonitorID = PWORKSPACE->m_iMonitorID;
-    PWINDOW->moveToWorkspace(PWORKSPACE->m_iID);
-    PWINDOW->updateGroupOutputs();
-
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
-        g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_FULL);
-    }
-
-    // Hack: So that the layout doesnt find our window at the cursor
-    PWINDOW->m_vPosition = Vector2D(-42069, -42069);
-
-    g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
-
-    // and restore it
-    if (PWINDOW->m_bIsFloating) {
-        PWINDOW->m_vRealSize.setValueAndWarp(PSAVEDSIZE);
-        PWINDOW->m_vRealPosition.setValueAndWarp(PSAVEDPOS - g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID)->vecPosition +
-                                                 g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID)->vecPosition);
-        PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
-    }
-
-    if (WASFULLSCREEN)
-        g_pCompositor->setWindowFullscreen(PWINDOW, true, OLDWORKSPACE->m_efFullscreenMode);
-
-    if (!g_pCompositor->isWorkspaceSpecial(WORKSPACEID)) {
-        g_pKeybindManager->changeworkspace(args);
-        g_pCompositor->focusWindow(PWINDOW);
+    if (pWorkspace) {
+        g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+        PMONITOR->changeWorkspace(pWorkspace);
     } else {
-        g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
-        g_pInputManager->refocus();
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+        pWorkspace          = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
+        PMONITOR->changeWorkspace(pWorkspace);
     }
 
-    PWINDOW->updateToplevel();
-
-    g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
+    g_pCompositor->focusWindow(PWINDOW);
+    g_pCompositor->warpCursorTo(PWINDOW->middle());
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
@@ -1082,70 +899,31 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     if (!PWINDOW)
         return;
 
-    int         workspaceToMoveTo = 0;
-    std::string workspaceName     = "";
+    std::string workspaceName = "";
 
-    workspaceToMoveTo = getWorkspaceIDFromString(args, workspaceName);
+    const int   WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
 
-    if (workspaceToMoveTo == INT_MAX) {
+    if (WORKSPACEID == INT_MAX) {
         Debug::log(ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
         return;
     }
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-
-    if (workspaceToMoveTo == PWINDOW->m_iWorkspaceID)
+    if (WORKSPACEID == PWINDOW->m_iWorkspaceID)
         return;
 
-    // may be null until later!
-    auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
+    auto       pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    const auto PMONITOR   = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const auto OLDMIDDLE  = PWINDOW->middle();
 
-    auto PMONITORNEW = PWORKSPACE ? g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID) : PMONITOR;
-    if (!PWORKSPACE) {
-        const auto BOUNDMON = g_pConfigManager->getBoundMonitorForWS(workspaceName);
-        if (BOUNDMON)
-            PMONITORNEW = BOUNDMON;
+    if (pWorkspace) {
+        g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
+    } else {
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
 
-    const auto OLDWORKSPACEIDONMONITOR = PMONITORNEW->activeWorkspace;
-    const auto OLDWORKSPACEIDRETURN    = PMONITOR->activeWorkspace;
-
-    const auto POLDWORKSPACEONMON    = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDONMONITOR);
-    const auto POLDWORKSPACEIDRETURN = g_pCompositor->getWorkspaceByID(OLDWORKSPACEIDRETURN);
-
-    g_pEventManager->m_bIgnoreEvents = true;
-
-    moveActiveToWorkspace(ORIGINALARGS);
-
-    PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceToMoveTo);
-
-    changeworkspace("[internal]" + std::to_string(OLDWORKSPACEIDONMONITOR));
-    changeworkspace("[internal]" + std::to_string(OLDWORKSPACEIDRETURN));
-
-    // revert animations
-    PWORKSPACE->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
-    PWORKSPACE->m_fAlpha.setValueAndWarp(0.f);
-
-    POLDWORKSPACEIDRETURN->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
-    POLDWORKSPACEIDRETURN->m_fAlpha.setValueAndWarp(1.f);
-
-    POLDWORKSPACEONMON->m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
-    POLDWORKSPACEONMON->m_fAlpha.setValueAndWarp(1.f);
-
-    g_pEventManager->m_bIgnoreEvents = false;
-
-    // manually post event cuz it got ignored above
-    g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%x,%s", PWINDOW, PWORKSPACE->m_szName.c_str())});
-    EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{PWINDOW, PWORKSPACE}));
-
-    PWINDOW->m_iWorkspaceID   = OLDWORKSPACEIDRETURN;
-    const auto PNEXTCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
-    PWINDOW->m_iWorkspaceID   = workspaceToMoveTo;
-
-    if (PNEXTCANDIDATE)
-        g_pCompositor->focusWindow(PNEXTCANDIDATE);
-    else if (const auto PWINDOWATLAST = g_pCompositor->vectorToWindowIdeal(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f); PWINDOWATLAST)
-        g_pCompositor->focusWindow(PWINDOWATLAST);
+    if (const auto PATCOORDS = g_pCompositor->vectorToWindowIdeal(OLDMIDDLE); PATCOORDS && PATCOORDS != PWINDOW)
+        g_pCompositor->focusWindow(PATCOORDS);
     else
         g_pInputManager->refocus();
 }
@@ -1668,16 +1446,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor
-
-        PMONITOR->specialWorkspaceID = 0;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-
-        g_pCompositor->getWorkspaceByID(workspaceID)->startAnim(false, false);
-
-        if (const auto PWINDOW = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace)->getLastFocusedWindow(); PWINDOW)
-            g_pCompositor->focusWindow(PWINDOW);
-        else
-            g_pInputManager->refocus();
+        PMONITOR->setSpecialWorkspace(nullptr);
     } else if (requestedWorkspaceIsAlreadyOpen) {
         // already open on another monitor
 
@@ -1703,13 +1472,6 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
             g_pInputManager->refocus();
     } else {
         // not open anywhere
-
-        if (specialOpenOnMonitor) {
-            g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID)->startAnim(false, false);
-            PMONITOR->specialWorkspaceID = 0;
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-        }
-
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
         if (!PSPECIALWORKSPACE) {
@@ -1717,16 +1479,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
             PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
         }
 
-        PMONITOR->specialWorkspaceID = workspaceID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-
-        PSPECIALWORKSPACE->m_iMonitorID = PMONITOR->ID;
-        PSPECIALWORKSPACE->startAnim(true, true);
-
-        if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); PWINDOW)
-            g_pCompositor->focusWindow(PWINDOW);
-        else
-            g_pInputManager->refocus();
+        PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);
     }
 }
 

@@ -664,3 +664,7 @@ void CWindow::updateGroupOutputs() {
         curr = curr->m_sGroupData.pNextWindow;
     }
 }
+
+Vector2D CWindow::middle() {
+    return m_vRealPosition.goalv() + m_vRealSize.goalv() / 2.f;
+}

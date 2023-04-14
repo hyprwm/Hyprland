@@ -115,9 +115,9 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         const auto RENDEROFFSET = PWORKSPACEL ? PWORKSPACEL->m_vRenderOffset.vec() : Vector2D();
 
         if (PWORKSPACEL)
-            g_pKeybindManager->m_mDispatchers["workspace"]("[internal]" + std::to_string(workspaceIDLeft));
+            m_sActiveSwipe.pMonitor->changeWorkspace(workspaceIDLeft);
         else {
-            g_pKeybindManager->m_mDispatchers["workspace"](std::to_string(workspaceIDLeft)); // so that the ID is created properly
+            m_sActiveSwipe.pMonitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDLeft, m_sActiveSwipe.pMonitor->ID));
             PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
         }
 
@@ -141,9 +141,9 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         const auto RENDEROFFSET = PWORKSPACER ? PWORKSPACER->m_vRenderOffset.vec() : Vector2D();
 
         if (PWORKSPACER)
-            g_pKeybindManager->m_mDispatchers["workspace"]("[internal]" + std::to_string(workspaceIDRight));
+            m_sActiveSwipe.pMonitor->changeWorkspace(workspaceIDRight);
         else {
-            g_pKeybindManager->m_mDispatchers["workspace"](std::to_string(workspaceIDRight)); // so that the ID is created properly
+            m_sActiveSwipe.pMonitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDRight, m_sActiveSwipe.pMonitor->ID));
             PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
         }
 

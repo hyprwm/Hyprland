@@ -81,6 +81,10 @@ class CMonitor {
     void                       setMirror(const std::string&);
     bool                       isMirror();
     float                      getDefaultScale();
+    void                       changeWorkspace(CWorkspace* const pWorkspace, bool internal = false);
+    void                       changeWorkspace(const int& id, bool internal = false);
+    void                       setSpecialWorkspace(CWorkspace* const pWorkspace);
+    void                       setSpecialWorkspace(const int& id);
 
     std::shared_ptr<CMonitor>* m_pThisWrap            = nullptr;
     bool                       m_bEnabled             = false;

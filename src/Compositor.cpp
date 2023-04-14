@@ -836,7 +836,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         // This is to fix incorrect feedback on the focus history.
         const auto PWORKSPACE            = getWorkspaceByID(pWindow->m_iWorkspaceID);
         PWORKSPACE->m_pLastFocusedWindow = pWindow;
-        g_pKeybindManager->changeworkspace("[internal]" + std::to_string(pWindow->m_iWorkspaceID));
+        const auto PMONITOR              = getMonitorFromID(PWORKSPACE->m_iMonitorID);
+        PMONITOR->changeWorkspace(PWORKSPACE);
         // changeworkspace already calls focusWindow
         return;
     }
@@ -1884,12 +1885,13 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
             nextWorkspaceOnMonitorID++;
 
         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new %d", nextWorkspaceOnMonitorID);
+
+        g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID);
     }
 
     Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing %d", nextWorkspaceOnMonitorID);
 
-    g_pKeybindManager->focusMonitor(std::to_string(POLDMON->ID));
-    g_pKeybindManager->changeworkspace("[internal]" + std::to_string(nextWorkspaceOnMonitorID));
+    POLDMON->changeWorkspace(nextWorkspaceOnMonitorID);
 
     // move the workspace
 
@@ -2317,4 +2319,37 @@ void CCompositor::performUserChecks() {
                                                         15000, ICON_ERROR);
         }
     }
+}
+
+void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace) {
+    if (!pWindow || !pWorkspace)
+        return;
+
+    const bool FULLSCREEN = pWindow->m_bIsFullscreen;
+
+    if (FULLSCREEN)
+        setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
+
+    if (!pWindow->m_bIsFloating) {
+        g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
+        pWindow->m_iWorkspaceID = pWorkspace->m_iID;
+        pWindow->m_iMonitorID   = pWorkspace->m_iMonitorID;
+        g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
+    } else {
+        const auto PWINDOWMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+        const auto POSTOMON       = pWindow->m_vRealPosition.goalv() - PWINDOWMONITOR->vecPosition;
+
+        const auto PWORKSPACEMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+
+        pWindow->m_iWorkspaceID = pWorkspace->m_iID;
+        pWindow->m_iMonitorID   = pWorkspace->m_iMonitorID;
+
+        pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
+    }
+
+    pWindow->moveToWorkspace(pWorkspace->m_iID);
+    pWindow->updateToplevel();
+
+    if (FULLSCREEN)
+        setWindowFullscreen(pWindow, true, FULLSCREEN_FULL);
 }

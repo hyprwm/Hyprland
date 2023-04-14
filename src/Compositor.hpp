@@ -28,7 +28,8 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage {
+enum eManagersInitStage
+{
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -188,6 +189,7 @@ class CCompositor {
     bool           isWorkspaceSpecial(const int&);
     int            getNewSpecialID();
     void           performUserChecks();
+    void           moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace);
 
     std::string    explicitConfigPath;
 

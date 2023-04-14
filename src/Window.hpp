@@ -314,6 +314,7 @@ class CWindow {
     void                     applyDynamicRule(const SWindowRule& r);
     void                     updateDynamicRules();
     SWindowDecorationExtents getFullWindowReservedArea();
+    Vector2D                 middle();
 
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);

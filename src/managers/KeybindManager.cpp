@@ -777,6 +777,8 @@ void CKeybindManager::changeworkspace(std::string args) {
             if (!PMONITORWORKSPACEOWNER)
                 return;
 
+            g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
+
             const auto PREVWSDATA = pWorkspaceToChangeTo->m_sPrevWorkspace;
 
             PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo);
@@ -810,11 +812,12 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     const auto PMONITORWORKSPACEOWNER = PMONITOR->ID == pWorkspaceToChangeTo->m_iMonitorID ? PMONITOR : g_pCompositor->getMonitorFromID(pWorkspaceToChangeTo->m_iMonitorID);
 
+    g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
+
     PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo);
     g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->vecPosition + PMONITORWORKSPACEOWNER->vecSize / 2.f);
 
     if (PMONITOR != PMONITORWORKSPACEOWNER) {
-        g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
         if (const auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW)
             g_pCompositor->focusWindow(PLASTWINDOW);
         else
@@ -869,6 +872,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (pWorkspace) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
         const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+        g_pCompositor->setActiveMonitor(PMONITOR);
         PMONITOR->changeWorkspace(pWorkspace);
     } else {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);

@@ -788,8 +788,10 @@ void CKeybindManager::changeworkspace(std::string args) {
                 g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
                 if (const auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW)
                     g_pCompositor->focusWindow(PLASTWINDOW);
+                else if (const auto PFIRSTWINDOW = g_pCompositor->getFirstWindowOnWorkspace(pWorkspaceToChangeTo->m_iID); PFIRSTWINDOW)
+                    g_pCompositor->focusWindow(PFIRSTWINDOW);
                 else
-                    g_pInputManager->refocus();
+                    g_pCompositor->focusWindow(nullptr);
             }
 
             if (*PALLOWWORKSPACECYCLES)
@@ -822,8 +824,10 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         if (const auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW)
             g_pCompositor->focusWindow(PLASTWINDOW);
+        else if (const auto PFIRSTWINDOW = g_pCompositor->getFirstWindowOnWorkspace(pWorkspaceToChangeTo->m_iID); PFIRSTWINDOW)
+            g_pCompositor->focusWindow(PFIRSTWINDOW);
         else
-            g_pInputManager->refocus();
+            g_pCompositor->focusWindow(nullptr);
     }
 
     pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};

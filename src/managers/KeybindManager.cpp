@@ -736,6 +736,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     const auto         PMONITOR          = g_pCompositor->m_pLastMonitor;
     const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
+    const bool         EXPLICITPREVIOUS = args.find("previous") == 0;
+
     if (args.find("previous") == 0) {
         // Do nothing if there's no previous workspace, otherwise switch to it.
         if (PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1) {
@@ -749,9 +751,6 @@ void CKeybindManager::changeworkspace(std::string args) {
             else
                 workspaceName =
                     PCURRENTWORKSPACE->m_sPrevWorkspace.name.empty() ? std::to_string(PCURRENTWORKSPACE->m_sPrevWorkspace.iID) : PCURRENTWORKSPACE->m_sPrevWorkspace.name;
-
-            if (!*PALLOWWORKSPACECYCLES)
-                PCURRENTWORKSPACE->m_sPrevWorkspace = {-1, ""};
         }
     } else {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
@@ -766,7 +765,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pInputManager->m_bEmptyFocusCursorSet = false;
 
     if (workspaceToChangeTo == PCURRENTWORKSPACE->m_iID) {
-        if (!*PBACKANDFORTH || PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1)
+        if ((!*PBACKANDFORTH && !EXPLICITPREVIOUS) || PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1)
             return;
 
         auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->m_sPrevWorkspace.iID);
@@ -793,13 +792,15 @@ void CKeybindManager::changeworkspace(std::string args) {
                 else
                     g_pCompositor->focusWindow(nullptr);
             }
-
-            if (*PALLOWWORKSPACECYCLES)
-                pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
         } else {
             pWorkspaceToChangeTo = g_pCompositor->createNewWorkspace(PCURRENTWORKSPACE->m_sPrevWorkspace.iID, PMONITOR->ID, PCURRENTWORKSPACE->m_sPrevWorkspace.name);
             PMONITOR->changeWorkspace(pWorkspaceToChangeTo);
         }
+
+        if (*PALLOWWORKSPACECYCLES)
+            pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
+        else if (!EXPLICITPREVIOUS)
+            pWorkspaceToChangeTo->m_sPrevWorkspace = {-1, ""};
 
         return;
     }

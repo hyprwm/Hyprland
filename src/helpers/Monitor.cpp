@@ -477,8 +477,16 @@ float CMonitor::getDefaultScale() {
 }
 
 void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
-    if (!pWorkspace || pWorkspace->m_iID == activeWorkspace)
+    if (!pWorkspace)
         return;
+
+    if (pWorkspace->m_iID == activeWorkspace) {
+        // in some cases (e.g. workspace from one monitor to another)
+        // we need to send this
+        g_pCompositor->deactivateAllWLRWorkspaces(pWorkspace->m_pWlrHandle);
+        pWorkspace->setActive(true);
+        return;
+    }
 
     if (pWorkspace->m_bIsSpecialWorkspace) {
         Debug::log(ERR, "BUG THIS: Attempted to changeWorkspace to special!");
@@ -509,7 +517,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
         }
 
         // set some flags and fire event
-        g_pCompositor->deactivateAllWLRWorkspaces();
+        g_pCompositor->deactivateAllWLRWorkspaces(pWorkspace->m_pWlrHandle);
         pWorkspace->setActive(true);
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_szName});
         EMIT_HOOK_EVENT("workspace", pWorkspace);

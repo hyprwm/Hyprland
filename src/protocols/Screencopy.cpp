@@ -85,9 +85,9 @@ static const struct zwlr_screencopy_frame_v1_interface screencopyFrameImpl = {
     .copy_with_damage = handleCopyWithDamage,
 };
 
-static SScreencopyClient* clientFromResource(wl_resource* resource) {
+static CScreencopyClient* clientFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &zwlr_screencopy_manager_v1_interface, &screencopyMgrImpl));
-    return (SScreencopyClient*)wl_resource_get_user_data(resource);
+    return (CScreencopyClient*)wl_resource_get_user_data(resource);
 }
 
 static SScreencopyFrame* frameFromResource(wl_resource* resource) {
@@ -95,7 +95,7 @@ static SScreencopyFrame* frameFromResource(wl_resource* resource) {
     return (SScreencopyFrame*)wl_resource_get_user_data(resource);
 }
 
-void CScreencopyProtocolManager::removeClient(SScreencopyClient* client, bool force) {
+void CScreencopyProtocolManager::removeClient(CScreencopyClient* client, bool force) {
     if (!force) {
         if (!client || client->ref <= 0)
             return;
@@ -111,6 +111,36 @@ static void handleManagerResourceDestroy(wl_resource* resource) {
     const auto PCLIENT = clientFromResource(resource);
 
     g_pProtocolManager->m_pScreencopyProtocolManager->removeClient(PCLIENT, true);
+}
+
+CScreencopyClient::~CScreencopyClient() {
+    g_pHookSystem->unhook(tickCallback);
+}
+
+CScreencopyClient::CScreencopyClient() {
+    lastMeasure  = std::chrono::system_clock::now();
+    tickCallback = g_pHookSystem->hookDynamic("tick", [&](void* self, std::any data) { onTick(); });
+}
+
+void CScreencopyClient::onTick() {
+    const auto SINCELAST = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastMeasure).count() / 1000.0;
+
+    if (SINCELAST < 0.5)
+        return;
+
+    framesInLastHalfSecond = frameCounter;
+    frameCounter           = 0;
+    lastMeasure            = std::chrono::system_clock::now();
+
+    if (framesInLastHalfSecond > 3 && !sentScreencast) {
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, (uint64_t)framesInLastHalfSecond, (uint64_t)clientOwner}));
+        g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "1," + std::to_string(clientOwner)});
+        sentScreencast = true;
+    } else if (framesInLastHalfSecond < 4 && sentScreencast) {
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, (uint64_t)framesInLastHalfSecond, (uint64_t)clientOwner}));
+        g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "0," + std::to_string(clientOwner)});
+        sentScreencast = false;
+    }
 }
 
 void CScreencopyProtocolManager::bindManager(wl_client* client, void* data, uint32_t version, uint32_t id) {
@@ -319,6 +349,8 @@ void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor, bool dmabuf)
             continue;
 
         shareFrame(f);
+
+        ++f->client->frameCounter;
 
         framesToRemove.push_back(f);
     }

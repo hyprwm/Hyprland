@@ -5,21 +5,42 @@
 
 #include <list>
 #include <vector>
+#include "../managers/HookSystemManager.hpp"
 
 class CMonitor;
 
-struct SScreencopyClient {
-    int          ref      = 0;
-    wl_resource* resource = nullptr;
+enum eClientOwners
+{
+    CLIENT_SCREENCOPY = 0,
+    CLIENT_TOPLEVEL_EXPORT
+};
 
-    bool         operator==(const SScreencopyClient& other) const {
+class CScreencopyClient {
+  public:
+    CScreencopyClient();
+    ~CScreencopyClient();
+
+    int                                   ref      = 0;
+    wl_resource*                          resource = nullptr;
+
+    eClientOwners                         clientOwner = CLIENT_SCREENCOPY;
+
+    int                                   frameCounter           = 0;
+    int                                   framesInLastHalfSecond = 0;
+    std::chrono::system_clock::time_point lastMeasure;
+    bool                                  sentScreencast = false;
+
+    void                                  onTick();
+    HOOK_CALLBACK_FN*                     tickCallback = nullptr;
+
+    bool                                  operator==(const CScreencopyClient& other) const {
         return resource == other.resource;
     }
 };
 
 struct SScreencopyFrame {
     wl_resource*       resource = nullptr;
-    SScreencopyClient* client   = nullptr;
+    CScreencopyClient* client   = nullptr;
 
     uint32_t           shmFormat    = 0;
     uint32_t           dmabufFormat = 0;
@@ -34,6 +55,7 @@ struct SScreencopyFrame {
     wlr_buffer*        buffer = nullptr;
 
     CMonitor*          pMonitor = nullptr;
+    CWindow*           pWindow  = nullptr;
 
     bool               operator==(const SScreencopyFrame& other) const {
         return resource == other.resource && client == other.client;
@@ -45,7 +67,7 @@ class CScreencopyProtocolManager {
     CScreencopyProtocolManager();
 
     void bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
-    void removeClient(SScreencopyClient* client, bool force = false);
+    void removeClient(CScreencopyClient* client, bool force = false);
     void removeFrame(SScreencopyFrame* frame, bool force = false);
     void displayDestroy();
 
@@ -59,7 +81,7 @@ class CScreencopyProtocolManager {
   private:
     wl_global*                     m_pGlobal = nullptr;
     std::list<SScreencopyFrame>    m_lFrames;
-    std::list<SScreencopyClient>   m_lClients;
+    std::list<CScreencopyClient>   m_lClients;
 
     wl_listener                    m_liDisplayDestroy;
 

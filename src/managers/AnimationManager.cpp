@@ -8,9 +8,10 @@ int wlTick(void* data) {
 
     wl_event_source_timer_update(g_pAnimationManager->m_pAnimationTick, 1000 / refreshRate);
 
-    g_pAnimationManager->tick();
-
-    EMIT_HOOK_EVENT("tick", nullptr);
+    if (g_pCompositor->m_bSessionActive && std::ranges::any_of(g_pCompositor->m_vMonitors, [](const auto& mon) { return mon->m_bEnabled && mon->output; })) {
+        g_pAnimationManager->tick();
+        EMIT_HOOK_EVENT("tick", nullptr);
+    }
 
     return 0;
 }

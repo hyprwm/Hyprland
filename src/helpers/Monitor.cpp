@@ -522,6 +522,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_szName});
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }
+
+    g_pHyprRenderer->damageMonitor(this);
 }
 
 void CMonitor::changeWorkspace(const int& id, bool internal) {
@@ -529,6 +531,8 @@ void CMonitor::changeWorkspace(const int& id, bool internal) {
 }
 
 void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
+    g_pHyprRenderer->damageMonitor(this);
+
     if (!pWorkspace) {
         // remove special if exists
         if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL)

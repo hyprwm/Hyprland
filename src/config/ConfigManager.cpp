@@ -1090,8 +1090,11 @@ void CConfigManager::handleEnv(const std::string& command, const std::string& va
 
     if (command.back() == 'd') {
         // dbus
-        const auto CMD = "systemctl --user import-environment " + ARGS[0] +
+        const auto CMD =
+#ifdef USES_SYSTEMD
+            "systemctl --user import-environment " + ARGS[0] +
             " && hash dbus-update-activation-environment 2>/dev/null && "
+#endif
             "dbus-update-activation-environment --systemd " +
             ARGS[0];
         handleRawExec("", CMD.c_str());
@@ -1719,7 +1722,9 @@ void CConfigManager::dispatchExecOnce() {
     if (g_pCompositor->m_sWLRSession)
         handleRawExec(
             "",
+#ifdef USES_SYSTEMD
             "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && hash dbus-update-activation-environment 2>/dev/null && "
+#endif
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE");
 
     firstExecDispatched = true;

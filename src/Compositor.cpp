@@ -443,7 +443,9 @@ void CCompositor::startCompositor() {
     if (m_sWLRSession /* Session-less Hyprland usually means a nest, don't update the env in that case */ && fork() == 0)
         execl(
             "/bin/sh", "/bin/sh", "-c",
+#ifdef USES_SYSTEMD
             "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && hash dbus-update-activation-environment 2>/dev/null && "
+#endif
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE",
             nullptr);
 

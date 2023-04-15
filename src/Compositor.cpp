@@ -995,10 +995,6 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
 
         auto SURFACEAT = wlr_layer_surface_v1_surface_at(ls->layerSurface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
 
-        if (!SURFACEAT && VECINRECT(pos, ls->geometry.x, ls->geometry.y, ls->geometry.x + ls->geometry.width, ls->geometry.y + ls->geometry.height)) {
-            SURFACEAT = ls->layerSurface->surface;
-        }
-
         if (ls->layerSurface->current.keyboard_interactive && ls->layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
             if (!SURFACEAT)
                 SURFACEAT = ls->layerSurface->surface;

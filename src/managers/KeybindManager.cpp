@@ -876,6 +876,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     auto pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
+    g_pHyprRenderer->damageWindow(PWINDOW);
+
     if (pWorkspace) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
         const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
@@ -918,6 +920,8 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     if (WORKSPACEID == PWINDOW->m_iWorkspaceID)
         return;
+
+    g_pHyprRenderer->damageWindow(PWINDOW);
 
     auto       pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
     const auto OLDMIDDLE  = PWINDOW->middle();

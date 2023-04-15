@@ -509,7 +509,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     // verify swallowing
-    if (*PSWALLOW) {
+    if (*PSWALLOW && *PSWALLOWREGEX != STRVAL_EMPTY) {
         // don't swallow ourselves
         std::regex rgx(*PSWALLOWREGEX);
         if (!std::regex_match(g_pXWaylandManager->getAppIDClass(PWINDOW), rgx)) {
@@ -554,10 +554,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 }
 
                 if (finalFound) {
-                    std::regex exc(*PSWALLOWEXREGEX);
+                    bool valid = std::regex_match(g_pXWaylandManager->getAppIDClass(finalFound), rgx);
+
+                    if (*PSWALLOWEXREGEX != STRVAL_EMPTY) {
+                        std::regex exc(*PSWALLOWEXREGEX);
+
+                        valid = valid && !std::regex_match(g_pXWaylandManager->getTitle(finalFound), exc);
+                    }
+
                     // check if it's the window we want & not exempt from getting swallowed
-                    if (std::regex_match(g_pXWaylandManager->getAppIDClass(finalFound), rgx) &&
-                        !std::regex_match(g_pXWaylandManager->getTitle(finalFound), exc)) {
+                    if (valid) {
                         // swallow
                         PWINDOW->m_pSwallowed = finalFound;
 

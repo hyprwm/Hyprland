@@ -48,7 +48,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += getFormat("Version: %s\n\n", GIT_COMMIT_HASH);
 
-    if (!g_pPluginSystem->getAllPlugins().empty()) {
+    if (g_pPluginSystem && !g_pPluginSystem->getAllPlugins().empty()) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
         for (auto& p : g_pPluginSystem->getAllPlugins()) {
@@ -128,7 +128,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += execAndGet(("cat \"" + Debug::logFile + "\" | tail -n 50").c_str());
 
-    const auto HOME = getenv("HOME");
+    const auto HOME       = getenv("HOME");
     const auto CACHE_HOME = getenv("XDG_CACHE_HOME");
 
     if (!HOME)

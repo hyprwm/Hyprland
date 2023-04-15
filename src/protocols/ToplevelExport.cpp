@@ -75,17 +75,17 @@ static const struct hyprland_toplevel_export_manager_v1_interface toplevelExport
 
 static const struct hyprland_toplevel_export_frame_v1_interface toplevelFrameImpl = {.copy = handleCopyFrame, .destroy = handleDestroyFrame};
 
-static SToplevelClient*                                         clientFromResource(wl_resource* resource) {
+static CScreencopyClient*                                       clientFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_manager_v1_interface, &toplevelExportManagerImpl));
-    return (SToplevelClient*)wl_resource_get_user_data(resource);
+    return (CScreencopyClient*)wl_resource_get_user_data(resource);
 }
 
-static SToplevelFrame* frameFromResource(wl_resource* resource) {
+static SScreencopyFrame* frameFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_frame_v1_interface, &toplevelFrameImpl));
-    return (SToplevelFrame*)wl_resource_get_user_data(resource);
+    return (SScreencopyFrame*)wl_resource_get_user_data(resource);
 }
 
-void CToplevelExportProtocolManager::removeClient(SToplevelClient* client, bool force) {
+void CToplevelExportProtocolManager::removeClient(CScreencopyClient* client, bool force) {
     if (!force) {
         if (!client || client->ref <= 0)
             return;
@@ -106,7 +106,8 @@ static void handleManagerResourceDestroy(wl_resource* resource) {
 void CToplevelExportProtocolManager::bindManager(wl_client* client, void* data, uint32_t version, uint32_t id) {
     const auto PCLIENT = &m_lClients.emplace_back();
 
-    PCLIENT->resource = wl_resource_create(client, &hyprland_toplevel_export_manager_v1_interface, version, id);
+    PCLIENT->clientOwner = CLIENT_TOPLEVEL_EXPORT;
+    PCLIENT->resource    = wl_resource_create(client, &hyprland_toplevel_export_manager_v1_interface, version, id);
 
     if (!PCLIENT->resource) {
         Debug::log(ERR, "ToplevelExportManager could not bind! (out of memory?)");
@@ -128,7 +129,7 @@ static void handleFrameResourceDestroy(wl_resource* resource) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->removeFrame(PFRAME);
 }
 
-void CToplevelExportProtocolManager::removeFrame(SToplevelFrame* frame, bool force) {
+void CToplevelExportProtocolManager::removeFrame(SScreencopyFrame* frame, bool force) {
     if (!frame)
         return;
 
@@ -283,7 +284,7 @@ void CToplevelExportProtocolManager::onMonitorRender(CMonitor* pMonitor) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 
-    std::vector<SToplevelFrame*> framesToRemove;
+    std::vector<SScreencopyFrame*> framesToRemove;
 
     // share frame if correct output
     for (auto& f : m_vFramesAwaitingWrite) {
@@ -299,6 +300,8 @@ void CToplevelExportProtocolManager::onMonitorRender(CMonitor* pMonitor) {
 
         shareFrame(f);
 
+        ++f->client->frameCounter;
+
         framesToRemove.push_back(f);
     }
 
@@ -307,7 +310,7 @@ void CToplevelExportProtocolManager::onMonitorRender(CMonitor* pMonitor) {
     }
 }
 
-void CToplevelExportProtocolManager::shareFrame(SToplevelFrame* frame) {
+void CToplevelExportProtocolManager::shareFrame(SScreencopyFrame* frame) {
     if (!frame->buffer) {
         return;
     }
@@ -337,7 +340,7 @@ void CToplevelExportProtocolManager::shareFrame(SToplevelFrame* frame) {
     hyprland_toplevel_export_frame_v1_send_ready(frame->resource, tvSecHi, tvSecLo, now.tv_nsec);
 }
 
-bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespec* now) {
+bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {
     void*    data;
     uint32_t format;
     size_t   stride;
@@ -423,7 +426,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SToplevelFrame* frame, timespe
     return true;
 }
 
-bool CToplevelExportProtocolManager::copyFrameDmabuf(SToplevelFrame* frame) {
+bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
     // todo
     Debug::log(ERR, "DMABUF copying not impl'd!");
     return false;

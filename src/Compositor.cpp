@@ -1096,7 +1096,7 @@ void CCompositor::sanityCheckWorkspaces() {
         const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace((*it)->m_iID);
 
         if ((*it)->m_bIsSpecialWorkspace && WINDOWSONWORKSPACE == 0) {
-            getMonitorFromID((*it)->m_iMonitorID)->specialWorkspaceID = 0;
+            getMonitorFromID((*it)->m_iMonitorID)->setSpecialWorkspace(nullptr);
 
             it = m_vWorkspaces.erase(it);
             continue;

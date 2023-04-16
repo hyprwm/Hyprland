@@ -516,6 +516,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
             g_pInputManager->refocus();
         }
 
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
+
         // set some flags and fire event
         g_pCompositor->deactivateAllWLRWorkspaces(pWorkspace->m_pWlrHandle);
         pWorkspace->setActive(true);

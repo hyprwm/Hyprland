@@ -74,6 +74,8 @@ struct SCurrentRenderData {
     pixman_region32_t*  pDamage = nullptr;
 
     SRenderModifData    renderModif;
+    float               mouseZoomFactor    = 1.f;
+    bool                useNearestNeighbor = false;
 
     Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D            primarySurfaceUVBottomRight = Vector2D(-1, -1);

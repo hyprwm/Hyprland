@@ -90,6 +90,8 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:suppress_portal_warnings"].intValue     = 0;
     configValues["misc:render_ahead_of_time"].intValue         = 0;
     configValues["misc:render_ahead_safezone"].intValue        = 1;
+    configValues["misc:cursor_zoom_factor"].floatValue         = 1.f;
+    configValues["misc:cursor_zoom_rigid"].intValue            = 0;
 
     configValues["debug:int"].intValue                = 0;
     configValues["debug:log_damage"].intValue         = 0;

@@ -145,6 +145,8 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, pixman_region32_t* pDamage, bool
 }
 
 void CHyprOpenGLImpl::end() {
+    static auto* const PZOOMRIGID = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_rigid")->intValue;
+
     // end the render, copy the data to the WLR framebuffer
     if (!m_bFakeFrame) {
         pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
@@ -155,20 +157,41 @@ void CHyprOpenGLImpl::end() {
         glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
         wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
+        if (m_RenderData.mouseZoomFactor != 1.f) {
+            const auto MOUSEPOS = g_pInputManager->getMouseCoordsInternal() - m_RenderData.pMonitor->vecPosition;
+            monbox.x -= MOUSEPOS.x;
+            monbox.y -= MOUSEPOS.y;
+            scaleBox(&monbox, m_RenderData.mouseZoomFactor);
+            monbox.x += *PZOOMRIGID ? m_RenderData.pMonitor->vecTransformedSize.x / 2 : MOUSEPOS.x;
+            monbox.y += *PZOOMRIGID ? m_RenderData.pMonitor->vecTransformedSize.y / 2 : MOUSEPOS.y;
+
+            if (monbox.x > 0)
+                monbox.x = 0;
+            if (monbox.y > 0)
+                monbox.y = 0;
+            if (monbox.x + monbox.width < m_RenderData.pMonitor->vecTransformedSize.x)
+                monbox.x = m_RenderData.pMonitor->vecTransformedSize.x - monbox.width;
+            if (monbox.y + monbox.height < m_RenderData.pMonitor->vecTransformedSize.y)
+                monbox.y = m_RenderData.pMonitor->vecTransformedSize.y - monbox.height;
+        }
+
         clear(CColor(11.0 / 255.0, 11.0 / 255.0, 11.0 / 255.0, 1.0));
 
-        m_bEndFrame         = true;
-        m_bApplyFinalShader = true;
+        m_bEndFrame                     = true;
+        m_bApplyFinalShader             = true;
+        m_RenderData.useNearestNeighbor = true;
 
         renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f, 0);
 
-        m_bApplyFinalShader = false;
-        m_bEndFrame         = false;
+        m_RenderData.useNearestNeighbor = false;
+        m_bApplyFinalShader             = false;
+        m_bEndFrame                     = false;
     }
 
     // reset our data
-    m_RenderData.pMonitor = nullptr;
-    m_iWLROutputFb        = 0;
+    m_RenderData.pMonitor        = nullptr;
+    m_iWLROutputFb               = 0;
+    m_RenderData.mouseZoomFactor = 1.f;
 }
 
 void CHyprOpenGLImpl::initShaders() {
@@ -554,7 +577,13 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex.m_iTarget, tex.m_iTexID);
 
-    glTexParameteri(tex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    if (m_RenderData.useNearestNeighbor) {
+        glTexParameteri(tex.m_iTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(tex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    } else {
+        glTexParameteri(tex.m_iTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(tex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
 
     glUseProgram(shader->program);
 

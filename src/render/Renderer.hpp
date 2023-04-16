@@ -58,15 +58,16 @@ class CHyprRenderer {
     bool                            m_bDirectScanoutBlocked      = false;
     bool                            m_bSoftwareCursorsLocked     = false;
 
-    DAMAGETRACKINGMODES             damageTrackingModeFromStr(const std::string&);
+    DAMAGETRACKINGMODES
+    damageTrackingModeFromStr(const std::string&);
 
-    bool                            attemptDirectScanout(CMonitor*);
-    void                            setWindowScanoutMode(CWindow*);
-    void                            initiateManualCrash();
+    bool             attemptDirectScanout(CMonitor*);
+    void             setWindowScanoutMode(CWindow*);
+    void             initiateManualCrash();
 
-    bool                            m_bCrashingInProgress = false;
-    float                           m_fCrashingDistort    = 0.5f;
-    wl_event_source*                m_pCrashingLoop       = nullptr;
+    bool             m_bCrashingInProgress = false;
+    float            m_fCrashingDistort    = 0.5f;
+    wl_event_source* m_pCrashingLoop       = nullptr;
 
   private:
     void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);

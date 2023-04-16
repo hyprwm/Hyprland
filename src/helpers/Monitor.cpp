@@ -299,11 +299,23 @@ void CMonitor::onDisconnect() {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
+    static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
+    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+        wlr_damage_ring_add_whole(&damage);
+        g_pCompositor->scheduleFrameForMonitor(this);
+    }
+
     if (wlr_damage_ring_add(&damage, rg))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 
 void CMonitor::addDamage(const wlr_box* box) {
+    static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
+    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+        wlr_damage_ring_add_whole(&damage);
+        g_pCompositor->scheduleFrameForMonitor(this);
+    }
+
     if (wlr_damage_ring_add_box(&damage, box))
         g_pCompositor->scheduleFrameForMonitor(this);
 }

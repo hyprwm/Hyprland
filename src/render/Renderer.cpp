@@ -767,6 +767,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static auto* const                                    PDAMAGEBLINK        = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
     static auto* const                                    PNODIRECTSCANOUT    = &g_pConfigManager->getConfigValuePtr("misc:no_direct_scanout")->intValue;
     static auto* const                                    PVFR                = &g_pConfigManager->getConfigValuePtr("misc:vfr")->intValue;
+    static auto* const                                    PZOOMFACTOR         = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
@@ -907,7 +908,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
         g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
-        renderWorkspace(pMonitor, g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace), &now, {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y});
+        wlr_box renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
+        renderWorkspace(pMonitor, g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace), &now, renderBox);
 
         renderLockscreen(pMonitor, &now);
 
@@ -934,11 +936,20 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         }
 
         if (wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y)) {
-            wlr_output_render_software_cursors(pMonitor->output, NULL);
+            if (pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f) {
+                wlr_output_lock_software_cursors(pMonitor->output, true);
+                wlr_output_render_software_cursors(pMonitor->output, NULL);
+                wlr_output_lock_software_cursors(pMonitor->output, false);
+            } else
+                wlr_output_render_software_cursors(pMonitor->output, NULL);
             wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
         }
     }
 
+    if (pMonitor == g_pCompositor->getMonitorFromCursor())
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
+    else
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = 1.f;
     g_pHyprOpenGL->end();
 
     // calc frame damage

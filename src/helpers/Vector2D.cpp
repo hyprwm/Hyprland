@@ -29,7 +29,7 @@ Vector2D Vector2D::floor() {
 }
 
 Vector2D Vector2D::clamp(const Vector2D& min, const Vector2D& max) {
-    return Vector2D(std::clamp(this->x, min.x, max.x == 0 ? INFINITY : max.x), std::clamp(this->y, min.y, max.y == 0 ? INFINITY : max.y));
+    return Vector2D(std::clamp(this->x, min.x, max.x < min.x ? INFINITY : max.x), std::clamp(this->y, min.y, max.y < min.y ? INFINITY : max.y));
 }
 
 double Vector2D::distance(const Vector2D& other) {

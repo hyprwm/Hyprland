@@ -111,7 +111,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 #endif
 
     for (size_t i = 0; i < btSize; ++i) {
-        finalCrashReport += getFormat("\t#%i | %s\n", i, btSymbols[i]);
+        finalCrashReport += getFormat("\t#%lu | %s\n", i, btSymbols[i]);
 
 #ifdef __clang__
         const auto CMD = getFormat("llvm-addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)bt[i]);

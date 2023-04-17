@@ -13,6 +13,9 @@ on the same machine.
 
 See examples/examplePlugin for an example plugin
 
+ * NOTE:
+Feel like the API is missing something you'd like to use in your plugin? Open an issue on github!
+
 */
 
 #define HYPRLAND_API_VERSION "0.1"

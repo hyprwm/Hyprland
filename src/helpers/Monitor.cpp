@@ -492,16 +492,16 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
     if (!pWorkspace)
         return;
 
+    if (pWorkspace->m_bIsSpecialWorkspace) {
+        Debug::log(ERR, "BUG THIS: Attempted to changeWorkspace to special!");
+        return;
+    }
+
     if (pWorkspace->m_iID == activeWorkspace) {
         // in some cases (e.g. workspace from one monitor to another)
         // we need to send this
         g_pCompositor->deactivateAllWLRWorkspaces(pWorkspace->m_pWlrHandle);
         pWorkspace->setActive(true);
-        return;
-    }
-
-    if (pWorkspace->m_bIsSpecialWorkspace) {
-        Debug::log(ERR, "BUG THIS: Attempted to changeWorkspace to special!");
         return;
     }
 

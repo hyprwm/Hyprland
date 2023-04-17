@@ -145,7 +145,7 @@ STabletTool* CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
     if (pTool->data == nullptr) {
         const auto PTOOL = &m_lTabletTools.emplace_back();
 
-        Debug::log(LOG, "Creating tablet tool v2 for %x", pTool);
+        Debug::log(LOG, "Creating tablet tool v2 for %lx", pTool);
 
         PTOOL->wlrTabletTool = pTool;
         pTool->data          = PTOOL;

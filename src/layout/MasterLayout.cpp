@@ -270,7 +270,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if ((WINDOWS < 2) && !centerMasterWindow) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
-                                         PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+                                     PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || (orientation == ORIENTATION_CENTER && STACKWINDOWS <= 1)) {
@@ -468,7 +468,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node %x (workspace ID: %i)!!", pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node %lx (workspace ID: %i)!!", pNode, pNode->workspaceID);
         return;
     }
 
@@ -485,7 +485,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     const auto PWINDOW = pNode->pWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
-        Debug::log(ERR, "Node %x holding invalid window %x!!", pNode, PWINDOW);
+        Debug::log(ERR, "Node %lx holding invalid window %lx!!", pNode, PWINDOW);
         return;
     }
 

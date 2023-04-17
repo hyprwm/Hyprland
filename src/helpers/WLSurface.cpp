@@ -39,7 +39,7 @@ void CWLSurface::destroy() {
 
     m_pWLRSurface = nullptr;
 
-    Debug::log(LOG, "CWLSurface %x called destroy()", this);
+    Debug::log(LOG, "CWLSurface %lx called destroy()", this);
 }
 
 void CWLSurface::init() {
@@ -53,5 +53,5 @@ void CWLSurface::init() {
     hyprListener_destroy.initCallback(
         &m_pWLRSurface->events.destroy, [&](void* owner, void* data) { destroy(); }, this, "CWLSurface");
 
-    Debug::log(LOG, "CWLSurface %x called init()", this);
+    Debug::log(LOG, "CWLSurface %lx called init()", this);
 }

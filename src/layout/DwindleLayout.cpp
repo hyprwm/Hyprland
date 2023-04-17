@@ -98,7 +98,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node %x (workspace ID: %i)!!", pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node %lx (workspace ID: %i)!!", pNode, pNode->workspaceID);
         return;
     }
 
@@ -115,7 +115,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     const auto PWINDOW = pNode->pWindow;
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
-        Debug::log(ERR, "Node %x holding invalid window %x!!", pNode, PWINDOW);
+        Debug::log(ERR, "Node %lx holding invalid window %lx!!", pNode, PWINDOW);
         onWindowRemovedTiling(PWINDOW);
         return;
     }
@@ -252,7 +252,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     } else
         OPENINGON = getFirstNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
-    Debug::log(LOG, "OPENINGON: %x, Workspace: %i, Monitor: %i", OPENINGON, PNODE->workspaceID, PMONITOR->ID);
+    Debug::log(LOG, "OPENINGON: %lx, Workspace: %i, Monitor: %i", OPENINGON, PNODE->workspaceID, PMONITOR->ID);
 
     if (OPENINGON && OPENINGON->workspaceID != PNODE->workspaceID) {
         // special workspace handling

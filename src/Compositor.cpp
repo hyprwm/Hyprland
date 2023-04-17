@@ -885,7 +885,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
-    g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("%x", pWindow)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("%lx", pWindow)});
 
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
@@ -906,7 +906,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     // move to front of the window history
     const auto HISTORYPIVOT = std::find_if(m_vWindowFocusHistory.begin(), m_vWindowFocusHistory.end(), [&](const auto& other) { return other == pWindow; });
     if (HISTORYPIVOT == m_vWindowFocusHistory.end()) {
-        Debug::log(ERR, "BUG THIS: Window %x has no pivot in history", pWindow);
+        Debug::log(ERR, "BUG THIS: Window %lx has no pivot in history", pWindow);
     } else {
         std::rotate(m_vWindowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
     }
@@ -951,9 +951,9 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     wl_signal_emit_mutable(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
 
     if (pWindowOwner)
-        Debug::log(LOG, "Set keyboard focus to surface %x, with window name: %s", pSurface, pWindowOwner->m_szTitle.c_str());
+        Debug::log(LOG, "Set keyboard focus to surface %lx, with window name: %s", pSurface, pWindowOwner->m_szTitle.c_str());
     else
-        Debug::log(LOG, "Set keyboard focus to surface %x", pSurface);
+        Debug::log(LOG, "Set keyboard focus to surface %lx", pSurface);
 
     g_pXWaylandManager->activateSurface(pSurface, true);
     m_pLastFocus = pSurface;
@@ -2084,7 +2084,7 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
                 break;
             }
             case MODE_ADDRESS: {
-                std::string addr = getFormat("0x%x", w.get());
+                std::string addr = getFormat("0x%lx", w.get());
                 if (matchCheck != addr)
                     continue;
                 break;

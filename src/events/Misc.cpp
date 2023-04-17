@@ -98,14 +98,14 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
 
     wlr_drag* wlrDrag = (wlr_drag*)data;
 
-    Debug::log(LOG, "Started drag %x", wlrDrag);
+    Debug::log(LOG, "Started drag %lx", wlrDrag);
 
     wlrDrag->data = data;
 
     g_pInputManager->m_sDrag.hyprListener_destroy.initCallback(&wlrDrag->events.destroy, &Events::listener_destroyDrag, &g_pInputManager->m_sDrag, "Drag");
 
     if (wlrDrag->icon) {
-        Debug::log(LOG, "Drag started with an icon %x", wlrDrag->icon);
+        Debug::log(LOG, "Drag started with an icon %lx", wlrDrag->icon);
 
         g_pInputManager->m_sDrag.dragIcon = wlrDrag->icon;
         wlrDrag->icon->data               = g_pInputManager->m_sDrag.dragIcon;
@@ -157,7 +157,7 @@ void Events::listener_commitDragIcon(void* owner, void* data) {
 }
 
 void Events::listener_InhibitActivate(wl_listener* listener, void* data) {
-    Debug::log(LOG, "Activated exclusive for %x.", g_pCompositor->m_sSeat.exclusiveClient);
+    Debug::log(LOG, "Activated exclusive for %lx.", g_pCompositor->m_sSeat.exclusiveClient);
 
     g_pInputManager->refocus();
     g_pCompositor->m_sSeat.exclusiveClient = g_pCompositor->m_sWLRInhibitMgr->active_client;

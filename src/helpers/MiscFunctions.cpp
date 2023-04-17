@@ -149,7 +149,7 @@ void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, const
 
     wl_signal_add(pSignal, pListener);
 
-    Debug::log(LOG, "Registered signal for owner %x: %x -> %x (owner: %s)", pOwner, pSignal, pListener, ownerString.c_str());
+    Debug::log(LOG, "Registered signal for owner %lx: %lx -> %lx (owner: %s)", pOwner, pSignal, pListener, ownerString.c_str());
 }
 
 void handleNoop(struct wl_listener* listener, void* data) {

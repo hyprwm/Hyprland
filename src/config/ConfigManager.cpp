@@ -976,7 +976,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
         for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
                 if (BYADDRESS) {
-                    if (getFormat("0x%x", ls.get()) == matchName)
+                    if (getFormat("0x%lx", ls.get()) == matchName)
                         ls->forceBlur = forceBlur;
                 } else if (ls->szNamespace == matchName)
                     ls->forceBlur = forceBlur;
@@ -1668,7 +1668,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         }
 
         // applies. Read the rule and behave accordingly
-        Debug::log(LOG, "Window rule %s -> %s matched %x [%s]", rule.szRule.c_str(), rule.szValue.c_str(), pWindow, pWindow->m_szTitle.c_str());
+        Debug::log(LOG, "Window rule %s -> %s matched %lx [%s]", rule.szRule.c_str(), rule.szValue.c_str(), pWindow, pWindow->m_szTitle.c_str());
 
         returns.push_back(rule);
     }
@@ -1697,7 +1697,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
 
     for (auto& lr : m_dLayerRules) {
         if (lr.targetNamespace.find("address:0x") == 0) {
-            if (getFormat("address:0x%x", pLS) != lr.targetNamespace)
+            if (getFormat("address:0x%lx", pLS) != lr.targetNamespace)
                 continue;
         } else {
             std::regex NSCHECK(lr.targetNamespace);

@@ -93,7 +93,7 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
     } while (curr != w);
 
     const auto         comma = isJson ? ", " : ",";
-    const auto         fmt   = isJson ? "\"0x%x\"" : "%x";
+    const auto         fmt   = isJson ? "\"0x%lx\"" : "%lx";
     std::ostringstream result;
 
     bool               first = true;
@@ -113,7 +113,7 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
     if (format == HyprCtl::FORMAT_JSON) {
         return getFormat(
             R"#({
-    "address": "0x%x",
+    "address": "0x%lx",
     "mapped": %s,
     "hidden": %s,
     "at": [%i, %i],
@@ -147,13 +147,13 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             escapeJSONStrings(g_pXWaylandManager->getTitle(w)).c_str(), escapeJSONStrings(w->m_szInitialClass).c_str(), escapeJSONStrings(w->m_szInitialTitle).c_str(), w->getPID(),
             ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"), (w->m_bIsFullscreen ? "true" : "false"),
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
-            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format).c_str(), (w->m_pSwallowed ? getFormat("\"0x%x\"", w->m_pSwallowed).c_str() : "null"));
+            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format).c_str(), (w->m_pSwallowed ? getFormat("\"0x%lx\"", w->m_pSwallowed).c_str() : "null"));
     } else {
         return getFormat(
-            "Window %x -> %s:\n\tmapped: %i\n\thidden: %i\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: "
+            "Window %lx -> %s:\n\tmapped: %i\n\thidden: %i\n\tat: %i,%i\n\tsize: %i,%i\n\tworkspace: %i (%s)\n\tfloating: %i\n\tmonitor: %i\n\tclass: %s\n\ttitle: "
             "%s\n\tinitialClass: %s\n\tinitialTitle: %s\n\tpid: "
             "%i\n\txwayland: %i\n\tpinned: "
-            "%i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\tfakefullscreen: %i\n\tgrouped: %s\n\tswallowing: %x\n\n",
+            "%i\n\tfullscreen: %i\n\tfullscreenmode: %i\n\tfakefullscreen: %i\n\tgrouped: %s\n\tswallowing: %lx\n\n",
             w, w->m_szTitle.c_str(), (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y, (int)w->m_vRealSize.goalv().x,
             (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
             (w->m_iWorkspaceID == -1                                ? "" :
@@ -204,7 +204,7 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "monitor": "%s",
     "windows": %i,
     "hasfullscreen": %s,
-    "lastwindow": "0x%x",
+    "lastwindow": "0x%lx",
     "lastwindowtitle": "%s"
 },)#",
                 w->m_iID, escapeJSONStrings(w->m_szName).c_str(), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?").c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
@@ -219,7 +219,7 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
             const auto PLASTW   = w->getLastFocusedWindow();
             const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
-            result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\tlastwindow: 0x%x\n\tlastwindowtitle: %s\n\n", w->m_iID,
+            result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\tlastwindow: 0x%lx\n\tlastwindowtitle: %s\n\n", w->m_iID,
                                 w->m_szName.c_str(), PMONITOR ? PMONITOR->szName.c_str() : "?", g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow,
                                 PLASTW, PLASTW ? PLASTW->m_szTitle.c_str() : "");
         }
@@ -264,7 +264,7 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 for (auto& layer : level) {
                     result += getFormat(
                         R"#(                {
-                    "address": "0x%x",
+                    "address": "0x%lx",
                     "x": %i,
                     "y": %i,
                     "w": %i,
@@ -305,7 +305,7 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 result += getFormat("\tLayer level %i (%s):\n", layerLevel, levelNames[layerLevel].c_str());
 
                 for (auto& layer : level) {
-                    result += getFormat("\t\tLayer %x: xywh: %i %i %i %i, namespace: %s\n", layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width,
+                    result += getFormat("\t\tLayer %lx: xywh: %i %i %i %i, namespace: %s\n", layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width,
                                         layer->geometry.height, layer->szNamespace.c_str());
                 }
 
@@ -328,7 +328,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         for (auto& m : g_pInputManager->m_lMice) {
             result += getFormat(
                 R"#(    {
-        "address": "0x%x",
+        "address": "0x%lx",
         "name": "%s",
         "defaultSpeed": %f
     },)#",
@@ -345,7 +345,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
             const auto KM = g_pInputManager->getActiveLayoutForKeyboard(&k);
             result += getFormat(
                 R"#(    {
-        "address": "0x%x",
+        "address": "0x%lx",
         "name": "%s",
         "rules": "%s",
         "model": "%s",
@@ -369,10 +369,10 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         for (auto& d : g_pInputManager->m_lTabletPads) {
             result += getFormat(
                 R"#(    {
-        "address": "0x%x",
+        "address": "0x%lx",
         "type": "tabletPad",
         "belongsTo": {
-            "address": "0x%x",
+            "address": "0x%lx",
             "name": "%s"
         }
     },)#",
@@ -382,7 +382,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         for (auto& d : g_pInputManager->m_lTablets) {
             result += getFormat(
                 R"#(    {
-        "address": "0x%x",
+        "address": "0x%lx",
         "name": "%s"
     },)#",
                 &d, escapeJSONStrings(d.name).c_str());
@@ -391,9 +391,9 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         for (auto& d : g_pInputManager->m_lTabletTools) {
             result += getFormat(
                 R"#(    {
-        "address": "0x%x",
+        "address": "0x%lx",
         "type": "tabletTool",
-        "belongsTo": "0x%x"
+        "belongsTo": "0x%lx"
     },)#",
                 &d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
         }
@@ -407,7 +407,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         for (auto& d : g_pInputManager->m_lTouchDevices) {
             result += getFormat(
                 R"#(    {
-        "address": "0x%x",
+        "address": "0x%lx",
         "name": "%s"
     },)#",
                 &d, d.name.c_str());
@@ -423,7 +423,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         for (auto& d : g_pInputManager->m_lSwitches) {
             result += getFormat(
                 R"#(    {
-        "address": "0x%x",
+        "address": "0x%lx",
         "name": "%s"
     },)#",
                 &d, d.pWlrDevice ? d.pWlrDevice->name : "");
@@ -441,7 +441,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
         for (auto& m : g_pInputManager->m_lMice) {
             result += getFormat(
-                "\tMouse at %x:\n\t\t%s\n\t\t\tdefault speed: %f\n", &m, m.name.c_str(),
+                "\tMouse at %lx:\n\t\t%s\n\t\t\tdefault speed: %f\n", &m, m.name.c_str(),
                 (wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f));
         }
 
@@ -449,7 +449,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
         for (auto& k : g_pInputManager->m_lKeyboards) {
             const auto KM = g_pInputManager->getActiveLayoutForKeyboard(&k);
-            result += getFormat("\tKeyboard at %x:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n\t\t\tactive keymap: %s\n\t\t\tmain: %s\n", &k,
+            result += getFormat("\tKeyboard at %lx:\n\t\t%s\n\t\t\trules: r \"%s\", m \"%s\", l \"%s\", v \"%s\", o \"%s\"\n\t\t\tactive keymap: %s\n\t\t\tmain: %s\n", &k,
                                 k.name.c_str(), k.currentRules.rules.c_str(), k.currentRules.model.c_str(), k.currentRules.layout.c_str(), k.currentRules.variant.c_str(),
                                 k.currentRules.options.c_str(), KM.c_str(), (k.active ? "yes" : "no"));
         }
@@ -457,27 +457,27 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "\n\nTablets:\n";
 
         for (auto& d : g_pInputManager->m_lTabletPads) {
-            result += getFormat("\tTablet Pad at %x (belongs to %x -> %s)\n", &d, d.pTabletParent, d.pTabletParent ? d.pTabletParent->name.c_str() : "");
+            result += getFormat("\tTablet Pad at %lx (belongs to %lx -> %s)\n", &d, d.pTabletParent, d.pTabletParent ? d.pTabletParent->name.c_str() : "");
         }
 
         for (auto& d : g_pInputManager->m_lTablets) {
-            result += getFormat("\tTablet at %x:\n\t\t%s\n", &d, d.name.c_str());
+            result += getFormat("\tTablet at %lx:\n\t\t%s\n", &d, d.name.c_str());
         }
 
         for (auto& d : g_pInputManager->m_lTabletTools) {
-            result += getFormat("\tTablet Tool at %x (belongs to %x)\n", &d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
+            result += getFormat("\tTablet Tool at %lx (belongs to %lx)\n", &d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
         }
 
         result += "\n\nTouch:\n";
 
         for (auto& d : g_pInputManager->m_lTouchDevices) {
-            result += getFormat("\tTouch Device at %x:\n\t\t%s\n", &d, d.name.c_str());
+            result += getFormat("\tTouch Device at %lx:\n\t\t%s\n", &d, d.name.c_str());
         }
 
         result += "\n\nSwitches:\n";
 
         for (auto& d : g_pInputManager->m_lSwitches) {
-            result += getFormat("\tSwitch Device at %x:\n\t\t%s\n", &d, d.pWlrDevice ? d.pWlrDevice->name : "");
+            result += getFormat("\tSwitch Device at %lx:\n\t\t%s\n", &d, d.pWlrDevice ? d.pWlrDevice->name : "");
         }
     }
 
@@ -1025,7 +1025,7 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
         return "no such option";
 
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL)
-        return getFormat("option %s\n\tint: %lld\n\tfloat: %f\n\tstr: \"%s\"\n\tdata: %x", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str(),
+        return getFormat("option %s\n\tint: %lld\n\tfloat: %f\n\tstr: \"%s\"\n\tdata: %lx", curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str(),
                          PCFGOPT->data.get());
     else {
         return getFormat(
@@ -1035,7 +1035,7 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
     "int": %lld,
     "float": %f,
     "str": "%s",
-    "data": "0x%x"
+    "data": "0x%lx"
 }
 )#",
             curitem.c_str(), PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue.c_str(), PCFGOPT->data.get());

@@ -78,7 +78,7 @@ void Events::listener_newPopup(void* owner, void* data) {
 
     ASSERT(layersurface);
 
-    Debug::log(LOG, "New layer popup created from surface %x", layersurface);
+    Debug::log(LOG, "New layer popup created from surface %lx", layersurface);
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
@@ -102,7 +102,7 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     if (!PWINDOW->m_bIsMapped)
         return;
 
-    Debug::log(LOG, "New layer popup created from XDG window %x -> %s", PWINDOW, PWINDOW->m_szTitle.c_str());
+    Debug::log(LOG, "New layer popup created from XDG window %lx -> %s", PWINDOW, PWINDOW->m_szTitle.c_str());
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
@@ -124,9 +124,9 @@ void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
     ASSERT(PPOPUP);
 
     if (PPOPUP->parentWindow)
-        Debug::log(LOG, "New popup created from XDG Window popup %x -> %s", PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
+        Debug::log(LOG, "New popup created from XDG Window popup %lx -> %s", PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
     else
-        Debug::log(LOG, "New popup created from Non-Window popup %x", PPOPUP);
+        Debug::log(LOG, "New popup created from Non-Window popup %lx", PPOPUP);
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
@@ -167,7 +167,7 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
     if (PPOPUP->monitor)
         g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->scale);
 
-    Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode %x", PPOPUP->pSurfaceTree);
+    Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode %lx", PPOPUP->pSurfaceTree);
 }
 
 void Events::listener_unmapPopupXDG(void* owner, void* data) {
@@ -213,7 +213,7 @@ void Events::listener_destroyPopupXDG(void* owner, void* data) {
 
     ASSERT(PPOPUP);
 
-    Debug::log(LOG, "Destroyed popup XDG %x", PPOPUP);
+    Debug::log(LOG, "Destroyed popup XDG %lx", PPOPUP);
 
     if (PPOPUP->pSurfaceTree) {
         SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);

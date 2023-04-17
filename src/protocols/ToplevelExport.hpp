@@ -37,4 +37,6 @@ class CToplevelExportProtocolManager {
     bool                           copyFrameShm(SScreencopyFrame* frame, timespec* now);
 
     void                           onMonitorRender(CMonitor* pMonitor);
+
+    friend class CScreencopyClient;
 };

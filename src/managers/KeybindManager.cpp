@@ -1451,9 +1451,9 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     }
 
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID)
-        Debug::log(LOG, "Toggling special workspace %d to closed");
+        Debug::log(LOG, "Toggling special workspace %d to closed", workspaceID);
     else
-        Debug::log(LOG, "Toggling special workspace %d to open");
+        Debug::log(LOG, "Toggling special workspace %d to open", workspaceID);
 
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor

@@ -10,3 +10,14 @@ enum eIcons
     ICON_OK,
     ICON_NONE
 };
+
+enum eRenderStage
+{
+    RENDER_PRE = 0,      /* Before binding the gl context */
+    RENDER_BEGIN,        /* Just when the rendering begins, nothing has been rendered yet. Damage, current render data in opengl valid. */
+    RENDER_PRE_WINDOWS,  /* Pre windows, post bottom and overlay layers */
+    RENDER_POST_WINDOWS, /* Post windows, pre top/overlay layers, etc */
+    RENDER_LAST_MOMENT,  /* Last moment to render with the gl context */
+    RENDER_POST,         /* After rendering is finished, gl context not available anymore */
+    RENDER_POST_MIRROR,  /* After rendering a mirror */
+};

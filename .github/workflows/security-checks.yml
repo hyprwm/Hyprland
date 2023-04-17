@@ -28,6 +28,9 @@ jobs:
   codeql:
     name: CodeQL
     runs-on: ubuntu-latest
+    container:
+      image: archlinux
+    
     permissions:
       actions: read
       contents: read

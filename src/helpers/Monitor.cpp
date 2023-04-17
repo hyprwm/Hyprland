@@ -565,7 +565,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
     }
 
     // open special
-    specialWorkspaceID = pWorkspace->m_iID;
+    pWorkspace->m_iMonitorID = ID;
+    specialWorkspaceID       = pWorkspace->m_iID;
     pWorkspace->startAnim(true, true);
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);

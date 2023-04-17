@@ -429,7 +429,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     const auto PFORMAT = get_gles2_format_from_drm(format);
     if (!PFORMAT) {
-        Debug::log(ERR, "[screencopy] Cannot read pixels, unsupported format %x", PFORMAT);
+        Debug::log(ERR, "[screencopy] Cannot read pixels, unsupported format %lx", PFORMAT);
         wlr_output_rollback(PMONITOR->output);
         pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);

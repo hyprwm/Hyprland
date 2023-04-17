@@ -626,7 +626,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
 
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
 
-    Debug::log(LOG, "New keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
+    Debug::log(LOG, "New keyboard created, pointers Hypr: %lx and WLR: %lx", PNEWKEYBOARD, keyboard);
 }
 
 void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
@@ -665,7 +665,7 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
 
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
 
-    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: %x and WLR: %x", PNEWKEYBOARD, keyboard);
+    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: %lx and WLR: %lx", PNEWKEYBOARD, keyboard);
 }
 
 void CInputManager::setKeyboardLayout() {
@@ -832,7 +832,7 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
 
     m_tmrLastCursorMovement.reset();
 
-    Debug::log(LOG, "New mouse created, pointer WLR: %x", mouse);
+    Debug::log(LOG, "New mouse created, pointer WLR: %lx", mouse);
 }
 
 void CInputManager::setPointerConfigs() {
@@ -1167,7 +1167,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
 
     pMouse->hyprListener_commitConstraint.initCallback(&pMouse->currentConstraint->surface->events.commit, &Events::listener_commitConstraint, pMouse, "Mouse constraint commit");
 
-    Debug::log(LOG, "Constrained mouse to %x", pMouse->currentConstraint);
+    Debug::log(LOG, "Constrained mouse to %lx", pMouse->currentConstraint);
 }
 
 void CInputManager::unconstrainMouse() {
@@ -1286,7 +1286,7 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     setTouchDeviceConfigs();
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
 
-    Debug::log(LOG, "New touch device added at %x", PNEWDEV);
+    Debug::log(LOG, "New touch device added at %lx", PNEWDEV);
 
     PNEWDEV->hyprListener_destroy.initCallback(
         &pDevice->events.destroy, [&](void* owner, void* data) { destroyTouchDevice((STouchDevice*)data); }, PNEWDEV, "TouchDevice");
@@ -1336,7 +1336,7 @@ void CInputManager::setTabletConfigs() {
 }
 
 void CInputManager::destroyTouchDevice(STouchDevice* pDevice) {
-    Debug::log(LOG, "Touch device at %x removed", pDevice);
+    Debug::log(LOG, "Touch device at %lx removed", pDevice);
 
     m_lTouchDevices.remove(*pDevice);
 }

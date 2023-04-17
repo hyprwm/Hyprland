@@ -25,7 +25,7 @@ CHyprWLListener::~CHyprWLListener() {
 
 void CHyprWLListener::removeCallback() {
     if (isConnected()) {
-        Debug::log(LOG, "Callback %x -> %x, %s removed.", &m_pCallback, &m_pOwner, m_szAuthor.c_str());
+        Debug::log(LOG, "Callback %lx -> %lx, %s removed.", &m_pCallback, &m_pOwner, m_szAuthor.c_str());
         wl_list_remove(&m_swWrapper.m_sListener.link);
         wl_list_init(&m_swWrapper.m_sListener.link);
     }

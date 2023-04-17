@@ -19,7 +19,7 @@ void Events::listener_keyboardDestroy(void* owner, void* data) {
     SKeyboard* PKEYBOARD = (SKeyboard*)owner;
     g_pInputManager->destroyKeyboard(PKEYBOARD);
 
-    Debug::log(LOG, "Destroyed keyboard %x", PKEYBOARD);
+    Debug::log(LOG, "Destroyed keyboard %lx", PKEYBOARD);
 }
 
 void Events::listener_keyboardKey(void* owner, void* data) {
@@ -95,7 +95,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
 void Events::listener_newConstraint(wl_listener* listener, void* data) {
     const auto PCONSTRAINT = (wlr_pointer_constraint_v1*)data;
 
-    Debug::log(LOG, "New mouse constraint at %x", PCONSTRAINT);
+    Debug::log(LOG, "New mouse constraint at %lx", PCONSTRAINT);
 
     g_pInputManager->m_lConstraints.emplace_back();
     const auto CONSTRAINT = &g_pInputManager->m_lConstraints.back();
@@ -139,7 +139,7 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
         PCONSTRAINT->pMouse->currentConstraint = nullptr;
     }
 
-    Debug::log(LOG, "Unconstrained mouse from %x", PCONSTRAINT->constraint);
+    Debug::log(LOG, "Unconstrained mouse from %lx", PCONSTRAINT->constraint);
 
     g_pInputManager->m_lConstraints.remove(*PCONSTRAINT);
 }

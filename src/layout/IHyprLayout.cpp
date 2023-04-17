@@ -76,7 +76,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Window %x (%s) has an invalid monitor in onWindowCreatedFloating!!!", pWindow, pWindow->m_szTitle.c_str());
+        Debug::log(ERR, "Window %lx (%s) has an invalid monitor in onWindowCreatedFloating!!!", pWindow, pWindow->m_szTitle.c_str());
         return;
     }
 
@@ -368,7 +368,7 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     const auto TILED = isWindowTiled(pWindow);
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("%x,%d", pWindow, (int)TILED)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("%lx,%d", pWindow, (int)TILED)});
     EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {

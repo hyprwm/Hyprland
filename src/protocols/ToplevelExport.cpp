@@ -151,14 +151,14 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     PFRAME->pWindow       = pWindow;
 
     if (!PFRAME->pWindow) {
-        Debug::log(ERR, "Client requested sharing of window handle %x which does not exist!", PFRAME->pWindow);
+        Debug::log(ERR, "Client requested sharing of window handle %lx which does not exist!", PFRAME->pWindow);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;
     }
 
     if (!PFRAME->pWindow->m_bIsMapped || PFRAME->pWindow->isHidden()) {
-        Debug::log(ERR, "Client requested sharing of window handle %x which is not shareable!", PFRAME->pWindow);
+        Debug::log(ERR, "Client requested sharing of window handle %lx which is not shareable!", PFRAME->pWindow);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;
@@ -219,7 +219,7 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
     }
 
     if (!PFRAME->pWindow->m_bIsMapped || PFRAME->pWindow->isHidden()) {
-        Debug::log(ERR, "Client requested sharing of window handle %x which is not shareable (2)!", PFRAME->pWindow);
+        Debug::log(ERR, "Client requested sharing of window handle %lx which is not shareable (2)!", PFRAME->pWindow);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;
@@ -397,7 +397,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     // copy pixels
     const auto PFORMAT = get_gles2_format_from_drm(format);
     if (!PFORMAT) {
-        Debug::log(ERR, "[toplevel_export] Cannot read pixels, unsupported format %x", PFORMAT);
+        Debug::log(ERR, "[toplevel_export] Cannot read pixels, unsupported format %lx", PFORMAT);
         g_pHyprOpenGL->end();
         pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);

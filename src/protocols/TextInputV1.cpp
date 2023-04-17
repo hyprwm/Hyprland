@@ -140,7 +140,7 @@ static void destroyTI(wl_resource* resource) {
 
 void CTextInputV1ProtocolManager::createTI(wl_client* client, wl_resource* resource, uint32_t id) {
     const auto PTI = m_pClients.emplace_back(std::make_unique<STextInputV1>()).get();
-    Debug::log(LOG, "New TI V1 at %x", PTI);
+    Debug::log(LOG, "New TI V1 at %lx", PTI);
 
     PTI->client         = client;
     PTI->resourceCaller = resource;

@@ -747,7 +747,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (wlr_output_commit(pMonitor->output)) {
         if (!m_pLastScanout) {
             m_pLastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to %x: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
+            Debug::log(LOG, "Entered a direct scanout to %lx: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
         }
     } else {
         m_pLastScanout = nullptr;
@@ -1029,7 +1029,7 @@ void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
 
     if (!pWindow->m_bIsFullscreen) {
         wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface.wlr(), nullptr);
-        Debug::log(LOG, "Scanout mode OFF set for %x", pWindow);
+        Debug::log(LOG, "Scanout mode OFF set for %lx", pWindow);
         return;
     }
 
@@ -1048,7 +1048,7 @@ void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
     wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface.wlr(), &feedback);
     wlr_linux_dmabuf_feedback_v1_finish(&feedback);
 
-    Debug::log(LOG, "Scanout mode ON set for %x", pWindow);
+    Debug::log(LOG, "Scanout mode ON set for %lx", pWindow);
 }
 
 void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {
@@ -1237,7 +1237,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
             box.y -= PSTATE->margin.bottom;
         }
         if (box.width <= 0 || box.height <= 0) {
-            Debug::log(ERR, "LayerSurface %x has a negative/zero w/h???", ls.get());
+            Debug::log(ERR, "LayerSurface %lx has a negative/zero w/h???", ls.get());
             continue;
         }
         // Apply
@@ -1247,7 +1247,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
 
         wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
 
-        Debug::log(LOG, "LayerSurface %x arranged: x: %i y: %i w: %i h: %i with margins: t: %i l: %i r: %i b: %i", &ls, box.x, box.y, box.width, box.height, PSTATE->margin.top,
+        Debug::log(LOG, "LayerSurface %lx arranged: x: %i y: %i w: %i h: %i with margins: t: %i l: %i r: %i b: %i", &ls, box.x, box.y, box.width, box.height, PSTATE->margin.top,
                    PSTATE->margin.left, PSTATE->margin.right, PSTATE->margin.bottom);
     }
 }

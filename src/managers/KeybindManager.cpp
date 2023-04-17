@@ -884,8 +884,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         g_pCompositor->setActiveMonitor(PMONITOR);
         PMONITOR->changeWorkspace(pWorkspace);
     } else {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
         pWorkspace          = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
         PMONITOR->changeWorkspace(pWorkspace);
     }

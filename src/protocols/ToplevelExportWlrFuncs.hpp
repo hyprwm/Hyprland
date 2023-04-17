@@ -226,7 +226,7 @@ static const struct wlr_gles2_pixel_format formats[] = {
         .gl_type    = GL_UNSIGNED_BYTE,
         .has_alpha  = false,
     },
-#if WLR_LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     {
         .drm_format = DRM_FORMAT_RGBX4444,
         .gl_format  = GL_RGBA,

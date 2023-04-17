@@ -65,7 +65,8 @@ struct SMonitorRenderData {
 };
 
 struct SCurrentRenderData {
-    CMonitor*           pMonitor = nullptr;
+    CMonitor*           pMonitor   = nullptr;
+    CWorkspace*         pWorkspace = nullptr;
     float               projection[9];
     float               savedProjection[9];
 

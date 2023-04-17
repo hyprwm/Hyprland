@@ -1028,7 +1028,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 }
 
 void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const wlr_box& geometry) {
-
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = (float)geometry.width / pMonitor->vecPixelSize.x;
 
@@ -1038,7 +1037,9 @@ void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, 
         translate = Vector2D{};
     }
 
+    g_pHyprOpenGL->m_RenderData.pWorkspace = pWorkspace;
     renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
+    g_pHyprOpenGL->m_RenderData.pWorkspace = nullptr;
 }
 
 void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {

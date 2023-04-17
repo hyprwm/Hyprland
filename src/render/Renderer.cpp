@@ -124,6 +124,8 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
 void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
     CWindow* pWorkspaceWindow = nullptr;
 
+    EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
+
     // loop over the tiled windows that are fading out
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID != pMonitor->activeWorkspace)
@@ -200,6 +202,8 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
             // render the bad boy
             renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
         }
+
+    EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);
 
     // and the overlay layers
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
@@ -457,6 +461,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
 
     CWindow* lastWindow = nullptr;
 
+    EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
+
     // Non-floating main
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
@@ -569,6 +575,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
         // render the bad boy
         renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
+
+    EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);
 
     // Render surfaces above windows for monitor
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
@@ -842,6 +850,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         return;
     }
 
+    EMIT_HOOK_EVENT("render", RENDER_PRE);
+
     const bool UNLOCK_SC = g_pHyprRenderer->m_bSoftwareCursorsLocked;
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, true);
@@ -902,8 +912,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     g_pHyprOpenGL->begin(pMonitor, &damage);
 
+    EMIT_HOOK_EVENT("render", RENDER_BEGIN);
+
     if (pMonitor->isMirror()) {
         g_pHyprOpenGL->renderMirrored();
+        EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
     } else {
         g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
         g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
@@ -950,6 +963,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
     else
         g_pHyprOpenGL->m_RenderData.mouseZoomFactor = 1.f;
+
+    EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
+
     g_pHyprOpenGL->end();
 
     // calc frame damage
@@ -973,6 +989,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     pixman_region32_fini(&frameDamage);
 
     pMonitor->renderingActive = false;
+
+    EMIT_HOOK_EVENT("render", RENDER_POST);
 
     wlr_damage_ring_rotate(&pMonitor->damage);
 

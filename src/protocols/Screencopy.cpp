@@ -118,25 +118,28 @@ CScreencopyClient::~CScreencopyClient() {
 }
 
 CScreencopyClient::CScreencopyClient() {
-    lastMeasure  = std::chrono::system_clock::now();
+    lastMeasure.reset();
+    lastFrame.reset();
     tickCallback = g_pHookSystem->hookDynamic("tick", [&](void* self, std::any data) { onTick(); });
 }
 
 void CScreencopyClient::onTick() {
-    const auto SINCELAST = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastMeasure).count() / 1000.0;
-
-    if (SINCELAST < 0.5)
+    if (lastMeasure.getMillis() < 500)
         return;
 
     framesInLastHalfSecond = frameCounter;
     frameCounter           = 0;
-    lastMeasure            = std::chrono::system_clock::now();
+    lastMeasure.reset();
+
+    const auto LASTFRAMEDELTA = lastFrame.getMillis() / 1000.0;
+    const bool FRAMEAWAITING  = std::ranges::any_of(g_pProtocolManager->m_pScreencopyProtocolManager->m_lFrames, [&](const auto& frame) { return frame.client == this; }) ||
+        std::ranges::any_of(g_pProtocolManager->m_pToplevelExportProtocolManager->m_lFrames, [&](const auto& frame) { return frame.client == this; });
 
     if (framesInLastHalfSecond > 3 && !sentScreencast) {
         EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, (uint64_t)framesInLastHalfSecond, (uint64_t)clientOwner}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "1," + std::to_string(clientOwner)});
         sentScreencast = true;
-    } else if (framesInLastHalfSecond < 4 && sentScreencast) {
+    } else if (framesInLastHalfSecond < 4 && sentScreencast && LASTFRAMEDELTA > 1.0 && !FRAMEAWAITING) {
         EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, (uint64_t)framesInLastHalfSecond, (uint64_t)clientOwner}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "0," + std::to_string(clientOwner)});
         sentScreencast = false;
@@ -350,6 +353,7 @@ void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor, bool dmabuf)
 
         shareFrame(f);
 
+        f->client->lastFrame.reset();
         ++f->client->frameCounter;
 
         framesToRemove.push_back(f);

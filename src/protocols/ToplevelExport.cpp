@@ -300,6 +300,7 @@ void CToplevelExportProtocolManager::onMonitorRender(CMonitor* pMonitor) {
 
         shareFrame(f);
 
+        f->client->lastFrame.reset();
         ++f->client->frameCounter;
 
         framesToRemove.push_back(f);

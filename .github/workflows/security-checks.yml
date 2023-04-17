@@ -59,14 +59,16 @@ jobs:
           echo -e "root ALL=(ALL:ALL) ALL\ngithubuser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers
           su githubuser -c "cd ~ && git clone https://aur.archlinux.org/libdisplay-info.git && cd ./libdisplay-info && makepkg -si --skippgpcheck --noconfirm --noprogressbar"
           git config --global --add safe.directory /__w/Hyprland/Hyprland
+    
     - name: Checkout Hyprland
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        
     - name: Build Hyprland
-        run: |
-          git submodule sync --recursive && git submodule update --init --force --recursive
-          make all
+      run: |
+        git submodule sync --recursive && git submodule update --init --force --recursive
+        make all
     
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2

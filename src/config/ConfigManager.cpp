@@ -1673,18 +1673,22 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         returns.push_back(rule);
     }
 
-    const uint64_t PID          = pWindow->getPID();
-    bool           anyExecFound = false;
+    std::vector<uint64_t> PIDs = {(uint64_t)pWindow->getPID()};
+    while (getPPIDof(PIDs.back()) > 10)
+        PIDs.push_back(getPPIDof(PIDs.back()));
+
+    bool anyExecFound = false;
 
     for (auto& er : execRequestedRules) {
-        if (er.iPid == PID) {
+        if (std::ranges::any_of(PIDs, [&](const auto& pid) { return pid == er.iPid; })) {
             returns.push_back({er.szRule, "execRule"});
             anyExecFound = true;
         }
     }
 
     if (anyExecFound) // remove exec rules to unclog searches in the future, why have the garbage here.
-        execRequestedRules.erase(std::remove_if(execRequestedRules.begin(), execRequestedRules.end(), [&](const SExecRequestedRule& other) { return other.iPid == PID; }));
+        execRequestedRules.erase(std::remove_if(execRequestedRules.begin(), execRequestedRules.end(),
+                                                [&](const SExecRequestedRule& other) { return std::ranges::any_of(PIDs, [&](const auto& pid) { return pid == other.iPid; }); }));
 
     return returns;
 }

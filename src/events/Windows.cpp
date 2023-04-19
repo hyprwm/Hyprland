@@ -114,7 +114,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool        requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen ||
         (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen) ||
         (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->fullscreen);
-    bool requestsFakeFullscreen = requestsFullscreen;
+    bool requestsFakeFullscreen = false;
     bool requestsMaximize       = false;
     bool shouldFocus            = true;
     bool workspaceSpecial       = false;

@@ -770,6 +770,8 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->m_sPrevWorkspace.iID);
 
+        g_pInputManager->releaseAllMouseButtons();
+
         if (pWorkspaceToChangeTo) {
             const auto PMONITORWORKSPACEOWNER = PMONITOR->ID == pWorkspaceToChangeTo->m_iMonitorID ? PMONITOR : g_pCompositor->getMonitorFromID(pWorkspaceToChangeTo->m_iMonitorID);
 
@@ -813,6 +815,8 @@ void CKeybindManager::changeworkspace(std::string args) {
         PMONITOR->setSpecialWorkspace(pWorkspaceToChangeTo);
         return;
     }
+
+    g_pInputManager->releaseAllMouseButtons();
 
     const auto PMONITORWORKSPACEOWNER = PMONITOR->ID == pWorkspaceToChangeTo->m_iMonitorID ? PMONITOR : g_pCompositor->getMonitorFromID(pWorkspaceToChangeTo->m_iMonitorID);
 

@@ -796,8 +796,6 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     }
 
     if (!pWindow || !windowValidMapped(pWindow)) {
-        g_pInputManager->releaseAllMouseButtons();
-
         const auto PLASTWINDOW = m_pLastWindow;
         m_pLastWindow          = nullptr;
 
@@ -870,7 +868,6 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // do pointer focus too
     const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.goalv();
-    g_pInputManager->releaseAllMouseButtons();
     wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, POINTERLOCAL.x, POINTERLOCAL.y);
 
     updateWindowAnimatedDecorationValues(pWindow);

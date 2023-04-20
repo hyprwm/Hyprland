@@ -227,7 +227,10 @@ int setcursorRequest(int argc, char** argv) {
         return 1;
     }
 
-    std::string rq = "setcursor " + std::string(argv[2]) + " " + std::string(argv[3]);
+    std::string rq = "setcursor ";
+    for (size_t i = 2; i < argc; ++i)
+        rq += std::string(argv[i]) + " ";
+    rq.pop_back();
 
     request(rq);
     return 0;

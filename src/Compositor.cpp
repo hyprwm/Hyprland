@@ -147,7 +147,7 @@ void CCompositor::initServer() {
         throw std::runtime_error("wlr_gles2_renderer_get_egl() failed!");
     }
 
-    m_sWLRCompositor    = wlr_compositor_create(m_sWLDisplay, m_sWLRRenderer);
+    m_sWLRCompositor    = wlr_compositor_create(m_sWLDisplay, 6, m_sWLRRenderer);
     m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);
     m_sWLRDataDevMgr    = wlr_data_device_manager_create(m_sWLDisplay);
 

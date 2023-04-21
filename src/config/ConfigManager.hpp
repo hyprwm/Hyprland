@@ -51,12 +51,12 @@ struct SWorkspaceRule {
     std::string            workspaceString = "";
     std::string            workspaceName   = "";
     int                    workspaceId     = -1;
-    std::optional<int64_t> gapsIn          = 5;
-    std::optional<int64_t> gapsOut         = 20;
-    std::optional<int64_t> borderSize      = 1;
-    std::optional<int>     border          = 1;
-    std::optional<int>     rounding        = 1;
-    std::optional<int>     decorate        = 1;
+    std::optional<int64_t> gapsIn;
+    std::optional<int64_t> gapsOut;
+    std::optional<int64_t> borderSize;
+    std::optional<int>     border;
+    std::optional<int>     rounding;
+    std::optional<int>     decorate;
 };
 
 struct SMonitorAdditionalReservedArea {

@@ -202,6 +202,16 @@ install:
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
 	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
+	mkdir -p ${PREFIX}/include/hyprland
+
+	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
+	cp ./*-protocol.h ${PREFIX}/include
+
+	mkdir -p ${PREFIX}/include/hyprland
+	mkdir -p ${PREFIX}/share/pkgconfig
+	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
+	cp ./*-protocol.h ${PREFIX}/include
+	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 
 cleaninstall:
 	echo -en "make cleaninstall has been DEPRECATED, you should avoid using it in the future.\nRunning make install instead...\n"

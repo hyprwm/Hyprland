@@ -50,7 +50,7 @@ struct SWorkspaceRule {
     std::string            monitor         = "";
     std::string            workspaceString = "";
     std::string            workspaceName   = "";
-    int                    workspaceId     = -1338;
+    int                    workspaceId     = -1;
     std::optional<int64_t> gapsIn          = 5;
     std::optional<int64_t> gapsOut         = 20;
     std::optional<int64_t> borderSize      = 1;

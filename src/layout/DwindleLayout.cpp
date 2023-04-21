@@ -111,15 +111,15 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     const auto PWINDOW = pNode->pWindow;
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto WORKSPACE_RULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
+    const auto         WORKSPACE_RULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
-    auto       gapsIn     = WORKSPACE_RULE.gapsIn.value_or(g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue);
-    auto       gapsOut    = WORKSPACE_RULE.gapsOut.value_or(g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue);
-    auto       borderSize = WORKSPACE_RULE.borderSize.value_or(g_pConfigManager->getConfigValuePtr("general:border_size")->intValue);
+    static auto* const PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+    static auto* const PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
+    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-    const auto PGAPSIN     = &gapsIn;
-    const auto PGAPSOUT    = &gapsOut;
-    const auto PBORDERSIZE = &borderSize;
+    auto               gapsIn     = WORKSPACE_RULE.gapsIn.value_or(*PGAPSIN);
+    auto               gapsOut    = WORKSPACE_RULE.gapsOut.value_or(*PGAPSOUT);
+    auto               borderSize = WORKSPACE_RULE.borderSize.value_or(*PBORDERSIZE);
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
         Debug::log(ERR, "Node %lx holding invalid window %lx!!", pNode, PWINDOW);
@@ -132,15 +132,15 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
 
-    auto               calcPos  = PWINDOW->m_vPosition + Vector2D(*PBORDERSIZE, *PBORDERSIZE);
-    auto               calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
+    auto               calcPos  = PWINDOW->m_vPosition + Vector2D(borderSize, borderSize);
+    auto               calcSize = PWINDOW->m_vSize - Vector2D(2 * borderSize, 2 * borderSize);
 
     const auto         NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
 
     if (WORKSPACE_RULE.workspaceString.empty() && *PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
         (NODESONWORKSPACE == 1 || (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
-        PWINDOW->m_vRealPosition = calcPos - Vector2D(*PBORDERSIZE, *PBORDERSIZE);
-        PWINDOW->m_vRealSize     = calcSize + Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
+        PWINDOW->m_vRealPosition = calcPos - Vector2D(borderSize, borderSize);
+        PWINDOW->m_vRealSize     = calcSize + Vector2D(2 * borderSize, 2 * borderSize);
 
         PWINDOW->updateWindowDecos();
 
@@ -155,9 +155,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->m_sSpecialRenderData.decorate = WORKSPACE_RULE.decorate.value_or(true);
     PWINDOW->m_sSpecialRenderData.border   = WORKSPACE_RULE.border.value_or(true);
 
-    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? *PGAPSOUT : *PGAPSIN, DISPLAYTOP ? *PGAPSOUT : *PGAPSIN);
+    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut : gapsIn, DISPLAYTOP ? gapsOut : gapsIn);
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? *PGAPSOUT : *PGAPSIN, DISPLAYBOTTOM ? *PGAPSOUT : *PGAPSIN);
+    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? gapsOut : gapsIn, DISPLAYBOTTOM ? gapsOut : gapsIn);
 
     calcPos  = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;

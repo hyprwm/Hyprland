@@ -338,8 +338,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (pFoundWindow) {
         // change cursor icon if hovering over border
-        if (*PRESIZEONBORDER && *PRESIZECURSORICON && !pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
-            setCursorIconOnBorder(pFoundWindow);
+        if (*PRESIZEONBORDER && *PRESIZECURSORICON) {
+            if (!pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
+                setCursorIconOnBorder(pFoundWindow);
+            } else if (m_eBorderIconDirection != BORDERICON_NONE) {
+                unsetCursorImage();
+            }
         }
 
         // if we're on an input deco, reset cursor. Don't on overridden

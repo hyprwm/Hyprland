@@ -668,3 +668,18 @@ void CWindow::updateGroupOutputs() {
 Vector2D CWindow::middle() {
     return m_vRealPosition.goalv() + m_vRealSize.goalv() / 2.f;
 }
+
+bool CWindow::opaque() {
+    if (m_bIsX11)
+        return !m_uSurface.xwayland->has_alpha;
+
+    if (m_uSurface.xdg->surface->opaque)
+        return true;
+
+    const auto EXTENTS = pixman_region32_extents(&m_uSurface.xdg->surface->opaque_region);
+    if (EXTENTS->x2 - EXTENTS->x1 >= m_uSurface.xdg->surface->current.buffer_width
+        && EXTENTS->y2 - EXTENTS->y1 >= m_uSurface.xdg->surface->current.buffer_height)
+        return true;
+
+    return false;
+}

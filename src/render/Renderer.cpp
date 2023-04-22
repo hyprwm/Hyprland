@@ -440,11 +440,16 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     g_pHyprOpenGL->m_RenderData.renderModif = RENDERMODIFDATA;
 
     // Render layer surfaces below windows for monitor
-    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-        renderLayer(ls.get(), pMonitor, time);
-    }
-    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-        renderLayer(ls.get(), pMonitor, time);
+    // if we have a fullscreen, opaque window that convers the screen, we can skip this.
+    // TODO: check better with solitary after MR for tearing.
+    const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID);
+    if (g_pHyprOpenGL->m_RenderData.pCurrentMonData->blurFBDirty || !pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() || !PFULLWINDOW->opaque()) {
+        for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+            renderLayer(ls.get(), pMonitor, time);
+        }
+        for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+            renderLayer(ls.get(), pMonitor, time);
+        }
     }
 
     // pre window pass

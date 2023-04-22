@@ -1048,7 +1048,7 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
     counter++;
 }
 
-void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad, int round, float a) {
+void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad, int round, float a, int borderSize) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
@@ -1058,17 +1058,21 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     static auto* const PBORDERSIZE  = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
-    wlr_box            newBox = *box;
+    if (borderSize < 0) {
+        borderSize = *PBORDERSIZE;
+    }
+
+    wlr_box newBox = *box;
     scaleBox(&newBox, m_RenderData.renderModif.scale);
     newBox.x += m_RenderData.renderModif.translate.x;
     newBox.y += m_RenderData.renderModif.translate.y;
 
     box = &newBox;
 
-    if (*PBORDERSIZE < 1)
+    if (borderSize < 1)
         return;
 
-    int scaledBorderSize = *PBORDERSIZE * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale;
+    int scaledBorderSize = borderSize * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale;
 
     // adjust box
     box->x -= scaledBorderSize;

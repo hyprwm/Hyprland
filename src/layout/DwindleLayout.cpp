@@ -151,9 +151,10 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         return;
     }
 
-    PWINDOW->m_sSpecialRenderData.rounding = WORKSPACE_RULE.rounding.value_or(true);
-    PWINDOW->m_sSpecialRenderData.decorate = WORKSPACE_RULE.decorate.value_or(true);
-    PWINDOW->m_sSpecialRenderData.border   = WORKSPACE_RULE.border.value_or(true);
+    PWINDOW->m_sSpecialRenderData.rounding   = WORKSPACE_RULE.rounding.value_or(true);
+    PWINDOW->m_sSpecialRenderData.decorate   = WORKSPACE_RULE.decorate.value_or(true);
+    PWINDOW->m_sSpecialRenderData.border     = WORKSPACE_RULE.border.value_or(true);
+    PWINDOW->m_sSpecialRenderData.borderSize = borderSize;
 
     const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut : gapsIn, DISPLAYTOP ? gapsOut : gapsIn);
 

@@ -1035,10 +1035,7 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
         rules                  = value.substr(WORKSPACE_DELIM + 1);
     }
 
-    size_t      pos = 0;
-    std::string rule;
-    while ((pos = rules.find(',')) != std::string::npos) {
-        rule         = rules.substr(0, pos);
+    auto assignRule = [&](std::string rule) {
         size_t delim = std::string::npos;
         Debug::log(INFO, "found workspacerule: %s", rule.c_str());
         if ((delim = rule.find("gapsin:")) != std::string::npos)
@@ -1055,8 +1052,16 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
             wsRule.decorate = configStringToInt(rule.substr(delim + 9));
         else if ((delim = rule.find("monitor:")) != std::string::npos)
             wsRule.monitor = rule.substr(delim + 8);
+    };
+
+    size_t      pos = 0;
+    std::string rule;
+    while ((pos = rules.find(',')) != std::string::npos) {
+        rule = rules.substr(0, pos);
+        assignRule(rule);
         rules.erase(0, pos + 1);
     }
+    assignRule(rules); // match remaining rule
 
     wsRule.workspaceId    = id;
     wsRule.workspaceName  = name;

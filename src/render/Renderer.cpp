@@ -342,7 +342,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             scaleBox(&windowBox, pMonitor->scale);
 
-            g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, a1);
+            g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, a1, pWindow->m_sSpecialRenderData.borderSize);
 
             if (ANIMATED) {
                 float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl());

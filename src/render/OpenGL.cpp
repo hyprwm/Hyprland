@@ -816,6 +816,13 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 }
 
 void CHyprOpenGLImpl::markBlurDirtyForMonitor(CMonitor* pMonitor) {
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
+    const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pMonitor->activeWorkspace);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL && PFULLWINDOW && !PFULLWINDOW->m_vRealSize.isBeingAnimated() &&
+        PFULLWINDOW->opaque())
+        return;
+
     m_mMonitorRenderResources[pMonitor].blurFBDirty = true;
 }
 

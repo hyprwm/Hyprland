@@ -804,47 +804,30 @@ std::string dispatchBatch(std::string request) {
 }
 
 std::string dispatchSetCursor(std::string request) {
-    std::string curitem = "";
+    CVarList vars(request, 0, ' ');
 
-    auto        nextItem = [&]() {
-        auto idx = request.find_first_of(' ');
+    const auto SIZESTR = vars[vars.size() - 1];
+    std::string theme = "";
+    for (size_t i = 1; i < vars.size() - 1; ++i)
+        theme += vars[i] + " ";
+    theme.pop_back();
 
-        if (idx != std::string::npos) {
-            curitem = request.substr(0, idx);
-            request = request.substr(idx + 1);
-        } else {
-            curitem = request;
-            request = "";
-        }
-
-        curitem = removeBeginEndSpacesTabs(curitem);
-    };
-
-    nextItem();
-    nextItem();
-
-    const auto THEME = curitem;
-
-    nextItem();
-
-    const auto SIZE = curitem;
-
-    if (!isNumber(SIZE)) {
+    int size = 0;
+    try {
+        size = std::stoi(SIZESTR);
+    } catch (...) {
         return "size not int";
     }
 
-    const auto SIZEINT = std::stoi(SIZE);
-
-    if (SIZEINT < 1) {
-        return "size must be positive";
-    }
+    if (size <= 0)
+        return "size not positive";
 
     wlr_xcursor_manager_destroy(g_pCompositor->m_sWLRXCursorMgr);
 
-    g_pCompositor->m_sWLRXCursorMgr = wlr_xcursor_manager_create(THEME.c_str(), SIZEINT);
+    g_pCompositor->m_sWLRXCursorMgr = wlr_xcursor_manager_create(theme.c_str(), size);
 
-    setenv("XCURSOR_SIZE", SIZE.c_str(), true);
-    setenv("XCURSOR_THEME", THEME.c_str(), true);
+    setenv("XCURSOR_SIZE", SIZESTR.c_str(), true);
+    setenv("XCURSOR_THEME", theme.c_str(), true);
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, m->scale);

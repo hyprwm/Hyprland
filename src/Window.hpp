@@ -315,6 +315,7 @@ class CWindow {
     void                     updateDynamicRules();
     SWindowDecorationExtents getFullWindowReservedArea();
     Vector2D                 middle();
+    bool                     opaque();
 
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);

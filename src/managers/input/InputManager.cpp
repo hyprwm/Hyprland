@@ -382,7 +382,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             m_bLastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            if (((FOLLOWMOUSE != 3 && allowKeyboardRefocus) || refocus) && (FOLLOWMOUSE != 4 || m_pLastMouseFocus != pFoundWindow)) {
+            if (((FOLLOWMOUSE != 3 && allowKeyboardRefocus) && (FOLLOWMOUSE != 4 || m_pLastMouseFocus != pFoundWindow)) || refocus) {
                 m_pLastMouseFocus = pFoundWindow;
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
             }

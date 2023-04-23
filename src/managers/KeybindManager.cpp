@@ -36,6 +36,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["splitratio"]                    = alterSplitRatio;
     m_mDispatchers["focusmonitor"]                  = focusMonitor;
     m_mDispatchers["movecursortocorner"]            = moveCursorToCorner;
+    m_mDispatchers["movecursor"]                    = moveCursor;
     m_mDispatchers["workspaceopt"]                  = workspaceOpt;
     m_mDispatchers["exit"]                          = exitHyprland;
     m_mDispatchers["movecurrentworkspacetomonitor"] = moveCurrentWorkspaceToMonitor;
@@ -1302,6 +1303,34 @@ void CKeybindManager::moveCursorToCorner(std::string arg) {
             wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y);
             break;
     }
+}
+
+void CKeybindManager::moveCursor(std::string args) {
+    std::string x_str, y_str;
+    int         x, y, i;
+
+    i = args.find_first_of(' ');
+    if (i == std::string::npos) {
+        Debug::log(ERR, "moveCursor, takes 2 arguments.");
+        return;
+    }
+
+    x_str = args.substr(0, i);
+    y_str = args.substr(i + 1);
+
+    if (!isNumber(x_str)) {
+        Debug::log(ERR, "moveCursor, x argument has to be a number.");
+        return;
+    }
+    if (!isNumber(y_str)) {
+        Debug::log(ERR, "moveCursor, y argument has to be a number.");
+        return;
+    }
+
+    x = std::stoi(x_str);
+    y = std::stoi(y_str);
+
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, x, y);
 }
 
 void CKeybindManager::workspaceOpt(std::string args) {

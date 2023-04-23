@@ -32,7 +32,21 @@
       "x86_64-linux"
     ];
 
-    pkgsFor = nixpkgs.legacyPackages;
+    pkgsFor = genSystems (system:
+      import nixpkgs {
+        inherit system;
+        overlays = [
+          (_: prev: {
+            wayland = prev.wayland.overrideAttrs (old: rec {
+              version = "1.22.0";
+              src = prev.fetchurl {
+                url = "https://gitlab.freedesktop.org/wayland/wayland/-/releases/${version}/downloads/${old.pname}-${version}.tar.xz";
+                hash = "sha256-FUCvHqaYpHHC2OnSiDMsfg/TYMjx0Sk267fny8JCWEI=";
+              };
+            });
+          })
+        ];
+      });
 
     props = builtins.fromJSON (builtins.readFile ./props.json);
 

@@ -175,6 +175,9 @@ class CInputManager {
     // for hiding cursor on touch
     bool m_bLastInputTouch = false;
 
+    // for follow mouse 4
+    CWindow* m_pLastMouseFocus = nullptr;
+
   private:
     bool                 m_bCursorImageOverridden = false;
     eBorderIconDirection m_eBorderIconDirection   = BORDERICON_NONE;

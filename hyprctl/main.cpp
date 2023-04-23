@@ -80,7 +80,7 @@ void              request(std::string arg, int minArgs = 0) {
 
     std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.socket.sock";
 
-    strncpy(serverAddress.sun_path, socketPath.c_str(), 107);
+    strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
     if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
         std::cout << "Couldn't connect to " << socketPath << ". (3)";
@@ -143,7 +143,7 @@ void requestHyprpaper(std::string arg) {
 
     std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.hyprpaper.sock";
 
-    strncpy(serverAddress.sun_path, socketPath.c_str(), 107);
+    strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
     if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
         std::cout << "Couldn't connect to " << socketPath << ". (3)";

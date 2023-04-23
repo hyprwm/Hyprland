@@ -1311,7 +1311,7 @@ void CKeybindManager::moveCursor(std::string args) {
 
     i = args.find_first_of(' ');
     if (i == std::string::npos) {
-        Debug::log(ERR, "setCursorPos, takes 2 arguments.");
+        Debug::log(ERR, "moveCursor, takes 2 arguments.");
         return;
     }
 
@@ -1319,11 +1319,11 @@ void CKeybindManager::moveCursor(std::string args) {
     y_str = args.substr(i + 1);
 
     if (!isNumber(x_str)) {
-        Debug::log(ERR, "setCursorPos, x argument has to be a number.");
+        Debug::log(ERR, "moveCursor, x argument has to be a number.");
         return;
     }
     if (!isNumber(y_str)) {
-        Debug::log(ERR, "setCursorPos, y argument has to be a number.");
+        Debug::log(ERR, "moveCursor, y argument has to be a number.");
         return;
     }
 

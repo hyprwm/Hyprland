@@ -82,13 +82,19 @@ void CAnimationManager::tick() {
         if (PWINDOW) {
             WLRBOXPREV         = PWINDOW->getFullWindowBoundingBox();
             PMONITOR           = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+            if (!PMONITOR)
+                continue;
             animationsDisabled = animationsDisabled || PWINDOW->m_sAdditionalConfigData.forceNoAnims;
         } else if (PWORKSPACE) {
             PMONITOR   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+            if (!PMONITOR)
+                continue;
             WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};
         } else if (PLAYER) {
             WLRBOXPREV = PLAYER->geometry;
             PMONITOR   = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
+            if (!PMONITOR)
+                continue;
             animationsDisabled = animationsDisabled || PLAYER->noAnimations;
         }
 

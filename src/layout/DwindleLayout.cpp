@@ -497,6 +497,12 @@ bool CHyprDwindleLayout::isWindowTiled(CWindow* pWindow) {
     return getNodeFromWindow(pWindow) != nullptr;
 }
 
+void CHyprDwindleLayout::onBeginDragWindow() {
+    m_PseudoDragFlags.started = false;
+    m_PseudoDragFlags.pseudo  = false;
+    IHyprLayout::onBeginDragWindow();
+}
+
 void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* pWindow) {
 
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow;
@@ -520,6 +526,63 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     const bool DISPLAYRIGHT  = STICKS(PWINDOW->m_vPosition.x + PWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
     const bool DISPLAYTOP    = STICKS(PWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
     const bool DISPLAYBOTTOM = STICKS(PWINDOW->m_vPosition.y + PWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
+
+    if (PWINDOW->m_bIsPseudotiled) {
+        if (!m_PseudoDragFlags.started) {
+            m_PseudoDragFlags.started = true;
+
+            const auto PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+            const auto PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+            const auto PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
+
+            const auto OFFSETTOPLEFT     = Vector2D(DISPLAYLEFT ? *PGAPSOUT : *PGAPSIN, DISPLAYTOP ? *PGAPSOUT : *PGAPSIN);
+            const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? *PGAPSOUT : *PGAPSIN, DISPLAYBOTTOM ? *PGAPSOUT : *PGAPSIN);
+
+            const auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE) - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
+
+            float      scale = 1;
+
+            if (PWINDOW->m_vPseudoSize.x > calcSize.x) {
+                scale = calcSize.x / PWINDOW->m_vPseudoSize.x;
+            }
+
+            if (PWINDOW->m_vPseudoSize.y * scale > calcSize.y) {
+                scale = calcSize.y / PWINDOW->m_vPseudoSize.y;
+            }
+
+            const auto pseudoSize  = PWINDOW->m_vPseudoSize * scale;
+            const auto mouseOffset = g_pInputManager->getMouseCoordsInternal() - (PNODE->position + ((PNODE->size / 2) - (pseudoSize / 2)));
+
+            if (mouseOffset.x > 0 && mouseOffset.x < pseudoSize.x && mouseOffset.y > 0 && mouseOffset.y < pseudoSize.y) {
+                m_PseudoDragFlags.pseudo  = true;
+                m_PseudoDragFlags.xExtent = mouseOffset.x > pseudoSize.x / 2;
+                m_PseudoDragFlags.yExtent = mouseOffset.y > pseudoSize.y / 2;
+
+                PWINDOW->m_vPseudoSize = pseudoSize;
+            } else {
+                m_PseudoDragFlags.pseudo = false;
+            }
+        }
+
+        if (m_PseudoDragFlags.pseudo) {
+            if (m_PseudoDragFlags.xExtent)
+                PWINDOW->m_vPseudoSize.x += pixResize.x * 2;
+            else
+                PWINDOW->m_vPseudoSize.x -= pixResize.x * 2;
+            if (m_PseudoDragFlags.yExtent)
+                PWINDOW->m_vPseudoSize.y += pixResize.y * 2;
+            else
+                PWINDOW->m_vPseudoSize.y -= pixResize.y * 2;
+
+            PWINDOW->m_vPseudoSize.x = std::clamp(PWINDOW->m_vPseudoSize.x, 30.0, PNODE->size.x);
+            PWINDOW->m_vPseudoSize.y = std::clamp(PWINDOW->m_vPseudoSize.y, 30.0, PNODE->size.y);
+
+            PWINDOW->m_vLastFloatingSize = PWINDOW->m_vPseudoSize;
+            PNODE->recalcSizePosRecursive(*PANIMATE == 0);
+
+            return;
+        }
+    }
 
     // construct allowed movement
     Vector2D allowedMovement = pixResize;

@@ -171,6 +171,7 @@ class CCompositor {
     CMonitor*      getMonitorFromString(const std::string&);
     bool           workspaceIDOutOfBounds(const int&);
     void           setWindowFullscreen(CWindow*, bool, eFullscreenMode);
+    void           updateFullscreenFadeOnWorkspace(CWorkspace*);
     CWindow*       getX11Parent(CWindow*);
     void           scheduleFrameForMonitor(CMonitor*);
     void           addToFadingOutSafe(SLayerSurface*);

@@ -1940,6 +1940,9 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
     // finalize
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
 
+    updateFullscreenFadeOnWorkspace(pWorkspace);
+    updateFullscreenFadeOnWorkspace(getWorkspaceByID(POLDMON->activeWorkspace));
+
     g_pInputManager->refocus();
 
     // event

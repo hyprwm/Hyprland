@@ -94,6 +94,59 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
+    // constraints
+    // All constraints TODO: multiple mice?
+    if (g_pCompositor->m_sSeat.mouse && g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient && !g_pSessionLockManager->isSessionLocked()) {
+        // XWayland windows sometimes issue constraints weirdly.
+        // TODO: We probably should search their parent. wlr_xwayland_surface->parent
+        const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
+        const auto PCONSTRAINT      = constraintFromWlr(g_pCompositor->m_sSeat.mouse->currentConstraint);
+
+        if (!CONSTRAINTWINDOW || !PCONSTRAINT) {
+            unconstrainMouse();
+        } else {
+            // Native Wayland apps know how 2 constrain themselves.
+            // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
+            const auto CONSTRAINTPOS =
+                CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) : CONSTRAINTWINDOW->m_vRealPosition.vec();
+            const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) :
+                                                                     CONSTRAINTWINDOW->m_vRealSize.vec();
+
+            if (g_pCompositor->m_sSeat.mouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
+                // we just snap the cursor to where it should be.
+
+                Vector2D hint = {PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y};
+
+                if (hint != Vector2D{-1, -1})
+                    wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x + hint.x, CONSTRAINTPOS.y + hint.y);
+
+                return; // don't process anything else, the cursor is locked. The surface should not receive any further events.
+                        // these are usually FPS games. They will use the relative motion.
+            } else {
+                // we restrict the cursor to the confined region
+                if (!pixman_region32_contains_point(&PCONSTRAINT->constraint->region, mouseCoords.x - CONSTRAINTPOS.x, mouseCoords.y - CONSTRAINTPOS.y, nullptr)) {
+                    if (g_pCompositor->m_sSeat.mouse->constraintActive) {
+                        wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, NULL, mouseCoords.x, mouseCoords.y);
+                        mouseCoords = getMouseCoordsInternal();
+                    }
+                } else {
+                    if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
+                        g_pCompositor->m_sSeat.mouse->constraintActive = true;
+                    }
+                }
+            }
+
+            if (CONSTRAINTWINDOW->m_bIsX11) {
+                foundSurface = CONSTRAINTWINDOW->m_pWLSurface.wlr();
+                surfacePos   = CONSTRAINTWINDOW->m_vRealPosition.vec();
+            } else {
+                g_pCompositor->vectorWindowToSurface(mouseCoords, CONSTRAINTWINDOW, surfaceCoords);
+            }
+
+            pFoundWindow = CONSTRAINTWINDOW;
+        }
+    }
+
     // update stuff
     updateDragIcon();
 
@@ -145,66 +198,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         surfacePos   = PMONITOR->vecPosition;
     }
 
-    // overlay is above fullscreen and constraints
+    // overlay is above fullscreen
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
-
-    // constraints
-    // All constraints TODO: multiple mice?
-    if (g_pCompositor->m_sSeat.mouse && g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient && !g_pSessionLockManager->isSessionLocked()) {
-        if (!foundSurface) {
-            // XWayland windows sometimes issue constraints weirdly.
-            // TODO: We probably should search their parent. wlr_xwayland_surface->parent
-            const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
-            const auto PCONSTRAINT      = constraintFromWlr(g_pCompositor->m_sSeat.mouse->currentConstraint);
-
-            if (!CONSTRAINTWINDOW || !PCONSTRAINT) {
-                unconstrainMouse();
-            } else {
-                // Native Wayland apps know how 2 constrain themselves.
-                // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
-                const auto CONSTRAINTPOS  = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->x, CONSTRAINTWINDOW->m_uSurface.xwayland->y) :
-                                                                         CONSTRAINTWINDOW->m_vRealPosition.vec();
-                const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) :
-                                                                         CONSTRAINTWINDOW->m_vRealSize.vec();
-
-                if (g_pCompositor->m_sSeat.mouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
-                    // we just snap the cursor to where it should be.
-
-                    Vector2D hint = {PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y};
-
-                    if (hint != Vector2D{-1, -1})
-                        wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, CONSTRAINTPOS.x + hint.x, CONSTRAINTPOS.y + hint.y);
-
-                    return; // don't process anything else, the cursor is locked. The surface should not receive any further events.
-                            // these are usually FPS games. They will use the relative motion.
-                } else {
-                    // we restrict the cursor to the confined region
-                    if (!pixman_region32_contains_point(&PCONSTRAINT->constraint->region, mouseCoords.x - CONSTRAINTPOS.x, mouseCoords.y - CONSTRAINTPOS.y, nullptr)) {
-                        if (g_pCompositor->m_sSeat.mouse->constraintActive) {
-                            wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, NULL, mouseCoords.x, mouseCoords.y);
-                            mouseCoords = getMouseCoordsInternal();
-                        }
-                    } else {
-                        if ((!CONSTRAINTWINDOW->m_bIsX11 && PMONITOR && CONSTRAINTWINDOW->m_iWorkspaceID == PMONITOR->activeWorkspace) || (CONSTRAINTWINDOW->m_bIsX11)) {
-                            g_pCompositor->m_sSeat.mouse->constraintActive = true;
-                        }
-                    }
-                }
-
-                if (CONSTRAINTWINDOW->m_bIsX11) {
-                    foundSurface = CONSTRAINTWINDOW->m_pWLSurface.wlr();
-                    surfacePos   = CONSTRAINTWINDOW->m_vRealPosition.vec();
-                } else {
-                    g_pCompositor->vectorWindowToSurface(mouseCoords, CONSTRAINTWINDOW, surfaceCoords);
-                }
-
-                pFoundWindow = CONSTRAINTWINDOW;
-            }
-        } else {
-            unconstrainMouse();
-        }
-    }
 
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);

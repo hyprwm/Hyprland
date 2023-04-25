@@ -531,26 +531,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
         if (!m_PseudoDragFlags.started) {
             m_PseudoDragFlags.started = true;
 
-            const auto PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-            const auto PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
-            const auto PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
-
-            const auto OFFSETTOPLEFT     = Vector2D(DISPLAYLEFT ? *PGAPSOUT : *PGAPSIN, DISPLAYTOP ? *PGAPSOUT : *PGAPSIN);
-            const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? *PGAPSOUT : *PGAPSIN, DISPLAYBOTTOM ? *PGAPSOUT : *PGAPSIN);
-
-            const auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE) - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
-
-            float      scale = 1;
-
-            if (PWINDOW->m_vPseudoSize.x > calcSize.x) {
-                scale = calcSize.x / PWINDOW->m_vPseudoSize.x;
-            }
-
-            if (PWINDOW->m_vPseudoSize.y * scale > calcSize.y) {
-                scale = calcSize.y / PWINDOW->m_vPseudoSize.y;
-            }
-
-            const auto pseudoSize  = PWINDOW->m_vPseudoSize * scale;
+            const auto pseudoSize  = PWINDOW->m_vRealSize.goalv();
             const auto mouseOffset = g_pInputManager->getMouseCoordsInternal() - (PNODE->position + ((PNODE->size / 2) - (pseudoSize / 2)));
 
             if (mouseOffset.x > 0 && mouseOffset.x < pseudoSize.x && mouseOffset.y > 0 && mouseOffset.y < pseudoSize.y) {

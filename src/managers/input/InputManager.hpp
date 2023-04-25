@@ -175,7 +175,7 @@ class CInputManager {
     // for hiding cursor on touch
     bool m_bLastInputTouch = false;
 
-    // for follow mouse 4
+    // for tracking mouse refocus
     CWindow* m_pLastMouseFocus = nullptr;
 
   private:

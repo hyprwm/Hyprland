@@ -267,15 +267,15 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         return;
     }
 
-    static auto TIMER = std::chrono::high_resolution_clock::now();
+    static auto        TIMER = std::chrono::high_resolution_clock::now();
 
-    const auto  SPECIAL = g_pCompositor->isWorkspaceSpecial(DRAGGINGWINDOW->m_iWorkspaceID);
+    const auto         SPECIAL = g_pCompositor->isWorkspaceSpecial(DRAGGINGWINDOW->m_iWorkspaceID);
 
-    const auto  DELTA     = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
-    const auto  TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
+    const auto         DELTA     = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
+    const auto         TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
 
-    const auto  PANIMATEMOUSE = &g_pConfigManager->getConfigValuePtr("misc:animate_mouse_windowdragging")->intValue;
-    const auto  PANIMATE      = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
+    static auto* const PANIMATEMOUSE = &g_pConfigManager->getConfigValuePtr("misc:animate_mouse_windowdragging")->intValue;
+    static auto* const PANIMATE      = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
 
     if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
         (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count() <

@@ -46,6 +46,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual bool                     isWindowTiled(CWindow*);
     virtual void                     recalculateMonitor(const int&);
     virtual void                     recalculateWindow(CWindow*);
+    virtual void                     onBeginDragWindow();
     virtual void                     resizeActiveWindow(const Vector2D&, CWindow* pWindow = nullptr);
     virtual void                     fullscreenRequestForWindow(CWindow*, eFullscreenMode, bool);
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
@@ -61,13 +62,20 @@ class CHyprDwindleLayout : public IHyprLayout {
   private:
     std::list<SDwindleNodeData> m_lDwindleNodesData;
 
-    int                         getNodesOnWorkspace(const int&);
-    void                        applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
-    SDwindleNodeData*           getNodeFromWindow(CWindow*);
-    SDwindleNodeData*           getFirstNodeOnWorkspace(const int&);
-    SDwindleNodeData*           getMasterNodeOnWorkspace(const int&);
+    struct {
+        bool started = false;
+        bool pseudo  = false;
+        bool xExtent = false;
+        bool yExtent = false;
+    } m_PseudoDragFlags;
 
-    void                        toggleSplit(CWindow*);
+    int               getNodesOnWorkspace(const int&);
+    void              applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
+    SDwindleNodeData* getNodeFromWindow(CWindow*);
+    SDwindleNodeData* getFirstNodeOnWorkspace(const int&);
+    SDwindleNodeData* getMasterNodeOnWorkspace(const int&);
+
+    void              toggleSplit(CWindow*);
 
     friend struct SDwindleNodeData;
 };

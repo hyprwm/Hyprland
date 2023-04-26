@@ -57,7 +57,7 @@ include_directories(
   "subprojects/udis86/")
 set(CMAKE_CXX_STANDARD 23)
 add_compile_definitions(WLR_USE_UNSTABLE)
-add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith -Wno-format-truncation)
+add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith)
 add_link_options(-rdynamic)
 set(CMAKE_ENABLE_EXPORTS TRUE)
 

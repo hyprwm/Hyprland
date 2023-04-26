@@ -1,3 +1,4 @@
+PREFIX = /usr/local
 
 legacyrenderer:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja

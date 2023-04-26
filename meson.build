@@ -75,9 +75,25 @@ if get_option('buildtype') == 'debug'
   add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
 endif
 
+globber = run_command('find', 'src', '-name', '*.h*', check: true)
+headers = globber.stdout().strip().split('\n')
+foreach file : headers
+  install_headers(file, subdir: 'hyprland', preserve_path: true)
+endforeach
+
 subdir('protocols')
 subdir('src')
 subdir('hyprctl')
 subdir('assets')
 subdir('example')
 subdir('docs')
+
+pkg_install_dir = join_paths(get_option('datadir'), 'pkgconfig')
+
+import('pkgconfig').generate(
+  name: 'Hyprland',
+  filebase: 'hyprland',
+  url: 'https://github.com/hyprwm/Hyprland',
+  description: 'Hyprland header files',
+  install_dir: pkg_install_dir,
+)

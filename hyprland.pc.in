@@ -1,0 +1,8 @@
+prefix="@PREFIX@"
+includedir="${prefix}/include"
+
+Name: Hyprland
+URL: https://github.com/hyprwm/Hyprland
+Description: Hyprland header files
+Version: @HYPRLAND_VERSION@
+Cflags: -I"${includedir}/hyprland"

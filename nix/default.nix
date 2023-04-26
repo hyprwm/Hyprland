@@ -61,6 +61,7 @@ in
       outputs = [
         "out"
         "man"
+        "dev"
       ];
 
       buildInputs =

@@ -51,13 +51,10 @@ install:
 	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
 	mkdir -p ${PREFIX}/include/hyprland
 
-	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
-	cp ./*-protocol.h ${PREFIX}/include
-
-	mkdir -p ${PREFIX}/include/hyprland
+	mkdir -p ${PREFIX}/include/hyprland/protocols
 	mkdir -p ${PREFIX}/share/pkgconfig
 	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
-	cp ./*-protocol.h ${PREFIX}/include
+	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 
 cleaninstall:

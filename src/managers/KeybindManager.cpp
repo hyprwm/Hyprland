@@ -1143,7 +1143,9 @@ void CKeybindManager::moveActiveTo(std::string args) {
     if (!PMONITORTOCHANGETO)
         return;
 
-    moveActiveToWorkspace(std::to_string(PMONITORTOCHANGETO->activeWorkspace));
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITORTOCHANGETO->activeWorkspace);
+
+    moveActiveToWorkspace(PMONITORTOCHANGETO->activeWorkspace < 0 ? "name:" + PWORKSPACE->m_szName : std::to_string(PMONITORTOCHANGETO->activeWorkspace));
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

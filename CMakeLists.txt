@@ -43,6 +43,12 @@ execute_process(
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_DIRTY
     OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(
+    COMMAND sh -c "git describe --tags"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 #
 #
 
@@ -134,7 +140,8 @@ target_compile_definitions(Hyprland
     "GIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\""
     "GIT_BRANCH=\"${GIT_BRANCH}\""
     "GIT_COMMIT_MESSAGE=\"${GIT_COMMIT_MESSAGE}\""
-    "GIT_DIRTY=\"${GIT_DIRTY}\"")
+    "GIT_DIRTY=\"${GIT_DIRTY}\""
+    "GIT_TAG=\"${GIT_TAG}\"")
 
 target_link_libraries(Hyprland rt)
 

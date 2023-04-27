@@ -608,8 +608,8 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + GIT_DIRTY + " (" +
-            removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str() + ").\nflags: (if any)\n";
+        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" +
+            removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str() + ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";

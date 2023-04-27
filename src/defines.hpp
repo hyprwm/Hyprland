@@ -86,6 +86,9 @@
 #ifndef GIT_DIRTY
 #define GIT_DIRTY "?"
 #endif
+#ifndef GIT_TAG
+#define GIT_TAG "?"
+#endif
 
 #define SPECIAL_WORKSPACE_START (-99)
 

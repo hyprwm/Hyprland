@@ -1,6 +1,6 @@
 #include "../includes.hpp"
 #include "../helpers/MiscFunctions.hpp"
-#include "protocols/ext-workspace-unstable-v1-protocol.h"
+#include "ext-workspace-unstable-v1-protocol.h"
 
 #include <assert.h>
 #include <string.h>

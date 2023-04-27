@@ -144,4 +144,4 @@ extern "C" {
 
 #include "helpers/Vector2D.hpp"
 
-#include "protocols/ext-workspace-unstable-v1-protocol.h"
+#include "ext-workspace-unstable-v1-protocol.h"

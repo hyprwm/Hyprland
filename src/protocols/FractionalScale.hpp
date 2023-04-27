@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "protocols/fractional-scale-v1-protocol.h"
+#include "fractional-scale-v1-protocol.h"
 
 #include <vector>
 #include <algorithm>

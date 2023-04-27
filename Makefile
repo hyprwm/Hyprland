@@ -40,8 +40,8 @@ install:
 
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	mkdir -p ${PREFIX}/bin
-	cp ./build/Hyprland ${PREFIX}/bin
-	cp ./hyprctl/hyprctl ${PREFIX}/bin
+	cp ./build/Hyprland ${PREFIX}/bin -f
+	cp ./hyprctl/hyprctl ${PREFIX}/bin -f
 	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
 	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland

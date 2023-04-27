@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
-#include "linux-dmabuf-unstable-v1-protocol.h"
+#include "protocols/linux-dmabuf-unstable-v1-protocol.h"
 
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE = wlr_surface_get_texture(surface);

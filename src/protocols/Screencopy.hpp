@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "wlr-screencopy-unstable-v1-protocol.h"
+#include "protocols/wlr-screencopy-unstable-v1-protocol.h"
 
 #include <list>
 #include <vector>

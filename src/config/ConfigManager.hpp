@@ -182,6 +182,8 @@ class CConfigManager {
 
     void                      addExecRule(const SExecRequestedRule&);
 
+    void                      handlePluginLoads();
+
     std::string               configCurrentPath;
 
   private:
@@ -203,6 +205,7 @@ class CConfigManager {
 
     std::vector<SExecRequestedRule>                                                            execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 
+    std::vector<std::string>                                                                   m_vDeclaredPlugins;
     std::unordered_map<HANDLE, std::unique_ptr<std::unordered_map<std::string, SConfigValue>>> pluginConfigs; // stores plugin configs
 
     bool                                                                                       isFirstLaunch = true; // For exec-once
@@ -250,6 +253,7 @@ class CConfigManager {
     void         handleBlurLS(const std::string&, const std::string&);
     void         handleBindWS(const std::string&, const std::string&);
     void         handleEnv(const std::string&, const std::string&);
+    void         handlePlugin(const std::string&, const std::string&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

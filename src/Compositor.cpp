@@ -402,6 +402,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the PluginSystem!");
             g_pPluginSystem = std::make_unique<CPluginSystem>();
+            g_pConfigManager->handlePluginLoads();
         } break;
         default: UNREACHABLE();
     }

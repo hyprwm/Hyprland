@@ -1869,33 +1869,35 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     // fix old mon
     int nextWorkspaceOnMonitorID = -1;
-    for (auto& w : m_vWorkspaces) {
-        if (w->m_iMonitorID == POLDMON->ID && w->m_iID != pWorkspace->m_iID && !w->m_bIsSpecialWorkspace) {
-            nextWorkspaceOnMonitorID = w->m_iID;
-            break;
+    if (!SWITCHINGISACTIVE)
+        nextWorkspaceOnMonitorID = pWorkspace->m_iID;
+    else {
+        for (auto& w : m_vWorkspaces) {
+            if (w->m_iMonitorID == POLDMON->ID && w->m_iID != pWorkspace->m_iID && !w->m_bIsSpecialWorkspace) {
+                nextWorkspaceOnMonitorID = w->m_iID;
+                break;
+            }
         }
+
+        if (nextWorkspaceOnMonitorID == -1) {
+            nextWorkspaceOnMonitorID = 1;
+
+            while (getWorkspaceByID(nextWorkspaceOnMonitorID) || [&]() -> bool {
+                const auto B = g_pConfigManager->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
+                return B && B != POLDMON;
+            }())
+                nextWorkspaceOnMonitorID++;
+
+            Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new %d", nextWorkspaceOnMonitorID);
+
+            g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID);
+        }
+
+        Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing %d", nextWorkspaceOnMonitorID);
+        POLDMON->changeWorkspace(nextWorkspaceOnMonitorID);
     }
-
-    if (nextWorkspaceOnMonitorID == -1) {
-        nextWorkspaceOnMonitorID = 1;
-
-        while (getWorkspaceByID(nextWorkspaceOnMonitorID) || [&]() -> bool {
-            const auto B = g_pConfigManager->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
-            return B && B != POLDMON;
-        }())
-            nextWorkspaceOnMonitorID++;
-
-        Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new %d", nextWorkspaceOnMonitorID);
-
-        g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID);
-    }
-
-    Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing %d", nextWorkspaceOnMonitorID);
-
-    POLDMON->changeWorkspace(nextWorkspaceOnMonitorID);
 
     // move the workspace
-
     pWorkspace->m_iMonitorID = pMonitor->ID;
     pWorkspace->moveToMonitor(pMonitor->ID);
 

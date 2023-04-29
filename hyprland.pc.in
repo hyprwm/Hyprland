@@ -5,4 +5,4 @@ Name: Hyprland
 URL: https://github.com/hyprwm/Hyprland
 Description: Hyprland header files
 Version: @HYPRLAND_VERSION@
-Cflags: -I"${includedir}/hyprland" -I"${includedir}/hyprland/protocols"
+Cflags: -I"${includedir}" -I"${includedir}/hyprland/protocols"

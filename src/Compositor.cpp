@@ -2348,7 +2348,8 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
     if (!pWindow || !pWorkspace)
         return;
 
-    const bool FULLSCREEN = pWindow->m_bIsFullscreen;
+    const bool FULLSCREEN     = pWindow->m_bIsFullscreen;
+    const auto FULLSCREENMODE = getWorkspaceByID(pWindow->m_iWorkspaceID)->m_efFullscreenMode;
 
     if (FULLSCREEN)
         setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
@@ -2374,5 +2375,5 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
     }
 
     if (FULLSCREEN)
-        setWindowFullscreen(pWindow, true, FULLSCREEN_FULL);
+        setWindowFullscreen(pWindow, true, FULLSCREENMODE);
 }

@@ -99,14 +99,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vPseudoSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
     }
 
-    CWindow* pFullscreenWindow = nullptr;
-
-    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        pFullscreenWindow      = PFULLWINDOW;
-        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
-    }
-
     // window rules
     const auto  WINDOWRULES        = g_pConfigManager->getMatchingRules(PWINDOW);
     std::string requestedWorkspace = "";
@@ -213,6 +205,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
         }
         PWINDOW->applyDynamicRule(r);
+    }
+
+    CWindow* pFullscreenWindow = nullptr;
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        pFullscreenWindow      = PFULLWINDOW;
+        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
     }
 
     // disallow tiled pinned

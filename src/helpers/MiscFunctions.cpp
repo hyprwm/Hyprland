@@ -305,8 +305,9 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         outName = PLASTWORKSPACE->m_szName;
         return PLASTWORKSPACE->m_iID;
     } else {
-        if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
+        if ((in[0] == 'm' || in[0] == 'e' || in[0] == 'r') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';
+            bool includeEmpty  = in[0] == 'r';
 
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
@@ -330,8 +331,23 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
             std::sort(validWSes.begin(), validWSes.end());
 
+            // Include empty workspaces in between
+            if (includeEmpty && validWSes.size() >= 2) {
+                for (auto it = validWSes.begin(); it != validWSes.end() - 1; ++it) {
+                    // add all empty workspaces in between current and last
+                    for (int id = (*it) + 1; id < *(it + 1); id++) {
+                        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
+                        if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)) {
+                            // Empty and can use it, insert after current iterator
+                            it = validWSes.insert(it + 1, id);
+                        }
+                    }
+                }
+            }
+
             // get the offset
-            remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
+            if (!includeEmpty)
+                remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
             // get the current item
             int currentItem = -1;
@@ -346,14 +362,50 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             currentItem += remains;
 
             // sanitize
-            if (currentItem >= (int)validWSes.size()) {
-                currentItem = currentItem % validWSes.size();
-            } else if (currentItem < 0) {
-                currentItem = validWSes.size() + currentItem;
+            if (!includeEmpty) {
+                if (currentItem >= (int)validWSes.size()) {
+                    currentItem = currentItem % validWSes.size();
+                } else if (currentItem < 0) {
+                    currentItem = validWSes.size() + currentItem;
+                }
+            } else {
+                if (currentItem >= (int)validWSes.size()) {
+                    // out-of-bounds in positive dir, find next n empty ones (or stay on last valid)
+                    int id            = validWSes.back();
+                    int remainingWSes = currentItem - validWSes.size();
+                    for (int i = 0; i <= remainingWSes; i++) {
+                        while (++id < INT_MAX) {
+                            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
+                            if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)) {
+                                // Found empty one, use that
+                                validWSes.push_back(id);
+                                break;
+                            }
+                        }
+                    }
+                    currentItem = validWSes.size() - 1;
+                } else if (currentItem < 0) {
+                    // out-of-bounds in negative, find next n empty ones (or stay on first valid)
+                    int id            = validWSes.front();
+                    int remainingWSes = -currentItem;
+                    for (int i = 0; i <= remainingWSes; i++) {
+                        while (--id > 0) {
+                            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
+                            if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)) {
+                                // Found empty one, use that
+                                validWSes.insert(validWSes.begin(), id);
+                                break;
+                            }
+                        }
+                    }
+                    currentItem = 0;
+                }
             }
 
-            result  = validWSes[currentItem];
-            outName = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
+            result                = validWSes[currentItem];
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(validWSes[currentItem]);
+            if (PWORKSPACE)
+                outName = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
 
         } else {
             if (in[0] == '+' || in[0] == '-') {

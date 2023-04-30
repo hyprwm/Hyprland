@@ -538,6 +538,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
     }
 
     g_pHyprRenderer->damageMonitor(this);
+
+    g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
 }
 
 void CMonitor::changeWorkspace(const int& id, bool internal) {

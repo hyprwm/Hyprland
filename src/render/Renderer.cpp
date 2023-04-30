@@ -444,7 +444,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     // TODO: check better with solitary after MR for tearing.
     const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID);
     if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
-        !PFULLWINDOW->opaque()) {
+        !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.isBeingAnimated() || PFULLWINDOW->m_fAlpha.fl() != 1.f || PFULLWINDOW->m_fActiveInactiveAlpha.fl() != 1.f) {
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.get(), pMonitor, time);
         }

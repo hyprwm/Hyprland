@@ -15,6 +15,8 @@ class CPlugin {
 
     std::string                                            path = "";
 
+    bool                                                   m_bLoadedWithConfig = false;
+
     HANDLE                                                 m_pHandle = nullptr;
 
     std::vector<IHyprLayout*>                              registeredLayouts;
@@ -27,14 +29,15 @@ class CPluginSystem {
   public:
     CPluginSystem();
 
-    CPlugin*              loadPlugin(const std::string& path);
-    void                  unloadPlugin(const CPlugin* plugin, bool eject = false);
-    void                  unloadAllPlugins();
-    CPlugin*              getPluginByPath(const std::string& path);
-    CPlugin*              getPluginByHandle(HANDLE handle);
-    std::vector<CPlugin*> getAllPlugins();
+    CPlugin*                 loadPlugin(const std::string& path);
+    void                     unloadPlugin(const CPlugin* plugin, bool eject = false);
+    void                     unloadAllPlugins();
+    std::vector<std::string> updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed);
+    CPlugin*                 getPluginByPath(const std::string& path);
+    CPlugin*                 getPluginByHandle(HANDLE handle);
+    std::vector<CPlugin*>    getAllPlugins();
 
-    bool                  m_bAllowConfigVars = false;
+    bool                     m_bAllowConfigVars = false;
 
   private:
     std::vector<std::unique_ptr<CPlugin>> m_vLoadedPlugins;

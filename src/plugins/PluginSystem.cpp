@@ -119,6 +119,35 @@ void CPluginSystem::unloadAllPlugins() {
         unloadPlugin(p.get(), false); // Unload remaining plugins gracefully
 }
 
+std::vector<std::string> CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed) {
+    std::vector<std::string> failures;
+
+    // unload all plugins that are no longer present
+    for (auto& p : m_vLoadedPlugins | std::views::reverse) {
+        if (p->m_bLoadedWithConfig && std::find(plugins.begin(), plugins.end(), p->path) == plugins.end()) {
+            Debug::log(LOG, "Unloading plugin %s which is no longer present in config", p->path.c_str());
+            unloadPlugin(p.get(), false);
+            changed = true;
+        }
+    }
+
+    // load all new plugins
+    for (auto& path : plugins) {
+        if (std::find_if(m_vLoadedPlugins.begin(), m_vLoadedPlugins.end(), [&](const auto& other) { return other->path == path; }) == m_vLoadedPlugins.end()) {
+            Debug::log(LOG, "Loading plugin %s which is now present in config", path.c_str());
+            const auto plugin = loadPlugin(path);
+
+            if (plugin) {
+                plugin->m_bLoadedWithConfig = true;
+                changed                     = true;
+            } else
+                failures.push_back(path);
+        }
+    }
+
+    return failures;
+}
+
 CPlugin* CPluginSystem::getPluginByPath(const std::string& path) {
     for (auto& p : m_vLoadedPlugins) {
         if (p->path == path)

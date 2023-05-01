@@ -36,10 +36,10 @@
       import nixpkgs {
         inherit system;
         overlays = [
-          (_: prev: {
+          (final: prev: {
             wayland = prev.wayland.overrideAttrs (old: rec {
               version = "1.22.0";
-              src = prev.fetchurl {
+              src = final.fetchurl {
                 url = "https://gitlab.freedesktop.org/wayland/wayland/-/releases/${version}/downloads/${old.pname}-${version}.tar.xz";
                 hash = "sha256-FUCvHqaYpHHC2OnSiDMsfg/TYMjx0Sk267fny8JCWEI=";
               };
@@ -56,13 +56,13 @@
       (builtins.substring 6 2 longDate)
     ]);
   in {
-    overlays.default = _: prev: rec {
-      wlroots-hyprland = prev.callPackage ./nix/wlroots.nix {
+    overlays.default = final: prev: rec {
+      wlroots-hyprland = final.callPackage ./nix/wlroots.nix {
         version = mkDate (inputs.wlroots.lastModifiedDate or "19700101") + "_" + (inputs.wlroots.shortRev or "dirty");
         src = inputs.wlroots;
         libdisplay-info = prev.libdisplay-info.overrideAttrs (old: {
           version = "0.1.1+date=2023-03-02";
-          src = prev.fetchFromGitLab {
+          src = final.fetchFromGitLab {
             domain = "gitlab.freedesktop.org";
             owner = "emersion";
             repo = old.pname;
@@ -73,7 +73,7 @@
 
         libliftoff = prev.libliftoff.overrideAttrs (old: {
           version = "0.5.0-dev";
-          src = prev.fetchFromGitLab {
+          src = final.fetchFromGitLab {
             domain = "gitlab.freedesktop.org";
             owner = "emersion";
             repo = old.pname;
@@ -86,8 +86,8 @@
           ];
         });
       };
-      hyprland = prev.callPackage ./nix/default.nix {
-        stdenv = prev.gcc12Stdenv;
+      hyprland = final.callPackage ./nix/default.nix {
+        stdenv = final.gcc12Stdenv;
         version = props.version + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
         commit = self.rev or "";
@@ -99,7 +99,7 @@
       hyprland-nvidia = hyprland.override {nvidiaPatches = true;};
       hyprland-no-hidpi = builtins.trace "hyprland-no-hidpi was removed. Please use the default package." hyprland;
 
-      udis86 = prev.callPackage ./nix/udis86.nix {};
+      udis86 = final.callPackage ./nix/udis86.nix {};
 
       waybar-hyprland = prev.waybar.overrideAttrs (oldAttrs: {
         postPatch = ''
@@ -119,7 +119,7 @@
       // {inherit (self.packages.${system}) xdg-desktop-portal-hyprland;});
 
     packages = genSystems (system:
-      (self.overlays.default null pkgsFor.${system})
+      (self.overlays.default pkgsFor.${system} pkgsFor.${system})
       // {
         default = self.packages.${system}.hyprland;
       });

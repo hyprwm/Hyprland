@@ -2,19 +2,19 @@ PREFIX = /usr/local
 
 legacyrenderer:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j$(shell nproc)
+	cmake --build ./build --config Release --target all -j`nproc`
 
 legacyrendererdebug:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j$(shell nproc)
+	cmake --build ./build --config Release --target all -j`nproc`
 
 release:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j$(shell nproc)
+	cmake --build ./build --config Release --target all -j`nproc`
 
 debug:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -S . -B ./build -G Ninja
-	cmake --build ./build --config Debug --target all -j$(shell nproc)
+	cmake --build ./build --config Debug --target all -j`nproc`
 
 clear:
 	rm -rf build
@@ -26,7 +26,7 @@ all:
 	$(MAKE) clear
 	$(MAKE) fixwlr
 	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc`
 	$(MAKE) release
 	$(MAKE) -C hyprctl all
 
@@ -34,7 +34,7 @@ install:
 	$(MAKE) clear
 	$(MAKE) fixwlr
 	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc) && cd ../..
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc` && cd ../..
 	$(MAKE) release
 	$(MAKE) -C hyprctl all
 
@@ -87,10 +87,10 @@ config:
 
 	ninja -C subprojects/wlroots/build/ install
 
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc`
 
 pluginenv:
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc`
 
 	$(MAKE) fixwlr
 

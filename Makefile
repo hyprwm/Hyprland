@@ -56,8 +56,8 @@ install:
 	mkdir -p ${PREFIX}/include/hyprland/wlroots
 	mkdir -p ${PREFIX}/share/pkgconfig
 	
-	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
-	cd subprojects/wlroots/include && find . -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland/wlroots ';' && cd ../../..
+	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
+	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	cp ./build/hyprland.pc /usr/share/pkgconfig
@@ -105,8 +105,8 @@ pluginenv:
 	mkdir -p ${PREFIX}/include/hyprland/wlroots
 	mkdir -p ${PREFIX}/share/pkgconfig
 	
-	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
-	cd subprojects/wlroots/include && find . -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland/wlroots ';' && cd ../../..
+	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
+	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	cp ./build/hyprland.pc /usr/share/pkgconfig

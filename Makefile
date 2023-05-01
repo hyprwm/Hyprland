@@ -25,7 +25,7 @@ clear:
 all:
 	$(MAKE) clear
 	$(MAKE) fixwlr
-	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
+	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && mkdir -p ${PREFIX}/lib/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
 	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 	$(MAKE) release
 	$(MAKE) -C hyprctl all
@@ -33,7 +33,7 @@ all:
 install:
 	$(MAKE) clear
 	$(MAKE) fixwlr
-	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
+	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && mkdir -p ${PREFIX}/lib/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
 	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF` && cd ../..
 	$(MAKE) release
 	$(MAKE) -C hyprctl all

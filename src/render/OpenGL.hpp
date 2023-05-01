@@ -100,7 +100,7 @@ class CHyprOpenGLImpl {
     void                                       renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
     void                                       renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool blockBlurOptimization = false);
     void                                       renderRoundedShadow(wlr_box*, int round, int range, float a = 1.0);
-    void                                       renderBorder(wlr_box*, const CGradientValueData&, int round, float a = 1.0, int borderSize = -1);
+    void                                       renderBorder(wlr_box*, const CGradientValueData&, int round, int borderSize, float a = 1.0);
 
     void                                       saveMatrix();
     void                                       setMatrixScaleTranslate(const Vector2D& translate, const float& scale);

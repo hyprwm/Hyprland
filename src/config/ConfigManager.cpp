@@ -1107,7 +1107,7 @@ void CConfigManager::handleEnv(const std::string& command, const std::string& va
 
 void CConfigManager::handlePlugin(const std::string& command, const std::string& path) {
     if (std::find(m_vDeclaredPlugins.begin(), m_vDeclaredPlugins.end(), path) != m_vDeclaredPlugins.end()) {
-        parseError = "plugin declared twice";
+        parseError = "plugin '" + path + "' declared twice";
         return;
     }
 

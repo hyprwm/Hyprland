@@ -33,7 +33,6 @@ void CHyprError::queueCreate(std::string message, const CColor& color) {
 
 void CHyprError::createQueued() {
     if (m_bIsCreated) {
-        m_bQueuedDestroy = false;
         m_tTexture.destroyTexture();
     }
 
@@ -171,4 +170,6 @@ void CHyprError::draw() {
 void CHyprError::destroy() {
     if (m_bIsCreated)
         m_bQueuedDestroy = true;
+    else
+        m_szQueued = "";
 }

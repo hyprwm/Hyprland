@@ -1105,6 +1105,15 @@ void CConfigManager::handleEnv(const std::string& command, const std::string& va
     }
 }
 
+void CConfigManager::handlePlugin(const std::string& command, const std::string& path) {
+    if (std::find(m_vDeclaredPlugins.begin(), m_vDeclaredPlugins.end(), path) != m_vDeclaredPlugins.end()) {
+        parseError = "plugin '" + path + "' declared twice";
+        return;
+    }
+
+    m_vDeclaredPlugins.push_back(path);
+}
+
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
     if (dynamic) {
         parseError      = "";
@@ -1151,6 +1160,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleBindWS(COMMAND, VALUE);
     else if (COMMAND.find("env") == 0)
         handleEnv(COMMAND, VALUE);
+    else if (COMMAND.find("plugin") == 0)
+        handlePlugin(COMMAND, VALUE);
     else {
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
         needsLayoutRecalc = 2;
@@ -1303,6 +1314,7 @@ void CConfigManager::loadConfigLoadVars() {
     m_dBlurLSNamespaces.clear();
     boundWorkspaces.clear();
     setDefaultAnimationVars(); // reset anims
+    m_vDeclaredPlugins.clear();
 
     // paths
     configPaths.clear();
@@ -1441,6 +1453,9 @@ void CConfigManager::loadConfigLoadVars() {
 
     // Reset no monitor reload
     m_bNoMonitorReload = false;
+
+    // update plugins
+    handlePluginLoads();
 }
 
 void CConfigManager::tick() {
@@ -1952,6 +1967,31 @@ std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname
 
 void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
     execRequestedRules.push_back(rule);
+}
+
+void CConfigManager::handlePluginLoads() {
+    if (g_pPluginSystem == nullptr)
+        return;
+
+    bool pluginsChanged = false;
+    auto failedPlugins  = g_pPluginSystem->updateConfigPlugins(m_vDeclaredPlugins, pluginsChanged);
+
+    if (!failedPlugins.empty()) {
+        std::stringstream error;
+        error << "Failed to load the following plugins:";
+
+        for (auto path : failedPlugins) {
+            error << "\n" << path;
+        }
+
+        g_pHyprError->queueCreate(error.str(), CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
+    }
+
+    if (pluginsChanged) {
+        g_pHyprError->destroy();
+        m_bForceReload = true;
+        tick();
+    }
 }
 
 ICustomConfigValueData::~ICustomConfigValueData() {

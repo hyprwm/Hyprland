@@ -10,8 +10,7 @@
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
 
-enum eIdleInhibitMode
-{
+enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
@@ -101,9 +100,10 @@ struct SWindowSpecialRenderData {
     CWindowOverridableVar<int64_t> inactiveBorderColor = -1; // -1 means unset
 
     // set by the layout
-    bool rounding = true;
-    bool border   = true;
-    bool decorate = true;
+    int  borderSize = -1;
+    bool rounding   = true;
+    bool border     = true;
+    bool decorate   = true;
 };
 
 struct SWindowAdditionalConfigData {

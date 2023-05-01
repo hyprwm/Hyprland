@@ -1058,11 +1058,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     static auto* const PBORDERSIZE  = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
-    if (borderSize < 0) {
-        borderSize = *PBORDERSIZE;
-    }
-
-    wlr_box newBox = *box;
+    wlr_box            newBox = *box;
     scaleBox(&newBox, m_RenderData.renderModif.scale);
     newBox.x += m_RenderData.renderModif.translate.x;
     newBox.y += m_RenderData.renderModif.translate.y;

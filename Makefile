@@ -49,11 +49,14 @@ install:
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
 	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
-	mkdir -p ${PREFIX}/include/hyprland
 
+	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols
+	mkdir -p ${PREFIX}/include/hyprland/wlroots
 	mkdir -p ${PREFIX}/share/pkgconfig
+	
 	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
+	cd subprojects/wlroots/include && find . -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland/wlroots ';' && cd ../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 
@@ -94,6 +97,16 @@ pluginenv:
 	ninja -C subprojects/wlroots/build/
 
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja
+
+	mkdir -p ${PREFIX}/include/hyprland
+	mkdir -p ${PREFIX}/include/hyprland/protocols
+	mkdir -p ${PREFIX}/include/hyprland/wlroots
+	mkdir -p ${PREFIX}/share/pkgconfig
+	
+	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
+	cd subprojects/wlroots/include && find . -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland/wlroots ';' && cd ../../..
+	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
+	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 
 configdebug:
 	make fixwlr

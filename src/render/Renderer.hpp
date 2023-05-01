@@ -6,6 +6,7 @@
 #include "../helpers/Workspace.hpp"
 #include "../Window.hpp"
 #include "OpenGL.hpp"
+#include "../helpers/Timer.hpp"
 
 struct SMonitorRule;
 
@@ -68,6 +69,8 @@ class CHyprRenderer {
     bool             m_bCrashingInProgress = false;
     float            m_fCrashingDistort    = 0.5f;
     wl_event_source* m_pCrashingLoop       = nullptr;
+
+    CTimer           m_tRenderTimer;
 
   private:
     void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);

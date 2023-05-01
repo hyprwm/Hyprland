@@ -158,12 +158,13 @@ void CHyprOpenGLImpl::end() {
         wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
         if (m_RenderData.mouseZoomFactor != 1.f) {
-            const auto MOUSEPOS = g_pInputManager->getMouseCoordsInternal() - m_RenderData.pMonitor->vecPosition;
-            monbox.x -= MOUSEPOS.x;
-            monbox.y -= MOUSEPOS.y;
+            const auto ZOOMCENTER =
+                m_RenderData.mouseZoomUseMouse ? g_pInputManager->getMouseCoordsInternal() - m_RenderData.pMonitor->vecPosition : m_RenderData.pMonitor->vecSize / 2.f;
+            monbox.x -= ZOOMCENTER.x;
+            monbox.y -= ZOOMCENTER.y;
             scaleBox(&monbox, m_RenderData.mouseZoomFactor);
-            monbox.x += *PZOOMRIGID ? m_RenderData.pMonitor->vecTransformedSize.x / 2 : MOUSEPOS.x;
-            monbox.y += *PZOOMRIGID ? m_RenderData.pMonitor->vecTransformedSize.y / 2 : MOUSEPOS.y;
+            monbox.x += *PZOOMRIGID ? m_RenderData.pMonitor->vecTransformedSize.x / 2 : ZOOMCENTER.x;
+            monbox.y += *PZOOMRIGID ? m_RenderData.pMonitor->vecTransformedSize.y / 2 : ZOOMCENTER.y;
 
             if (monbox.x > 0)
                 monbox.x = 0;
@@ -177,9 +178,10 @@ void CHyprOpenGLImpl::end() {
 
         clear(CColor(11.0 / 255.0, 11.0 / 255.0, 11.0 / 255.0, 1.0));
 
-        m_bEndFrame                     = true;
-        m_bApplyFinalShader             = true;
-        m_RenderData.useNearestNeighbor = true;
+        m_bEndFrame         = true;
+        m_bApplyFinalShader = true;
+        if (m_RenderData.mouseZoomUseMouse)
+            m_RenderData.useNearestNeighbor = true;
 
         renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f, 0);
 
@@ -189,9 +191,10 @@ void CHyprOpenGLImpl::end() {
     }
 
     // reset our data
-    m_RenderData.pMonitor        = nullptr;
-    m_iWLROutputFb               = 0;
-    m_RenderData.mouseZoomFactor = 1.f;
+    m_RenderData.pMonitor          = nullptr;
+    m_iWLROutputFb                 = 0;
+    m_RenderData.mouseZoomFactor   = 1.f;
+    m_RenderData.mouseZoomUseMouse = true;
 }
 
 void CHyprOpenGLImpl::initShaders() {
@@ -816,7 +819,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
 }
 
 void CHyprOpenGLImpl::markBlurDirtyForMonitor(CMonitor* pMonitor) {
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
+    const auto PWORKSPACE  = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
     const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pMonitor->activeWorkspace);
 
     if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL && PFULLWINDOW && !PFULLWINDOW->m_vRealSize.isBeingAnimated() &&

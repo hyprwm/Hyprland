@@ -76,6 +76,7 @@ struct SCurrentRenderData {
 
     SRenderModifData    renderModif;
     float               mouseZoomFactor    = 1.f;
+    bool                mouseZoomUseMouse  = true; // true by default
     bool                useNearestNeighbor = false;
 
     Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);

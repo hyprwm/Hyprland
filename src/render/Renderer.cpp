@@ -788,6 +788,20 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
 
+    static bool firstLaunch = true;
+
+    float       zoomInFactorFirstLaunch = 1.f;
+
+    if (firstLaunch) {
+        firstLaunch = false;
+        m_tRenderTimer.reset();
+    }
+
+    if (m_tRenderTimer.getSeconds() < 1.5f) { // TODO: make the animation system more damage-flexible so that this can be migrated to there
+        zoomInFactorFirstLaunch = 2.f - g_pAnimationManager->getBezier("default")->getYForPoint(m_tRenderTimer.getSeconds() / 1.5);
+        damageMonitor(pMonitor);
+    }
+
     startRender = std::chrono::high_resolution_clock::now();
 
     if (*PDEBUGOVERLAY == 1) {
@@ -969,6 +983,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
     else
         g_pHyprOpenGL->m_RenderData.mouseZoomFactor = 1.f;
+
+    if (zoomInFactorFirstLaunch > 1.f) {
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor    = zoomInFactorFirstLaunch;
+        g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse  = false;
+        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+    }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 

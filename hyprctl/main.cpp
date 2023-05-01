@@ -51,74 +51,76 @@ flags:
     --batch -> execute a batch of commands, separated by ';'
 )#";
 
-void              request(std::string arg, int minArgs = 0) {
-                 const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
+#define PAD
 
-                 const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
+void request(std::string arg, int minArgs = 0) {
+    const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
-                 if (ARGS < minArgs) {
-                     std::cout << "Not enough arguments, expected at least " << minArgs;
-                     return;
+    const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
+
+    if (ARGS < minArgs) {
+        std::cout << "Not enough arguments, expected at least " << minArgs;
+        return;
     }
 
-                 if (SERVERSOCKET < 0) {
-                     std::cout << "Couldn't open a socket (1)";
-                     return;
+    if (SERVERSOCKET < 0) {
+        std::cout << "Couldn't open a socket (1)";
+        return;
     }
 
-                 // get the instance signature
-                 auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+    // get the instance signature
+    auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
 
-                 if (!instanceSig) {
-                     std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
-                     return;
+    if (!instanceSig) {
+        std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
+        return;
     }
 
-                 std::string instanceSigStr = std::string(instanceSig);
+    std::string instanceSigStr = std::string(instanceSig);
 
-                 sockaddr_un serverAddress = {0};
-                 serverAddress.sun_family  = AF_UNIX;
+    sockaddr_un serverAddress = {0};
+    serverAddress.sun_family  = AF_UNIX;
 
-                 std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.socket.sock";
+    std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.socket.sock";
 
-                 strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
+    strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
-                 if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
-                     std::cout << "Couldn't connect to " << socketPath << ". (3)";
-                     return;
+    if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
+        std::cout << "Couldn't connect to " << socketPath << ". (3)";
+        return;
     }
 
-                 auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
+    auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
 
-                 if (sizeWritten < 0) {
-                     std::cout << "Couldn't write (4)";
-                     return;
+    if (sizeWritten < 0) {
+        std::cout << "Couldn't write (4)";
+        return;
     }
 
-                 std::string reply        = "";
-                 char        buffer[8192] = {0};
+    std::string reply        = "";
+    char        buffer[8192] = {0};
 
-                 sizeWritten = read(SERVERSOCKET, buffer, 8192);
+    sizeWritten = read(SERVERSOCKET, buffer, 8192);
 
-                 if (sizeWritten < 0) {
-                     std::cout << "Couldn't read (5)";
-                     return;
+    if (sizeWritten < 0) {
+        std::cout << "Couldn't read (5)";
+        return;
     }
 
-                 reply += std::string(buffer, sizeWritten);
+    reply += std::string(buffer, sizeWritten);
 
-                 while (sizeWritten == 8192) {
-                     sizeWritten = read(SERVERSOCKET, buffer, 8192);
-                     if (sizeWritten < 0) {
-                         std::cout << "Couldn't read (5)";
-                         return;
+    while (sizeWritten == 8192) {
+        sizeWritten = read(SERVERSOCKET, buffer, 8192);
+        if (sizeWritten < 0) {
+            std::cout << "Couldn't read (5)";
+            return;
         }
-                     reply += std::string(buffer, sizeWritten);
+        reply += std::string(buffer, sizeWritten);
     }
 
-                 close(SERVERSOCKET);
+    close(SERVERSOCKET);
 
-                 std::cout << reply;
+    std::cout << reply;
 }
 
 void requestHyprpaper(std::string arg) {

@@ -150,3 +150,14 @@ void CWorkspace::rememberPrevWorkspace(const CWorkspace* prev) {
     m_sPrevWorkspace.iID  = prev->m_iID;
     m_sPrevWorkspace.name = prev->m_szName;
 }
+
+std::string CWorkspace::getConfigName() {
+    if (m_bIsSpecialWorkspace) {
+        return "special:" + m_szName;
+    }
+
+    if (m_iID > 0)
+        return std::to_string(m_iID);
+
+    return "name:" + m_szName;
+}

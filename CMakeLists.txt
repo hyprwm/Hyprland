@@ -104,7 +104,7 @@ endif()
 include(CheckLibraryExists)
 check_library_exists(execinfo backtrace "" HAVE_LIBEXECINFO)
 if(HAVE_LIBEXECINFO)
-    target_link_libraries(Hyprland PRIVATE execinfo)
+    target_link_libraries(Hyprland execinfo)
 endif()
 
 if(LEGACY_RENDERER)

@@ -48,7 +48,8 @@ install:
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
-	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
+	mkdir -p ${PREFIX}/share/man/man1
+	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1
 
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols

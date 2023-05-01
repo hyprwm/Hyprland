@@ -75,7 +75,7 @@ uninstall:
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1
 
 fixwlr:
-	sed -i -E 's/(soversion = 12)([^032]|$$)/soversion = 12032/g' subprojects/wlroots/meson.build
+	sed -E -i -e 's/(soversion = 12)([^032]|$$)/soversion = 12032/g' subprojects/wlroots/meson.build
 
 	rm -rf ./subprojects/wlroots/build
 

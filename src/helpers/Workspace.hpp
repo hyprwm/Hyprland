@@ -51,13 +51,15 @@ class CWorkspace {
     bool m_bDefaultPseudo   = false;
 
     // don't destroy in sanity check
-    bool     m_bIndestructible = false;
+    bool        m_bIndestructible = false;
 
-    void     startAnim(bool in, bool left, bool instant = false);
-    void     setActive(bool on);
+    void        startAnim(bool in, bool left, bool instant = false);
+    void        setActive(bool on);
 
-    void     moveToMonitor(const int&);
+    void        moveToMonitor(const int&);
 
-    CWindow* getLastFocusedWindow();
-    void     rememberPrevWorkspace(const CWorkspace* prevWorkspace);
+    CWindow*    getLastFocusedWindow();
+    void        rememberPrevWorkspace(const CWorkspace* prevWorkspace);
+
+    std::string getConfigName();
 };

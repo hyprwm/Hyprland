@@ -1145,7 +1145,7 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITORTOCHANGETO->activeWorkspace);
 
-    moveActiveToWorkspace(PMONITORTOCHANGETO->activeWorkspace < 0 ? "name:" + PWORKSPACE->m_szName : std::to_string(PMONITORTOCHANGETO->activeWorkspace));
+    moveActiveToWorkspace(PWORKSPACE->getConfigName());
 }
 
 void CKeybindManager::toggleGroup(std::string args) {
@@ -1658,6 +1658,16 @@ void CKeybindManager::focusWindow(std::string regexp) {
         return;
 
     Debug::log(LOG, "Focusing to window name: %s", PWINDOW->m_szTitle.c_str());
+
+    if (g_pCompositor->m_pLastMonitor->activeWorkspace != PWINDOW->m_iWorkspaceID) {
+        Debug::log(LOG, "Fake executing workspace to move focus");
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+        if (!PWORKSPACE) {
+            Debug::log(ERR, "BUG THIS: null workspace in focusWindow");
+            return;
+        }
+        changeworkspace(PWORKSPACE->getConfigName());
+    }
 
     if (PWINDOW->isHidden() && PWINDOW->m_sGroupData.pNextWindow) {
         // grouped, change the current to us

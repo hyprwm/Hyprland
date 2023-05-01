@@ -1974,14 +1974,14 @@ void CConfigManager::handlePluginLoads() {
         return;
 
     bool pluginsChanged = false;
-    auto failedPlugins = g_pPluginSystem->updateConfigPlugins(m_vDeclaredPlugins, pluginsChanged);
+    auto failedPlugins  = g_pPluginSystem->updateConfigPlugins(m_vDeclaredPlugins, pluginsChanged);
 
     if (!failedPlugins.empty()) {
         std::stringstream error;
         error << "Failed to load the following plugins:";
 
         for (auto path : failedPlugins) {
-            error << "\n" << *path;
+            error << "\n" << path;
         }
 
         g_pHyprError->queueCreate(error.str(), CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));

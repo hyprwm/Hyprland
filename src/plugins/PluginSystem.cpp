@@ -119,8 +119,8 @@ void CPluginSystem::unloadAllPlugins() {
         unloadPlugin(p.get(), false); // Unload remaining plugins gracefully
 }
 
-std::vector<std::string*> CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed) {
-    std::vector<std::string*> failures;
+std::vector<std::string> CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed) {
+    std::vector<std::string> failures;
 
     // unload all plugins that are no longer present
     for (auto& p : m_vLoadedPlugins | std::views::reverse) {
@@ -141,7 +141,7 @@ std::vector<std::string*> CPluginSystem::updateConfigPlugins(const std::vector<s
                 plugin->m_bLoadedWithConfig = true;
                 changed                     = true;
             } else
-                failures.push_back((std::string*)&path);
+                failures.push_back(path);
         }
     }
 

@@ -60,7 +60,7 @@ install:
 	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
-	cp ./build/hyprland.pc /usr/share/pkgconfig
+	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
 cleaninstall:
 	echo -en "$(MAKE) cleaninstall has been DEPRECATED, you should avoid using it in the future.\nRunning $(MAKE) install instead...\n"
@@ -109,7 +109,7 @@ pluginenv:
 	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
-	cp ./build/hyprland.pc /usr/share/pkgconfig
+	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
 configdebug:
 	$(MAKE) fixwlr

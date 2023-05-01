@@ -248,6 +248,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     const auto         REALPOS            = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
     static auto* const PNOFLOATINGBORDERS = &g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue;
     static auto* const PDIMAROUND         = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
+    static auto* const PBORDERSIZE        = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
     SRenderData        renderdata = {pMonitor, time, REALPOS.x, REALPOS.y};
     if (ignorePosition) {
@@ -342,11 +343,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             scaleBox(&windowBox, pMonitor->scale);
 
-            g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, a1);
+            const int BORDERSIZE = pWindow->m_sSpecialRenderData.borderSize == -1 ? *PBORDERSIZE : pWindow->m_sSpecialRenderData.borderSize;
+
+            g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, BORDERSIZE, a1);
 
             if (ANIMATED) {
                 float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl());
-                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, rounding, a2);
+                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, rounding, BORDERSIZE, a2);
             }
         }
     }

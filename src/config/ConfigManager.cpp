@@ -574,7 +574,16 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
-            m_mDefaultWorkspaces[newrule.name] = ARGS[argno + 1];
+            std::string    name = "";
+            int            wsId = getWorkspaceIDFromString(ARGS[argno + 1], name);
+
+            SWorkspaceRule wsRule;
+            wsRule.monitor         = newrule.name;
+            wsRule.workspaceString = ARGS[argno + 1];
+            wsRule.workspaceName   = name;
+            wsRule.workspaceId     = wsId;
+
+            m_mWorkspaceRules[wsId] = wsRule;
             argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax");
@@ -1000,10 +1009,64 @@ void CConfigManager::handleBlurLS(const std::string& command, const std::string&
     updateBlurredLS(value, true);
 }
 
-void CConfigManager::handleDefaultWorkspace(const std::string& command, const std::string& value) {
-    const auto ARGS = CVarList(value);
+void CConfigManager::handleWorkspaceRules(const std::string& command, const std::string& value) {
+    // This can either be the monitor or the workspace identifier
+    const auto     FIRST_DELIM = value.find_first_of(',');
 
-    m_mDefaultWorkspaces[ARGS[0]] = ARGS[1];
+    std::string    name        = "";
+    auto           first_ident = removeBeginEndSpacesTabs(value.substr(0, FIRST_DELIM));
+    int            id          = getWorkspaceIDFromString(first_ident, name);
+
+    auto           rules = value.substr(FIRST_DELIM + 1);
+    SWorkspaceRule wsRule;
+    wsRule.workspaceString = first_ident;
+    if (id == INT_MAX) {
+        // it could be the monitor. If so, second value MUST be
+        // the workspace.
+        const auto WORKSPACE_DELIM = value.find_first_of(',', FIRST_DELIM + 1);
+        auto       wsIdent         = removeBeginEndSpacesTabs(value.substr(FIRST_DELIM + 1, (WORKSPACE_DELIM - FIRST_DELIM - 1)));
+        id                         = getWorkspaceIDFromString(wsIdent, name);
+        if (id == INT_MAX) {
+            Debug::log(ERR, "Invalid workspace identifier found: %s", wsIdent.c_str());
+            parseError = "Invalid workspace identifier found: " + wsIdent;
+            return;
+        }
+        wsRule.monitor         = first_ident;
+        wsRule.workspaceString = wsIdent;
+        rules                  = value.substr(WORKSPACE_DELIM + 1);
+    }
+
+    auto assignRule = [&](std::string rule) {
+        size_t delim = std::string::npos;
+        Debug::log(INFO, "found workspacerule: %s", rule.c_str());
+        if ((delim = rule.find("gapsin:")) != std::string::npos)
+            wsRule.gapsIn = std::stoi(rule.substr(delim + 7));
+        else if ((delim = rule.find("gapsout:")) != std::string::npos)
+            wsRule.gapsOut = std::stoi(rule.substr(delim + 8));
+        else if ((delim = rule.find("bordersize:")) != std::string::npos)
+            wsRule.borderSize = std::stoi(rule.substr(delim + 11));
+        else if ((delim = rule.find("border:")) != std::string::npos)
+            wsRule.border = configStringToInt(rule.substr(delim + 7));
+        else if ((delim = rule.find("rounding:")) != std::string::npos)
+            wsRule.rounding = configStringToInt(rule.substr(delim + 9));
+        else if ((delim = rule.find("decorate:")) != std::string::npos)
+            wsRule.decorate = configStringToInt(rule.substr(delim + 9));
+        else if ((delim = rule.find("monitor:")) != std::string::npos)
+            wsRule.monitor = rule.substr(delim + 8);
+    };
+
+    size_t      pos = 0;
+    std::string rule;
+    while ((pos = rules.find(',')) != std::string::npos) {
+        rule = rules.substr(0, pos);
+        assignRule(rule);
+        rules.erase(0, pos + 1);
+    }
+    assignRule(rules); // match remaining rule
+
+    wsRule.workspaceId    = id;
+    wsRule.workspaceName  = name;
+    m_mWorkspaceRules[id] = wsRule;
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
@@ -1140,7 +1203,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND == "unbind")
         handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace")
-        handleDefaultWorkspace(COMMAND, VALUE);
+        handleWorkspaceRules(COMMAND, VALUE);
     else if (COMMAND == "windowrule")
         handleWindowRule(COMMAND, VALUE);
     else if (COMMAND == "windowrulev2")
@@ -1314,6 +1377,7 @@ void CConfigManager::loadConfigLoadVars() {
     deviceConfigs.clear();
     m_dBlurLSNamespaces.clear();
     boundWorkspaces.clear();
+    m_mWorkspaceRules.clear();
     setDefaultAnimationVars(); // reset anims
     m_vDeclaredPlugins.clear();
 
@@ -1611,6 +1675,17 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const st
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
     return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-1, -1), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
+}
+
+SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
+    if (m_mWorkspaceRules.contains(pWorkspace->m_iID)) {
+        return m_mWorkspaceRules.at(pWorkspace->m_iID);
+    }
+
+    const auto IT = std::find_if(m_mWorkspaceRules.begin(), m_mWorkspaceRules.end(), [&](const auto& other) { return other.second.workspaceName == pWorkspace->m_szName; });
+    if (IT == m_mWorkspaceRules.end())
+        return SWorkspaceRule{};
+    return IT->second;
 }
 
 std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
@@ -2020,8 +2095,8 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
 }
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
-    const auto IT = std::find_if(m_mDefaultWorkspaces.begin(), m_mDefaultWorkspaces.end(), [&](const auto& other) { return other.first == name; });
-    if (IT == m_mDefaultWorkspaces.end())
+    const auto IT = std::find_if(m_mWorkspaceRules.begin(), m_mWorkspaceRules.end(), [&](const auto& other) { return other.second.monitor == name; });
+    if (IT == m_mWorkspaceRules.end())
         return "";
-    return IT->second;
+    return IT->second.workspaceString;
 }

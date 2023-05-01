@@ -1051,7 +1051,7 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
     counter++;
 }
 
-void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad, int round, float a) {
+void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad, int round, int borderSize, float a) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
@@ -1068,10 +1068,10 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
 
     box = &newBox;
 
-    if (*PBORDERSIZE < 1)
+    if (borderSize < 1)
         return;
 
-    int scaledBorderSize = *PBORDERSIZE * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale;
+    int scaledBorderSize = borderSize * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale;
 
     // adjust box
     box->x -= scaledBorderSize;

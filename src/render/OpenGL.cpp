@@ -1058,7 +1058,6 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     if (!pixman_region32_not_empty(m_RenderData.pDamage) || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBorder))
         return;
 
-    static auto* const PBORDERSIZE  = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
 
     wlr_box            newBox = *box;

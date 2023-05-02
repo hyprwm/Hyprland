@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     wlroots = {
       url = "gitlab:wlroots/wlroots?host=gitlab.freedesktop.org";
       flake = false;
@@ -58,7 +59,10 @@
   in {
     overlays.default = final: prev: rec {
       wlroots-hyprland = final.callPackage ./nix/wlroots.nix {
-        version = mkDate (inputs.wlroots.lastModifiedDate or "19700101") + "_" + (inputs.wlroots.shortRev or "dirty");
+        version =
+          mkDate (inputs.wlroots.lastModifiedDate or "19700101")
+          + "_"
+          + (inputs.wlroots.shortRev or "dirty");
         src = inputs.wlroots;
         libdisplay-info = prev.libdisplay-info.overrideAttrs (old: {
           version = "0.1.1+date=2023-03-02";
@@ -81,14 +85,17 @@
             sha256 = "sha256-DjwlS8rXE7srs7A8+tHqXyUsFGtucYSeq6X0T/pVOc8=";
           };
 
-          NIX_CFLAGS_COMPILE = toString [
-            "-Wno-error=sign-conversion"
-          ];
+          NIX_CFLAGS_COMPILE = toString ["-Wno-error=sign-conversion"];
         });
       };
       hyprland = final.callPackage ./nix/default.nix {
         stdenv = final.gcc12Stdenv;
-        version = props.version + "+date=" + (mkDate (self.lastModifiedDate or "19700101")) + "_" + (self.shortRev or "dirty");
+        version =
+          props.version
+          + "+date="
+          + (mkDate (self.lastModifiedDate or "19700101"))
+          + "_"
+          + (self.shortRev or "dirty");
         wlroots = wlroots-hyprland;
         commit = self.rev or "";
         inherit (inputs.hyprland-protocols.packages.${prev.stdenv.hostPlatform.system}) hyprland-protocols;
@@ -97,7 +104,10 @@
       hyprland-debug = hyprland.override {debug = true;};
       hyprland-hidpi = hyprland.override {hidpiXWayland = true;};
       hyprland-nvidia = hyprland.override {nvidiaPatches = true;};
-      hyprland-no-hidpi = builtins.trace "hyprland-no-hidpi was removed. Please use the default package." hyprland;
+      hyprland-no-hidpi =
+        builtins.trace
+        "hyprland-no-hidpi was removed. Please use the default package."
+        hyprland;
 
       udis86 = final.callPackage ./nix/udis86.nix {};
 
@@ -115,8 +125,12 @@
     };
 
     checks = genSystems (system:
-      (lib.filterAttrs (n: _: (lib.hasPrefix "hyprland" n) && !(lib.hasSuffix "debug" n)) self.packages.${system})
-      // {inherit (self.packages.${system}) xdg-desktop-portal-hyprland;});
+      (lib.filterAttrs
+        (n: _: (lib.hasPrefix "hyprland" n) && !(lib.hasSuffix "debug" n))
+        self.packages.${system})
+      // {
+        inherit (self.packages.${system}) xdg-desktop-portal-hyprland;
+      });
 
     packages = genSystems (system:
       (self.overlays.default pkgsFor.${system} pkgsFor.${system})
@@ -125,19 +139,18 @@
       });
 
     devShells = genSystems (system: {
-      default = pkgsFor.${system}.mkShell.override {stdenv = pkgsFor.${system}.gcc12Stdenv;} {
-        name = "hyprland-shell";
-        nativeBuildInputs = with pkgsFor.${system}; [
-          cmake
-        ];
-        buildInputs = [
-          self.packages.${system}.wlroots-hyprland
-        ];
-        inputsFrom = [
-          self.packages.${system}.wlroots-hyprland
-          self.packages.${system}.hyprland
-        ];
-      };
+      default =
+        pkgsFor.${system}.mkShell.override {
+          stdenv = pkgsFor.${system}.gcc12Stdenv;
+        } {
+          name = "hyprland-shell";
+          nativeBuildInputs = with pkgsFor.${system}; [cmake];
+          buildInputs = [self.packages.${system}.wlroots-hyprland];
+          inputsFrom = [
+            self.packages.${system}.wlroots-hyprland
+            self.packages.${system}.hyprland
+          ];
+        };
     });
 
     formatter = genSystems (system: pkgsFor.${system}.alejandra);

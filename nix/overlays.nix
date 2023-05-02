@@ -14,7 +14,6 @@ in {
   # Packages for variations of Hyprland, and its dependencies.
   hyprland-packages = final: prev: {
     hyprland = final.callPackage ./default.nix {
-      stdenv = final.gcc12Stdenv;
       version =
         props.version
         + "+date="

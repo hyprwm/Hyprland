@@ -94,15 +94,4 @@ in {
       });
     };
   };
-
-  # Temporary override for latest wayland version. May be useless in the future.
-  wayland-latest = final: prev: {
-    wayland = prev.wayland.overrideAttrs (old: rec {
-      version = "1.22.0";
-      src = final.fetchurl {
-        url = "https://gitlab.freedesktop.org/wayland/wayland/-/releases/${version}/downloads/${old.pname}-${version}.tar.xz";
-        hash = "sha256-FUCvHqaYpHHC2OnSiDMsfg/TYMjx0Sk267fny8JCWEI=";
-      };
-    });
-  };
 }

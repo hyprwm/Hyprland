@@ -51,6 +51,15 @@ in {
       '';
     };
 
+    plugins = lib.mkOption {
+      type = with lib.types; listOf (either package path);
+      default = [];
+      description = lib.mdDoc ''
+        List of hyprlad plugins to use. Can either be packages or
+        absolute plugin paths.
+      '';
+    };
+
     systemdIntegration = lib.mkOption {
       type = lib.types.bool;
       default = pkgs.stdenv.isLinux;
@@ -114,11 +123,14 @@ in {
     home.sessionVariables =
       lib.mkIf cfg.recommendedEnvironment {NIXOS_OZONE_WL = "1";};
 
-    xdg.configFile."hypr/hyprland.conf" = lib.mkIf (cfg.extraConfig != null) {
+    xdg.configFile."hypr/hyprland.conf" = lib.mkIf (cfg.systemdIntegration || cfg.extraConfig != null || cfg.plugins != []) {
       text =
         (lib.optionalString cfg.systemdIntegration ''
           exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && systemctl --user start hyprland-session.target
         '')
+        + lib.concatStrings (builtins.map (entry: let
+            plugin = if lib.types.package.check entry then "${entry}/lib/lib${entry.pname}.so" else entry;
+          in "plugin = ${plugin}\n") cfg.plugins)
         + cfg.extraConfig;
 
       onChange = let

@@ -57,7 +57,9 @@
       (builtins.substring 6 2 longDate)
     ]);
   in {
-    overlays.default = final: prev: rec {
+    overlays.default = final: prev: let
+      system = final.stdenv.hostPlatform.system;
+    in rec {
       wlroots-hyprland = final.callPackage ./nix/wlroots.nix {
         version =
           mkDate (inputs.wlroots.lastModifiedDate or "19700101")
@@ -88,19 +90,22 @@
           NIX_CFLAGS_COMPILE = toString ["-Wno-error=sign-conversion"];
         });
       };
-      hyprland = final.callPackage ./nix/default.nix {
-        stdenv = final.gcc12Stdenv;
-        version =
-          props.version
-          + "+date="
-          + (mkDate (self.lastModifiedDate or "19700101"))
-          + "_"
-          + (self.shortRev or "dirty");
-        wlroots = wlroots-hyprland;
-        commit = self.rev or "";
-        inherit (inputs.hyprland-protocols.packages.${prev.stdenv.hostPlatform.system}) hyprland-protocols;
-        inherit udis86;
-      };
+      hyprland = let
+        hyprland-protocols =
+          inputs.hyprland-protocols.packages.${system}.default;
+      in
+        final.callPackage ./nix/default.nix {
+          stdenv = final.gcc12Stdenv;
+          version =
+            props.version
+            + "+date="
+            + (mkDate (self.lastModifiedDate or "19700101"))
+            + "_"
+            + (self.shortRev or "dirty");
+          wlroots = wlroots-hyprland;
+          commit = self.rev or "";
+          inherit hyprland-protocols udis86;
+        };
       hyprland-debug = hyprland.override {debug = true;};
       hyprland-hidpi = hyprland.override {hidpiXWayland = true;};
       hyprland-nvidia = hyprland.override {nvidiaPatches = true;};
@@ -119,9 +124,13 @@
         mesonFlags = oldAttrs.mesonFlags ++ ["-Dexperimental=true"];
       });
 
-      xdg-desktop-portal-hyprland = inputs.xdph.packages.${prev.stdenv.hostPlatform.system}.default.override {
-        hyprland-share-picker = inputs.xdph.packages.${prev.stdenv.hostPlatform.system}.hyprland-share-picker.override {inherit hyprland;};
-      };
+      xdg-desktop-portal-hyprland = let
+        xdph = inputs.xdph.packages.${system}.default;
+        share-picker = inputs.xdph.packages.${system}.hyprland-share-picker;
+      in
+        xdph.override {
+          hyprland-share-picker = share-picker.override {inherit hyprland;};
+        };
     };
 
     checks = genSystems (system:

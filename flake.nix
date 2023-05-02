@@ -76,9 +76,7 @@
 
     devShells = genSystems (system: {
       default =
-        pkgsFor.${system}.mkShell.override {
-          stdenv = pkgsFor.${system}.gcc12Stdenv;
-        } {
+        pkgsFor.${system}.mkShell {
           name = "hyprland-shell";
           nativeBuildInputs = with pkgsFor.${system}; [cmake];
           buildInputs = [self.packages.${system}.wlroots-hyprland];

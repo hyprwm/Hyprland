@@ -23,6 +23,7 @@ const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
 commands:
     monitors
     workspaces
+    activeworkspace
     clients
     activewindow
     layers
@@ -50,7 +51,9 @@ flags:
     --batch -> execute a batch of commands, separated by ';'
 )#";
 
-void              request(std::string arg, int minArgs = 0) {
+#define PAD
+
+void request(std::string arg, int minArgs = 0) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
@@ -326,6 +329,8 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/clients"))
         request(fullRequest);
     else if (fullRequest.contains("/workspaces"))
+        request(fullRequest);
+    else if (fullRequest.contains("/activeworkspace"))
         request(fullRequest);
     else if (fullRequest.contains("/activewindow"))
         request(fullRequest);

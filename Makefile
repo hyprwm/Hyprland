@@ -2,19 +2,19 @@ PREFIX = /usr/local
 
 legacyrenderer:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j$(shell nproc)
+	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 legacyrendererdebug:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j$(shell nproc)
+	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 release:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j$(shell nproc)
+	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 debug:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -S . -B ./build -G Ninja
-	cmake --build ./build --config Debug --target all -j$(shell nproc)
+	cmake --build ./build --config Debug --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 clear:
 	rm -rf build
@@ -23,47 +23,48 @@ clear:
 	rm -rf ./subprojects/wlroots/build
 
 all:
-	make clear
-	make fixwlr
-	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
-	make release
-	make -C hyprctl all
+	$(MAKE) clear
+	$(MAKE) fixwlr
+	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && mkdir -p ${PREFIX}/lib/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+	$(MAKE) release
+	$(MAKE) -C hyprctl all
 
 install:
-	make clear
-	make fixwlr
-	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc) && cd ../..
-	make release
-	make -C hyprctl all
+	$(MAKE) clear
+	$(MAKE) fixwlr
+	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && mkdir -p ${PREFIX}/lib/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF` && cd ../..
+	$(MAKE) release
+	$(MAKE) -C hyprctl all
 
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	mkdir -p ${PREFIX}/bin
-	cp ./build/Hyprland ${PREFIX}/bin -f
-	cp ./hyprctl/hyprctl ${PREFIX}/bin -f
+	cp -f ./build/Hyprland ${PREFIX}/bin
+	cp -f ./hyprctl/hyprctl ${PREFIX}/bin
 	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
 	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
 
-	install -Dm644 -t ${PREFIX}/share/man/man1 ./docs/*.1
+	mkdir -p ${PREFIX}/share/man/man1
+	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1
 
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols
 	mkdir -p ${PREFIX}/include/hyprland/wlroots
 	mkdir -p ${PREFIX}/share/pkgconfig
 	
-	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
-	cd subprojects/wlroots/include && find . -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland/wlroots ';' && cd ../../..
+	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
+	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
-	cp ./build/hyprland.pc /usr/share/pkgconfig
+	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
 cleaninstall:
-	echo -en "make cleaninstall has been DEPRECATED, you should avoid using it in the future.\nRunning make install instead...\n"
-	make install
+	echo -en "$(MAKE) cleaninstall has been DEPRECATED, you should avoid using it in the future.\nRunning $(MAKE) install instead...\n"
+	$(MAKE) install
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
@@ -75,24 +76,24 @@ uninstall:
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1
 
 fixwlr:
-	sed -i -E 's/(soversion = 12)([^032]|$$)/soversion = 12032/g' subprojects/wlroots/meson.build
+	sed -E -i -e 's/(soversion = 12)([^032]|$$)/soversion = 12032/g' subprojects/wlroots/meson.build
 
 	rm -rf ./subprojects/wlroots/build
 
 config:
-	make fixwlr
+	$(MAKE) fixwlr
 
 	meson setup subprojects/wlroots/build subprojects/wlroots --prefix=${PREFIX} --buildtype=release -Dwerror=false -Dexamples=false
 	ninja -C subprojects/wlroots/build/
 
 	ninja -C subprojects/wlroots/build/ install
 
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 pluginenv:
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja && cmake --build ./build --config Release --target all -j$(shell nproc)
+	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
-	make fixwlr
+	$(MAKE) fixwlr
 
 	meson setup subprojects/wlroots/build subprojects/wlroots --prefix=${PREFIX} --buildtype=release -Dwerror=false -Dexamples=false
 	ninja -C subprojects/wlroots/build/
@@ -104,14 +105,14 @@ pluginenv:
 	mkdir -p ${PREFIX}/include/hyprland/wlroots
 	mkdir -p ${PREFIX}/share/pkgconfig
 	
-	find src -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland ';'
-	cd subprojects/wlroots/include && find . -name '*.h*' -exec cp --parents '{}' ${PREFIX}/include/hyprland/wlroots ';' && cd ../../..
+	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
+	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
-	cp ./build/hyprland.pc /usr/share/pkgconfig
+	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
 configdebug:
-	make fixwlr
+	$(MAKE) fixwlr
 
 	meson setup subprojects/wlroots/build subprojects/wlroots --prefix=${PREFIX} --buildtype=debug -Dwerror=false -Dexamples=false -Db_sanitize=address
 	ninja -C subprojects/wlroots/build/

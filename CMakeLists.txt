@@ -86,7 +86,8 @@ message(STATUS "Checking deps...")
 find_package(Threads REQUIRED)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm egl xkbcommon libinput pango pangocairo) # we do not check for wlroots, as we provide it ourselves
+find_package(OpenGL REQUIRED)
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm xkbcommon libinput pango pangocairo pixman-1) # we do not check for wlroots, as we provide it ourselves
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
@@ -104,7 +105,7 @@ endif()
 include(CheckLibraryExists)
 check_library_exists(execinfo backtrace "" HAVE_LIBEXECINFO)
 if(HAVE_LIBEXECINFO)
-    target_link_libraries(Hyprland PRIVATE execinfo)
+    target_link_libraries(Hyprland execinfo)
 endif()
 
 if(LEGACY_RENDERER)
@@ -117,8 +118,8 @@ if(NO_XWAYLAND)
     add_compile_definitions(NO_XWAYLAND)
 else()
     message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
-    pkg_check_modules(xcbdep REQUIRED xcb)
-    target_link_libraries(Hyprland xcb)
+    pkg_check_modules(xcbdep REQUIRED IMPORTED_TARGET xcb)
+    target_link_libraries(Hyprland PkgConfig::xcbdep)
 endif()
 
 if(NO_SYSTEMD)
@@ -175,11 +176,9 @@ target_link_libraries(Hyprland PkgConfig::deps)
 
 target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us
-        pixman-1
-        OpenGL
-        GLESv2
-        pthread
-        ${CMAKE_THREAD_LIBS_INIT}
+        OpenGL::EGL
+        OpenGL::GL
+        Threads::Threads
         ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
 )
 

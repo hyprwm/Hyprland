@@ -35,11 +35,6 @@ in {
       final.hyprland;
 
     udis86 = final.callPackage ./udis86.nix {};
-
-    xdg-desktop-portal-hyprland = prev.xdg-desktop-portal-hyprland.override {
-      hyprland-share-picker =
-        prev.hyprland-share-picker.override {inherit (final) hyprland;};
-    };
   };
 
   # Packages for extra software recommended for usage with Hyprland,

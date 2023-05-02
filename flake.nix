@@ -41,7 +41,6 @@
           self.overlays.wlroots-hyprland
           self.overlays.wayland-latest
           inputs.hyprland-protocols.overlays.default
-          inputs.xdph.overlays.default
         ];
       });
 

@@ -1309,9 +1309,9 @@ void CKeybindManager::moveCursorToCorner(std::string arg) {
 
 void CKeybindManager::moveCursor(std::string args) {
     std::string x_str, y_str;
-    int         x, y, i;
+    int         x, y;
 
-    i = args.find_first_of(' ');
+    size_t      i = args.find_first_of(' ');
     if (i == std::string::npos) {
         Debug::log(ERR, "moveCursor, takes 2 arguments.");
         return;

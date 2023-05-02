@@ -39,7 +39,6 @@
         overlays = [
           self.overlays.hyprland-packages
           self.overlays.wlroots-hyprland
-          self.overlays.wayland-latest
           inputs.hyprland-protocols.overlays.default
         ];
       });

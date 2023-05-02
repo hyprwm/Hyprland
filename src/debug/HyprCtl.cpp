@@ -14,32 +14,6 @@
 #include <sstream>
 #include <string>
 
-std::string activeWorkspaceRequest(HyprCtl::eHyprCtlOutputFormat format) {
-    std::string result   = "";
-    auto        w        = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
-    const auto  PLASTW   = w->getLastFocusedWindow();
-    const auto  PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
-    if (format == HyprCtl::FORMAT_JSON) {
-        result += getFormat(R"#({
-    "id": %i,
-    "name": "%s",
-    "monitor": "%s",
-    "windows": %i,
-    "hasfullscreen": %s,
-    "lastwindow": "0x%lx",
-    "lastwindowtitle": "%s"
-})#",
-                            w->m_iID, escapeJSONStrings(w->m_szName).c_str(), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?").c_str(),
-                            g_pCompositor->getWindowsOnWorkspace(w->m_iID), ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), PLASTW,
-                            PLASTW ? escapeJSONStrings(PLASTW->m_szTitle).c_str() : "");
-    } else {
-        result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\tlastwindow: 0x%lx\n\tlastwindowtitle: %s\n\n", w->m_iID,
-                            w->m_szName.c_str(), PMONITOR ? PMONITOR->szName.c_str() : "?", g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow, PLASTW,
-                            PLASTW ? PLASTW->m_szTitle.c_str() : "");
-    }
-    return result;
-}
-
 std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
     if (format == HyprCtl::FORMAT_JSON) {
@@ -214,17 +188,11 @@ std::string clientsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return result;
 }
 
-std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
-    std::string result = "";
+static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat format) {
+    const auto PLASTW   = w->getLastFocusedWindow();
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
     if (format == HyprCtl::FORMAT_JSON) {
-        result += "[";
-
-        for (auto& w : g_pCompositor->m_vWorkspaces) {
-            const auto PLASTW   = w->getLastFocusedWindow();
-            const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
-
-            result += getFormat(
-                R"#({
+        return getFormat(R"#({
     "id": %i,
     "name": "%s",
     "monitor": "%s",
@@ -232,24 +200,41 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "hasfullscreen": %s,
     "lastwindow": "0x%lx",
     "lastwindowtitle": "%s"
-},)#",
-                w->m_iID, escapeJSONStrings(w->m_szName).c_str(), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?").c_str(), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
-                ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), PLASTW, PLASTW ? escapeJSONStrings(PLASTW->m_szTitle).c_str() : "");
+})#",
+                         w->m_iID, escapeJSONStrings(w->m_szName).c_str(), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?").c_str(),
+                         g_pCompositor->getWindowsOnWorkspace(w->m_iID), ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), PLASTW,
+                         PLASTW ? escapeJSONStrings(PLASTW->m_szTitle).c_str() : "");
+    } else {
+        return getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\tlastwindow: 0x%lx\n\tlastwindowtitle: %s\n\n", w->m_iID, w->m_szName.c_str(),
+                         PMONITOR ? PMONITOR->szName.c_str() : "?", g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow, PLASTW,
+                         PLASTW ? PLASTW->m_szTitle.c_str() : "");
+    }
+}
+
+std::string activeWorkspaceRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+    auto        w      = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+    return getWorkspaceData(w, format);
+}
+
+std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+        for (auto& w : g_pCompositor->m_vWorkspaces) {
+            result += getWorkspaceData(w.get(), format);
+            result += ",";
         }
 
-        // remove trailing comma
         result.pop_back();
-
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            const auto PLASTW   = w->getLastFocusedWindow();
-            const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
-            result += getFormat("workspace ID %i (%s) on monitor %s:\n\twindows: %i\n\thasfullscreen: %i\n\tlastwindow: 0x%lx\n\tlastwindowtitle: %s\n\n", w->m_iID,
-                                w->m_szName.c_str(), PMONITOR ? PMONITOR->szName.c_str() : "?", g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow,
-                                PLASTW, PLASTW ? PLASTW->m_szTitle.c_str() : "");
+            result += getWorkspaceData(w.get(), format);
         }
     }
+
     return result;
 }
 

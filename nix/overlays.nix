@@ -39,15 +39,27 @@ in {
 
   # Packages for extra software recommended for usage with Hyprland,
   # including forked or patched packages for compatibility.
-  hyprland-extras = final: prev: {
-    waybar-hyprland = prev.waybar.overrideAttrs (oldAttrs: {
-      postPatch = ''
-        # use hyprctl to switch workspaces
-        sed -i 's/zext_workspace_handle_v1_activate(workspace_handle_);/const std::string command = "hyprctl dispatch workspace " + name_;\n\tsystem(command.c_str());/g' src/modules/wlr/workspace_manager.cpp
-      '';
-      mesonFlags = oldAttrs.mesonFlags ++ ["-Dexperimental=true"];
-    });
-  };
+  hyprland-extras = lib.mkJoinedOverlays [
+    # Include any inputs' specific overlays whose attributes should
+    # be re-exported by the Hyprland flake.
+    #
+    inputs.xdph.overlays.default
+    # Provides:
+    # - xdg-desktop-portal-hyprland
+    # - hyprland-share-picker
+    #
+    # Attributes for `hyprland-extras` defined by this flake can
+    # go in the oberlay below.
+    (final: prev: {
+      waybar-hyprland = prev.waybar.overrideAttrs (old: {
+        postPatch = ''
+          # use hyprctl to switch workspaces
+          sed -i 's/zext_workspace_handle_v1_activate(workspace_handle_);/const std::string command = "hyprctl dispatch workspace " + name_;\n\tsystem(command.c_str());/g' src/modules/wlr/workspace_manager.cpp
+        '';
+        mesonFlags = old.mesonFlags ++ ["-Dexperimental=true"];
+      });
+    })
+  ];
 
   # Patched version of wlroots for Hyprland.
   # It is under a new package name so as to not conflict with

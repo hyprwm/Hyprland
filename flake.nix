@@ -26,7 +26,7 @@
     nixpkgs,
     ...
   }: let
-    inherit (nixpkgs) lib;
+    lib = nixpkgs.lib.extend (import ./nix/lib.nix);
     genSystems = lib.genAttrs [
       # Add more systems if they are supported
       "aarch64-linux"
@@ -43,15 +43,12 @@
           inputs.hyprland-protocols.overlays.default
         ];
       });
-
-    mkJoinedOverlays = overlays: final: prev:
-      lib.foldl' (attrs: overlay: attrs // (overlay final prev)) {} overlays;
   in {
     overlays =
       (import ./nix/overlays.nix {inherit self lib inputs;})
       // {
         default =
-          mkJoinedOverlays
+          lib.mkJoinedOverlays
           (with self.overlays; [
             hyprland-packages
             hyprland-extras
@@ -74,16 +71,15 @@
       });
 
     devShells = genSystems (system: {
-      default =
-        pkgsFor.${system}.mkShell {
-          name = "hyprland-shell";
-          nativeBuildInputs = with pkgsFor.${system}; [cmake];
-          buildInputs = [self.packages.${system}.wlroots-hyprland];
-          inputsFrom = [
-            self.packages.${system}.wlroots-hyprland
-            self.packages.${system}.hyprland
-          ];
-        };
+      default = pkgsFor.${system}.mkShell {
+        name = "hyprland-shell";
+        nativeBuildInputs = with pkgsFor.${system}; [cmake];
+        buildInputs = [self.packages.${system}.wlroots-hyprland];
+        inputsFrom = [
+          self.packages.${system}.wlroots-hyprland
+          self.packages.${system}.hyprland
+        ];
+      };
     });
 
     formatter = genSystems (system: pkgsFor.${system}.alejandra);

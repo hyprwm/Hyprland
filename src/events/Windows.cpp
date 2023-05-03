@@ -117,7 +117,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     for (auto& r : WINDOWRULES) {
         if (r.szRule.find("monitor") == 0) {
             try {
-                const auto MONITORSTR = r.szRule.substr(r.szRule.find(' '));
+                const auto MONITORSTR = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find(' ')));
 
                 if (MONITORSTR == "unset") {
                     PWINDOW->m_iMonitorID = PMONITOR->ID;

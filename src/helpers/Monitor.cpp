@@ -144,6 +144,14 @@ void CMonitor::onConnect(bool noRule) {
 
     setupDefaultWS(monitorRule);
 
+    for (auto& ws : g_pCompositor->m_vWorkspaces) {
+        if (ws->m_szLastMonitor == szName) {
+            g_pCompositor->moveWorkspaceToMonitor(ws.get(), this);
+            ws->startAnim(true, true, true);
+            ws->m_szLastMonitor = "";
+        }
+    }
+
     scale = monitorRule.scale;
     if (scale < 0.1)
         scale = getDefaultScale();
@@ -264,6 +272,7 @@ void CMonitor::onDisconnect() {
     }
 
     for (auto& w : wspToMove) {
+        w->m_szLastMonitor = szName;
         g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
         w->startAnim(true, true, true);
     }
@@ -378,6 +387,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
 
     g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
     PNEWWORKSPACE->setActive(true);
+    PNEWWORKSPACE->m_szLastMonitor = "";
 }
 
 void CMonitor::setMirror(const std::string& mirrorOf) {

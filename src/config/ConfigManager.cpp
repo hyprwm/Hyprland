@@ -1507,6 +1507,8 @@ void CConfigManager::loadConfigLoadVars() {
     }
 
     Debug::disableStdout = !configValues["debug:enable_stdout_logs"].intValue;
+    if (Debug::disableStdout && isFirstLaunch)
+        Debug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty

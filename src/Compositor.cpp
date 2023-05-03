@@ -248,9 +248,6 @@ void CCompositor::initServer() {
     wlr_multi_backend_add(m_sWLRBackend, m_sWLRHeadlessBackend);
 
     initManagers(STAGE_LATE);
-
-    Debug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
-    Debug::disableStdout = true;
 }
 
 void CCompositor::initAllSignals() {

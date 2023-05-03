@@ -116,6 +116,13 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    warnings =
+      if (cfg.systemdIntegration || cfg.plugins != []) && cfg.extraConfig == null then
+        [ ''You have enabled hyprland.systemdIntegration or listed plugins in hyprland.plugins.
+            Your hyprland config will be linked by home manager.
+            Set hyprland.extraConfig or unset hyprland.systemdIntegration and hyprland.plugins to remove this warning.'' ]
+      else [];
+
     home.packages =
       lib.optional (cfg.package != null) cfg.package
       ++ lib.optional cfg.xwayland.enable pkgs.xwayland;
@@ -131,7 +138,7 @@ in {
         + lib.concatStrings (builtins.map (entry: let
             plugin = if lib.types.package.check entry then "${entry}/lib/lib${entry.pname}.so" else entry;
           in "plugin = ${plugin}\n") cfg.plugins)
-        + cfg.extraConfig;
+        + (if cfg.extraConfig != null then cfg.extraConfig else "");
 
       onChange = let
         hyprlandPackage =

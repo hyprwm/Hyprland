@@ -504,7 +504,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto calcPos  = PWINDOW->m_vPosition + Vector2D(borderSize, borderSize);
     auto calcSize = PWINDOW->m_vSize - Vector2D(2 * borderSize, 2 * borderSize);
 
-    if (WORKSPACERULE.workspaceString.empty() && *PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
+    if (*PNOGAPSWHENONLY && !WORKSPACERULE.border && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
         (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 ||
          (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
         PWINDOW->m_vRealPosition = calcPos - Vector2D(borderSize, borderSize);

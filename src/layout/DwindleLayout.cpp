@@ -834,16 +834,14 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 }
 
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
+    std::replace( message.begin(), message.end(), ' ', ',');
     const auto ARGS = CVarList(message);
-    if (message == "togglesplit") {
+    if (ARGS[0] == "togglesplit") {
         toggleSplit(header.pWindow);
-    } else if (message.find("preselect") == 0) {
-        if (message.size() < 11 || message[9] != ' ') {
-            Debug::log(ERR, "Expected a parameter after preselect");
-        }
-        char direction = message[10];
+    } else if (ARGS[0] == "preselect") {
+        std::string direction = ARGS[1];
 
-        switch (direction) {
+        switch (direction.front()) {
             case 'u':
             case 't': {
                 focusDirection = OneTimeFocus::UP;

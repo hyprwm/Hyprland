@@ -1380,6 +1380,7 @@ void CConfigManager::loadConfigLoadVars() {
     m_mWorkspaceRules.clear();
     setDefaultAnimationVars(); // reset anims
     m_vDeclaredPlugins.clear();
+    m_dLayerRules.clear();
 
     // paths
     configPaths.clear();

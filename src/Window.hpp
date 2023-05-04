@@ -11,9 +11,9 @@
 #include "helpers/WLSurface.hpp"
 
 enum OneTimeFocus { 
-  TOP = 0, 
+  UP = 0, 
   RIGHT,
-  BOTTOM,
+  DOWN,
   LEFT,
   NOFOCUS,
 };
@@ -212,7 +212,7 @@ class CWindow {
     bool        m_bRequestsFloat = false;
 
     bool        m_bOneTimeFocus = false;
-    OneTimeFocus focusDirection = OneTimeFocus::TOP;
+    OneTimeFocus focusDirection = OneTimeFocus::UP;
 
     // This is for fullscreen apps
     bool m_bCreatedOverFullscreen = false;

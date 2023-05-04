@@ -351,7 +351,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     // let user select position -> top, right, bottom, left
     if (OPENINGON->pWindow->m_bOneTimeFocus) {
         switch (OPENINGON->pWindow->focusDirection) {
-            case OneTimeFocus::TOP: {
+            case OneTimeFocus::UP: {
                 verticalOverride       = true;
                 NEWPARENT->children[1] = OPENINGON;
                 NEWPARENT->children[0] = PNODE;
@@ -363,7 +363,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
                 NEWPARENT->children[1] = PNODE;
                 break;
             }
-            case OneTimeFocus::BOTTOM: {
+            case OneTimeFocus::DOWN: {
                 verticalOverride       = true;
                 NEWPARENT->children[0] = OPENINGON;
                 NEWPARENT->children[1] = PNODE;
@@ -447,15 +447,15 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     // 0 == no override
     // 1 == horizontal
     // 2 == vertical
-    int splitOverride = 0; 
+    int splitOverride = 0;
     if (horizontalOverride == true) {
-      splitOverride = 1;
+        splitOverride = 1;
     }
     if (verticalOverride == true) {
-      splitOverride = 2;
+        splitOverride = 2;
     }
 
-    NEWPARENT->recalcSizePosRecursive(false,splitOverride);
+    NEWPARENT->recalcSizePosRecursive(false, splitOverride);
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
@@ -879,15 +879,29 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         toggleSplit(header.pWindow);
     } else {
         header.pWindow->m_bOneTimeFocus = true;
-        Debug::log(LOG, "onetimefocus true");
-        if (message == "t") {
-            header.pWindow->focusDirection = OneTimeFocus::TOP;
-        } else if (message == "r") {
-            header.pWindow->focusDirection = OneTimeFocus::RIGHT;
-        } else if (message == "b") {
-            header.pWindow->focusDirection = OneTimeFocus::BOTTOM;
-        } else if (message == "l") {
-            header.pWindow->focusDirection = OneTimeFocus::LEFT;
+        char direction                  = message.front();
+
+        switch (direction) {
+            case 'u': {
+                header.pWindow->focusDirection = OneTimeFocus::UP;
+                break;
+            }
+            case 'd': {
+                header.pWindow->focusDirection = OneTimeFocus::DOWN;
+                break;
+            }
+            case 'r': {
+                header.pWindow->focusDirection = OneTimeFocus::RIGHT;
+                break;
+            }
+            case 'l': {
+                header.pWindow->focusDirection = OneTimeFocus::LEFT;
+                break;
+            }
+            default: {
+                Debug::log(ERR, "Cannot preselect in %c, unsupported direction. Supported: l,r,u,d", direction);
+                break;
+            }
         }
     }
     return "";

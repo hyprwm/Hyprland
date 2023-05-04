@@ -349,32 +349,21 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     // let user select position -> top, right, bottom, left
     if (focusDirection != OneTimeFocus::NOFOCUS) {
-        switch (focusDirection) {
-            case OneTimeFocus::UP: {
-                verticalOverride       = true;
-                NEWPARENT->children[1] = OPENINGON;
-                NEWPARENT->children[0] = PNODE;
-                break;
-            }
-            case OneTimeFocus::RIGHT: {
-                horizontalOverride     = true;
-                NEWPARENT->children[0] = OPENINGON;
-                NEWPARENT->children[1] = PNODE;
-                break;
-            }
-            case OneTimeFocus::DOWN: {
-                verticalOverride       = true;
-                NEWPARENT->children[0] = OPENINGON;
-                NEWPARENT->children[1] = PNODE;
-                break;
-            }
-            case OneTimeFocus::LEFT: {
-                horizontalOverride     = true;
-                NEWPARENT->children[1] = OPENINGON;
-                NEWPARENT->children[0] = PNODE;
-                break;
-            }
-            case OneTimeFocus::NOFOCUS: break;
+
+        // this is horizontal
+        if (focusDirection % 2 == 0) {
+            verticalOverride = true;
+        } else {
+            horizontalOverride = true;
+        }
+
+        // 1,2 -> right and bottom 0 -> top and left
+        if (focusDirection % 3 == 0) {
+            NEWPARENT->children[1] = OPENINGON;
+            NEWPARENT->children[0] = PNODE;
+        } else {
+            NEWPARENT->children[0] = OPENINGON;
+            NEWPARENT->children[1] = PNODE;
         }
 
         // set the focus only for one window -> until next window opens
@@ -415,11 +404,11 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     // Update the children
     if (verticalOverride) {
-      updateChildrenVertical(OPENINGON, PNODE, NEWPARENT);
+        updateChildrenVertical(OPENINGON, PNODE, NEWPARENT);
     } else if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y || horizontalOverride) {
-      updateChildrenHorizontal(OPENINGON, PNODE, NEWPARENT);
+        updateChildrenHorizontal(OPENINGON, PNODE, NEWPARENT);
     } else {
-      updateChildrenVertical(OPENINGON, PNODE, NEWPARENT);
+        updateChildrenVertical(OPENINGON, PNODE, NEWPARENT);
     }
 
     OPENINGON->pParent = NEWPARENT;
@@ -845,20 +834,23 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 }
 
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
+    const auto ARGS = CVarList(message);
     if (message == "togglesplit") {
         toggleSplit(header.pWindow);
-    } else if(message.find("preselect") == 0) {
-        if (message.size() < 11 || message[9] != ' ' ) {
-          Debug::log(ERR, "Expected a parameter after preselect");
+    } else if (message.find("preselect") == 0) {
+        if (message.size() < 11 || message[9] != ' ') {
+            Debug::log(ERR, "Expected a parameter after preselect");
         }
         char direction = message[10];
 
         switch (direction) {
-            case 'u': case't':{
+            case 'u':
+            case 't': {
                 focusDirection = OneTimeFocus::UP;
                 break;
             }
-            case 'd': case 'b': {
+            case 'd':
+            case 'b': {
                 focusDirection = OneTimeFocus::DOWN;
                 break;
             }
@@ -934,5 +926,3 @@ void CHyprDwindleLayout::updateChildrenVertical(SDwindleNodeData* OPENINGON, SDw
     PNODE->position     = Vector2D(NEWPARENT->position.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f);
     PNODE->size         = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
 }
-
-

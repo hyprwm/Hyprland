@@ -52,6 +52,7 @@
             hyprland-packages
             hyprland-extras
             wlroots-hyprland
+            inputs.hyprland-protocols.overlays.default
           ]);
       };
 

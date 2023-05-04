@@ -10,6 +10,14 @@
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
 
+enum OneTimeFocus { 
+  TOP = 0, 
+  RIGHT,
+  BOTTOM,
+  LEFT,
+  NOFOCUS,
+};
+
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
@@ -202,6 +210,9 @@ class CWindow {
     bool        m_bIsMapped = false;
 
     bool        m_bRequestsFloat = false;
+
+    bool        m_bOneTimeFocus = false;
+    OneTimeFocus focusDirection = OneTimeFocus::TOP;
 
     // This is for fullscreen apps
     bool m_bCreatedOverFullscreen = false;

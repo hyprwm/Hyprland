@@ -1,7 +1,7 @@
 #include "DwindleLayout.hpp"
 #include "../Compositor.hpp"
 
-void SDwindleNodeData::recalcSizePosRecursive(bool force) {
+void SDwindleNodeData::recalcSizePosRecursive(bool force, int splitOverride) {
     if (children[0]) {
 
         const auto         REVERSESPLITRATIO = 2.f - splitRatio;
@@ -11,6 +11,13 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force) {
 
         if (*PPRESERVESPLIT == 0) {
             splitTop = size.y * *PFLMULT > size.x;
+        }
+
+        if (splitOverride == 1) {
+            splitTop = false;
+        }
+        if (splitOverride == 2) {
+            splitTop = true;
         }
 
         const auto SPLITSIDE = !splitTop;
@@ -338,7 +345,42 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto PFORCESPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
 
-    if (*PFORCESPLIT == 0) {
+    bool       horizontalOverride = false;
+    bool       verticalOverride   = false;
+
+    // let user select position -> top, right, bottom, left
+    if (OPENINGON->pWindow->m_bOneTimeFocus) {
+        switch (OPENINGON->pWindow->focusDirection) {
+            case OneTimeFocus::TOP: {
+                verticalOverride       = true;
+                NEWPARENT->children[1] = OPENINGON;
+                NEWPARENT->children[0] = PNODE;
+                break;
+            }
+            case OneTimeFocus::RIGHT: {
+                horizontalOverride     = true;
+                NEWPARENT->children[0] = OPENINGON;
+                NEWPARENT->children[1] = PNODE;
+                break;
+            }
+            case OneTimeFocus::BOTTOM: {
+                verticalOverride       = true;
+                NEWPARENT->children[0] = OPENINGON;
+                NEWPARENT->children[1] = PNODE;
+                break;
+            }
+            case OneTimeFocus::LEFT: {
+                horizontalOverride     = true;
+                NEWPARENT->children[1] = OPENINGON;
+                NEWPARENT->children[0] = PNODE;
+                break;
+            }
+            case OneTimeFocus::NOFOCUS: break;
+        }
+
+        // set the focus only for one window -> until next window opens
+        OPENINGON->pWindow->m_bOneTimeFocus = false;
+    } else if (*PFORCESPLIT == 0) {
         if ((SIDEBYSIDE &&
              VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f,
                        NEWPARENT->position.y + NEWPARENT->size.y)) ||
@@ -373,8 +415,19 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     }
 
     // Update the children
-
-    if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y) {
+    if (horizontalOverride) {
+        // split left/right -> forced
+        OPENINGON->position = NEWPARENT->position;
+        OPENINGON->size     = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
+        PNODE->position     = Vector2D(NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y);
+        PNODE->size         = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
+    } else if (verticalOverride) {
+        // split top/bottom -> forced
+        OPENINGON->position = NEWPARENT->position;
+        OPENINGON->size     = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
+        PNODE->position     = Vector2D(NEWPARENT->position.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f);
+        PNODE->size         = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
+    } else if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y) {
         // split left/right
         OPENINGON->position = NEWPARENT->position;
         OPENINGON->size     = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
@@ -391,7 +444,18 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     OPENINGON->pParent = NEWPARENT;
     PNODE->pParent     = NEWPARENT;
 
-    NEWPARENT->recalcSizePosRecursive();
+    // 0 == no override
+    // 1 == horizontal
+    // 2 == vertical
+    int splitOverride = 0; 
+    if (horizontalOverride == true) {
+      splitOverride = 1;
+    }
+    if (verticalOverride == true) {
+      splitOverride = 2;
+    }
+
+    NEWPARENT->recalcSizePosRecursive(false,splitOverride);
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
@@ -811,9 +875,21 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 }
 
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
-    if (message == "togglesplit")
+    if (message == "togglesplit") {
         toggleSplit(header.pWindow);
-
+    } else {
+        header.pWindow->m_bOneTimeFocus = true;
+        Debug::log(LOG, "onetimefocus true");
+        if (message == "t") {
+            header.pWindow->focusDirection = OneTimeFocus::TOP;
+        } else if (message == "r") {
+            header.pWindow->focusDirection = OneTimeFocus::RIGHT;
+        } else if (message == "b") {
+            header.pWindow->focusDirection = OneTimeFocus::BOTTOM;
+        } else if (message == "l") {
+            header.pWindow->focusDirection = OneTimeFocus::LEFT;
+        }
+    }
     return "";
 }
 

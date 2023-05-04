@@ -34,7 +34,7 @@ struct SDwindleNodeData {
             children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }
 
-    void                recalcSizePosRecursive(bool force = false);
+    void                recalcSizePosRecursive(bool force = false, int splitOverride = 0);
     void                getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
     CHyprDwindleLayout* layout = nullptr;
 };

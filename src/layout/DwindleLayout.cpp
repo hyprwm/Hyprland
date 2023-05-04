@@ -349,8 +349,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     bool       verticalOverride   = false;
 
     // let user select position -> top, right, bottom, left
-    if (OPENINGON->pWindow->m_bOneTimeFocus) {
-        switch (OPENINGON->pWindow->focusDirection) {
+    if (focusDirection != OneTimeFocus::NOFOCUS) {
+        switch (focusDirection) {
             case OneTimeFocus::UP: {
                 verticalOverride       = true;
                 NEWPARENT->children[1] = OPENINGON;
@@ -379,7 +379,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         }
 
         // set the focus only for one window -> until next window opens
-        OPENINGON->pWindow->m_bOneTimeFocus = false;
+        focusDirection = OneTimeFocus::NOFOCUS;
     } else if (*PFORCESPLIT == 0) {
         if ((SIDEBYSIDE &&
              VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f,
@@ -877,33 +877,8 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
     if (message == "togglesplit") {
         toggleSplit(header.pWindow);
-    } else {
-        header.pWindow->m_bOneTimeFocus = true;
-        char direction                  = message.front();
-
-        switch (direction) {
-            case 'u': {
-                header.pWindow->focusDirection = OneTimeFocus::UP;
-                break;
-            }
-            case 'd': {
-                header.pWindow->focusDirection = OneTimeFocus::DOWN;
-                break;
-            }
-            case 'r': {
-                header.pWindow->focusDirection = OneTimeFocus::RIGHT;
-                break;
-            }
-            case 'l': {
-                header.pWindow->focusDirection = OneTimeFocus::LEFT;
-                break;
-            }
-            default: {
-                Debug::log(ERR, "Cannot preselect in %c, unsupported direction. Supported: l,r,u,d", direction);
-                break;
-            }
-        }
     }
+
     return "";
 }
 
@@ -944,4 +919,8 @@ void CHyprDwindleLayout::onEnable() {
 
 void CHyprDwindleLayout::onDisable() {
     m_lDwindleNodesData.clear();
+}
+
+void CHyprDwindleLayout::setFocus(OneTimeFocus direction) {
+    focusDirection = direction;
 }

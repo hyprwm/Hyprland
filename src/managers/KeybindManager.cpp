@@ -33,7 +33,6 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglegroup"]                   = toggleGroup;
     m_mDispatchers["changegroupactive"]             = changeGroupActive;
     m_mDispatchers["togglesplit"]                   = toggleSplit;
-    m_mDispatchers["preselect"]                     = preselect;
     m_mDispatchers["splitratio"]                    = alterSplitRatio;
     m_mDispatchers["focusmonitor"]                  = focusMonitor;
     m_mDispatchers["movecursortocorner"]            = moveCursorToCorner;
@@ -1229,37 +1228,6 @@ void CKeybindManager::toggleSplit(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglesplit");
-}
-
-void CKeybindManager::preselect(std::string args) {
-    auto parent_layout = g_pLayoutManager->getCurrentLayout();
-     if (auto layout = dynamic_cast<CHyprDwindleLayout*>(parent_layout)) {
-        char direction = args[0];
-
-        switch (direction) {
-            case 'u': {
-                layout->setFocus(OneTimeFocus::UP);
-                break;
-            }
-            case 'd': {
-                layout->setFocus(OneTimeFocus::DOWN);
-                break;
-            }
-            case 'r': {
-                layout->setFocus(OneTimeFocus::RIGHT);
-                break;
-            }
-            case 'l': {
-                layout->setFocus(OneTimeFocus::LEFT);
-                break;
-            }
-            default: {
-                Debug::log(ERR, "Cannot preselect in %c, unsupported direction. Supported: l,r,u,d", direction);
-                break;
-            }
-        }
-    }
-    Debug::log(ERR, "Preselect is only supported in Dwindle");
 }
 
 void CKeybindManager::alterSplitRatio(std::string args) {

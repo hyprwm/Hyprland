@@ -42,7 +42,7 @@ struct SDwindleNodeData {
             children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }
 
-    void                recalcSizePosRecursive(bool force = false, int splitOverride = 0);
+    void                recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
     void                getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
     CHyprDwindleLayout* layout = nullptr;
 };
@@ -67,8 +67,6 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     onEnable();
     virtual void                     onDisable();
 
-    void                             setFocus(OneTimeFocus direction);
-
   private:
     std::list<SDwindleNodeData> m_lDwindleNodesData;
 
@@ -86,6 +84,9 @@ class CHyprDwindleLayout : public IHyprLayout {
     SDwindleNodeData* getMasterNodeOnWorkspace(const int&);
 
     void              toggleSplit(CWindow*);
+
+    void              updateChildrenHorizontal(SDwindleNodeData* OPENINGON, SDwindleNodeData* PNODE, SDwindleNodeData* NEWPARENT);
+    void              updateChildrenVertical(SDwindleNodeData* OPENINGON, SDwindleNodeData* PNODE, SDwindleNodeData* NEWPARENT);
 
     OneTimeFocus      focusDirection = OneTimeFocus::NOFOCUS;
 

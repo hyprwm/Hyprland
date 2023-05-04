@@ -1,7 +1,7 @@
 #include "DwindleLayout.hpp"
 #include "../Compositor.hpp"
 
-void SDwindleNodeData::recalcSizePosRecursive(bool force, int splitOverride) {
+void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
 
         const auto         REVERSESPLITRATIO = 2.f - splitRatio;
@@ -13,11 +13,10 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, int splitOverride) {
             splitTop = size.y * *PFLMULT > size.x;
         }
 
-        if (splitOverride == 1) {
-            splitTop = false;
-        }
-        if (splitOverride == 2) {
+        if (verticalOverride == true) {
             splitTop = true;
+        } else if (horizontalOverride == true) {
+            splitTop = false;
         }
 
         const auto SPLITSIDE = !splitTop;
@@ -415,47 +414,18 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     }
 
     // Update the children
-    if (horizontalOverride) {
-        // split left/right -> forced
-        OPENINGON->position = NEWPARENT->position;
-        OPENINGON->size     = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
-        PNODE->position     = Vector2D(NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y);
-        PNODE->size         = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
-    } else if (verticalOverride) {
-        // split top/bottom -> forced
-        OPENINGON->position = NEWPARENT->position;
-        OPENINGON->size     = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
-        PNODE->position     = Vector2D(NEWPARENT->position.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f);
-        PNODE->size         = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
-    } else if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y) {
-        // split left/right
-        OPENINGON->position = NEWPARENT->position;
-        OPENINGON->size     = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
-        PNODE->position     = Vector2D(NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y);
-        PNODE->size         = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
+    if (verticalOverride) {
+      updateChildrenVertical(OPENINGON, PNODE, NEWPARENT);
+    } else if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y || horizontalOverride) {
+      updateChildrenHorizontal(OPENINGON, PNODE, NEWPARENT);
     } else {
-        // split top/bottom
-        OPENINGON->position = NEWPARENT->position;
-        OPENINGON->size     = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
-        PNODE->position     = Vector2D(NEWPARENT->position.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f);
-        PNODE->size         = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
+      updateChildrenVertical(OPENINGON, PNODE, NEWPARENT);
     }
 
     OPENINGON->pParent = NEWPARENT;
     PNODE->pParent     = NEWPARENT;
 
-    // 0 == no override
-    // 1 == horizontal
-    // 2 == vertical
-    int splitOverride = 0;
-    if (horizontalOverride == true) {
-        splitOverride = 1;
-    }
-    if (verticalOverride == true) {
-        splitOverride = 2;
-    }
-
-    NEWPARENT->recalcSizePosRecursive(false, splitOverride);
+    NEWPARENT->recalcSizePosRecursive(false, horizontalOverride, verticalOverride);
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
@@ -877,6 +847,34 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
     if (message == "togglesplit") {
         toggleSplit(header.pWindow);
+    } else if(message.find("preselect") == 0) {
+        if (message.size() < 11 || message[9] != ' ' ) {
+          Debug::log(ERR, "Expected a parameter after preselect");
+        }
+        char direction = message[10];
+
+        switch (direction) {
+            case 'u': case't':{
+                focusDirection = OneTimeFocus::UP;
+                break;
+            }
+            case 'd': case 'b': {
+                focusDirection = OneTimeFocus::DOWN;
+                break;
+            }
+            case 'r': {
+                focusDirection = OneTimeFocus::RIGHT;
+                break;
+            }
+            case 'l': {
+                focusDirection = OneTimeFocus::LEFT;
+                break;
+            }
+            default: {
+                Debug::log(ERR, "Cannot preselect in %c, unsupported direction. Supported: l,r,u,d", direction);
+                break;
+            }
+        }
     }
 
     return "";
@@ -921,6 +919,20 @@ void CHyprDwindleLayout::onDisable() {
     m_lDwindleNodesData.clear();
 }
 
-void CHyprDwindleLayout::setFocus(OneTimeFocus direction) {
-    focusDirection = direction;
+void CHyprDwindleLayout::updateChildrenHorizontal(SDwindleNodeData* OPENINGON, SDwindleNodeData* PNODE, SDwindleNodeData* NEWPARENT) {
+    // split left/right -> forced
+    OPENINGON->position = NEWPARENT->position;
+    OPENINGON->size     = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
+    PNODE->position     = Vector2D(NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y);
+    PNODE->size         = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
 }
+
+void CHyprDwindleLayout::updateChildrenVertical(SDwindleNodeData* OPENINGON, SDwindleNodeData* PNODE, SDwindleNodeData* NEWPARENT) {
+    // split top/bottom
+    OPENINGON->position = NEWPARENT->position;
+    OPENINGON->size     = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
+    PNODE->position     = Vector2D(NEWPARENT->position.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f);
+    PNODE->size         = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
+}
+
+

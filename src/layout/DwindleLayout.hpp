@@ -88,7 +88,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     void              updateChildrenHorizontal(SDwindleNodeData* OPENINGON, SDwindleNodeData* PNODE, SDwindleNodeData* NEWPARENT);
     void              updateChildrenVertical(SDwindleNodeData* OPENINGON, SDwindleNodeData* PNODE, SDwindleNodeData* NEWPARENT);
 
-    OneTimeFocus      focusDirection = OneTimeFocus::NOFOCUS;
+    OneTimeFocus      overrideDirection = OneTimeFocus::NOFOCUS;
 
     friend struct SDwindleNodeData;
 };

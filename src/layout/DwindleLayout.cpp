@@ -342,24 +342,24 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
-    const auto PFORCESPLIT            = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
-    const auto PERMANENTFOCUSOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_focus_override")->intValue;
+    const auto PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
+    const auto PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
 
     bool       horizontalOverride = false;
     bool       verticalOverride   = false;
 
     // let user select position -> top, right, bottom, left
-    if (focusDirection != OneTimeFocus::NOFOCUS) {
+    if (overrideDirection != OneTimeFocus::NOFOCUS) {
 
         // this is horizontal
-        if (focusDirection % 2 == 0) {
+        if (overrideDirection % 2 == 0) {
             verticalOverride = true;
         } else {
             horizontalOverride = true;
         }
 
         // 0 -> top and left | 1,2 -> right and bottom
-        if (focusDirection % 3 == 0) {
+        if (overrideDirection % 3 == 0) {
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;
         } else {
@@ -368,8 +368,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         }
 
         // whether or not the override persists after opening one window
-        if (*PERMANENTFOCUSOVERRIDE == 0) {
-            focusDirection = OneTimeFocus::NOFOCUS;
+        if (*PERMANENTDIRECTIONOVERRIDE == 0) {
+            overrideDirection = OneTimeFocus::NOFOCUS;
         }
     } else if (*PFORCESPLIT == 0) {
         if ((SIDEBYSIDE &&
@@ -847,26 +847,26 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         switch (direction.front()) {
             case 'u':
             case 't': {
-                focusDirection = OneTimeFocus::UP;
+                overrideDirection = OneTimeFocus::UP;
                 break;
             }
             case 'd':
             case 'b': {
-                focusDirection = OneTimeFocus::DOWN;
+                overrideDirection = OneTimeFocus::DOWN;
                 break;
             }
             case 'r': {
-                focusDirection = OneTimeFocus::RIGHT;
+                overrideDirection = OneTimeFocus::RIGHT;
                 break;
             }
             case 'l': {
-                focusDirection = OneTimeFocus::LEFT;
+                overrideDirection = OneTimeFocus::LEFT;
                 break;
             }
             default: {
                 // any other character resets the focus direction
                 // needed for the persistent mode
-                focusDirection = OneTimeFocus::NOFOCUS;
+                overrideDirection = OneTimeFocus::NOFOCUS;
                 break;
             }
         }

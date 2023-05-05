@@ -130,15 +130,15 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:dim_around"].floatValue           = 0.4f;
     configValues["decoration:screen_shader"].strValue          = STRVAL_EMPTY;
 
-    configValues["dwindle:pseudotile"].intValue               = 0;
-    configValues["dwindle:force_split"].intValue              = 0;
-    configValues["dwindle:permanent_focus_override"].intValue = 0;
-    configValues["dwindle:preserve_split"].intValue           = 0;
-    configValues["dwindle:special_scale_factor"].floatValue   = 0.8f;
-    configValues["dwindle:split_width_multiplier"].floatValue = 1.0f;
-    configValues["dwindle:no_gaps_when_only"].intValue        = 0;
-    configValues["dwindle:use_active_for_splits"].intValue    = 1;
-    configValues["dwindle:default_split_ratio"].floatValue    = 1.f;
+    configValues["dwindle:pseudotile"].intValue                   = 0;
+    configValues["dwindle:force_split"].intValue                  = 0;
+    configValues["dwindle:permanent_direction_override"].intValue = 0;
+    configValues["dwindle:preserve_split"].intValue               = 0;
+    configValues["dwindle:special_scale_factor"].floatValue       = 0.8f;
+    configValues["dwindle:split_width_multiplier"].floatValue     = 1.0f;
+    configValues["dwindle:no_gaps_when_only"].intValue            = 0;
+    configValues["dwindle:use_active_for_splits"].intValue        = 1;
+    configValues["dwindle:default_split_ratio"].floatValue        = 1.f;
 
     configValues["master:special_scale_factor"].floatValue = 0.8f;
     configValues["master:mfact"].floatValue                = 0.55f;

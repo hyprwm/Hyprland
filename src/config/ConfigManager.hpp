@@ -169,6 +169,7 @@ class CConfigManager {
 
     CMonitor*                                                       getBoundMonitorForWS(const std::string&);
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
+    const std::vector<std::pair<std::string, std::string>>&         getAllBoundWorkspaces();
 
     std::vector<SWindowRule>                                        getMatchingRules(CWindow*);
     std::vector<SLayerRule>                                         getMatchingRules(SLayerSurface*);

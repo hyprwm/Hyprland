@@ -2025,6 +2025,10 @@ std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname
     return "";
 }
 
+const std::vector<std::pair<std::string, std::string>>& CConfigManager::getAllBoundWorkspaces() {
+    return boundWorkspaces;
+}
+
 void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
     execRequestedRules.push_back(rule);
 }

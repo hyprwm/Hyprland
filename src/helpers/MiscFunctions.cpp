@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include <set>
 #include <sys/utsname.h>
 #include <iomanip>
 #include <sstream>
@@ -305,9 +306,96 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         outName = PLASTWORKSPACE->m_szName;
         return PLASTWORKSPACE->m_iID;
     } else {
-        if ((in[0] == 'm' || in[0] == 'e' || in[0] == 'r') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
+        if (in[0] == 'r' && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
+            if (!g_pCompositor->m_pLastMonitor) {
+                Debug::log(ERR, "Relative monitor workspace on monitor null!");
+                result = INT_MAX;
+                return result;
+            }
+            result = (int)getPlusMinusKeywordResult(in.substr(1), 0);
+
+            int           remains = (int)result;
+
+            std::set<int> invalidWSes;
+
+            // Collect all the workspaces we can't jump to.
+            for (auto& ws : g_pCompositor->m_vWorkspaces) {
+                if (ws->m_bIsSpecialWorkspace || (ws->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)) {
+                    // Can't jump to this workspace
+                    invalidWSes.insert(ws->m_iID);
+                }
+            }
+            for (auto& [ws, mon] : g_pConfigManager->getAllBoundWorkspaces()) {
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(mon);
+                if (!PMONITOR || PMONITOR->ID == g_pCompositor->m_pLastMonitor->ID) {
+                    // Can't be invalid
+                    continue;
+                }
+                const auto WSNAME     = ws.find("name:") == 0 ? ws.substr(5) : ws;
+                const auto PWORKSPACE = g_pCompositor->getWorkspaceByName(WSNAME);
+                if (PWORKSPACE) {
+                    // WS is bound to another monitor, can't jump to this
+                    invalidWSes.insert(PWORKSPACE->m_iID);
+                }
+            }
+
+            // Just take a blind guess at where we'll probably end up
+            int  predictedWSID = g_pCompositor->m_pLastMonitor->activeWorkspace + remains;
+            int  remainingWSes = 0;
+            char walkDir       = in[1];
+            if (predictedWSID <= 0) {
+                // We overshot, get first valid
+                predictedWSID = 0;
+                walkDir       = '+';
+                remainingWSes = 1;
+            } else {
+                // Count how many invalidWSes are in between (how bad the prediction was)
+                int  beginID = in[1] == '+' ? g_pCompositor->m_pLastMonitor->activeWorkspace + 1 : predictedWSID;
+                int  endID   = in[1] == '+' ? predictedWSID : g_pCompositor->m_pLastMonitor->activeWorkspace;
+                auto begin   = invalidWSes.upper_bound(beginID - 1); // upper_bound is >, we want >=
+                for (auto it = begin; *it <= endID && it != invalidWSes.end(); it++) {
+                    remainingWSes++;
+                }
+            }
+
+            // Go in the search direction for remainingWSes
+            // This takes at most 2 * invalidWSes.size() steps(A workspace cannot be both behind predictedWSID and after predictedWSID.
+            // This is because the loop takes at most ([number of invalidWSes between beginID and endID] + [number of invalidWSes after/before endID]) steps and it is potentially run twice)
+            int finalWSID = predictedWSID;
+            if (walkDir == '-') {
+                int beginID = finalWSID;
+                int curID   = finalWSID;
+                while (--curID > 0 && remainingWSes > 0) {
+                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                        remainingWSes--;
+                    }
+                    finalWSID = curID;
+                }
+                if (invalidWSes.find(finalWSID) != invalidWSes.end()) {
+                    // Couldn't find valid workspace in negative direction, search last first one back up positive direction
+                    walkDir = '+';
+                    // We know, that everything less than beginID is invalid, so don't bother with that
+                    finalWSID     = beginID;
+                    remainingWSes = 1;
+                }
+            }
+            if (walkDir == '+') {
+                int curID = finalWSID;
+                while (++curID < INT32_MAX && remainingWSes > 0) {
+                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                        remainingWSes--;
+                    }
+                    finalWSID = curID;
+                }
+            }
+
+            result                = finalWSID;
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(result);
+            if (PWORKSPACE)
+                outName = g_pCompositor->getWorkspaceByID(result)->m_szName;
+
+        } else if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';
-            bool includeEmpty  = in[0] == 'r';
 
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
@@ -331,28 +419,8 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
             std::sort(validWSes.begin(), validWSes.end());
 
-            if (includeEmpty && validWSes.size() >= 2) {
-                // Include all empty workspaces in between the known workspaces
-                // We cannot just add all empty workspaces beforehand, since then validWSes would be potentially of size 2^31-1
-                for (auto it = validWSes.begin(); it != validWSes.end() - 1; ++it) {
-                    // add all empty workspaces in between current and last
-                    int curValidWSID  = *it;
-                    int nextValidWSID = *(it + 1);
-                    // ]curValidWSID, nextValidWSID[
-                    for (int id = curValidWSID + 1; id < nextValidWSID; id++) {
-                        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-                        if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)) {
-                            // Empty and can use it, insert after current iterator, so the array stays sorted.
-                            it = validWSes.insert(it + 1, id);
-                        }
-                    }
-                }
-            }
-
             // get the offset
-            // when including empty workspaces, we don't want to wrap around
-            if (!includeEmpty)
-                remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
+            remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
             // get the current item
             int currentItem = -1;
@@ -367,55 +435,14 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             currentItem += remains;
 
             // sanitize
-            if (!includeEmpty) {
-                if (currentItem >= (int)validWSes.size()) {
-                    currentItem = currentItem % validWSes.size();
-                } else if (currentItem < 0) {
-                    currentItem = validWSes.size() + currentItem;
-                }
-            } else {
-                if (currentItem >= (int)validWSes.size()) {
-                    // out-of-bounds in positive dir, find the nth empty workspace
-                    int id            = validWSes.back();
-                    int remainingWSes = currentItem - validWSes.size(); // How many we still need to jump
-                    for (int i = 0; i <= remainingWSes; i++) {
-                        // Repeatedly find an empty workspace until we have found enough
-                        while (++id < INT_MAX) {
-                            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-                            if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)) {
-                                // Found empty one and it is valid, add it to the valid ones
-                                validWSes.push_back(id);
-                                break;
-                            }
-                        }
-                    }
-                    // The one we want to jump to is the last valid workspace
-                    currentItem = validWSes.size() - 1;
-                } else if (currentItem < 0) {
-                    // out-of-bounds in negative, find the nth empty workspace (or stay on the first valid one, if there are none empty)
-                    int id            = validWSes.front();
-                    int remainingWSes = -currentItem;
-                    for (int i = 0; i <= remainingWSes; i++) {
-                        // Repeatedly find an empty workspace until we have found enough
-                        while (--id > 0) {
-                            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-                            if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)) {
-                                // Found empty one and it is valid, add it to the valid ones
-                                validWSes.insert(validWSes.begin(), id);
-                                break;
-                            }
-                        }
-                    }
-                    // The one we want ot jump to is the first valid workspace
-                    currentItem = 0;
-                }
+            if (currentItem >= (int)validWSes.size()) {
+                currentItem = currentItem % validWSes.size();
+            } else if (currentItem < 0) {
+                currentItem = validWSes.size() + currentItem;
             }
 
-            result                = validWSes[currentItem];
-            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(validWSes[currentItem]);
-            if (PWORKSPACE)
-                outName = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
-
+            result  = validWSes[currentItem];
+            outName = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
         } else {
             if (in[0] == '+' || in[0] == '-') {
                 if (g_pCompositor->m_pLastMonitor)

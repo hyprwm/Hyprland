@@ -864,10 +864,6 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
 
-    // do pointer focus too
-    const auto POINTERLOCAL = g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.goalv();
-    wlr_seat_pointer_notify_enter(m_sSeat.seat, PWINDOWSURFACE, POINTERLOCAL.x, POINTERLOCAL.y);
-
     updateWindowAnimatedDecorationValues(pWindow);
 
     // Handle urgency hint on the workspace

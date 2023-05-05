@@ -13,11 +13,10 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
             splitTop = size.y * *PFLMULT > size.x;
         }
 
-        if (verticalOverride == true) {
+        if (verticalOverride == true)
             splitTop = true;
-        } else if (horizontalOverride == true) {
+        else if (horizontalOverride == true)
             splitTop = false;
-        }
 
         const auto SPLITSIDE = !splitTop;
 
@@ -340,7 +339,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop   = !SIDEBYSIDE;
 
-    static auto const  MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     static auto* const PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
     static auto* const PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;

@@ -217,8 +217,6 @@ class CConfigManager {
 
     std::string                                                                                m_szCurrentSubmap = ""; // For storing the current keybind submap
 
-    std::vector<std::pair<std::string, std::string>>                                           boundWorkspaces;
-
     std::vector<SExecRequestedRule>                                                            execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 
     std::vector<std::string>                                                                   m_vDeclaredPlugins;

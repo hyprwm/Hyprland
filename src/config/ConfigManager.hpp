@@ -51,6 +51,7 @@ struct SWorkspaceRule {
     std::string            workspaceString = "";
     std::string            workspaceName   = "";
     int                    workspaceId     = -1;
+    bool                   isDefault       = false;
     std::optional<int64_t> gapsIn;
     std::optional<int64_t> gapsOut;
     std::optional<int64_t> borderSize;
@@ -226,7 +227,7 @@ class CConfigManager {
     bool                                                                                       isFirstLaunch = true; // For exec-once
 
     std::deque<SMonitorRule>                                                                   m_dMonitorRules;
-    std::unordered_map<int, SWorkspaceRule>                                                    m_mWorkspaceRules;
+    std::deque<SWorkspaceRule>                                                                 m_dWorkspaceRules;
     std::deque<SWindowRule>                                                                    m_dWindowRules;
     std::deque<SLayerRule>                                                                     m_dLayerRules;
     std::deque<std::string>                                                                    m_dBlurLSNamespaces;

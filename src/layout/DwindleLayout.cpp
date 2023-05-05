@@ -357,7 +357,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             horizontalOverride = true;
         }
 
-        // 1,2 -> right and bottom 0 -> top and left
+        // 0 -> top and left | 1,2 -> right and bottom 
         if (focusDirection % 3 == 0) {
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;

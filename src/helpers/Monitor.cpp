@@ -503,7 +503,10 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
         return;
 
     if (pWorkspace->m_bIsSpecialWorkspace) {
-        Debug::log(ERR, "BUG THIS: Attempted to changeWorkspace to special!");
+        if (specialWorkspaceID != pWorkspace->m_iID) {
+            Debug::log(LOG, "changeworkspace on special, togglespecialworkspace to id %i", pWorkspace->m_iID);
+            g_pKeybindManager->m_mDispatchers["togglespecialworkspace"](pWorkspace->m_szName == "special" ? "" : pWorkspace->m_szName);
+        }
         return;
     }
 

@@ -65,7 +65,7 @@ CCompositor::CCompositor() {
 
     Debug::log(NONE, "\n\n"); // pad
 
-    Debug::log(INFO, "If you are crashing, or encounter any bugs, please consult https://wiki.hyprland.org/Crashes-and-Bugs/\n\n");
+    Debug::log(INFO, "If you are experiencing crash, or encounter any bugs, please consult https://wiki.hyprland.org/Crashes-and-Bugs/\n\n");
 
     setRandomSplash();
 

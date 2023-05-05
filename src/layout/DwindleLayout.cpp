@@ -342,8 +342,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
-    const auto PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
-    const auto PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
+    const static auto PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
+    const static auto PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
 
     bool       horizontalOverride = false;
     bool       verticalOverride   = false;
@@ -406,12 +406,18 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     }
 
     // Update the children
-    if (verticalOverride) {
-        updateChildrenVertical(OPENINGON, PNODE, NEWPARENT);
-    } else if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y || horizontalOverride) {
-        updateChildrenHorizontal(OPENINGON, PNODE, NEWPARENT);
+    if (!verticalOverride && (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y || horizontalOverride)) {
+        // split left/right -> forced
+        OPENINGON->position = NEWPARENT->position;
+        OPENINGON->size     = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
+        PNODE->position     = Vector2D(NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y);
+        PNODE->size         = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
     } else {
-        updateChildrenVertical(OPENINGON, PNODE, NEWPARENT);
+        // split top/bottom
+        OPENINGON->position = NEWPARENT->position;
+        OPENINGON->size     = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
+        PNODE->position     = Vector2D(NEWPARENT->position.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f);
+        PNODE->size         = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
     }
 
     OPENINGON->pParent = NEWPARENT;
@@ -837,8 +843,7 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 }
 
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
-    std::replace(message.begin(), message.end(), ' ', ',');
-    const auto ARGS = CVarList(message);
+    const auto ARGS = CVarList(message, 0, ' ');
     if (ARGS[0] == "togglesplit") {
         toggleSplit(header.pWindow);
     } else if (ARGS[0] == "preselect") {
@@ -914,18 +919,3 @@ void CHyprDwindleLayout::onDisable() {
     m_lDwindleNodesData.clear();
 }
 
-void CHyprDwindleLayout::updateChildrenHorizontal(SDwindleNodeData* OPENINGON, SDwindleNodeData* PNODE, SDwindleNodeData* NEWPARENT) {
-    // split left/right -> forced
-    OPENINGON->position = NEWPARENT->position;
-    OPENINGON->size     = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
-    PNODE->position     = Vector2D(NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y);
-    PNODE->size         = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
-}
-
-void CHyprDwindleLayout::updateChildrenVertical(SDwindleNodeData* OPENINGON, SDwindleNodeData* PNODE, SDwindleNodeData* NEWPARENT) {
-    // split top/bottom
-    OPENINGON->position = NEWPARENT->position;
-    OPENINGON->size     = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
-    PNODE->position     = Vector2D(NEWPARENT->position.x, NEWPARENT->position.y + NEWPARENT->size.y / 2.f);
-    PNODE->size         = Vector2D(NEWPARENT->size.x, NEWPARENT->size.y / 2.f);
-}

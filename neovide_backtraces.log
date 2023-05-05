@@ -1,0 +1,18 @@
+2023-05-05 21:39:11 - Neovide panicked with the message 'Mouse Drag Failed: DecodeError(ReaderError(Custom { kind: UnexpectedEof, error: "EOF" }), "nvim_input_mouse")'. (File: src/bridge/ui_commands.rs; Line: 103, Column: 18)
+   0: <unknown>
+   1: <unknown>
+   2: <unknown>
+   3: <unknown>
+   4: <unknown>
+   5: <unknown>
+   6: <unknown>
+   7: <unknown>
+   8: <unknown>
+   9: <unknown>
+  10: <unknown>
+  11: <unknown>
+  12: <unknown>
+  13: <unknown>
+  14: <unknown>
+  15: <unknown>
+

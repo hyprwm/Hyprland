@@ -1135,16 +1135,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
 }
 
 void CConfigManager::handleBindWS(const std::string& command, const std::string& value) {
-    const auto ARGS = CVarList(value);
-
-    const auto FOUND = std::find_if(boundWorkspaces.begin(), boundWorkspaces.end(), [&](const auto& other) { return other.first == ARGS[0]; });
-
-    if (FOUND != boundWorkspaces.end()) {
-        FOUND->second = ARGS[1];
-        return;
-    }
-
-    boundWorkspaces.push_back({ARGS[0], ARGS[1]});
+    parseError = "bindws has been deprecated in favor of workspace rules, see the wiki -> workspace rules";
 }
 
 void CConfigManager::handleEnv(const std::string& command, const std::string& value) {
@@ -1380,7 +1371,6 @@ void CConfigManager::loadConfigLoadVars() {
     configDynamicVars.clear();
     deviceConfigs.clear();
     m_dBlurLSNamespaces.clear();
-    boundWorkspaces.clear();
     m_dWorkspaceRules.clear();
     setDefaultAnimationVars(); // reset anims
     m_vDeclaredPlugins.clear();
@@ -2021,23 +2011,15 @@ void CConfigManager::addParseError(const std::string& err) {
 }
 
 CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
-    for (auto& [ws, mon] : boundWorkspaces) {
-        const auto WSNAME = ws.find("name:") == 0 ? ws.substr(5) : ws;
-
-        if (WSNAME == wsname) {
-            return g_pCompositor->getMonitorFromString(mon);
-        }
-    }
-
-    return nullptr;
+    return g_pCompositor->getMonitorFromName(getBoundMonitorStringForWS(wsname));
 }
 
 std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname) {
-    for (auto& [ws, mon] : boundWorkspaces) {
-        const auto WSNAME = ws.find("name:") == 0 ? ws.substr(5) : ws;
+    for (auto& wr : m_dWorkspaceRules) {
+        const auto WSNAME = wr.workspaceName.find("name:") == 0 ? wr.workspaceName.substr(5) : wr.workspaceName;
 
         if (WSNAME == wsname) {
-            return mon;
+            return wr.monitor;
         }
     }
 

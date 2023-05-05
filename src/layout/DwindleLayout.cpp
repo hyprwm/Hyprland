@@ -849,6 +849,11 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
     } else if (ARGS[0] == "preselect") {
         std::string direction = ARGS[1];
 
+        if(direction == "") {
+          Debug::log(ERR, "Expected direction for preselect");
+          return "";
+        }
+
         switch (direction.front()) {
             case 'u':
             case 't': {

@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <regex>
 #include <optional>
+#include <xf86drmMode.h>
 #include "../Window.hpp"
 #include "../helpers/WLClasses.hpp"
 
@@ -44,6 +45,7 @@ struct SMonitorRule {
     wl_output_transform transform   = WL_OUTPUT_TRANSFORM_NORMAL;
     std::string         mirrorOf    = "";
     bool                enable10bit = false;
+    drmModeModeInfo     drmMode     = {};
 };
 
 struct SWorkspaceRule {

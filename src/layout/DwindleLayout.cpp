@@ -340,23 +340,22 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop   = !SIDEBYSIDE;
 
-    const auto        MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    static auto const  MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
-    static const auto PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
-    static const auto PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
+    static auto* const PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
+    static auto* const PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
 
-    bool              horizontalOverride = false;
-    bool              verticalOverride   = false;
+    bool               horizontalOverride = false;
+    bool               verticalOverride   = false;
 
     // let user select position -> top, right, bottom, left
     if (overrideDirection != OneTimeFocus::NOFOCUS) {
 
         // this is horizontal
-        if (overrideDirection % 2 == 0) {
+        if (overrideDirection % 2 == 0)
             verticalOverride = true;
-        } else {
+        else
             horizontalOverride = true;
-        }
 
         // 0 -> top and left | 1,2 -> right and bottom
         if (overrideDirection % 3 == 0) {
@@ -368,9 +367,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         }
 
         // whether or not the override persists after opening one window
-        if (*PERMANENTDIRECTIONOVERRIDE == 0) {
+        if (*PERMANENTDIRECTIONOVERRIDE == 0)
             overrideDirection = OneTimeFocus::NOFOCUS;
-        }
+
     } else if (*PFORCESPLIT == 0) {
         if ((SIDEBYSIDE &&
              VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f,
@@ -849,9 +848,9 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
     } else if (ARGS[0] == "preselect") {
         std::string direction = ARGS[1];
 
-        if(direction.empty()) {
-          Debug::log(ERR, "Expected direction for preselect");
-          return "";
+        if (direction.empty()) {
+            Debug::log(ERR, "Expected direction for preselect");
+            return "";
         }
 
         switch (direction.front()) {

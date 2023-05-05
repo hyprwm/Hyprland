@@ -340,13 +340,13 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop   = !SIDEBYSIDE;
 
-    const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    const auto        MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
-    const static auto PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
-    const static auto PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
+    static const auto PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
+    static const auto PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
 
-    bool       horizontalOverride = false;
-    bool       verticalOverride   = false;
+    bool              horizontalOverride = false;
+    bool              verticalOverride   = false;
 
     // let user select position -> top, right, bottom, left
     if (overrideDirection != OneTimeFocus::NOFOCUS) {
@@ -918,4 +918,3 @@ void CHyprDwindleLayout::onEnable() {
 void CHyprDwindleLayout::onDisable() {
     m_lDwindleNodesData.clear();
 }
-

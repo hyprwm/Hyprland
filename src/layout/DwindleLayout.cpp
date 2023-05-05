@@ -342,7 +342,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
-    const auto PFORCESPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
+    const auto PFORCESPLIT            = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
+    const auto PERMANENTFOCUSOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_focus_override")->intValue;
 
     bool       horizontalOverride = false;
     bool       verticalOverride   = false;
@@ -357,7 +358,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             horizontalOverride = true;
         }
 
-        // 0 -> top and left | 1,2 -> right and bottom 
+        // 0 -> top and left | 1,2 -> right and bottom
         if (focusDirection % 3 == 0) {
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;
@@ -366,8 +367,10 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             NEWPARENT->children[1] = PNODE;
         }
 
-        // set the focus only for one window -> until next window opens
-        focusDirection = OneTimeFocus::NOFOCUS;
+        // whether or not the override persists after opening one window
+        if (*PERMANENTFOCUSOVERRIDE == 0) {
+            focusDirection = OneTimeFocus::NOFOCUS;
+        }
     } else if (*PFORCESPLIT == 0) {
         if ((SIDEBYSIDE &&
              VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f,
@@ -834,7 +837,7 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 }
 
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
-    std::replace( message.begin(), message.end(), ' ', ',');
+    std::replace(message.begin(), message.end(), ' ', ',');
     const auto ARGS = CVarList(message);
     if (ARGS[0] == "togglesplit") {
         toggleSplit(header.pWindow);
@@ -861,7 +864,9 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
                 break;
             }
             default: {
-                Debug::log(ERR, "Cannot preselect in %c, unsupported direction. Supported: l,r,u,d", direction);
+                // any other character resets the focus direction
+                // needed for the persistent mode
+                focusDirection = OneTimeFocus::NOFOCUS;
                 break;
             }
         }

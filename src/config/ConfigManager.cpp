@@ -1039,7 +1039,6 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
 
     auto assignRule = [&](std::string rule) {
         size_t delim = std::string::npos;
-        Debug::log(INFO, "found workspacerule: %s", rule.c_str());
         if ((delim = rule.find("gapsin:")) != std::string::npos)
             wsRule.gapsIn = std::stoi(rule.substr(delim + 7));
         else if ((delim = rule.find("gapsout:")) != std::string::npos)

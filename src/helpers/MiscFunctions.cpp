@@ -325,18 +325,14 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                     invalidWSes.insert(ws->m_iID);
                 }
             }
-            for (auto& [ws, mon] : g_pConfigManager->getAllBoundWorkspaces()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(mon);
+            for (auto& rule : g_pConfigManager->getAllWorkspaceRules()) {
+                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
                 if (!PMONITOR || PMONITOR->ID == g_pCompositor->m_pLastMonitor->ID) {
                     // Can't be invalid
                     continue;
                 }
-                const auto WSNAME     = ws.find("name:") == 0 ? ws.substr(5) : ws;
-                const auto PWORKSPACE = g_pCompositor->getWorkspaceByName(WSNAME);
-                if (PWORKSPACE) {
-                    // WS is bound to another monitor, can't jump to this
-                    invalidWSes.insert(PWORKSPACE->m_iID);
-                }
+                // WS is bound to another monitor, can't jump to this
+                invalidWSes.insert(rule.workspaceId);
             }
 
             // Just take a blind guess at where we'll probably end up

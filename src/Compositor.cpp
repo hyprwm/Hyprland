@@ -1859,7 +1859,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     const auto POLDMON = getMonitorFromID(pWorkspace->m_iMonitorID);
 
-    const bool SWITCHINGISACTIVE = POLDMON->activeWorkspace == pWorkspace->m_iID;
+    const bool SWITCHINGISACTIVE = POLDMON ? POLDMON->activeWorkspace == pWorkspace->m_iID : false;
 
     // fix old mon
     int nextWorkspaceOnMonitorID = -1;
@@ -1906,12 +1906,16 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
             // additionally, move floating and fs windows manually
             if (w->m_bIsMapped && !w->isHidden()) {
-                if (w->m_bIsFloating)
-                    w->m_vRealPosition = w->m_vRealPosition.vec() - POLDMON->vecPosition + pMonitor->vecPosition;
+                if (POLDMON) {
+                    if (w->m_bIsFloating)
+                        w->m_vRealPosition = w->m_vRealPosition.vec() - POLDMON->vecPosition + pMonitor->vecPosition;
 
-                if (w->m_bIsFullscreen) {
-                    w->m_vRealPosition = pMonitor->vecPosition;
-                    w->m_vRealSize     = pMonitor->vecSize;
+                    if (w->m_bIsFullscreen) {
+                        w->m_vRealPosition = pMonitor->vecPosition;
+                        w->m_vRealSize     = pMonitor->vecSize;
+                    }
+                } else {
+                    w->m_vRealPosition = Vector2D{(int)w->m_vRealPosition.goalv().x % (int)pMonitor->vecSize.x, (int)w->m_vRealPosition.goalv().y % (int)pMonitor->vecSize.y};
                 }
             }
 
@@ -1936,10 +1940,12 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
     }
 
     // finalize
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+    if (POLDMON) {
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+        updateFullscreenFadeOnWorkspace(getWorkspaceByID(POLDMON->activeWorkspace));
+    }
 
     updateFullscreenFadeOnWorkspace(pWorkspace);
-    updateFullscreenFadeOnWorkspace(getWorkspaceByID(POLDMON->activeWorkspace));
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", pWorkspace->m_szName + "," + pMonitor->szName});

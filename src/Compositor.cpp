@@ -1064,7 +1064,7 @@ bool CCompositor::isWorkspaceVisible(const int& w) {
         if (m->activeWorkspace == w)
             return true;
 
-        if (m->specialWorkspaceID && isWorkspaceSpecial(w))
+        if (m->specialWorkspaceID == w)
             return true;
     }
 

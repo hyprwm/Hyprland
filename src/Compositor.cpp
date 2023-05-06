@@ -1931,6 +1931,8 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
         pWorkspace->startAnim(true, true, true);
 
         wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
+
+        g_pInputManager->refocus();
     }
 
     // finalize
@@ -1938,8 +1940,6 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     updateFullscreenFadeOnWorkspace(pWorkspace);
     updateFullscreenFadeOnWorkspace(getWorkspaceByID(POLDMON->activeWorkspace));
-
-    g_pInputManager->refocus();
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", pWorkspace->m_szName + "," + pMonitor->szName});

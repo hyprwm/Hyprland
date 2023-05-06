@@ -1,7 +1,7 @@
 #include "DwindleLayout.hpp"
 #include "../Compositor.hpp"
 
-void SDwindleNodeData::recalcSizePosRecursive(bool force) {
+void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
 
         const auto         REVERSESPLITRATIO = 2.f - splitRatio;
@@ -12,6 +12,11 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force) {
         if (*PPRESERVESPLIT == 0) {
             splitTop = size.y * *PFLMULT > size.x;
         }
+
+        if (verticalOverride == true)
+            splitTop = true;
+        else if (horizontalOverride == true)
+            splitTop = false;
 
         const auto SPLITSIDE = !splitTop;
 
@@ -334,11 +339,37 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop   = !SIDEBYSIDE;
 
-    const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
-    const auto PFORCESPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
+    static auto* const PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
+    static auto* const PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
 
-    if (*PFORCESPLIT == 0) {
+    bool               horizontalOverride = false;
+    bool               verticalOverride   = false;
+
+    // let user select position -> top, right, bottom, left
+    if (overrideDirection != OneTimeFocus::NOFOCUS) {
+
+        // this is horizontal
+        if (overrideDirection % 2 == 0)
+            verticalOverride = true;
+        else
+            horizontalOverride = true;
+
+        // 0 -> top and left | 1,2 -> right and bottom
+        if (overrideDirection % 3 == 0) {
+            NEWPARENT->children[1] = OPENINGON;
+            NEWPARENT->children[0] = PNODE;
+        } else {
+            NEWPARENT->children[0] = OPENINGON;
+            NEWPARENT->children[1] = PNODE;
+        }
+
+        // whether or not the override persists after opening one window
+        if (*PERMANENTDIRECTIONOVERRIDE == 0)
+            overrideDirection = OneTimeFocus::NOFOCUS;
+
+    } else if (*PFORCESPLIT == 0) {
         if ((SIDEBYSIDE &&
              VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f,
                        NEWPARENT->position.y + NEWPARENT->size.y)) ||
@@ -373,9 +404,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     }
 
     // Update the children
-
-    if (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y) {
-        // split left/right
+    if (!verticalOverride && (NEWPARENT->size.x * *PWIDTHMULTIPLIER > NEWPARENT->size.y || horizontalOverride)) {
+        // split left/right -> forced
         OPENINGON->position = NEWPARENT->position;
         OPENINGON->size     = Vector2D(NEWPARENT->size.x / 2.f, NEWPARENT->size.y);
         PNODE->position     = Vector2D(NEWPARENT->position.x + NEWPARENT->size.x / 2.f, NEWPARENT->position.y);
@@ -391,7 +421,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     OPENINGON->pParent = NEWPARENT;
     PNODE->pParent     = NEWPARENT;
 
-    NEWPARENT->recalcSizePosRecursive();
+    NEWPARENT->recalcSizePosRecursive(false, horizontalOverride, verticalOverride);
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
@@ -811,8 +841,44 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 }
 
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
-    if (message == "togglesplit")
+    const auto ARGS = CVarList(message, 0, ' ');
+    if (ARGS[0] == "togglesplit") {
         toggleSplit(header.pWindow);
+    } else if (ARGS[0] == "preselect") {
+        std::string direction = ARGS[1];
+
+        if (direction.empty()) {
+            Debug::log(ERR, "Expected direction for preselect");
+            return "";
+        }
+
+        switch (direction.front()) {
+            case 'u':
+            case 't': {
+                overrideDirection = OneTimeFocus::UP;
+                break;
+            }
+            case 'd':
+            case 'b': {
+                overrideDirection = OneTimeFocus::DOWN;
+                break;
+            }
+            case 'r': {
+                overrideDirection = OneTimeFocus::RIGHT;
+                break;
+            }
+            case 'l': {
+                overrideDirection = OneTimeFocus::LEFT;
+                break;
+            }
+            default: {
+                // any other character resets the focus direction
+                // needed for the persistent mode
+                overrideDirection = OneTimeFocus::NOFOCUS;
+                break;
+            }
+        }
+    }
 
     return "";
 }

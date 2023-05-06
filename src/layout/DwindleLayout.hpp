@@ -9,6 +9,14 @@
 class CHyprDwindleLayout;
 enum eFullscreenMode : uint8_t;
 
+enum OneTimeFocus {
+    UP = 0,
+    RIGHT,
+    DOWN,
+    LEFT,
+    NOFOCUS,
+};
+
 struct SDwindleNodeData {
     SDwindleNodeData*                pParent = nullptr;
     bool                             isNode  = false;
@@ -34,7 +42,7 @@ struct SDwindleNodeData {
             children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }
 
-    void                recalcSizePosRecursive(bool force = false);
+    void                recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
     void                getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
     CHyprDwindleLayout* layout = nullptr;
 };
@@ -76,6 +84,8 @@ class CHyprDwindleLayout : public IHyprLayout {
     SDwindleNodeData* getMasterNodeOnWorkspace(const int&);
 
     void              toggleSplit(CWindow*);
+
+    OneTimeFocus      overrideDirection = OneTimeFocus::NOFOCUS;
 
     friend struct SDwindleNodeData;
 };

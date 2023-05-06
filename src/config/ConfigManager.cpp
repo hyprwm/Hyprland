@@ -1055,7 +1055,7 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
         else if ((delim = rule.find("monitor:")) != std::string::npos)
             wsRule.monitor = rule.substr(delim + 8);
         else if ((delim = rule.find("default:")) != std::string::npos)
-            wsRule.isDefault = configStringToInt(rule.substr(delim + 9));
+            wsRule.isDefault = configStringToInt(rule.substr(delim + 8));
     };
 
     size_t      pos = 0;

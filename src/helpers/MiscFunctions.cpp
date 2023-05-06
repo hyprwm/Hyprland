@@ -389,6 +389,8 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(result);
             if (PWORKSPACE)
                 outName = g_pCompositor->getWorkspaceByID(result)->m_szName;
+            else
+                outName = std::to_string(finalWSID);
 
         } else if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';

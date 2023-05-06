@@ -1,6 +1,5 @@
 #include "Screencopy.hpp"
 #include "../Compositor.hpp"
-#include <drm_fourcc.h>
 
 #include <algorithm>
 

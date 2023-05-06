@@ -104,7 +104,7 @@ extern "C" {
 #include <wlr/types/wlr_session_lock_v1.h>
 #include <wlr/types/wlr_single_pixel_buffer_v1.h>
 
-#include <drm_fourcc.h>
+#include <libdrm/drm_fourcc.h>
 
 #if WLR_HAS_X11_BACKEND
 #include <wlr/backend/x11.h>

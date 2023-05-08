@@ -323,6 +323,20 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         }
     }
 
+    if (layersurface->layerSurface->current.keyboard_interactive &&
+        (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) // don't focus if constrained
+        && g_pCompositor->m_pLastFocus != layersurface->layerSurface->surface) {
+        g_pCompositor->focusSurface(layersurface->layerSurface->surface);
+
+        const auto LOCAL =
+            g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
+        wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
+        wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+    } else if (!layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) &&
+               g_pCompositor->m_pLastFocus == layersurface->layerSurface->surface) {
+        g_pInputManager->refocus();
+    }
+
     g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 
     g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);

@@ -325,7 +325,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PHOGFOCUS && !refocus && g_pCompositor->m_pLastFocus) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
 
-        if (PLS && PLS->layerSurface->current.keyboard_interactive) {
+        if (PLS && !PLS->ignoreFocus && PLS->layerSurface->current.keyboard_interactive) {
             allowKeyboardRefocus = false;
         }
     }

@@ -143,7 +143,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
 
-    if (layersurface->layerSurface->current.keyboard_interactive &&
+    if (layersurface->layerSurface->current.keyboard_interactive && !layersurface->ignoreFocus &&
         (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) { // don't focus if constrained
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
@@ -218,31 +218,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     // refocus if needed
     if (WASLASTFOCUS) {
-        g_pInputManager->releaseAllMouseButtons();
-
-        Vector2D       surfaceCoords;
-        SLayerSurface* pFoundLayerSurface = nullptr;
-        wlr_surface*   foundSurface       = nullptr;
-
-        g_pCompositor->m_pLastFocus = nullptr;
-
-        // find LS-es to focus
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
-                                                           &surfaceCoords, &pFoundLayerSurface);
-
-        if (!foundSurface)
-            foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
-                                                               &surfaceCoords, &pFoundLayerSurface);
-
-        if (!foundSurface) {
-            // if there isn't any, focus the last window
-            const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
-            g_pCompositor->focusWindow(nullptr);
-            g_pCompositor->focusWindow(PLASTWINDOW);
-        } else {
-            // otherwise, full refocus
-            g_pInputManager->refocus();
-        }
+        layersurface->unfocus();
     }
 
     wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,

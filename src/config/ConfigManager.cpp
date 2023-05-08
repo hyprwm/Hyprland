@@ -803,7 +803,7 @@ bool windowRuleValid(const std::string& RULE) {
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return !(RULE != "noanim" && RULE != "blur" && RULE != "ignorezero");
+    return !(RULE != "noanim" && RULE != "blur" && RULE != "ignorezero" && RULE != "ignorefocus");
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
@@ -840,16 +840,14 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
 
     if (RULE == "unset") {
         std::erase_if(m_dLayerRules, [&](const SLayerRule& other) { return other.targetNamespace == VALUE; });
-        return;
+    } else {
+        if (!layerRuleValid(RULE)) {
+            Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
+            parseError = "Invalid rule found: " + RULE;
+            return;
+        }
+        m_dLayerRules.push_back({VALUE, RULE});
     }
-
-    if (!layerRuleValid(RULE)) {
-        Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
-        parseError = "Invalid rule found: " + RULE;
-        return;
-    }
-
-    m_dLayerRules.push_back({VALUE, RULE});
 
     for (auto& m : g_pCompositor->m_vMonitors)
         for (auto& lsl : m->m_aLayerSurfaceLayers)

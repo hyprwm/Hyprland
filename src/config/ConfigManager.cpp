@@ -470,6 +470,58 @@ void CConfigManager::handleRawExec(const std::string& command, const std::string
     g_pKeybindManager->spawn(args);
 }
 
+static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
+    auto args = CVarList(modeline, 0, 's');
+
+    auto keyword = args[0];
+    std::transform(keyword.begin(), keyword.end(), keyword.begin(), ::tolower);
+
+    if (keyword != "modeline")
+        return false;
+
+    if (args.size() < 10) {
+        Debug::log(ERR, "modeline parse error: expected at least 9 arguments, got %i", args.size() - 1);
+        return false;
+    }
+
+    int argno = 1;
+
+    mode.type        = DRM_MODE_TYPE_USERDEF;
+    mode.clock       = std::stof(args[argno++]) * 1000;
+    mode.hdisplay    = std::stoi(args[argno++]);
+    mode.hsync_start = std::stoi(args[argno++]);
+    mode.hsync_end   = std::stoi(args[argno++]);
+    mode.htotal      = std::stoi(args[argno++]);
+    mode.vdisplay    = std::stoi(args[argno++]);
+    mode.vsync_start = std::stoi(args[argno++]);
+    mode.vsync_end   = std::stoi(args[argno++]);
+    mode.vtotal      = std::stoi(args[argno++]);
+    mode.vrefresh    = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
+
+    static std::unordered_map<std::string, uint32_t> flagsmap = {
+        {"+hsync", DRM_MODE_FLAG_PHSYNC},
+        {"-hsync", DRM_MODE_FLAG_NHSYNC},
+        {"+vsync", DRM_MODE_FLAG_PVSYNC},
+        {"-vsync", DRM_MODE_FLAG_NVSYNC},
+    };
+
+    for (; argno < static_cast<int>(args.size()); argno++) {
+        auto key = args[argno];
+        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+
+        auto it = flagsmap.find(key);
+
+        if (it != flagsmap.end())
+            mode.flags |= it->second;
+        else
+            Debug::log(ERR, "invalid flag %s in modeline", it->first.c_str());
+    }
+
+    snprintf(mode.name, sizeof(mode.name), "%dx%d@%d", mode.hdisplay, mode.vdisplay, mode.vrefresh / 1000);
+
+    return true;
+}
+
 void CConfigManager::handleMonitor(const std::string& command, const std::string& args) {
 
     // get the monitor config
@@ -531,6 +583,9 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         newrule.resolution = Vector2D(-1, -1);
     } else if (ARGS[1].find("highres") == 0) {
         newrule.resolution = Vector2D(-1, -2);
+    } else if (parseModeLine(ARGS[1], newrule.drmMode)) {
+        newrule.resolution  = Vector2D(newrule.drmMode.hdisplay, newrule.drmMode.vdisplay);
+        newrule.refreshRate = newrule.drmMode.vrefresh / 1000;
     } else {
         newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
         newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));

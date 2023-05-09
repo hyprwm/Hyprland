@@ -169,7 +169,7 @@ class CCompositor {
     void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*);
     void           swapActiveWorkspaces(CMonitor*, CMonitor*);
     CMonitor*      getMonitorFromString(const std::string&);
-    bool           workspaceIDOutOfBounds(const int&);
+    bool           workspaceIDOutOfBounds(const int64_t&);
     void           setWindowFullscreen(CWindow*, bool, eFullscreenMode);
     void           updateFullscreenFadeOnWorkspace(CWorkspace*);
     CWindow*       getX11Parent(CWindow*);

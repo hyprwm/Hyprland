@@ -1952,9 +1952,9 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
     EMIT_HOOK_EVENT("moveWorkspace", (std::vector<void*>{pWorkspace, pMonitor}));
 }
 
-bool CCompositor::workspaceIDOutOfBounds(const int& id) {
-    int lowestID  = 99999;
-    int highestID = -99999;
+bool CCompositor::workspaceIDOutOfBounds(const int64_t& id) {
+    int64_t lowestID  = INT64_MAX;
+    int64_t highestID = INT64_MIN;
 
     for (auto& w : m_vWorkspaces) {
         if (w->m_bIsSpecialWorkspace)

@@ -111,8 +111,8 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     layersurface->layerSurface->mapped = true;
     layersurface->mapped               = true;
-
-    layersurface->surface = layersurface->layerSurface->surface;
+    layersurface->keyboardExclusive    = layersurface->layerSurface->current.keyboard_interactive;
+    layersurface->surface              = layersurface->layerSurface->surface;
 
     // anim
     layersurface->alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
@@ -325,7 +325,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     if (layersurface->layerSurface->current.keyboard_interactive &&
         (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) // don't focus if constrained
-        && g_pCompositor->m_pLastFocus != layersurface->layerSurface->surface) {
+        && !layersurface->keyboardExclusive) {
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
         const auto LOCAL =
@@ -333,9 +333,11 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
     } else if (!layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) &&
-               g_pCompositor->m_pLastFocus == layersurface->layerSurface->surface) {
+               layersurface->keyboardExclusive) {
         g_pInputManager->refocus();
     }
+
+    layersurface->keyboardExclusive = layersurface->layerSurface->current.keyboard_interactive;
 
     g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 

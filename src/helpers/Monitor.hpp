@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <memory>
+#include <xf86drmMode.h>
 #include "Timer.hpp"
 
 struct SMonitorRule;
@@ -15,21 +16,23 @@ class CMonitor {
     CMonitor();
     ~CMonitor();
 
-    Vector2D    vecPosition        = Vector2D(-1, -1); // means unset
-    Vector2D    vecSize            = Vector2D(0, 0);
-    Vector2D    vecPixelSize       = Vector2D(0, 0);
-    Vector2D    vecTransformedSize = Vector2D(0, 0);
+    Vector2D        vecPosition        = Vector2D(-1, -1); // means unset
+    Vector2D        vecSize            = Vector2D(0, 0);
+    Vector2D        vecPixelSize       = Vector2D(0, 0);
+    Vector2D        vecTransformedSize = Vector2D(0, 0);
 
-    bool        primary = false;
+    bool            primary = false;
 
-    uint64_t    ID              = -1;
-    int         activeWorkspace = -1;
-    float       scale           = 1;
+    uint64_t        ID              = -1;
+    int             activeWorkspace = -1;
+    float           scale           = 1;
 
-    std::string szName = "";
+    std::string     szName = "";
 
-    Vector2D    vecReservedTopLeft     = Vector2D(0, 0);
-    Vector2D    vecReservedBottomRight = Vector2D(0, 0);
+    Vector2D        vecReservedTopLeft     = Vector2D(0, 0);
+    Vector2D        vecReservedBottomRight = Vector2D(0, 0);
+
+    drmModeModeInfo customDrmMode = {};
 
     // WLR stuff
     wlr_damage_ring     damage;

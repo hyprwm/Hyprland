@@ -21,6 +21,8 @@ struct SLayerSurface {
     wlr_layer_surface_v1* layerSurface;
     wl_list               link;
 
+    bool                  keyboardExclusive = false;
+
     CWLSurface            surface;
     std::list<CWLSurface> popupSurfaces;
 

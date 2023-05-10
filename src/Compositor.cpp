@@ -1977,7 +1977,7 @@ void CCompositor::updateFullscreenFadeOnWorkspace(CWorkspace* pWorkspace) {
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == pWorkspace->m_iID) {
 
-            if (w->m_bFadingOut || w->m_bPinned)
+            if (w->m_bFadingOut || w->m_bPinned || w->m_bIsFullscreen)
                 continue;
 
             if (!FULLSCREEN)
@@ -2018,7 +2018,7 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
 
     pWindow->updateDynamicRules();
-    g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
+    updateWindowAnimatedDecorationValues(pWindow);
 
     // make all windows on the same workspace under the fullscreen window
     for (auto& w : m_vWindows) {

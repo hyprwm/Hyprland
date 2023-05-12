@@ -325,7 +325,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     if (layersurface->layerSurface->current.keyboard_interactive &&
         (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) // don't focus if constrained
-        && !layersurface->keyboardExclusive) {
+        && !layersurface->keyboardExclusive && layersurface->mapped) {
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
         const auto LOCAL =

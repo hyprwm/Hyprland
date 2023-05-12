@@ -1125,7 +1125,12 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
     wsRule.workspaceId   = id;
     wsRule.workspaceName = name;
 
-    m_dWorkspaceRules.emplace_back(wsRule);
+    const auto IT = std::find_if(m_dWorkspaceRules.begin(), m_dWorkspaceRules.end(), [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
+
+    if (IT == m_dWorkspaceRules.end())
+        m_dWorkspaceRules.emplace_back(wsRule);
+    else
+        *IT = wsRule;
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {

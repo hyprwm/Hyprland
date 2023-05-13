@@ -4,6 +4,7 @@
   pkg-config,
   meson,
   ninja,
+  binutils,
   cairo,
   git,
   hyprland-protocols,
@@ -13,6 +14,7 @@
   libxcb,
   libxkbcommon,
   mesa,
+  makeWrapper,
   pango,
   pciutils,
   systemd,
@@ -56,6 +58,7 @@ in
         meson
         ninja
         pkg-config
+        makeWrapper
       ];
 
       outputs = [
@@ -111,6 +114,11 @@ in
           then "dirty"
           else ""
         }'
+      '';
+
+      postInstall = ''
+        wrapProgram $out/bin/Hyprland \
+          --suffix PATH : ${lib.makeBinPath [ binutils ]}
       '';
 
       passthru.providedSessions = ["hyprland"];

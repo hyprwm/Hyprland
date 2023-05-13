@@ -518,19 +518,114 @@ float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Ve
     return DX * DX + DY * DY;
 }
 
-// Execute a shell command and get the output
-std::string execAndGet(const char* cmd) {
+// Execute a command with the shell and get the output. Does not log command failures.
+std::string execAndGetShell(const char* cmd) {
     std::array<char, 128>                          buffer;
     std::string                                    result;
     const std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
     if (!pipe) {
-        Debug::log(ERR, "execAndGet: failed in pipe");
+        Debug::log(ERR, "execAndGetShell: failed in pipe");
         return "";
     }
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
         result += buffer.data();
     }
     return result;
+}
+
+// Execute a command and get the output. Argument list must be nullptr terminated.
+std::string execAndGet(const char* cmd, ...) {
+    va_list args;
+    va_start(args, cmd);
+    va_list args2;
+    va_copy(args2, args);
+
+    size_t argCount = 0;
+    while (va_arg(args2, char*) != nullptr)
+        argCount++;
+
+    va_end(args2);
+
+    char* argArray[argCount + 2];
+    argArray[0]            = const_cast<char*>(cmd);
+    argArray[argCount + 1] = NULL; // execvp wants NULL specifically, not nullptr
+
+    for (size_t i = 0; i < argCount; i++) {
+        argArray[i + 1] = va_arg(args, char*);
+    }
+
+    va_end(args);
+
+    int childStdout[2];
+    int childStderr[2];
+
+    if (pipe(childStdout) == -1) {
+        Debug::log(ERR, "execAndGet: pipe creation failed: %s (%d)", strerror(errno), errno);
+        return "";
+    }
+
+    if (pipe(childStderr) == -1) {
+        Debug::log(ERR, "execAndGet: pipe creation failed: %s (%d)", strerror(errno), errno);
+        close(childStdout[0]);
+        close(childStdout[1]);
+        return "";
+    }
+
+    pid_t pid = fork();
+    switch (pid) {
+        case -1:
+            Debug::log(ERR, "execAndGet: fork failed: %s (%d)", strerror(errno), errno);
+            close(childStdout[0]);
+            close(childStdout[1]);
+            close(childStdout[0]);
+            close(childStdout[1]);
+            return "";
+        case 0: // child
+            dup2(childStdout[1], STDOUT_FILENO);
+            dup2(childStderr[1], STDERR_FILENO);
+            close(childStdout[0]);
+            close(childStdout[1]);
+            close(childStderr[0]);
+            close(childStderr[1]);
+            execvp(cmd, argArray);
+            fprintf(stderr, "execAndGet: child process failed to exec: %s (%d)", strerror(errno), errno);
+            _exit(1);
+        default: // parent
+            close(childStdout[1]);
+            close(childStderr[1]);
+            char        buffer[129];
+            std::string result;
+            std::string err;
+
+            try {
+                int count;
+                while ((count = read(childStdout[0], buffer, 128)) > 0) {
+                    buffer[count] = '\0';
+                    result += buffer;
+                }
+
+                while ((count = read(childStderr[0], buffer, 128)) > 0) {
+                    buffer[count] = '\0';
+                    err += buffer;
+                }
+            } catch (...) {
+                close(childStdout[0]);
+                close(childStderr[0]);
+                throw;
+            }
+
+            close(childStdout[0]);
+            close(childStderr[0]);
+
+            int status;
+            waitpid(pid, &status, 0);
+
+            if (status != 0) {
+                Debug::log(ERR, "execAndGet: child process exited with nonzero exit code %d\nSTDERR: %s", status, err.c_str());
+            }
+
+            return result;
+    }
 }
 
 void logSystemInfo() {
@@ -546,9 +641,9 @@ void logSystemInfo() {
     Debug::log(NONE, "\n");
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
-    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
+    const std::string GPUINFO = execAndGetShell("pciconf -lv | fgrep -A4 vga");
 #else
-    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
+    const std::string GPUINFO = execAndGetShell("lspci -vnn | grep VGA");
 #endif
     Debug::log(LOG, "GPU information:\n%s\n", GPUINFO.c_str());
 
@@ -559,7 +654,7 @@ void logSystemInfo() {
     // log etc
     Debug::log(LOG, "os-release:");
 
-    Debug::log(NONE, "%s", execAndGet("cat /etc/os-release").c_str());
+    Debug::log(NONE, "%s", execAndGet("cat", "/etc/os-release", nullptr).c_str());
 }
 
 void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {

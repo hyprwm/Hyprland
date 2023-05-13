@@ -11,7 +11,7 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
     });
 
     // check for the icon backend
-    std::string fonts      = execAndGet("fc-list");
+    std::string fonts      = execAndGet("fc-list", nullptr);
     std::string fontsLower = fonts;
     std::transform(fontsLower.begin(), fontsLower.end(), fontsLower.begin(), [&](char& i) { return std::tolower(i); });
 

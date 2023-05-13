@@ -44,7 +44,9 @@ static void handleSurfaceDestroy(void* owner, void* data) {
 
 void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
-    if (m_sSessionLock.active) {
+    static auto* const PALLOWRELOCK = &g_pConfigManager->getConfigValuePtr("misc:allow_session_lock_restore")->intValue;
+
+    if (m_sSessionLock.active && (!*PALLOWRELOCK || m_sSessionLock.pWlrLock)) {
         Debug::log(LOG, "Attempted to lock a locked session!");
         wlr_session_lock_v1_destroy(pWlrLock);
         return;
@@ -112,6 +114,8 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
             g_pCompositor->m_sSeat.exclusiveClient = nullptr;
 
             g_pCompositor->focusSurface(nullptr);
+
+            m_sSessionLock.pWlrLock = nullptr;
 
             for (auto& m : g_pCompositor->m_vMonitors)
                 g_pHyprRenderer->damageMonitor(m.get());

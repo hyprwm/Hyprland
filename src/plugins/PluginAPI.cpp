@@ -280,11 +280,11 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
 #endif
 
 #ifdef __clang__
-    static const auto SYMBOLS          = execAndGet(("llvm-nm -D -j " + FPATH.string()).c_str());
-    static const auto SYMBOLSDEMANGLED = execAndGet(("llvm-nm -D -j --demangle " + FPATH.string()).c_str());
+    static const auto SYMBOLS          = execAndGet(("llvm-nm -D -j \"" + FPATH.string() + "\"").c_str());
+    static const auto SYMBOLSDEMANGLED = execAndGet(("llvm-nm -D -j --demangle \"" + FPATH.string() + "\"").c_str());
 #else
-    static const auto SYMBOLS          = execAndGet(("nm -D -j " + FPATH.string()).c_str());
-    static const auto SYMBOLSDEMANGLED = execAndGet(("nm -D -j --demangle=auto " + FPATH.string()).c_str());
+    static const auto SYMBOLS          = execAndGet(("nm -D -j \"" + FPATH.string() + "\"").c_str());
+    static const auto SYMBOLSDEMANGLED = execAndGet(("nm -D -j --demangle=auto \"" + FPATH.string() + "\"").c_str());
 #endif
 
     auto demangledFromID = [&](size_t id) -> std::string {
@@ -300,6 +300,17 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
 
         return SYMBOLSDEMANGLED.substr(pos, SYMBOLSDEMANGLED.find('\n', pos + 1) - pos);
     };
+
+    if (SYMBOLS.empty()) {
+        Debug::log(ERR, "Unable to search for function \"%s\": no symbols found in binary (is \"%s\" in path?)", name.c_str(),
+#ifdef __clang__
+                   "llvm-nm"
+#else
+                   "nm"
+#endif
+        );
+        return {};
+    }
 
     std::vector<SFunctionMatch> matches;
 

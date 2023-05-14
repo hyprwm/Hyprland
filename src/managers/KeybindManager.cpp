@@ -33,6 +33,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglegroup"]                   = toggleGroup;
     m_mDispatchers["changegroupactive"]             = changeGroupActive;
     m_mDispatchers["togglesplit"]                   = toggleSplit;
+    m_mDispatchers["preselect"]                     = preSelect;
     m_mDispatchers["splitratio"]                    = alterSplitRatio;
     m_mDispatchers["focusmonitor"]                  = focusMonitor;
     m_mDispatchers["movecursortocorner"]            = moveCursorToCorner;
@@ -1228,6 +1229,16 @@ void CKeybindManager::toggleSplit(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglesplit");
+}
+
+void CKeybindManager::preSelect(std::string args) {
+    SLayoutMessageHeader header;
+    header.pWindow = g_pCompositor->m_pLastWindow;
+
+    if (!header.pWindow)
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "preselect," + args);
 }
 
 void CKeybindManager::alterSplitRatio(std::string args) {

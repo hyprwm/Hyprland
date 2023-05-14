@@ -114,6 +114,7 @@ class CKeybindManager {
     static void     alterSplitRatio(std::string);
     static void     focusMonitor(std::string);
     static void     toggleSplit(std::string);
+    static void     preSelect(std::string);
     static void     moveCursorToCorner(std::string);
     static void     moveCursor(std::string);
     static void     workspaceOpt(std::string);

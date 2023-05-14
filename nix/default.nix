@@ -119,7 +119,7 @@ in
 
       postInstall = lib.optional wrapRuntimeDeps ''
         wrapProgram $out/bin/Hyprland \
-          --suffix PATH : ${lib.makeBinPath [ binutils ]}
+          --suffix PATH : ${lib.makeBinPath [ binutils pciutil ]}
       '';
 
       passthru.providedSessions = ["hyprland"];

@@ -1238,7 +1238,7 @@ void CKeybindManager::preSelect(std::string args) {
     if (!header.pWindow)
         return;
 
-    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "preselect," + args);
+    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "preselect " + args);
 }
 
 void CKeybindManager::alterSplitRatio(std::string args) {

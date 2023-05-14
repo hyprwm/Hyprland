@@ -841,7 +841,7 @@ void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exa
 }
 
 std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
-    const auto ARGS = CVarList(message, 0, ',');
+    const auto ARGS = CVarList(message, 0, ' ');
     if (ARGS[0] == "togglesplit") {
         toggleSplit(header.pWindow);
     } else if (ARGS[0] == "preselect") {

@@ -31,6 +31,7 @@
   legacyRenderer ? false,
   nvidiaPatches ? false,
   withSystemd ? true,
+  wrapRuntimeDeps ? true,
   version ? "git",
   commit,
 }: let
@@ -116,7 +117,7 @@ in
         }'
       '';
 
-      postInstall = ''
+      postInstall = lib.optional wrapRuntimeDeps ''
         wrapProgram $out/bin/Hyprland \
           --suffix PATH : ${lib.makeBinPath [ binutils ]}
       '';

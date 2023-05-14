@@ -14,18 +14,18 @@
 std::string getRandomMessage() {
 
     const std::vector<std::string>  MESSAGES = {"Sorry, didn't mean to...",
-                                                "This was an accident, I swear!",
-                                                "Calm down, it was a misinput! MISINPUT!",
-                                                "Oops",
-                                                "Vaxry is going to be upset.",
-                                                "Who tried dividing by zero?!",
-                                                "Maybe you should try dusting your PC in the meantime?",
-                                                "I tried so hard, and got so far...",
-                                                "I don't feel so good...",
-                                                "*thud*",
-                                                "Well this is awkward.",
-                                                "\"stable\"",
-                                                "I hope you didn't have any unsaved progress."};
+                                               "This was an accident, I swear!",
+                                               "Calm down, it was a misinput! MISINPUT!",
+                                               "Oops",
+                                               "Vaxry is going to be upset.",
+                                               "Who tried dividing by zero?!",
+                                               "Maybe you should try dusting your PC in the meantime?",
+                                               "I tried so hard, and got so far...",
+                                               "I don't feel so good...",
+                                               "*thud*",
+                                               "Well this is awkward.",
+                                               "\"stable\"",
+                                               "I hope you didn't have any unsaved progress."};
 
     std::random_device              dev;
     std::mt19937                    engine(dev());
@@ -67,14 +67,14 @@ void CrashReporter::createAndSaveCrash(int sig) {
         getFormat("\tSystem name: %s\n\tNode name: %s\n\tRelease: %s\n\tVersion: %s\n\n", unameInfo.sysname, unameInfo.nodename, unameInfo.release, unameInfo.version);
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
-    const std::string GPUINFO = execAndGetShell("pciconf -lv | fgrep -A4 vga");
+    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
 #else
-    const std::string GPUINFO = execAndGetShell("lspci -vnn | grep VGA");
+    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
 
     finalCrashReport += "GPU:\n\t" + GPUINFO;
 
-    finalCrashReport += getFormat("\n\nos-release:\n\t%s\n\n\n", replaceInString(execAndGetShell("cat /etc/os-release"), "\n", "\n\t").c_str());
+    finalCrashReport += getFormat("\n\nos-release:\n\t%s\n\n\n", replaceInString(execAndGet("cat /etc/os-release"), "\n", "\n\t").c_str());
 
     finalCrashReport += "Backtrace:\n";
 
@@ -118,7 +118,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 #else
         const auto CMD = getFormat("addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)bt[i]);
 #endif
-        const auto ADDR2LINE = replaceInString(execAndGetShell(CMD.c_str()), "\n", "\n\t\t");
+        const auto ADDR2LINE = replaceInString(execAndGet(CMD.c_str()), "\n", "\n\t\t");
         finalCrashReport += "\t\t" + ADDR2LINE.substr(0, ADDR2LINE.length() - 2);
     }
 
@@ -126,7 +126,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "\n\nLog tail:\n";
 
-    finalCrashReport += execAndGetShell(("cat \"" + Debug::logFile + "\" | tail -n 50").c_str());
+    finalCrashReport += execAndGet(("cat \"" + Debug::logFile + "\" | tail -n 50").c_str());
 
     const auto HOME       = getenv("HOME");
     const auto CACHE_HOME = getenv("XDG_CACHE_HOME");
@@ -135,7 +135,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
         return;
 
     std::ofstream ofs;
-    std::string   path;
+    std::string path;
     if (!CACHE_HOME) {
         if (!std::filesystem::exists(std::string(HOME) + "/.hyprland")) {
             std::filesystem::create_directory(std::string(HOME) + "/.hyprland");

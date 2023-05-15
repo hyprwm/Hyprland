@@ -2219,11 +2219,6 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
         const int X = std::stoi(newX);
         const int Y = std::stoi(newY);
 
-        if (X < 0 || Y < 0) {
-            Debug::log(ERR, "parseWindowVectorArgsRelative: exact args cannot be < 0");
-            return relativeTo;
-        }
-
         return Vector2D(X, Y);
     }
 

@@ -1553,6 +1553,9 @@ void CKeybindManager::resizeActive(std::string args) {
 
     const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealSize.goalv());
 
+    if (SIZ.x < 1 || SIZ.y < 1)
+        return;
+
     g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - g_pCompositor->m_pLastWindow->m_vRealSize.goalv());
 
     if (g_pCompositor->m_pLastWindow->m_vRealSize.goalv().x > 1 && g_pCompositor->m_pLastWindow->m_vRealSize.goalv().y > 1)
@@ -1604,6 +1607,9 @@ void CKeybindManager::resizeWindow(std::string args) {
         return;
 
     const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealSize.goalv());
+
+    if (SIZ.x < 1 || SIZ.y < 1)
+        return;
 
     g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_vRealSize.goalv(), PWINDOW);
 

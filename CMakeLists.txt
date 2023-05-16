@@ -87,6 +87,7 @@ set(wlroots_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots/include/)
 set(wlroots_LIBRARY ${CMAKE_CURRENT_BINARY_DIR}/wlroots/lib/libwlroots.so.${WLROOTS_SOVERSION})
 
 add_library(wlroots SHARED IMPORTED)
+add_dependencies(wlroots wlroots_build)
 set_target_properties(wlroots PROPERTIES
     IMPORTED_LOCATION ${wlroots_LIBRARY}
     INTERFACE_INCLUDE_DIRECTORIES ${wlroots_INCLUDE_DIR})

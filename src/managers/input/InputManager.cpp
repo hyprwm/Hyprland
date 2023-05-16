@@ -1329,7 +1329,8 @@ void CInputManager::setTouchDeviceConfigs() {
 
             const int  ROTATION =
                 std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
-            libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+            if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
+                libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
             const auto OUTPUT = HASCONFIG ? g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output") : g_pConfigManager->getString("input:touchdevice:output");
             if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY)

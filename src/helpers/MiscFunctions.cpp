@@ -243,7 +243,7 @@ bool isNumber(const std::string& str, bool allowfloat) {
             if (point)
                 return false;
             point = true;
-            break;
+            continue;
         }
 
         if (!std::isdigit(c))

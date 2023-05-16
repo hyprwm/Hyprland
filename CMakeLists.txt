@@ -83,12 +83,12 @@ ExternalProject_Add(wlroots
     BUILD_COMMAND ${NINJA_EXE} -C .
     INSTALL_COMMAND ${NINJA_EXE} -C . install)
 
-set(wlroots_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/wlroots/include/)
-set(wlroots_LIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/wlroots/lib/libwlroots.so.${WLROOTS_SOVERSION})
+set(wlroots_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots/include/)
+set(wlroots_LIBRARY ${CMAKE_CURRENT_BINARY_DIR}/wlroots/lib/libwlroots.so.${WLROOTS_SOVERSION})
 
 add_library(wlroots_lib SHARED IMPORTED)
 set_target_properties(wlroots_lib PROPERTIES
-    IMPORTED_LOCATION ${wlroots_LIB_PATH}
+    IMPORTED_LOCATION ${wlroots_LIBRARY}
     INTERFACE_INCLUDE_DIRECTORIES ${wlroots_INCLUDE_DIR})
 
 add_subdirectory("subprojects/udis86" udis86)
@@ -200,7 +200,7 @@ target_link_libraries(Hyprland
 )
 
 install(TARGETS Hyprland hyprctl DESTINATION bin)
-install(FILES ${wlroots_LIB_PATH} DESTINATION lib)
+install(FILES ${wlroots_LIBRARY} DESTINATION lib)
 install(DIRECTORY assets/ DESTINATION share/hyprland PATTERN "meson.build" EXCLUDE)
 install(FILES example/hyprland.desktop DESTINATION share/wayland-sessions)
 install(FILES example/hyprland.conf DESTINATION share/hyprland)

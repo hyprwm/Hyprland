@@ -25,6 +25,7 @@ in {
       inherit (final) udis86 hyprland-protocols;
     };
 
+    hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
     hyprland-debug = final.hyprland.override {debug = true;};
     hyprland-hidpi = final.hyprland.override {hidpiXWayland = true;};
     hyprland-nvidia = final.hyprland.override {nvidiaPatches = true;};

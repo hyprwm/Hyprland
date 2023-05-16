@@ -2,8 +2,10 @@
   lib,
   stdenv,
   pkg-config,
+  makeWrapper,
   meson,
   ninja,
+  binutils,
   cairo,
   git,
   hyprland-protocols,
@@ -29,6 +31,7 @@
   legacyRenderer ? false,
   nvidiaPatches ? false,
   withSystemd ? true,
+  wrapRuntimeDeps ? true,
   version ? "git",
   commit,
 }: let
@@ -56,6 +59,7 @@ in
         meson
         ninja
         pkg-config
+        makeWrapper
       ];
 
       outputs = [
@@ -115,6 +119,10 @@ in
 
       postInstall = ''
         ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
+        ${lib.optionalString wrapRuntimeDeps ''
+          wrapProgram $out/bin/Hyprland \
+            --suffix PATH : ${lib.makeBinPath [ binutils pciutils ]}
+        ''}
       '';
 
       passthru.providedSessions = ["hyprland"];

@@ -32,6 +32,11 @@ class CAnimatedVariable {
     void create(ANIMATEDVARTYPE, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
     void create(ANIMATEDVARTYPE, std::any val, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
 
+    CAnimatedVariable(const CAnimatedVariable&) = delete;
+    CAnimatedVariable(CAnimatedVariable&&)      = delete;
+    CAnimatedVariable& operator=(const CAnimatedVariable&) = delete;
+    CAnimatedVariable& operator=(CAnimatedVariable&&) = delete;
+
     ~CAnimatedVariable();
 
     void unregister();

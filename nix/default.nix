@@ -113,6 +113,10 @@ in
         }'
       '';
 
+      postInstall = ''
+        ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
+      '';
+
       passthru.providedSessions = ["hyprland"];
 
       meta = with lib; {

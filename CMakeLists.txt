@@ -75,7 +75,7 @@ set(WLROOTS_SOVERSION 12032)
 find_program(MESON_EXE NAMES meson)
 find_program(NINJA_EXE NAMES ninja)
 find_program(SED_EXE NAMES sed)
-ExternalProject_Add(wlroots
+ExternalProject_Add(wlroots_build
     PREFIX wlroots
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots
     PATCH_COMMAND ${SED_EXE} -E -i -e "s/(soversion = 12)([^032]|$$)/soversion = ${WLROOTS_SOVERSION}/g" ${CMAKE_SOURCE_DIR}/subprojects/wlroots/meson.build
@@ -86,7 +86,7 @@ ExternalProject_Add(wlroots
 set(wlroots_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots/include/)
 set(wlroots_LIBRARY ${CMAKE_CURRENT_BINARY_DIR}/wlroots/lib/libwlroots.so.${WLROOTS_SOVERSION})
 
-add_library(wlroots_lib SHARED IMPORTED)
+add_library(wlroots SHARED IMPORTED)
 set_target_properties(wlroots_lib PROPERTIES
     IMPORTED_LOCATION ${wlroots_LIBRARY}
     INTERFACE_INCLUDE_DIRECTORIES ${wlroots_INCLUDE_DIR})
@@ -195,7 +195,7 @@ target_link_libraries(Hyprland
     OpenGL::EGL
     OpenGL::GL
     Threads::Threads
-    wlroots_lib
+    wlroots
     udis86
 )
 

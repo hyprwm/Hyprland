@@ -1,4 +1,4 @@
-#!/usr/bin/env -S nix shell nixpkgs#gawk nixpkgs#git nixpkgs#moreutils nixpkgs#jq nixpkgs#ripgrep -c bash
+#!/usr/bin/env -S nix shell nixpkgs#gawk nixpkgs#git nixpkgs#gnused nixpkgs#moreutils nixpkgs#jq nixpkgs#ripgrep -c bash
 
 set -ex
 
@@ -16,6 +16,9 @@ if [ "$SUB_REV" != "$CRT_REV" ]; then
 
   # remove "dirty" mark from lockfile
   jq <flake.lock 'del(.nodes.wlroots.original.rev)' | sponge flake.lock
+
+  # fix revision in wlroots.wrap
+  sed -Ei "s/[a-z0-9]{40}/$CRT_REV/g" subprojects/wlroots.wrap
 else
   echo "wlroots is up to date!"
 fi

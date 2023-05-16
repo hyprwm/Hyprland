@@ -96,5 +96,5 @@ import('pkgconfig').generate(
   url: 'https://github.com/hyprwm/Hyprland',
   description: 'Hyprland header files',
   install_dir: pkg_install_dir,
-  subdirs: ['', 'hyprland/protocols'],
+  subdirs: ['', 'hyprland/protocols', 'hyprland/wlroots'],
 )

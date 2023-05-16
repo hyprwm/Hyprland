@@ -119,10 +119,10 @@ in
 
       postInstall = ''
         ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
-        ${if wrapRuntimeDeps then ''
+        ${lib.optionalString wrapRuntimeDeps ''
           wrapProgram $out/bin/Hyprland \
             --suffix PATH : ${lib.makeBinPath [ binutils pciutils ]}
-        '' else ""}
+        ''}
       '';
 
       passthru.providedSessions = ["hyprland"];

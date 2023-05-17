@@ -1872,7 +1872,7 @@ void CKeybindManager::swapActiveWorkspaces(std::string args) {
     const auto PMON1 = g_pCompositor->getMonitorFromString(MON1);
     const auto PMON2 = g_pCompositor->getMonitorFromString(MON2);
 
-    if (!PMON1 || !PMON2)
+    if (!PMON1 || !PMON2 || PMON1 == PMON2)
         return;
 
     g_pCompositor->swapActiveWorkspaces(PMON1, PMON2);

@@ -1,5 +1,5 @@
 #include "customLayout.hpp"
-#include "../../src/Compositor.hpp"
+#include <hyprland/src/Compositor.hpp>
 #include "globals.hpp"
 
 void CHyprCustomLayout::onWindowCreatedTiling(CWindow* pWindow) {

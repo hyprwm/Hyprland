@@ -2,8 +2,8 @@
 
 #include "globals.hpp"
 
-#include <src/Window.hpp>
-#include <src/Compositor.hpp>
+#include <hyprland/src/Window.hpp>
+#include <hyprland/src/Compositor.hpp>
 #include "customLayout.hpp"
 #include "customDecoration.hpp"
 

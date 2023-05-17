@@ -2,7 +2,7 @@
 
 #define WLR_USE_UNSTABLE
 
-#include "../../src/render/decorations/IHyprWindowDecoration.hpp"
+#include <hyprland/src/render/decorations/IHyprWindowDecoration.hpp>
 
 class CCustomDecoration : public IHyprWindowDecoration {
   public:

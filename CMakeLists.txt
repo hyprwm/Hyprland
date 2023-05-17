@@ -207,11 +207,16 @@ install(FILES example/hyprland.desktop DESTINATION share/wayland-sessions)
 install(FILES example/hyprland.conf DESTINATION share/hyprland)
 install(FILES docs/hyprctl.1 docs/Hyprland.1 DESTINATION share/man/man1)
 
-install(DIRECTORY ${wlroots_INCLUDE_DIR}/ DESTINATION include/hyprland/wlroots)
-install(DIRECTORY protocols/ DESTINATION include/hyprland/protocols PATTERN "meson.build" EXCLUDE)
-
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hyprland.pc
-    DESTINATION share/pkgconfig)
+if(NO_DEV)
+    message(STATUS "Development headers disabled")
+else()
+    message(STATUS "Development headers enabled")
+    install(DIRECTORY ${wlroots_INCLUDE_DIR}/ DESTINATION include/hyprland/wlroots)
+    install(DIRECTORY protocols/ DESTINATION include/hyprland/protocols FILES_MATCHING PATTERN "*.h")    
+    install(DIRECTORY src/ DESTINATION include/hyprland/src FILES_MATCHING PATTERN "*.h*")
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hyprland.pc
+        DESTINATION share/pkgconfig)
+endif()
 
 protocol("protocols/ext-workspace-unstable-v1.xml" "ext-workspace-unstable-v1" true)
 protocol("protocols/idle.xml" "idle" true)

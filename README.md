@@ -11,6 +11,7 @@
 [![Badge Issues]][Issues] 
 ![Badge Hi Mom]<br>
 [![Badge Discord]][Discord]
+[![Badge Matrix]][Matrix]
 
 <br>
 
@@ -122,6 +123,7 @@ Although Hyprland is pretty stable, it may have some bugs.
 
 [Configure]: https://wiki.hyprland.org/Configuring/Configuring-Hyprland/
 [Discord]: https://discord.gg/hQ9XvMUjjr
+[Matrix]: https://matrix.to/#/#hyprland:matrix.org
 [Stars]: https://starchart.cc/hyprwm/Hyprland
 [Hypr]: https://github.com/hyprwm/Hypr
 
@@ -157,6 +159,7 @@ Although Hyprland is pretty stable, it may have some bugs.
 [Badge Workflow]: https://github.com/hyprwm/Hyprland/actions/workflows/ci.yaml/badge.svg
 
 [Badge Discord]: https://img.shields.io/badge/Join%20the-Discord%20server-6666ff
+[Badge Matrix]: https://img.shields.io/badge/Join%20the-Matrix%20room-0dbd8b
 [Badge Issues]: https://img.shields.io/github/issues/hyprwm/Hyprland
 [Badge Pull Requests]: https://img.shields.io/github/issues-pr/hyprwm/Hyprland
 [Badge Language]: https://img.shields.io/github/languages/top/hyprwm/Hyprland

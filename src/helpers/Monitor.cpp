@@ -538,7 +538,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
             g_pCompositor->focusWindow(PLASTWINDOW);
         else {
             g_pCompositor->focusWindow(nullptr);
-            g_pInputManager->refocus();
+            g_pInputManager->simulateMouseMovement();
         }
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);

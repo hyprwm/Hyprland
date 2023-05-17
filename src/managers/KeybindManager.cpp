@@ -941,7 +941,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     if (const auto PATCOORDS = g_pCompositor->vectorToWindowIdeal(OLDMIDDLE); PATCOORDS && PATCOORDS != PWINDOW)
         g_pCompositor->focusWindow(PATCOORDS);
     else
-        g_pInputManager->refocus();
+        g_pInputManager->simulateMouseMovement();
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {

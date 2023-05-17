@@ -1,6 +1,6 @@
 #include "customDecoration.hpp"
-#include "../../src/Window.hpp"
-#include "../../src/Compositor.hpp"
+#include <hyprland/src/Window.hpp>
+#include <hyprland/src/Compositor.hpp>
 #include "globals.hpp"
 
 CCustomDecoration::CCustomDecoration(CWindow* pWindow) {

@@ -2,7 +2,7 @@
 
 #define WLR_USE_UNSTABLE
 
-#include "../../src/layout/IHyprLayout.hpp"
+#include <hyprland/src/layout/IHyprLayout.hpp>
 
 struct SWindowData {
     CWindow* pWindow = nullptr;

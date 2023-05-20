@@ -40,12 +40,14 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                 case WLR_TABLET_TOOL_TYPE_MOUSE:
                     wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, EVENT->dx, EVENT->dy);
                     g_pInputManager->refocus();
+                    g_pInputManager->m_tmrLastCursorMovement.reset();
                     break;
                 default:
                     double x = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_X) ? EVENT->x : NAN;
                     double y = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_Y) ? EVENT->y : NAN;
                     wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
                     g_pInputManager->refocus();
+                    g_pInputManager->m_tmrLastCursorMovement.reset();
                     break;
             }
 

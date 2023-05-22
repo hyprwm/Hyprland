@@ -15,6 +15,11 @@ eDecorationType CHyprGroupBarDecoration::getDecorationType() {
     return DECORATION_GROUPBAR;
 }
 
+constexpr int BAR_INDICATOR_HEIGHT   = 3;
+constexpr int BAR_PADDING_OUTER_VERT = 2;
+
+//
+
 void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
     damageEntire();
 
@@ -26,7 +31,7 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
         // we draw 3px above the window's border with 3px
         const auto PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-        m_seExtents.topLeft     = Vector2D(0, *PBORDERSIZE + 3 + 3);
+        m_seExtents.topLeft     = Vector2D(0, *PBORDERSIZE + BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT);
         m_seExtents.bottomRight = Vector2D();
 
         m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
@@ -84,7 +89,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     int       xoff = 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
-        wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x, m_vLastWindowPos.y - m_seExtents.topLeft.y - pMonitor->vecPosition.y + offset.y, BARW, 3};
+        wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x,
+                        m_vLastWindowPos.y - m_seExtents.topLeft.y + BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + offset.y, BARW, BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;
@@ -101,4 +107,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
         xoff += PAD + BARW;
     }
+}
+
+SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationReservedArea() {
+    return SWindowDecorationExtents{{0, BAR_INDICATOR_HEIGHT + BAR_PADDING_OUTER_VERT * 2}, {}};
 }

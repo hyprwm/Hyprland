@@ -35,7 +35,7 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 
     if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
         // we draw 3px above the window's border with 3px
-        const auto PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+        static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
         m_seExtents.topLeft     = Vector2D(0, *PBORDERSIZE + BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0));
         m_seExtents.bottomRight = Vector2D();
@@ -86,6 +86,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("misc:render_titles_in_groupbar")->intValue;
     static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
+    static auto* const PBORDERSIZE    = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
     if (barsToDraw < 1 || m_pWindow->isHidden() || !g_pCompositor->windowValidMapped(m_pWindow))
         return;
@@ -101,7 +102,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     for (int i = 0; i < barsToDraw; ++i) {
         wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x,
-                        m_vLastWindowPos.y - BAR_PADDING_OUTER_VERT - BAR_INDICATOR_HEIGHT - pMonitor->vecPosition.y + offset.y, BARW, BAR_INDICATOR_HEIGHT};
+                        m_vLastWindowPos.y - BAR_PADDING_OUTER_VERT - *PBORDERSIZE - BAR_INDICATOR_HEIGHT - pMonitor->vecPosition.y + offset.y, BARW, BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;

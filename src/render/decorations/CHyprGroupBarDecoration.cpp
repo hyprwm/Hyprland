@@ -92,6 +92,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("misc:render_titles_in_groupbar")->intValue;
     static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
     static auto* const PBORDERSIZE    = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PGRADIENTS     = &g_pConfigManager->getConfigValuePtr("misc:groupbar_gradients")->intValue;
 
     if (barsToDraw < 1 || m_pWindow->isHidden() || !g_pCompositor->windowValidMapped(m_pWindow))
         return;
@@ -139,7 +140,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
             refreshGradients();
 
-            g_pHyprOpenGL->renderTexture((m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? m_tGradientActive : m_tGradientInactive), &rect, 1.0);
+            if (*PGRADIENTS)
+                g_pHyprOpenGL->renderTexture((m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? m_tGradientActive : m_tGradientInactive), &rect, 1.0);
 
             rect.y -= (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * 0.2 * pMonitor->scale;
             rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;

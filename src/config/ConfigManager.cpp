@@ -96,6 +96,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:allow_session_lock_restore"].intValue   = 0;
     configValues["misc:render_titles_in_groupbar"].intValue    = 1;
     configValues["misc:groupbar_titles_font_size"].intValue    = 8;
+    configValues["misc:groupbar_gradients"].intValue           = 1;
 
     configValues["debug:int"].intValue                = 0;
     configValues["debug:log_damage"].intValue         = 0;

@@ -879,21 +879,25 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         return;
     }
 
-    auto pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    auto       pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    CMonitor*  pMonitor   = nullptr;
+    const auto POLDWS     = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 
     if (pWorkspace) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
-        g_pCompositor->setActiveMonitor(PMONITOR);
-        PMONITOR->changeWorkspace(pWorkspace);
+        pMonitor = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+        g_pCompositor->setActiveMonitor(pMonitor);
     } else {
-        pWorkspace          = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        pMonitor   = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
-        PMONITOR->changeWorkspace(pWorkspace);
     }
+
+    POLDWS->m_pLastFocusedWindow = g_pCompositor->getFirstWindowOnWorkspace(POLDWS->m_iID);
+
+    pMonitor->changeWorkspace(pWorkspace);
 
     g_pCompositor->focusWindow(PWINDOW);
     g_pCompositor->warpCursorTo(PWINDOW->middle());

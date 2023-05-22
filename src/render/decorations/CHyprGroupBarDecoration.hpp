@@ -33,21 +33,18 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
   private:
-    SWindowDecorationExtents               m_seExtents;
+    SWindowDecorationExtents m_seExtents;
 
-    CWindow*                               m_pWindow = nullptr;
+    CWindow*                 m_pWindow = nullptr;
 
-    Vector2D                               m_vLastWindowPos;
-    Vector2D                               m_vLastWindowSize;
+    Vector2D                 m_vLastWindowPos;
+    Vector2D                 m_vLastWindowSize;
 
-    std::deque<CWindow*>                   m_dwGroupMembers;
-    std::deque<std::unique_ptr<CTitleTex>> m_dpTitleTextures;
+    std::deque<CWindow*>     m_dwGroupMembers;
 
-    CTitleTex*                             textureFromTitle(const std::string&);
-    void                                   clearUnusedTextures();
-    void                                   invalidateTextures();
+    CTitleTex*               textureFromTitle(const std::string&);
+    void                     clearUnusedTextures();
+    void                     invalidateTextures();
 
-    void                                   refreshGradients();
-    CTexture                               m_tGradientActive;
-    CTexture                               m_tGradientInactive;
+    void                     refreshGradients();
 };

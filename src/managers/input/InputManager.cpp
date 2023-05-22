@@ -91,6 +91,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
+    // this can happen if there are no displays hooked up to Hyprland
+    if (PMONITOR == nullptr)
+        return;
+
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 

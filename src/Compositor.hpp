@@ -144,6 +144,7 @@ class CCompositor {
     CWorkspace*    getWorkspaceByID(const int&);
     CWorkspace*    getWorkspaceByName(const std::string&);
     CWorkspace*    getWorkspaceByString(const std::string&);
+    CWorkspace*    getWorkspaceByWorkspaceHandle(const wlr_ext_workspace_handle_v1*);
     void           sanityCheckWorkspaces();
     void           updateWorkspaceWindowDecos(const int&);
     int            getWindowsOnWorkspace(const int&);

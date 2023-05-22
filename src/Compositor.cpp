@@ -1486,6 +1486,15 @@ CWorkspace* CCompositor::getWorkspaceByString(const std::string& str) {
     return nullptr;
 }
 
+CWorkspace* CCompositor::getWorkspaceByWorkspaceHandle(const wlr_ext_workspace_handle_v1* handle) {
+    for (auto& ws : m_vWorkspaces) {
+        if (ws->m_pWlrHandle == handle)
+            return ws.get();
+    }
+
+    return nullptr;
+}
+
 bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
     for (auto& m : m_vMonitors) {
         if (VECINRECT(point, m->vecPosition.x, m->vecPosition.y, m->vecSize.x + m->vecPosition.x, m->vecSize.y + m->vecPosition.y))

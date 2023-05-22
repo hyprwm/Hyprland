@@ -3,6 +3,11 @@
 #include <ranges>
 #include <pango/pangocairo.h>
 
+// shared things to conserve VRAM
+static std::deque<std::unique_ptr<CTitleTex>> m_dpTitleTextures;
+static CTexture                               m_tGradientActive;
+static CTexture                               m_tGradientInactive;
+
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) {
     m_pWindow = pWindow;
 }
@@ -166,8 +171,11 @@ void CHyprGroupBarDecoration::clearUnusedTextures() {
     for (auto& tex : m_dpTitleTextures | std::views::reverse) {
         bool found = false;
 
-        for (auto& w : m_dwGroupMembers) {
-            if (tex->szContent == w->m_szTitle && tex->pWindowOwner == w) {
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_sGroupData.pNextWindow)
+                continue;
+
+            if (tex->szContent == w->m_szTitle && tex->pWindowOwner == w.get()) {
                 found = true;
                 break;
             }

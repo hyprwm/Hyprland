@@ -1165,6 +1165,7 @@ void CKeybindManager::toggleGroup(std::string args) {
         PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
 
         PWINDOW->updateWindowDecos();
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
     } else {
         if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW) {
             PWINDOW->m_sGroupData.pNextWindow = nullptr;
@@ -1999,6 +2000,9 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
 
     PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
+
+    PWINDOW->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
 }
 
 void CKeybindManager::moveOutOfGroup(std::string args) {

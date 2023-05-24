@@ -15,7 +15,7 @@
 #include <string>
 
 static void trimTrailingComma(std::string& str) {
-    if (str[str.length() - 1] == ',')
+    if (!str.empty() && str.back() == ',')
         str.pop_back();
 }
 

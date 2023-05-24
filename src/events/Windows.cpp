@@ -58,6 +58,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_bFadingOut     = false;
     PWINDOW->m_szTitle        = g_pXWaylandManager->getTitle(PWINDOW);
     PWINDOW->m_iX11Type       = PWINDOW->m_bIsX11 ? (PWINDOW->m_uSurface.xwayland->override_redirect ? 2 : 1) : 1;
+    PWINDOW->m_bFirstMap      = true;
 
     if (g_pInputManager->m_bLastFocusOnLS) // waybar fix
         g_pInputManager->releaseAllMouseButtons();
@@ -583,6 +584,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
         }
     }
+
+    PWINDOW->m_bFirstMap = false;
 
     Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y,
                PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);

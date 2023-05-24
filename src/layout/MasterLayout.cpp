@@ -101,7 +101,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
         return;
     }
 
-    if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1) {
+    if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster)) {
         for (auto& nd : m_lMasterNodesData) {
             if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
                 nd.isMaster      = false;

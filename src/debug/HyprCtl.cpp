@@ -14,6 +14,11 @@
 #include <sstream>
 #include <string>
 
+static void trimTrailingComma(std::string& str) {
+    if (!str.empty() && str.back() == ',')
+        str.pop_back();
+}
+
 std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
     if (format == HyprCtl::FORMAT_JSON) {
@@ -55,8 +60,7 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"));
         }
 
-        // remove trailing comma
-        result.pop_back();
+        trimTrailingComma(result);
 
         result += "]";
     } else {
@@ -175,9 +179,7 @@ std::string clientsRequest(HyprCtl::eHyprCtlOutputFormat format) {
             result += getWindowData(w.get(), format);
         }
 
-        // remove trailing comma
-        if (result != "[")
-            result.pop_back();
+        trimTrailingComma(result);
 
         result += "]";
     } else {
@@ -227,7 +229,7 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
             result += ",";
         }
 
-        result.pop_back();
+        trimTrailingComma(result);
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
@@ -285,8 +287,7 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
                         layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, escapeJSONStrings(layer->szNamespace).c_str());
                 }
 
-                // remove trailing comma
-                result.pop_back();
+                trimTrailingComma(result);
 
                 if (level.size() > 0)
                     result += "\n        ";
@@ -296,14 +297,12 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 layerLevel++;
             }
 
-            // remove trailing comma
-            result.pop_back();
+            trimTrailingComma(result);
 
             result += "\n    }\n},";
         }
 
-        // remove trailing comma
-        result.pop_back();
+        trimTrailingComma(result);
 
         result += "\n}\n";
 
@@ -347,8 +346,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f);
         }
 
-        // remove trailing comma
-        result.pop_back();
+        trimTrailingComma(result);
         result += "\n],\n";
 
         result += "\"keyboards\": [\n";
@@ -371,8 +369,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 escapeJSONStrings(KM).c_str(), (k.active ? "true" : "false"));
         }
 
-        // remove trailing comma
-        result.pop_back();
+        trimTrailingComma(result);
         result += "\n],\n";
 
         result += "\"tablets\": [\n";
@@ -409,8 +406,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 &d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
         }
 
-        // remove trailing comma
-        result.pop_back();
+        trimTrailingComma(result);
         result += "\n],\n";
 
         result += "\"touch\": [\n";
@@ -424,9 +420,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 &d, d.name.c_str());
         }
 
-        // remove trailing comma
-        if (result[result.size() - 1] == ',')
-            result.pop_back();
+        trimTrailingComma(result);
         result += "\n],\n";
 
         result += "\"switches\": [\n";
@@ -440,9 +434,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 &d, d.pWlrDevice ? d.pWlrDevice->name : "");
         }
 
-        // remove trailing comma
-        if (result[result.size() - 1] == ',')
-            result.pop_back();
+        trimTrailingComma(result);
         result += "\n]\n";
 
         result += "}\n";
@@ -540,7 +532,7 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                              bz.first.c_str());
         }
 
-        ret.pop_back();
+        trimTrailingComma(ret);
 
         ret += "]]";
     }
@@ -564,7 +556,7 @@ std::string globalShortcutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 },)#",
                              escapeJSONStrings(sh.appid + ":" + sh.id).c_str(), escapeJSONStrings(sh.description).c_str());
         }
-        ret.pop_back();
+        trimTrailingComma(ret);
         ret += "]\n";
     }
 
@@ -609,7 +601,7 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.modmask,
                 escapeJSONStrings(kb.submap).c_str(), escapeJSONStrings(kb.key).c_str(), kb.keycode, escapeJSONStrings(kb.handler).c_str(), escapeJSONStrings(kb.arg).c_str());
         }
-        ret.pop_back();
+        trimTrailingComma(ret);
         ret += "]";
     }
 
@@ -659,8 +651,7 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
         result += "\"no xwayland\",";
 #endif
 
-        if (result[result.length() - 1] == ',')
-            result.pop_back();
+        trimTrailingComma(result);
 
         result += "]\n}";
 

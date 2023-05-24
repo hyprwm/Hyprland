@@ -91,7 +91,7 @@ class CInputManager {
 
     void               setKeyboardLayout();
     void               setPointerConfigs();
-    void               setTouchDeviceConfigs();
+    void               setTouchDeviceConfigs(STouchDevice* dev = nullptr);
     void               setTabletConfigs();
 
     void               updateDragIcon();

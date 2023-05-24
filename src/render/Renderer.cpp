@@ -791,7 +791,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
 
-    static bool firstLaunch = true;
+    static bool firstLaunch           = true;
+    static bool firstLaunchAnimActive = true;
 
     float       zoomInFactorFirstLaunch = 1.f;
 
@@ -800,9 +801,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         m_tRenderTimer.reset();
     }
 
-    if (m_tRenderTimer.getSeconds() < 1.5f) { // TODO: make the animation system more damage-flexible so that this can be migrated to there
+    if (m_tRenderTimer.getSeconds() < 1.5f && firstLaunchAnimActive) { // TODO: make the animation system more damage-flexible so that this can be migrated to there
         zoomInFactorFirstLaunch = 2.f - g_pAnimationManager->getBezier("default")->getYForPoint(m_tRenderTimer.getSeconds() / 1.5);
         damageMonitor(pMonitor);
+    } else {
+        firstLaunchAnimActive = false;
     }
 
     startRender = std::chrono::high_resolution_clock::now();

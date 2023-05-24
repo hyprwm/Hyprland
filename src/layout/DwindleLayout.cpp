@@ -371,7 +371,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
             overrideDirection = OneTimeFocus::NOFOCUS;
 
-    } else if (*PFORCESPLIT == 0) {
+    } else if (*PFORCESPLIT == 0 || !pWindow->m_bFirstMap) {
         if ((SIDEBYSIDE &&
              VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f,
                        NEWPARENT->position.y + NEWPARENT->size.y)) ||

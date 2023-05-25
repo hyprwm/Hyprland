@@ -30,20 +30,14 @@ jobs:
       - name: Build Hyprland
         run: |
           git submodule sync --recursive && git submodule update --init --force --recursive
-          make all
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DNO_DEV -DCMAKE_INSTALL_PREFIX='/usr'
+          cmake --build ${{github.workspace}}/build --config Release
       - name: Compress and package artifacts
         run: |
-          mkdir x86_64-pc-linux-gnu
           mkdir hyprland
-          mkdir hyprland/example
-          mkdir hyprland/assets
+          DESTDIR="hyprland" cmake --install ${{github.workspace}}/build
           cp ./LICENSE hyprland/
-          cp build/Hyprland hyprland/
-          cp hyprctl/hyprctl hyprland/
-          cp subprojects/wlroots/build/libwlroots.so.12032 hyprland/
-          cp build/Hyprland hyprland/
-          cp -r example/ hyprland/
-          cp -r assets/ hyprland/
+
           tar -cvf Hyprland.tar.xz hyprland
       - name: Release
         uses: actions/upload-artifact@v3

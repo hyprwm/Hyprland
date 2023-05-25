@@ -214,8 +214,8 @@ else()
     install(DIRECTORY ${wlroots_INCLUDE_DIR}/ DESTINATION include/hyprland/wlroots)
     install(DIRECTORY protocols/ DESTINATION include/hyprland/protocols FILES_MATCHING PATTERN "*.h")    
     install(DIRECTORY src/ DESTINATION include/hyprland/src FILES_MATCHING PATTERN "*.h*")
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hyprland.pc DESTINATION share/pkgconfig)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hyprland.pc DESTINATION /usr/share/pkgconfig)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hyprland.pc
+        DESTINATION share/pkgconfig)
 endif()
 
 protocol("protocols/ext-workspace-unstable-v1.xml" "ext-workspace-unstable-v1" true)

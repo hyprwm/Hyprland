@@ -1,20 +1,20 @@
 PREFIX = /usr/local
 
 legacyrenderer:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:BOOL=true -S . -B build -G Ninja
+	cmake --build build --config Release -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 legacyrendererdebug:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:BOOL=true -S . -B build -G Ninja
+	cmake --build build --config Release -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 release:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B build -G Ninja
+	cmake --build build --config Release -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 debug:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -S . -B ./build -G Ninja
-	cmake --build ./build --config Debug --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -S . -B build -G Ninja
+	cmake --build build --config Debug -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 clear:
 	rm -rf build
@@ -24,48 +24,12 @@ clear:
 
 all:
 	$(MAKE) clear
-	$(MAKE) fixwlr
-	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && mkdir -p ${PREFIX}/lib/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 	$(MAKE) release
-	$(MAKE) -C hyprctl all
 
 install:
 	$(MAKE) clear
-	$(MAKE) fixwlr
-	cd ./subprojects/wlroots && meson setup build/ --buildtype=release && ninja -C build/ && mkdir -p ${PREFIX}/lib/ && cp ./build/libwlroots.so.12032 ${PREFIX}/lib/ || echo "Could not install libwlroots to ${PREFIX}/lib/libwlroots.so.12032"
-	cd subprojects/udis86 && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B./build -G Ninja && cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF` && cd ../..
 	$(MAKE) release
-	$(MAKE) -C hyprctl all
-
-	mkdir -p ${PREFIX}/share/wayland-sessions
-	mkdir -p ${PREFIX}/bin
-	cp -f ./build/Hyprland ${PREFIX}/bin
-	cp -f ./hyprctl/hyprctl ${PREFIX}/bin
-	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
-	mkdir -p ${PREFIX}/share/hyprland
-	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
-
-	mkdir -p ${PREFIX}/share/man/man1
-	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1
-
-	mkdir -p ${PREFIX}/include/hyprland
-	mkdir -p ${PREFIX}/include/hyprland/protocols
-	mkdir -p ${PREFIX}/include/hyprland/wlroots
-	mkdir -p ${PREFIX}/share/pkgconfig
-	
-	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
-	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..
-	cd subprojects/wlroots/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../../..
-	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
-	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
-	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
-
-cleaninstall:
-	echo -en "$(MAKE) cleaninstall has been DEPRECATED, you should avoid using it in the future.\nRunning $(MAKE) install instead...\n"
-	$(MAKE) install
+	cmake --install build
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop

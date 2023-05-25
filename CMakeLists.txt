@@ -79,9 +79,9 @@ ExternalProject_Add(wlroots_build
     PREFIX wlroots
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots
     PATCH_COMMAND ${SED_EXE} -E -i -e "s/(soversion = 12)([^032]|$$)/soversion = ${WLROOTS_SOVERSION}/g" ${CMAKE_SOURCE_DIR}/subprojects/wlroots/meson.build
-    CONFIGURE_COMMAND ${MESON_EXE} setup --prefix ${CMAKE_CURRENT_BINARY_DIR}/wlroots . ${CMAKE_SOURCE_DIR}/subprojects/wlroots
+    CONFIGURE_COMMAND ${MESON_EXE} setup --prefix "/" . ${CMAKE_SOURCE_DIR}/subprojects/wlroots
     BUILD_COMMAND ${NINJA_EXE} -C .
-    INSTALL_COMMAND ${NINJA_EXE} -C . install
+    INSTALL_COMMAND ${MESON_EXE} install --destdir ${CMAKE_CURRENT_BINARY_DIR}/wlroots
 	BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/wlroots/lib/libwlroots.so.${WLROOTS_SOVERSION})
 
 set(wlroots_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots/include/)

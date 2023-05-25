@@ -1,19 +1,19 @@
 PREFIX = /usr/local
 
 legacyrenderer:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:BOOL=true -DCMAKE_INSTALL_PREFIX='/usr' -S . -B build -G Ninja
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:BOOL=true -S . -B build -G Ninja
 	cmake --build build --config Release -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 legacyrendererdebug:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:BOOL=true -DCMAKE_INSTALL_PREFIX='/usr' -S . -B build -G Ninja
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:BOOL=true -S . -B build -G Ninja
 	cmake --build build --config Release -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 release:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX='/usr' -S . -B build -G Ninja
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B build -G Ninja
 	cmake --build build --config Release -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 debug:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_INSTALL_PREFIX='/usr' -S . -B build -G Ninja
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -S . -B build -G Ninja
 	cmake --build build --config Debug -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 clear:
@@ -29,7 +29,7 @@ all:
 install:
 	$(MAKE) clear
 	$(MAKE) release
-	cmake --install build
+	cmake --install build --prefix "/usr"
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop

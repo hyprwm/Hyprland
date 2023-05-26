@@ -199,7 +199,11 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
 }
 
 void CHyprMasterLayout::recalculateMonitor(const int& monid) {
-    const auto PMONITOR   = g_pCompositor->getMonitorFromID(monid);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
+
+    if (!PMONITOR)
+        return;
+
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
 
     if (!PWORKSPACE)

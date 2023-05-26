@@ -741,7 +741,26 @@ void Events::listener_commitWindow(void* owner, void* data) {
 
     g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y);
 
-    // Debug::log(LOG, "Window %lx committed", PWINDOW); // SPAM!
+    if (PWINDOW->m_bIsX11 || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
+        return;
+
+    const auto ISRIGID = PWINDOW->m_uSurface.xdg->toplevel->current.max_height == PWINDOW->m_uSurface.xdg->toplevel->current.min_height &&
+        PWINDOW->m_uSurface.xdg->toplevel->current.max_width == PWINDOW->m_uSurface.xdg->toplevel->current.min_width;
+
+    if (!ISRIGID)
+        return;
+
+    const Vector2D REQUESTEDSIZE = {PWINDOW->m_uSurface.xdg->toplevel->current.max_width, PWINDOW->m_uSurface.xdg->toplevel->current.max_height};
+
+    if (REQUESTEDSIZE == PWINDOW->m_vReportedSize || REQUESTEDSIZE.x < 5 || REQUESTEDSIZE.y < 5)
+        return;
+
+    const Vector2D DELTA = PWINDOW->m_vReportedSize - REQUESTEDSIZE;
+
+    PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goalv() + DELTA / 2.0;
+    PWINDOW->m_vRealSize     = REQUESTEDSIZE;
+    g_pXWaylandManager->setWindowSize(PWINDOW, REQUESTEDSIZE, true);
+    g_pHyprRenderer->damageWindow(PWINDOW);
 }
 
 void Events::listener_destroyWindow(void* owner, void* data) {

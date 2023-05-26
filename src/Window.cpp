@@ -197,7 +197,16 @@ void CWindow::createToplevelHandle() {
 
     // handle events
     hyprListener_toplevelActivate.initCallback(
-        &m_phForeignToplevel->events.request_activate, [&](void* owner, void* data) { g_pCompositor->focusWindow(this); }, this, "Toplevel");
+        &m_phForeignToplevel->events.request_activate,
+        [&](void* owner, void* data) {
+            if (isHidden() && m_sGroupData.pNextWindow) {
+                // grouped, change the current to us
+                setGroupCurrent(this);
+            }
+
+            g_pCompositor->focusWindow(this);
+        },
+        this, "Toplevel");
 
     hyprListener_toplevelFullscreen.initCallback(
         &m_phForeignToplevel->events.request_fullscreen,
@@ -677,8 +686,7 @@ bool CWindow::opaque() {
         return true;
 
     const auto EXTENTS = pixman_region32_extents(&m_uSurface.xdg->surface->opaque_region);
-    if (EXTENTS->x2 - EXTENTS->x1 >= m_uSurface.xdg->surface->current.buffer_width
-        && EXTENTS->y2 - EXTENTS->y1 >= m_uSurface.xdg->surface->current.buffer_height)
+    if (EXTENTS->x2 - EXTENTS->x1 >= m_uSurface.xdg->surface->current.buffer_width && EXTENTS->y2 - EXTENTS->y1 >= m_uSurface.xdg->surface->current.buffer_height)
         return true;
 
     return false;

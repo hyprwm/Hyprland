@@ -20,4 +20,6 @@ enum eRenderStage
     RENDER_LAST_MOMENT,  /* Last moment to render with the gl context */
     RENDER_POST,         /* After rendering is finished, gl context not available anymore */
     RENDER_POST_MIRROR,  /* After rendering a mirror */
+    RENDER_PRE_WINDOW,   /* Before rendering a window (any pass) Note some windows (e.g. tiled) may have 2 passes (main & popup) */
+    RENDER_POST_WINDOW,  /* After rendering a window (any pass) */
 };

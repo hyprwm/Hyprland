@@ -1138,7 +1138,7 @@ void CKeybindManager::moveActiveTo(std::string args) {
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
     if (PWINDOWTOCHANGETO && PWINDOWTOCHANGETO->m_iWorkspaceID == PLASTWINDOW->m_iWorkspaceID) {
         g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
-        g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.vec() + PLASTWINDOW->m_vRealSize.vec() / 2.0);
+        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.vec() + PWINDOWTOCHANGETO->m_vRealSize.vec() / 2.0);
         return;
     }
 

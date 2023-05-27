@@ -201,6 +201,9 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
     static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
+    static auto* const PTEXTCOLOR     = &g_pConfigManager->getConfigValuePtr("misc:groupbar_text_color")->intValue;
+
+    const CColor       COLOR = CColor(*PTEXTCOLOR);
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -222,7 +225,7 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
     pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
 
-    cairo_set_source_rgba(CAIRO, 1.f, 1.f, 1.f, 1.f);
+    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     int layoutWidth, layoutHeight;
     pango_layout_get_size(layout, &layoutWidth, &layoutHeight);

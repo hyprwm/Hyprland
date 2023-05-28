@@ -1,6 +1,5 @@
 #include "Vector2D.hpp"
 #include <algorithm>
-#include <cmath>
 
 Vector2D::Vector2D(double xx, double yy) {
     x = xx;
@@ -16,7 +15,7 @@ Vector2D::~Vector2D() {}
 
 double Vector2D::normalize() {
     // get max abs
-    const auto max = abs(x) > abs(y) ? abs(x) : abs(y);
+    const auto max = std::abs(x) > std::abs(y) ? std::abs(x) : std::abs(y);
 
     x /= max;
     y /= max;
@@ -25,7 +24,7 @@ double Vector2D::normalize() {
 }
 
 Vector2D Vector2D::floor() {
-    return Vector2D((int)x, (int)y);
+    return Vector2D(std::floor(x), std::floor(y));
 }
 
 Vector2D Vector2D::clamp(const Vector2D& min, const Vector2D& max) {

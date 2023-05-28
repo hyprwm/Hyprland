@@ -268,8 +268,10 @@ class CAnimatedVariable {
     // methods
     void onAnimationEnd() {
         if (m_fEndCallback) {
+            // loading m_bRemoveEndAfterRan before calling the callback allows the callback to delete this animation safely if it is false.
+            auto removeEndCallback = m_bRemoveEndAfterRan;
             m_fEndCallback(this);
-            if (m_bRemoveEndAfterRan)
+            if (removeEndCallback)
                 m_fEndCallback = nullptr; // reset
         }
     }

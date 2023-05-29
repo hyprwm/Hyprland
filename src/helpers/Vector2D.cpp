@@ -1,5 +1,6 @@
 #include "Vector2D.hpp"
 #include <algorithm>
+#include <cmath>
 
 Vector2D::Vector2D(double xx, double yy) {
     x = xx;

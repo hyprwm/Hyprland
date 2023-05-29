@@ -2352,6 +2352,9 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
     if (!pWindow || !pWorkspace)
         return;
 
+    if (pWindow->m_bPinned && pWorkspace->m_bIsSpecialWorkspace)
+        return;
+
     const bool FULLSCREEN     = pWindow->m_bIsFullscreen;
     const auto FULLSCREENMODE = getWorkspaceByID(pWindow->m_iWorkspaceID)->m_efFullscreenMode;
 

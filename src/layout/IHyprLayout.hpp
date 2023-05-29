@@ -153,6 +153,7 @@ interface IHyprLayout {
     Vector2D    m_vLastDragXY;
     Vector2D    m_vBeginDragPositionXY;
     Vector2D    m_vBeginDragSizeXY;
+    Vector2D    m_vDraggingWindowOriginalFloatSize;
     eRectCorner m_eGrabbedCorner = CORNER_TOPLEFT;
 
     CWindow*    m_pLastTiledWindow = nullptr;

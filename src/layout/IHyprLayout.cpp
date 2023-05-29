@@ -189,8 +189,11 @@ void IHyprLayout::onBeginDragWindow() {
 
     DRAGGINGWINDOW->m_bDraggingTiled = false;
 
+    m_vDraggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_vLastFloatingSize;
+
     if (!DRAGGINGWINDOW->m_bIsFloating) {
         if (g_pInputManager->dragMode == MBIND_MOVE) {
+            DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize.goalv() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
             changeWindowFloatingMode(DRAGGINGWINDOW);
             DRAGGINGWINDOW->m_bIsFloating    = true;
             DRAGGINGWINDOW->m_bDraggingTiled = true;
@@ -250,6 +253,7 @@ void IHyprLayout::onEndDragWindow() {
         DRAGGINGWINDOW->m_bIsFloating = false;
         g_pInputManager->refocus();
         changeWindowFloatingMode(DRAGGINGWINDOW);
+        DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);

@@ -98,6 +98,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
+    if (m_pForcedFocus) {
+        pFoundWindow = m_pForcedFocus;
+        surfacePos   = pFoundWindow->m_vRealPosition.vec();
+        foundSurface = m_pForcedFocus->m_pWLSurface.wlr();
+    }
+
     // constraints
     // All constraints TODO: multiple mice?
     if (g_pCompositor->m_sSeat.mouse && g_pCompositor->m_sSeat.mouse->currentConstraint && !g_pCompositor->m_sSeat.exclusiveClient && !g_pSessionLockManager->isSessionLocked()) {

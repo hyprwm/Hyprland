@@ -435,6 +435,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.forceNoBorder = true;
     } else if (r.szRule == "noshadow") {
         m_sAdditionalConfigData.forceNoShadow = true;
+    } else if (r.szRule == "nodim") {
+        m_sAdditionalConfigData.forceNoDim = true;
     } else if (r.szRule == "forcergbx") {
         m_sAdditionalConfigData.forceRGBX = true;
     } else if (r.szRule == "opaque") {
@@ -495,6 +497,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceNoBlur      = false;
     m_sAdditionalConfigData.forceNoBorder    = false;
     m_sAdditionalConfigData.forceNoShadow    = false;
+    m_sAdditionalConfigData.forceNoDim       = false;
     if (!m_sAdditionalConfigData.forceOpaqueOverridden)
         m_sAdditionalConfigData.forceOpaque = false;
     m_sAdditionalConfigData.forceNoAnims   = false;

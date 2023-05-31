@@ -2,8 +2,7 @@
 #include "../defines.hpp"
 #include <vector>
 
-enum eConfigValueDataTypes
-{
+enum eConfigValueDataTypes {
     CVD_TYPE_INVALID  = -1,
     CVD_TYPE_GRADIENT = 0
 };
@@ -38,7 +37,8 @@ class CGradientValueData : public ICustomConfigValueData {
     /* Float corresponding to the angle (rad) */
     float m_fAngle = 0;
 
-    bool  operator==(const CGradientValueData& other) {
+    //
+    bool operator==(const CGradientValueData& other) const {
         if (other.m_vColors.size() != m_vColors.size() || m_fAngle != other.m_fAngle)
             return false;
 

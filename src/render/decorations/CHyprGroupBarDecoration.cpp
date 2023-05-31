@@ -80,8 +80,9 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 }
 
 void CHyprGroupBarDecoration::damageEntire() {
-    wlr_box dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
-                  m_seExtents.topLeft.y};
+    const auto EXTENTS = getWindowDecorationReservedArea();
+    wlr_box    dm      = {m_vLastWindowPos.x - m_seExtents.topLeft.x + EXTENTS.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y + EXTENTS.topLeft.y,
+                          m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x, m_seExtents.topLeft.y};
     g_pHyprRenderer->damageBox(&dm);
 }
 

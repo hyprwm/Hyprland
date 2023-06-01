@@ -96,9 +96,12 @@ add_executable(Hyprland ${SRCFILES})
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Setting debug flags")
 
-    target_link_libraries(Hyprland asan)
+    if (WITH_ASAN)
+        target_link_libraries(Hyprland asan)
+        add_compile_options(-fsanitize=address)
+    endif()
 
-    add_compile_options(-pg -no-pie -fno-builtin -fsanitize=address)
+    add_compile_options(-pg -no-pie -fno-builtin)
     add_link_options(-pg -no-pie -fno-builtin)
 endif()
 

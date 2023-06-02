@@ -589,6 +589,13 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
     specialWorkspaceID       = pWorkspace->m_iID;
     pWorkspace->startAnim(true, true);
 
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID == pWorkspace->m_iID) {
+            w->m_iMonitorID = ID;
+            w->updateSurfaceOutputs();
+        }
+    }
+
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
     if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)

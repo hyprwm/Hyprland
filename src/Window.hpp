@@ -159,6 +159,8 @@ class CWindow {
     DYNLISTENER(toplevelActivate);
     DYNLISTENER(toplevelFullscreen);
     DYNLISTENER(setOverrideRedirect);
+    DYNLISTENER(associateX11);
+    DYNLISTENER(dissociateX11);
     // DYNLISTENER(newSubsurfaceWindow);
 
     CWLSurface            m_pWLSurface;

@@ -861,7 +861,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
 
         wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
     } else {
-        if (!PWINDOW->m_uSurface.xwayland->mapped)
+        if (!PWINDOW->m_uSurface.xwayland->surface->mapped)
             return;
 
         if (!PWINDOW->m_bFakeFullscreenState)
@@ -956,7 +956,7 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     const auto E = (wlr_xwayland_surface_configure_event*)data;
 
-    if (!PWINDOW->m_uSurface.xwayland->mapped || !PWINDOW->m_bMappedX11) {
+    if (!PWINDOW->m_uSurface.xwayland->surface || !PWINDOW->m_uSurface.xwayland->surface->mapped || !PWINDOW->m_bMappedX11) {
         wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
         return;
     }
@@ -1043,6 +1043,18 @@ void Events::listener_setOverrideRedirect(void* owner, void* data) {
     //}
 }
 
+void Events::listener_associateX11(void* owner, void* data) {
+    const auto PWINDOW = (CWindow*)owner;
+
+    PWINDOW->hyprListener_mapWindow.initCallback(&PWINDOW->m_uSurface.xwayland->surface->events.map, &Events::listener_mapWindow, PWINDOW, "XWayland Window");
+}
+
+void Events::listener_dissociateX11(void* owner, void* data) {
+    const auto PWINDOW = (CWindow*)owner;
+
+    PWINDOW->hyprListener_mapWindow.removeCallback();
+}
+
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     const auto XWSURFACE = (wlr_xwayland_surface*)data;
 
@@ -1058,7 +1070,8 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
 
     PNEWWINDOW->m_pX11Parent = g_pCompositor->getX11Parent(PNEWWINDOW);
 
-    PNEWWINDOW->hyprListener_mapWindow.initCallback(&XWSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XWayland Window");
+    PNEWWINDOW->hyprListener_associateX11.initCallback(&XWSURFACE->events.associate, &Events::listener_associateX11, PNEWWINDOW, "XWayland Window");
+    PNEWWINDOW->hyprListener_dissociateX11.initCallback(&XWSURFACE->events.dissociate, &Events::listener_dissociateX11, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XWSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_setOverrideRedirect.initCallback(&XWSURFACE->events.set_override_redirect, &Events::listener_setOverrideRedirect, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_configureX11.initCallback(&XWSURFACE->events.request_configure, &Events::listener_configureX11, PNEWWINDOW, "XWayland Window");
@@ -1076,7 +1089,7 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     const auto PNEWWINDOW      = g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 
-    PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
+    PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->surface->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XDGSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XDG Window");
 }
 

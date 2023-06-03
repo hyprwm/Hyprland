@@ -805,6 +805,8 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
         return;
 
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
+    g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", getFormat("%lx", PWINDOW)});
+    EMIT_HOOK_EVENT("windowTitle", PWINDOW);
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle});

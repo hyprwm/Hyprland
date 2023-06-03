@@ -110,8 +110,8 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
         g_pInputManager->m_sDrag.dragIcon = wlrDrag->icon;
         wlrDrag->icon->data               = g_pInputManager->m_sDrag.dragIcon;
 
-        g_pInputManager->m_sDrag.hyprListener_mapIcon.initCallback(&wlrDrag->icon->events.map, &Events::listener_mapDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
-        g_pInputManager->m_sDrag.hyprListener_unmapIcon.initCallback(&wlrDrag->icon->events.unmap, &Events::listener_unmapDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
+        g_pInputManager->m_sDrag.hyprListener_mapIcon.initCallback(&wlrDrag->icon->surface->events.map, &Events::listener_mapDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
+        g_pInputManager->m_sDrag.hyprListener_unmapIcon.initCallback(&wlrDrag->icon->surface->events.unmap, &Events::listener_unmapDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
         g_pInputManager->m_sDrag.hyprListener_destroyIcon.initCallback(&wlrDrag->icon->events.destroy, &Events::listener_destroyDragIcon, &g_pInputManager->m_sDrag, "DragIcon");
         g_pInputManager->m_sDrag.hyprListener_commitIcon.initCallback(&wlrDrag->icon->surface->events.commit, &Events::listener_commitDragIcon, &g_pInputManager->m_sDrag,
                                                                       "DragIcon");

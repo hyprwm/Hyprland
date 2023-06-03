@@ -44,8 +44,8 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
 
     layerSurface->hyprListener_commitLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.commit, &Events::listener_commitLayerSurface, layerSurface, "layerSurface");
     layerSurface->hyprListener_destroyLayerSurface.initCallback(&WLRLAYERSURFACE->events.destroy, &Events::listener_destroyLayerSurface, layerSurface, "layerSurface");
-    layerSurface->hyprListener_mapLayerSurface.initCallback(&WLRLAYERSURFACE->events.map, &Events::listener_mapLayerSurface, layerSurface, "layerSurface");
-    layerSurface->hyprListener_unmapLayerSurface.initCallback(&WLRLAYERSURFACE->events.unmap, &Events::listener_unmapLayerSurface, layerSurface, "layerSurface");
+    layerSurface->hyprListener_mapLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.map, &Events::listener_mapLayerSurface, layerSurface, "layerSurface");
+    layerSurface->hyprListener_unmapLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.unmap, &Events::listener_unmapLayerSurface, layerSurface, "layerSurface");
     layerSurface->hyprListener_newPopup.initCallback(&WLRLAYERSURFACE->events.new_popup, &Events::listener_newPopup, layerSurface, "layerSurface");
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
@@ -109,10 +109,9 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     Debug::log(LOG, "LayerSurface %lx mapped", layersurface->layerSurface);
 
-    layersurface->layerSurface->mapped = true;
-    layersurface->mapped               = true;
-    layersurface->keyboardExclusive    = layersurface->layerSurface->current.keyboard_interactive;
-    layersurface->surface              = layersurface->layerSurface->surface;
+    layersurface->mapped            = true;
+    layersurface->keyboardExclusive = layersurface->layerSurface->current.keyboard_interactive;
+    layersurface->surface           = layersurface->layerSurface->surface;
 
     // anim
     layersurface->alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
@@ -203,9 +202,6 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     layersurface->fadingOut = true;
 
     g_pCompositor->addToFadingOutSafe(layersurface);
-
-    if (layersurface->layerSurface->mapped)
-        layersurface->layerSurface->mapped = false;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 

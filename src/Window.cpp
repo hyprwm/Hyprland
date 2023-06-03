@@ -397,7 +397,8 @@ void CWindow::onMap() {
 
     g_pCompositor->m_vWindowFocusHistory.push_back(this);
 
-    hyprListener_unmapWindow.initCallback(m_bIsX11 ? &m_uSurface.xwayland->events.unmap : &m_uSurface.xdg->events.unmap, &Events::listener_unmapWindow, this, "CWindow");
+    hyprListener_unmapWindow.initCallback(m_bIsX11 ? &m_uSurface.xwayland->surface->events.unmap : &m_uSurface.xdg->surface->events.unmap, &Events::listener_unmapWindow, this,
+                                          "CWindow");
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {

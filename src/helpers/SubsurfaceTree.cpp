@@ -150,13 +150,13 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
     PNEWSUBSURFACE->pSubsurface = PSUBSURFACE;
     PNEWSUBSURFACE->pParent     = pNode;
 
-    PNEWSUBSURFACE->hyprListener_map.initCallback(&PSUBSURFACE->events.map, &Events::listener_mapSubsurface, PNEWSUBSURFACE, "Subsurface");
-    PNEWSUBSURFACE->hyprListener_unmap.initCallback(&PSUBSURFACE->events.unmap, &Events::listener_unmapSubsurface, PNEWSUBSURFACE, "Subsurface");
+    PNEWSUBSURFACE->hyprListener_map.initCallback(&PSUBSURFACE->surface->events.map, &Events::listener_mapSubsurface, PNEWSUBSURFACE, "Subsurface");
+    PNEWSUBSURFACE->hyprListener_unmap.initCallback(&PSUBSURFACE->surface->events.unmap, &Events::listener_unmapSubsurface, PNEWSUBSURFACE, "Subsurface");
     PNEWSUBSURFACE->hyprListener_destroy.initCallback(&PSUBSURFACE->events.destroy, &Events::listener_destroySubsurface, PNEWSUBSURFACE, "Subsurface");
 
     PNEWSUBSURFACE->pWindowOwner = pNode->pWindowOwner;
 
-    if (PSUBSURFACE->mapped)
+    if (PSUBSURFACE->surface->mapped)
         listener_mapSubsurface(PNEWSUBSURFACE, nullptr);
 
     wlr_subsurface* existingWlrSubsurface;

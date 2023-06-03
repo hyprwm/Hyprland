@@ -77,7 +77,7 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
             wlr_session_lock_surface_v1_configure(PWLRSURFACE, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
 
-            PSURFACE->hyprListener_map.initCallback(&PWLRSURFACE->events.map, &handleSurfaceMap, PSURFACE, "SSessionLockSurface");
+            PSURFACE->hyprListener_map.initCallback(&PWLRSURFACE->surface->events.map, &handleSurfaceMap, PSURFACE, "SSessionLockSurface");
             PSURFACE->hyprListener_destroy.initCallback(&PWLRSURFACE->events.destroy, &handleSurfaceDestroy, PSURFACE, "SSessionLockSurface");
             PSURFACE->hyprListener_commit.initCallback(&PWLRSURFACE->surface->events.commit, &handleSurfaceCommit, PSURFACE, "SSessionLockSurface");
         },

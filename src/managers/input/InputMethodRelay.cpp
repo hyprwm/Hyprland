@@ -140,8 +140,8 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
             PNEWPOPUP->pSurface = (wlr_input_popup_surface_v2*)data;
 
             PNEWPOPUP->hyprListener_commitPopup.initCallback(&PNEWPOPUP->pSurface->surface->events.commit, &Events::listener_commitInputPopup, PNEWPOPUP, "IME Popup");
-            PNEWPOPUP->hyprListener_mapPopup.initCallback(&PNEWPOPUP->pSurface->events.map, &Events::listener_mapInputPopup, PNEWPOPUP, "IME Popup");
-            PNEWPOPUP->hyprListener_unmapPopup.initCallback(&PNEWPOPUP->pSurface->events.unmap, &Events::listener_unmapInputPopup, PNEWPOPUP, "IME Popup");
+            PNEWPOPUP->hyprListener_mapPopup.initCallback(&PNEWPOPUP->pSurface->surface->events.map, &Events::listener_mapInputPopup, PNEWPOPUP, "IME Popup");
+            PNEWPOPUP->hyprListener_unmapPopup.initCallback(&PNEWPOPUP->pSurface->surface->events.unmap, &Events::listener_unmapInputPopup, PNEWPOPUP, "IME Popup");
             PNEWPOPUP->hyprListener_destroyPopup.initCallback(&PNEWPOPUP->pSurface->events.destroy, &Events::listener_destroyInputPopup, PNEWPOPUP, "IME Popup");
 
             Debug::log(LOG, "New input popup");
@@ -165,7 +165,7 @@ wlr_surface* CInputMethodRelay::focusedSurface(STextInput* pTI) {
 }
 
 void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
-    if (!pPopup->pSurface->mapped)
+    if (!pPopup->pSurface->surface->mapped)
         return;
 
     // damage last known pos & size
@@ -280,7 +280,7 @@ void CInputMethodRelay::removePopup(SIMEPopup* pPopup) {
 }
 
 void CInputMethodRelay::damagePopup(SIMEPopup* pPopup) {
-    if (!pPopup->pSurface->mapped)
+    if (!pPopup->pSurface->surface->mapped)
         return;
 
     const auto PFOCUSEDTI = getFocusedTextInput();

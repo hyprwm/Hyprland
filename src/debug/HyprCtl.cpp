@@ -999,6 +999,9 @@ std::string dispatchSetProp(std::string request) {
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
+    for (auto& m : g_pCompositor->m_vMonitors)
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+
     return "ok";
 }
 

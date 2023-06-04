@@ -345,7 +345,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
             scaleBox(&windowBox, pMonitor->scale);
 
-            const int BORDERSIZE = pWindow->m_sSpecialRenderData.borderSize == -1 ? *PBORDERSIZE : pWindow->m_sSpecialRenderData.borderSize;
+            const int BORDERSIZE = pWindow->m_sSpecialRenderData.borderSize.toUnderlying() == -1 ? *PBORDERSIZE : pWindow->m_sSpecialRenderData.borderSize.toUnderlying();
 
             g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, BORDERSIZE, a1);
 

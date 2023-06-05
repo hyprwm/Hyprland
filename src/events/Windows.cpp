@@ -781,6 +781,8 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->hyprListener_destroyWindow.removeCallback();
     PWINDOW->hyprListener_configureX11.removeCallback();
     PWINDOW->hyprListener_setOverrideRedirect.removeCallback();
+    PWINDOW->hyprListener_associateX11.removeCallback();
+    PWINDOW->hyprListener_dissociateX11.removeCallback();
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 

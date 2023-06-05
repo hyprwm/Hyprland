@@ -881,9 +881,9 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         return;
     }
 
-    auto       pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
-    CMonitor*  pMonitor   = nullptr;
-    const auto POLDWS     = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+    auto               pWorkspace            = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    CMonitor*          pMonitor              = nullptr;
+    const auto         POLDWS                = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
     static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
 
     g_pHyprRenderer->damageWindow(PWINDOW);
@@ -905,9 +905,8 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     g_pCompositor->focusWindow(PWINDOW);
     g_pCompositor->warpCursorTo(PWINDOW->middle());
 
-    if(*PALLOWWORKSPACECYCLES) {
+    if (*PALLOWWORKSPACECYCLES)
         pWorkspace->m_sPrevWorkspace = {POLDWS->m_iID, POLDWS->m_szName};
-    }
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {

@@ -1929,8 +1929,6 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
             }
 
             w->updateToplevel();
-
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(w->m_pWLSurface.wlr(), pMonitor->scale);
         }
     }
 

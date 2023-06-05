@@ -110,6 +110,10 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:manual_crash"].intValue       = 0;
 
     configValues["decoration:rounding"].intValue               = 0;
+    configValues["decoration:rounding_scaling_top_left"].floatValue         = 1.0;
+    configValues["decoration:rounding_scaling_top_right"].floatValue        = 1.0;
+    configValues["decoration:rounding_scaling_bottom_right"].floatValue     = 1.0;
+    configValues["decoration:rounding_scaling_bottom_left"].floatValue      = 1.0;
     configValues["decoration:blur"].intValue                   = 1;
     configValues["decoration:blur_size"].intValue              = 8;
     configValues["decoration:blur_passes"].intValue            = 1;

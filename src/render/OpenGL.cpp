@@ -1052,7 +1052,7 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
     counter++;
 }
 
-void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad, int round, int borderSize, float a) {
+void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad, int round_top_left, int round_top_right, int round_bottom_left, int round_bottom_right, int borderSize, float a) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
@@ -1079,7 +1079,10 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     box->width += 2 * scaledBorderSize;
     box->height += 2 * scaledBorderSize;
 
-    round += round == 0 ? 0 : scaledBorderSize;
+    round_top_left += round_top_left == 0 ? 0 : scaledBorderSize;
+    round_top_right += round_top_right == 0 ? 0 : scaledBorderSize;
+    round_bottom_left += round_bottom_left == 0 ? 0 : scaledBorderSize;
+    round_bottom_right += round_bottom_right == 0 ? 0 : scaledBorderSize;
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box, wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,

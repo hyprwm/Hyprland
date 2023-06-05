@@ -21,7 +21,10 @@ class CShader {
     GLint  bottomRight;
     GLint  fullSize;
     GLint  fullSizeUntransformed;
-    GLint  radius;
+    GLint  radius_top_left;
+    GLint  radius_top_right;
+    GLint  radius_bottom_left;
+    GLint  radius_bottom_tight;
     GLint  primitiveMultisample;
 
     GLint  thick;

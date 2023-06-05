@@ -523,29 +523,60 @@ void CWindow::updateDynamicRules() {
 // it is assumed that the point is within the real window box (m_vRealPosition, m_vRealSize)
 // otherwise behaviour is undefined
 bool CWindow::isInCurvedCorner(double x, double y) {
-    static auto* const ROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    const uint8_t TOP_LEFT = 0;
+    const uint8_t TOP_RIGHT = 1;
+    const uint8_t BOTTOM_LEFT = 2;
+    const uint8_t BOTTOM_RIGHT = 3;
+
+    
+    static auto* const ROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    
+    static auto* const ROUNGING_SCALING_TOP_LEFT = &g_pConfigManager->getConfigValuePtr("decoration:rounding_scaling_top_left")->floatValue;
+    static auto* const ROUNGING_SCALING_TOP_RIGHT = &g_pConfigManager->getConfigValuePtr("decoration:rounding_scaling_top_left")->floatValue;
+    static auto* const ROUNGING_SCALING_BOTTOM_LEFT = &g_pConfigManager->getConfigValuePtr("decoration:rounding_scaling_top_left")->floatValue;
+    static auto* const ROUNGING_SCALING_BOTTOM_RIGHT = &g_pConfigManager->getConfigValuePtr("decoration:rounding_scaling_top_left")->floatValue;
+    
     static auto* const BORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-    if (BORDERSIZE >= ROUNDING || ROUNDING == 0)
-        return false;
+    static double const ROUNDING_INDEXED[4] = {
+        *ROUNDING * *ROUNGING_SCALING_TOP_LEFT,
+        *ROUNDING * *ROUNGING_SCALING_TOP_RIGHT,
+        *ROUNDING * *ROUNGING_SCALING_BOTTOM_LEFT,
+        *ROUNDING * *ROUNGING_SCALING_BOTTOM_RIGHT
+    };
 
-    // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
-    double x0 = m_vRealPosition.vec().x + *ROUNDING;
-    double y0 = m_vRealPosition.vec().y + *ROUNDING;
-    double x1 = m_vRealPosition.vec().x + m_vRealSize.vec().x - *ROUNDING;
-    double y1 = m_vRealPosition.vec().y + m_vRealSize.vec().y - *ROUNDING;
+    double roundingCenterCoords[8] = {
+        m_vRealPosition.vec().x + ROUNDING_INDEXED[TOP_LEFT],
+        m_vRealPosition.vec().x + m_vRealSize.vec().x - ROUNDING_INDEXED[TOP_RIGHT],
+        m_vRealPosition.vec().x + ROUNDING_INDEXED[BOTTOM_LEFT],
+        m_vRealPosition.vec().x + m_vRealSize.vec().x - ROUNDING_INDEXED[BOTTOM_RIGHT],
+        m_vRealPosition.vec().y + ROUNDING_INDEXED[TOP_LEFT],
+        m_vRealPosition.vec().y + ROUNDING_INDEXED[TOP_RIGHT],
+        m_vRealPosition.vec().y + m_vRealSize.vec().y + ROUNDING_INDEXED[BOTTOM_LEFT],
+        m_vRealPosition.vec().y + m_vRealSize.vec().y + ROUNDING_INDEXED[BOTTOM_RIGHT]
+    };
 
-    if (x < x0 && y < y0) {
-        return Vector2D{x0, y0}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    Vector2D roundingCenter[4] = {
+        Vector2D(roundingCenterCoords[TOP_LEFT], roundingCenterCoords[TOP_LEFT+4]),
+        Vector2D(roundingCenterCoords[TOP_RIGHT], roundingCenterCoords[TOP_RIGHT+4]),
+        Vector2D(roundingCenterCoords[BOTTOM_RIGHT], roundingCenterCoords[BOTTOM_RIGHT+4]),
+        Vector2D(roundingCenterCoords[BOTTOM_LEFT], roundingCenterCoords[BOTTOM_LEFT+4]),
+    };
+
+    if (x < roundingCenter[TOP_LEFT].x && y < roundingCenter[TOP_LEFT].y) {
+        return roundingCenter->distance(Vector2D(x,y)) > ROUNDING_INDEXED[TOP_LEFT];
     }
-    if (x > x1 && y < y0) {
-        return Vector2D{x1, y0}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+
+    if (x > roundingCenter[TOP_RIGHT].x && y < roundingCenter[TOP_RIGHT].y) {
+        return roundingCenter->distance(Vector2D(x,y)) > ROUNDING_INDEXED[TOP_RIGHT];
     }
-    if (x < x0 && y > y1) {
-        return Vector2D{x0, y1}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+
+    if (x < roundingCenter[BOTTOM_LEFT].x && y > roundingCenter[BOTTOM_LEFT].y) {
+        return roundingCenter->distance(Vector2D(x,y)) > ROUNDING_INDEXED[BOTTOM_LEFT];
     }
-    if (x > x1 && y > y1) {
-        return Vector2D{x1, y1}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+    
+    if (x > roundingCenter[BOTTOM_RIGHT].x && y > roundingCenter[BOTTOM_RIGHT].y) {
+        return roundingCenter->distance(Vector2D(x,y)) > ROUNDING_INDEXED[BOTTOM_RIGHT];
     }
 
     return false;

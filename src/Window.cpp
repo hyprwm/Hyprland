@@ -145,15 +145,21 @@ void CWindow::updateWindowDecos() {
     for (auto& wd : m_dWindowDecorations)
         wd->updateWindow(this);
 
+    bool recalc = false;
+
     for (auto& wd : m_vDecosToRemove) {
         for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
             if (it->get() == wd) {
-                it = m_dWindowDecorations.erase(it);
+                it     = m_dWindowDecorations.erase(it);
+                recalc = true;
                 if (it == m_dWindowDecorations.end())
                     break;
             }
         }
     }
+
+    if (recalc)
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 
     m_vDecosToRemove.clear();
 }

@@ -291,8 +291,11 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     m_iWorkspaceID = workspaceID;
 
-    const auto PMONITOR   = g_pCompositor->getMonitorFromID(m_iMonitorID);
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+
+    m_iMonitorID = PWORKSPACE->m_iMonitorID;
+
+    const auto PMONITOR   = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
     if (PWORKSPACE) {
         g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%lx,%s", this, PWORKSPACE->m_szName.c_str())});

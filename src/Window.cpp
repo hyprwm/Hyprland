@@ -283,29 +283,8 @@ void CWindow::updateSurfaceOutputs() {
         wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
 
     wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
-}
 
-void CWindow::moveToWorkspace(int workspaceID) {
-    if (m_iWorkspaceID == workspaceID)
-        return;
-
-    m_iWorkspaceID = workspaceID;
-
-    const auto PMONITOR   = g_pCompositor->getMonitorFromID(m_iMonitorID);
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
-
-    if (PWORKSPACE) {
-        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%lx,%s", this, PWORKSPACE->m_szName.c_str())});
-        EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
-    }
-
-    if (m_pSwallowed) {
-        m_pSwallowed->moveToWorkspace(workspaceID);
-        m_pSwallowed->m_iMonitorID = m_iMonitorID;
-    }
-
-    if (PMONITOR)
-        g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PMONITOR->scale);
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PNEWMONITOR->scale);
 
     if (!m_bIsMapped)
         return;
@@ -317,6 +296,25 @@ void CWindow::moveToWorkspace(int workspaceID) {
             g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
         },
         this);
+}
+
+void CWindow::moveToWorkspace(int workspaceID) {
+    if (m_iWorkspaceID == workspaceID)
+        return;
+
+    m_iWorkspaceID = workspaceID;
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+
+    if (PWORKSPACE) {
+        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%lx,%s", this, PWORKSPACE->m_szName.c_str())});
+        EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
+    }
+
+    if (m_pSwallowed) {
+        m_pSwallowed->moveToWorkspace(workspaceID);
+        m_pSwallowed->m_iMonitorID = m_iMonitorID;
+    }
 }
 
 CWindow* CWindow::X11TransientFor() {

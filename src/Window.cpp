@@ -284,8 +284,6 @@ void CWindow::updateSurfaceOutputs() {
 
     wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PNEWMONITOR->scale);
-
     wlr_surface_for_each_surface(
         m_pWLSurface.wlr(),
         [](wlr_surface* surf, int x, int y, void* data) {

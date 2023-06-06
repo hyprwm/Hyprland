@@ -283,6 +283,14 @@ void CWindow::updateSurfaceOutputs() {
         wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
 
     wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
+
+    wlr_surface_for_each_surface(
+        m_pWLSurface.wlr(),
+        [](wlr_surface* surf, int x, int y, void* data) {
+            const auto PMONITOR = g_pCompositor->getMonitorFromID(((CWindow*)data)->m_iMonitorID);
+            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
+        },
+        this);
 }
 
 void CWindow::moveToWorkspace(int workspaceID) {
@@ -291,7 +299,6 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     m_iWorkspaceID = workspaceID;
 
-    const auto PMONITOR   = g_pCompositor->getMonitorFromID(m_iMonitorID);
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
 
     if (PWORKSPACE) {
@@ -303,20 +310,6 @@ void CWindow::moveToWorkspace(int workspaceID) {
         m_pSwallowed->moveToWorkspace(workspaceID);
         m_pSwallowed->m_iMonitorID = m_iMonitorID;
     }
-
-    if (PMONITOR)
-        g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(m_pWLSurface.wlr(), PMONITOR->scale);
-
-    if (!m_bIsMapped)
-        return;
-
-    wlr_surface_for_each_surface(
-        m_pWLSurface.wlr(),
-        [](wlr_surface* surf, int x, int y, void* data) {
-            const auto PMONITOR = g_pCompositor->getMonitorFromID(((CWindow*)data)->m_iMonitorID);
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
-        },
-        this);
 }
 
 CWindow* CWindow::X11TransientFor() {

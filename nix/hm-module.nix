@@ -55,7 +55,7 @@ in {
       type = with lib.types; listOf (either package path);
       default = [];
       description = lib.mdDoc ''
-        List of hyprlad plugins to use. Can either be packages or
+        List of Hyprland plugins to use. Can either be packages or
         absolute plugin paths.
       '';
     };
@@ -65,7 +65,7 @@ in {
       default = pkgs.stdenv.isLinux;
       description = lib.mdDoc ''
         Whether to enable {file}`hyprland-session.target` on
-        hyprland startup. This links to {file}`graphical-session.target`.
+        Hyprland startup. This links to {file}`graphical-session.target`.
         Some important environment variables will be imported to systemd
         and dbus user environment before reaching the target, including
         - {env}`DISPLAY`
@@ -119,7 +119,7 @@ in {
     warnings =
       if (cfg.systemdIntegration || cfg.plugins != []) && cfg.extraConfig == null then
         [ ''You have enabled hyprland.systemdIntegration or listed plugins in hyprland.plugins.
-            Your hyprland config will be linked by home manager.
+            Your Hyprland config will be linked by home manager.
             Set hyprland.extraConfig or unset hyprland.systemdIntegration and hyprland.plugins to remove this warning.'' ]
       else [];
 
@@ -159,7 +159,7 @@ in {
 
     systemd.user.targets.hyprland-session = lib.mkIf cfg.systemdIntegration {
       Unit = {
-        Description = "hyprland compositor session";
+        Description = "Hyprland compositor session";
         Documentation = ["man:systemd.special(7)"];
         BindsTo = ["graphical-session.target"];
         Wants = ["graphical-session-pre.target"];

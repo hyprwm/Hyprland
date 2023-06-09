@@ -21,8 +21,9 @@ void SLayerSurface::applyRules() {
         else if (rule.rule.find("ignorealpha") == 0) {
             const std::string VALUE = removeBeginEndSpacesTabs(rule.rule.substr(11));
             try {
-                ignoreAlpha      = true;
-                ignoreAlphaValue = std::stof(VALUE);
+                ignoreAlpha = true;
+                if (VALUE.size() != 0)
+                    ignoreAlphaValue = std::stof(VALUE);
             }
         }
     }

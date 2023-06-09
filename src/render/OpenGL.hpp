@@ -25,7 +25,7 @@ inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0
 
 enum eDiscardMode {
     DISCARD_OPAQUE    = 1,
-    DISCARD_ALPHAZERO = 1 << 1
+    DISCARD_ALPHA = 1 << 1
 };
 
 struct SRenderModifData {

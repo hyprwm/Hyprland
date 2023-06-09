@@ -10,14 +10,14 @@ SLayerSurface::SLayerSurface() {
 void SLayerSurface::applyRules() {
     noAnimations = false;
     forceBlur    = false;
-    ignoreZero   = false;
+    ignoreAlpha   = false;
 
     for (auto& rule : g_pConfigManager->getMatchingRules(this)) {
         if (rule.rule == "noanim")
             noAnimations = true;
         else if (rule.rule == "blur")
             forceBlur = true;
-        else if (rule.rule == "ignorezero")
-            ignoreZero = true;
+        else if (rule.rule == "ignorealpha")
+            ignoreAlpha = true;
     }
 }

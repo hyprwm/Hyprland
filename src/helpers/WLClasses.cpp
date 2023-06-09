@@ -24,7 +24,7 @@ void SLayerSurface::applyRules() {
                 ignoreAlpha = true;
                 if (VALUE.size() != 0)
                     ignoreAlphaValue = std::stof(VALUE);
-            } catch (...) {}
+            } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
         }
     }
 }

@@ -816,6 +816,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     if (pWorkspaceToChangeTo->m_bIsSpecialWorkspace) {
         PMONITOR->setSpecialWorkspace(pWorkspaceToChangeTo);
+        g_pInputManager->simulateMouseMovement();
         return;
     }
 
@@ -839,6 +840,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     }
 
     pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
+
+    g_pInputManager->simulateMouseMovement();
 }
 
 void CKeybindManager::fullscreenActive(std::string args) {

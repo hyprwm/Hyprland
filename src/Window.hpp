@@ -288,6 +288,7 @@ class CWindow {
     struct SGroupData {
         CWindow* pNextWindow = nullptr; // nullptr means no grouping. Self means single group.
         bool     head        = false;
+        bool     locked      = false;
     } m_sGroupData;
 
     // For the list lookup

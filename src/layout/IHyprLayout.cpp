@@ -45,6 +45,8 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             if (pWindow->m_sGroupData.head) {
                 pWindow->m_sGroupData.head = false;
                 curr->m_sGroupData.head    = true;
+                curr->m_sGroupData.locked    = pWindow->m_sGroupData.locked;
+                pWindow->m_sGroupData.locked = false;
             }
 
             if (pWindow == m_pLastTiledWindow)

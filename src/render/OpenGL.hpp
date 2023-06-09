@@ -24,8 +24,8 @@ inline const float fullVerts[] = {
 inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
 enum eDiscardMode {
-    DISCARD_OPAQUE    = 1,
-    DISCARD_ALPHA = 1 << 1
+    DISCARD_OPAQUE = 1,
+    DISCARD_ALPHA  = 1 << 1
 };
 
 struct SRenderModifData {
@@ -35,8 +35,8 @@ struct SRenderModifData {
 
 struct SMonitorRenderData {
     CFramebuffer primaryFB;
-    CFramebuffer mirrorFB;     // these are used for some effects,
-    CFramebuffer mirrorSwapFB; // etc
+    CFramebuffer mirrorFB;        // these are used for some effects,
+    CFramebuffer mirrorSwapFB;    // etc
 
     CFramebuffer monitorMirrorFB; // used for mirroring outputs
 
@@ -83,7 +83,8 @@ struct SCurrentRenderData {
 
     wlr_box             clipBox = {};
 
-    uint32_t            discardMode = DISCARD_OPAQUE;
+    uint32_t            discardMode    = DISCARD_OPAQUE;
+    float               discardOpacity = 0.f;
 };
 
 class CGradientValueData;
@@ -138,9 +139,9 @@ class CHyprOpenGLImpl {
 
     bool                                       m_bReloadScreenShader = true; // at launch it can be set
 
-    CWindow*                                   m_pCurrentWindow = nullptr; // hack to get the current rendered window
+    CWindow*                                   m_pCurrentWindow = nullptr;   // hack to get the current rendered window
 
-    pixman_region32_t                          m_rOriginalDamageRegion; // used for storing the pre-expanded region
+    pixman_region32_t                          m_rOriginalDamageRegion;      // used for storing the pre-expanded region
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
     std::unordered_map<SLayerSurface*, CFramebuffer>  m_mLayerFramebuffers;

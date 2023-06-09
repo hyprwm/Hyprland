@@ -394,6 +394,7 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
 
     if (pLayer->ignoreAlpha)
         g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
+        g_pHyprOpenGL->m_RenderData.discardOpacity = pLayer->ignoreAlphaValue;
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
     g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHA;
 

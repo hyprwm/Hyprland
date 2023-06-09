@@ -48,8 +48,9 @@ struct SLayerSurface {
     bool                      noProcess     = false;
     bool                      noAnimations  = false;
 
-    bool                      forceBlur  = false;
-    bool                      ignoreAlpha = false;
+    bool                      forceBlur        = false;
+    bool                      ignoreAlpha      = false;
+    float                     ignoreAlphaValue = 0.f;
 
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) const {

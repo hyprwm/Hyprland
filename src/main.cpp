@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 
             ignoreSudo = true;
         } else if (it->compare("-c") == 0 || it->compare("--config") == 0) {
-            if (std::next(it)->c_str() == nullptr) {
+            if (std::next(it) == args.end()) {
                 help();
                 return 1;
             }

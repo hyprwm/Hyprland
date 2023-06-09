@@ -140,9 +140,9 @@ class CKeybindManager {
     static void     mouse(std::string);
     static void     bringActiveToTop(std::string);
     static void     lockGroups(std::string);
+    static void     lockActiveGroup(std::string);
     static void     moveIntoGroup(std::string);
     static void     moveOutOfGroup(std::string);
-    static void     lockActiveGroup(std::string);
     static void     global(std::string);
 
     friend class CCompositor;

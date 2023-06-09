@@ -63,9 +63,9 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
     m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
     m_mDispatchers["lockgroups"]                    = lockGroups;
+    m_mDispatchers["lockactivegroup"]               = lockActiveGroup;
     m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
     m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
-    m_mDispatchers["lockactivegroup"]               = lockActiveGroup;
     m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
@@ -1991,6 +1991,22 @@ void CKeybindManager::lockGroups(std::string args) {
     }
 }
 
+void CKeybindManager::lockActiveGroup(std::string args) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW || !PWINDOW->m_sGroupData.pNextWindow)
+        return;
+    const auto PHEAD = PWINDOW->getGroupHead();
+
+    if (args == "lock") {
+        PHEAD->m_sGroupData.locked = true;
+    } else if (args == "toggle") {
+        PHEAD->m_sGroupData.locked = !PHEAD->m_sGroupData.locked;
+    } else {
+        PHEAD->m_sGroupData.locked = false;
+    }
+}
+
 void CKeybindManager::moveIntoGroup(std::string args) {
     char arg = args[0];
 
@@ -2034,22 +2050,6 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
     g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
-}
-
-void CKeybindManager::lockActiveGroup(std::string args) {
-    const auto PWINDOW = g_pCompositor->m_pLastWindow;
-
-    if (!PWINDOW || !PWINDOW->m_sGroupData.pNextWindow)
-        return;
-    const auto PHEAD = PWINDOW->getGroupHead();
-
-    if (args == "lock") {
-        PHEAD->m_sGroupData.locked = true;
-    } else if (args == "toggle") {
-        PHEAD->m_sGroupData.locked = !PHEAD->m_sGroupData.locked;
-    } else {
-        PHEAD->m_sGroupData.locked = false;
-    }
 }
 
 void CKeybindManager::global(std::string args) {

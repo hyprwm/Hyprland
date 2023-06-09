@@ -645,6 +645,7 @@ void CWindow::insertWindowToGroup(CWindow* pWindow) {
             curr                            = curr->m_sGroupData.pNextWindow;
             PLAST->m_sGroupData.pNextWindow = nullptr;
             PLAST->m_sGroupData.head        = false;
+            PLAST->m_sGroupData.locked      = false;
         } while (curr != pWindow);
 
         for (auto& w : members) {

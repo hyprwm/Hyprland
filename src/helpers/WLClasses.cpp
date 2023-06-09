@@ -19,7 +19,7 @@ void SLayerSurface::applyRules() {
         else if (rule.rule == "blur")
             forceBlur = true;
         else if (rule.rule.find("ignorealpha") == 0 || rule.rule.find("ignorezero") == 0) {
-            const std::string VALUE = removeBeginEndSpacesTabs(rule.rule.substr(11));
+            const std::string VALUE = rule.rule.substr(rule.rule.find_first_of(' ') + 1);
             try {
                 ignoreAlpha = true;
                 if (VALUE.size() != 0)

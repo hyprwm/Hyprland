@@ -19,15 +19,15 @@ void SLayerSurface::applyRules() {
         else if (rule.rule == "blur")
             forceBlur = true;
         else if (rule.rule.find("ignorealpha") == 0 || rule.rule.find("ignorezero") == 0) {
-            const auto        FIRST_SPACE_POS = rule.rule.find_first_of(' ');
-            std::string VALUE           = "";
+            const auto  FIRST_SPACE_POS = rule.rule.find_first_of(' ');
+            std::string alphaValue      = "";
             if (FIRST_SPACE_POS != std::string::npos)
-                VALUE = rule.rule.substr(FIRST_SPACE_POS + 1);
+                alphaValue = rule.rule.substr(FIRST_SPACE_POS + 1);
 
             try {
                 ignoreAlpha = true;
-                if (!VALUE.empty())
-                    ignoreAlphaValue = std::stof(VALUE);
+                if (!alphaValue.empty())
+                    ignoreAlphaValue = std::stof(alphaValue);
             } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
         }
     }

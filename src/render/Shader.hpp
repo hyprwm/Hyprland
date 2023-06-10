@@ -40,6 +40,7 @@ class CShader {
 
     GLint  time;
     GLint  distort;
+    GLint  output;
 
     GLint  getUniformLocation(const std::string&);
 

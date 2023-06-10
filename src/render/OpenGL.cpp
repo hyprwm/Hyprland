@@ -158,9 +158,8 @@ void CHyprOpenGLImpl::end() {
         wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
         if (m_RenderData.mouseZoomFactor != 1.f) {
-            const auto ZOOMCENTER = (m_RenderData.mouseZoomUseMouse ? g_pInputManager->getMouseCoordsInternal() - m_RenderData.pMonitor->vecPosition :
-                                                                      m_RenderData.pMonitor->vecTransformedSize / 2.f) *
-                m_RenderData.pMonitor->scale;
+            const auto ZOOMCENTER = m_RenderData.mouseZoomUseMouse ? (g_pInputManager->getMouseCoordsInternal() - m_RenderData.pMonitor->vecPosition) * m_RenderData.pMonitor->scale :
+                                                                                m_RenderData.pMonitor->vecTransformedSize / 2.f;
             monbox.x -= ZOOMCENTER.x;
             monbox.y -= ZOOMCENTER.y;
             scaleBox(&monbox, m_RenderData.mouseZoomFactor);

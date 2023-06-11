@@ -324,7 +324,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             for (auto& wd : pWindow->m_dWindowDecorations)
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
 
+        static auto* const PXWLUSENN = &g_pConfigManager->getConfigValuePtr("xwayland:use_nearest_neighbor")->intValue;
+        if (pWindow->m_bIsX11 && *PXWLUSENN)
+            g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+
         wlr_surface_for_each_surface(pWindow->m_pWLSurface.wlr(), renderSurface, &renderdata);
+
+        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
 
         if (renderdata.decorate && pWindow->m_sSpecialRenderData.border) {
             static auto* const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;

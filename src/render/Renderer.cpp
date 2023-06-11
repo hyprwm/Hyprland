@@ -392,10 +392,12 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.h                     = pLayer->geometry.height;
     renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
 
-    if (pLayer->ignoreZero)
-        g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHAZERO;
+    if (pLayer->ignoreAlpha) {
+        g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
+        g_pHyprOpenGL->m_RenderData.discardOpacity = pLayer->ignoreAlphaValue;
+    }
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
-    g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHAZERO;
+    g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHA;
 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;

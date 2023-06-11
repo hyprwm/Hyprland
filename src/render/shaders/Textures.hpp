@@ -96,7 +96,8 @@ uniform vec2 fullSize;
 uniform float radius;
 
 uniform int discardOpaque;
-uniform int discardAlphaZero;
+uniform int discardAlpha;
+uniform float discardAlphaValue;
 
 uniform int applyTint;
 uniform vec3 tint;
@@ -110,7 +111,7 @@ void main() {
     if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
 	    discard;
     
-    if (discardAlphaZero == 1 && pixColor[3] == 0.0)
+    if (discardAlpha == 1 && pixColor[3] <= discardAlphaValue)
         discard;
 
     if (applyTint == 1) {
@@ -145,7 +146,8 @@ uniform vec2 fullSize;
 uniform float radius;
 
 uniform int discardOpaque;
-uniform int discardAlphaZero;
+uniform int discardAlpha;
+uniform int discardAlphaValue;
 
 uniform int applyTint;
 uniform vec3 tint;
@@ -232,7 +234,8 @@ uniform vec2 fullSize;
 uniform float radius;
 
 uniform int discardOpaque;
-uniform int discardAlphaZero;
+uniform int discardAlpha;
+uniform int discardAlphaValue;
 
 uniform int applyTint;
 uniform vec3 tint;

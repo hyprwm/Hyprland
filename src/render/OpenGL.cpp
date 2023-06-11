@@ -216,7 +216,8 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.texAttrib            = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shRGBA.posAttrib            = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBA.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
-    m_RenderData.pCurrentMonData->m_shRGBA.discardAlphaZero     = glGetUniformLocation(prog, "discardAlphaZero");
+    m_RenderData.pCurrentMonData->m_shRGBA.discardAlpha         = glGetUniformLocation(prog, "discardAlpha");
+    m_RenderData.pCurrentMonData->m_shRGBA.discardAlphaValue    = glGetUniformLocation(prog, "discardAlphaValue");
     m_RenderData.pCurrentMonData->m_shRGBA.topLeft              = glGetUniformLocation(prog, "topLeft");
     m_RenderData.pCurrentMonData->m_shRGBA.fullSize             = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBA.radius               = glGetUniformLocation(prog, "radius");
@@ -249,7 +250,8 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBX.texAttrib            = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shRGBX.posAttrib            = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBX.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
-    m_RenderData.pCurrentMonData->m_shRGBX.discardAlphaZero     = glGetUniformLocation(prog, "discardAlphaZero");
+    m_RenderData.pCurrentMonData->m_shRGBX.discardAlpha         = glGetUniformLocation(prog, "discardAlpha");
+    m_RenderData.pCurrentMonData->m_shRGBX.discardAlphaValue    = glGetUniformLocation(prog, "discardAlphaValue");
     m_RenderData.pCurrentMonData->m_shRGBX.topLeft              = glGetUniformLocation(prog, "topLeft");
     m_RenderData.pCurrentMonData->m_shRGBX.fullSize             = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shRGBX.radius               = glGetUniformLocation(prog, "radius");
@@ -265,7 +267,8 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shEXT.posAttrib            = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shEXT.texAttrib            = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shEXT.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
-    m_RenderData.pCurrentMonData->m_shEXT.discardAlphaZero     = glGetUniformLocation(prog, "discardAlphaZero");
+    m_RenderData.pCurrentMonData->m_shEXT.discardAlpha         = glGetUniformLocation(prog, "discardAlpha");
+    m_RenderData.pCurrentMonData->m_shEXT.discardAlphaValue    = glGetUniformLocation(prog, "discardAlphaValue");
     m_RenderData.pCurrentMonData->m_shEXT.topLeft              = glGetUniformLocation(prog, "topLeft");
     m_RenderData.pCurrentMonData->m_shEXT.fullSize             = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shEXT.radius               = glGetUniformLocation(prog, "radius");
@@ -619,10 +622,11 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
         if (discardActive) {
             glUniform1i(shader->discardOpaque, !!(m_RenderData.discardMode & DISCARD_OPAQUE));
-            glUniform1i(shader->discardAlphaZero, !!(m_RenderData.discardMode & DISCARD_ALPHAZERO));
+            glUniform1i(shader->discardAlpha, !!(m_RenderData.discardMode & DISCARD_ALPHA));
+            glUniform1f(shader->discardAlphaValue, m_RenderData.discardOpacity);
         } else {
             glUniform1i(shader->discardOpaque, 0);
-            glUniform1i(shader->discardAlphaZero, 0);
+            glUniform1i(shader->discardAlpha, 0);
         }
     }
 
@@ -1015,7 +1019,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    if (USENEWOPTIMIZE && !(m_RenderData.discardMode & DISCARD_ALPHAZERO))
+    if (USENEWOPTIMIZE && !(m_RenderData.discardMode & DISCARD_ALPHA))
         renderRect(pBox, CColor(0, 0, 0, 0), round);
     else
         renderTexture(tex, pBox, a, round, true, true); // discard opaque
@@ -1030,7 +1034,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     static auto* const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
     m_bEndFrame                           = true; // fix transformed
     const auto SAVEDRENDERMODIF           = m_RenderData.renderModif;
-    m_RenderData.renderModif              = {}; // fix shit
+    m_RenderData.renderModif              = {};   // fix shit
     renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 1.f : a, &damage, 0, false, false, false);
     m_bEndFrame              = false;
     m_RenderData.renderModif = SAVEDRENDERMODIF;

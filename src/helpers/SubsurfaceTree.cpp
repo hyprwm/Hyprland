@@ -229,6 +229,8 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
 
     addSurfaceGlobalOffset(pNode, &lx, &ly);
 
+    const double SCALE = pNode->pWindowOwner && pNode->pWindowOwner->m_bIsX11 ? 1.0 / pNode->pWindowOwner->m_fX11SurfaceScaledBy : 1.0;
+
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
     // What this does is that basically, if the pNode is a child of some other node, on commit,
     // it will also damage (check & damage if needed) all its siblings.
@@ -237,12 +239,12 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
             const auto NODECOORDS = pNode->pSubsurface ? Vector2D(pNode->pSubsurface->pSubsurface->current.x, pNode->pSubsurface->pSubsurface->current.y) : Vector2D();
 
             if (&cs != pNode->pSubsurface && cs.pSubsurface) {
-                g_pHyprRenderer->damageSurface(cs.pSubsurface->surface, lx - NODECOORDS.x + cs.pSubsurface->current.x, ly - NODECOORDS.y + cs.pSubsurface->current.y);
+                g_pHyprRenderer->damageSurface(cs.pSubsurface->surface, lx - NODECOORDS.x + cs.pSubsurface->current.x, ly - NODECOORDS.y + cs.pSubsurface->current.y, SCALE);
             }
         }
 
     if (pNode->pSurface && pNode->pSurface->exists())
-        g_pHyprRenderer->damageSurface(pNode->pSurface->wlr(), lx, ly);
+        g_pHyprRenderer->damageSurface(pNode->pSurface->wlr(), lx, ly, SCALE);
 }
 
 void Events::listener_destroySubsurface(void* owner, void* data) {

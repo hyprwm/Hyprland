@@ -11,16 +11,14 @@
 struct SMonitorRule;
 
 // TODO: add fuller damage tracking for updating only parts of a window
-enum DAMAGETRACKINGMODES
-{
+enum DAMAGETRACKINGMODES {
     DAMAGE_TRACKING_INVALID = -1,
     DAMAGE_TRACKING_NONE    = 0,
     DAMAGE_TRACKING_MONITOR,
     DAMAGE_TRACKING_FULL
 };
 
-enum eRenderPassMode
-{
+enum eRenderPassMode {
     RENDER_PASS_ALL = 0,
     RENDER_PASS_MAIN,
     RENDER_PASS_POPUP
@@ -35,7 +33,7 @@ class CHyprRenderer {
     void                            renderMonitor(CMonitor* pMonitor);
     void                            outputMgrApplyTest(wlr_output_configuration_v1*, bool);
     void                            arrangeLayersForMonitor(const int&);
-    void                            damageSurface(wlr_surface*, double, double);
+    void                            damageSurface(wlr_surface*, double, double, double scale = 1.0);
     void                            damageWindow(CWindow*);
     void                            damageBox(wlr_box*);
     void                            damageBox(const int& x, const int& y, const int& w, const int& h);

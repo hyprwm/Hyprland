@@ -148,6 +148,17 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
     pWindow->m_vReportedPosition = pWindow->m_vRealPosition.vec();
     pWindow->m_vReportedSize     = size;
 
+    static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+
+    pWindow->m_fX11SurfaceScaledBy = 1.f;
+
+    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11) {
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID); PMONITOR) {
+            size                           = size * PMONITOR->scale;
+            pWindow->m_fX11SurfaceScaledBy = PMONITOR->scale;
+        }
+    }
+
     if (pWindow->m_bIsX11)
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, size.x, size.y);
     else

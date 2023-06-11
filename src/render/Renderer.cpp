@@ -1355,7 +1355,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
                PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 
-void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
+void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, double scale) {
     if (!pSurface)
         return; // wut?
 
@@ -1365,6 +1365,8 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y) {
     pixman_region32_t damageBox;
     pixman_region32_init(&damageBox);
     wlr_surface_get_effective_damage(pSurface, &damageBox);
+    if (scale != 1.0)
+        wlr_region_scale(&damageBox, &damageBox, scale);
 
     // schedule frame events
     if (!wl_list_empty(&pSurface->current.frame_callback_list)) {

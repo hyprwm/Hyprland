@@ -330,6 +330,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         surfaceLocal = mouseCoords - surfacePos + Vector2D(geom.x, geom.y);
     }
 
+    if (pFoundWindow && pFoundWindow->m_bIsX11) // for x11 force scale zero
+        surfaceLocal = surfaceLocal * pFoundWindow->m_fX11SurfaceScaledBy;
+
     bool allowKeyboardRefocus = true;
 
     if (*PHOGFOCUS && !refocus && g_pCompositor->m_pLastFocus) {

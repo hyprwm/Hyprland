@@ -217,6 +217,7 @@ class CWindow {
     bool     m_bIsModal              = false;
     bool     m_bX11DoesntWantBorders = false;
     bool     m_bX11ShouldntFocus     = false;
+    float    m_fX11SurfaceScaledBy   = 1.f;
     //
 
     // For nofocus

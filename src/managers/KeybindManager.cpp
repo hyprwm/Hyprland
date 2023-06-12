@@ -2005,6 +2005,8 @@ void CKeybindManager::lockActiveGroup(std::string args) {
     } else {
         PHEAD->m_sGroupData.locked = false;
     }
+
+    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 }
 
 void CKeybindManager::moveIntoGroup(std::string args) {

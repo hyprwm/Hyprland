@@ -770,6 +770,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     bool       release  = false;
     bool       repeat   = false;
     bool       mouse    = false;
+    bool       pass     = false;
     const auto BINDARGS = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -781,6 +782,8 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
             repeat = true;
         } else if (arg == 'm') {
             mouse = true;
+        } else if (arg == 'p') {
+            pass = true;
         } else {
             parseError = "bind: invalid flag";
             return;
@@ -838,11 +841,11 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, pass});
         else if (KEY.find("code:") == 0 && isNumber(KEY.substr(5)))
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, pass});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, pass});
     }
 }
 

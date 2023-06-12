@@ -21,6 +21,7 @@ struct SKeybind {
     bool        release = false;
     bool        repeat  = false;
     bool        mouse   = false;
+    bool        pass    = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;

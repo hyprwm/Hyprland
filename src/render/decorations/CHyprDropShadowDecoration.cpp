@@ -35,7 +35,6 @@ void CHyprDropShadowDecoration::damageEntire() {
 }
 
 void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
-    damageEntire();
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 

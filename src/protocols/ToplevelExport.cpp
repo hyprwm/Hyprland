@@ -311,9 +311,8 @@ void CToplevelExportProtocolManager::onMonitorRender(CMonitor* pMonitor) {
 }
 
 void CToplevelExportProtocolManager::shareFrame(SScreencopyFrame* frame) {
-    if (!frame->buffer) {
+    if (!frame->buffer || !g_pCompositor->windowValidMapped(frame->pWindow))
         return;
-    }
 
     // TODO: damage
 

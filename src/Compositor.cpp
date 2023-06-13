@@ -1606,16 +1606,18 @@ void CCompositor::updateAllWindowsAnimatedDecorationValues() {
 
 void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     // optimization
-    static auto* const ACTIVECOL          = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.active_border")->data.get();
-    static auto* const INACTIVECOL        = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.inactive_border")->data.get();
-    static auto* const GROUPACTIVECOL     = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data.get();
-    static auto* const GROUPINACTIVECOL   = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border")->data.get();
-    static auto* const PINACTIVEALPHA     = &g_pConfigManager->getConfigValuePtr("decoration:inactive_opacity")->floatValue;
-    static auto* const PACTIVEALPHA       = &g_pConfigManager->getConfigValuePtr("decoration:active_opacity")->floatValue;
-    static auto* const PFULLSCREENALPHA   = &g_pConfigManager->getConfigValuePtr("decoration:fullscreen_opacity")->floatValue;
-    static auto* const PSHADOWCOL         = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow")->intValue;
-    static auto* const PSHADOWCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow_inactive")->intValue;
-    static auto* const PDIMSTRENGTH       = &g_pConfigManager->getConfigValuePtr("decoration:dim_strength")->floatValue;
+    static auto* const ACTIVECOL              = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.active_border")->data.get();
+    static auto* const INACTIVECOL            = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.inactive_border")->data.get();
+    static auto* const GROUPACTIVECOL         = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data.get();
+    static auto* const GROUPINACTIVECOL       = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border")->data.get();
+    static auto* const GROUPACTIVELOCKEDCOL   = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border_locked_active")->data.get();
+    static auto* const GROUPINACTIVELOCKEDCOL = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border_locked")->data.get();
+    static auto* const PINACTIVEALPHA         = &g_pConfigManager->getConfigValuePtr("decoration:inactive_opacity")->floatValue;
+    static auto* const PACTIVEALPHA           = &g_pConfigManager->getConfigValuePtr("decoration:active_opacity")->floatValue;
+    static auto* const PFULLSCREENALPHA       = &g_pConfigManager->getConfigValuePtr("decoration:fullscreen_opacity")->floatValue;
+    static auto* const PSHADOWCOL             = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow")->intValue;
+    static auto* const PSHADOWCOLINACTIVE     = &g_pConfigManager->getConfigValuePtr("decoration:col.shadow_inactive")->intValue;
+    static auto* const PDIMSTRENGTH           = &g_pConfigManager->getConfigValuePtr("decoration:dim_strength")->floatValue;
 
     auto               setBorderColor = [&](CGradientValueData grad) -> void {
         if (grad == pWindow->m_cRealBorderColor)
@@ -1632,13 +1634,14 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     if (RENDERDATA.isBorderGradient)
         setBorderColor(*RENDERDATA.borderGradient);
     else {
+        const bool GROUPLOCKED = pWindow->m_sGroupData.pNextWindow ? pWindow->getGroupHead()->m_sGroupData.locked : false;
         if (pWindow == m_pLastWindow) {
-            const auto* const ACTIVECOLOR = !pWindow->m_sGroupData.pNextWindow ? ACTIVECOL : GROUPACTIVECOL;
+            const auto* const ACTIVECOLOR = !pWindow->m_sGroupData.pNextWindow ? ACTIVECOL : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
             setBorderColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying() >= 0 ?
                                CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying())) :
                                *ACTIVECOLOR);
         } else {
-            const auto* const INACTIVECOLOR = !pWindow->m_sGroupData.pNextWindow ? INACTIVECOL : GROUPINACTIVECOL;
+            const auto* const INACTIVECOLOR = !pWindow->m_sGroupData.pNextWindow ? INACTIVECOL : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
             setBorderColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying() >= 0 ?
                                CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying())) :
                                *INACTIVECOLOR);

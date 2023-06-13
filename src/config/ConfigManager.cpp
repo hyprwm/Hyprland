@@ -14,10 +14,12 @@
 extern "C" char** environ;
 
 CConfigManager::CConfigManager() {
-    configValues["general:col.active_border"].data       = std::make_shared<CGradientValueData>(0xffffffff);
-    configValues["general:col.inactive_border"].data     = std::make_shared<CGradientValueData>(0xff444444);
-    configValues["general:col.group_border"].data        = std::make_shared<CGradientValueData>(0x66777700);
-    configValues["general:col.group_border_active"].data = std::make_shared<CGradientValueData>(0x66ffff00);
+    configValues["general:col.active_border"].data              = std::make_shared<CGradientValueData>(0xffffffff);
+    configValues["general:col.inactive_border"].data            = std::make_shared<CGradientValueData>(0xff444444);
+    configValues["general:col.group_border"].data               = std::make_shared<CGradientValueData>(0x66777700);
+    configValues["general:col.group_border_active"].data        = std::make_shared<CGradientValueData>(0x66ffff00);
+    configValues["general:col.group_border_locked"].data        = std::make_shared<CGradientValueData>(0x66775500);
+    configValues["general:col.group_border_locked_active"].data = std::make_shared<CGradientValueData>(0x66ff5500);
 
     setDefaultVars();
     setDefaultAnimationVars();
@@ -62,6 +64,8 @@ void CConfigManager::setDefaultVars() {
     ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
     ((CGradientValueData*)configValues["general:col.group_border"].data.get())->reset(0x66777700);
     ((CGradientValueData*)configValues["general:col.group_border_active"].data.get())->reset(0x66ffff00);
+    ((CGradientValueData*)configValues["general:col.group_border_locked"].data.get())->reset(0x66775500);
+    ((CGradientValueData*)configValues["general:col.group_border_locked_active"].data.get())->reset(0x66ff5500);
     configValues["general:cursor_inactive_timeout"].intValue = 0;
     configValues["general:no_cursor_warps"].intValue         = 0;
     configValues["general:no_focus_fallback"].intValue       = 0;

@@ -116,11 +116,17 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
         scaleBox(&rect, pMonitor->scale);
 
-        static auto* const PGROUPCOLACTIVE   = &g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data;
-        static auto* const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("general:col.group_border")->data;
+        static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data;
+        static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("general:col.group_border")->data;
+        static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked_active")->data;
+        static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked")->data;
 
-        CColor             color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? ((CGradientValueData*)PGROUPCOLACTIVE->get())->m_vColors[0] :
-                                                                                         ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0];
+        const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
+        const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
+        const auto* const  PCOLINACTIVE = GROUPLOCKED ? PGROUPCOLINACTIVELOCKED : PGROUPCOLINACTIVE;
+
+        CColor             color =
+            m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0] : ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0];
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 
@@ -310,8 +316,15 @@ void CHyprGroupBarDecoration::refreshGradients() {
     if (m_tGradientActive.m_iTexID > 0)
         return;
 
-    static auto* const PGROUPCOLACTIVE   = &g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data;
-    static auto* const PGROUPCOLINACTIVE = &g_pConfigManager->getConfigValuePtr("general:col.group_border")->data;
-    renderGradientTo(m_tGradientActive, ((CGradientValueData*)PGROUPCOLACTIVE->get())->m_vColors[0]);
-    renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0]);
+    static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data;
+    static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("general:col.group_border")->data;
+    static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked_active")->data;
+    static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked")->data;
+
+    const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
+    const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
+    const auto* const  PCOLINACTIVE = GROUPLOCKED ? PGROUPCOLINACTIVELOCKED : PGROUPCOLINACTIVE;
+
+    renderGradientTo(m_tGradientActive, ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0]);
+    renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0]);
 }

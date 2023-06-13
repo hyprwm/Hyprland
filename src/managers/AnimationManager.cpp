@@ -111,7 +111,7 @@ void CAnimationManager::tick() {
                     break;
                 }
 
-                if (SPENT >= 1.f) {
+                if (SPENT >= 1.f || av->m_fBegun == av->m_fGoal) {
                     av->warp(false);
                     break;
                 }
@@ -132,7 +132,7 @@ void CAnimationManager::tick() {
                     break;
                 }
 
-                if (SPENT >= 1.f) {
+                if (SPENT >= 1.f || av->m_vBegun == av->m_vGoal) {
                     av->warp(false);
                     break;
                 }
@@ -153,7 +153,7 @@ void CAnimationManager::tick() {
                     break;
                 }
 
-                if (SPENT >= 1.f) {
+                if (SPENT >= 1.f || av->m_cBegun == av->m_cGoal) {
                     av->warp(false);
                     break;
                 }

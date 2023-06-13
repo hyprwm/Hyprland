@@ -414,6 +414,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         }
 
         if (pressed && k.release) {
+            if (k.pass)
+                return false;
+
             // suppress down event
             m_kHeldBack = keysym;
             return true;

@@ -592,8 +592,8 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 ret += "r";
             if (kb.repeat)
                 ret += "e";
-            if (kb.pass)
-                ret += "p";
+            if (kb.nonConsuming)
+                ret += "n";
 
             ret += getFormat("\n\tmodmask: %u\n\tsubmap: %s\n\tkey: %s\n\tkeycode: %d\n\tdispatcher: %s\n\targ: %s\n\n", kb.modmask, kb.submap.c_str(), kb.key.c_str(), kb.keycode,
                              kb.handler.c_str(), kb.arg.c_str());
@@ -609,7 +609,7 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "mouse": %s,
     "release": %s,
     "repeat": %s,
-    "pass": %s,
+    "non_consuming": %s,
     "modmask": %u,
     "submap": "%s",
     "key": "%s",
@@ -617,8 +617,9 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "dispatcher": "%s",
     "arg": "%s"
 },)#",
-                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.pass ? "true" : "false", kb.modmask,
-                escapeJSONStrings(kb.submap).c_str(), escapeJSONStrings(kb.key).c_str(), kb.keycode, escapeJSONStrings(kb.handler).c_str(), escapeJSONStrings(kb.arg).c_str());
+                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.nonConsuming ? "true" : "false",
+                kb.modmask, escapeJSONStrings(kb.submap).c_str(), escapeJSONStrings(kb.key).c_str(), kb.keycode, escapeJSONStrings(kb.handler).c_str(),
+                escapeJSONStrings(kb.arg).c_str());
         }
         trimTrailingComma(ret);
         ret += "]";

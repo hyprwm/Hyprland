@@ -766,12 +766,12 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool       locked   = false;
-    bool       release  = false;
-    bool       repeat   = false;
-    bool       mouse    = false;
-    bool       pass     = false;
-    const auto BINDARGS = command.substr(4);
+    bool       locked       = false;
+    bool       release      = false;
+    bool       repeat       = false;
+    bool       mouse        = false;
+    bool       nonConsuming = false;
+    const auto BINDARGS     = command.substr(4);
 
     for (auto& arg : BINDARGS) {
         if (arg == 'l') {
@@ -782,8 +782,8 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
             repeat = true;
         } else if (arg == 'm') {
             mouse = true;
-        } else if (arg == 'p') {
-            pass = true;
+        } else if (arg == 'n') {
+            nonConsuming = true;
         } else {
             parseError = "bind: invalid flag";
             return;
@@ -841,11 +841,11 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, pass});
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming});
         else if (KEY.find("code:") == 0 && isNumber(KEY.substr(5)))
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, pass});
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, pass});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming});
     }
 }
 

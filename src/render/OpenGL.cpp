@@ -158,8 +158,9 @@ void CHyprOpenGLImpl::end() {
         wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
         if (m_RenderData.mouseZoomFactor != 1.f) {
-            const auto ZOOMCENTER = m_RenderData.mouseZoomUseMouse ? (g_pInputManager->getMouseCoordsInternal() - m_RenderData.pMonitor->vecPosition) * m_RenderData.pMonitor->scale :
-                                                                                m_RenderData.pMonitor->vecTransformedSize / 2.f;
+            const auto ZOOMCENTER = m_RenderData.mouseZoomUseMouse ?
+                (g_pInputManager->getMouseCoordsInternal() - m_RenderData.pMonitor->vecPosition) * m_RenderData.pMonitor->scale :
+                m_RenderData.pMonitor->vecTransformedSize / 2.f;
             monbox.x -= ZOOMCENTER.x;
             monbox.y -= ZOOMCENTER.y;
             scaleBox(&monbox, m_RenderData.mouseZoomFactor);
@@ -477,10 +478,8 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     glUniform1i(m_RenderData.pCurrentMonData->m_shQUAD.primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
 
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shQUAD.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.posAttrib);
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.texAttrib);
 
     if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
         pixman_region32_t damageClip;
@@ -505,7 +504,6 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, pixm
     }
 
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.posAttrib);
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.texAttrib);
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
@@ -1034,7 +1032,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     static auto* const PBLURIGNOREOPACITY = &g_pConfigManager->getConfigValuePtr("decoration:blur_ignore_opacity")->intValue;
     m_bEndFrame                           = true; // fix transformed
     const auto SAVEDRENDERMODIF           = m_RenderData.renderModif;
-    m_RenderData.renderModif              = {};   // fix shit
+    m_RenderData.renderModif              = {}; // fix shit
     renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? 1.f : a, &damage, 0, false, false, false);
     m_bEndFrame              = false;
     m_RenderData.renderModif = SAVEDRENDERMODIF;

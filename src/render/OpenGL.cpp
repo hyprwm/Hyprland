@@ -604,12 +604,12 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     if ((usingFinalShader && g_pConfigManager->getInt("debug:damage_tracking") == 0) || CRASHING) {
         glUniform1f(shader->time, m_tGlobalTimer.getSeconds());
-    } else if (usingFinalShader && shader->time > 0) {
+    } else if (usingFinalShader && shader->time != -1) {
         // Don't let time be unitialised
         glUniform1f(shader->time, 0.f);
     }
 
-    if (usingFinalShader && shader->output > 0)
+    if (usingFinalShader && shader->output != -1)
         glUniform1i(shader->output, m_RenderData.pMonitor->ID);
 
     if (CRASHING) {

@@ -7,41 +7,41 @@ class CShader {
   public:
     ~CShader();
 
-    GLuint  program = 0;
-    GLint   proj;
-    GLint   color;
-    GLint   tex;
-    GLint   alpha;
-    GLint   posAttrib;
-    GLint   texAttrib;
-    GLint   discardOpaque;
-    GLint   discardAlpha;
-    GLfloat discardAlphaValue;
+    GLuint  program           = 0;
+    GLint   proj              = -1;
+    GLint   color             = -1;
+    GLint   tex               = -1;
+    GLint   alpha             = -1;
+    GLint   posAttrib         = -1;
+    GLint   texAttrib         = -1;
+    GLint   discardOpaque     = -1;
+    GLint   discardAlpha      = -1;
+    GLfloat discardAlphaValue = -1;
 
-    GLint   topLeft;
-    GLint   bottomRight;
-    GLint   fullSize;
-    GLint   fullSizeUntransformed;
-    GLint   radius;
-    GLint   primitiveMultisample;
+    GLint   topLeft               = -1;
+    GLint   bottomRight           = -1;
+    GLint   fullSize              = -1;
+    GLint   fullSizeUntransformed = -1;
+    GLint   radius                = -1;
+    GLint   primitiveMultisample  = -1;
 
-    GLint   thick;
+    GLint   thick = -1;
 
-    GLint   halfpixel;
+    GLint   halfpixel = -1;
 
-    GLint   range;
-    GLint   shadowPower;
+    GLint   range       = -1;
+    GLint   shadowPower = -1;
 
-    GLint   applyTint;
-    GLint   tint;
+    GLint   applyTint = -1;
+    GLint   tint      = -1;
 
-    GLint   gradient;
-    GLint   gradientLength;
-    GLint   angle;
+    GLint   gradient       = -1;
+    GLint   gradientLength = -1;
+    GLint   angle          = -1;
 
-    GLint   time;
-    GLint   distort;
-    GLint   output;
+    GLint   time    = -1;
+    GLint   distort = -1;
+    GLint   output  = -1;
 
     GLint   getUniformLocation(const std::string&);
 

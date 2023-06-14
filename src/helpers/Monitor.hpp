@@ -43,6 +43,7 @@ class CMonitor {
     bool                noFrameSchedule = false;
     bool                scheduledRecalc = false;
     wl_output_transform transform       = WL_OUTPUT_TRANSFORM_NORMAL;
+    bool                gammaChanged    = false;
 
     bool                dpmsStatus    = true;
     bool                vrrActive     = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.

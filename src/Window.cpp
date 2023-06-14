@@ -630,6 +630,8 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
 
     if (FULLSCREEN)
         g_pCompositor->setWindowFullscreen(pWindow, true, WORKSPACE->m_efFullscreenMode);
+
+    g_pHyprRenderer->damageWindow(pWindow);
 }
 
 void CWindow::insertWindowToGroup(CWindow* pWindow) {

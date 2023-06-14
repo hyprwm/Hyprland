@@ -414,6 +414,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         }
 
         if (pressed && k.release) {
+            if (k.nonConsuming)
+                return false;
+
             // suppress down event
             m_kHeldBack = keysym;
             return true;
@@ -452,7 +455,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             wl_event_source_timer_update(m_pActiveKeybindEventSource, PACTIVEKEEB->repeatDelay);
         }
 
-        found = true;
+        if (!k.nonConsuming)
+            found = true;
     }
 
     return found;

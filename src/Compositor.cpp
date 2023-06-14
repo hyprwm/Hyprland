@@ -153,9 +153,10 @@ void CCompositor::initServer() {
 
     wlr_export_dmabuf_manager_v1_create(m_sWLDisplay);
     wlr_data_control_manager_v1_create(m_sWLDisplay);
-    wlr_gamma_control_manager_v1_create(m_sWLDisplay);
     wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
     wlr_viewporter_create(m_sWLDisplay);
+
+    m_sWLRGammaCtrlMgr = wlr_gamma_control_manager_v1_create(m_sWLDisplay);
 
     m_sWLROutputLayout = wlr_output_layout_create();
 
@@ -294,6 +295,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
+    addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");

@@ -214,3 +214,20 @@ void Events::listener_newSessionLock(wl_listener* listener, void* data) {
 
     g_pSessionLockManager->onNewSessionLock((wlr_session_lock_v1*)data);
 }
+
+void Events::listener_setGamma(wl_listener* listener, void* data) {
+    Debug::log(LOG, "New Gamma event at %lx", data);
+
+    const auto E = (wlr_gamma_control_manager_v1_set_gamma_event*)data;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(E->output);
+
+    if (!PMONITOR) {
+        Debug::log(ERR, "Gamma event object references non-existent output %lx ?", E->output);
+        return;
+    }
+
+    PMONITOR->gammaChanged = true;
+
+    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+}

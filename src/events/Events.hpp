@@ -166,4 +166,7 @@ namespace Events {
 
     // Session Lock
     LISTENER(newSessionLock);
+
+    // Gamma control
+    LISTENER(setGamma);
 };

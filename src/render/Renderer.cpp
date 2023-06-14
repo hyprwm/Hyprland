@@ -860,6 +860,24 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
     }
 
+    // gamma stuff
+    if (pMonitor->gammaChanged) {
+        pMonitor->gammaChanged = false;
+
+        const auto PGAMMACTRL = wlr_gamma_control_manager_v1_get_control(g_pCompositor->m_sWLRGammaCtrlMgr, pMonitor->output);
+
+        if (!wlr_gamma_control_v1_apply(PGAMMACTRL, &pMonitor->output->pending)) {
+            Debug::log(ERR, "Could not apply gamma control to %s", pMonitor->szName.c_str());
+            return;
+        }
+
+        if (!wlr_output_test(pMonitor->output)) {
+            Debug::log(ERR, "Output test failed for setting gamma to %s", pMonitor->szName.c_str());
+            wlr_output_rollback(pMonitor->output);
+            wlr_gamma_control_v1_send_failed_and_destroy(PGAMMACTRL);
+        }
+    }
+
     // Direct scanout first
     if (!*PNODIRECTSCANOUT) {
         if (attemptDirectScanout(pMonitor)) {

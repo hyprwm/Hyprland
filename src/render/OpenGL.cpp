@@ -1165,7 +1165,7 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFra
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    if (!PMONITOR || !PMONITOR->output)
+    if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
 
     wlr_output_attach_render(PMONITOR->output, nullptr);
@@ -1224,7 +1224,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    if (!PMONITOR || !PMONITOR->output)
+    if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
 
     wlr_output_attach_render(PMONITOR->output, nullptr);
@@ -1288,7 +1288,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pLayer->monitorID);
 
-    if (!PMONITOR || !PMONITOR->output)
+    if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
 
     wlr_output_attach_render(PMONITOR->output, nullptr);

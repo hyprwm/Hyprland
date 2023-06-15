@@ -57,6 +57,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         return;
     }
 
+    if (OUTPUT->width <= 0 || OUTPUT->height <= 0) {
+        Debug::log(ERR, "New monitor has no dimensions?? Ignoring");
+        return;
+    }
+
     if (g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Recovering from an unsafe state. May you be lucky.");
     }

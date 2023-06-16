@@ -14,9 +14,8 @@ CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) {
 }
 
 CFunctionHook::~CFunctionHook() {
-    if (m_bActive) {
+    if (m_bActive)
         unhook();
-    }
 }
 
 size_t CFunctionHook::getInstructionLenAt(void* start) {
@@ -101,7 +100,7 @@ bool CFunctionHook::hook() {
     memcpy(m_pOriginalBytes, m_pSource, HOOKSIZE);
 
     // populate trampoline
-    memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                                              // first, original func bytes
+    memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                                                        // first, original func bytes
     memcpy((uint8_t*)m_pTrampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
     memcpy((uint8_t*)m_pTrampolineAddr + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
 
@@ -117,7 +116,8 @@ bool CFunctionHook::hook() {
     }
 
     // fixup trampoline addr
-    *(uint64_t*)((uint8_t*)m_pTrampolineAddr + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS));
+    *(uint64_t*)((uint8_t*)m_pTrampolineAddr + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) =
+        (uint64_t)((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make jump to hk
     mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);

@@ -42,9 +42,8 @@ bool CLayoutManager::removeLayout(IHyprLayout* layout) {
     if (IT == m_vLayouts.end() || IT->first == "dwindle" || IT->first == "master")
         return false;
 
-    if (m_iCurrentLayoutID == IT - m_vLayouts.begin()) {
+    if (m_iCurrentLayoutID == IT - m_vLayouts.begin())
         switchToLayout("dwindle");
-    }
 
     Debug::log(LOG, "Removed a layout %s at %lx", IT->first.c_str(), layout);
 

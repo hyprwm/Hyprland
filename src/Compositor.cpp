@@ -2387,6 +2387,15 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
         pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
     }
 
+    if (pWindow->m_sGroupData.pNextWindow) {
+        CWindow* next = pWindow->m_sGroupData.pNextWindow;
+        while (next != pWindow) {
+            next->moveToWorkspace(pWorkspace->m_iID);
+            next->updateToplevel();
+            next = next->m_sGroupData.pNextWindow;
+        }
+    }
+
     if (FULLSCREEN)
         setWindowFullscreen(pWindow, true, FULLSCREENMODE);
 }

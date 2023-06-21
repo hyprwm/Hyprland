@@ -1661,7 +1661,7 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
             if (foundIt == std::string::npos)
                 continue;
 
-            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + cv.first || cv.first == "input:touchdevice:" + val || cv.first == "input:tablet:" + cv.first ||
+            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + val || cv.first == "input:touchdevice:" + val || cv.first == "input:tablet:" + val ||
                 cv.first == "input:tablet:" + val) {
                 copy = cv.second;
             }

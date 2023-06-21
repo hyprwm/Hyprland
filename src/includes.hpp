@@ -145,3 +145,4 @@ extern "C" {
 #include "helpers/Vector2D.hpp"
 
 #include "ext-workspace-unstable-v1-protocol.h"
+#include "wlrunstable/wlr_ext_workspace_v1.hpp"

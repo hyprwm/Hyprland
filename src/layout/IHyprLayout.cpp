@@ -43,8 +43,8 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             pWindow->m_sGroupData.pNextWindow = nullptr;
 
             if (pWindow->m_sGroupData.head) {
-                pWindow->m_sGroupData.head = false;
-                curr->m_sGroupData.head    = true;
+                pWindow->m_sGroupData.head   = false;
+                curr->m_sGroupData.head      = true;
                 curr->m_sGroupData.locked    = pWindow->m_sGroupData.locked;
                 pWindow->m_sGroupData.locked = false;
             }
@@ -75,7 +75,9 @@ void IHyprLayout::onWindowRemovedFloating(CWindow* pWindow) {
 void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     wlr_box desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
     if (!PMONITOR) {
         Debug::log(ERR, "Window %lx (%s) has an invalid monitor in onWindowCreatedFloating!!!", pWindow, pWindow->m_szTitle.c_str());
@@ -149,6 +151,11 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
                 pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
             }
         }
+    }
+
+    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11) {
+        pWindow->m_vRealSize     = pWindow->m_vRealSize.goalv() / PMONITOR->scale;
+        pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() / PMONITOR->scale;
     }
 
     if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect)) {

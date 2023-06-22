@@ -980,6 +980,13 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(E->x, E->y));
     PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(E->width, E->height));
+
+    static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+    if (*PXWLFORCESCALEZERO) {
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR)
+            PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
+    }
+
     PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
     PWINDOW->m_vSize     = PWINDOW->m_vRealSize.vec();
 
@@ -1019,6 +1026,8 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         return;
     }
 
+    static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+
     if (abs(std::floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(std::floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 ||
         abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
         Debug::log(LOG, "Unmanaged window %lx requests geometry update to %i %i %i %i", PWINDOW, (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y,
@@ -1029,6 +1038,14 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
         if (abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2)
             PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height));
+
+        if (*PXWLFORCESCALEZERO) {
+            if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR)
+                PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
+        }
+
+        PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.goalv();
+        PWINDOW->m_vSize     = PWINDOW->m_vRealSize.goalv();
 
         PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
 

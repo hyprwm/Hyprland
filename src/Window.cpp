@@ -49,6 +49,37 @@ wlr_box CWindow::getFullWindowBoundingBox() {
             maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
     }
 
+    if (m_pWLSurface.exists() && !m_bIsX11) {
+        wlr_box surfaceExtents = {0, 0, 0, 0};
+        // TODO: this could be better, perhaps make a getFullWindowRegion?
+        wlr_xdg_surface_for_each_popup_surface(
+            m_uSurface.xdg,
+            [](wlr_surface* surf, int sx, int sy, void* data) {
+                wlr_box* pSurfaceExtents = (wlr_box*)data;
+                if (sx < pSurfaceExtents->x)
+                    pSurfaceExtents->x = sx;
+                if (sy < pSurfaceExtents->y)
+                    pSurfaceExtents->y = sy;
+                if (sx + surf->current.width > pSurfaceExtents->width)
+                    pSurfaceExtents->width = sx + surf->current.width - pSurfaceExtents->x;
+                if (sy + surf->current.height > pSurfaceExtents->height)
+                    pSurfaceExtents->height = sy + surf->current.height - pSurfaceExtents->y;
+            },
+            &surfaceExtents);
+
+        if (-surfaceExtents.x > maxExtents.topLeft.x)
+            maxExtents.topLeft.x = -surfaceExtents.x;
+
+        if (-surfaceExtents.y > maxExtents.topLeft.y)
+            maxExtents.topLeft.y = -surfaceExtents.y;
+
+        if (surfaceExtents.x + surfaceExtents.width > m_pWLSurface.wlr()->current.width + maxExtents.bottomRight.x)
+            maxExtents.bottomRight.x = surfaceExtents.x + surfaceExtents.width - m_pWLSurface.wlr()->current.width;
+
+        if (surfaceExtents.y + surfaceExtents.height > m_pWLSurface.wlr()->current.height + maxExtents.bottomRight.y)
+            maxExtents.bottomRight.y = surfaceExtents.y + surfaceExtents.height - m_pWLSurface.wlr()->current.height;
+    }
+
     // Add extents to the real base BB and return
     wlr_box finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
                         m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};

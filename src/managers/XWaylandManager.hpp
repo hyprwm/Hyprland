@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include "../Window.hpp"
+#include <optional>
 
 class CHyprXWaylandManager {
   public:
@@ -25,6 +26,10 @@ class CHyprXWaylandManager {
     void          moveXWaylandWindow(CWindow*, const Vector2D&);
     void          checkBorders(CWindow*);
     Vector2D      getMaxSizeForWindow(CWindow*);
+    void          updateXWaylandScale();
+
+  private:
+    void setXWaylandScale(std::optional<double> scale);
 };
 
 inline std::unique_ptr<CHyprXWaylandManager> g_pXWaylandManager;

@@ -1,6 +1,11 @@
 #include "XWaylandManager.hpp"
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
+#include "xdg-output-unstable-v1-protocol.h"
+
+#define OUTPUT_MANAGER_VERSION                   3
+#define OUTPUT_DONE_DEPRECATED_SINCE_VERSION     3
+#define OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION 3
 
 CHyprXWaylandManager::CHyprXWaylandManager() {
 #ifndef NO_XWAYLAND
@@ -155,8 +160,10 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
         }
     }
 
+    const Vector2D POS = *PXWLFORCESCALEZERO && pWindow->m_bIsX11 ? pWindow->m_vRealPosition.vec() * pWindow->m_fX11SurfaceScaledBy : pWindow->m_vRealPosition.vec();
+
     if (pWindow->m_bIsX11)
-        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pWindow->m_vRealPosition.vec().x, pWindow->m_vRealPosition.vec().y, size.x, size.y);
+        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, POS.x, POS.y, size.x, size.y);
     else
         wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y);
 }
@@ -288,4 +295,69 @@ Vector2D CHyprXWaylandManager::getMaxSizeForWindow(CWindow* pWindow) {
         MAXSIZE.y = 99999;
 
     return MAXSIZE;
+}
+
+void CHyprXWaylandManager::updateXWaylandScale() {
+    static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+
+    setXWaylandScale(*PXWLFORCESCALEZERO ? std::optional<double>{1.0} : std::optional<double>{});
+}
+
+void CHyprXWaylandManager::setXWaylandScale(std::optional<double> scale) {
+    Debug::log(LOG, "Overriding XWayland scale with %.2f", (float)scale.value_or(0.0));
+
+#ifndef NO_XWAYLAND
+    wl_resource* res = nullptr;
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        const Vector2D LOGICALSIZE = m->vecTransformedSize / scale.value_or(m->scale);
+
+        wl_resource*   outputResource = nullptr;
+        bool           needsDone      = false;
+
+        wl_list_for_each(res, &m->output->resources, link) {
+            const auto PCLIENT = wl_resource_get_client(res);
+
+            if (PCLIENT == m_sWLRXWayland->server->client) {
+                const auto VERSION = wl_resource_get_version(res);
+
+                wl_output_send_mode(res, WL_OUTPUT_MODE_CURRENT | WL_OUTPUT_MODE_PREFERRED, (int32_t)LOGICALSIZE.x, (int32_t)LOGICALSIZE.y, m->output->refresh);
+
+                if (VERSION >= WL_OUTPUT_SCALE_SINCE_VERSION)
+                    wl_output_send_scale(res, (uint32_t)ceil(scale.value_or(m->scale)));
+
+                wl_output_send_name(res, getFormat("HL X11 %d", m->ID).c_str());
+
+                outputResource = res;
+                needsDone      = true;
+
+                break;
+            }
+        }
+
+        wlr_xdg_output_v1* output;
+        wl_list_for_each(output, &g_pCompositor->m_sWLRXDGOutputMgr->outputs, link) {
+            if (output->layout_output->output == m->output) {
+                wl_list_for_each(res, &output->resources, link) {
+                    const auto PCLIENT = wl_resource_get_client(res);
+
+                    if (PCLIENT == m_sWLRXWayland->server->client) {
+                        zxdg_output_v1_send_logical_size(res, LOGICALSIZE.x, LOGICALSIZE.y);
+
+                        if (wl_resource_get_version(res) < OUTPUT_DONE_DEPRECATED_SINCE_VERSION)
+                            zxdg_output_v1_send_done(res);
+
+                        needsDone = true;
+
+                        break;
+                    }
+                }
+
+                break;
+            }
+        }
+
+        if (needsDone && outputResource)
+            wl_output_send_done(outputResource);
+    }
+#endif
 }

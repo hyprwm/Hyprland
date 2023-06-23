@@ -23,12 +23,14 @@ void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorDamage.removeCallback();
     hyprListener_monitorNeedsFrame.removeCallback();
     hyprListener_monitorCommit.removeCallback();
+    hyprListener_monitorBind.removeCallback();
     hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this);
     hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this);
     hyprListener_monitorStateRequest.initCallback(&output->events.request_state, &Events::listener_monitorStateRequest, this);
     hyprListener_monitorDamage.initCallback(&output->events.damage, &Events::listener_monitorDamage, this);
     hyprListener_monitorNeedsFrame.initCallback(&output->events.needs_frame, &Events::listener_monitorNeedsFrame, this);
     hyprListener_monitorCommit.initCallback(&output->events.commit, &Events::listener_monitorCommit, this);
+    hyprListener_monitorBind.initCallback(&output->events.bind, &Events::listener_monitorBind, this);
 
     if (m_bEnabled) {
         wlr_output_enable(output, 1);

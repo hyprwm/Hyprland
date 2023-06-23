@@ -42,10 +42,10 @@ class Vector2D {
     Vector2D operator/(const Vector2D& a) const {
         return Vector2D(this->x / a.x, this->y / a.y);
     }
-    
-    double   distance(const Vector2D& other);
 
-    Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D());
+    double   distance(const Vector2D& other) const;
 
-    Vector2D floor();
+    Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D()) const;
+
+    Vector2D floor() const;
 };

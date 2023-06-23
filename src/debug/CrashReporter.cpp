@@ -14,18 +14,19 @@
 std::string getRandomMessage() {
 
     const std::vector<std::string>  MESSAGES = {"Sorry, didn't mean to...",
-                                               "This was an accident, I swear!",
-                                               "Calm down, it was a misinput! MISINPUT!",
-                                               "Oops",
-                                               "Vaxry is going to be upset.",
-                                               "Who tried dividing by zero?!",
-                                               "Maybe you should try dusting your PC in the meantime?",
-                                               "I tried so hard, and got so far...",
-                                               "I don't feel so good...",
-                                               "*thud*",
-                                               "Well this is awkward.",
-                                               "\"stable\"",
-                                               "I hope you didn't have any unsaved progress."};
+                                                "This was an accident, I swear!",
+                                                "Calm down, it was a misinput! MISINPUT!",
+                                                "Oops",
+                                                "Vaxry is going to be upset.",
+                                                "Who tried dividing by zero?!",
+                                                "Maybe you should try dusting your PC in the meantime?",
+                                                "I tried so hard, and got so far...",
+                                                "I don't feel so good...",
+                                                "*thud*",
+                                                "Well this is awkward.",
+                                                "\"stable\"",
+                                                "I hope you didn't have any unsaved progress.",
+                                                "All these computers..."};
 
     std::random_device              dev;
     std::mt19937                    engine(dev());
@@ -46,7 +47,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += getFormat("Hyprland received signal %d (%s)\n\n", sig, strsignal(sig));
 
-    finalCrashReport += getFormat("Version: %s\n\n", GIT_COMMIT_HASH);
+    finalCrashReport += getFormat("Version: %s\nTag: %s\n\n", GIT_COMMIT_HASH, GIT_TAG);
 
     if (g_pPluginSystem && !g_pPluginSystem->getAllPlugins().empty()) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
@@ -135,7 +136,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
         return;
 
     std::ofstream ofs;
-    std::string path;
+    std::string   path;
     if (!CACHE_HOME) {
         if (!std::filesystem::exists(std::string(HOME) + "/.hyprland")) {
             std::filesystem::create_directory(std::string(HOME) + "/.hyprland");

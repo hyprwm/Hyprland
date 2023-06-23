@@ -1567,6 +1567,9 @@ void CConfigManager::loadConfigLoadVars() {
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
 
+    // update xwl scale
+    g_pXWaylandManager->updateXWaylandScale();
+
     // manual crash
     if (configValues["debug:manual_crash"].intValue && !m_bManualCrashInitiated) {
         m_bManualCrashInitiated = true;

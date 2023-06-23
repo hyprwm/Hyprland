@@ -24,15 +24,15 @@ double Vector2D::normalize() {
     return max;
 }
 
-Vector2D Vector2D::floor() {
+Vector2D Vector2D::floor() const {
     return Vector2D(std::floor(x), std::floor(y));
 }
 
-Vector2D Vector2D::clamp(const Vector2D& min, const Vector2D& max) {
+Vector2D Vector2D::clamp(const Vector2D& min, const Vector2D& max) const {
     return Vector2D(std::clamp(this->x, min.x, max.x < min.x ? INFINITY : max.x), std::clamp(this->y, min.y, max.y < min.y ? INFINITY : max.y));
 }
 
-double Vector2D::distance(const Vector2D& other) {
+double Vector2D::distance(const Vector2D& other) const {
     double dx = x - other.x;
     double dy = y - other.y;
     return std::sqrt(dx * dx + dy * dy);

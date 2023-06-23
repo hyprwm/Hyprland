@@ -28,7 +28,7 @@ void Events::listener_change(wl_listener* listener, void* data) {
 
         const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m->output);
 
-        wlr_box BOX;
+        wlr_box    BOX;
         wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m->output, &BOX);
 
         //m->vecSize.x = BOX.width;
@@ -218,4 +218,11 @@ void Events::listener_monitorCommit(void* owner, void* data) {
     const auto E = (wlr_output_event_commit*)data;
 
     g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR, E);
+
+    if (E->committed & (WLR_OUTPUT_STATE_SCALE | WLR_OUTPUT_STATE_TRANSFORM | WLR_OUTPUT_STATE_MODE))
+        g_pXWaylandManager->updateXWaylandScale();
+}
+
+void Events::listener_monitorBind(void* owner, void* data) {
+    g_pXWaylandManager->updateXWaylandScale();
 }

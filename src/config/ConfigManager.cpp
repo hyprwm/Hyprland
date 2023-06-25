@@ -1566,10 +1566,10 @@ void CConfigManager::loadConfigLoadVars() {
 
     // Updates dynamic window rules
     for (auto& w : g_pCompositor->m_vWindows) {
-        if(!w->m_bIsMapped)
+        if (!w->m_bIsMapped)
             continue;
         
-        w.get()->updateDynamicRules();
+        w->updateDynamicRules();
     }
     
     // update layout

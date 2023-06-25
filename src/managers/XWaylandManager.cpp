@@ -325,7 +325,7 @@ void CHyprXWaylandManager::setXWaylandScale(std::optional<double> scale) {
                 if (VERSION >= WL_OUTPUT_SCALE_SINCE_VERSION)
                     wl_output_send_scale(res, (uint32_t)ceil(scale.value_or(m->scale)));
 
-                wl_output_send_name(res, getFormat("HL X11 %d", m->ID).c_str());
+                wl_output_send_name(res, getFormat("HL-X11-%d", m->ID).c_str());
 
                 outputResource = res;
                 needsDone      = true;

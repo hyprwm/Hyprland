@@ -1564,7 +1564,7 @@ void CConfigManager::loadConfigLoadVars() {
     // Update window border colors
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-     // Updates dynamic window rules
+    // Updates dynamic window rules
     for (auto& w : g_pCompositor->m_vWindows) {
         if(!w->m_bIsMapped)
             continue;

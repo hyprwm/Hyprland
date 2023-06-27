@@ -1436,6 +1436,9 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
         m->addDamage(&fixedDamageBox);
     }
 
+    for (auto& wd : pWindow->m_dWindowDecorations)
+        wd->damageEntire();
+
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)

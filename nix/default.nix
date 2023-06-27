@@ -103,6 +103,8 @@ in
       patches = [
         # make meson use the provided wlroots instead of the git submodule
         ./meson-build.patch
+        # fixes portals search path to be picked up from $XDG_DESKTOP_PORTAL_DIR
+        ./portals.patch
       ];
 
       postPatch = ''

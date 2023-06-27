@@ -1,0 +1,23 @@
+diff --git a/src/Compositor.cpp b/src/Compositor.cpp
+index a9d95f39..6aa8e7d6 100644
+--- a/src/Compositor.cpp
++++ b/src/Compositor.cpp
+@@ -2340,14 +2340,16 @@ void CCompositor::performUserChecks() {
+ 
+     static auto* const    PSUPPRESSPORTAL = &g_pConfigManager->getConfigValuePtr("misc:suppress_portal_warnings")->intValue;
+ 
++    static auto const     PORTALDIR = std::string(getenv("XDG_DESKTOP_PORTAL_DIR"));
++
+     if (!*PSUPPRESSPORTAL) {
+-        if (std::ranges::any_of(BAD_PORTALS, [&](const std::string& portal) { return std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/" + portal + ".portal"); })) {
++        if (std::ranges::any_of(BAD_PORTALS, [&](const std::string& portal) { return std::filesystem::exists(PORTALDIR + "/" + portal + ".portal"); })) {
+             // bad portal detected
+             g_pHyprNotificationOverlay->addNotification("You have one or more incompatible xdg-desktop-portal impls installed. Please remove incompatible ones to avoid issues.",
+                                                         CColor(0), 15000, ICON_ERROR);
+         }
+ 
+-        if (std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/hyprland.portal") && std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/wlr.portal")) {
++        if (std::filesystem::exists(PORTALDIR + "/hyprland.portal") && std::filesystem::exists(PORTALDIR + "/wlr.portal")) {
+             g_pHyprNotificationOverlay->addNotification("You have xdg-desktop-portal-hyprland and -wlr installed simultaneously. Please uninstall one to avoid issues.", CColor(0),
+                                                         15000, ICON_ERROR);
+         }

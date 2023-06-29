@@ -13,7 +13,6 @@ GLint CShader::getUniformLocation(const std::string& unif) {
 }
 
 CShader::~CShader() {
-    // destroy shader
     destroy();
 }
 

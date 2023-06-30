@@ -1,15 +1,18 @@
 diff --git a/src/Compositor.cpp b/src/Compositor.cpp
-index a9d95f39..6aa8e7d6 100644
+index a9d95f39..069a03ca 100644
 --- a/src/Compositor.cpp
 +++ b/src/Compositor.cpp
-@@ -2340,14 +2340,16 @@ void CCompositor::performUserChecks() {
+@@ -2340,14 +2340,18 @@ void CCompositor::performUserChecks() {
  
      static auto* const    PSUPPRESSPORTAL = &g_pConfigManager->getConfigValuePtr("misc:suppress_portal_warnings")->intValue;
  
-+    static auto const     PORTALDIR = std::string(getenv("XDG_DESKTOP_PORTAL_DIR"));
-+
-     if (!*PSUPPRESSPORTAL) {
+-    if (!*PSUPPRESSPORTAL) {
 -        if (std::ranges::any_of(BAD_PORTALS, [&](const std::string& portal) { return std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/" + portal + ".portal"); })) {
++    static auto* const    PORTALDIRENV = getenv("XDG_DESKTOP_PORTAL_DIR");
++
++    static auto const     PORTALDIR = PORTALDIRENV != NULL ? std::string(PORTALDIRENV) : "";
++
++    if (!*PSUPPRESSPORTAL && PORTALDIR != "") {
 +        if (std::ranges::any_of(BAD_PORTALS, [&](const std::string& portal) { return std::filesystem::exists(PORTALDIR + "/" + portal + ".portal"); })) {
              // bad portal detected
              g_pHyprNotificationOverlay->addNotification("You have one or more incompatible xdg-desktop-portal impls installed. Please remove incompatible ones to avoid issues.",

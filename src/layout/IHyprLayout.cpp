@@ -16,6 +16,8 @@ void IHyprLayout::onWindowCreated(CWindow* pWindow) {
             pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
         }
 
+        pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
+
         onWindowCreatedTiling(pWindow);
     }
 }

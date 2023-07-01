@@ -209,6 +209,7 @@ void CConfigManager::setDefaultVars() {
     configValues["gestures:workspace_swipe_create_new"].intValue         = 1;
     configValues["gestures:workspace_swipe_forever"].intValue            = 0;
     configValues["gestures:workspace_swipe_numbered"].intValue           = 0;
+    configValues["gestures:workspace_swipe_use_r"].intValue              = 0;
 
     configValues["xwayland:use_nearest_neighbor"].intValue = 1;
     configValues["xwayland:force_zero_scaling"].intValue   = 0;
@@ -1565,13 +1566,13 @@ void CConfigManager::loadConfigLoadVars() {
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped)
             continue;
-        
+
         w->updateDynamicRules();
     }
-    
+
     // Update window border colors
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
-    
+
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
 

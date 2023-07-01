@@ -97,9 +97,8 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
 
         // reject any windows with size <= 5x5
-        if (pWindow->m_vRealSize.goalv().x <= 5 || pWindow->m_vRealSize.goalv().y <= 5) {
+        if (pWindow->m_vRealSize.goalv().x <= 5 || pWindow->m_vRealSize.goalv().y <= 5)
             pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
-        }
 
         if (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect) {
 
@@ -147,11 +146,10 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups
 
-            if (const auto POPENMON = g_pCompositor->getMonitorFromVector(middlePoint); POPENMON->ID != PMONITOR->ID) {
+            if (const auto POPENMON = g_pCompositor->getMonitorFromVector(middlePoint); POPENMON->ID != PMONITOR->ID)
                 pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y) - POPENMON->vecPosition + PMONITOR->vecPosition;
-            } else {
+            else
                 pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
-            }
         }
     }
 

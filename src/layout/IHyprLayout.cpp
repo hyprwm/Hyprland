@@ -203,7 +203,7 @@ void IHyprLayout::onBeginDragWindow() {
     if (!DRAGGINGWINDOW->m_bIsFloating) {
         if (g_pInputManager->dragMode == MBIND_MOVE) {
             DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize.goalv() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
-            changeWindowFloatingMode(DRAGGINGWINDOW);
+            changeWindowFloatingMode(DRAGGINGWINDOW, false);
             DRAGGINGWINDOW->m_bIsFloating    = true;
             DRAGGINGWINDOW->m_bDraggingTiled = true;
 
@@ -261,7 +261,7 @@ void IHyprLayout::onEndDragWindow() {
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;
         g_pInputManager->refocus();
-        changeWindowFloatingMode(DRAGGINGWINDOW);
+        changeWindowFloatingMode(DRAGGINGWINDOW, false);
         DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
     }
 
@@ -366,7 +366,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }
 
-void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
+void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow, bool preserveSpecialWorkspace) {
 
     if (pWindow->m_bIsFullscreen) {
         Debug::log(LOG, "Rejecting a change float order because window is fullscreen.");
@@ -385,10 +385,13 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {
-        const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
-        pWindow->m_iMonitorID = PNEWMON->ID;
-        pWindow->moveToWorkspace(PNEWMON->activeWorkspace);
-        pWindow->updateGroupOutputs();
+        // don't move the window out of the special workspace if requested
+        if (!preserveSpecialWorkspace || !g_pCompositor->isWorkspaceSpecial(pWindow->m_iWorkspaceID)) {
+            const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
+            pWindow->m_iMonitorID = PNEWMON->ID;
+            pWindow->moveToWorkspace(PNEWMON->activeWorkspace);
+            pWindow->updateGroupOutputs();
+        }
 
         // save real pos cuz the func applies the default 5,5 mid
         const auto PSAVEDPOS  = pWindow->m_vRealPosition.goalv();

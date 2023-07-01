@@ -64,7 +64,7 @@ interface IHyprLayout {
     /*
         Called when a window is requested to be floated
     */
-    virtual void changeWindowFloatingMode(CWindow*);
+    virtual void changeWindowFloatingMode(CWindow*, bool);
     /*
         Called when a window is clicked on, beginning a drag
         this might be a resize, move, whatever the layout defines it

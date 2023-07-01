@@ -683,14 +683,11 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
     // remove drag status
     g_pInputManager->currentlyDraggedWindow = nullptr;
 
-    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID))
-        return;
-
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
 
         const auto PCURRENT     = PWINDOW->getGroupCurrent();
         PCURRENT->m_bIsFloating = !PCURRENT->m_bIsFloating;
-        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
+        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT, true);
 
         CWindow* curr = PCURRENT->m_sGroupData.pNextWindow;
         while (curr != PCURRENT) {
@@ -703,7 +700,7 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
 
         PWINDOW->updateDynamicRules();
 
-        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
+        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW, true);
     }
 }
 
@@ -1393,7 +1390,7 @@ void CKeybindManager::workspaceOpt(std::string args) {
                 const auto SAVEDSIZE = w->m_vRealSize.vec();
 
                 w->m_bIsFloating = PWORKSPACE->m_bDefaultFloating;
-                g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(w);
+                g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(w, false);
 
                 if (PWORKSPACE->m_bDefaultFloating) {
                     w->m_vRealPosition.setValueAndWarp(SAVEDPOS);

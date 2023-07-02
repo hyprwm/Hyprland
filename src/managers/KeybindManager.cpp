@@ -1170,6 +1170,8 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
 void CKeybindManager::toggleGroup(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
+   
+    g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
     if (!PWINDOW)
         return;

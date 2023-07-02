@@ -1170,11 +1170,11 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
 void CKeybindManager::toggleGroup(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
-   
-    g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
     if (!PWINDOW)
         return;
+
+    g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
     if (!PWINDOW->m_sGroupData.pNextWindow) {
         PWINDOW->m_sGroupData.pNextWindow = PWINDOW;
@@ -1219,7 +1219,6 @@ void CKeybindManager::toggleGroup(std::string args) {
 
 void CKeybindManager::changeGroupActive(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
-
     if (!PWINDOW)
         return;
 
@@ -2029,11 +2028,16 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+    if (!PWINDOW->m_sGroupData.pNextWindow) {
+        PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
+    }
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW); // This removes groupped property!
+
+    PWINDOW->m_sGroupData.locked = false;
+    PWINDOW->m_sGroupData.head   = false;
 
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
-
-    PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
 
     PWINDOW->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);

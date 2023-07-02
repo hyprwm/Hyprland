@@ -1219,6 +1219,7 @@ void CKeybindManager::toggleGroup(std::string args) {
 
 void CKeybindManager::changeGroupActive(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
     if (!PWINDOW)
         return;
 

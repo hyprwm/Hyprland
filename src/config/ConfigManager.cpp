@@ -1779,6 +1779,10 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 
     Debug::log(LOG, "Searching for matching rules for %s (title: %s)", appidclass.c_str(), title.c_str());
 
+    // since some rules will be applied later, we need to store some flags
+    bool hasFloating   = pWindow->m_bIsFloating;
+    bool hasFullscreen = pWindow->m_bIsFullscreen;
+
     for (auto& rule : m_dWindowRules) {
         // check if we have a matching rule
         if (!rule.v2) {
@@ -1821,12 +1825,12 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
                 }
 
                 if (rule.bFloating != -1) {
-                    if (pWindow->m_bIsFloating != rule.bFloating)
+                    if (hasFloating != rule.bFloating)
                         continue;
                 }
 
                 if (rule.bFullscreen != -1) {
-                    if (pWindow->m_bIsFullscreen != rule.bFullscreen)
+                    if (hasFullscreen != rule.bFullscreen)
                         continue;
                 }
 
@@ -1844,6 +1848,11 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         Debug::log(LOG, "Window rule %s -> %s matched %lx [%s]", rule.szRule.c_str(), rule.szValue.c_str(), pWindow, pWindow->m_szTitle.c_str());
 
         returns.push_back(rule);
+
+        if (rule.szRule == "float")
+            hasFloating = true;
+        else if (rule.szRule == "fullscreen")
+            hasFullscreen = true;
     }
 
     std::vector<uint64_t> PIDs = {(uint64_t)pWindow->getPID()};

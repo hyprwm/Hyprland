@@ -1207,10 +1207,12 @@ void CKeybindManager::toggleGroup(std::string args) {
                 w->m_sGroupData.head = false;
             }
 
+            g_pKeybindManager->m_bGroupsLocked = true;
             for (auto& w : members) {
                 g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
                 w->updateWindowDecos();
             }
+            g_pKeybindManager->m_bGroupsLocked = false;
         }
     }
 
@@ -2029,9 +2031,8 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
 
-    if (!PWINDOW->m_sGroupData.pNextWindow) {
+    if (!PWINDOW->m_sGroupData.pNextWindow)
         PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
-    }
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW); // This removes groupped property!
 
@@ -2039,9 +2040,10 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     PWINDOW->m_sGroupData.head   = false;
 
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
-
+    PWINDOWINDIR->setGroupCurrent(PWINDOW);
     PWINDOW->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
+    g_pCompositor->focusWindow(PWINDOW);
 }
 
 void CKeybindManager::moveOutOfGroup(std::string args) {

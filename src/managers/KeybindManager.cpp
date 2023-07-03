@@ -1207,12 +1207,13 @@ void CKeybindManager::toggleGroup(std::string args) {
                 w->m_sGroupData.head = false;
             }
 
+            bool prevState                     = g_pKeybindManager->m_bGroupsLocked;
             g_pKeybindManager->m_bGroupsLocked = true;
             for (auto& w : members) {
                 g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
                 w->updateWindowDecos();
             }
-            g_pKeybindManager->m_bGroupsLocked = false;
+            g_pKeybindManager->m_bGroupsLocked = prevState;
         }
     }
 

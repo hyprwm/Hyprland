@@ -95,7 +95,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
     if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && !g_pKeybindManager->m_bGroupsLocked &&
         OPENINGON != PNODE) { // target is an unlocked group
 
-        if (!pWindow->m_sGroupData.pNextWindow) { // source is not group
+        if (!pWindow->m_sGroupData.pNextWindow) { // source is not a group
             m_lMasterNodesData.remove(*PNODE);
             OPENINGON->pWindow->insertWindowToGroup(pWindow);
             OPENINGON->pWindow->setGroupCurrent(pWindow);
@@ -108,7 +108,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
             return;
         }
 
-        if (!pWindow->getGroupHead()->m_sGroupData.locked) { // source is a unlocked group
+        if (!pWindow->getGroupHead()->m_sGroupData.locked) { // source is an unlocked group
             m_lMasterNodesData.remove(*PNODE);
             OPENINGON->pWindow->insertWindowToGroup(pWindow);
             OPENINGON->pWindow->setGroupCurrent(pWindow);
@@ -294,7 +294,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if ((WINDOWS < 2) && !centerMasterWindow) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
-                                         PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+                                     PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || (orientation == ORIENTATION_CENTER && STACKWINDOWS <= 1)) {

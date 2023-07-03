@@ -670,9 +670,9 @@ void CWindow::insertWindowToGroup(CWindow* pWindow) {
     const auto PTAIL = getGroupTail();
 
     if (pWindow->m_sGroupData.pNextWindow) {
-        const auto SHEAD = pWindow->getGroupHead();
+        const auto            PHEAD = pWindow->getGroupHead();
         std::vector<CWindow*> members;
-        CWindow*              curr = SHEAD;
+        CWindow*              curr = PHEAD;
         do {
             const auto PLAST = curr;
             members.push_back(curr);
@@ -680,7 +680,7 @@ void CWindow::insertWindowToGroup(CWindow* pWindow) {
             PLAST->m_sGroupData.pNextWindow = nullptr;
             PLAST->m_sGroupData.head        = false;
             PLAST->m_sGroupData.locked      = false;
-        } while (curr != SHEAD);
+        } while (curr != PHEAD);
 
         for (auto& w : members) {
             insertWindowToGroup(w);

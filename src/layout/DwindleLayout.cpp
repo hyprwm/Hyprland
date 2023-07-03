@@ -314,7 +314,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     if (OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&
         !g_pKeybindManager->m_bGroupsLocked) { // target is an unlocked group
 
-        if (!pWindow->m_sGroupData.pNextWindow) { // source is not group
+        if (!pWindow->m_sGroupData.pNextWindow) { // source is not a group
             m_lDwindleNodesData.remove(*PNODE);
             OPENINGON->pWindow->insertWindowToGroup(pWindow);
             OPENINGON->pWindow->setGroupCurrent(pWindow);
@@ -327,7 +327,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             return;
         }
 
-        if (!pWindow->getGroupHead()->m_sGroupData.locked) { // source is a unlocked group
+        if (!pWindow->getGroupHead()->m_sGroupData.locked) { // source is an unlocked group
             m_lDwindleNodesData.remove(*PNODE);
             OPENINGON->pWindow->insertWindowToGroup(pWindow);
             OPENINGON->pWindow->setGroupCurrent(pWindow);

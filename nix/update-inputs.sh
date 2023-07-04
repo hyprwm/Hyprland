@@ -1,24 +1,25 @@
-#!/usr/bin/env -S nix shell nixpkgs#gawk nixpkgs#git nixpkgs#gnused nixpkgs#moreutils nixpkgs#jq nixpkgs#ripgrep -c bash
+#!/usr/bin/env -S nix shell nixpkgs#jq -c bash
 
-set -ex
+# Update inputs when the Mesa version is outdated. We don't want
+# incompatibilities between the user's system and Hyprland.
 
-# get wlroots revision from submodule
-SUB_REV=$(git submodule status | rg wlroots | awk '{ print substr($1,2)}')
-# and from lockfile
-CRT_REV=$(jq <flake.lock '.nodes.wlroots.locked.rev' -r)
+# get the current Nixpkgs revision
+REV=$(jq <flake.lock '.nodes.nixpkgs.locked.rev' -r)
+# check versions for current and remote nixpkgs' mesa
+CRT_VER=$(nix eval --raw github:nixos/nixpkgs/"$REV"#mesa.version)
+NEW_VER=$(nix eval --raw github:nixos/nixpkgs/nixos-unstable#mesa.version)
 
-if [ "$SUB_REV" != "$CRT_REV" ]; then
+if [ "$CRT_VER" != "$NEW_VER" ]; then
+  echo "Updating Mesa $CRT_VER -> $NEW_VER and flake inputs"
+
+  # keep wlroots rev, as we don't want to update it
+  WLR_REV=$(nix flake metadata --json | jq -r '.locks.nodes.wlroots.locked.rev')
+
   # update inputs to latest versions
   nix flake update
 
-  # update wlroots to submodule revision
-  nix flake lock --override-input wlroots "gitlab:wlroots/wlroots/$SUB_REV?host=gitlab.freedesktop.org"
-
-  # remove "dirty" mark from lockfile
-  jq <flake.lock 'del(.nodes.wlroots.original.rev)' | sponge flake.lock
-
-  # fix revision in wlroots.wrap
-  sed -Ei "s/[a-z0-9]{40}/$SUB_REV/g" subprojects/wlroots.wrap
+  # hold back wlroots (nix/update-wlroots.nix handles updating that)
+  nix flake lock --override-input wlroots "gitlab:wlroots/wlroots/$WLR_REV?host=gitlab.freedesktop.org"
 else
-  echo "wlroots is up to date!"
+  echo "nixpkgs is up to date!"
 fi

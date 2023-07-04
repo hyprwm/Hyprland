@@ -55,7 +55,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     // commit
     std::string wsname           = "";
     auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : (*PSWIPEUSER ? "r-1" : "m-1"), wsname);
-    auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : (*PSWIPEUSER ? "m+1" : "r+1"), wsname);
+    auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : (*PSWIPEUSER ? "r+1" : "m+1"), wsname);
 
     // If we've been swiping off the right end with PSWIPENEW enabled, there is
     // no workspace there yet, and we need to choose an ID for a new one now.
@@ -203,7 +203,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
 
     std::string wsname           = "";
     auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : (*PSWIPEUSER ? "r-1" : "m-1"), wsname);
-    auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : (*PSWIPEUSER ? "m+1" : "r+1"), wsname);
+    auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : (*PSWIPEUSER ? "r+1" : "m+1"), wsname);
 
     if ((workspaceIDLeft == INT_MAX || workspaceIDRight == INT_MAX || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID) && !*PSWIPENEW) {
         m_sActiveSwipe.pWorkspaceBegin = nullptr; // invalidate the swipe

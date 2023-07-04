@@ -2399,3 +2399,17 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
     if (FULLSCREEN)
         setWindowFullscreen(pWindow, true, FULLSCREENMODE);
 }
+
+CWindow* CCompositor::getForceFocus() {
+    for (auto& w : m_vWindows) {
+        if (!w->m_bIsMapped || w->isHidden() || !isWorkspaceVisible(w->m_iWorkspaceID))
+            continue;
+
+        if (!w->m_bStayFocused)
+            continue;
+
+        return w.get();
+    }
+
+    return nullptr;
+}

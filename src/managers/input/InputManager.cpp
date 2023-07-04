@@ -98,10 +98,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    if (m_pForcedFocus) {
-        pFoundWindow = m_pForcedFocus;
+    CWindow* forcedFocus = m_pForcedFocus;
+
+    if (!forcedFocus)
+        forcedFocus = g_pCompositor->getForceFocus();
+
+    if (forcedFocus) {
+        pFoundWindow = forcedFocus;
         surfacePos   = pFoundWindow->m_vRealPosition.vec();
-        foundSurface = m_pForcedFocus->m_pWLSurface.wlr();
+        foundSurface = pFoundWindow->m_pWLSurface.wlr();
     }
 
     // constraints

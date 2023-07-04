@@ -469,7 +469,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XWayland Window Late");
         PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_minimize, &Events::listener_requestMinimize, PWINDOW,
                                                            "Xwayland Window Late");
-        PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_maximize, &Events::listener_requestMaximize, PWINDOW,
+        PWINDOW->hyprListener_requestMaximize.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_maximize, &Events::listener_requestMaximize, PWINDOW,
                                                            "Xwayland Window Late");
 
         if (PWINDOW->m_iX11Type == 2)

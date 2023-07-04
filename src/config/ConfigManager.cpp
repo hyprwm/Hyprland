@@ -29,19 +29,21 @@ CConfigManager::CConfigManager() {
     populateEnvironment();
 }
 
-std::string CConfigManager::getMainConfigPath() {
-    if (!g_pCompositor->explicitConfigPath.empty())
-        return g_pCompositor->explicitConfigPath;
-
+std::string CConfigManager::getConfigDir() {
     static const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
     std::string        configPath;
     if (!xdgConfigHome)
         configPath = getenv("HOME") + std::string("/.config");
     else
         configPath = xdgConfigHome;
-    std::string configDebug = "/hypr/hyprlandd.conf";
-    std::string config      = "/hypr/hyprland.conf";
-    return configPath + (ISDEBUG ? configDebug : config);
+    return configPath;
+}
+
+std::string CConfigManager::getMainConfigPath() {
+    if (!g_pCompositor->explicitConfigPath.empty())
+        return g_pCompositor->explicitConfigPath;
+
+    return getConfigDir() + (ISDEBUG ? "/hypr/hyprlandd.conf" : "/hypr/hyprland.conf");
 }
 
 void CConfigManager::populateEnvironment() {
@@ -1313,7 +1315,7 @@ void CConfigManager::loadConfigLoadVars() {
     Debug::log(LOG, "Using config: %s", mainConfigPath.c_str());
     configPaths.push_back(mainConfigPath);
     std::string configPath = mainConfigPath.substr(0, mainConfigPath.find_last_of('/'));
-    // find_last_of never returns npos since main_config atleast has /hpyr/
+    // find_last_of never returns npos since main_config at least has /hypr/
 
     if (!std::filesystem::is_directory(configPath)) {
         Debug::log(WARN, "Creating config home directory");

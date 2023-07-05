@@ -1305,7 +1305,7 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     sockaddr_in clientAddress;
     socklen_t   clientSize = sizeof(clientAddress);
 
-    const auto  ACCEPTEDCONNECTION = accept(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize);
+    const auto  ACCEPTEDCONNECTION = accept4(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
 
     char        readBuffer[1024];
 
@@ -1336,7 +1336,7 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
 void HyprCtl::startHyprCtlSocket() {
 
-    iSocketFD = socket(AF_UNIX, SOCK_STREAM, 0);
+    iSocketFD = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
     if (iSocketFD < 0) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");

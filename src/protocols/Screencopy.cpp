@@ -233,14 +233,14 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     }
 
     if (box.width == 0 && box.height == 0)
-        PFRAME->box = {0, 0, (int)(PFRAME->pMonitor->vecSize.x * PFRAME->pMonitor->scale), (int)(PFRAME->pMonitor->vecSize.y * PFRAME->pMonitor->scale)};
+        PFRAME->box = {0, 0, (int)(PFRAME->pMonitor->vecSize.x), (int)(PFRAME->pMonitor->vecSize.y)};
     else {
         PFRAME->box = box;
-        scaleBox(&PFRAME->box, PFRAME->pMonitor->scale);
     }
     int ow, oh;
     wlr_output_effective_resolution(PFRAME->pMonitor->output, &ow, &oh);
     wlr_box_transform(&PFRAME->box, &PFRAME->box, PFRAME->pMonitor->transform, ow, oh);
+    scaleBox(&PFRAME->box, PFRAME->pMonitor->scale);
 
     PFRAME->shmStride = (PSHMINFO->bpp / 8) * PFRAME->box.width;
 

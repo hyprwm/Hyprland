@@ -10,7 +10,8 @@
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
 
-enum eIdleInhibitMode {
+enum eIdleInhibitMode
+{
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
@@ -277,6 +278,9 @@ class CWindow {
 
     // swallowing
     CWindow* m_pSwallowed = nullptr;
+
+    // focus stuff
+    bool m_bStayFocused = false;
 
     // for toplevel monitor events
     uint64_t m_iLastToplevelMonitorID = -1;

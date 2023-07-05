@@ -311,18 +311,33 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     }
 
     // if it's a group, add the window
-    if (OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && // target is an unlocked group
-        (!pWindow->m_sGroupData.pNextWindow || !pWindow->getGroupHead()->m_sGroupData.locked)                       // source is not group or is a unlocked group
-        && !g_pKeybindManager->m_bGroupsLocked) {
-        m_lDwindleNodesData.remove(*PNODE);
+    if (OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&
+        !g_pKeybindManager->m_bGroupsLocked) { // target is an unlocked group
 
-        OPENINGON->pWindow->insertWindowToGroup(pWindow);
+        if (!pWindow->m_sGroupData.pNextWindow) { // source is not a group
+            m_lDwindleNodesData.remove(*PNODE);
+            OPENINGON->pWindow->insertWindowToGroup(pWindow);
+            OPENINGON->pWindow->setGroupCurrent(pWindow);
 
-        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-        pWindow->updateWindowDecos();
-        recalculateWindow(pWindow);
+            pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+            pWindow->updateWindowDecos();
+            recalculateWindow(pWindow);
 
-        return;
+            g_pCompositor->focusWindow(pWindow);
+            return;
+        }
+
+        if (!pWindow->getGroupHead()->m_sGroupData.locked) { // source is an unlocked group
+            m_lDwindleNodesData.remove(*PNODE);
+            OPENINGON->pWindow->insertWindowToGroup(pWindow);
+            OPENINGON->pWindow->setGroupCurrent(pWindow);
+
+            pWindow->updateWindowDecos();
+            recalculateWindow(pWindow);
+
+            g_pCompositor->focusWindow(pWindow);
+            return;
+        }
     }
 
     // If it's not, get the node under our cursor

@@ -91,16 +91,34 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :
                       getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
-    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && // target is an unlocked group
-        (!pWindow->m_sGroupData.pNextWindow || !pWindow->getGroupHead()->m_sGroupData.locked)                                    // source is not group or is an unlocked group
-        && OPENINGON != PNODE && !g_pKeybindManager->m_bGroupsLocked) {
-        m_lMasterNodesData.remove(*PNODE);
+    // if it's a group, add the window
+    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && !g_pKeybindManager->m_bGroupsLocked &&
+        OPENINGON != PNODE) { // target is an unlocked group
 
-        OPENINGON->pWindow->insertWindowToGroup(pWindow);
+        if (!pWindow->m_sGroupData.pNextWindow) { // source is not a group
+            m_lMasterNodesData.remove(*PNODE);
+            OPENINGON->pWindow->insertWindowToGroup(pWindow);
+            OPENINGON->pWindow->setGroupCurrent(pWindow);
 
-        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+            pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+            pWindow->updateWindowDecos();
+            recalculateWindow(pWindow);
 
-        return;
+            g_pCompositor->focusWindow(pWindow);
+            return;
+        }
+
+        if (!pWindow->getGroupHead()->m_sGroupData.locked) { // source is an unlocked group
+            m_lMasterNodesData.remove(*PNODE);
+            OPENINGON->pWindow->insertWindowToGroup(pWindow);
+            OPENINGON->pWindow->setGroupCurrent(pWindow);
+
+            pWindow->updateWindowDecos();
+            recalculateWindow(pWindow);
+
+            g_pCompositor->focusWindow(pWindow);
+            return;
+        }
     }
 
     if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster)) {
@@ -276,7 +294,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if ((WINDOWS < 2) && !centerMasterWindow) {
         PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
         PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
-                                         PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+                                     PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || (orientation == ORIENTATION_CENTER && STACKWINDOWS <= 1)) {

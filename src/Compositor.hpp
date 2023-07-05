@@ -194,6 +194,7 @@ class CCompositor {
     int            getNewSpecialID();
     void           performUserChecks();
     void           moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace);
+    CWindow*       getForceFocus();
 
     std::string    explicitConfigPath;
 

@@ -43,7 +43,7 @@ std::string CConfigManager::getMainConfigPath() {
     if (!g_pCompositor->explicitConfigPath.empty())
         return g_pCompositor->explicitConfigPath;
 
-    return getConfigDir() + (ISDEBUG ? "/hypr/hyprlandd.conf" : "/hypr/hyprland.conf");
+    return getConfigDir() + "/hypr/" + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
 }
 
 void CConfigManager::populateEnvironment() {
@@ -1322,7 +1322,7 @@ void CConfigManager::loadConfigLoadVars() {
         try {
             std::filesystem::create_directories(configPath);
         } catch (...) {
-            parseError = "Broken config file! (Could not create directory)";
+            parseError = "Broken config file! (Could not create config directory)";
             return;
         }
     }

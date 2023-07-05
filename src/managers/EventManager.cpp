@@ -30,6 +30,8 @@ int fdHandleWrite(int fd, uint32_t mask, void* data) {
                 it++;
             }
         }
+
+        close(fd);
     };
 
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP) {

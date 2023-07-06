@@ -310,6 +310,11 @@ void CCompositor::cleanup() {
 
     m_bIsShuttingDown = true;
 
+#ifdef USES_SYSTEMD
+    if (sd_booted() > 0)
+        sd_notify(0, "STOPPING=1");
+#endif
+
     // unload all remaining plugins while the compositor is
     // still in a normal working state.
     g_pPluginSystem->unloadAllPlugins();

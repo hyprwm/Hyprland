@@ -22,7 +22,7 @@ jobs:
           experimental-features = nix-command flakes
 
     - name: Update lockfile
-      run: nix/update-nixpkgs.sh
+      run: nix/update-inputs.sh
 
     - uses: cachix/cachix-action@v12
       with:

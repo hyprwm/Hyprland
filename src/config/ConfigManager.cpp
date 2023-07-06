@@ -1654,7 +1654,7 @@ SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
     return copy;
 }
 
-SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val) {
+SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val, std::optional<bool> touchpad) {
     std::lock_guard<std::mutex> lg(configmtx);
 
     const auto                  it = deviceConfigs.find(dev);
@@ -1673,8 +1673,8 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
             if (foundIt == std::string::npos)
                 continue;
 
-            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + val || cv.first == "input:touchdevice:" + val || cv.first == "input:tablet:" + val ||
-                cv.first == "input:tablet:" + val) {
+            if (cv.first == "input:" + val || (touchpad.value_or(true) && cv.first == "input:touchpad:" + val) || cv.first == "input:touchdevice:" + val ||
+                cv.first == "input:tablet:" + val || cv.first == "input:tablet:" + val) {
                 copy = cv.second;
             }
         }
@@ -1700,16 +1700,16 @@ std::string CConfigManager::getString(const std::string& v) {
     return VAL;
 }
 
-int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v) {
-    return getConfigValueSafeDevice(dev, v).intValue;
+int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v, std::optional<bool> touchpad) {
+    return getConfigValueSafeDevice(dev, v, touchpad).intValue;
 }
 
-float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& v) {
-    return getConfigValueSafeDevice(dev, v).floatValue;
+float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& v, std::optional<bool> touchpad) {
+    return getConfigValueSafeDevice(dev, v, touchpad).floatValue;
 }
 
-std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v) {
-    auto VAL = getConfigValueSafeDevice(dev, v).strValue;
+std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v, std::optional<bool> touchpad) {
+    auto VAL = getConfigValueSafeDevice(dev, v, touchpad).strValue;
 
     if (VAL == STRVAL_EMPTY)
         return "";

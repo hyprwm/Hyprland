@@ -637,7 +637,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
             const auto PKEYBOARD = (SKeyboard*)owner;
             const auto LAYOUT    = getActiveLayoutForKeyboard(PKEYBOARD);
 
-            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT}, true); // force as this should ALWAYS be sent
+            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{PKEYBOARD, (void*)&LAYOUT}));
         },
         PNEWKEYBOARD, "Keyboard");
@@ -676,7 +676,7 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
             const auto PKEYBOARD = (SKeyboard*)owner;
             const auto LAYOUT    = getActiveLayoutForKeyboard(PKEYBOARD);
 
-            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT}, true); // force as this should ALWAYS be sent
+            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{PKEYBOARD, (void*)&LAYOUT}));
         },
         PNEWKEYBOARD, "Keyboard");
@@ -820,7 +820,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     const auto LAYOUTSTR = getActiveLayoutForKeyboard(pKeyboard);
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUTSTR}, true); // force as this should ALWAYS be sent
+    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUTSTR});
     EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUTSTR}));
 
     Debug::log(LOG, "Set the keyboard layout to %s and variant to %s for keyboard \"%s\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
@@ -1106,7 +1106,7 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
 
         const auto LAYOUT = getActiveLayoutForKeyboard(pKeyboard);
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUT}, true); // force as this should ALWAYS be sent
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUT});
         EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUT}));
     }
 }

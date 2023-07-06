@@ -36,7 +36,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     m_vRenderOffset.registerVar();
     m_fAlpha.registerVar();
 
-    g_pEventManager->postEvent({"createworkspace", m_szName}, true);
+    g_pEventManager->postEvent({"createworkspace", m_szName});
     EMIT_HOOK_EVENT("createWorkspace", this);
 }
 
@@ -51,7 +51,7 @@ CWorkspace::~CWorkspace() {
         m_pWlrHandle = nullptr;
     }
 
-    g_pEventManager->postEvent({"destroyworkspace", m_szName}, true);
+    g_pEventManager->postEvent({"destroyworkspace", m_szName});
     EMIT_HOOK_EVENT("destroyWorkspace", this);
 }
 

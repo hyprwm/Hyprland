@@ -108,11 +108,5 @@ int main(int argc, char** argv) {
         sd_notify(0, "STOPPING=1");
 #endif
 
-    if (g_pCompositor->m_sWLDisplay)
-        wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
-
-    if (g_pCompositor->m_sWLDisplay)
-        wl_display_destroy(g_pCompositor->m_sWLDisplay);
-
     return EXIT_SUCCESS;
 }

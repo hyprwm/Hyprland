@@ -175,6 +175,8 @@ class CConfigManager {
 
     SConfigValue*                                                   getConfigValuePtr(const std::string&);
     SConfigValue*                                                   getConfigValuePtrSafe(const std::string&);
+    static std::string                                              getConfigDir();
+    static std::string                                              getMainConfigPath();
 
     SMonitorRule                                                    getMonitorRuleFor(const std::string&, const std::string& displayName = "");
     SWorkspaceRule                                                  getWorkspaceRuleFor(CWorkspace*);

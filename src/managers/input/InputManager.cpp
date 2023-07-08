@@ -98,6 +98,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
+    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+
     CWindow* forcedFocus = m_pForcedFocus;
 
     if (!forcedFocus)

@@ -76,7 +76,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         Debug::log(LOG, "Adding completely new monitor.");
         PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
 
-        (*PNEWMONITORWRAP)->ID = g_pCompositor->getNextAvailableMonitorID();
+        (*PNEWMONITORWRAP)->ID = g_pCompositor->getNextAvailableMonitorID(OUTPUT->name);
     }
 
     const auto PNEWMONITOR = PNEWMONITORWRAP->get();

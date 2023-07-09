@@ -2106,7 +2106,11 @@ void CConfigManager::addParseError(const std::string& err) {
 }
 
 CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
-    return g_pCompositor->getMonitorFromName(getBoundMonitorStringForWS(wsname));
+    auto monitor = getBoundMonitorStringForWS(wsname);
+    if (monitor.substr(0, 5) == "desc:")
+        return g_pCompositor->getMonitorFromDesc(monitor.substr(5));
+    else
+        return g_pCompositor->getMonitorFromName(monitor);
 }
 
 std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname) {

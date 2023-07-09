@@ -28,8 +28,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -125,6 +124,7 @@ class CCompositor {
 
     CMonitor*      getMonitorFromID(const int&);
     CMonitor*      getMonitorFromName(const std::string&);
+    CMonitor*      getMonitorFromDesc(const std::string&);
     CMonitor*      getMonitorFromCursor();
     CMonitor*      getMonitorFromVector(const Vector2D&);
     void           removeWindowFromVectorSafe(CWindow*);

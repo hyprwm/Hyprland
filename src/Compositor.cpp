@@ -498,6 +498,16 @@ CMonitor* CCompositor::getMonitorFromName(const std::string& name) {
     return nullptr;
 }
 
+CMonitor* CCompositor::getMonitorFromDesc(const std::string& desc) {
+    for (auto& m : m_vMonitors) {
+        if (desc == m->output->description) {
+            return m.get();
+        }
+    }
+
+    return nullptr;
+}
+
 CMonitor* CCompositor::getMonitorFromCursor() {
     const auto COORDS = Vector2D(m_sWLRCursor->x, m_sWLRCursor->y);
 

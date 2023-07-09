@@ -32,6 +32,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["centerwindow"]                  = centerWindow;
     m_mDispatchers["togglegroup"]                   = toggleGroup;
     m_mDispatchers["changegroupactive"]             = changeGroupActive;
+    m_mDispatchers["moveactiveintragroup"]          = moveActiveIntraGroup;
     m_mDispatchers["togglesplit"]                   = toggleSplit;
     m_mDispatchers["splitratio"]                    = alterSplitRatio;
     m_mDispatchers["focusmonitor"]                  = focusMonitor;
@@ -1239,6 +1240,54 @@ void CKeybindManager::changeGroupActive(std::string args) {
         while (curr->m_sGroupData.pNextWindow != PWINDOW)
             curr = curr->m_sGroupData.pNextWindow;
         PWINDOW->setGroupCurrent(curr);
+    }
+}
+
+void CKeybindManager::moveActiveIntraGroup(std::string args) {
+    auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW)
+        return;
+
+    if (!PWINDOW->m_sGroupData.pNextWindow)
+        return;
+
+    if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW)
+        return;
+
+    CWindow* last = PWINDOW->m_sGroupData.pNextWindow;
+
+    while (last->m_sGroupData.pNextWindow != PWINDOW)
+        last = last->m_sGroupData.pNextWindow;
+
+    Debug::log(WARN, "switching windows");
+    const auto PWINDOWTOCHANGETO = args == "b" ? last : PWINDOW->m_sGroupData.pNextWindow;
+    if (PWINDOWTOCHANGETO && PWINDOWTOCHANGETO->getGroupCurrent() == PWINDOW->getGroupCurrent()) {
+    Debug::log(WARN, "switching windows %p %p", PWINDOW, PWINDOWTOCHANGETO);
+        g_pLayoutManager->getCurrentLayout()->switchTabs(PWINDOW, PWINDOWTOCHANGETO);
+    Debug::log(WARN, "switched windows %p %p", PWINDOW, PWINDOWTOCHANGETO);
+        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.vec() + PWINDOWTOCHANGETO->m_vRealSize.vec() / 2.0);
+        return;
+    }
+
+    if (args == "b" || args == "prev") {
+        // swap PWINDOW and nextToLast
+        CWindow* temp                     = last->m_sGroupData.pNextWindow;
+        PWINDOW                           = last;
+        PWINDOW->m_sGroupData.pNextWindow = temp;
+
+        PWINDOW->setGroupCurrent(PWINDOW);
+    } else {
+        // swap PWINDOW and PWINDOW->m_sGroupData.pNextWindow
+        // PWINDOW is now the second window in the group
+        // PWINDOW->m_sGroupData.pNextWindow is now the current window
+        // PWINDOW->m_sGroupData.pNextWindow is now the last window in the group
+        // PWINDOW->m_sGroupData.pNextWindow is now the current window
+        CWindow* next                  = PWINDOW->m_sGroupData.pNextWindow;
+        CWindow* temp                  = PWINDOW;
+        PWINDOW                        = next;
+        last->m_sGroupData.pNextWindow = temp;
+        PWINDOW->setGroupCurrent(PWINDOW);
     }
 }
 

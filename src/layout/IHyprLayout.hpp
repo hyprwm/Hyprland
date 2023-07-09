@@ -122,6 +122,8 @@ interface IHyprLayout {
     */
     virtual void switchWindows(CWindow*, CWindow*) = 0;
 
+    virtual void switchTabs(CWindow*, CWindow*) = 0;
+
     /*
         Called when the user requests to change the splitratio by or to X
         on a window

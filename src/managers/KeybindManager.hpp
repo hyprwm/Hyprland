@@ -112,6 +112,7 @@ class CKeybindManager {
     static void     swapActive(std::string);
     static void     toggleGroup(std::string);
     static void     changeGroupActive(std::string);
+    static void     moveActiveIntraGroup(std::string);
     static void     alterSplitRatio(std::string);
     static void     focusMonitor(std::string);
     static void     toggleSplit(std::string);

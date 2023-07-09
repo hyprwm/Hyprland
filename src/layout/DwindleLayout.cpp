@@ -1,5 +1,7 @@
+#include "../debug/Log.hpp"
 #include "DwindleLayout.hpp"
 #include "../Compositor.hpp"
+#include <iostream>
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
@@ -801,7 +803,6 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
 
 void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     // windows should be valid, insallah
-
     auto PNODE  = getNodeFromWindow(pWindow);
     auto PNODE2 = getNodeFromWindow(pWindow2);
 
@@ -844,6 +845,56 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
 
     g_pHyprRenderer->damageWindow(pWindow);
     g_pHyprRenderer->damageWindow(pWindow2);
+}
+
+void CHyprDwindleLayout::switchTabs(CWindow* pWindow, CWindow* pWindow2) {
+    if (pWindow == pWindow2) {
+        return;
+    }
+
+    auto PNODE = getNodeFromWindow(pWindow);
+
+    if (pWindow->m_sGroupData.pNextWindow == pWindow2 && pWindow2->m_sGroupData.pNextWindow == pWindow) {
+        if (pWindow->m_sGroupData.head) {
+            pWindow->m_sGroupData.head  = false;
+            pWindow2->m_sGroupData.head = true;
+        } else {
+            pWindow->m_sGroupData.head  = true;
+            pWindow2->m_sGroupData.head = false;
+        }
+    } else if (pWindow->m_sGroupData.pNextWindow == pWindow2) {
+        CWindow* oneBefore = pWindow;
+        if (pWindow->m_sGroupData.head) {
+            pWindow->m_sGroupData.head  = false;
+            pWindow2->m_sGroupData.head = true;
+        } else if (pWindow2->m_sGroupData.head) {
+            pWindow2->m_sGroupData.head = false;
+            pWindow->m_sGroupData.head  = true;
+        }
+        while (oneBefore->m_sGroupData.pNextWindow != pWindow)
+            oneBefore = oneBefore->m_sGroupData.pNextWindow;
+        oneBefore->m_sGroupData.pNextWindow = pWindow2;
+        pWindow->m_sGroupData.pNextWindow   = pWindow2->m_sGroupData.pNextWindow;
+        pWindow2->m_sGroupData.pNextWindow  = pWindow;
+    } else if (pWindow2->m_sGroupData.pNextWindow == pWindow) {
+        CWindow* oneBefore = pWindow;
+        while (oneBefore->m_sGroupData.pNextWindow != pWindow2) {
+            oneBefore = oneBefore->m_sGroupData.pNextWindow;
+        }
+        if (pWindow->m_sGroupData.head) {
+            pWindow->m_sGroupData.head  = false;
+            pWindow2->m_sGroupData.head = true;
+        } else if (pWindow2->m_sGroupData.head) {
+            pWindow2->m_sGroupData.head = false;
+            pWindow->m_sGroupData.head   = true;
+        }
+        oneBefore->m_sGroupData.pNextWindow = pWindow;
+        pWindow2->m_sGroupData.pNextWindow  = pWindow->m_sGroupData.pNextWindow;
+        pWindow->m_sGroupData.pNextWindow   = pWindow2;
+    } else
+        return;
+    getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
+    g_pHyprRenderer->damageWindow(pWindow);
 }
 
 void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {

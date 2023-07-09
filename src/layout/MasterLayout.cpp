@@ -780,6 +780,36 @@ void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     prepareNewFocus(pWindow2, inheritFullscreen);
 }
 
+void CHyprMasterLayout::switchTabs(CWindow* pWindow, CWindow* pWindow2) {
+    // windows should be valid, insallah
+
+    const auto PNODE  = getNodeFromWindow(pWindow);
+    const auto PNODE2 = getNodeFromWindow(pWindow2);
+
+    if (!PNODE2 || !PNODE)
+        return;
+
+    const auto inheritFullscreen = prepareLoseFocus(pWindow);
+
+    if (PNODE->workspaceID != PNODE2->workspaceID) {
+        std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
+        std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
+    }
+
+    // massive hack: just swap window pointers, lol
+    PNODE->pWindow  = pWindow2;
+    PNODE2->pWindow = pWindow;
+
+    recalculateMonitor(pWindow->m_iMonitorID);
+    if (PNODE2->workspaceID != PNODE->workspaceID)
+        recalculateMonitor(pWindow2->m_iMonitorID);
+
+    g_pHyprRenderer->damageWindow(pWindow);
+    g_pHyprRenderer->damageWindow(pWindow2);
+
+    prepareNewFocus(pWindow2, inheritFullscreen);
+}
+
 void CHyprMasterLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {
     // window should be valid, insallah
 

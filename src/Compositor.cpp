@@ -1,6 +1,7 @@
 #include "Compositor.hpp"
 #include "helpers/Splashes.hpp"
 #include <random>
+#include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/CrashReporter.hpp"
 #ifdef USES_SYSTEMD
@@ -1697,14 +1698,23 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
         d->updateWindow(pWindow);
 }
 
-int CCompositor::getNextAvailableMonitorID() {
-    int64_t topID = -1;
-    for (auto& m : m_vRealMonitors) {
-        if ((int64_t)m->ID > topID)
-            topID = m->ID;
+int CCompositor::getNextAvailableMonitorID(std::string const& name) {
+    // reuse ID if it's already in the map
+    if (m_mMonitorIDMap.contains(name))
+        return m_mMonitorIDMap[name];
+
+    // otherwise, find minimum available ID that is not in the map
+    std::unordered_set<int> usedIDs;
+    for (auto const& monitor : m_vRealMonitors) {
+        usedIDs.insert(monitor->ID);
     }
 
-    return topID + 1;
+    int nextID = 0;
+    while (usedIDs.count(nextID) > 0) {
+        nextID++;
+    }
+    m_mMonitorIDMap[name] = nextID;
+    return nextID;
 }
 
 void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB) {

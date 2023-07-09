@@ -101,6 +101,8 @@ class CCompositor {
     std::vector<CWindow*>                     m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
 
+    std::unordered_map<std::string, int64_t>  m_mMonitorIDMap;
+
     void                                      initServer();
     void                                      startCompositor();
     void                                      cleanup();
@@ -168,7 +170,7 @@ class CCompositor {
     CMonitor*      getMonitorInDirection(const char&);
     void           updateAllWindowsAnimatedDecorationValues();
     void           updateWindowAnimatedDecorationValues(CWindow*);
-    int            getNextAvailableMonitorID();
+    int            getNextAvailableMonitorID(std::string const & name);
     void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*);
     void           swapActiveWorkspaces(CMonitor*, CMonitor*);
     CMonitor*      getMonitorFromString(const std::string&);

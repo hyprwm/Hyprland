@@ -28,8 +28,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -101,6 +100,8 @@ class CCompositor {
     std::vector<CWindow*>                     m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
 
+    std::unordered_map<std::string, int64_t>  m_mMonitorIDMap;
+
     void                                      initServer();
     void                                      startCompositor();
     void                                      cleanup();
@@ -123,6 +124,7 @@ class CCompositor {
 
     CMonitor*      getMonitorFromID(const int&);
     CMonitor*      getMonitorFromName(const std::string&);
+    CMonitor*      getMonitorFromDesc(const std::string&);
     CMonitor*      getMonitorFromCursor();
     CMonitor*      getMonitorFromVector(const Vector2D&);
     void           removeWindowFromVectorSafe(CWindow*);
@@ -168,7 +170,7 @@ class CCompositor {
     CMonitor*      getMonitorInDirection(const char&);
     void           updateAllWindowsAnimatedDecorationValues();
     void           updateWindowAnimatedDecorationValues(CWindow*);
-    int            getNextAvailableMonitorID();
+    int            getNextAvailableMonitorID(std::string const & name);
     void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*);
     void           swapActiveWorkspaces(CMonitor*, CMonitor*);
     CMonitor*      getMonitorFromString(const std::string&);

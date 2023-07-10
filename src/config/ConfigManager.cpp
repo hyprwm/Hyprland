@@ -24,20 +24,29 @@ CConfigManager::CConfigManager() {
     setDefaultVars();
     setDefaultAnimationVars();
 
-    std::string CONFIGPATH;
-    if (g_pCompositor->explicitConfigPath == "") {
-        static const char* const ENVHOME = getenv("HOME");
-        CONFIGPATH                       = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
-    } else {
-        CONFIGPATH = g_pCompositor->explicitConfigPath;
-    }
-
-    configPaths.emplace_back(CONFIGPATH);
+    configPaths.emplace_back(getMainConfigPath());
 
     Debug::disableLogs = &configValues["debug:disable_logs"].intValue;
     Debug::disableTime = &configValues["debug:disable_time"].intValue;
 
     populateEnvironment();
+}
+
+std::string CConfigManager::getConfigDir() {
+    static const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
+    std::string        configPath;
+    if (!xdgConfigHome)
+        configPath = getenv("HOME") + std::string("/.config");
+    else
+        configPath = xdgConfigHome;
+    return configPath;
+}
+
+std::string CConfigManager::getMainConfigPath() {
+    if (!g_pCompositor->explicitConfigPath.empty())
+        return g_pCompositor->explicitConfigPath;
+
+    return getConfigDir() + "/hypr/" + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
 }
 
 void CConfigManager::populateEnvironment() {
@@ -300,9 +309,7 @@ void CConfigManager::init() {
 
     loadConfigLoadVars();
 
-    const char* const ENVHOME = getenv("HOME");
-
-    const std::string CONFIGPATH = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
+    const std::string CONFIGPATH = getMainConfigPath();
 
     struct stat       fileStat;
     int               err = stat(CONFIGPATH.c_str(), &fileStat);
@@ -364,8 +371,10 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
             CONFIGENTRY = &it->second;
         }
 
-        if (!CONFIGENTRY)
+        if (!CONFIGENTRY) {
+            m_vFailedPluginConfigValues.emplace_back(std::make_pair<>(COMMAND, VALUE));
             return; // silent ignore
+        }
     } else {
         CONFIGENTRY = &configValues.at(COMMAND);
     }
@@ -1451,52 +1460,53 @@ void CConfigManager::loadConfigLoadVars() {
     setDefaultAnimationVars(); // reset anims
     m_vDeclaredPlugins.clear();
     m_dLayerRules.clear();
+    m_vFailedPluginConfigValues.clear();
 
     // paths
     configPaths.clear();
+    std::string mainConfigPath = getMainConfigPath();
+    Debug::log(LOG, "Using config: %s", mainConfigPath.c_str());
+    configPaths.push_back(mainConfigPath);
+    std::string configPath = mainConfigPath.substr(0, mainConfigPath.find_last_of('/'));
+    // find_last_of never returns npos since main_config at least has /hypr/
 
-    std::string              CONFIGPATH;
-
-    static const char* const ENVHOME          = getenv("HOME");
-    const std::string        CONFIGPARENTPATH = ENVHOME + (std::string) "/.config/hypr/";
-
-    if (g_pCompositor->explicitConfigPath == "") {
-        CONFIGPATH = CONFIGPARENTPATH + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
-    } else {
-        CONFIGPATH = g_pCompositor->explicitConfigPath;
+    if (!std::filesystem::is_directory(configPath)) {
+        Debug::log(WARN, "Creating config home directory");
+        try {
+            std::filesystem::create_directories(configPath);
+        } catch (...) {
+            parseError = "Broken config file! (Could not create config directory)";
+            return;
+        }
     }
 
-    configPaths.push_back(CONFIGPATH);
+    if (!std::filesystem::exists(mainConfigPath)) {
+        Debug::log(WARN, "No config file found; attempting to generate.");
+        std::ofstream ofs;
+        ofs.open(mainConfigPath, std::ios::trunc);
+        ofs << AUTOCONFIG;
+        ofs.close();
+    }
 
     std::ifstream ifs;
-    ifs.open(CONFIGPATH);
+    ifs.open(mainConfigPath);
 
     if (!ifs.good()) {
-        if (g_pCompositor->explicitConfigPath == "") {
-            Debug::log(WARN, "Config reading error. (No file? Attempting to generate, backing up old one if exists)");
-            try {
-                std::filesystem::rename(CONFIGPATH, CONFIGPATH + ".backup");
-            } catch (...) { /* Probably doesn't exist */
-            }
+        Debug::log(WARN, "Config reading error. Attempting to generate, backing up old one if exists");
 
-            try {
-                if (!std::filesystem::is_directory(CONFIGPARENTPATH))
-                    std::filesystem::create_directories(CONFIGPARENTPATH);
-            } catch (...) {
-                parseError = "Broken config file! (Could not create directory)";
-                return;
-            }
-        }
+        ifs.close();
 
+        if (std::filesystem::exists(mainConfigPath))
+            std::filesystem::rename(mainConfigPath, mainConfigPath + ".backup");
+
+        // Create default config
         std::ofstream ofs;
-        ofs.open(CONFIGPATH, std::ios::trunc);
-
+        ofs.open(mainConfigPath, std::ios::trunc);
         ofs << AUTOCONFIG;
-
         ofs.close();
 
-        ifs.open(CONFIGPATH);
-
+        // Try to re-open
+        ifs.open(mainConfigPath);
         if (!ifs.good()) {
             parseError = "Broken config file! (Could not open)";
             return;
@@ -1509,17 +1519,17 @@ void CConfigManager::loadConfigLoadVars() {
         while (std::getline(ifs, line)) {
             // Read line by line.
             try {
-                configCurrentPath = "~/.config/hypr/hyprland.conf";
+                configCurrentPath = mainConfigPath;
                 parseLine(line);
             } catch (...) {
                 Debug::log(ERR, "Error reading line from config. Line:");
                 Debug::log(NONE, "%s", line.c_str());
 
-                parseError += "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): Line parsing error.";
+                parseError += "Config error at line " + std::to_string(linenum) + " (" + mainConfigPath + "): Line parsing error.";
             }
 
             if (parseError != "" && parseError.find("Config error at line") != 0) {
-                parseError = "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): " + parseError;
+                parseError = "Config error at line " + std::to_string(linenum) + " (" + mainConfigPath + "): " + parseError;
             }
 
             ++linenum;
@@ -1546,7 +1556,7 @@ void CConfigManager::loadConfigLoadVars() {
     if (parseError != "")
         g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
     else if (configValues["autogenerated"].intValue == 1)
-        g_pHyprError->queueCreate("Warning: You're using an autogenerated config! (config file: " + CONFIGPATH + " )\nSUPER+Q -> kitty\nSUPER+M -> exit Hyprland",
+        g_pHyprError->queueCreate("Warning: You're using an autogenerated config! (config file: " + mainConfigPath + " )\nSUPER+Q -> kitty\nSUPER+M -> exit Hyprland",
                                   CColor(1.0, 1.0, 70.0 / 255.0, 1.0));
     else
         g_pHyprError->destroy();
@@ -1605,17 +1615,12 @@ void CConfigManager::loadConfigLoadVars() {
 
     // update plugins
     handlePluginLoads();
+
+    EMIT_HOOK_EVENT("configReloaded", nullptr);
 }
 
 void CConfigManager::tick() {
-    std::string CONFIGPATH;
-    if (g_pCompositor->explicitConfigPath.empty()) {
-        static const char* const ENVHOME = getenv("HOME");
-        CONFIGPATH                       = ENVHOME + (ISDEBUG ? (std::string) "/.config/hypr/hyprlandd.conf" : (std::string) "/.config/hypr/hyprland.conf");
-    } else {
-        CONFIGPATH = g_pCompositor->explicitConfigPath;
-    }
-
+    std::string CONFIGPATH = getMainConfigPath();
     if (!std::filesystem::exists(CONFIGPATH)) {
         Debug::log(ERR, "Config doesn't exist??");
         return;
@@ -1654,7 +1659,7 @@ SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
     return copy;
 }
 
-SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val) {
+SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val, std::optional<bool> touchpad) {
     std::lock_guard<std::mutex> lg(configmtx);
 
     const auto                  it = deviceConfigs.find(dev);
@@ -1673,8 +1678,8 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
             if (foundIt == std::string::npos)
                 continue;
 
-            if (cv.first == "input:" + val || cv.first == "input:touchpad:" + val || cv.first == "input:touchdevice:" + val || cv.first == "input:tablet:" + val ||
-                cv.first == "input:tablet:" + val) {
+            if (cv.first == "input:" + val || (touchpad.value_or(true) && cv.first == "input:touchpad:" + val) || cv.first == "input:touchdevice:" + val ||
+                cv.first == "input:tablet:" + val || cv.first == "input:tablet:" + val) {
                 copy = cv.second;
             }
         }
@@ -1700,16 +1705,16 @@ std::string CConfigManager::getString(const std::string& v) {
     return VAL;
 }
 
-int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v) {
-    return getConfigValueSafeDevice(dev, v).intValue;
+int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v, std::optional<bool> touchpad) {
+    return getConfigValueSafeDevice(dev, v, touchpad).intValue;
 }
 
-float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& v) {
-    return getConfigValueSafeDevice(dev, v).floatValue;
+float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& v, std::optional<bool> touchpad) {
+    return getConfigValueSafeDevice(dev, v, touchpad).floatValue;
 }
 
-std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v) {
-    auto VAL = getConfigValueSafeDevice(dev, v).strValue;
+std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v, std::optional<bool> touchpad) {
+    auto VAL = getConfigValueSafeDevice(dev, v, touchpad).strValue;
 
     if (VAL == STRVAL_EMPTY)
         return "";
@@ -2107,7 +2112,11 @@ void CConfigManager::addParseError(const std::string& err) {
 }
 
 CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
-    return g_pCompositor->getMonitorFromName(getBoundMonitorStringForWS(wsname));
+    auto monitor = getBoundMonitorStringForWS(wsname);
+    if (monitor.substr(0, 5) == "desc:")
+        return g_pCompositor->getMonitorFromDesc(monitor.substr(5));
+    else
+        return g_pCompositor->getMonitorFromName(monitor);
 }
 
 std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname) {
@@ -2173,6 +2182,11 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
     }
 
     (*CONFIGMAPIT->second)[name] = value;
+
+    if (const auto IT = std::find_if(m_vFailedPluginConfigValues.begin(), m_vFailedPluginConfigValues.end(), [&](const auto& other) { return other.first == name; });
+        IT != m_vFailedPluginConfigValues.end()) {
+        configSetValueSafe(IT->first, IT->second);
+    }
 }
 
 void CConfigManager::removePluginConfig(HANDLE handle) {
@@ -2180,8 +2194,9 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
 }
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
-    const auto IT = std::find_if(m_dWorkspaceRules.begin(), m_dWorkspaceRules.end(), [&](const auto& other) { return other.monitor == name && other.isDefault; });
-    if (IT == m_dWorkspaceRules.end())
-        return "";
-    return IT->workspaceString;
+    for (auto other = m_dWorkspaceRules.begin(); other != m_dWorkspaceRules.end(); ++other) {
+        if (other->isDefault && (other->monitor == name || (other->monitor.substr(0, 5) == "desc:" && g_pCompositor->getMonitorFromDesc(other->monitor.substr(5))->szName == name)))
+            return other->workspaceString;
+    }
+    return "";
 }

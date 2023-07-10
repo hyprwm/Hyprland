@@ -407,9 +407,12 @@ void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
     if (!frame->withDamage)
         return;
 
-    const auto RECT = pixman_region32_extents(g_pHyprOpenGL->m_RenderData.pDamage);
-    zwlr_screencopy_frame_v1_send_damage(frame->resource, std::clamp(RECT->x1, 0, frame->buffer->width), std::clamp(RECT->y1, 0, frame->buffer->height),
-                                         std::clamp(RECT->x2 - RECT->x1, 0, frame->buffer->width - RECT->x1), std::clamp(RECT->y2 - RECT->y1, 0, frame->buffer->height - RECT->y1));
+    PIXMAN_DAMAGE_FOREACH(&frame->pMonitor->lastFrameDamage) {
+        const auto RECT = &RECTSARR[i];
+        zwlr_screencopy_frame_v1_send_damage(frame->resource, std::clamp(RECT->x1, 0, frame->buffer->width), std::clamp(RECT->y1, 0, frame->buffer->height),
+                                             std::clamp(RECT->x2 - RECT->x1, 0, frame->buffer->width - RECT->x1),
+                                             std::clamp(RECT->y2 - RECT->y1, 0, frame->buffer->height - RECT->y1));
+    }
 }
 
 bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {

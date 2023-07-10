@@ -98,6 +98,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
+    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+
     CWindow* forcedFocus = m_pForcedFocus;
 
     if (!forcedFocus)
@@ -270,11 +272,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             }
         } else {
             pFoundWindow = g_pCompositor->vectorToWindowIdeal(mouseCoords);
-
-            // TODO: this causes crashes, sometimes. ???
-            // if (refocus && !pFoundWindow) {
-            //     pFoundWindow = g_pCompositor->getFirstWindowOnWorkspace(PMONITOR->activeWorkspace);
-            // }
         }
 
         if (pFoundWindow) {
@@ -642,7 +639,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
             const auto PKEYBOARD = (SKeyboard*)owner;
             const auto LAYOUT    = getActiveLayoutForKeyboard(PKEYBOARD);
 
-            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT}, true); // force as this should ALWAYS be sent
+            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{PKEYBOARD, (void*)&LAYOUT}));
         },
         PNEWKEYBOARD, "Keyboard");
@@ -681,7 +678,7 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
             const auto PKEYBOARD = (SKeyboard*)owner;
             const auto LAYOUT    = getActiveLayoutForKeyboard(PKEYBOARD);
 
-            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT}, true); // force as this should ALWAYS be sent
+            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{PKEYBOARD, (void*)&LAYOUT}));
         },
         PNEWKEYBOARD, "Keyboard");
@@ -825,7 +822,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     const auto LAYOUTSTR = getActiveLayoutForKeyboard(pKeyboard);
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUTSTR}, true); // force as this should ALWAYS be sent
+    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUTSTR});
     EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUTSTR}));
 
     Debug::log(LOG, "Set the keyboard layout to %s and variant to %s for keyboard \"%s\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
@@ -888,24 +885,30 @@ void CInputManager::setPointerConfigs() {
         if (wlr_input_device_is_libinput(m.mouse)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.mouse);
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "clickfinger_behavior") : g_pConfigManager->getInt("input:touchpad:clickfinger_behavior")) ==
+            double     touchw = 0, touchh = 0;
+            const auto ISTOUCHPAD = libinput_device_has_capability(LIBINPUTDEV, LIBINPUT_DEVICE_CAP_POINTER) &&
+                libinput_device_get_size(LIBINPUTDEV, &touchw, &touchh) == 0; // pointer with size is a touchpad
+
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "clickfinger_behavior", ISTOUCHPAD) : g_pConfigManager->getInt("input:touchpad:clickfinger_behavior")) ==
                 0) // toggle software buttons or clickfinger
                 libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
             else
                 libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "left_handed") : g_pConfigManager->getInt("input:left_handed")) == 0)
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "left_handed", ISTOUCHPAD) : g_pConfigManager->getInt("input:left_handed")) == 0)
                 libinput_device_config_left_handed_set(LIBINPUTDEV, 0);
             else
                 libinput_device_config_left_handed_set(LIBINPUTDEV, 1);
 
             if (libinput_device_config_middle_emulation_is_available(LIBINPUTDEV)) { // middleclick on r+l mouse button pressed
-                if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "middle_button_emulation") : g_pConfigManager->getInt("input:touchpad:middle_button_emulation")) == 1)
+                if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "middle_button_emulation", ISTOUCHPAD) :
+                                 g_pConfigManager->getInt("input:touchpad:middle_button_emulation")) == 1)
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);
                 else
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
 
-                const auto TAP_MAP = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "tap_button_map") : g_pConfigManager->getString("input:touchpad:tap_button_map");
+                const auto TAP_MAP =
+                    HASCONFIG ? g_pConfigManager->getDeviceString(devname, "tap_button_map", ISTOUCHPAD) : g_pConfigManager->getString("input:touchpad:tap_button_map");
                 if (TAP_MAP == "" || TAP_MAP == "lrm")
                     libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LRM);
                 else if (TAP_MAP == "lmr")
@@ -914,7 +917,7 @@ void CInputManager::setPointerConfigs() {
                     Debug::log(WARN, "Tap button mapping unknown");
             }
 
-            const auto SCROLLMETHOD = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "scroll_method") : g_pConfigManager->getString("input:scroll_method");
+            const auto SCROLLMETHOD = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "scroll_method", ISTOUCHPAD) : g_pConfigManager->getString("input:scroll_method");
             if (SCROLLMETHOD == "") {
                 libinput_device_config_scroll_set_method(LIBINPUTDEV, libinput_device_config_scroll_get_default_method(LIBINPUTDEV));
             } else if (SCROLLMETHOD == "no_scroll") {
@@ -929,43 +932,42 @@ void CInputManager::setPointerConfigs() {
                 Debug::log(WARN, "Scroll method unknown");
             }
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "tap-and-drag") : g_pConfigManager->getInt("input:touchpad:tap-and-drag")) == 0)
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "tap-and-drag", ISTOUCHPAD) : g_pConfigManager->getInt("input:touchpad:tap-and-drag")) == 0)
                 libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_DISABLED);
             else
                 libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_ENABLED);
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "drag_lock") : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
+            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "drag_lock", ISTOUCHPAD) : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
                 libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_DISABLED);
             else
                 libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_ENABLED);
 
             if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV)) // this is for tapping (like on a laptop)
-                if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "tap-to-click") : g_pConfigManager->getInt("input:touchpad:tap-to-click")) == 1)
+                if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "tap-to-click", ISTOUCHPAD) : g_pConfigManager->getInt("input:touchpad:tap-to-click")) == 1)
                     libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
 
             if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {
-                double w = 0, h = 0;
 
-                if (libinput_device_has_capability(LIBINPUTDEV, LIBINPUT_DEVICE_CAP_POINTER) &&
-                    libinput_device_get_size(LIBINPUTDEV, &w, &h) == 0) // pointer with size is a touchpad
+                if (ISTOUCHPAD)
                     libinput_device_config_scroll_set_natural_scroll_enabled(
-                        LIBINPUTDEV, (HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "natural_scroll") : g_pConfigManager->getInt("input:touchpad:natural_scroll")));
+                        LIBINPUTDEV,
+                        (HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "natural_scroll", ISTOUCHPAD) : g_pConfigManager->getInt("input:touchpad:natural_scroll")));
                 else
                     libinput_device_config_scroll_set_natural_scroll_enabled(
-                        LIBINPUTDEV, (HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "natural_scroll") : g_pConfigManager->getInt("input:natural_scroll")));
+                        LIBINPUTDEV, (HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "natural_scroll", ISTOUCHPAD) : g_pConfigManager->getInt("input:natural_scroll")));
             }
 
             if (libinput_device_config_dwt_is_available(LIBINPUTDEV)) {
-                const auto DWT = static_cast<enum libinput_config_dwt_state>(
-                    (HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "disable_while_typing") : g_pConfigManager->getInt("input:touchpad:disable_while_typing")) != 0);
+                const auto DWT = static_cast<enum libinput_config_dwt_state>((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "disable_while_typing", ISTOUCHPAD) :
+                                                                                          g_pConfigManager->getInt("input:touchpad:disable_while_typing")) != 0);
                 libinput_device_config_dwt_set_enabled(LIBINPUTDEV, DWT);
             }
 
             const auto LIBINPUTSENS =
-                std::clamp((HASCONFIG ? g_pConfigManager->getDeviceFloat(devname, "sensitivity") : g_pConfigManager->getFloat("input:sensitivity")), -1.f, 1.f);
+                std::clamp((HASCONFIG ? g_pConfigManager->getDeviceFloat(devname, "sensitivity", ISTOUCHPAD) : g_pConfigManager->getFloat("input:sensitivity")), -1.f, 1.f);
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
 
-            const auto ACCELPROFILE = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "accel_profile") : g_pConfigManager->getString("input:accel_profile");
+            const auto ACCELPROFILE = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "accel_profile", ISTOUCHPAD) : g_pConfigManager->getString("input:accel_profile");
 
             if (ACCELPROFILE == "") {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
@@ -990,7 +992,7 @@ void CInputManager::setPointerConfigs() {
                 Debug::log(WARN, "Unknown acceleration profile, falling back to default");
             }
 
-            const auto SCROLLBUTTON = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "scroll_button") : g_pConfigManager->getInt("input:scroll_button");
+            const auto SCROLLBUTTON = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "scroll_button", ISTOUCHPAD) : g_pConfigManager->getInt("input:scroll_button");
 
             libinput_device_config_scroll_set_button(LIBINPUTDEV, SCROLLBUTTON == 0 ? libinput_device_config_scroll_get_default_button(LIBINPUTDEV) : SCROLLBUTTON);
 
@@ -1111,7 +1113,7 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
 
         const auto LAYOUT = getActiveLayoutForKeyboard(pKeyboard);
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUT}, true); // force as this should ALWAYS be sent
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUT});
         EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUT}));
     }
 }

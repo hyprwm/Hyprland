@@ -61,6 +61,8 @@ class CMonitor {
     CMonitor*              pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;
 
+    pixman_region32_t      lastFrameDamage; // stores last frame damage
+
     // for the special workspace. 0 means not open.
     int                                                        specialWorkspaceID = 0;
 

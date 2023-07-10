@@ -28,8 +28,6 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
     g_pHookSystem->hookDynamic("preRender", [&](void* self, std::any data) { preRender(std::any_cast<CMonitor*>(data)); });
 
-    pixman_region32_init(&m_rOriginalDamageRegion);
-
     RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
     m_tGlobalTimer.reset();
@@ -149,7 +147,7 @@ void CHyprOpenGLImpl::end() {
 
     // end the render, copy the data to the WLR framebuffer
     if (!m_bFakeFrame) {
-        pixman_region32_copy(m_RenderData.pDamage, &m_rOriginalDamageRegion);
+        pixman_region32_copy(m_RenderData.pDamage, &m_RenderData.pMonitor->lastFrameDamage);
 
         if (!m_RenderData.pMonitor->mirrors.empty())
             g_pHyprOpenGL->saveBufferForMirror(); // save with original damage region
@@ -339,7 +337,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     if (path == "" || path == STRVAL_EMPTY)
         return;
 
-    std::ifstream infile(absolutePath(path, std::string(getenv("HOME")) + "/.config/hypr"));
+    std::ifstream infile(absolutePath(path, g_pConfigManager->getConfigDir()));
 
     if (!infile.good()) {
         g_pConfigManager->addParseError("Screen shader parser: Screen shader path not found");

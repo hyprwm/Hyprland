@@ -11,10 +11,6 @@
 #include <string>
 #include <filesystem>
 
-#ifdef USES_SYSTEMD
-#include <systemd/sd-daemon.h> // for sd_notify
-#endif
-
 void help() {
     std::cout << "usage: Hyprland [arg [...]].\n";
     std::cout << "\nArguments:\n";
@@ -101,18 +97,6 @@ int main(int argc, char** argv) {
 
     // If we are here it means we got yote.
     Debug::log(LOG, "Hyprland reached the end.");
-
-#ifdef USES_SYSTEMD
-    // tell systemd it destroy bound/related units
-    if (sd_booted() > 0)
-        sd_notify(0, "STOPPING=1");
-#endif
-
-    if (g_pCompositor->m_sWLDisplay)
-        wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
-
-    if (g_pCompositor->m_sWLDisplay)
-        wl_display_destroy(g_pCompositor->m_sWLDisplay);
 
     return EXIT_SUCCESS;
 }

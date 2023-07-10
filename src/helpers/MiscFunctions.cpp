@@ -130,9 +130,9 @@ std::string absolutePath(const std::string& rawpath, const std::string& currentP
 
         if (value[1] == '.') {
             auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
-            value.replace(0, 2, parentDir);
+            value.replace(0, 2 + currentPath.empty(), parentDir);
         } else {
-            value.replace(0, 1, currentDir);
+            value.replace(0, 1 + currentPath.empty(), currentDir);
         }
     }
 

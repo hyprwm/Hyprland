@@ -397,19 +397,19 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         const auto cc = NEWPARENT->position + NEWPARENT->size / 2;
 
         if (MOUSECOORDS.inTriangle(tl, tr, cc)) {
-            NEWPARENT->splitTop = true;
+            NEWPARENT->splitTop    = true;
             NEWPARENT->children[0] = PNODE;
             NEWPARENT->children[1] = OPENINGON;
         } else if (MOUSECOORDS.inTriangle(tr, cc, br)) {
-            NEWPARENT->splitTop = false;
+            NEWPARENT->splitTop    = false;
             NEWPARENT->children[0] = OPENINGON;
             NEWPARENT->children[1] = PNODE;
         } else if (MOUSECOORDS.inTriangle(br, bl, cc)) {
-            NEWPARENT->splitTop = true;
+            NEWPARENT->splitTop    = true;
             NEWPARENT->children[0] = OPENINGON;
             NEWPARENT->children[1] = PNODE;
         } else {
-            NEWPARENT->splitTop = false;
+            NEWPARENT->splitTop    = false;
             NEWPARENT->children[0] = PNODE;
             NEWPARENT->children[1] = OPENINGON;
         }

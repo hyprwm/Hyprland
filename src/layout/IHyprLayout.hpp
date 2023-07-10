@@ -76,7 +76,7 @@ interface IHyprLayout {
         Vector2D holds pixel values
         Optional pWindow for a specific window
     */
-    virtual void resizeActiveWindow(const Vector2D&, CWindow* pWindow = nullptr) = 0;
+    virtual void resizeActiveWindow(const Vector2D&, eRectCorner corner, CWindow* pWindow = nullptr) = 0;
     /*
         Called when a user requests a move of the current window by a vec
         Vector2D holds pixel values

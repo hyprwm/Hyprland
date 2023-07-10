@@ -586,7 +586,7 @@ void CHyprDwindleLayout::onBeginDragWindow() {
     IHyprLayout::onBeginDragWindow();
 }
 
-void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* pWindow) {
+void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, CWindow* pWindow) {
 
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow;
 
@@ -656,62 +656,59 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* 
     if (DISPLAYBOTTOM && DISPLAYTOP)
         allowedMovement.y = 0;
 
-    // get the correct containers to apply splitratio to
-    const auto PPARENT = PNODE->pParent;
+    // Identify inner and outer parent nodes for both directions.
 
-    if (!PPARENT)
-        return; // the only window on a workspace, ignore
+    SDwindleNodeData* PVOUTER = nullptr;
+    SDwindleNodeData* PVINNER = nullptr;
+    SDwindleNodeData* PHOUTER = nullptr;
+    SDwindleNodeData* PHINNER = nullptr;
 
-    const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
+    const auto LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
+    const auto TOP = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const auto RIGHT = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT;
+    const auto BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT;
 
-    // Get the parent's parent
-    auto PPARENT2 = PPARENT->pParent;
+    for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {
+        const auto PPARENT = PCURRENT->pParent;
 
-    // No parent means we have only 2 windows, and thus one axis of freedom
-    if (!PPARENT2) {
-        if (PARENTSIDEBYSIDE) {
-            allowedMovement.x *= 2.f / PPARENT->size.x;
-            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, 0.1, 1.9);
-            PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
-        } else {
-            allowedMovement.y *= 2.f / PPARENT->size.y;
-            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, 0.1, 1.9);
-            PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
-        }
-
-        return;
+        if (!PVOUTER && PPARENT->splitTop && ((TOP && PPARENT->children[1] == PCURRENT) || (BOTTOM && PPARENT->children[0] == PCURRENT)))
+            PVOUTER = PPARENT;
+        else if (!PVOUTER && !PVINNER && PPARENT->splitTop && ((TOP && PPARENT->children[0] == PCURRENT) || (BOTTOM && PPARENT->children[1] == PCURRENT)))
+            PVINNER = PPARENT;
+        else if (!PHOUTER && !PPARENT->splitTop && ((LEFT && PPARENT->children[1] == PCURRENT) || (RIGHT && PPARENT->children[0] == PCURRENT)))
+            PHOUTER = PPARENT;
+        else if (!PHOUTER && !PHINNER && !PPARENT->splitTop && ((LEFT && PPARENT->children[0] == PCURRENT) || (RIGHT && PPARENT->children[1] == PCURRENT)))
+            PHINNER = PPARENT;
     }
 
-    // Get first parent with other split
-    while (PPARENT2 && PPARENT2->splitTop == !PARENTSIDEBYSIDE)
-        PPARENT2 = PPARENT2->pParent;
+    if (PHOUTER) {
+        PHOUTER->splitRatio = std::clamp(PHOUTER->splitRatio + allowedMovement.x * 2.f / PHOUTER->size.x, 0.1, 1.9);
 
-    // no parent, one axis of freedom
-    if (!PPARENT2) {
-        if (PARENTSIDEBYSIDE) {
-            allowedMovement.x *= 2.f / PPARENT->size.x;
-            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, 0.1, 1.9);
-            PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
-        } else {
-            allowedMovement.y *= 2.f / PPARENT->size.y;
-            PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, 0.1, 1.9);
-            PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
-        }
-
-        return;
+        if (PHINNER) {
+            const auto ORIGINAL = PHINNER->children[LEFT ? 0 : 1]->size.x;
+            PHOUTER->recalcSizePosRecursive(*PANIMATE == 0);
+            const auto DELTA = LEFT ? -allowedMovement.x : allowedMovement.x;
+            const auto SPLITRATIO = std::clamp((ORIGINAL + DELTA) / PHINNER->size.x * 2.f, 0.1, 1.9);
+            PHINNER->splitRatio = LEFT ? SPLITRATIO : (2.f - SPLITRATIO);
+            PHINNER->recalcSizePosRecursive(*PANIMATE == 0);
+        } else
+            PHOUTER->recalcSizePosRecursive(*PANIMATE == 0);
     }
 
-    // 2 axes of freedom
-    const auto SIDECONTAINER = PARENTSIDEBYSIDE ? PPARENT : PPARENT2;
-    const auto TOPCONTAINER  = PARENTSIDEBYSIDE ? PPARENT2 : PPARENT;
+    if (PVOUTER) {
+        PVOUTER->splitRatio = std::clamp(PVOUTER->splitRatio + allowedMovement.y * 2.f / PVOUTER->size.y, 0.1, 1.9);
 
-    allowedMovement.x *= 2.f / SIDECONTAINER->size.x;
-    allowedMovement.y *= 2.f / TOPCONTAINER->size.y;
-
-    SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, 0.1, 1.9);
-    TOPCONTAINER->splitRatio  = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, 0.1, 1.9);
-    SIDECONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
-    TOPCONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
+        if (PVINNER) {
+            const auto ORIGINAL = PVINNER->children[TOP ? 0 : 1]->size.y;
+            PVOUTER->recalcSizePosRecursive(*PANIMATE == 0);
+            const auto DELTA = TOP ? -allowedMovement.y : allowedMovement.y;
+            const auto SPLITRATIO = std::clamp((ORIGINAL + DELTA) / PVINNER->size.y * 2.f, 0.1, 1.9);
+            PVINNER->splitRatio = TOP ? SPLITRATIO : (2.f - SPLITRATIO);
+            PVINNER->recalcSizePosRecursive(*PANIMATE == 0);
+        } else
+            PVOUTER->recalcSizePosRecursive(*PANIMATE == 0);
+    }
+    
 }
 
 void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode, bool on) {

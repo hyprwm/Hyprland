@@ -590,7 +590,7 @@ bool CHyprMasterLayout::isWindowTiled(CWindow* pWindow) {
     return getNodeFromWindow(pWindow) != nullptr;
 }
 
-void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* pWindow) {
+void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, CWindow* pWindow) {
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))

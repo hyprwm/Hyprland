@@ -371,8 +371,10 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
             CONFIGENTRY = &it->second;
         }
 
-        if (!CONFIGENTRY)
+        if (!CONFIGENTRY) {
+            m_vFailedPluginConfigValues.emplace_back(std::make_pair<>(COMMAND, VALUE));
             return; // silent ignore
+        }
     } else {
         CONFIGENTRY = &configValues.at(COMMAND);
     }
@@ -1458,6 +1460,7 @@ void CConfigManager::loadConfigLoadVars() {
     setDefaultAnimationVars(); // reset anims
     m_vDeclaredPlugins.clear();
     m_dLayerRules.clear();
+    m_vFailedPluginConfigValues.clear();
 
     // paths
     configPaths.clear();
@@ -2179,6 +2182,11 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
     }
 
     (*CONFIGMAPIT->second)[name] = value;
+
+    if (const auto IT = std::find_if(m_vFailedPluginConfigValues.begin(), m_vFailedPluginConfigValues.end(), [&](const auto& other) { return other.first == name; });
+        IT != m_vFailedPluginConfigValues.end()) {
+        configSetValueSafe(IT->first, IT->second);
+    }
 }
 
 void CConfigManager::removePluginConfig(HANDLE handle) {

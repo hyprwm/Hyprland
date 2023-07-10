@@ -934,7 +934,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         pMonitor->isMirror() /* why??? */) {
         pixman_region32_union_rect(&damage, &damage, 0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10); // wot?
 
-        pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
+        pixman_region32_copy(&pMonitor->lastFrameDamage, &damage);
     } else {
         static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
@@ -949,11 +949,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             // now, prep the damage, get the extended damage region
             wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring
 
-            pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
+            pixman_region32_copy(&pMonitor->lastFrameDamage, &damage);
 
             wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring 2
         } else {
-            pixman_region32_copy(&g_pHyprOpenGL->m_rOriginalDamageRegion, &damage);
+            pixman_region32_copy(&pMonitor->lastFrameDamage, &damage);
         }
     }
 
@@ -1035,7 +1035,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     pixman_region32_init(&frameDamage);
 
     const auto TRANSFORM = wlr_output_transform_invert(pMonitor->output->transform);
-    wlr_region_transform(&frameDamage, &g_pHyprOpenGL->m_rOriginalDamageRegion, TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+    wlr_region_transform(&frameDamage, &pMonitor->lastFrameDamage, TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
         pixman_region32_union_rect(&frameDamage, &frameDamage, 0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);

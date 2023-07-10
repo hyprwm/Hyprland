@@ -10,10 +10,12 @@ int ratHandler(void* data) {
 
 CMonitor::CMonitor() {
     wlr_damage_ring_init(&damage);
+    pixman_region32_init(&lastFrameDamage);
 }
 
 CMonitor::~CMonitor() {
     wlr_damage_ring_finish(&damage);
+    pixman_region32_fini(&lastFrameDamage);
 }
 
 void CMonitor::onConnect(bool noRule) {

@@ -252,6 +252,8 @@ class CConfigManager {
 
     std::vector<std::pair<std::string, std::string>>                                           environmentVariables;
 
+    std::vector<std::pair<std::string, std::string>>                                           m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
+
     // internal methods
     void         setDefaultVars();
     void         setDefaultAnimationVars();

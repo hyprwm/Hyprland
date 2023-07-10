@@ -2183,8 +2183,10 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
 }
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
-    const auto IT = std::find_if(m_dWorkspaceRules.begin(), m_dWorkspaceRules.end(), [&](const auto& other) { return other.monitor == name && other.isDefault; });
-    if (IT == m_dWorkspaceRules.end())
-        return "";
-    return IT->workspaceString;
+    for (auto other = m_dWorkspaceRules.begin(); other != m_dWorkspaceRules.end(); ++other) {
+        if (other->isDefault &&
+            (other->monitor == name || (other->monitor.substr(0, 5) == "desc:" && g_pCompositor->getMonitorFromDesc(other->monitor.substr(5))->szName == name)))
+            return other->workspaceString;
+    }
+    return "";
 }

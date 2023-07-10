@@ -1516,6 +1516,7 @@ void CConfigManager::loadConfigLoadVars() {
         while (std::getline(ifs, line)) {
             // Read line by line.
             try {
+                configCurrentPath = mainConfigPath;
                 parseLine(line);
             } catch (...) {
                 Debug::log(ERR, "Error reading line from config. Line:");

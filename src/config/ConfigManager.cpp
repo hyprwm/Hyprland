@@ -1612,6 +1612,8 @@ void CConfigManager::loadConfigLoadVars() {
 
     // update plugins
     handlePluginLoads();
+
+    EMIT_HOOK_EVENT("configReloaded", nullptr);
 }
 
 void CConfigManager::tick() {
@@ -2185,8 +2187,7 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
     for (auto other = m_dWorkspaceRules.begin(); other != m_dWorkspaceRules.end(); ++other) {
-        if (other->isDefault &&
-            (other->monitor == name || (other->monitor.substr(0, 5) == "desc:" && g_pCompositor->getMonitorFromDesc(other->monitor.substr(5))->szName == name)))
+        if (other->isDefault && (other->monitor == name || (other->monitor.substr(0, 5) == "desc:" && g_pCompositor->getMonitorFromDesc(other->monitor.substr(5))->szName == name)))
             return other->workspaceString;
     }
     return "";

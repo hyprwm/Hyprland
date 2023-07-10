@@ -363,6 +363,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     static auto* const PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
     static auto* const PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;
+    static auto* const PSMARTSPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:smart_split")->intValue;
 
     bool               horizontalOverride = false;
     bool               verticalOverride   = false;
@@ -388,7 +389,30 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
             overrideDirection = OneTimeFocus::NOFOCUS;
+    } else if (*PSMARTSPLIT == 1) {
+        const auto tl = NEWPARENT->position;
+        const auto tr = NEWPARENT->position + Vector2D(NEWPARENT->size.x, 0);
+        const auto bl = NEWPARENT->position + Vector2D(0, NEWPARENT->size.y);
+        const auto br = NEWPARENT->position + NEWPARENT->size;
+        const auto cc = NEWPARENT->position + NEWPARENT->size / 2;
 
+        if (MOUSECOORDS.inTriangle(tl, tr, cc)) {
+            NEWPARENT->splitTop = true;
+            NEWPARENT->children[0] = PNODE;
+            NEWPARENT->children[1] = OPENINGON;
+        } else if (MOUSECOORDS.inTriangle(tr, cc, br)) {
+            NEWPARENT->splitTop = false;
+            NEWPARENT->children[0] = OPENINGON;
+            NEWPARENT->children[1] = PNODE;
+        } else if (MOUSECOORDS.inTriangle(br, bl, cc)) {
+            NEWPARENT->splitTop = true;
+            NEWPARENT->children[0] = OPENINGON;
+            NEWPARENT->children[1] = PNODE;
+        } else {
+            NEWPARENT->splitTop = false;
+            NEWPARENT->children[0] = PNODE;
+            NEWPARENT->children[1] = OPENINGON;
+        }
     } else if (*PFORCESPLIT == 0 || !pWindow->m_bFirstMap) {
         if ((SIDEBYSIDE &&
              VECINRECT(MOUSECOORDS, NEWPARENT->position.x, NEWPARENT->position.y / *PWIDTHMULTIPLIER, NEWPARENT->position.x + NEWPARENT->size.x / 2.f,

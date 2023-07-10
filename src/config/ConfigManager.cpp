@@ -157,7 +157,7 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:no_gaps_when_only"].intValue            = 0;
     configValues["dwindle:use_active_for_splits"].intValue        = 1;
     configValues["dwindle:default_split_ratio"].floatValue        = 1.f;
-    configValues["dwindle:smart_split"].intValue                  = 1;
+    configValues["dwindle:smart_split"].intValue                  = 0;
 
     configValues["master:special_scale_factor"].floatValue = 0.8f;
     configValues["master:mfact"].floatValue                = 0.55f;

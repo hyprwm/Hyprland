@@ -15,8 +15,14 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_box windowBox;
     if (RDATA->surface && surface == RDATA->surface)
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
-    else //  here we clamp to 2, these might be some tiny specks
+    else { //  here we clamp to 2, these might be some tiny specks
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::max(surface->current.width, 2), std::max(surface->current.height, 2)};
+        if (RDATA->pWindow && RDATA->pWindow->m_vRealSize.isBeingAnimated() && RDATA->surface && RDATA->surface != surface && RDATA->squishOversized /* subsurface */) {
+            // adjust subsurfaces to the window
+            windowBox.width  = (windowBox.width / RDATA->pWindow->m_vReportedSize.x) * RDATA->pWindow->m_vRealSize.vec().x;
+            windowBox.height = (windowBox.height / RDATA->pWindow->m_vReportedSize.y) * RDATA->pWindow->m_vRealSize.vec().y;
+        }
+    }
 
     if (RDATA->squishOversized) {
         if (x + windowBox.width > RDATA->w)

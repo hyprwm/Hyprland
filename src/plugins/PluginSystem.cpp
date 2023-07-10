@@ -112,6 +112,9 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     Debug::log(LOG, " [PluginSystem] Plugin %s unloaded.", plugin->name.c_str());
 
     std::erase_if(m_vLoadedPlugins, [&](const auto& other) { return other->m_pHandle == plugin->m_pHandle; });
+
+    // reload config to fix some stuf like e.g. unloadedPluginVars
+    g_pConfigManager->m_bForceReload = true;
 }
 
 void CPluginSystem::unloadAllPlugins() {

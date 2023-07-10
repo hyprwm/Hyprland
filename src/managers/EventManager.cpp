@@ -30,6 +30,8 @@ int fdHandleWrite(int fd, uint32_t mask, void* data) {
                 it++;
             }
         }
+
+        close(fd);
     };
 
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP) {
@@ -58,7 +60,7 @@ int fdHandleWrite(int fd, uint32_t mask, void* data) {
 
 void CEventManager::startThread() {
     m_tThread = std::thread([&]() {
-        const auto SOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
+        const auto SOCKET = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
         if (SOCKET < 0) {
             Debug::log(ERR, "Couldn't start the Hyprland Socket 2. (1) IPC will not work.");
@@ -80,7 +82,7 @@ void CEventManager::startThread() {
         Debug::log(LOG, "Hypr socket 2 started at %s", socketPath.c_str());
 
         while (1) {
-            const auto ACCEPTEDCONNECTION = accept(SOCKET, (sockaddr*)&clientAddress, &clientSize);
+            const auto ACCEPTEDCONNECTION = accept4(SOCKET, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
 
             if (ACCEPTEDCONNECTION > 0) {
                 // new connection!
@@ -119,9 +121,9 @@ void CEventManager::flushEvents() {
     eventQueueMutex.unlock();
 }
 
-void CEventManager::postEvent(const SHyprIPCEvent event, bool force) {
+void CEventManager::postEvent(const SHyprIPCEvent event) {
 
-    if ((m_bIgnoreEvents && !force) || g_pCompositor->m_bIsShuttingDown) {
+    if (g_pCompositor->m_bIsShuttingDown) {
         Debug::log(WARN, "Suppressed (ignoreevents true / shutting down) event of type %s, content: %s", event.event.c_str(), event.data.c_str());
         return;
     }

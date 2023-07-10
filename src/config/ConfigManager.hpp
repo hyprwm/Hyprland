@@ -167,14 +167,16 @@ class CConfigManager {
     void                                                            setInt(const std::string&, int);
     void                                                            setString(const std::string&, const std::string&);
 
-    int                                                             getDeviceInt(const std::string&, const std::string&);
-    float                                                           getDeviceFloat(const std::string&, const std::string&);
-    std::string                                                     getDeviceString(const std::string&, const std::string&);
+    int                                                             getDeviceInt(const std::string&, const std::string&, std::optional<bool> touchpad = {});
+    float                                                           getDeviceFloat(const std::string&, const std::string&, std::optional<bool> touchpad = {});
+    std::string                                                     getDeviceString(const std::string&, const std::string&, std::optional<bool> touchpad = {});
     bool                                                            deviceConfigExists(const std::string&);
     bool                                                            shouldBlurLS(const std::string&);
 
     SConfigValue*                                                   getConfigValuePtr(const std::string&);
     SConfigValue*                                                   getConfigValuePtrSafe(const std::string&);
+    static std::string                                              getConfigDir();
+    static std::string                                              getMainConfigPath();
 
     SMonitorRule                                                    getMonitorRuleFor(const std::string&, const std::string& displayName = "");
     SWorkspaceRule                                                  getWorkspaceRuleFor(CWorkspace*);
@@ -250,6 +252,8 @@ class CConfigManager {
 
     std::vector<std::pair<std::string, std::string>>                                           environmentVariables;
 
+    std::vector<std::pair<std::string, std::string>>                                           m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
+
     // internal methods
     void         setDefaultVars();
     void         setDefaultAnimationVars();
@@ -262,7 +266,7 @@ class CConfigManager {
     void         applyUserDefinedVars(std::string&, const size_t);
     void         loadConfigLoadVars();
     SConfigValue getConfigValueSafe(const std::string&);
-    SConfigValue getConfigValueSafeDevice(const std::string&, const std::string&);
+    SConfigValue getConfigValueSafeDevice(const std::string&, const std::string&, std::optional<bool> touchpad);
     void         parseLine(std::string&);
     void         configSetValueSafe(const std::string&, const std::string&);
     void         handleDeviceConfig(const std::string&, const std::string&);

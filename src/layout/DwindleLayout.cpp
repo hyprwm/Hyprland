@@ -672,41 +672,43 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         const auto PPARENT = PCURRENT->pParent;
 
         if (!PVOUTER && PPARENT->splitTop && ((TOP && PPARENT->children[1] == PCURRENT) || (BOTTOM && PPARENT->children[0] == PCURRENT)))
-            PVOUTER = PPARENT;
-        else if (!PVOUTER && !PVINNER && PPARENT->splitTop && ((TOP && PPARENT->children[0] == PCURRENT) || (BOTTOM && PPARENT->children[1] == PCURRENT)))
-            PVINNER = PPARENT;
+            PVOUTER = PCURRENT;
+        else if (!PVOUTER && !PVINNER && PPARENT->splitTop)
+            PVINNER = PCURRENT;
         else if (!PHOUTER && !PPARENT->splitTop && ((LEFT && PPARENT->children[1] == PCURRENT) || (RIGHT && PPARENT->children[0] == PCURRENT)))
-            PHOUTER = PPARENT;
-        else if (!PHOUTER && !PHINNER && !PPARENT->splitTop && ((LEFT && PPARENT->children[0] == PCURRENT) || (RIGHT && PPARENT->children[1] == PCURRENT)))
-            PHINNER = PPARENT;
+            PHOUTER = PCURRENT;
+        else if (!PHOUTER && !PHINNER && !PPARENT->splitTop)
+            PHINNER = PCURRENT;
     }
 
     if (PHOUTER) {
-        PHOUTER->splitRatio = std::clamp(PHOUTER->splitRatio + allowedMovement.x * 2.f / PHOUTER->size.x, 0.1, 1.9);
+        PHOUTER->pParent->splitRatio = std::clamp(PHOUTER->pParent->splitRatio + allowedMovement.x * 2.f / PHOUTER->pParent->size.x, 0.1, 1.9);
 
         if (PHINNER) {
-            const auto ORIGINAL = PHINNER->children[LEFT ? 0 : 1]->size.x;
-            PHOUTER->recalcSizePosRecursive(*PANIMATE == 0);
-            const auto DELTA      = LEFT ? -allowedMovement.x : allowedMovement.x;
-            const auto SPLITRATIO = std::clamp((ORIGINAL + DELTA) / PHINNER->size.x * 2.f, 0.1, 1.9);
-            PHINNER->splitRatio   = LEFT ? SPLITRATIO : (2.f - SPLITRATIO);
-            PHINNER->recalcSizePosRecursive(*PANIMATE == 0);
+            const auto ORIGINAL = PHINNER->size.x;
+            PHOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+            if (PHINNER->pParent->children[0] == PHINNER)
+                PHINNER->pParent->splitRatio = std::clamp((ORIGINAL - allowedMovement.x) / PHINNER->pParent->size.x * 2.f, 0.1, 1.9);
+            else
+                PHINNER->pParent->splitRatio = std::clamp(2 - (ORIGINAL + allowedMovement.x) / PHINNER->pParent->size.x * 2.f, 0.1, 1.9);
+            PHINNER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
         } else
-            PHOUTER->recalcSizePosRecursive(*PANIMATE == 0);
+            PHOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
     }
 
     if (PVOUTER) {
-        PVOUTER->splitRatio = std::clamp(PVOUTER->splitRatio + allowedMovement.y * 2.f / PVOUTER->size.y, 0.1, 1.9);
+        PVOUTER->pParent->splitRatio = std::clamp(PVOUTER->pParent->splitRatio + allowedMovement.y * 2.f / PVOUTER->pParent->size.y, 0.1, 1.9);
 
         if (PVINNER) {
-            const auto ORIGINAL = PVINNER->children[TOP ? 0 : 1]->size.y;
-            PVOUTER->recalcSizePosRecursive(*PANIMATE == 0);
-            const auto DELTA      = TOP ? -allowedMovement.y : allowedMovement.y;
-            const auto SPLITRATIO = std::clamp((ORIGINAL + DELTA) / PVINNER->size.y * 2.f, 0.1, 1.9);
-            PVINNER->splitRatio   = TOP ? SPLITRATIO : (2.f - SPLITRATIO);
-            PVINNER->recalcSizePosRecursive(*PANIMATE == 0);
+            const auto ORIGINAL = PVINNER->size.y;
+            PVOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+            if (PVINNER->pParent->children[0] == PVINNER)
+                PVINNER->pParent->splitRatio = std::clamp((ORIGINAL - allowedMovement.y) / PVINNER->pParent->size.y * 2.f, 0.1, 1.9);
+            else
+                PVINNER->pParent->splitRatio = std::clamp(2 - (ORIGINAL + allowedMovement.y) / PVINNER->pParent->size.y * 2.f, 0.1, 1.9);
+            PVINNER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
         } else
-            PVOUTER->recalcSizePosRecursive(*PANIMATE == 0);
+            PVOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
     }
 }
 

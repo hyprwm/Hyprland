@@ -217,7 +217,8 @@ void Events::listener_monitorCommit(void* owner, void* data) {
 
     const auto E = (wlr_output_event_commit*)data;
 
-    g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR, E);
+    if (E->committed & WLR_OUTPUT_STATE_BUFFER)
+        g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR, E);
 
     if (E->committed & (WLR_OUTPUT_STATE_SCALE | WLR_OUTPUT_STATE_TRANSFORM | WLR_OUTPUT_STATE_MODE))
         g_pXWaylandManager->updateXWaylandScale();

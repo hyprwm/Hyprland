@@ -4,9 +4,8 @@
 #include <pango/pangocairo.h>
 
 // shared things to conserve VRAM
-static std::deque<std::unique_ptr<CTitleTex>> m_dpTitleTextures;
-static CTexture                               m_tGradientActive;
-static CTexture                               m_tGradientInactive;
+static CTexture m_tGradientActive;
+static CTexture m_tGradientInactive;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) {
     m_pWindow = pWindow;
@@ -135,7 +134,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
             if (!pTitleTex)
                 pTitleTex =
-                    m_dpTitleTextures
+                    m_sTitleTexs.titleTexs
                         .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i], Vector2D{BARW * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
                         .get();
 
@@ -159,7 +158,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     }
 
     if (*PRENDERTITLES)
-        clearUnusedTextures();
+        invalidateTextures();
 }
 
 SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationReservedArea() {
@@ -169,7 +168,7 @@ SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationReservedAre
 }
 
 CTitleTex* CHyprGroupBarDecoration::textureFromTitle(const std::string& title) {
-    for (auto& tex : m_dpTitleTextures) {
+    for (auto& tex : m_sTitleTexs.titleTexs) {
         if (tex->szContent == title)
             return tex.get();
     }
@@ -177,27 +176,8 @@ CTitleTex* CHyprGroupBarDecoration::textureFromTitle(const std::string& title) {
     return nullptr;
 }
 
-void CHyprGroupBarDecoration::clearUnusedTextures() {
-    for (auto& tex : m_dpTitleTextures | std::views::reverse) {
-        bool found = false;
-
-        for (auto& w : g_pCompositor->m_vWindows) {
-            if (!w->m_sGroupData.pNextWindow)
-                continue;
-
-            if (tex->szContent == w->m_szTitle && tex->pWindowOwner == w.get()) {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found)
-            std::erase(m_dpTitleTextures, tex);
-    }
-}
-
 void CHyprGroupBarDecoration::invalidateTextures() {
-    m_dpTitleTextures.clear();
+    m_sTitleTexs.titleTexs.clear();
 }
 
 CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {

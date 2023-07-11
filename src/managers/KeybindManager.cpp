@@ -775,7 +775,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
         g_pCompositor->focusWindow(PNEWWINDOW);
         if (PNEWWINDOW)
-            g_pCompositor->warpCursorTo(PNEWWINDOW->m_vRealPosition.goalv() + PNEWWINDOW->m_vRealSize.goalv() / 2.f);
+            g_pCompositor->warpCursorTo(PNEWWINDOW->middle());
         else
             g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->vecPosition + PMONITORWORKSPACEOWNER->vecSize / 2.f);
 

@@ -663,10 +663,10 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     SDwindleNodeData* PHOUTER = nullptr;
     SDwindleNodeData* PHINNER = nullptr;
 
-    const auto LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
-    const auto TOP = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
-    const auto RIGHT = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT;
-    const auto BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT;
+    const auto        LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
+    const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT;
+    const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT;
 
     for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {
         const auto PPARENT = PCURRENT->pParent;
@@ -687,9 +687,9 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         if (PHINNER) {
             const auto ORIGINAL = PHINNER->children[LEFT ? 0 : 1]->size.x;
             PHOUTER->recalcSizePosRecursive(*PANIMATE == 0);
-            const auto DELTA = LEFT ? -allowedMovement.x : allowedMovement.x;
+            const auto DELTA      = LEFT ? -allowedMovement.x : allowedMovement.x;
             const auto SPLITRATIO = std::clamp((ORIGINAL + DELTA) / PHINNER->size.x * 2.f, 0.1, 1.9);
-            PHINNER->splitRatio = LEFT ? SPLITRATIO : (2.f - SPLITRATIO);
+            PHINNER->splitRatio   = LEFT ? SPLITRATIO : (2.f - SPLITRATIO);
             PHINNER->recalcSizePosRecursive(*PANIMATE == 0);
         } else
             PHOUTER->recalcSizePosRecursive(*PANIMATE == 0);
@@ -701,14 +701,13 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         if (PVINNER) {
             const auto ORIGINAL = PVINNER->children[TOP ? 0 : 1]->size.y;
             PVOUTER->recalcSizePosRecursive(*PANIMATE == 0);
-            const auto DELTA = TOP ? -allowedMovement.y : allowedMovement.y;
+            const auto DELTA      = TOP ? -allowedMovement.y : allowedMovement.y;
             const auto SPLITRATIO = std::clamp((ORIGINAL + DELTA) / PVINNER->size.y * 2.f, 0.1, 1.9);
-            PVINNER->splitRatio = TOP ? SPLITRATIO : (2.f - SPLITRATIO);
+            PVINNER->splitRatio   = TOP ? SPLITRATIO : (2.f - SPLITRATIO);
             PVINNER->recalcSizePosRecursive(*PANIMATE == 0);
         } else
             PVOUTER->recalcSizePosRecursive(*PANIMATE == 0);
     }
-    
 }
 
 void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode, bool on) {

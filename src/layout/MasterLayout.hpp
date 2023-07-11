@@ -9,8 +9,7 @@
 enum eFullscreenMode : uint8_t;
 
 //orientation determines which side of the screen the master area resides
-enum eOrientation : uint8_t
-{
+enum eOrientation : uint8_t {
     ORIENTATION_LEFT = 0,
     ORIENTATION_TOP,
     ORIENTATION_RIGHT,

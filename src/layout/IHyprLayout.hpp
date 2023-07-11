@@ -15,8 +15,7 @@ struct SLayoutMessageHeader {
 
 enum eFullscreenMode : uint8_t;
 
-enum eRectCorner
-{
+enum eRectCorner {
     CORNER_TOPLEFT = 0,
     CORNER_TOPRIGHT,
     CORNER_BOTTOMRIGHT,
@@ -146,7 +145,7 @@ interface IHyprLayout {
     /*
         Called for replacing any data a layout has for a new window
     */
-    virtual void replaceWindowDataWith(CWindow * from, CWindow * to) = 0;
+    virtual void replaceWindowDataWith(CWindow* from, CWindow* to) = 0;
 
   private:
     Vector2D    m_vBeginDragXY;

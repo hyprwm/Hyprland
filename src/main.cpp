@@ -82,6 +82,7 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "Welcome to Hyprland!\n";
+    Init::gainRealTime();
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.

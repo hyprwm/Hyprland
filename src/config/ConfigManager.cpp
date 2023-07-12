@@ -157,6 +157,7 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:no_gaps_when_only"].intValue            = 0;
     configValues["dwindle:use_active_for_splits"].intValue        = 1;
     configValues["dwindle:default_split_ratio"].floatValue        = 1.f;
+    configValues["dwindle:smart_split"].intValue                  = 0;
 
     configValues["master:special_scale_factor"].floatValue = 0.8f;
     configValues["master:mfact"].floatValue                = 0.55f;
@@ -2195,8 +2196,15 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
     for (auto other = m_dWorkspaceRules.begin(); other != m_dWorkspaceRules.end(); ++other) {
-        if (other->isDefault && (other->monitor == name || (other->monitor.substr(0, 5) == "desc:" && g_pCompositor->getMonitorFromDesc(other->monitor.substr(5))->szName == name)))
-            return other->workspaceString;
+        if (other->isDefault) {
+            if (other->monitor == name)
+                return other->workspaceString;
+            if (other->monitor.substr(0, 5) == "desc:") {
+                auto monitor = g_pCompositor->getMonitorFromDesc(other->monitor.substr(5));
+                if (monitor && monitor->szName == name)
+                    return other->workspaceString;
+            }
+        }
     }
     return "";
 }

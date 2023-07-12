@@ -37,3 +37,11 @@ double Vector2D::distance(const Vector2D& other) const {
     double dy = y - other.y;
     return std::sqrt(dx * dx + dy * dy);
 }
+
+bool Vector2D::inTriangle(const Vector2D& p1, const Vector2D& p2, const Vector2D& p3) const {
+    const auto a = ((p2.y - p3.y) * (x - p3.x) + (p3.x - p2.x) * (y - p3.y)) / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y));
+    const auto b = ((p3.y - p1.y) * (x - p3.x) + (p1.x - p3.x) * (y - p3.y)) / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y));
+    const auto c = 1 - a - b;
+
+    return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
+}

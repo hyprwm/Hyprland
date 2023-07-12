@@ -12,11 +12,10 @@ CTexture::CTexture(wlr_texture* tex) {
     m_iTarget = attrs.target;
     m_iTexID  = attrs.tex;
 
-    if (m_iTarget == GL_TEXTURE_2D) {
+    if (m_iTarget == GL_TEXTURE_2D)
         m_iType = attrs.has_alpha ? TEXTURE_RGBA : TEXTURE_RGBX;
-    } else {
+    else
         m_iType = TEXTURE_EXTERNAL;
-    }
 
     m_vSize = Vector2D(tex->width, tex->height);
 }
@@ -29,7 +28,6 @@ void CTexture::destroyTexture() {
 }
 
 void CTexture::allocate() {
-    if (!m_iTexID) {
+    if (!m_iTexID)
         glGenTextures(1, &m_iTexID);
-    }
 }

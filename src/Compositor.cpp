@@ -495,17 +495,14 @@ CMonitor* CCompositor::getMonitorFromName(const std::string& name) {
             return m.get();
         }
     }
-
     return nullptr;
 }
 
 CMonitor* CCompositor::getMonitorFromDesc(const std::string& desc) {
     for (auto& m : m_vMonitors) {
-        if (desc == m->output->description) {
+        if (m->output->description && std::string(m->output->description).find(desc) == 0)
             return m.get();
-        }
     }
-
     return nullptr;
 }
 

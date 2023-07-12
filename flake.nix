@@ -73,7 +73,7 @@
     devShells = genSystems (system: {
       default = pkgsFor.${system}.mkShell {
         name = "hyprland-shell";
-        nativeBuildInputs = with pkgsFor.${system}; [cmake];
+        nativeBuildInputs = with pkgsFor.${system}; [ cmake python3 ];
         buildInputs = [self.packages.${system}.wlroots-hyprland];
         inputsFrom = [
           self.packages.${system}.wlroots-hyprland

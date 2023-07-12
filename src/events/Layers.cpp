@@ -157,9 +157,11 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
                          layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
+    const auto WORKSPACE  = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    const bool FULLSCREEN = WORKSPACE->m_bHasFullscreenWindow && WORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
 
     layersurface->alpha.setValue(0);
-    layersurface->alpha         = 1.f;
+    layersurface->alpha         = ((layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN) ? 0.f : 1.f);
     layersurface->readyToDelete = false;
     layersurface->fadingOut     = false;
 

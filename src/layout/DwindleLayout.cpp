@@ -1,3 +1,4 @@
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../debug/Log.hpp"
 #include "DwindleLayout.hpp"
 #include "../Compositor.hpp"
@@ -894,7 +895,6 @@ void CHyprDwindleLayout::switchTabs(CWindow* pWindow, CWindow* pWindow2) {
     } else
         return;
     getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
-    g_pHyprRenderer->damageWindow(pWindow);
 }
 
 void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {

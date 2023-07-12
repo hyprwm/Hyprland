@@ -781,33 +781,59 @@ void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
 }
 
 void CHyprMasterLayout::switchTabs(CWindow* pWindow, CWindow* pWindow2) {
-    // windows should be valid, insallah
-
-    const auto PNODE  = getNodeFromWindow(pWindow);
-    const auto PNODE2 = getNodeFromWindow(pWindow2);
-
-    if (!PNODE2 || !PNODE)
+    if (pWindow == pWindow2) {
         return;
+    }
 
     const auto inheritFullscreen = prepareLoseFocus(pWindow);
 
-    if (PNODE->workspaceID != PNODE2->workspaceID) {
-        std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
-        std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
-    }
+    if (pWindow->m_sGroupData.pNextWindow == pWindow2 && pWindow2->m_sGroupData.pNextWindow == pWindow) {
+        if (pWindow->m_sGroupData.head) {
+            pWindow->m_sGroupData.head  = false;
+            pWindow2->m_sGroupData.head = true;
+        } else {
+            pWindow->m_sGroupData.head  = true;
+            pWindow2->m_sGroupData.head = false;
+        }
+    } else if (pWindow->m_sGroupData.pNextWindow == pWindow2) {
+        CWindow* oneBefore = pWindow;
+        if (pWindow->m_sGroupData.head) {
+            pWindow->m_sGroupData.head  = false;
+            pWindow2->m_sGroupData.head = true;
+        } else if (pWindow2->m_sGroupData.head) {
+            pWindow2->m_sGroupData.head = false;
+            pWindow->m_sGroupData.head  = true;
+        }
+        while (oneBefore->m_sGroupData.pNextWindow != pWindow)
+            oneBefore = oneBefore->m_sGroupData.pNextWindow;
+        oneBefore->m_sGroupData.pNextWindow = pWindow2;
+        pWindow->m_sGroupData.pNextWindow   = pWindow2->m_sGroupData.pNextWindow;
+        pWindow2->m_sGroupData.pNextWindow  = pWindow;
+    } else if (pWindow2->m_sGroupData.pNextWindow == pWindow) {
+        CWindow* oneBefore = pWindow;
+        while (oneBefore->m_sGroupData.pNextWindow != pWindow2) {
+            oneBefore = oneBefore->m_sGroupData.pNextWindow;
+        }
+        if (pWindow->m_sGroupData.head) {
+            pWindow->m_sGroupData.head  = false;
+            pWindow2->m_sGroupData.head = true;
+        } else if (pWindow2->m_sGroupData.head) {
+            pWindow2->m_sGroupData.head = false;
+            pWindow->m_sGroupData.head   = true;
+        }
+        oneBefore->m_sGroupData.pNextWindow = pWindow;
+        pWindow2->m_sGroupData.pNextWindow  = pWindow->m_sGroupData.pNextWindow;
+        pWindow->m_sGroupData.pNextWindow   = pWindow2;
+    } else
+        return;
 
-    // massive hack: just swap window pointers, lol
-    PNODE->pWindow  = pWindow2;
-    PNODE2->pWindow = pWindow;
 
     recalculateMonitor(pWindow->m_iMonitorID);
-    if (PNODE2->workspaceID != PNODE->workspaceID)
-        recalculateMonitor(pWindow2->m_iMonitorID);
 
     g_pHyprRenderer->damageWindow(pWindow);
     g_pHyprRenderer->damageWindow(pWindow2);
 
-    prepareNewFocus(pWindow2, inheritFullscreen);
+    prepareNewFocus(pWindow, inheritFullscreen);
 }
 
 void CHyprMasterLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {

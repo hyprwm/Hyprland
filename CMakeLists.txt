@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 include(CheckIncludeFile)
+include(ExternalProject)
 
 # Get version
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/props.json PROPS)
@@ -12,7 +13,7 @@ project(Hyprland
 
 set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
-configure_file(hyprland.pc.in hyprland.pc @ONLY) 
+configure_file(hyprland.pc.in hyprland.pc @ONLY)
 
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
@@ -69,12 +70,32 @@ else()
     message(STATUS "Configuring Hyprland in Release with CMake")
 endif()
 
-include_directories(
-  .
-  "subprojects/wlroots/include/"
-  "subprojects/wlroots/build/include/"
-  "subprojects/udis86/"
-  "protocols/")
+set(WLROOTS_SOVERSION 12032)
+
+find_program(MESON_EXE NAMES meson)
+find_program(NINJA_EXE NAMES ninja)
+find_program(SED_EXE NAMES sed)
+ExternalProject_Add(wlroots_build
+    PREFIX wlroots
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots
+    PATCH_COMMAND ${SED_EXE} -E -i -e "s/(soversion = 12)([^032]|$$)/soversion = ${WLROOTS_SOVERSION}/g" ${CMAKE_SOURCE_DIR}/subprojects/wlroots/meson.build
+    CONFIGURE_COMMAND ${MESON_EXE} setup --prefix "/" . ${CMAKE_SOURCE_DIR}/subprojects/wlroots
+    BUILD_COMMAND ${NINJA_EXE} -C .
+    INSTALL_COMMAND ${MESON_EXE} install --destdir ${CMAKE_CURRENT_BINARY_DIR}/wlroots
+	BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/wlroots/lib/libwlroots.so.${WLROOTS_SOVERSION})
+
+set(wlroots_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots/include/)
+set(wlroots_LIBRARY ${CMAKE_CURRENT_BINARY_DIR}/wlroots/lib/libwlroots.so.${WLROOTS_SOVERSION})
+
+add_library(wlroots SHARED IMPORTED)
+add_dependencies(wlroots wlroots_build)
+set_target_properties(wlroots PROPERTIES
+    IMPORTED_LOCATION ${wlroots_LIBRARY}
+    INTERFACE_INCLUDE_DIRECTORIES ${wlroots_INCLUDE_DIR})
+
+add_subdirectory("subprojects/udis86" udis86)
+include_directories(${CMAKE_SOURCE_DIR}/subprojects/udis86/ "protocols/")
+
 set(CMAKE_CXX_STANDARD 23)
 add_compile_definitions(WLR_USE_UNSTABLE)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith)
@@ -84,14 +105,13 @@ set(CMAKE_ENABLE_EXPORTS TRUE)
 message(STATUS "Checking deps...")
 
 find_package(Threads REQUIRED)
-
 find_package(PkgConfig REQUIRED)
 find_package(OpenGL REQUIRED)
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm xkbcommon libinput pango pangocairo pixman-1) # we do not check for wlroots, as we provide it ourselves
-
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
+add_executable(hyprctl hyprctl/main.cpp)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Setting debug flags")
@@ -147,7 +167,6 @@ target_compile_definitions(Hyprland
     "GIT_DIRTY=\"${GIT_DIRTY}\""
     "GIT_TAG=\"${GIT_TAG}\"")
 
-target_link_libraries(Hyprland rt)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -156,13 +175,13 @@ include(CPack)
 message(STATUS "Setting link libraries")
 
 function(protocol protoPath protoName external)
-    if (external)
+    if(external)
         execute_process(
             COMMAND ${WaylandScanner} server-header ${protoPath} protocols/${protoName}-protocol.h
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
         execute_process(
             COMMAND ${WaylandScanner} private-code ${protoPath} protocols/${protoName}-protocol.c
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})  
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
         target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
     else()
         execute_process(
@@ -170,20 +189,38 @@ function(protocol protoPath protoName external)
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
         execute_process(
             COMMAND ${WaylandScanner} private-code ${WAYLAND_PROTOCOLS_DIR}/${protoPath} protocols/${protoName}-protocol.c
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})  
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
         target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
     endif()
 endfunction()
 
-target_link_libraries(Hyprland PkgConfig::deps)
-
 target_link_libraries(Hyprland
-        ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us
-        OpenGL::EGL
-        OpenGL::GL
-        Threads::Threads
-        ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
+    rt
+    PkgConfig::deps
+    OpenGL::EGL
+    OpenGL::GL
+    Threads::Threads
+    wlroots
+    udis86
 )
+
+install(TARGETS Hyprland hyprctl DESTINATION bin)
+install(FILES ${wlroots_LIBRARY} DESTINATION lib)
+install(DIRECTORY assets/ DESTINATION share/hyprland PATTERN "meson.build" EXCLUDE)
+install(FILES example/hyprland.desktop DESTINATION share/wayland-sessions)
+install(FILES example/hyprland.conf DESTINATION share/hyprland)
+install(FILES docs/hyprctl.1 docs/Hyprland.1 DESTINATION share/man/man1)
+
+if(NO_DEV)
+    message(STATUS "Development headers disabled")
+else()
+    message(STATUS "Development headers enabled")
+    install(DIRECTORY ${wlroots_INCLUDE_DIR}/ DESTINATION include/hyprland/wlroots)
+    install(DIRECTORY protocols/ DESTINATION include/hyprland/protocols FILES_MATCHING PATTERN "*.h")    
+    install(DIRECTORY src/ DESTINATION include/hyprland/src FILES_MATCHING PATTERN "*.h*")
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hyprland.pc
+        DESTINATION share/pkgconfig)
+endif()
 
 protocol("protocols/ext-workspace-unstable-v1.xml" "ext-workspace-unstable-v1" true)
 protocol("protocols/idle.xml" "idle" true)

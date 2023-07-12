@@ -39,6 +39,7 @@ add_project_arguments(
   ],
   language: 'cpp')
 
+add_global_arguments('-g', language: 'cpp')
 wlroots = subproject('wlroots', default_options: ['examples=false'])
 have_xwlr = wlroots.get_variable('features').get('xwayland')
 xcb_dep = dependency('xcb', required: get_option('xwayland'))

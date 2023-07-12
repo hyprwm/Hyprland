@@ -895,6 +895,8 @@ void CHyprDwindleLayout::switchTabs(CWindow* pWindow, CWindow* pWindow2) {
     } else
         return;
     getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
+    g_pHyprRenderer->damageWindow(pWindow);
+    g_pHyprRenderer->damageWindow(pWindow2);
 }
 
 void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {

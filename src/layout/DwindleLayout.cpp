@@ -656,7 +656,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     if (DISPLAYBOTTOM && DISPLAYTOP)
         allowedMovement.y = 0;
 
-    // Identify inner and outer parent nodes for both directions.
+    // Identify inner and outer nodes for both directions.
 
     SDwindleNodeData* PVOUTER = nullptr;
     SDwindleNodeData* PVINNER = nullptr;
@@ -667,18 +667,22 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
     const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT;
     const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT;
+    const auto        NONE   = corner == CORNER_NONE;
 
     for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {
         const auto PPARENT = PCURRENT->pParent;
 
-        if (!PVOUTER && PPARENT->splitTop && ((TOP && PPARENT->children[1] == PCURRENT) || (BOTTOM && PPARENT->children[0] == PCURRENT)))
+        if (!PVOUTER && PPARENT->splitTop && (NONE || (TOP && PPARENT->children[1] == PCURRENT) || (BOTTOM && PPARENT->children[0] == PCURRENT)))
             PVOUTER = PCURRENT;
         else if (!PVOUTER && !PVINNER && PPARENT->splitTop)
             PVINNER = PCURRENT;
-        else if (!PHOUTER && !PPARENT->splitTop && ((LEFT && PPARENT->children[1] == PCURRENT) || (RIGHT && PPARENT->children[0] == PCURRENT)))
+        else if (!PHOUTER && !PPARENT->splitTop && (NONE || (LEFT && PPARENT->children[1] == PCURRENT) || (RIGHT && PPARENT->children[0] == PCURRENT)))
             PHOUTER = PCURRENT;
         else if (!PHOUTER && !PHINNER && !PPARENT->splitTop)
             PHINNER = PCURRENT;
+
+        if (PVOUTER && PHOUTER)
+            break;
     }
 
     if (PHOUTER) {

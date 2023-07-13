@@ -2085,4 +2085,5 @@ void CKeybindManager::moveGroupWindow(std::string args) {
         return;
 
     g_pCompositor->m_pLastWindow->switchWithWindowInGroup(BACK ? g_pCompositor->m_pLastWindow->getGroupPrevious() : g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow);
+    g_pCompositor->m_pLastWindow->updateWindowDecos();
 }

@@ -13,7 +13,7 @@ project(Hyprland
 set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
 configure_file(hyprland.pc.in hyprland.pc @ONLY) 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
 message(STATUS "Gathering git info")

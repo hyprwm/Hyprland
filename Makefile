@@ -47,6 +47,9 @@ install:
 	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
 	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
+	cp ./assets/wall_anime_2K.png ${PREFIX}/share/hyprland
+	cp ./assets/wall_anime_4K.png ${PREFIX}/share/hyprland
+	cp ./assets/wall_anime_8K.png ${PREFIX}/share/hyprland
 
 	mkdir -p ${PREFIX}/share/man/man1
 	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1

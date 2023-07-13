@@ -32,7 +32,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["centerwindow"]                  = centerWindow;
     m_mDispatchers["togglegroup"]                   = toggleGroup;
     m_mDispatchers["changegroupactive"]             = changeGroupActive;
-    m_mDispatchers["moveactiveintragroup"]          = moveActiveIntraGroup;
+    m_mDispatchers["moveactivetab"]                 = moveActiveTab;
     m_mDispatchers["togglesplit"]                   = toggleSplit;
     m_mDispatchers["splitratio"]                    = alterSplitRatio;
     m_mDispatchers["focusmonitor"]                  = focusMonitor;
@@ -1243,7 +1243,7 @@ void CKeybindManager::changeGroupActive(std::string args) {
     }
 }
 
-void CKeybindManager::moveActiveIntraGroup(std::string args) {
+void CKeybindManager::moveActiveTab(std::string args) {
     auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!PWINDOW)
@@ -1263,9 +1263,9 @@ void CKeybindManager::moveActiveIntraGroup(std::string args) {
     Debug::log(WARN, "switching windows");
     const auto PWINDOWTOCHANGETO = args == "b" ? last : PWINDOW->m_sGroupData.pNextWindow;
     if (PWINDOWTOCHANGETO && PWINDOWTOCHANGETO->getGroupCurrent() == PWINDOW->getGroupCurrent()) {
-    Debug::log(WARN, "switching windows %p %p", PWINDOW, PWINDOWTOCHANGETO);
+        Debug::log(WARN, "switching windows %p %p", PWINDOW, PWINDOWTOCHANGETO);
         g_pLayoutManager->getCurrentLayout()->switchTabs(PWINDOW, PWINDOWTOCHANGETO);
-    Debug::log(WARN, "switched windows %p %p", PWINDOW, PWINDOWTOCHANGETO);
+        Debug::log(WARN, "switched windows %p %p", PWINDOW, PWINDOWTOCHANGETO);
         g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.vec() + PWINDOWTOCHANGETO->m_vRealSize.vec() / 2.0);
         return;
     }

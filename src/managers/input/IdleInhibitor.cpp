@@ -42,10 +42,10 @@ void CInputManager::recheckIdleInhibitorStatus() {
 
     for (auto& ii : m_lIdleInhibitors) {
         if (!ii.pWindow) {
-            wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, false);
+            g_pCompositor->setIdleActivityInhibit(false);
             return;
         } else if (g_pHyprRenderer->shouldRenderWindow(ii.pWindow)) {
-            wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, false);
+            g_pCompositor->setIdleActivityInhibit(false);
             return;
         }
     }
@@ -56,21 +56,21 @@ void CInputManager::recheckIdleInhibitorStatus() {
             continue;
 
         if (w->m_eIdleInhibitMode == IDLEINHIBIT_ALWAYS) {
-            wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, false);
+            g_pCompositor->setIdleActivityInhibit(false);
             return;
         }
 
         if (w->m_eIdleInhibitMode == IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w.get())) {
-            wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, false);
+            g_pCompositor->setIdleActivityInhibit(false);
             return;
         }
 
         if (w->m_eIdleInhibitMode == IDLEINHIBIT_FULLSCREEN && w->m_bIsFullscreen && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID)) {
-            wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, false);
+            g_pCompositor->setIdleActivityInhibit(false);
             return;
         }
     }
 
-    wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, true);
+    g_pCompositor->setIdleActivityInhibit(true);
     return;
 }

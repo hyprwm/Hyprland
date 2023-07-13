@@ -344,7 +344,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
         } else {
-            resizeActiveWindow(TICKDELTA, DRAGGINGWINDOW);
+            resizeActiveWindow(TICKDELTA, m_eGrabbedCorner, DRAGGINGWINDOW);
         }
     }
 

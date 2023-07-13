@@ -27,7 +27,8 @@ struct SKeybind {
     bool shadowed = false;
 };
 
-enum eFocusWindowMode {
+enum eFocusWindowMode
+{
     MODE_CLASS_REGEX = 0,
     MODE_TITLE_REGEX,
     MODE_ADDRESS,
@@ -144,6 +145,7 @@ class CKeybindManager {
     static void     lockActiveGroup(std::string);
     static void     moveIntoGroup(std::string);
     static void     moveOutOfGroup(std::string);
+    static void     moveGroupWindow(std::string);
     static void     global(std::string);
 
     friend class CCompositor;

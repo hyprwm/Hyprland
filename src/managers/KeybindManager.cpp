@@ -32,6 +32,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["centerwindow"]                  = centerWindow;
     m_mDispatchers["togglegroup"]                   = toggleGroup;
     m_mDispatchers["changegroupactive"]             = changeGroupActive;
+    m_mDispatchers["movegroupwindow"]               = moveGroupWindow;
     m_mDispatchers["togglesplit"]                   = toggleSplit;
     m_mDispatchers["splitratio"]                    = alterSplitRatio;
     m_mDispatchers["focusmonitor"]                  = focusMonitor;
@@ -2075,4 +2076,13 @@ void CKeybindManager::global(std::string args) {
         return;
 
     g_pProtocolManager->m_pGlobalShortcutsProtocolManager->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
+}
+
+void CKeybindManager::moveGroupWindow(std::string args) {
+    const auto BACK = args == "b" || args == "prev";
+
+    if (!g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow)
+        return;
+
+    g_pCompositor->m_pLastWindow->switchWithWindowInGroup(BACK ? g_pCompositor->m_pLastWindow->getGroupPrevious() : g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow);
 }

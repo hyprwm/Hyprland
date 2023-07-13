@@ -333,9 +333,11 @@ class CWindow {
     CWindow*                 getGroupHead();
     CWindow*                 getGroupTail();
     CWindow*                 getGroupCurrent();
+    CWindow*                 getGroupPrevious();
     void                     setGroupCurrent(CWindow* pWindow);
     void                     insertWindowToGroup(CWindow* pWindow);
     void                     updateGroupOutputs();
+    void                     switchWithWindowInGroup(CWindow* pWindow);
 
   private:
     // For hidden windows and stuff

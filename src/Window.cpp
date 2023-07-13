@@ -693,6 +693,45 @@ void CWindow::insertWindowToGroup(CWindow* pWindow) {
     pWindow->m_sGroupData.pNextWindow = PHEAD;
 }
 
+CWindow* CWindow::getGroupPrevious() {
+    CWindow* curr = m_sGroupData.pNextWindow;
+
+    while (curr != this && curr->m_sGroupData.pNextWindow != this)
+        curr = curr->m_sGroupData.pNextWindow;
+
+    return curr;
+}
+
+void CWindow::switchWithWindowInGroup(CWindow* pWindow) {
+    if (!m_sGroupData.pNextWindow || !pWindow->m_sGroupData.pNextWindow)
+        return;
+
+    // TODO: probably can be done more easily but I let C++ do the algorithm stuff for us
+
+    std::vector<CWindow*> group;
+    group.push_back(this);
+    CWindow* curr = this->m_sGroupData.pNextWindow;
+    while (curr != this) {
+        group.push_back(curr);
+        curr = curr->m_sGroupData.pNextWindow;
+    }
+
+    auto it1 = std::find(group.begin(), group.end(), this);
+    auto it2 = std::find(group.begin(), group.end(), pWindow);
+
+    std::iter_swap(it1, it2);
+
+    for (auto it = group.begin(); it != group.end(); ++it) {
+        if (std::next(it) == group.end()) {
+            (*it)->m_sGroupData.pNextWindow = *group.begin();
+        } else {
+            (*it)->m_sGroupData.pNextWindow = *std::next(it);
+        }
+    }
+
+    std::swap(m_sGroupData.head, pWindow->m_sGroupData.head);
+}
+
 void CWindow::updateGroupOutputs() {
     if (!m_sGroupData.pNextWindow)
         return;

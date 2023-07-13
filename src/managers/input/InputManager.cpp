@@ -320,7 +320,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     m_bEmptyFocusCursorSet = false;
 
     if (time)
-        wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
+        g_pCompositor->notifyIdleActivity();
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
@@ -432,7 +432,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 }
 
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
-    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
+    g_pCompositor->notifyIdleActivity();
 
     EMIT_HOOK_EVENT("mouseButton", e);
 
@@ -607,7 +607,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
     bool               passEvent = g_pKeybindManager->onAxisEvent(e);
 
-    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
+    g_pCompositor->notifyIdleActivity();
 
     if (passEvent) {
         wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
@@ -1067,7 +1067,7 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 
     bool passEvent = g_pKeybindManager->onKeyEvent(e, pKeyboard);
 
-    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
+    g_pCompositor->notifyIdleActivity();
 
     if (passEvent) {
 

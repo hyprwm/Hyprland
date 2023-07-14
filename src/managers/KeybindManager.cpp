@@ -102,6 +102,7 @@ void CKeybindManager::removeKeybind(uint32_t mod, const std::string& key) {
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
+    std::transform(mods.begin(), mods.end(), mods.begin(), ::toupper);
     if (mods.contains("SHIFT"))
         modMask |= WLR_MODIFIER_SHIFT;
     if (mods.contains("CAPS"))

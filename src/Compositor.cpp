@@ -2442,7 +2442,7 @@ void CCompositor::notifyIdleActivity() {
     wlr_idle_notifier_v1_notify_activity(g_pCompositor->m_sWLRIdleNotifier, g_pCompositor->m_sSeat.seat);
 }
 
-void CCompositor::setIdleActivityInhibit(bool inhibit) {
-    wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, inhibit);
-    wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, inhibit);
+void CCompositor::setIdleActivityInhibit(bool enabled) {
+    wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, enabled);
+    wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, !enabled);
 }

@@ -309,6 +309,10 @@ void CHyprXWaylandManager::setXWaylandScale(std::optional<double> scale) {
 #ifndef NO_XWAYLAND
     wl_resource* res = nullptr;
     for (auto& m : g_pCompositor->m_vMonitors) {
+
+        if (!m->output || !m->m_bEnabled)
+            continue;
+
         const Vector2D LOGICALSIZE = m->vecTransformedSize / scale.value_or(m->scale);
 
         wl_resource*   outputResource = nullptr;

@@ -15,9 +15,9 @@ struct SLayoutMessageHeader {
 
 enum eFullscreenMode : uint8_t;
 
-enum eRectCorner
-{
-    CORNER_TOPLEFT = 0,
+enum eRectCorner {
+    CORNER_NONE = 0,
+    CORNER_TOPLEFT,
     CORNER_TOPRIGHT,
     CORNER_BOTTOMRIGHT,
     CORNER_BOTTOMLEFT
@@ -76,7 +76,7 @@ interface IHyprLayout {
         Vector2D holds pixel values
         Optional pWindow for a specific window
     */
-    virtual void resizeActiveWindow(const Vector2D&, CWindow* pWindow = nullptr) = 0;
+    virtual void resizeActiveWindow(const Vector2D&, eRectCorner corner = CORNER_NONE, CWindow* pWindow = nullptr) = 0;
     /*
         Called when a user requests a move of the current window by a vec
         Vector2D holds pixel values
@@ -146,7 +146,7 @@ interface IHyprLayout {
     /*
         Called for replacing any data a layout has for a new window
     */
-    virtual void replaceWindowDataWith(CWindow * from, CWindow * to) = 0;
+    virtual void replaceWindowDataWith(CWindow* from, CWindow* to) = 0;
 
   private:
     Vector2D    m_vBeginDragXY;

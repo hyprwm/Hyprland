@@ -241,6 +241,9 @@ void IHyprLayout::onBeginDragWindow() {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     g_pKeybindManager->shadowKeybinds();
+
+    g_pCompositor->focusWindow(DRAGGINGWINDOW);
+    g_pCompositor->moveWindowToTop(DRAGGINGWINDOW);
 }
 
 void IHyprLayout::onEndDragWindow() {
@@ -266,8 +269,6 @@ void IHyprLayout::onEndDragWindow() {
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-
-    g_pCompositor->focusWindow(DRAGGINGWINDOW);
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
@@ -344,7 +345,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
         } else {
-            resizeActiveWindow(TICKDELTA, DRAGGINGWINDOW);
+            resizeActiveWindow(TICKDELTA, m_eGrabbedCorner, DRAGGINGWINDOW);
         }
     }
 

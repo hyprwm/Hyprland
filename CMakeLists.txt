@@ -97,6 +97,8 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Setting debug flags")
 
     if (WITH_ASAN)
+        message(STATUS "Enabling ASan")
+
         target_link_libraries(Hyprland asan)
         add_compile_options(-fsanitize=address)
     endif()

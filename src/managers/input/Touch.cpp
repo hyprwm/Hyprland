@@ -48,7 +48,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     wlr_seat_touch_notify_down(g_pCompositor->m_sSeat.seat, m_sTouchData.touchFocusSurface, e->time_msec, e->touch_id, local.x, local.y);
 
-    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
+    g_pCompositor->notifyIdleActivity();
 }
 
 void CInputManager::onTouchUp(wlr_touch_up_event* e) {

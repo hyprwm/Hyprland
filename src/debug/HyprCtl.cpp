@@ -686,8 +686,11 @@ std::string dispatchRequest(std::string in) {
     in = in.substr(in.find_first_of(' ') + 1);
 
     const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));
+    
+    auto DISPATCHARG = std::string();
+    if ((int) in.find_first_of(' ') != -1)
+        DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
 
-    const auto DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
 
     const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(DISPATCHSTR);
     if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end())

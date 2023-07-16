@@ -2348,7 +2348,7 @@ bool CCompositor::isWorkspaceSpecial(const int& id) {
 }
 
 int CCompositor::getNewSpecialID() {
-    int highest = -100;
+    int highest = SPECIAL_WORKSPACE_START;
     for (auto& ws : m_vWorkspaces) {
         if (ws->m_bIsSpecialWorkspace && ws->m_iID > highest) {
             highest = ws->m_iID;

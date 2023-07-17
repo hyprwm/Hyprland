@@ -477,6 +477,10 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
         } catch (std::exception& e) { Debug::log(ERR, "Rounding rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
+    } else if (r.szRule.find("bordersize") == 0) {
+        try {
+            m_sAdditionalConfigData.borderSize = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+        } catch (std::exception& e) { Debug::log(ERR, "Bordersize rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
     } else if (r.szRule.find("opacity") == 0) {
         try {
             CVarList vars(r.szRule, 0, ' ');
@@ -536,6 +540,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.rounding       = -1;
     m_sAdditionalConfigData.dimAround      = false;
     m_sAdditionalConfigData.forceRGBX      = false;
+    m_sAdditionalConfigData.borderSize     = -1;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {

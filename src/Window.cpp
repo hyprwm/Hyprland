@@ -546,6 +546,8 @@ void CWindow::updateDynamicRules() {
     for (auto& r : WINDOWRULES) {
         applyDynamicRule(r);
     }
+
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 }
 
 // check if the point is "hidden" under a rounded corner of the window

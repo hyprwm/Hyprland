@@ -86,10 +86,10 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 
     if (!pXDGOutput) {
         pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<SXDGOutput>(PMONITOR)).get();
-
+#ifndef NO_XWAYLAND
         if (g_pXWaylandManager->m_sWLRXWayland->server->client == client)
             pXDGOutput->isXWayland = true;
-
+#endif
         pXDGOutput->client = client;
     }
 

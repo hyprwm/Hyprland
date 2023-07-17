@@ -65,6 +65,10 @@ SXDGOutput* CXDGOutputProtocol::outputFromMonitor(CMonitor* pMonitor) {
 CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     g_pHookSystem->hookDynamic("monitorLayoutChanged", [&](void* self, std::any param) { this->updateAllOutputs(); });
     g_pHookSystem->hookDynamic("configReloaded", [&](void* self, std::any param) { this->updateAllOutputs(); });
+    g_pHookSystem->hookDynamic("monitorRemoved", [&](void* self, std::any param) {
+        const auto PMONITOR = std::any_cast<CMonitor*>(param);
+        std::erase_if(m_vXDGOutputs, [&](const auto& other) { return other->monitor == PMONITOR; });
+    });
 }
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
@@ -128,5 +132,7 @@ void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
 void CXDGOutputProtocol::updateAllOutputs() {
     for (auto& o : m_vXDGOutputs) {
         updateOutputDetails(o.get());
+
+        wlr_output_schedule_done(o->monitor->output);
     }
 }

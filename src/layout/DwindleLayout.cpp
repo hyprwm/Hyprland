@@ -127,6 +127,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
     auto               borderSize =
         PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() != -1 ? PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() : WORKSPACERULE.borderSize.value_or(*PBORDERSIZE);
+    if (PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
+        borderSize = PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying();
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
         Debug::log(ERR, "Node %lx holding invalid window %lx!!", pNode, PWINDOW);

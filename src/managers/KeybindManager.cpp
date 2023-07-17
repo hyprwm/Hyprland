@@ -1013,8 +1013,11 @@ void CKeybindManager::moveFocusTo(std::string args) {
         }
     };
 
-    const auto PWINDOWTOCHANGETO = PLASTWINDOW->m_bIsFullscreen ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, arg == 'u' || arg == 't' || arg == 'r') :
-                                                                  g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+    const auto PWINDOWTOCHANGETO = PLASTWINDOW->m_bIsFullscreen
+      ? (arg == 'd' || arg == 'b' || arg == 'r'
+          ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true)
+          : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true))
+      : g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {

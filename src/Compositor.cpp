@@ -196,8 +196,7 @@ void CCompositor::initServer() {
     m_sWLRXDGDecoMgr    = wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
     wlr_server_decoration_manager_set_default_mode(m_sWLRServerDecoMgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
 
-    m_sWLRXDGOutputMgr = wlr_xdg_output_manager_v1_create(m_sWLDisplay, m_sWLROutputLayout);
-    m_sWLROutputMgr    = wlr_output_manager_v1_create(m_sWLDisplay);
+    m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
 
     m_sWLRInhibitMgr     = wlr_input_inhibit_manager_create(m_sWLDisplay);
     m_sWLRKbShInhibitMgr = wlr_keyboard_shortcuts_inhibit_v1_create(m_sWLDisplay);

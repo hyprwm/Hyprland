@@ -2086,14 +2086,9 @@ void CKeybindManager::moveGroupWindow(std::string args) {
     if (!g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow)
         return;
 
-    if (!BACK && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow->m_sGroupData.head) {
-        g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow->m_sGroupData.head = false;
-        g_pCompositor->m_pLastWindow->m_sGroupData.head                           = true;
-    } else if (BACK && g_pCompositor->m_pLastWindow->m_sGroupData.head) {
-        g_pCompositor->m_pLastWindow->m_sGroupData.head                           = false;
-        g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow->m_sGroupData.head = true;
-    } else {
+    if ((!BACK && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow->m_sGroupData.head) || (BACK && g_pCompositor->m_pLastWindow->m_sGroupData.head))
+        std::swap(g_pCompositor->m_pLastWindow->m_sGroupData.head, g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
+    else
         g_pCompositor->m_pLastWindow->switchWithWindowInGroup(BACK ? g_pCompositor->m_pLastWindow->getGroupPrevious() : g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow);
-    }
     g_pCompositor->m_pLastWindow->updateWindowDecos();
 }

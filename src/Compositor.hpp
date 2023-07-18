@@ -102,7 +102,7 @@ class CCompositor {
     std::vector<CWindow*>                     m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
 
-    std::unordered_map<std::string, int64_t>  m_mMonitorIDMap;
+    std::unordered_map<std::string, uint64_t>  m_mMonitorIDMap;
 
     void                                      initServer();
     void                                      startCompositor();

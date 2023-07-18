@@ -342,7 +342,7 @@ void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor, bool dmabuf)
 
     // share frame if correct output
     for (auto& f : m_vFramesAwaitingWrite) {
-        if (!f->pMonitor) {
+        if (!f->pMonitor || !f->buffer) {
             framesToRemove.push_back(f);
             continue;
         }

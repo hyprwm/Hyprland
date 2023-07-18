@@ -1619,7 +1619,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             }
 
             if (!found) {
-                wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (int)pMonitorRule->refreshRate * 1000);
+                wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y,
+                                           (wlr_backend_is_wl(pMonitor->output->backend) ? 0 : (int)pMonitorRule->refreshRate * 1000));
                 pMonitor->vecSize     = pMonitorRule->resolution;
                 pMonitor->refreshRate = pMonitorRule->refreshRate;
 
@@ -1667,7 +1668,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     }
                 }
             } else {
-                wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (int)pMonitorRule->refreshRate * 1000);
+                wlr_output_set_custom_mode(pMonitor->output, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y,
+                                           (wlr_backend_is_wl(pMonitor->output->backend) ? 0 : (int)pMonitorRule->refreshRate * 1000));
             }
 
             pMonitor->vecSize     = pMonitorRule->resolution;

@@ -64,7 +64,7 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
     });
 }
 
-void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource * 4) {
+void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
     const auto OUTPUT = wlr_output_from_resource(outputResource);
 
     if (!OUTPUT)

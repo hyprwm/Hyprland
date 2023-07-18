@@ -11,11 +11,15 @@ CWaylandResource::CWaylandResource(wl_client* client, const wl_interface* wlInte
 
     m_pWLClient            = client;
     m_bDestroyInDestructor = destroyInDestructor;
+
+    Debug::log(LOG, "[wl res %lx] created", m_pWLResource);
 }
 
 CWaylandResource::~CWaylandResource() {
     if (m_pWLResource && m_bDestroyInDestructor)
         wl_resource_destroy(m_pWLResource);
+
+    Debug::log(LOG, "[wl res %lx] destroyed (wl_resource_destroy %s)", m_pWLResource, (m_pWLResource && m_bDestroyInDestructor ? "sent" : "not sent"));
 }
 
 bool CWaylandResource::good() {
@@ -30,6 +34,8 @@ void CWaylandResource::setImplementation(const void* impl, void* data, wl_resour
     RASSERT(!m_bImplementationSet, "Wayland Resource %lx already has an implementation, cannot re-set!", m_pWLResource);
 
     wl_resource_set_implementation(m_pWLResource, impl, data, df);
+
+    Debug::log(LOG, "[wl res %lx] set impl to %lx", m_pWLResource, impl);
 
     m_bImplementationSet = true;
 }

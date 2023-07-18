@@ -170,7 +170,3 @@ inline wlr_xwayland_surface* wlr_xwayland_surface_try_from_wlr_surface(wlr_surfa
 inline bool wlr_xwayland_or_surface_wants_focus(const wlr_xwayland_surface*) {
     return false;
 }
-
-inline bool wlr_backend_is_x11(void*) {
-    return false;
-}

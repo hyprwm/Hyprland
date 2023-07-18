@@ -465,7 +465,7 @@ void CCompositor::startCompositor() {
         throw std::runtime_error("The backend could not start!");
     }
 
-    wlr_xcursor_manager_set_cursor_image(m_sWLRXCursorMgr, "left_ptr", m_sWLRCursor);
+    wlr_cursor_set_xcursor(m_sWLRCursor, m_sWLRXCursorMgr, "left_ptr");
 
 #ifdef USES_SYSTEMD
     if (sd_booted() > 0)

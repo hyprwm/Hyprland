@@ -1073,7 +1073,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         return;
     }
 
-    g_pProtocolManager->m_pScreencopyProtocolManager->onRenderEnd(pMonitor);
     pixman_region32_fini(&damage);
 
     if (UNLOCK_SC)

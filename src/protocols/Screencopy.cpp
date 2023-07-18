@@ -326,15 +326,11 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
 
 void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
     m_pLastMonitorBackBuffer = e->buffer;
-    shareAllFrames(pMonitor, true);
+    shareAllFrames(pMonitor);
     m_pLastMonitorBackBuffer = nullptr;
 }
 
-void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
-    shareAllFrames(pMonitor, false);
-}
-
-void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor, bool dmabuf) {
+void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 
@@ -347,7 +343,7 @@ void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor, bool dmabuf)
             continue;
         }
 
-        if (f->pMonitor != pMonitor || dmabuf != (f->bufferCap == WLR_BUFFER_CAP_DMABUF))
+        if (f->pMonitor != pMonitor)
             continue;
 
         shareFrame(f);
@@ -423,13 +419,10 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
         return false;
 
     // render the client
-    const auto        PMONITOR = frame->pMonitor;
-    pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10);
+    const auto PMONITOR = frame->pMonitor;
 
     if (!wlr_output_attach_render(PMONITOR->output, nullptr)) {
         Debug::log(ERR, "[screencopy] Couldn't attach render");
-        pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;
     }
@@ -438,12 +431,11 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     if (!PFORMAT) {
         Debug::log(ERR, "[screencopy] Cannot read pixels, unsupported format %lx", PFORMAT);
         wlr_output_rollback(PMONITOR->output);
-        pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;
     }
 
-    g_pHyprOpenGL->begin(PMONITOR, &fakeDamage, true);
+    g_pHyprOpenGL->begin(PMONITOR, &PMONITOR->lastFrameDamage, true);
 
     // we should still have the last frame by this point in the original fb
     glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_RenderData.pCurrentMonData->primaryFB.m_iFb);
@@ -458,7 +450,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     wlr_output_rollback(PMONITOR->output);
 
-    pixman_region32_fini(&fakeDamage);
+    pixman_region32_fini(&PMONITOR->lastFrameDamage);
 
     wlr_buffer_end_data_ptr_access(frame->buffer);
 
@@ -482,6 +474,7 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
 
     float color[] = {0, 0, 0, 0};
     wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, color);
+    // TODO: use hl render methods to use damage
     wlr_render_texture_with_matrix(g_pCompositor->m_sWLRRenderer, sourceTex, glMatrix, 1.0f);
 
     wlr_texture_destroy(sourceTex);

@@ -13,6 +13,7 @@ static void destroyManagerResource(wl_client* client, wl_resource* resource) {
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
     ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource);
+    wl_resource_destroy(resource);
 }
 
 static void destroyOutputResourceOnly(wl_resource* resource) {
@@ -53,15 +54,6 @@ void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver
     RESOURCE->setImplementation(&MANAGER_IMPL, this, nullptr);
 }
 
-SXDGOutput* CXDGOutputProtocol::outputFromMonitor(CMonitor* pMonitor) {
-    for (auto& o : m_vXDGOutputs) {
-        if (o->monitor == pMonitor)
-            return o.get();
-    }
-
-    return nullptr;
-}
-
 CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     g_pHookSystem->hookDynamic("monitorLayoutChanged", [&](void* self, std::any param) { this->updateAllOutputs(); });
     g_pHookSystem->hookDynamic("configReloaded", [&](void* self, std::any param) { this->updateAllOutputs(); });
@@ -82,16 +74,12 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
     if (!PMONITOR)
         return;
 
-    SXDGOutput* pXDGOutput = outputFromMonitor(PMONITOR);
-
-    if (!pXDGOutput) {
-        pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<SXDGOutput>(PMONITOR)).get();
+    SXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<SXDGOutput>(PMONITOR)).get();
 #ifndef NO_XWAYLAND
-        if (g_pXWaylandManager->m_sWLRXWayland->server->client == client)
-            pXDGOutput->isXWayland = true;
+    if (g_pXWaylandManager->m_sWLRXWayland->server->client == client)
+        pXDGOutput->isXWayland = true;
 #endif
-        pXDGOutput->client = client;
-    }
+    pXDGOutput->client = client;
 
     pXDGOutput->resource = std::make_unique<CWaylandResource>(client, &zxdg_output_v1_interface, wl_resource_get_version(resource), id);
 

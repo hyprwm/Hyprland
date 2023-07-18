@@ -26,8 +26,6 @@ class CXDGOutputProtocol : public IWaylandProtocol {
     void                                           updateOutputDetails(SXDGOutput* pOutput);
     void                                           updateAllOutputs();
 
-    SXDGOutput*                                    outputFromMonitor(CMonitor* pMonitor);
-
     std::vector<std::unique_ptr<CWaylandResource>> m_vManagerResources;
     std::vector<std::unique_ptr<SXDGOutput>>       m_vXDGOutputs;
 };

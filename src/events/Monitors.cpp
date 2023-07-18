@@ -219,11 +219,8 @@ void Events::listener_monitorCommit(void* owner, void* data) {
 
     if (E->committed & WLR_OUTPUT_STATE_BUFFER)
         g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR, E);
-
-    if (E->committed & (WLR_OUTPUT_STATE_SCALE | WLR_OUTPUT_STATE_TRANSFORM | WLR_OUTPUT_STATE_MODE))
-        g_pXWaylandManager->updateXWaylandScale();
 }
 
 void Events::listener_monitorBind(void* owner, void* data) {
-    g_pXWaylandManager->updateXWaylandScale();
+    ;
 }

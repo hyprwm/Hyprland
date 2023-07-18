@@ -74,8 +74,6 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
     }
 
     xcb_disconnect(XCBCONNECTION);
-
-    g_pXWaylandManager->updateXWaylandScale();
 #endif
 }
 

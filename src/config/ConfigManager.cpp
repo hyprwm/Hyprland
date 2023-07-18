@@ -1587,9 +1587,6 @@ void CConfigManager::loadConfigLoadVars() {
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
 
-    // update xwl scale
-    g_pXWaylandManager->updateXWaylandScale();
-
     // manual crash
     if (configValues["debug:manual_crash"].intValue && !m_bManualCrashInitiated) {
         m_bManualCrashInitiated = true;
@@ -1972,6 +1969,8 @@ void CConfigManager::performMonitorReload() {
         g_pCompositor->m_bUnsafeState = false;
 
     m_bWantsMonitorReload = false;
+
+    EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
 }
 
 SConfigValue* CConfigManager::getConfigValuePtr(const std::string& val) {

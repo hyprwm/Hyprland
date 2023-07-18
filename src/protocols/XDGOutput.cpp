@@ -9,6 +9,7 @@
 
 static void destroyManagerResource(wl_client* client, wl_resource* resource) {
     ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource);
+    // will be destroyed by the destruction of the unique_ptr
 }
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
@@ -63,7 +64,7 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
     });
 }
 
-void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
+void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource * 4) {
     const auto OUTPUT = wlr_output_from_resource(outputResource);
 
     if (!OUTPUT)
@@ -93,7 +94,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 
     if (XDGVER >= ZXDG_OUTPUT_V1_NAME_SINCE_VERSION)
         zxdg_output_v1_send_name(pXDGOutput->resource->resource(), PMONITOR->szName.c_str());
-    if (XDGVER >= ZXDG_OUTPUT_V1_DESCRIPTION_SINCE_VERSION)
+    if (XDGVER >= ZXDG_OUTPUT_V1_DESCRIPTION_SINCE_VERSION && PMONITOR->output->description)
         zxdg_output_v1_send_description(pXDGOutput->resource->resource(), PMONITOR->output->description);
 
     updateOutputDetails(pXDGOutput);

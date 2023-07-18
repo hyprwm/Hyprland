@@ -30,6 +30,10 @@ wl_resource* CWaylandResource::resource() {
     return m_pWLResource;
 }
 
+uint32_t CWaylandResource::version() {
+    return wl_resource_get_version(m_pWLResource);
+}
+
 void CWaylandResource::setImplementation(const void* impl, void* data, wl_resource_destroy_func_t df) {
     RASSERT(!m_bImplementationSet, "Wayland Resource %lx already has an implementation, cannot re-set!", m_pWLResource);
 

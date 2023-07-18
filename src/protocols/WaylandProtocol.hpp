@@ -9,6 +9,7 @@ class CWaylandResource {
 
     bool         good();
     wl_resource* resource();
+    uint32_t     version();
 
     void         setImplementation(const void* impl, void* data, wl_resource_destroy_func_t df);
 

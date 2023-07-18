@@ -90,7 +90,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
     }
 
     pXDGOutput->resource->setImplementation(&OUTPUT_IMPL, this, destroyOutputResourceOnly);
-    const auto XDGVER = wl_resource_get_version(pXDGOutput->resource->resource());
+    const auto XDGVER = pXDGOutput->resource->version();
 
     if (XDGVER >= ZXDG_OUTPUT_V1_NAME_SINCE_VERSION)
         zxdg_output_v1_send_name(pXDGOutput->resource->resource(), PMONITOR->szName.c_str());

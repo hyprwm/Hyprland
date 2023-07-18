@@ -1707,17 +1707,17 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
 }
 
 int CCompositor::getNextAvailableMonitorID(std::string const& name) {
-    // reuse ID if it's already in the map
-    if (m_mMonitorIDMap.contains(name))
+    // reuse ID if it's already in the map, and the monitor with that ID is not being used by another monitor
+    if (m_mMonitorIDMap.contains(name) && !std::any_of(m_vRealMonitors.begin(), m_vRealMonitors.end(), [&](auto m) { return m->ID == m_mMonitorIDMap[name]; }))
         return m_mMonitorIDMap[name];
 
     // otherwise, find minimum available ID that is not in the map
-    std::unordered_set<int> usedIDs;
+    std::unordered_set<uint64_t> usedIDs;
     for (auto const& monitor : m_vRealMonitors) {
         usedIDs.insert(monitor->ID);
     }
 
-    int nextID = 0;
+    uint64_t nextID = 0;
     while (usedIDs.count(nextID) > 0) {
         nextID++;
     }

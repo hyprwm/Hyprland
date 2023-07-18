@@ -236,6 +236,7 @@ void CMonitor::onDisconnect() {
     hyprListener_monitorDamage.removeCallback();
     hyprListener_monitorNeedsFrame.removeCallback();
     hyprListener_monitorCommit.removeCallback();
+    hyprListener_monitorBind.removeCallback();
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto& ls : m_aLayerSurfaceLayers[i]) {

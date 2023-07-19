@@ -1,6 +1,7 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "linux-dmabuf-unstable-v1-protocol.h"
+#include "../helpers/Region.hpp"
 
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE = wlr_surface_get_texture(surface);
@@ -458,8 +459,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     g_pHyprOpenGL->m_RenderData.renderModif = RENDERMODIFDATA;
 
     // for storing damage when we optimize for occlusion
-    pixman_region32_t backupDamage;
-    pixman_region32_init(&backupDamage);
+    CRegion preOccludedDamage{g_pHyprOpenGL->m_RenderData.damage};
 
     // Render layer surfaces below windows for monitor
     // if we have a fullscreen, opaque window that convers the screen, we can skip this.
@@ -468,8 +468,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
         !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.vec() != Vector2D{}) {
 
-        pixman_region32_copy(&backupDamage, g_pHyprOpenGL->m_RenderData.pDamage);
-        setOccludedForBackLayers(g_pHyprOpenGL->m_RenderData.pDamage, pWorkspace);
+        setOccludedForBackLayers(g_pHyprOpenGL->m_RenderData.damage, pWorkspace);
 
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.get(), pMonitor, time);
@@ -478,10 +477,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
             renderLayer(ls.get(), pMonitor, time);
         }
 
-        pixman_region32_copy(g_pHyprOpenGL->m_RenderData.pDamage, &backupDamage);
+        g_pHyprOpenGL->m_RenderData.damage = preOccludedDamage;
     }
-
-    pixman_region32_fini(&backupDamage);
 
     // pre window pass
     g_pHyprOpenGL->preWindowPass();
@@ -909,9 +906,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     // check the damage
-    pixman_region32_t damage;
-    bool              hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
-    int               bufferAge;
+    CRegion damage;
+    bool    hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
+    int     bufferAge;
 
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
         return;
@@ -936,8 +933,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         return;
     }
 
-    pixman_region32_init(&damage);
-    wlr_damage_ring_get_buffer_damage(&pMonitor->damage, bufferAge, &damage);
+    wlr_damage_ring_get_buffer_damage(&pMonitor->damage, bufferAge, damage.pixman());
 
     pMonitor->renderingActive = true;
 
@@ -947,9 +943,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0 ||
         pMonitor->isMirror() /* why??? */) {
-        pixman_region32_union_rect(&damage, &damage, 0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10); // wot?
 
-        pixman_region32_copy(&pMonitor->lastFrameDamage, &damage);
+        damage                    = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
+        pMonitor->lastFrameDamage = damage;
     } else {
         static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
 
@@ -961,14 +957,16 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             const auto         BLURRADIUS =
                 *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
 
+            auto extents = pixman_region32_extents(damage.pixman());
+
             // now, prep the damage, get the extended damage region
-            wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring
+            wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring
 
-            pixman_region32_copy(&pMonitor->lastFrameDamage, &damage);
+            pMonitor->lastFrameDamage = damage;
 
-            wlr_region_expand(&damage, &damage, BLURRADIUS); // expand for proper blurring 2
+            wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring 2
         } else {
-            pixman_region32_copy(&pMonitor->lastFrameDamage, &damage);
+            pMonitor->lastFrameDamage = damage;
         }
     }
 
@@ -1046,41 +1044,34 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     g_pHyprOpenGL->end();
 
     // calc frame damage
-    pixman_region32_t frameDamage;
-    pixman_region32_init(&frameDamage);
+    CRegion    frameDamage{};
 
     const auto TRANSFORM = wlr_output_transform_invert(pMonitor->output->transform);
-    wlr_region_transform(&frameDamage, &pMonitor->lastFrameDamage, TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+    wlr_region_transform(frameDamage.pixman(), pMonitor->lastFrameDamage.pixman(), TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
-        pixman_region32_union_rect(&frameDamage, &frameDamage, 0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+        frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
     if (*PDAMAGEBLINK)
-        pixman_region32_union(&frameDamage, &frameDamage, &damage);
+        frameDamage.add(damage);
 
-    wlr_output_set_damage(pMonitor->output, &frameDamage);
+    //wlr_output_set_damage(pMonitor->output, frameDamage.pixman());
 
     if (!pMonitor->mirrors.empty())
-        g_pHyprRenderer->damageMirrorsWith(pMonitor, &frameDamage);
-
-    pixman_region32_fini(&frameDamage);
+        g_pHyprRenderer->damageMirrorsWith(pMonitor, frameDamage);
 
     pMonitor->renderingActive = false;
 
     EMIT_HOOK_EVENT("render", RENDER_POST);
 
-    wlr_damage_ring_rotate(&pMonitor->damage);
-
     if (!wlr_output_commit(pMonitor->output)) {
-        pixman_region32_fini(&damage);
-
         if (UNLOCK_SC)
             wlr_output_lock_software_cursors(pMonitor->output, false);
 
         return;
     }
 
-    pixman_region32_fini(&damage);
+    wlr_damage_ring_rotate(&pMonitor->damage);
 
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, false);
@@ -1394,24 +1385,20 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
     if (g_pCompositor->m_bUnsafeState)
         return;
 
-    pixman_region32_t damageBox;
-    pixman_region32_init(&damageBox);
-    wlr_surface_get_effective_damage(pSurface, &damageBox);
+    CRegion damageBox;
+    wlr_surface_get_effective_damage(pSurface, damageBox.pixman());
     if (scale != 1.0)
-        wlr_region_scale(&damageBox, &damageBox, scale);
+        wlr_region_scale(damageBox.pixman(), damageBox.pixman(), scale);
 
     // schedule frame events
     if (!wl_list_empty(&pSurface->current.frame_callback_list)) {
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)));
     }
 
-    if (!pixman_region32_not_empty(&damageBox)) {
-        pixman_region32_fini(&damageBox);
+    if (damageBox.empty())
         return;
-    }
 
-    pixman_region32_t damageBoxForEach;
-    pixman_region32_init(&damageBoxForEach);
+    CRegion damageBoxForEach;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         if (!m->output)
@@ -1420,23 +1407,19 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         double lx = 0, ly = 0;
         wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m->output, &lx, &ly);
 
-        pixman_region32_copy(&damageBoxForEach, &damageBox);
-        pixman_region32_translate(&damageBoxForEach, x - m->vecPosition.x, y - m->vecPosition.y);
-        wlr_region_scale(&damageBoxForEach, &damageBoxForEach, m->scale);
-        pixman_region32_translate(&damageBoxForEach, lx + m->vecPosition.x, ly + m->vecPosition.y);
+        damageBoxForEach = damageBox;
+        damageBoxForEach.translate({x - m->vecPosition.x, y - m->vecPosition.y});
+        wlr_region_scale(damageBoxForEach.pixman(), damageBoxForEach.pixman(), m->scale);
+        damageBoxForEach.translate({lx + m->vecPosition.x, ly + m->vecPosition.y});
 
         m->addDamage(&damageBoxForEach);
     }
 
-    pixman_region32_fini(&damageBoxForEach);
-
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Surface (extents): xy: %d, %d wh: %d, %d", damageBox.extents.x1, damageBox.extents.y1, damageBox.extents.x2 - damageBox.extents.x1,
-                   damageBox.extents.y2 - damageBox.extents.y1);
-
-    pixman_region32_fini(&damageBox);
+        Debug::log(LOG, "Damage: Surface (extents): xy: %d, %d wh: %d, %d", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
+                   damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
 
 void CHyprRenderer::damageWindow(CWindow* pWindow) {
@@ -1496,23 +1479,19 @@ void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const in
     damageBox(&box);
 }
 
-void CHyprRenderer::damageRegion(pixman_region32_t* rg) {
-    PIXMAN_DAMAGE_FOREACH(rg) {
-        const auto RECT = RECTSARR[i];
+void CHyprRenderer::damageRegion(const CRegion& rg) {
+    for (auto& RECT : rg.getRects()) {
         damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1);
     }
 }
 
-void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, pixman_region32_t* pRegion) {
+void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion) {
     for (auto& mirror : pMonitor->mirrors) {
-        Vector2D          scale = {mirror->vecSize.x / pMonitor->vecSize.x, mirror->vecSize.y / pMonitor->vecSize.y};
+        Vector2D scale = {mirror->vecSize.x / pMonitor->vecSize.x, mirror->vecSize.y / pMonitor->vecSize.y};
 
-        pixman_region32_t rg;
-        pixman_region32_init(&rg);
-        pixman_region32_copy(&rg, pRegion);
-        wlr_region_scale_xy(&rg, &rg, scale.x, scale.y);
+        CRegion  rg{pRegion};
+        wlr_region_scale_xy(rg.pixman(), rg.pixman(), scale.x, scale.y);
         pMonitor->addDamage(&rg);
-        pixman_region32_fini(&rg);
 
         g_pCompositor->scheduleFrameForMonitor(mirror);
     }
@@ -1989,9 +1968,8 @@ void CHyprRenderer::initiateManualCrash() {
     g_pConfigManager->setInt("debug:damage_tracking", 0);
 }
 
-void CHyprRenderer::setOccludedForBackLayers(pixman_region32_t* region, CWorkspace* pWorkspace) {
-    pixman_region32_t rg;
-    pixman_region32_init(&rg);
+void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace) {
+    CRegion    rg;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
 
@@ -2006,10 +1984,8 @@ void CHyprRenderer::setOccludedForBackLayers(pixman_region32_t* region, CWorkspa
         const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING};
         const Vector2D SIZE     = w->m_vRealSize.vec() - Vector2D{ROUNDING * 2, ROUNDING * 2};
 
-        pixman_region32_union_rect(&rg, &rg, POS.x, POS.y, SIZE.x, SIZE.y);
+        rg.add(POS.x, POS.y, SIZE.x, SIZE.y);
     }
 
-    pixman_region32_subtract(region, region, &rg);
-
-    pixman_region32_fini(&rg);
+    region.subtract(rg);
 }

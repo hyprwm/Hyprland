@@ -4,6 +4,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Color.hpp"
 #include "../helpers/Timer.hpp"
+#include "../helpers/Region.hpp"
 #include <list>
 #include <unordered_map>
 
@@ -23,7 +24,8 @@ inline const float fullVerts[] = {
 };
 inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
-enum eDiscardMode {
+enum eDiscardMode
+{
     DISCARD_OPAQUE = 1,
     DISCARD_ALPHA  = 1 << 1
 };
@@ -35,8 +37,8 @@ struct SRenderModifData {
 
 struct SMonitorRenderData {
     CFramebuffer primaryFB;
-    CFramebuffer mirrorFB;        // these are used for some effects,
-    CFramebuffer mirrorSwapFB;    // etc
+    CFramebuffer mirrorFB;     // these are used for some effects,
+    CFramebuffer mirrorSwapFB; // etc
 
     CFramebuffer monitorMirrorFB; // used for mirroring outputs
 
@@ -71,7 +73,7 @@ struct SCurrentRenderData {
 
     SMonitorRenderData* pCurrentMonData = nullptr;
 
-    pixman_region32_t*  pDamage = nullptr;
+    CRegion             damage;
 
     SRenderModifData    renderModif;
     float               mouseZoomFactor    = 1.f;
@@ -93,11 +95,11 @@ class CHyprOpenGLImpl {
   public:
     CHyprOpenGLImpl();
 
-    void                                       begin(CMonitor*, pixman_region32_t*, bool fake = false);
+    void                                       begin(CMonitor*, CRegion*, bool fake = false);
     void                                       end();
 
     void                                       renderRect(wlr_box*, const CColor&, int round = 0);
-    void                                       renderRectWithDamage(wlr_box*, const CColor&, pixman_region32_t* damage, int round = 0);
+    void                                       renderRectWithDamage(wlr_box*, const CColor&, CRegion* damage, int round = 0);
     void                                       renderTexture(wlr_texture*, wlr_box*, float a, int round = 0, bool allowCustomUV = false);
     void                                       renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
     void                                       renderTextureWithBlur(const CTexture&, wlr_box*, float a, wlr_surface* pSurface, int round = 0, bool blockBlurOptimization = false);
@@ -139,7 +141,7 @@ class CHyprOpenGLImpl {
 
     bool                                       m_bReloadScreenShader = true; // at launch it can be set
 
-    CWindow*                                   m_pCurrentWindow = nullptr;   // hack to get the current rendered window
+    CWindow*                                   m_pCurrentWindow = nullptr; // hack to get the current rendered window
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
     std::unordered_map<SLayerSurface*, CFramebuffer>  m_mLayerFramebuffers;
@@ -166,9 +168,9 @@ class CHyprOpenGLImpl {
     void              initShaders();
 
     // returns the out FB, can be either Mirror or MirrorSwap
-    CFramebuffer* blurMainFramebufferWithDamage(float a, wlr_box* pBox, pixman_region32_t* damage);
+    CFramebuffer* blurMainFramebufferWithDamage(float a, wlr_box* pBox, CRegion* damage);
 
-    void          renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, pixman_region32_t* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
+    void          renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
                                                   bool allowCustomUV = false, bool allowDim = false);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double);
 

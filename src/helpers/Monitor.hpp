@@ -8,6 +8,7 @@
 #include <memory>
 #include <xf86drmMode.h>
 #include "Timer.hpp"
+#include "Region.hpp"
 
 struct SMonitorRule;
 
@@ -61,7 +62,7 @@ class CMonitor {
     CMonitor*              pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;
 
-    pixman_region32_t      lastFrameDamage; // stores last frame damage
+    CRegion                lastFrameDamage; // stores last frame damage
 
     // for the special workspace. 0 means not open.
     int                                                        specialWorkspaceID = 0;
@@ -84,6 +85,7 @@ class CMonitor {
     void                       onConnect(bool noRule);
     void                       onDisconnect();
     void                       addDamage(const pixman_region32_t* rg);
+    void                       addDamage(const CRegion* rg);
     void                       addDamage(const wlr_box* box);
     void                       setMirror(const std::string&);
     bool                       isMirror();

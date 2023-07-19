@@ -10,12 +10,10 @@ int ratHandler(void* data) {
 
 CMonitor::CMonitor() {
     wlr_damage_ring_init(&damage);
-    pixman_region32_init(&lastFrameDamage);
 }
 
 CMonitor::~CMonitor() {
     wlr_damage_ring_finish(&damage);
-    pixman_region32_fini(&lastFrameDamage);
 
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -329,6 +327,10 @@ void CMonitor::addDamage(const pixman_region32_t* rg) {
 
     if (wlr_damage_ring_add(&damage, rg))
         g_pCompositor->scheduleFrameForMonitor(this);
+}
+
+void CMonitor::addDamage(const CRegion* rg) {
+    addDamage(const_cast<CRegion*>(rg)->pixman());
 }
 
 void CMonitor::addDamage(const wlr_box* box) {

@@ -255,15 +255,12 @@ void CAnimationManager::tick() {
                         // easy, damage the entire box
                         g_pHyprRenderer->damageBox(&dmg);
                     } else {
-                        pixman_region32_t rg;
-                        pixman_region32_init_rect(&rg, dmg.x, dmg.y, dmg.width, dmg.height);
-                        pixman_region32_t wb;
-                        pixman_region32_init_rect(&wb, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x,
-                                                  PWINDOW->m_vRealSize.vec().y);
-                        pixman_region32_subtract(&rg, &rg, &wb);
-                        g_pHyprRenderer->damageRegion(&rg);
-                        pixman_region32_fini(&rg);
-                        pixman_region32_fini(&wb);
+                        CRegion rg{dmg.x, dmg.y, dmg.width, dmg.height};
+                        CRegion wb{PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y};
+
+                        rg.subtract(wb);
+
+                        g_pHyprRenderer->damageRegion(rg);
                     }
                 }
 

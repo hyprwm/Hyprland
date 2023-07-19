@@ -347,16 +347,14 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
         return false;
 
     // render the client
-    const auto        PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
-    pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
+    CRegion    fakeDamage{0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10};
 
     if (frame->overlayCursor)
         wlr_output_lock_software_cursors(PMONITOR->output, true);
 
     if (!wlr_output_attach_render(PMONITOR->output, nullptr)) {
         Debug::log(ERR, "[toplevel_export] Couldn't attach render");
-        pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);
         if (frame->overlayCursor)
             wlr_output_lock_software_cursors(PMONITOR->output, false);
@@ -398,7 +396,6 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     if (!PFORMAT) {
         Debug::log(ERR, "[toplevel_export] Cannot read pixels, unsupported format %lx", PFORMAT);
         g_pHyprOpenGL->end();
-        pixman_region32_fini(&fakeDamage);
         wlr_buffer_end_data_ptr_access(frame->buffer);
         if (frame->overlayCursor)
             wlr_output_lock_software_cursors(PMONITOR->output, false);
@@ -414,8 +411,6 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprOpenGL->end();
 
     wlr_output_rollback(PMONITOR->output);
-
-    pixman_region32_fini(&fakeDamage);
 
     wlr_buffer_end_data_ptr_access(frame->buffer);
 

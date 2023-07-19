@@ -35,10 +35,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
     scaleBox(&windowBox, RDATA->pMonitor->scale);
 
-    static auto* const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-
-    float              rounding = RDATA->dontRound ? 0 : RDATA->rounding == -1 ? *PROUNDING : RDATA->rounding;
-    rounding *= RDATA->pMonitor->scale;
+    float rounding = RDATA->rounding;
 
     rounding -= 1; // to fix a border issue
 

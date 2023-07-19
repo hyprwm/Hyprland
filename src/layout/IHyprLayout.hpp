@@ -150,7 +150,8 @@ interface IHyprLayout {
 
     /*
         Called via the foreign toplevel activation protocol.
-        Brings a window to the top and focuses it. May be ignored.
+        Focuses a window, bringing it to the top of its group if applicable.
+				May be ignored.
     */
     virtual void requestFocusForWindow(CWindow*);
 

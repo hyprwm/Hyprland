@@ -148,6 +148,13 @@ interface IHyprLayout {
     */
     virtual void replaceWindowDataWith(CWindow* from, CWindow* to) = 0;
 
+    /*
+        Called via the foreign toplevel activation protocol.
+        Focuses a window, bringing it to the top of its group if applicable.
+				May be ignored.
+    */
+    virtual void requestFocusForWindow(CWindow*);
+
   private:
     Vector2D    m_vBeginDragXY;
     Vector2D    m_vLastDragXY;

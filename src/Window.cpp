@@ -234,16 +234,7 @@ void CWindow::createToplevelHandle() {
 
     // handle events
     hyprListener_toplevelActivate.initCallback(
-        &m_phForeignToplevel->events.request_activate,
-        [&](void* owner, void* data) {
-            if (isHidden() && m_sGroupData.pNextWindow) {
-                // grouped, change the current to us
-                setGroupCurrent(this);
-            }
-
-            g_pCompositor->focusWindow(this);
-        },
-        this, "Toplevel");
+        &m_phForeignToplevel->events.request_activate, [&](void* owner, void* data) { g_pLayoutManager->getCurrentLayout()->requestFocusForWindow(this); }, this, "Toplevel");
 
     hyprListener_toplevelFullscreen.initCallback(
         &m_phForeignToplevel->events.request_fullscreen,

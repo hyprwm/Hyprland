@@ -519,4 +519,13 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     return PWINDOWCANDIDATE;
 }
 
+void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
+    if (pWindow->isHidden() && pWindow->m_sGroupData.pNextWindow) {
+        // grouped, change the current to this window
+        pWindow->setGroupCurrent(pWindow);
+    }
+
+    g_pCompositor->focusWindow(pWindow);
+}
+
 IHyprLayout::~IHyprLayout() {}

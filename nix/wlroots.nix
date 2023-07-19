@@ -36,7 +36,7 @@ assert (lib.assertMsg (hidpiXWayland -> enableXWayland) ''
         (old.patches or [])
         ++ (lib.optionals (enableXWayland && hidpiXWayland) [
           # adapted from https://gitlab.freedesktop.org/lilydjwg/wlroots/-/commit/6c5ffcd1fee9e44780a6a8792f74ecfbe24a1ca7
-          ./wlroots-hidpi.patch
+          ./patches/wlroots-hidpi.patch
           (fetchpatch {
             url = "https://gitlab.freedesktop.org/wlroots/wlroots/-/commit/18595000f3a21502fd60bf213122859cc348f9af.diff";
             sha256 = "sha256-jvfkAMh3gzkfuoRhB4E9T5X1Hu62wgUjj4tZkJm0mrI=";
@@ -44,7 +44,7 @@ assert (lib.assertMsg (hidpiXWayland -> enableXWayland) ''
           })
         ])
         ++ (lib.optionals nvidiaPatches [
-          ./wlroots-nvidia.patch
+          ./patches/wlroots-nvidia.patch
         ]);
       postPatch =
         (old.postPatch or "")
@@ -66,8 +66,8 @@ assert (lib.assertMsg (hidpiXWayland -> enableXWayland) ''
       patches =
         (old.patches or [])
         ++ (lib.optionals hidpiXWayland [
-          ./xwayland-vsync.patch
-          ./xwayland-hidpi.patch
+          ./patches/xwayland-vsync.patch
+          ./patches/xwayland-hidpi.patch
         ]);
     });
   }

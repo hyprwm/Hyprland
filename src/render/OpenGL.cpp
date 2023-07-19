@@ -122,10 +122,12 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
         m_RenderData.pCurrentMonData->primaryFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
         m_RenderData.pCurrentMonData->mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
         m_RenderData.pCurrentMonData->mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
-        m_RenderData.pCurrentMonData->monitorMirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
         createBGTextureForMonitor(pMonitor);
     }
+
+    if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_RenderData.pMonitor->mirrors.empty())
+        m_RenderData.pCurrentMonData->monitorMirrorFB.release();
 
     if (!m_RenderData.pCurrentMonData->m_bShadersInitialized)
         initShaders();
@@ -1441,6 +1443,10 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
 }
 
 void CHyprOpenGLImpl::saveBufferForMirror() {
+
+    if (!m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated())
+        m_RenderData.pCurrentMonData->monitorMirrorFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
+
     m_RenderData.pCurrentMonData->monitorMirrorFB.bind();
 
     wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
@@ -1455,7 +1461,7 @@ void CHyprOpenGLImpl::renderMirrored() {
 
     const auto PFB = &m_mMonitorRenderResources[m_RenderData.pMonitor->pMirrorOf].monitorMirrorFB;
 
-    if (PFB->m_cTex.m_iTexID <= 0)
+    if (!PFB->isAllocated() || PFB->m_cTex.m_iTexID <= 0)
         return;
 
     renderTexture(PFB->m_cTex, &monbox, 1.f, 0, false, false);

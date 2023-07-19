@@ -61,7 +61,8 @@ void CAnimationManager::tick() {
     for (auto& av : m_lAnimatedVariables) {
 
         // first of all, check if we need to update it at all
-        if (!av->isBeingAnimated())
+        // TODO: this has a 100% cache miss rate, maybe move active avars to a separate vec
+        if (!av->m_bIsBeingAnimated)
             continue;
 
         if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {

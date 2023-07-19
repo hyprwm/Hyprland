@@ -954,8 +954,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             const auto         BLURRADIUS =
                 *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
 
-            auto extents = pixman_region32_extents(damage.pixman());
-
             // now, prep the damage, get the extended damage region
             wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring
 

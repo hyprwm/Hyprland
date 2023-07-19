@@ -1151,9 +1151,9 @@ void CInputManager::recheckConstraint(SMouse* pMouse) {
     const auto PREGION = &pMouse->currentConstraint->region;
 
     if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED) {
-        pixman_region32_copy(&pMouse->confinedTo, PREGION);
+        pMouse->confinedTo.set(PREGION);
     } else {
-        pixman_region32_clear(&pMouse->confinedTo);
+        pMouse->confinedTo.clear();
     }
 }
 

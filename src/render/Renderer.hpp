@@ -7,6 +7,7 @@
 #include "../Window.hpp"
 #include "OpenGL.hpp"
 #include "../helpers/Timer.hpp"
+#include "../helpers/Region.hpp"
 
 struct SMonitorRule;
 
@@ -39,9 +40,9 @@ class CHyprRenderer {
     void                            damageWindow(CWindow*);
     void                            damageBox(wlr_box*);
     void                            damageBox(const int& x, const int& y, const int& w, const int& h);
-    void                            damageRegion(pixman_region32_t*);
+    void                            damageRegion(const CRegion&);
     void                            damageMonitor(CMonitor*);
-    void                            damageMirrorsWith(CMonitor*, pixman_region32_t*);
+    void                            damageMirrorsWith(CMonitor*, const CRegion&);
     bool                            applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
     bool                            shouldRenderWindow(CWindow*, CMonitor*, CWorkspace*);
     bool                            shouldRenderWindow(CWindow*);
@@ -50,7 +51,7 @@ class CHyprRenderer {
     void                            calculateUVForSurface(CWindow*, wlr_surface*, bool main = false);
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now);
-    void                            setOccludedForBackLayers(pixman_region32_t* region, CWorkspace* pWorkspace);
+    void                            setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace);
 
     bool                            m_bWindowRequestedCursorHide = false;
     bool                            m_bBlockSurfaceFeedback      = false;

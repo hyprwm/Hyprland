@@ -403,17 +403,15 @@ void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
     if (!frame->withDamage)
         return;
 
-    PIXMAN_DAMAGE_FOREACH(&frame->pMonitor->lastFrameDamage) {
-        const auto RECT = &RECTSARR[i];
+    for (auto& RECT : frame->pMonitor->lastFrameDamage.getRects()) {
 
-        if (frame->buffer->width < 1 || frame->buffer->height < 1 || frame->buffer->width - RECT->x1 < 1 || frame->buffer->height - RECT->y1 < 1) {
+        if (frame->buffer->width < 1 || frame->buffer->height < 1 || frame->buffer->width - RECT.x1 < 1 || frame->buffer->height - RECT.y1 < 1) {
             Debug::log(ERR, "[sc] Failed to send damage");
             break;
         }
 
-        zwlr_screencopy_frame_v1_send_damage(frame->resource, std::clamp(RECT->x1, 0, frame->buffer->width), std::clamp(RECT->y1, 0, frame->buffer->height),
-                                             std::clamp(RECT->x2 - RECT->x1, 0, frame->buffer->width - RECT->x1),
-                                             std::clamp(RECT->y2 - RECT->y1, 0, frame->buffer->height - RECT->y1));
+        zwlr_screencopy_frame_v1_send_damage(frame->resource, std::clamp(RECT.x1, 0, frame->buffer->width), std::clamp(RECT.y1, 0, frame->buffer->height),
+                                             std::clamp(RECT.x2 - RECT.x1, 0, frame->buffer->width - RECT.x1), std::clamp(RECT.y2 - RECT.y1, 0, frame->buffer->height - RECT.y1));
     }
 }
 

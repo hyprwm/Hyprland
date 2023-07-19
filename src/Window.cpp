@@ -752,6 +752,14 @@ Vector2D CWindow::middle() {
 }
 
 bool CWindow::opaque() {
+    if (m_fAlpha.fl() != 1.f || m_fActiveInactiveAlpha.fl() != 1.f)
+        return false;
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+
+    if (PWORKSPACE->m_fAlpha.fl() != 1.f)
+        return false;
+
     if (m_bIsX11)
         return !m_uSurface.xwayland->has_alpha;
 
@@ -763,4 +771,12 @@ bool CWindow::opaque() {
         return true;
 
     return false;
+}
+
+float CWindow::rounding() {
+    static auto* const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+
+    float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
+
+    return rounding;
 }

@@ -1978,7 +1978,7 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
             continue;
 
         const auto     ROUNDING = w->rounding() * PMONITOR->scale;
-        const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING};
+        const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING} + pWorkspace->m_vRenderOffset.vec();
         const Vector2D SIZE     = w->m_vRealSize.vec() - Vector2D{ROUNDING * 2, ROUNDING * 2};
 
         rg.add(POS.x, POS.y, SIZE.x, SIZE.y);

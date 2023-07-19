@@ -7,6 +7,7 @@
 #include "SubsurfaceTree.hpp"
 #include "AnimatedVariable.hpp"
 #include "WLSurface.hpp"
+#include "Region.hpp"
 
 struct SLayerRule {
     std::string targetNamespace = "";
@@ -144,7 +145,7 @@ struct SMouse {
     wlr_pointer_constraint_v1* currentConstraint = nullptr;
     bool                       constraintActive  = false;
 
-    pixman_region32_t          confinedTo;
+    CRegion                    confinedTo;
 
     std::string                name = "";
 

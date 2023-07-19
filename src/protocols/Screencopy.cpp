@@ -421,40 +421,16 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     // render the client
     const auto PMONITOR = frame->pMonitor;
 
-    if (!wlr_output_attach_render(PMONITOR->output, nullptr)) {
-        Debug::log(ERR, "[screencopy] Couldn't attach render");
+    if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer)) {
         wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;
     }
 
-    const auto PFORMAT = get_gles2_format_from_drm(format);
-    if (!PFORMAT) {
-        Debug::log(ERR, "[screencopy] Cannot read pixels, unsupported format %lx", PFORMAT);
-        wlr_output_rollback(PMONITOR->output);
-        wlr_buffer_end_data_ptr_access(frame->buffer);
-        return false;
-    }
-
-    g_pHyprOpenGL->begin(PMONITOR, &PMONITOR->lastFrameDamage, true);
-
-    // we should still have the last frame by this point in the original fb
-    glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_RenderData.pCurrentMonData->primaryFB.m_iFb);
-
-    glFinish(); // flush
-
-    glReadPixels(frame->box.x, frame->box.y, frame->box.width, frame->box.height, PFORMAT->gl_format, PFORMAT->gl_type, data);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_iWLROutputFb);
-
-    g_pHyprOpenGL->end();
-
-    wlr_output_rollback(PMONITOR->output);
-
-    pixman_region32_fini(&PMONITOR->lastFrameDamage);
-
+    bool success = wlr_renderer_read_pixels(g_pCompositor->m_sWLRRenderer, format, stride, frame->box.width, frame->box.height, frame->box.x, frame->box.y, 0, 0, data);
+    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
     wlr_buffer_end_data_ptr_access(frame->buffer);
 
-    return true;
+    return success;
 }
 
 bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {

@@ -326,6 +326,7 @@ class CWindow {
     SWindowDecorationExtents getFullWindowReservedArea();
     Vector2D                 middle();
     bool                     opaque();
+    float                    rounding();
 
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);

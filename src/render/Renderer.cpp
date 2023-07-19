@@ -273,7 +273,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.fl();
     renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) &&
         (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
-    renderdata.rounding = ignoreAllGeometry ? 0 : pWindow->m_sAdditionalConfigData.rounding.toUnderlying();
+    renderdata.rounding = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
     renderdata.blur     = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
     renderdata.pWindow  = pWindow;
 
@@ -339,11 +339,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
 
         if (renderdata.decorate && pWindow->m_sSpecialRenderData.border) {
-            static auto* const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-
-            float              rounding = renderdata.dontRound ? 0 : renderdata.rounding == -1 ? *PROUNDING : renderdata.rounding;
-            rounding *= pMonitor->scale;
-
             auto       grad     = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor;
             const bool ANIMATED = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.isBeingAnimated();
             float      a1       = renderdata.fadeAlpha * renderdata.alpha * (ANIMATED ? g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl() : 1.f);
@@ -361,11 +356,11 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             if (pWindow->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
                 borderSize = pWindow->m_sAdditionalConfigData.borderSize.toUnderlying();
 
-            g_pHyprOpenGL->renderBorder(&windowBox, grad, rounding, borderSize, a1);
+            g_pHyprOpenGL->renderBorder(&windowBox, grad, renderdata.rounding, borderSize, a1);
 
             if (ANIMATED) {
                 float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl());
-                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, rounding, borderSize, a2);
+                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, renderdata.rounding, borderSize, a2);
             }
         }
     }
@@ -462,19 +457,31 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     // g_pHyprOpenGL->setMatrixScaleTranslate(translate, scale);
     g_pHyprOpenGL->m_RenderData.renderModif = RENDERMODIFDATA;
 
+    // for storing damage when we optimize for occlusion
+    pixman_region32_t backupDamage;
+    pixman_region32_init(&backupDamage);
+
     // Render layer surfaces below windows for monitor
     // if we have a fullscreen, opaque window that convers the screen, we can skip this.
     // TODO: check better with solitary after MR for tearing.
     const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID);
     if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
-        !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.isBeingAnimated() || PFULLWINDOW->m_fAlpha.fl() != 1.f || PFULLWINDOW->m_fActiveInactiveAlpha.fl() != 1.f) {
+        !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.vec() != Vector2D{}) {
+
+        pixman_region32_copy(&backupDamage, g_pHyprOpenGL->m_RenderData.pDamage);
+        setOccludedForBackLayers(g_pHyprOpenGL->m_RenderData.pDamage, pWorkspace);
+
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.get(), pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
             renderLayer(ls.get(), pMonitor, time);
         }
+
+        pixman_region32_copy(g_pHyprOpenGL->m_RenderData.pDamage, &backupDamage);
     }
+
+    pixman_region32_fini(&backupDamage);
 
     // pre window pass
     g_pHyprOpenGL->preWindowPass();
@@ -1980,4 +1987,29 @@ void CHyprRenderer::initiateManualCrash() {
     g_pHyprOpenGL->m_tGlobalTimer.reset();
 
     g_pConfigManager->setInt("debug:damage_tracking", 0);
+}
+
+void CHyprRenderer::setOccludedForBackLayers(pixman_region32_t* region, CWorkspace* pWorkspace) {
+    pixman_region32_t rg;
+    pixman_region32_init(&rg);
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped || w->isHidden() || w->m_iWorkspaceID != pWorkspace->m_iID)
+            continue;
+
+        if (!w->opaque())
+            continue;
+
+        const auto     ROUNDING = w->rounding() * PMONITOR->scale;
+        const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING};
+        const Vector2D SIZE     = w->m_vRealSize.vec() - Vector2D{ROUNDING * 2, ROUNDING * 2};
+
+        pixman_region32_union_rect(&rg, &rg, POS.x, POS.y, SIZE.x, SIZE.y);
+    }
+
+    pixman_region32_subtract(region, region, &rg);
+
+    pixman_region32_fini(&rg);
 }

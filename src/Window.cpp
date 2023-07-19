@@ -234,7 +234,7 @@ void CWindow::createToplevelHandle() {
 
     // handle events
     hyprListener_toplevelActivate.initCallback(
-        &m_phForeignToplevel->events.request_activate, [&](void* owner, void* data) { g_pLayoutManager->getCurrentLayout()->bringWindowToTop(this); }, this, "Toplevel");
+        &m_phForeignToplevel->events.request_activate, [&](void* owner, void* data) { g_pLayoutManager->getCurrentLayout()->requestFocusForWindow(this); }, this, "Toplevel");
 
     hyprListener_toplevelFullscreen.initCallback(
         &m_phForeignToplevel->events.request_fullscreen,

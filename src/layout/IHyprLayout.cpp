@@ -159,8 +159,8 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     }
 
     if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect)) {
-        pWindow->m_vRealPosition.setValue(pWindow->m_vRealPosition.goalv());
-        pWindow->m_vRealSize.setValue(pWindow->m_vRealSize.goalv());
+        pWindow->m_vRealPosition.warp();
+        pWindow->m_vRealSize.warp();
     }
 
     if (pWindow->m_iX11Type != 2) {

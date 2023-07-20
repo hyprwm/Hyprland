@@ -25,7 +25,8 @@ class CAnimationManager {
 
     std::unordered_map<std::string, CBezierCurve> getAllBeziers();
 
-    std::list<CAnimatedVariable*>                 m_lAnimatedVariables;
+    std::vector<CAnimatedVariable*>               m_vAnimatedVariables;
+    std::vector<CAnimatedVariable*>               m_vActiveAnimatedVariables;
 
     wl_event_source*                              m_pAnimationTick;
 

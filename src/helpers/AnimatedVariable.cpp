@@ -51,13 +51,14 @@ CAnimatedVariable::~CAnimatedVariable() {
 }
 
 void CAnimatedVariable::unregister() {
-    g_pAnimationManager->m_lAnimatedVariables.remove(this);
+    std::erase_if(g_pAnimationManager->m_vAnimatedVariables, [&](const auto& other) { return other == this; });
     m_bIsRegistered = false;
+    disconnectFromActive();
 }
 
 void CAnimatedVariable::registerVar() {
     if (!m_bIsRegistered)
-        g_pAnimationManager->m_lAnimatedVariables.push_back(this);
+        g_pAnimationManager->m_vAnimatedVariables.push_back(this);
     m_bIsRegistered = true;
 }
 
@@ -78,4 +79,15 @@ float CAnimatedVariable::getCurveValue() {
         return 1.f;
 
     return g_pAnimationManager->getBezier(m_pConfig->pValues->internalBezier)->getYForPoint(SPENT);
+}
+
+void CAnimatedVariable::connectToActive() {
+    if (!m_bIsConnectedToActive)
+        g_pAnimationManager->m_vActiveAnimatedVariables.push_back(this);
+    m_bIsConnectedToActive = true;
+}
+
+void CAnimatedVariable::disconnectFromActive() {
+    std::erase_if(g_pAnimationManager->m_vActiveAnimatedVariables, [&](const auto& other) { return other == this; });
+    m_bIsConnectedToActive = false;
 }

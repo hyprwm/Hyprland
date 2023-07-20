@@ -14,6 +14,8 @@
 #include "Texture.hpp"
 #include "Framebuffer.hpp"
 
+#include "../debug/TracyDefines.hpp"
+
 class CHyprRenderer;
 
 inline const float fullVerts[] = {

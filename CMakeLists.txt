@@ -141,6 +141,21 @@ else()
     endif()
 endif()
 
+if(USE_TRACY)
+    message(STATUS "Tracy is turned on")
+    
+    option( TRACY_ENABLE "" ON)
+    option( TRACY_ON_DEMAND "" ON)
+    add_subdirectory (subprojects/tracy)
+
+    target_link_libraries(Hyprland PkgConfig::deps Tracy::TracyClient)
+
+    if(USE_TRACY_GPU)
+        message(STATUS "Tracy GPU Profiling is turned on")
+        add_compile_definitions(USE_TRACY_GPU)
+    endif()
+endif()
+
 target_compile_definitions(Hyprland
     PRIVATE
     "GIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\""
@@ -176,8 +191,6 @@ function(protocol protoPath protoName external)
         target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
     endif()
 endfunction()
-
-target_link_libraries(Hyprland PkgConfig::deps)
 
 target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us

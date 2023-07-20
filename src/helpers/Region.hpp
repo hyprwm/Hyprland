@@ -15,6 +15,8 @@ class CRegion {
     CRegion(double x, double y, double w, double h);
     /* Create from a wlr_box */
     CRegion(wlr_box* box);
+    /* Create from a pixman_box32_t */
+    CRegion(pixman_box32_t* box);
 
     CRegion(const CRegion&);
     CRegion(CRegion&&);

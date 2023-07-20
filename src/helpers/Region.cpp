@@ -18,6 +18,10 @@ CRegion::CRegion(wlr_box* box) {
     pixman_region32_init_rect(&m_rRegion, box->x, box->y, box->width, box->height);
 }
 
+CRegion::CRegion(pixman_box32_t* box) {
+    pixman_region32_init_rect(&m_rRegion, box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1);
+}
+
 CRegion::CRegion(const CRegion& other) {
     pixman_region32_init(&m_rRegion);
     pixman_region32_copy(&m_rRegion, const_cast<CRegion*>(&other)->pixman());

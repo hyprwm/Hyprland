@@ -97,6 +97,7 @@ class CHyprOpenGLImpl {
 
     void                                       begin(CMonitor*, CRegion*, bool fake = false);
     void                                       end();
+    void                                       bindWlrOutputFb();
 
     void                                       renderRect(wlr_box*, const CColor&, int round = 0);
     void                                       renderRectWithDamage(wlr_box*, const CColor&, CRegion* damage, int round = 0);

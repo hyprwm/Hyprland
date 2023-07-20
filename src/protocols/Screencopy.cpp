@@ -422,9 +422,6 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride))
         return false;
 
-    // render the client
-    const auto PMONITOR = frame->pMonitor;
-
     if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer)) {
         wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;

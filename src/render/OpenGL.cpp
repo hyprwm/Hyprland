@@ -199,6 +199,10 @@ void CHyprOpenGLImpl::end() {
     m_RenderData.mouseZoomUseMouse = true;
 }
 
+void CHyprOpenGLImpl::bindWlrOutputFb() {
+    glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
+}
+
 void CHyprOpenGLImpl::initShaders() {
     GLuint prog                                                 = createProgram(QUADVERTSRC, QUADFRAGSRC);
     m_RenderData.pCurrentMonData->m_shQUAD.program              = prog;

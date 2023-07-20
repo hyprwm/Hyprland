@@ -259,9 +259,14 @@ class CAnimatedVariable {
     std::function<void(void* thisptr)>    m_fBeginCallback;
     std::function<void(void* thisptr)>    m_fUpdateCallback;
 
+    bool                                  m_bIsConnectedToActive = false;
+    void                                  connectToActive();
+    void                                  disconnectFromActive();
+
     // methods
     void onAnimationEnd() {
         m_bIsBeingAnimated = false;
+        disconnectFromActive();
 
         if (m_fEndCallback) {
             // loading m_bRemoveEndAfterRan before calling the callback allows the callback to delete this animation safely if it is false.
@@ -274,6 +279,7 @@ class CAnimatedVariable {
 
     void onAnimationBegin() {
         m_bIsBeingAnimated = true;
+        connectToActive();
 
         if (m_fBeginCallback) {
             m_fBeginCallback(this);

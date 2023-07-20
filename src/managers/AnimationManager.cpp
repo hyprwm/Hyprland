@@ -58,12 +58,7 @@ void CAnimationManager::tick() {
 
     std::vector<CAnimatedVariable*> animationEndedVars;
 
-    for (auto& av : m_lAnimatedVariables) {
-
-        // first of all, check if we need to update it at all
-        // TODO: this has a 100% cache miss rate, maybe move active avars to a separate vec
-        if (!av->m_bIsBeingAnimated)
-            continue;
+    for (auto& av : m_vActiveAnimatedVariables) {
 
         if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {
             av->warp(false);

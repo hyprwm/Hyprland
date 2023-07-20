@@ -103,6 +103,21 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         add_compile_options(-fsanitize=address)
     endif()
 
+    if(USE_TRACY)
+        message(STATUS "Tracy is turned on")
+
+        option( TRACY_ENABLE "" ON)
+        option( TRACY_ON_DEMAND "" ON)
+        add_subdirectory (subprojects/tracy)
+
+        target_link_libraries(Hyprland Tracy::TracyClient)
+
+        if(USE_TRACY_GPU)
+            message(STATUS "Tracy GPU Profiling is turned on")
+            add_compile_definitions(USE_TRACY_GPU)
+        endif()
+    endif()
+
     add_compile_options(-pg -no-pie -fno-builtin)
     add_link_options(-pg -no-pie -fno-builtin)
 endif()
@@ -138,21 +153,6 @@ else()
         target_link_libraries(Hyprland "${LIBSYSTEMD_LIBRARIES}")
     else()
         message(WARNING "Systemd support requested but libsystemd or systemd headers were not found")
-    endif()
-endif()
-
-if(USE_TRACY)
-    message(STATUS "Tracy is turned on")
-
-    option( TRACY_ENABLE "" ON)
-    option( TRACY_ON_DEMAND "" ON)
-    add_subdirectory (subprojects/tracy)
-
-    target_link_libraries(Hyprland Tracy::TracyClient)
-
-    if(USE_TRACY_GPU)
-        message(STATUS "Tracy GPU Profiling is turned on")
-        add_compile_definitions(USE_TRACY_GPU)
     endif()
 endif()
 

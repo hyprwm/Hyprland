@@ -143,12 +143,12 @@ endif()
 
 if(USE_TRACY)
     message(STATUS "Tracy is turned on")
-    
+
     option( TRACY_ENABLE "" ON)
     option( TRACY_ON_DEMAND "" ON)
     add_subdirectory (subprojects/tracy)
 
-    target_link_libraries(Hyprland PkgConfig::deps Tracy::TracyClient)
+    target_link_libraries(Hyprland Tracy::TracyClient)
 
     if(USE_TRACY_GPU)
         message(STATUS "Tracy GPU Profiling is turned on")
@@ -164,13 +164,13 @@ target_compile_definitions(Hyprland
     "GIT_DIRTY=\"${GIT_DIRTY}\""
     "GIT_TAG=\"${GIT_TAG}\"")
 
-target_link_libraries(Hyprland rt)
-
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
 message(STATUS "Setting link libraries")
+
+target_link_libraries(Hyprland rt PkgConfig::deps)
 
 function(protocol protoPath protoName external)
     if (external)

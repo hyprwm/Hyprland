@@ -726,6 +726,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 // Dual (or more) kawase blur
 CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* pBox, CRegion* originalDamage) {
 
+    TRACY_GPU_ZONE("RenderBlurMainFramebufferWithDamage");
+
     const auto BLENDBEFORE = m_bBlend;
     blend(false);
     glDisable(GL_STENCIL_TEST);
@@ -914,6 +916,8 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
 }
 
 void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
+
+    TRACY_GPU_ZONE("RenderPreBlurForCurrentMonitor");
 
     const auto SAVEDRENDERMODIF = m_RenderData.renderModif;
     m_RenderData.renderModif    = {}; // fix shit

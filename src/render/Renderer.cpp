@@ -2028,12 +2028,17 @@ bool CHyprRenderer::canSkipBackBufferClear(CMonitor* pMonitor) {
         if (!ls->layerSurface)
             continue;
 
-        if (!ls->layerSurface->surface->opaque || !(ls->alpha.fl() >= 1.f))
+        if (ls->alpha.fl() < 1.f)
             continue;
 
-        if (ls->geometry.x == pMonitor->vecPosition.x && ls->geometry.y == pMonitor->vecPosition.y && ls->geometry.width == pMonitor->vecSize.x &&
-            ls->geometry.height == pMonitor->vecSize.y)
-            return true;
+        if (ls->geometry.x != pMonitor->vecPosition.x || ls->geometry.y != pMonitor->vecPosition.y || ls->geometry.width != pMonitor->vecSize.x ||
+            ls->geometry.height != pMonitor->vecSize.y)
+            continue;
+
+        if (!ls->layerSurface->surface->opaque)
+            continue;
+
+        return true;
     }
 
     return false;

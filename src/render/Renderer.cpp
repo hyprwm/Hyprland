@@ -40,6 +40,13 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
     rounding -= 1; // to fix a border issue
 
+    const bool CANDISABLEBLEND = RDATA->alpha >= 1.f && rounding == 0 && surface->opaque;
+
+    if (CANDISABLEBLEND)
+        g_pHyprOpenGL->blend(false);
+    else
+        g_pHyprOpenGL->blend(true);
+
     if (RDATA->surface && surface == RDATA->surface) {
         if (wlr_xwayland_surface_try_from_wlr_surface(surface) && !wlr_xwayland_surface_try_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 1.f) {
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
@@ -57,6 +64,8 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
         wlr_surface_send_frame_done(surface, RDATA->when);
         wlr_presentation_surface_textured_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->pMonitor->output);
     }
+
+    g_pHyprOpenGL->blend(true);
 
     // reset the UV, we might've set it above
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
@@ -806,6 +815,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static auto* const                                    PNODIRECTSCANOUT    = &g_pConfigManager->getConfigValuePtr("misc:no_direct_scanout")->intValue;
     static auto* const                                    PVFR                = &g_pConfigManager->getConfigValuePtr("misc:vfr")->intValue;
     static auto* const                                    PZOOMFACTOR         = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
+    static auto* const                                    PRENDERTEX          = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
@@ -979,11 +989,17 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     EMIT_HOOK_EVENT("render", RENDER_BEGIN);
 
     if (pMonitor->isMirror()) {
+        g_pHyprOpenGL->blend(false);
         g_pHyprOpenGL->renderMirrored();
+        g_pHyprOpenGL->blend(true);
         EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
     } else {
-        g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
-        g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+        g_pHyprOpenGL->blend(false);
+        if (*PRENDERTEX /* inverted cfg flag */)
+            g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
+        else
+            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+        g_pHyprOpenGL->blend(true);
 
         wlr_box renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
         renderWorkspace(pMonitor, g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace), &now, renderBox);

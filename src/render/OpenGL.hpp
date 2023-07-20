@@ -111,6 +111,8 @@ class CHyprOpenGLImpl {
     void                                       setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
     void                                       restoreMatrix();
 
+    void                                       blend(bool enabled);
+
     void                                       makeWindowSnapshot(CWindow*);
     void                                       makeRawWindowSnapshot(CWindow*, CFramebuffer*);
     void                                       makeLayerSnapshot(SLayerSurface*);
@@ -159,6 +161,7 @@ class CHyprOpenGLImpl {
     bool              m_bFakeFrame        = false;
     bool              m_bEndFrame         = false;
     bool              m_bApplyFinalShader = false;
+    bool              m_bBlend            = false;
 
     CShader           m_sFinalScreenShader;
     CTimer            m_tGlobalTimer;

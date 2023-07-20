@@ -85,6 +85,7 @@ void CConfigManager::setDefaultVars() {
 
     configValues["misc:disable_hyprland_logo"].intValue        = 0;
     configValues["misc:disable_splash_rendering"].intValue     = 0;
+    configValues["misc:force_hypr_chan"].intValue              = 0;
     configValues["misc:vfr"].intValue                          = 1;
     configValues["misc:vrr"].intValue                          = 0;
     configValues["misc:mouse_move_enables_dpms"].intValue      = 0;

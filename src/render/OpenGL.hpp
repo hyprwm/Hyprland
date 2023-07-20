@@ -132,6 +132,7 @@ class CHyprOpenGLImpl {
     void                                       markBlurDirtyForMonitor(CMonitor*);
 
     void                                       preWindowPass();
+    bool                                       preBlurQueued();
     void                                       preRender(CMonitor*);
 
     void                                       saveBufferForMirror();

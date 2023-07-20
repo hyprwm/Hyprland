@@ -480,7 +480,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
         !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.vec() != Vector2D{}) {
 
-        setOccludedForBackLayers(g_pHyprOpenGL->m_RenderData.damage, pWorkspace);
+        if (!g_pHyprOpenGL->preBlurQueued())
+            setOccludedForBackLayers(g_pHyprOpenGL->m_RenderData.damage, pWorkspace);
 
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.get(), pMonitor, time);

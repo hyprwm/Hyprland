@@ -995,10 +995,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
     } else {
         g_pHyprOpenGL->blend(false);
-        if (*PRENDERTEX /* inverted cfg flag */)
-            g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
-        else
-            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+        if (!canSkipBackBufferClear(pMonitor)) {
+            if (*PRENDERTEX /* inverted cfg flag */)
+                g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
+            else
+                g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+        }
         g_pHyprOpenGL->blend(true);
 
         wlr_box renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
@@ -1999,4 +2001,20 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
     }
 
     region.subtract(rg);
+}
+
+bool CHyprRenderer::canSkipBackBufferClear(CMonitor* pMonitor) {
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+        if (!ls->layerSurface)
+            continue;
+
+        if (!ls->layerSurface->surface->opaque || !(ls->alpha.fl() >= 1.f))
+            continue;
+
+        if (ls->geometry.x == pMonitor->vecPosition.x && ls->geometry.y == pMonitor->vecPosition.y && ls->geometry.width == pMonitor->vecSize.x &&
+            ls->geometry.height == pMonitor->vecSize.y)
+            return true;
+    }
+
+    return false;
 }

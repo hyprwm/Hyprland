@@ -2013,7 +2013,11 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
         const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING} + pWorkspace->m_vRenderOffset.vec();
         const Vector2D SIZE     = w->m_vRealSize.vec() - Vector2D{ROUNDING * 2, ROUNDING * 2};
 
-        rg.add(POS.x, POS.y, SIZE.x, SIZE.y);
+        wlr_box        box = {POS.x, POS.y, SIZE.x, SIZE.y};
+
+        scaleBox(&box, PMONITOR->scale);
+
+        rg.add(&box);
     }
 
     region.subtract(rg);

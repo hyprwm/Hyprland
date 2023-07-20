@@ -23,6 +23,16 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     Debug::log(LOG, "Renderer: %s", glGetString(GL_RENDERER));
     Debug::log(LOG, "Supported extensions size: %d", std::count(m_szExtensions.begin(), m_szExtensions.end(), ' '));
 
+#ifdef USE_TRACY_GPU
+
+    loadGLProc(&glQueryCounter, "glQueryCounterEXT");
+    loadGLProc(&glGetQueryObjectiv, "glGetQueryObjectivEXT");
+    loadGLProc(&glGetQueryObjectui64v, "glGetQueryObjectui64vEXT");
+
+#endif
+
+    TRACY_GPU_CONTEXT;
+
 #ifdef GLES2
     Debug::log(WARN, "!RENDERER: Using the legacy GLES2 renderer!");
 #endif
@@ -96,6 +106,8 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
     m_RenderData.pMonitor = pMonitor;
 
+    TRACY_GPU_ZONE("RenderBegin");
+
     if (eglGetCurrentContext() != wlr_egl_get_context(g_pCompositor->m_sWLREGL)) {
         eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL));
     }
@@ -147,6 +159,8 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
 
 void CHyprOpenGLImpl::end() {
     static auto* const PZOOMRIGID = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_rigid")->intValue;
+
+    TRACY_GPU_ZONE("RenderEnd");
 
     // end the render, copy the data to the WLR framebuffer
     if (!m_bFakeFrame) {
@@ -379,6 +393,8 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 void CHyprOpenGLImpl::clear(const CColor& color) {
     RASSERT(m_RenderData.pMonitor, "Tried to render without begin()!");
 
+    TRACY_GPU_ZONE("RenderClear");
+
     glClearColor(color.r, color.g, color.b, color.a);
 
     if (!m_RenderData.damage.empty()) {
@@ -448,6 +464,8 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
 void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, CRegion* damage, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
+
+    TRACY_GPU_ZONE("RenderRectWithDamage");
 
     wlr_box newBox = *box;
     scaleBox(&newBox, m_RenderData.renderModif.scale);
@@ -534,6 +552,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
                                                       bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
+
+    TRACY_GPU_ZONE("RenderTextureInternalWithDamage");
 
     alpha = std::clamp(alpha, 0.f, 1.f);
 
@@ -939,6 +959,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur_new_optimizations")->intValue;
     static auto* const PBLURXRAY        = &g_pConfigManager->getConfigValuePtr("decoration:blur_xray")->intValue;
 
+    TRACY_GPU_ZONE("RenderTextureWithBlur");
+
     // make a damage region for this window
     CRegion texDamage{m_RenderData.damage};
     texDamage.intersect(pBox->x, pBox->y, pBox->width, pBox->height);
@@ -1040,6 +1062,8 @@ void pushVert2D(float x, float y, float* arr, int& counter, wlr_box* box) {
 void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad, int round, int borderSize, float a) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
+
+    TRACY_GPU_ZONE("RenderBorder");
 
     if (m_RenderData.damage.empty() || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBorder))
         return;
@@ -1384,6 +1408,8 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     if (m_RenderData.damage.empty())
         return;
 
+    TRACY_GPU_ZONE("RenderShadow");
+
     wlr_box newBox = *box;
     scaleBox(&newBox, m_RenderData.renderModif.scale);
     newBox.x += m_RenderData.renderModif.translate.x;
@@ -1605,6 +1631,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
 
+    TRACY_GPU_ZONE("RenderClearWithTex");
 
     auto TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
 

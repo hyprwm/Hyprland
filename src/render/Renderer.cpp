@@ -10,6 +10,8 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     if (!TEXTURE)
         return;
 
+    TRACY_GPU_ZONE("RenderSurface");
+
     double outputX = 0, outputY = 0;
     wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, RDATA->pMonitor->output, &outputX, &outputY);
 
@@ -257,6 +259,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         return;
     }
 
+    TRACY_GPU_ZONE("RenderWindow");
+
     const auto         PWORKSPACE         = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     const auto         REALPOS            = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
     static auto* const PNOFLOATINGBORDERS = &g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue;
@@ -398,6 +402,8 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
         g_pHyprOpenGL->renderSnapshot(&pLayer);
         return;
     }
+
+    TRACY_GPU_ZONE("RenderLayer");
 
     SRenderData renderdata           = {pMonitor, time, pLayer->geometry.x, pLayer->geometry.y};
     renderdata.fadeAlpha             = pLayer->alpha.fl();
@@ -638,6 +644,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
 }
 
 void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now) {
+    TRACY_GPU_ZONE("RenderLockscreen");
+
     if (g_pSessionLockManager->isSessionLocked()) {
         const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
 
@@ -984,6 +992,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.
 
+    TRACY_GPU_ZONE("Render");
+
     g_pHyprOpenGL->begin(pMonitor, &damage);
 
     EMIT_HOOK_EVENT("render", RENDER_BEGIN);
@@ -1031,6 +1041,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         }
 
         if (wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y)) {
+            TRACY_GPU_ZONE("RenderCursor");
             if (pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f) {
                 wlr_output_lock_software_cursors(pMonitor->output, true);
                 wlr_output_render_software_cursors(pMonitor->output, NULL);
@@ -1055,6 +1066,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 
     g_pHyprOpenGL->end();
+
+    TRACY_GPU_COLLECT;
 
     // calc frame damage
     CRegion    frameDamage{};
@@ -1110,6 +1123,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const wlr_box& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = (float)geometry.width / pMonitor->vecPixelSize.x;
+
+    TRACY_GPU_ZONE("RenderWorkspace");
 
     if (!DELTALESSTHAN((double)geometry.width / (double)geometry.height, pMonitor->vecPixelSize.x / pMonitor->vecPixelSize.y, 0.01)) {
         Debug::log(ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");

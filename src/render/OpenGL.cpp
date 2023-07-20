@@ -153,7 +153,7 @@ void CHyprOpenGLImpl::end() {
         m_RenderData.damage = m_RenderData.pMonitor->lastFrameDamage;
 
         if (!m_RenderData.pMonitor->mirrors.empty())
-            g_pHyprOpenGL->saveBufferForMirror(); // save with original damage region
+            saveBufferForMirror(); // save with original damage region
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_iWLROutputFb);
         wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
@@ -178,14 +178,16 @@ void CHyprOpenGLImpl::end() {
                 monbox.y = m_RenderData.pMonitor->vecTransformedSize.y - monbox.height;
         }
 
-        clear(CColor(11.0 / 255.0, 11.0 / 255.0, 11.0 / 255.0, 1.0));
-
         m_bEndFrame         = true;
         m_bApplyFinalShader = true;
         if (m_RenderData.mouseZoomUseMouse)
             m_RenderData.useNearestNeighbor = true;
 
+        blend(false);
+
         renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f, 0);
+
+        blend(true);
 
         m_RenderData.useNearestNeighbor = false;
         m_bApplyFinalShader             = false;
@@ -389,6 +391,15 @@ void CHyprOpenGLImpl::clear(const CColor& color) {
     scissor((wlr_box*)nullptr);
 }
 
+void CHyprOpenGLImpl::blend(bool enabled) {
+    if (enabled)
+        glEnable(GL_BLEND);
+    else
+        glDisable(GL_BLEND);
+
+    m_bBlend = enabled;
+}
+
 void CHyprOpenGLImpl::scissor(const wlr_box* pBox, bool transform) {
     RASSERT(m_RenderData.pMonitor, "Tried to scissor without begin()!");
 
@@ -452,7 +463,6 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, CReg
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
 
-    glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shQUAD.program);
@@ -547,7 +557,6 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 
     CShader* shader = nullptr;
 
-    glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     bool       usingFinalShader = false;
@@ -697,7 +706,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
 // Dual (or more) kawase blur
 CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* pBox, CRegion* originalDamage) {
 
-    glDisable(GL_BLEND);
+    const auto BLENDBEFORE = m_bBlend;
+    blend(false);
     glDisable(GL_STENCIL_TEST);
 
     // get transforms for the full monitor
@@ -805,6 +815,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     glBindTexture(PMIRRORFB->m_cTex.m_iTarget, 0);
+
+    blend(BLENDBEFORE);
 
     return currentRenderToFB;
 }
@@ -1455,7 +1467,11 @@ void CHyprOpenGLImpl::saveBufferForMirror() {
 
     wlr_box monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
 
+    blend(false);
+
     renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f, 0, false, false);
+
+    blend(true);
 
     m_RenderData.pCurrentMonData->primaryFB.bind();
 }
@@ -1589,19 +1605,16 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
 
-    static auto* const PRENDERTEX = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
 
-    if (!*PRENDERTEX) {
-        auto TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
+    auto TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
 
-        if (TEXIT == m_mMonitorBGTextures.end()) {
-            createBGTextureForMonitor(m_RenderData.pMonitor);
-            TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
-        }
-
-        if (TEXIT != m_mMonitorBGTextures.end())
-            renderTexture(TEXIT->second, &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox, 1.0, 0);
+    if (TEXIT == m_mMonitorBGTextures.end()) {
+        createBGTextureForMonitor(m_RenderData.pMonitor);
+        TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
     }
+
+    if (TEXIT != m_mMonitorBGTextures.end())
+        renderTexture(TEXIT->second, &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox, 1.0, 0);
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {

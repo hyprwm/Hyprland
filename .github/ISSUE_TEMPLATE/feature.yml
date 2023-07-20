@@ -1,5 +1,6 @@
 name: Feature Request
 description: I'd like to request additional functionality
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:

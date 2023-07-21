@@ -179,6 +179,7 @@ class CHyprOpenGLImpl {
 
     void          renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
                                                   bool allowCustomUV = false, bool allowDim = false);
+    void          renderTexturePrimitive(const CTexture& tex, wlr_box* pBox);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double);
 
     void          preBlurForCurrentMonitor();

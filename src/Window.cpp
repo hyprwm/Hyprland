@@ -476,20 +476,30 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             CVarList vars(r.szRule, 0, ' ');
 
-            for (size_t i = 1 /* first item is "opacity" */; i < vars.size(); ++i) {
-                if (i == 1) {
-                    // first arg, alpha
-                    m_sSpecialRenderData.alpha = std::stof(vars[i]);
+            int      opacityIDX = 0;
+
+            for (auto& r : vars) {
+                if (r == "opacity")
+                    continue;
+
+                if (r == "override") {
+                    if (opacityIDX == 0) {
+                        m_sSpecialRenderData.alphaOverride         = true;
+                        m_sSpecialRenderData.alphaInactiveOverride = true;
+                    } else
+                        m_sSpecialRenderData.alphaInactiveOverride = true;
                 } else {
-                    if (vars[i] == "override") {
-                        if (i == 2) {
-                            m_sSpecialRenderData.alphaOverride = true;
-                        } else {
-                            m_sSpecialRenderData.alphaInactiveOverride = true;
-                        }
+                    if (opacityIDX == 0) {
+                        m_sSpecialRenderData.alpha         = std::stof(r);
+                        m_sSpecialRenderData.alphaInactive = std::stof(r);
+                    } else if (opacityIDX == 1) {
+                        m_sSpecialRenderData.alphaInactive         = std::stof(r);
+                        m_sSpecialRenderData.alphaInactiveOverride = false;
                     } else {
-                        m_sSpecialRenderData.alphaInactive = std::stof(vars[i]);
+                        throw std::runtime_error("more than 2 alpha values");
                     }
+
+                    opacityIDX++;
                 }
             }
         } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
@@ -666,8 +676,8 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
 void CWindow::insertWindowToGroup(CWindow* pWindow) {
     static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
 
-    const auto BEGINAT = *USECURRPOS ? this : getGroupTail();
-    const auto ENDAT   = *USECURRPOS ? m_sGroupData.pNextWindow : getGroupHead();
+    const auto         BEGINAT = *USECURRPOS ? this : getGroupTail();
+    const auto         ENDAT   = *USECURRPOS ? m_sGroupData.pNextWindow : getGroupHead();
 
     if (!pWindow->m_sGroupData.pNextWindow) {
         BEGINAT->m_sGroupData.pNextWindow = pWindow;

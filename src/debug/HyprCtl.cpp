@@ -686,11 +686,10 @@ std::string dispatchRequest(std::string in) {
     in = in.substr(in.find_first_of(' ') + 1);
 
     const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));
-    
-    auto DISPATCHARG = std::string();
-    if ((int) in.find_first_of(' ') != -1)
-        DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
 
+    auto       DISPATCHARG = std::string();
+    if ((int)in.find_first_of(' ') != -1)
+        DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
 
     const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(DISPATCHSTR);
     if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end())
@@ -1312,7 +1311,18 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     char        readBuffer[1024];
 
-    auto        messageSize                              = read(ACCEPTEDCONNECTION, readBuffer, 1024);
+    fd_set      fdset;
+    FD_ZERO(&fdset);
+    FD_SET(ACCEPTEDCONNECTION, &fdset);
+    timeval timeout = {.tv_sec = 0, .tv_usec = 5000};
+    auto    success = select(ACCEPTEDCONNECTION + 1, &fdset, nullptr, nullptr, &timeout);
+
+    if (success <= 0) {
+        close(ACCEPTEDCONNECTION);
+        return 0;
+    }
+
+    auto messageSize                                     = read(ACCEPTEDCONNECTION, readBuffer, 1024);
     readBuffer[messageSize == 1024 ? 1023 : messageSize] = '\0';
 
     std::string request(readBuffer);

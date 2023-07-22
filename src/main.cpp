@@ -49,6 +49,7 @@ int main(int argc, char** argv) {
         } else if (it->compare("-c") == 0 || it->compare("--config") == 0) {
             if (std::next(it) == args.end()) {
                 help();
+
                 return 1;
             }
             std::string next_arg = std::next(it)->c_str();
@@ -66,9 +67,15 @@ int main(int argc, char** argv) {
             it++;
 
             continue;
-        } else {
+        } else if (it->compare("-h") == 0 || it->compare("--help") == 0) {
             help();
+
             return 0;
+        } else {
+            std::cerr << "[ ERROR ] Unknown option '" << it->c_str() << "'!\n";
+            help();
+
+            return 1;
         }
     }
 

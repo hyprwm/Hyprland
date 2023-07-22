@@ -148,17 +148,8 @@ class CAnimatedVariable {
     }
 
     // checks if an animation is in progress
-    bool isBeingAnimated() {
-        switch (m_eVarType) {
-            case AVARTYPE_FLOAT: return m_fValue != m_fGoal;
-            case AVARTYPE_VECTOR: return m_vValue != m_vGoal;
-            case AVARTYPE_COLOR: return m_cValue != m_cGoal;
-            default: UNREACHABLE();
-        }
-
-        UNREACHABLE();
-
-        return false; // just so that the warning is suppressed
+    inline bool isBeingAnimated() {
+        return m_bIsBeingAnimated;
     }
 
     void warp(bool endCallback = true) {
@@ -177,6 +168,8 @@ class CAnimatedVariable {
             }
             default: UNREACHABLE();
         }
+
+        m_bIsBeingAnimated = false;
 
         if (endCallback)
             onAnimationEnd();
@@ -251,8 +244,9 @@ class CAnimatedVariable {
 
     SAnimationPropertyConfig*             m_pConfig = nullptr;
 
-    bool                                  m_bDummy        = true;
-    bool                                  m_bIsRegistered = false;
+    bool                                  m_bDummy           = true;
+    bool                                  m_bIsRegistered    = false;
+    bool                                  m_bIsBeingAnimated = false;
 
     std::chrono::system_clock::time_point animationBegin;
 
@@ -265,8 +259,15 @@ class CAnimatedVariable {
     std::function<void(void* thisptr)>    m_fBeginCallback;
     std::function<void(void* thisptr)>    m_fUpdateCallback;
 
+    bool                                  m_bIsConnectedToActive = false;
+    void                                  connectToActive();
+    void                                  disconnectFromActive();
+
     // methods
     void onAnimationEnd() {
+        m_bIsBeingAnimated = false;
+        disconnectFromActive();
+
         if (m_fEndCallback) {
             // loading m_bRemoveEndAfterRan before calling the callback allows the callback to delete this animation safely if it is false.
             auto removeEndCallback = m_bRemoveEndAfterRan;
@@ -277,6 +278,9 @@ class CAnimatedVariable {
     }
 
     void onAnimationBegin() {
+        m_bIsBeingAnimated = true;
+        connectToActive();
+
         if (m_fBeginCallback) {
             m_fBeginCallback(this);
             if (m_bRemoveBeginAfterRan)

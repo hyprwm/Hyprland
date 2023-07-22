@@ -103,6 +103,21 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         add_compile_options(-fsanitize=address)
     endif()
 
+    if(USE_TRACY)
+        message(STATUS "Tracy is turned on")
+
+        option( TRACY_ENABLE "" ON)
+        option( TRACY_ON_DEMAND "" ON)
+        add_subdirectory (subprojects/tracy)
+
+        target_link_libraries(Hyprland Tracy::TracyClient)
+
+        if(USE_TRACY_GPU)
+            message(STATUS "Tracy GPU Profiling is turned on")
+            add_compile_definitions(USE_TRACY_GPU)
+        endif()
+    endif()
+
     add_compile_options(-pg -no-pie -fno-builtin)
     add_link_options(-pg -no-pie -fno-builtin)
 endif()
@@ -149,13 +164,13 @@ target_compile_definitions(Hyprland
     "GIT_DIRTY=\"${GIT_DIRTY}\""
     "GIT_TAG=\"${GIT_TAG}\"")
 
-target_link_libraries(Hyprland rt)
-
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
 message(STATUS "Setting link libraries")
+
+target_link_libraries(Hyprland rt PkgConfig::deps)
 
 function(protocol protoPath protoName external)
     if (external)
@@ -176,8 +191,6 @@ function(protocol protoPath protoName external)
         target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
     endif()
 endfunction()
-
-target_link_libraries(Hyprland PkgConfig::deps)
 
 target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032 # wlroots is provided by us

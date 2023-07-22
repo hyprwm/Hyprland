@@ -27,13 +27,6 @@
 
 #define DELTALESSTHAN(a, b, delta) (abs((a) - (b)) < (delta))
 
-#define PIXMAN_DAMAGE_FOREACH(region)                                                                                                                                              \
-    int        rectsNum = 0;                                                                                                                                                       \
-    const auto RECTSARR = pixman_region32_rectangles(region, &rectsNum);                                                                                                           \
-    for (int i = 0; i < rectsNum; ++i)
-
-#define PIXMAN_REGION_FOREACH(region) PIXMAN_DAMAGE_FOREACH(region)
-
 #define interface class
 
 #define STICKS(a, b) abs((a) - (b)) < 2

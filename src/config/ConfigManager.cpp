@@ -85,6 +85,7 @@ void CConfigManager::setDefaultVars() {
 
     configValues["misc:disable_hyprland_logo"].intValue        = 0;
     configValues["misc:disable_splash_rendering"].intValue     = 0;
+    configValues["misc:force_hypr_chan"].intValue              = 0;
     configValues["misc:vfr"].intValue                          = 1;
     configValues["misc:vrr"].intValue                          = 0;
     configValues["misc:mouse_move_enables_dpms"].intValue      = 0;
@@ -107,6 +108,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:cursor_zoom_factor"].floatValue         = 1.f;
     configValues["misc:cursor_zoom_rigid"].intValue            = 0;
     configValues["misc:allow_session_lock_restore"].intValue   = 0;
+    configValues["misc:group_insert_after_current"].intValue   = 1;
     configValues["misc:render_titles_in_groupbar"].intValue    = 1;
     configValues["misc:groupbar_titles_font_size"].intValue    = 8;
     configValues["misc:groupbar_gradients"].intValue           = 1;
@@ -880,7 +882,7 @@ bool windowRuleValid(const std::string& RULE) {
              RULE != "noshadow" && RULE != "nodim" && RULE != "noborder" && RULE != "center" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" &&
              RULE != "nofullscreenrequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" &&
              RULE != "windowdance" && RULE != "maximize" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 && RULE.find("workspace") != 0 &&
-             RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused");
+             RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" && RULE.find("bordersize") != 0);
 }
 
 bool layerRuleValid(const std::string& RULE) {
@@ -1587,9 +1589,6 @@ void CConfigManager::loadConfigLoadVars() {
     // update layout
     g_pLayoutManager->switchToLayout(configValues["general:layout"].strValue);
 
-    // update xwl scale
-    g_pXWaylandManager->updateXWaylandScale();
-
     // manual crash
     if (configValues["debug:manual_crash"].intValue && !m_bManualCrashInitiated) {
         m_bManualCrashInitiated = true;
@@ -1972,6 +1971,8 @@ void CConfigManager::performMonitorReload() {
         g_pCompositor->m_bUnsafeState = false;
 
     m_bWantsMonitorReload = false;
+
+    EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
 }
 
 SConfigValue* CConfigManager::getConfigValuePtr(const std::string& val) {

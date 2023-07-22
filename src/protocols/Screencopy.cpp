@@ -326,15 +326,11 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
 
 void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
     m_pLastMonitorBackBuffer = e->buffer;
-    shareAllFrames(pMonitor, true);
+    shareAllFrames(pMonitor);
     m_pLastMonitorBackBuffer = nullptr;
 }
 
-void CScreencopyProtocolManager::onRenderEnd(CMonitor* pMonitor) {
-    shareAllFrames(pMonitor, false);
-}
-
-void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor, bool dmabuf) {
+void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 
@@ -342,12 +338,12 @@ void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor, bool dmabuf)
 
     // share frame if correct output
     for (auto& f : m_vFramesAwaitingWrite) {
-        if (!f->pMonitor) {
+        if (!f->pMonitor || !f->buffer) {
             framesToRemove.push_back(f);
             continue;
         }
 
-        if (f->pMonitor != pMonitor || dmabuf != (f->bufferCap == WLR_BUFFER_CAP_DMABUF))
+        if (f->pMonitor != pMonitor)
             continue;
 
         shareFrame(f);
@@ -407,11 +403,15 @@ void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
     if (!frame->withDamage)
         return;
 
-    PIXMAN_DAMAGE_FOREACH(&frame->pMonitor->lastFrameDamage) {
-        const auto RECT = &RECTSARR[i];
-        zwlr_screencopy_frame_v1_send_damage(frame->resource, std::clamp(RECT->x1, 0, frame->buffer->width), std::clamp(RECT->y1, 0, frame->buffer->height),
-                                             std::clamp(RECT->x2 - RECT->x1, 0, frame->buffer->width - RECT->x1),
-                                             std::clamp(RECT->y2 - RECT->y1, 0, frame->buffer->height - RECT->y1));
+    for (auto& RECT : frame->pMonitor->lastFrameDamage.getRects()) {
+
+        if (frame->buffer->width < 1 || frame->buffer->height < 1 || frame->buffer->width - RECT.x1 < 1 || frame->buffer->height - RECT.y1 < 1) {
+            Debug::log(ERR, "[sc] Failed to send damage");
+            break;
+        }
+
+        zwlr_screencopy_frame_v1_send_damage(frame->resource, std::clamp(RECT.x1, 0, frame->buffer->width), std::clamp(RECT.y1, 0, frame->buffer->height),
+                                             std::clamp(RECT.x2 - RECT.x1, 0, frame->buffer->width - RECT.x1), std::clamp(RECT.y2 - RECT.y1, 0, frame->buffer->height - RECT.y1));
     }
 }
 
@@ -422,47 +422,16 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride))
         return false;
 
-    // render the client
-    const auto        PMONITOR = frame->pMonitor;
-    pixman_region32_t fakeDamage;
-    pixman_region32_init_rect(&fakeDamage, 0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10);
-
-    if (!wlr_output_attach_render(PMONITOR->output, nullptr)) {
-        Debug::log(ERR, "[screencopy] Couldn't attach render");
-        pixman_region32_fini(&fakeDamage);
+    if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer)) {
         wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;
     }
 
-    const auto PFORMAT = get_gles2_format_from_drm(format);
-    if (!PFORMAT) {
-        Debug::log(ERR, "[screencopy] Cannot read pixels, unsupported format %lx", PFORMAT);
-        wlr_output_rollback(PMONITOR->output);
-        pixman_region32_fini(&fakeDamage);
-        wlr_buffer_end_data_ptr_access(frame->buffer);
-        return false;
-    }
-
-    g_pHyprOpenGL->begin(PMONITOR, &fakeDamage, true);
-
-    // we should still have the last frame by this point in the original fb
-    glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_RenderData.pCurrentMonData->primaryFB.m_iFb);
-
-    glFinish(); // flush
-
-    glReadPixels(frame->box.x, frame->box.y, frame->box.width, frame->box.height, PFORMAT->gl_format, PFORMAT->gl_type, data);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_iWLROutputFb);
-
-    g_pHyprOpenGL->end();
-
-    wlr_output_rollback(PMONITOR->output);
-
-    pixman_region32_fini(&fakeDamage);
-
+    bool success = wlr_renderer_read_pixels(g_pCompositor->m_sWLRRenderer, format, stride, frame->box.width, frame->box.height, frame->box.x, frame->box.y, 0, 0, data);
+    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
     wlr_buffer_end_data_ptr_access(frame->buffer);
 
-    return true;
+    return success;
 }
 
 bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
@@ -482,6 +451,7 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
 
     float color[] = {0, 0, 0, 0};
     wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, color);
+    // TODO: use hl render methods to use damage
     wlr_render_texture_with_matrix(g_pCompositor->m_sWLRRenderer, sourceTex, glMatrix, 1.0f);
 
     wlr_texture_destroy(sourceTex);

@@ -120,8 +120,10 @@ void main() {
 	    pixColor[2] = pixColor[2] * tint[2];
     }
 
+    if (radius > 0.0) {
     )#" +
     ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    }
 
     gl_FragColor = pixColor * alpha;
 })#";
@@ -167,8 +169,10 @@ void main() {
 	pixColor[2] = pixColor[2] * tint[2];
     }
 
+    if (radius > 0.0) {
     )#" +
     ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    }
 
     gl_FragColor = pixColor * alpha;
 })#";
@@ -255,8 +259,10 @@ void main() {
 	pixColor[2] = pixColor[2] * tint[2];
     }
 
+    if (radius > 0.0) {
     )#" +
     ROUNDED_SHADER_FUNC("pixColor") + R"#(
+    }
 
     gl_FragColor = pixColor * alpha;
 }

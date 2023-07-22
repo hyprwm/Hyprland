@@ -11,6 +11,8 @@ self: {
     inherit (cfg) nvidiaPatches;
   };
 in {
+  disabledModules = ["services/window-managers/hyprland.nix"];
+
   meta.maintainers = [lib.maintainers.fufexan];
 
   options.wayland.windowManager.hyprland = {

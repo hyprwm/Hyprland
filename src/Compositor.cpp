@@ -196,8 +196,7 @@ void CCompositor::initServer() {
     m_sWLRXDGDecoMgr    = wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
     wlr_server_decoration_manager_set_default_mode(m_sWLRServerDecoMgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
 
-    m_sWLRXDGOutputMgr = wlr_xdg_output_manager_v1_create(m_sWLDisplay, m_sWLROutputLayout);
-    m_sWLROutputMgr    = wlr_output_manager_v1_create(m_sWLDisplay);
+    m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
 
     m_sWLRInhibitMgr     = wlr_input_inhibit_manager_create(m_sWLDisplay);
     m_sWLRKbShInhibitMgr = wlr_keyboard_shortcuts_inhibit_v1_create(m_sWLDisplay);
@@ -465,7 +464,7 @@ void CCompositor::startCompositor() {
         throw std::runtime_error("The backend could not start!");
     }
 
-    wlr_xcursor_manager_set_cursor_image(m_sWLRXCursorMgr, "left_ptr", m_sWLRCursor);
+    wlr_cursor_set_xcursor(m_sWLRCursor, m_sWLRXCursorMgr, "left_ptr");
 
 #ifdef USES_SYSTEMD
     if (sd_booted() > 0)
@@ -1707,17 +1706,17 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
 }
 
 int CCompositor::getNextAvailableMonitorID(std::string const& name) {
-    // reuse ID if it's already in the map
-    if (m_mMonitorIDMap.contains(name))
+    // reuse ID if it's already in the map, and the monitor with that ID is not being used by another monitor
+    if (m_mMonitorIDMap.contains(name) && !std::any_of(m_vRealMonitors.begin(), m_vRealMonitors.end(), [&](auto m) { return m->ID == m_mMonitorIDMap[name]; }))
         return m_mMonitorIDMap[name];
 
     // otherwise, find minimum available ID that is not in the map
-    std::unordered_set<int> usedIDs;
+    std::unordered_set<uint64_t> usedIDs;
     for (auto const& monitor : m_vRealMonitors) {
         usedIDs.insert(monitor->ID);
     }
 
-    int nextID = 0;
+    uint64_t nextID = 0;
     while (usedIDs.count(nextID) > 0) {
         nextID++;
     }
@@ -2348,7 +2347,7 @@ bool CCompositor::isWorkspaceSpecial(const int& id) {
 }
 
 int CCompositor::getNewSpecialID() {
-    int highest = -100;
+    int highest = SPECIAL_WORKSPACE_START;
     for (auto& ws : m_vWorkspaces) {
         if (ws->m_bIsSpecialWorkspace && ws->m_iID > highest) {
             highest = ws->m_iID;

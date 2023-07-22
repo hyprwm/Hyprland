@@ -8,7 +8,8 @@ int wlTick(void* data) {
 
     wl_event_source_timer_update(g_pAnimationManager->m_pAnimationTick, 1000 / refreshRate);
 
-    if (g_pCompositor->m_bSessionActive && std::ranges::any_of(g_pCompositor->m_vMonitors, [](const auto& mon) { return mon->m_bEnabled && mon->output; })) {
+    if (g_pCompositor->m_bSessionActive && g_pAnimationManager && g_pHookSystem &&
+        std::ranges::any_of(g_pCompositor->m_vMonitors, [](const auto& mon) { return mon->m_bEnabled && mon->output; })) {
         g_pAnimationManager->tick();
         EMIT_HOOK_EVENT("tick", nullptr);
     }
@@ -57,11 +58,7 @@ void CAnimationManager::tick() {
 
     std::vector<CAnimatedVariable*> animationEndedVars;
 
-    for (auto& av : m_lAnimatedVariables) {
-
-        // first of all, check if we need to update it at all
-        if (!av->isBeingAnimated())
-            continue;
+    for (auto& av : m_vActiveAnimatedVariables) {
 
         if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {
             av->warp(false);
@@ -254,15 +251,12 @@ void CAnimationManager::tick() {
                         // easy, damage the entire box
                         g_pHyprRenderer->damageBox(&dmg);
                     } else {
-                        pixman_region32_t rg;
-                        pixman_region32_init_rect(&rg, dmg.x, dmg.y, dmg.width, dmg.height);
-                        pixman_region32_t wb;
-                        pixman_region32_init_rect(&wb, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x,
-                                                  PWINDOW->m_vRealSize.vec().y);
-                        pixman_region32_subtract(&rg, &rg, &wb);
-                        g_pHyprRenderer->damageRegion(&rg);
-                        pixman_region32_fini(&rg);
-                        pixman_region32_fini(&wb);
+                        CRegion rg{dmg.x, dmg.y, dmg.width, dmg.height};
+                        CRegion wb{PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y};
+
+                        rg.subtract(wb);
+
+                        g_pHyprRenderer->damageRegion(rg);
                     }
                 }
 

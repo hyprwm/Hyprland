@@ -1175,7 +1175,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
                 if (PWINDOW) {
                     if (PWINDOW->m_bIsX11) {
                         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, constraint->current.cursor_hint.x + PWINDOW->m_uSurface.xwayland->x,
-                                        PWINDOW->m_uSurface.xwayland->y + PWINDOW->m_vRealPosition.vec().y);
+                                        constraint->current.cursor_hint.y + PWINDOW->m_uSurface.xwayland->y);
 
                         wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
                     } else {

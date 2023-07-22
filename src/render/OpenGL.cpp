@@ -734,8 +734,6 @@ void CHyprOpenGLImpl::renderTexturePrimitive(const CTexture& tex, wlr_box* pBox)
     newBox.x += m_RenderData.renderModif.translate.x;
     newBox.y += m_RenderData.renderModif.translate.y;
 
-    static auto* const PDIMINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:dim_inactive")->intValue;
-
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float      matrix[9];

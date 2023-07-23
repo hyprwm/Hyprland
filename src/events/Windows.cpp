@@ -1134,7 +1134,7 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    if (PWINDOW->m_bNoFullscreenRequest)
+    if (PWINDOW->m_bNoMaximizeRequest)
         return;
 
     Debug::log(LOG, "Maximize request for %lx", PWINDOW);

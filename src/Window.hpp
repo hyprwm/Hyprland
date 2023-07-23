@@ -10,8 +10,7 @@
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
 
-enum eIdleInhibitMode
-{
+enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
@@ -226,9 +225,10 @@ class CWindow {
     bool m_bNoFocus        = false;
     bool m_bNoInitialFocus = false;
 
-    // initial fullscreen and fullscreen disabled
+    // Fullscreen and Maximize
     bool              m_bWantsInitialFullscreen = false;
     bool              m_bNoFullscreenRequest    = false;
+    bool              m_bNoMaximizeRequest      = false;
 
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 

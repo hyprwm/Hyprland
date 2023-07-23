@@ -25,12 +25,20 @@ CWindow::~CWindow() {
 wlr_box CWindow::getFullWindowBoundingBox() {
     static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
+    const auto         WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(m_iWorkspaceID));
+
+    auto borderSize = m_sSpecialRenderData.borderSize.toUnderlying() != -1 ? m_sSpecialRenderData.borderSize.toUnderlying() : WORKSPACERULE.borderSize.value_or(*PBORDERSIZE);
+    if (m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
+        borderSize = m_sAdditionalConfigData.borderSize.toUnderlying();
+
+    borderSize *= m_sSpecialRenderData.border && !m_sAdditionalConfigData.forceNoBorder;
+
     if (m_sAdditionalConfigData.dimAround) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
-    SWindowDecorationExtents maxExtents = {{*PBORDERSIZE + 2, *PBORDERSIZE + 2}, {*PBORDERSIZE + 2, *PBORDERSIZE + 2}};
+    SWindowDecorationExtents maxExtents = {{borderSize + 2, borderSize + 2}, {borderSize + 2, borderSize + 2}};
 
     for (auto& wd : m_dWindowDecorations) {
 

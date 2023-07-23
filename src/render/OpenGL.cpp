@@ -199,7 +199,10 @@ void CHyprOpenGLImpl::end() {
 
         blend(false);
 
-        renderTexturePrimitive(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox);
+        if (m_sFinalScreenShader.program < 1)
+            renderTexturePrimitive(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox);
+        else
+            renderTexture(m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f);
 
         blend(true);
 

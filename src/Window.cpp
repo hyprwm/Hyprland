@@ -493,10 +493,10 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                     continue;
 
                 if (r == "override") {
-                    if (opacityIDX == 0) {
+                    if (opacityIDX == 1) {
                         m_sSpecialRenderData.alphaOverride         = true;
                         m_sSpecialRenderData.alphaInactiveOverride = true;
-                    } else
+                    } else if (opacityIDX == 2)
                         m_sSpecialRenderData.alphaInactiveOverride = true;
                 } else {
                     if (opacityIDX == 0) {

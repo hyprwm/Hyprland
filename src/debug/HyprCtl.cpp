@@ -630,9 +630,12 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
 std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
+    auto commitMsg = removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE);
+    std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
+
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" +
-            removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str() + ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
+        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
+            ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";
@@ -656,7 +659,7 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "dirty": %s,
     "commit_message": "%s",
     "flags": [)#",
-            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str());
+            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg).c_str());
 
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";

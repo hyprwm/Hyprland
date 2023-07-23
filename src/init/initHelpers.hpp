@@ -4,4 +4,5 @@
 
 namespace Init {
     bool isSudo();
+    void gainRealTime();
 };

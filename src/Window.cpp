@@ -25,7 +25,9 @@ CWindow::~CWindow() {
 wlr_box CWindow::getFullWindowBoundingBox() {
     static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-    const auto         WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(m_iWorkspaceID));
+    const auto         PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+
+    const auto         WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
 
     auto borderSize = m_sSpecialRenderData.borderSize.toUnderlying() != -1 ? m_sSpecialRenderData.borderSize.toUnderlying() : WORKSPACERULE.borderSize.value_or(*PBORDERSIZE);
     if (m_sAdditionalConfigData.borderSize.toUnderlying() != -1)

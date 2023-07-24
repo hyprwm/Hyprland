@@ -89,7 +89,6 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "Welcome to Hyprland!\n";
-    Init::gainRealTime();
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
@@ -97,6 +96,8 @@ int main(int argc, char** argv) {
     g_pCompositor->explicitConfigPath = configPath;
 
     g_pCompositor->initServer();
+
+    Init::gainRealTime();
 
     Debug::log(LOG, "Hyprland init finished.");
 

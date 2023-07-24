@@ -2018,7 +2018,9 @@ void CKeybindManager::lockActiveGroup(std::string args) {
 }
 
 void CKeybindManager::moveIntoGroup(std::string args) {
-    char arg = args[0];
+    char               arg = args[0];
+
+    static auto* const GROUPLOCKCHECK = &g_pConfigManager->getConfigValuePtr("misc:moveintogroup_lock_check")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2035,7 +2037,7 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
 
-    if (PWINDOW->m_sGroupData.locked || PWINDOWINDIR->m_sGroupData.locked)
+    if (*GROUPLOCKCHECK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.locked)))
         return;
 
     if (!PWINDOW->m_sGroupData.pNextWindow)

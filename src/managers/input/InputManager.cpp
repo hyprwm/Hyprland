@@ -464,23 +464,14 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e) {
-    if (!g_pHyprRenderer->shouldRenderCursor())
-        return;
 
-    if (!e->surface) {
+    if (!e->surface)
         g_pHyprRenderer->m_bWindowRequestedCursorHide = true;
-    } else {
+    else
         g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
-    }
 
-    if (m_bCursorImageOverridden) {
+    if (!cursorImageUnlocked())
         return;
-    }
-
-    if (m_ecbClickBehavior == CLICKMODE_KILL) {
-        wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "crosshair");
-        return;
-    }
 
     // cursorSurfaceInfo.pSurface = e->surface;
 
@@ -493,6 +484,34 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
         wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, e->surface, e->hotspot_x, e->hotspot_y);
+}
+
+void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
+    if (!g_pHyprRenderer->shouldRenderCursor())
+        return;
+
+    if (!g_pCompositor->m_pLastFocus)
+        return;
+
+    if (wl_resource_get_client(g_pCompositor->m_pLastFocus->resource) != e->seat_client->client) {
+        Debug::log(ERR, "Disallowing cursor shape request from unfocused");
+        return;
+    }
+
+    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, wlr_cursor_shape_v1_name(e->shape));
+}
+
+bool CInputManager::cursorImageUnlocked() {
+    if (!g_pHyprRenderer->shouldRenderCursor())
+        return false;
+
+    if (m_ecbClickBehavior == CLICKMODE_KILL)
+        return false;
+
+    if (m_bCursorImageOverridden)
+        return false;
+
+    return true;
 }
 
 eClickBehaviorMode CInputManager::getClickMode() {

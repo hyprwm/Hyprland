@@ -170,4 +170,7 @@ namespace Events {
 
     // Gamma control
     LISTENER(setGamma);
+
+    // Cursor shape
+    LISTENER(setCursorShape);
 };

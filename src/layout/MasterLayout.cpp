@@ -530,20 +530,22 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     PWINDOW->m_vSize     = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
-    auto calcPos  = PWINDOW->m_vPosition + Vector2D(borderSize, borderSize);
-    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * borderSize, 2 * borderSize);
-
-    if (*PNOGAPSWHENONLY && !WORKSPACERULE.border && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
+    if (*PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
         (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 ||
          (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
-        PWINDOW->m_vRealPosition = calcPos - Vector2D(borderSize, borderSize);
-        PWINDOW->m_vRealSize     = calcSize + Vector2D(2 * borderSize, 2 * borderSize);
-
-        PWINDOW->updateWindowDecos();
 
         PWINDOW->m_sSpecialRenderData.rounding = false;
-        PWINDOW->m_sSpecialRenderData.border   = false;
-        PWINDOW->m_sSpecialRenderData.decorate = false;
+        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
+        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
+
+        const auto RESERVED = PWINDOW->getFullWindowReservedArea();
+
+        borderSize *= PWINDOW->m_sSpecialRenderData.border;
+
+        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + Vector2D(borderSize, borderSize) + RESERVED.topLeft;
+        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - Vector2D(2 * borderSize, 2 * borderSize) - (RESERVED.topLeft + RESERVED.bottomRight);
+
+        PWINDOW->updateWindowDecos();
 
         return;
     }
@@ -552,6 +554,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     PWINDOW->m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
     PWINDOW->m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(true);
     PWINDOW->m_sSpecialRenderData.borderSize = WORKSPACERULE.borderSize.value_or(-1);
+
+    auto       calcPos  = PWINDOW->m_vPosition + Vector2D(borderSize, borderSize);
+    auto       calcSize = PWINDOW->m_vSize - Vector2D(2 * borderSize, 2 * borderSize);
 
     const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut : gapsIn, DISPLAYTOP ? gapsOut : gapsIn);
 

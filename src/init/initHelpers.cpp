@@ -9,12 +9,12 @@ void Init::gainRealTime() {
     int old_policy;
     struct sched_param param;
 
-	if (pthread_getschedparam(pthread_self(), &old_policy, &param)) {
+    if (pthread_getschedparam(pthread_self(), &old_policy, &param)) {
         Debug::log(WARN, "Failed to get old pthread scheduling priority");
         return;
     }
 
-	param.sched_priority = minPrio;
+    param.sched_priority = minPrio;
 
     if (pthread_setschedparam(pthread_self(), SCHED_RR, &param)) {
         Debug::log(WARN, "Failed to change process scheduling strategy");

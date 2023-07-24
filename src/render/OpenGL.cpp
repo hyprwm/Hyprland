@@ -1605,6 +1605,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     std::random_device              dev;
     std::mt19937                    engine(dev());
     std::uniform_int_distribution<> distribution(0, 10);
+    std::uniform_int_distribution<> distribution2(0, 1);
 
     const bool                      USEANIME = *PFORCEHYPRCHAN || distribution(engine) % 2 == 0; // about 50% I think
 
@@ -1620,7 +1621,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     // or configure the paths at build time
 
     // get the adequate tex
-    std::string texPath = "/usr/share/hyprland/wall_" + std::string(USEANIME ? "anime_" : "");
+    std::string texPath = "/usr/share/hyprland/wall_" + std::string(USEANIME ? (distribution2(engine) == 0 ? "anime_" : "anime2_") : "");
     // check if wallpapers exist
 
     Vector2D textureSize;

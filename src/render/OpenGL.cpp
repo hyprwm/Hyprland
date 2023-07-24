@@ -1604,10 +1604,10 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     std::random_device              dev;
     std::mt19937                    engine(dev());
-    std::uniform_int_distribution<> distribution(0, 10);
+    std::uniform_int_distribution<> distribution(0, 2);
     std::uniform_int_distribution<> distribution2(0, 1);
 
-    const bool                      USEANIME = *PFORCEHYPRCHAN || distribution(engine) % 2 == 0; // about 50% I think
+    const bool                      USEANIME = *PFORCEHYPRCHAN || distribution(engine) == 0; // 66% for anime
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];

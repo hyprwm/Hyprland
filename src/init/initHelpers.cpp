@@ -6,7 +6,7 @@ bool Init::isSudo() {
 
 void Init::gainRealTime() {
     const int                minPrio = sched_get_priority_min(SCHED_RR);
-	int old_policy;
+    int old_policy;
     struct sched_param param;
 
 	if (pthread_getschedparam(pthread_self(), &old_policy, &param)) {

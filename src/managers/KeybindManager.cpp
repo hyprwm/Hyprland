@@ -2035,9 +2035,6 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
 
-    if (PWINDOW->m_sGroupData.locked || PWINDOWINDIR->m_sGroupData.locked)
-        return;
-
     if (!PWINDOW->m_sGroupData.pNextWindow)
         PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
 

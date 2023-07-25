@@ -628,9 +628,8 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
     g_pCompositor->notifyIdleActivity();
 
-    if (passEvent) {
+    if (passEvent)
         wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
-    }
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
@@ -792,16 +791,14 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     if (!FILEPATH.empty()) {
         auto path = absolutePath(FILEPATH, g_pConfigManager->configCurrentPath);
 
-        if (!std::filesystem::exists(path)) {
+        if (!std::filesystem::exists(path))
             Debug::log(ERR, "input:kb_file= file doesnt exist");
-        } else {
+        else
             KEYMAP = xkb_keymap_new_from_file(CONTEXT, fopen(path.c_str(), "r"), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-        }
     }
 
-    if (!KEYMAP) {
+    if (!KEYMAP)
         KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    }
 
     if (!KEYMAP) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
@@ -832,9 +829,8 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
             wlrMods.locked |= (uint32_t)1 << IDX;
     }
 
-    if (wlrMods.locked != 0) {
+    if (wlrMods.locked != 0)
         wlr_keyboard_notify_modifiers(wlr_keyboard_from_input_device(pKeyboard->keyboard), 0, 0, wlrMods.locked, 0);
-    }
 
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
@@ -1061,9 +1057,8 @@ void CInputManager::updateKeyboardsLeds(wlr_input_device* pKeyboard) {
 
     uint32_t leds = 0;
     for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i])) {
+        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i]))
             leds |= (1 << i);
-        }
     }
 
     for (auto& kb : m_lKeyboards) {
@@ -1169,11 +1164,10 @@ void CInputManager::recheckConstraint(SMouse* pMouse) {
 
     const auto PREGION = &pMouse->currentConstraint->region;
 
-    if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED) {
+    if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED)
         pMouse->confinedTo.set(PREGION);
-    } else {
+    else
         pMouse->confinedTo.clear();
-    }
 }
 
 void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* constraint) {
@@ -1219,11 +1213,10 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     pMouse->currentConstraint = constraint;
     pMouse->constraintActive  = true;
 
-    if (pixman_region32_not_empty(&constraint->current.region)) {
+    if (pixman_region32_not_empty(&constraint->current.region))
         pixman_region32_intersect(&constraint->region, &constraint->surface->input_region, &constraint->current.region);
-    } else {
+    else
         pixman_region32_copy(&constraint->region, &constraint->surface->input_region);
-    }
 
     // warp to the constraint
     recheckConstraint(pMouse);
@@ -1241,9 +1234,8 @@ void CInputManager::unconstrainMouse() {
 
     const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
-    if (CONSTRAINTWINDOW) {
+    if (CONSTRAINTWINDOW)
         g_pXWaylandManager->activateSurface(CONSTRAINTWINDOW->m_pWLSurface.wlr(), false);
-    }
 
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
@@ -1266,11 +1258,10 @@ void Events::listener_commitConstraint(void* owner, void* data) {
     }
 
     if (PMOUSE->currentConstraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_REGION) {
-        if (pixman_region32_not_empty(&PMOUSE->currentConstraint->current.region)) {
+        if (pixman_region32_not_empty(&PMOUSE->currentConstraint->current.region))
             pixman_region32_intersect(&PMOUSE->currentConstraint->region, &PMOUSE->currentConstraint->surface->input_region, &PMOUSE->currentConstraint->current.region);
-        } else {
+        else
             pixman_region32_copy(&PMOUSE->currentConstraint->region, &PMOUSE->currentConstraint->surface->input_region);
-        }
 
         g_pInputManager->recheckConstraint(PMOUSE);
     }

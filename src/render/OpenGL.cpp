@@ -771,6 +771,8 @@ void CHyprOpenGLImpl::renderTexturePrimitive(const CTexture& tex, wlr_box* pBox)
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 
+    scissor((wlr_box*)nullptr);
+
     glDisableVertexAttribArray(shader->posAttrib);
     glDisableVertexAttribArray(shader->texAttrib);
 

@@ -72,7 +72,7 @@ in {
       };
     };
 
-    fonts.enableDefaultFonts = mkDefault true;
+    fonts.enableDefaultPackages = mkDefault true;
     hardware.opengl.enable = mkDefault true;
 
     programs = {

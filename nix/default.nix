@@ -30,7 +30,7 @@
   hidpiXWayland ? false,
   legacyRenderer ? false,
   nvidiaPatches ? false,
-  withSystemd ? true,
+  withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,
   version ? "git",
   commit,

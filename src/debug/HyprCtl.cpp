@@ -658,8 +658,9 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "commit": "%s",
     "dirty": %s,
     "commit_message": "%s",
+    "tag": "%s",
     "flags": [)#",
-            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg).c_str());
+            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg).c_str(), GIT_TAG);
 
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";

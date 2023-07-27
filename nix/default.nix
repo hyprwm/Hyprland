@@ -60,6 +60,7 @@ in
         ninja
         pkg-config
         makeWrapper
+        wayland-scanner
       ];
 
       outputs = [
@@ -81,7 +82,6 @@ in
           udis86
           wayland
           wayland-protocols
-          wayland-scanner
           pciutils
           (wlroots.override {inherit enableXWayland hidpiXWayland nvidiaPatches;})
         ]

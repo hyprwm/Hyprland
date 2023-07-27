@@ -7,18 +7,21 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode {
+enum eClickBehaviorMode
+{
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode {
+enum eMouseBindMode
+{
     MBIND_INVALID = -1,
     MBIND_MOVE    = 0,
     MBIND_RESIZE
 };
 
-enum eBorderIconDirection {
+enum eBorderIconDirection
+{
     BORDERICON_NONE,
     BORDERICON_UP,
     BORDERICON_DOWN,
@@ -96,7 +99,8 @@ class CInputManager {
 
     void               setClickMode(eClickBehaviorMode);
     eClickBehaviorMode getClickMode();
-    void               processMouseRequest(wlr_seat_pointer_request_set_cursor_event*);
+    void               processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e);
+    void               processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e);
 
     void               onTouchDown(wlr_touch_down_event*);
     void               onTouchUp(wlr_touch_up_event*);
@@ -189,6 +193,8 @@ class CInputManager {
 
     void               processMouseDownNormal(wlr_pointer_button_event* e);
     void               processMouseDownKill(wlr_pointer_button_event* e);
+
+    bool               cursorImageUnlocked();
 
     void               disableAllKeyboards(bool virt = false);
 

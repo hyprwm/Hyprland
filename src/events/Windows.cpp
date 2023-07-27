@@ -109,6 +109,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->fullscreen);
     bool requestsFakeFullscreen = false;
     bool requestsMaximize       = false;
+    bool overridingNoFullscreen = false;
+    bool overridingNoMaximize   = false;
     bool shouldFocus            = true;
     bool workspaceSpecial       = false;
 
@@ -176,8 +178,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bNoInitialFocus = true;
         } else if (r.szRule.find("nofullscreenrequest") == 0) {
             PWINDOW->m_bNoFullscreenRequest = true;
+        } else if (r.szRule.find("nomaximizerequest") == 0) {
+            PWINDOW->m_bNoMaximizeRequest = true;
         } else if (r.szRule == "fullscreen") {
-            requestsFullscreen = true;
+            requestsFullscreen     = true;
+            overridingNoFullscreen = true;
         } else if (r.szRule == "fakefullscreen") {
             requestsFakeFullscreen = true;
         } else if (r.szRule == "windowdance") {
@@ -189,7 +194,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else if (r.szRule == "pin") {
             PWINDOW->m_bPinned = true;
         } else if (r.szRule == "maximize") {
-            requestsMaximize = true;
+            requestsMaximize     = true;
+            overridingNoMaximize = true;
         } else if (r.szRule == "stayfocused") {
             PWINDOW->m_bStayFocused = true;
         } else if (r.szRule.find("idleinhibit") == 0) {
@@ -485,7 +491,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
     PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
 
-    if ((requestsFullscreen || requestsMaximize || requestsFakeFullscreen) && !PWINDOW->m_bNoFullscreenRequest) {
+    if ((requestsFullscreen && (!PWINDOW->m_bNoFullscreenRequest || overridingNoFullscreen)) || (requestsMaximize && (!PWINDOW->m_bNoMaximizeRequest || overridingNoMaximize)) ||
+        requestsFakeFullscreen) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWORKSPACE->m_bHasFullscreenWindow) {
             const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
@@ -496,6 +503,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bFakeFullscreenState = !PWINDOW->m_bFakeFullscreenState;
             g_pXWaylandManager->setWindowFullscreen(PWINDOW, true);
         } else {
+            overridingNoFullscreen = false;
+            overridingNoMaximize   = false;
             PWINDOW->m_vRealPosition.warp();
             PWINDOW->m_vRealSize.warp();
             g_pCompositor->setWindowFullscreen(PWINDOW, true, requestsFullscreen ? FULLSCREEN_FULL : FULLSCREEN_MAXIMIZED);
@@ -1125,7 +1134,7 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    if (PWINDOW->m_bNoFullscreenRequest)
+    if (PWINDOW->m_bNoMaximizeRequest)
         return;
 
     Debug::log(LOG, "Maximize request for %lx", PWINDOW);

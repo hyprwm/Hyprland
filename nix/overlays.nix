@@ -58,7 +58,7 @@ in {
         '';
         postFixup = ''
           wrapProgram $out/bin/waybar \
-            --suffix PATH : ${lib.makeBinPath [ prev.hyprland ]}
+            --suffix PATH : ${lib.makeBinPath [final.hyprland]}
         '';
         mesonFlags = old.mesonFlags ++ ["-Dexperimental=true"];
       });

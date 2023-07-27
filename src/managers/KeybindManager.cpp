@@ -1013,8 +1013,9 @@ void CKeybindManager::moveFocusTo(std::string args) {
         }
     };
 
-    const auto PWINDOWTOCHANGETO = PLASTWINDOW->m_bIsFullscreen ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, arg == 'u' || arg == 't' || arg == 'r') :
-                                                                  g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+    const auto PWINDOWTOCHANGETO = PLASTWINDOW->m_bIsFullscreen ?
+        (arg == 'd' || arg == 'b' || arg == 'r' ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true) : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true)) :
+        g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {
@@ -2017,7 +2018,9 @@ void CKeybindManager::lockActiveGroup(std::string args) {
 }
 
 void CKeybindManager::moveIntoGroup(std::string args) {
-    char arg = args[0];
+    char               arg = args[0];
+
+    static auto* const GROUPLOCKCHECK = &g_pConfigManager->getConfigValuePtr("misc:moveintogroup_lock_check")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2034,13 +2037,13 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
 
+    if (*GROUPLOCKCHECK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.locked)))
+        return;
+
     if (!PWINDOW->m_sGroupData.pNextWindow)
         PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW); // This removes groupped property!
-
-    PWINDOW->m_sGroupData.locked = false;
-    PWINDOW->m_sGroupData.head   = false;
 
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
     PWINDOWINDIR->setGroupCurrent(PWINDOW);
@@ -2085,6 +2088,11 @@ void CKeybindManager::moveGroupWindow(std::string args) {
     if (!g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow)
         return;
 
-    g_pCompositor->m_pLastWindow->switchWithWindowInGroup(BACK ? g_pCompositor->m_pLastWindow->getGroupPrevious() : g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow);
+    if ((!BACK && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow->m_sGroupData.head) || (BACK && g_pCompositor->m_pLastWindow->m_sGroupData.head)) {
+        std::swap(g_pCompositor->m_pLastWindow->m_sGroupData.head, g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
+        std::swap(g_pCompositor->m_pLastWindow->m_sGroupData.locked, g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow->m_sGroupData.locked);
+    } else
+        g_pCompositor->m_pLastWindow->switchWithWindowInGroup(BACK ? g_pCompositor->m_pLastWindow->getGroupPrevious() : g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow);
+
     g_pCompositor->m_pLastWindow->updateWindowDecos();
 }

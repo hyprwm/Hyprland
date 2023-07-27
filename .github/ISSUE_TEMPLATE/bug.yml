@@ -1,0 +1,56 @@
+name: Bug Report
+description: Something is not working right
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a new issue, take a moment to search through the current open ones.
+
+        ---
+
+  - type: input
+    id: ver
+    attributes:
+      label: Hyprland Version
+      description: "Paste here the output of `hyprctl version`."
+      placeholder: Hyprland, built from branch main at commit...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Bug or Regression?
+      description: Is this a bug or a regression?
+      options:
+        - Bug
+        - Regression
+    validations:
+      required: true
+
+  - type: textarea
+    id: desc
+    attributes:
+      label: Description
+      description: "What went wrong?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: "How can someone else reproduce the issue?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Crash reports, logs, images, videos
+      description: |
+        Anything that can help. Please always ATTACH and not paste them.
+        Logs can be found in /tmp/hypr
+        Crash reports are stored in ~/.hyprland or $XDG_CACHE_HOME/hyprland
+

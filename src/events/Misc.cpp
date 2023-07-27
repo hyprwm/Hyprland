@@ -74,8 +74,6 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
     }
 
     xcb_disconnect(XCBCONNECTION);
-
-    g_pXWaylandManager->updateXWaylandScale();
 #endif
 }
 
@@ -232,4 +230,10 @@ void Events::listener_setGamma(wl_listener* listener, void* data) {
     PMONITOR->gammaChanged = true;
 
     g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+}
+
+void Events::listener_setCursorShape(wl_listener* listener, void* data) {
+    const auto E = (wlr_cursor_shape_manager_v1_request_set_shape_event*)data;
+
+    g_pInputManager->processMouseRequest(E);
 }

@@ -300,9 +300,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (g_pHyprRenderer->m_bHasARenderedCursor) {
                 // TODO: maybe wrap?
                 if (m_ecbClickBehavior == CLICKMODE_KILL)
-                    wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
+                    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "crosshair");
                 else
-                    wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+                    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "left_ptr");
             }
 
             m_bEmptyFocusCursorSet = true;
@@ -372,7 +372,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         // if (!m_bCursorImageOverridden) {
         //     if (!VECINRECT(m_vLastCursorPosFloored, pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y,
         //                    pFoundWindow->m_vRealPosition.vec().x + pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealPosition.vec().y + pFoundWindow->m_vRealSize.vec().y)) {
-        //         wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+        //         wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "left_ptr");
         //         cursorSurfaceInfo.bUsed = false;
         //     } else if (!cursorSurfaceInfo.bUsed) {
         //         cursorSurfaceInfo.bUsed = true;
@@ -464,23 +464,14 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e) {
-    if (!g_pHyprRenderer->shouldRenderCursor())
-        return;
 
-    if (!e->surface) {
+    if (!e->surface)
         g_pHyprRenderer->m_bWindowRequestedCursorHide = true;
-    } else {
+    else
         g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
-    }
 
-    if (m_bCursorImageOverridden) {
+    if (!cursorImageUnlocked())
         return;
-    }
-
-    if (m_ecbClickBehavior == CLICKMODE_KILL) {
-        wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
-        return;
-    }
 
     // cursorSurfaceInfo.pSurface = e->surface;
 
@@ -495,6 +486,34 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
         wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, e->surface, e->hotspot_x, e->hotspot_y);
 }
 
+void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
+    if (!g_pHyprRenderer->shouldRenderCursor())
+        return;
+
+    if (!g_pCompositor->m_pLastFocus)
+        return;
+
+    if (wl_resource_get_client(g_pCompositor->m_pLastFocus->resource) != e->seat_client->client) {
+        Debug::log(ERR, "Disallowing cursor shape request from unfocused");
+        return;
+    }
+
+    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, wlr_cursor_shape_v1_name(e->shape));
+}
+
+bool CInputManager::cursorImageUnlocked() {
+    if (!g_pHyprRenderer->shouldRenderCursor())
+        return false;
+
+    if (m_ecbClickBehavior == CLICKMODE_KILL)
+        return false;
+
+    if (m_bCursorImageOverridden)
+        return false;
+
+    return true;
+}
+
 eClickBehaviorMode CInputManager::getClickMode() {
     return m_ecbClickBehavior;
 }
@@ -504,7 +523,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
         case CLICKMODE_DEFAULT:
             Debug::log(LOG, "SetClickMode: DEFAULT");
             m_ecbClickBehavior = CLICKMODE_DEFAULT;
-            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+            wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "left_ptr");
             break;
 
         case CLICKMODE_KILL:
@@ -516,7 +535,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
             refocus();
 
             // set cursor
-            wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "crosshair", g_pCompositor->m_sWLRCursor);
+            wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "crosshair");
             break;
         default: break;
     }
@@ -609,9 +628,8 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
     g_pCompositor->notifyIdleActivity();
 
-    if (passEvent) {
+    if (passEvent)
         wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
-    }
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
@@ -773,16 +791,14 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     if (!FILEPATH.empty()) {
         auto path = absolutePath(FILEPATH, g_pConfigManager->configCurrentPath);
 
-        if (!std::filesystem::exists(path)) {
+        if (!std::filesystem::exists(path))
             Debug::log(ERR, "input:kb_file= file doesnt exist");
-        } else {
+        else
             KEYMAP = xkb_keymap_new_from_file(CONTEXT, fopen(path.c_str(), "r"), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-        }
     }
 
-    if (!KEYMAP) {
+    if (!KEYMAP)
         KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    }
 
     if (!KEYMAP) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
@@ -813,9 +829,8 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
             wlrMods.locked |= (uint32_t)1 << IDX;
     }
 
-    if (wlrMods.locked != 0) {
+    if (wlrMods.locked != 0)
         wlr_keyboard_notify_modifiers(wlr_keyboard_from_input_device(pKeyboard->keyboard), 0, 0, wlrMods.locked, 0);
-    }
 
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
@@ -1042,9 +1057,8 @@ void CInputManager::updateKeyboardsLeds(wlr_input_device* pKeyboard) {
 
     uint32_t leds = 0;
     for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i])) {
+        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i]))
             leds |= (1 << i);
-        }
     }
 
     for (auto& kb : m_lKeyboards) {
@@ -1150,11 +1164,10 @@ void CInputManager::recheckConstraint(SMouse* pMouse) {
 
     const auto PREGION = &pMouse->currentConstraint->region;
 
-    if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED) {
-        pixman_region32_copy(&pMouse->confinedTo, PREGION);
-    } else {
-        pixman_region32_clear(&pMouse->confinedTo);
-    }
+    if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED)
+        pMouse->confinedTo.set(PREGION);
+    else
+        pMouse->confinedTo.clear();
 }
 
 void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* constraint) {
@@ -1175,7 +1188,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
                 if (PWINDOW) {
                     if (PWINDOW->m_bIsX11) {
                         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, constraint->current.cursor_hint.x + PWINDOW->m_uSurface.xwayland->x,
-                                        PWINDOW->m_uSurface.xwayland->y + PWINDOW->m_vRealPosition.vec().y);
+                                        constraint->current.cursor_hint.y + PWINDOW->m_uSurface.xwayland->y);
 
                         wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
                     } else {
@@ -1200,11 +1213,10 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     pMouse->currentConstraint = constraint;
     pMouse->constraintActive  = true;
 
-    if (pixman_region32_not_empty(&constraint->current.region)) {
+    if (pixman_region32_not_empty(&constraint->current.region))
         pixman_region32_intersect(&constraint->region, &constraint->surface->input_region, &constraint->current.region);
-    } else {
+    else
         pixman_region32_copy(&constraint->region, &constraint->surface->input_region);
-    }
 
     // warp to the constraint
     recheckConstraint(pMouse);
@@ -1222,9 +1234,8 @@ void CInputManager::unconstrainMouse() {
 
     const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
-    if (CONSTRAINTWINDOW) {
+    if (CONSTRAINTWINDOW)
         g_pXWaylandManager->activateSurface(CONSTRAINTWINDOW->m_pWLSurface.wlr(), false);
-    }
 
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
@@ -1247,11 +1258,10 @@ void Events::listener_commitConstraint(void* owner, void* data) {
     }
 
     if (PMOUSE->currentConstraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_REGION) {
-        if (pixman_region32_not_empty(&PMOUSE->currentConstraint->current.region)) {
+        if (pixman_region32_not_empty(&PMOUSE->currentConstraint->current.region))
             pixman_region32_intersect(&PMOUSE->currentConstraint->region, &PMOUSE->currentConstraint->surface->input_region, &PMOUSE->currentConstraint->current.region);
-        } else {
+        else
             pixman_region32_copy(&PMOUSE->currentConstraint->region, &PMOUSE->currentConstraint->surface->input_region);
-        }
 
         g_pInputManager->recheckConstraint(PMOUSE);
     }
@@ -1444,7 +1454,7 @@ void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
 }
 
 void CInputManager::setCursorImageUntilUnset(std::string name) {
-    wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, name.c_str(), g_pCompositor->m_sWLRCursor);
+    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
     m_bCursorImageOverridden = true;
 }
 
@@ -1454,7 +1464,7 @@ void CInputManager::unsetCursorImage() {
 
     m_bCursorImageOverridden = false;
     if (!g_pHyprRenderer->m_bWindowRequestedCursorHide)
-        wlr_xcursor_manager_set_cursor_image(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", g_pCompositor->m_sWLRCursor);
+        wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "left_ptr");
 }
 
 std::string CInputManager::deviceNameToInternalString(std::string in) {

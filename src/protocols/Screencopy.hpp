@@ -77,7 +77,6 @@ class CScreencopyProtocolManager {
 
     void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer);
 
-    void onRenderEnd(CMonitor* pMonitor);
     void onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e);
 
   private:
@@ -91,7 +90,7 @@ class CScreencopyProtocolManager {
 
     wlr_buffer*                    m_pLastMonitorBackBuffer = nullptr;
 
-    void                           shareAllFrames(CMonitor* pMonitor, bool dmabuf);
+    void                           shareAllFrames(CMonitor* pMonitor);
     void                           shareFrame(SScreencopyFrame* frame);
     void                           sendFrameDamage(SScreencopyFrame* frame);
     bool                           copyFrameDmabuf(SScreencopyFrame* frame);

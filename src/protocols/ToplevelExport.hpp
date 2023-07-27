@@ -22,6 +22,7 @@ class CToplevelExportProtocolManager {
     void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);
     void displayDestroy();
     void onWindowUnmap(CWindow* pWindow);
+    void onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e);
 
   private:
     wl_global*                     m_pGlobal = nullptr;
@@ -33,10 +34,9 @@ class CToplevelExportProtocolManager {
     std::vector<SScreencopyFrame*> m_vFramesAwaitingWrite;
 
     void                           shareFrame(SScreencopyFrame* frame);
-    bool                           copyFrameDmabuf(SScreencopyFrame* frame);
+    bool                           copyFrameDmabuf(SScreencopyFrame* frame, timespec* now);
     bool                           copyFrameShm(SScreencopyFrame* frame, timespec* now);
-
-    void                           onMonitorRender(CMonitor* pMonitor);
+    void                           sendDamage(SScreencopyFrame* frame);
 
     friend class CScreencopyClient;
 };

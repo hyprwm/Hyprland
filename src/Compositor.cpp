@@ -196,8 +196,7 @@ void CCompositor::initServer() {
     m_sWLRXDGDecoMgr    = wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
     wlr_server_decoration_manager_set_default_mode(m_sWLRServerDecoMgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
 
-    m_sWLRXDGOutputMgr = wlr_xdg_output_manager_v1_create(m_sWLDisplay, m_sWLROutputLayout);
-    m_sWLROutputMgr    = wlr_output_manager_v1_create(m_sWLDisplay);
+    m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
 
     m_sWLRInhibitMgr     = wlr_input_inhibit_manager_create(m_sWLDisplay);
     m_sWLRKbShInhibitMgr = wlr_keyboard_shortcuts_inhibit_v1_create(m_sWLDisplay);
@@ -240,6 +239,8 @@ void CCompositor::initServer() {
     m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLDisplay);
 
     m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
+
+    m_sWLRCursorShapeMgr = wlr_cursor_shape_manager_v1_create(m_sWLDisplay, 1);
 
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
@@ -298,6 +299,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
     addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
+    addWLSignal(&m_sWLRCursorShapeMgr->events.request_set_shape, &Events::listen_setCursorShape, m_sWLRCursorShapeMgr, "CursorShapeMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
@@ -465,7 +467,7 @@ void CCompositor::startCompositor() {
         throw std::runtime_error("The backend could not start!");
     }
 
-    wlr_xcursor_manager_set_cursor_image(m_sWLRXCursorMgr, "left_ptr", m_sWLRCursor);
+    wlr_cursor_set_xcursor(m_sWLRCursor, m_sWLRXCursorMgr, "left_ptr");
 
 #ifdef USES_SYSTEMD
     if (sd_booted() > 0)
@@ -1707,17 +1709,17 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
 }
 
 int CCompositor::getNextAvailableMonitorID(std::string const& name) {
-    // reuse ID if it's already in the map
-    if (m_mMonitorIDMap.contains(name))
+    // reuse ID if it's already in the map, and the monitor with that ID is not being used by another monitor
+    if (m_mMonitorIDMap.contains(name) && !std::any_of(m_vRealMonitors.begin(), m_vRealMonitors.end(), [&](auto m) { return m->ID == m_mMonitorIDMap[name]; }))
         return m_mMonitorIDMap[name];
 
     // otherwise, find minimum available ID that is not in the map
-    std::unordered_set<int> usedIDs;
+    std::unordered_set<uint64_t> usedIDs;
     for (auto const& monitor : m_vRealMonitors) {
         usedIDs.insert(monitor->ID);
     }
 
-    int nextID = 0;
+    uint64_t nextID = 0;
     while (usedIDs.count(nextID) > 0) {
         nextID++;
     }
@@ -2348,7 +2350,7 @@ bool CCompositor::isWorkspaceSpecial(const int& id) {
 }
 
 int CCompositor::getNewSpecialID() {
-    int highest = -100;
+    int highest = SPECIAL_WORKSPACE_START;
     for (auto& ws : m_vWorkspaces) {
         if (ws->m_bIsSpecialWorkspace && ws->m_iID > highest) {
             highest = ws->m_iID;
@@ -2442,7 +2444,7 @@ void CCompositor::notifyIdleActivity() {
     wlr_idle_notifier_v1_notify_activity(g_pCompositor->m_sWLRIdleNotifier, g_pCompositor->m_sSeat.seat);
 }
 
-void CCompositor::setIdleActivityInhibit(bool inhibit) {
-    wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, inhibit);
-    wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, inhibit);
+void CCompositor::setIdleActivityInhibit(bool enabled) {
+    wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, enabled);
+    wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, !enabled);
 }

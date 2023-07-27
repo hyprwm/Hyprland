@@ -630,9 +630,12 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
 std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
+    auto commitMsg = removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE);
+    std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
+
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" +
-            removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str() + ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
+        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
+            ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";
@@ -657,7 +660,7 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "commit_message": "%s",
     "tag": "%s",
     "flags": [)#",
-            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str(), GIT_TAG);
+            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg).c_str(), GIT_TAG);
 
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";
@@ -688,7 +691,9 @@ std::string dispatchRequest(std::string in) {
 
     const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));
 
-    const auto DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
+    auto       DISPATCHARG = std::string();
+    if ((int)in.find_first_of(' ') != -1)
+        DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
 
     const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(DISPATCHSTR);
     if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end())
@@ -1310,7 +1315,18 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     char        readBuffer[1024];
 
-    auto        messageSize                              = read(ACCEPTEDCONNECTION, readBuffer, 1024);
+    fd_set      fdset;
+    FD_ZERO(&fdset);
+    FD_SET(ACCEPTEDCONNECTION, &fdset);
+    timeval timeout = {.tv_sec = 0, .tv_usec = 5000};
+    auto    success = select(ACCEPTEDCONNECTION + 1, &fdset, nullptr, nullptr, &timeout);
+
+    if (success <= 0) {
+        close(ACCEPTEDCONNECTION);
+        return 0;
+    }
+
+    auto messageSize                                     = read(ACCEPTEDCONNECTION, readBuffer, 1024);
     readBuffer[messageSize == 1024 ? 1023 : messageSize] = '\0';
 
     std::string request(readBuffer);

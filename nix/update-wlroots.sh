@@ -1,17 +1,17 @@
-#!/usr/bin/env -S nix shell nixpkgs#gawk nixpkgs#git nixpkgs#gnused nixpkgs#jq nixpkgs#ripgrep -c bash
+#!/usr/bin/env -S nix shell nixpkgs#gawk nixpkgs#git nixpkgs#gnused nixpkgs#ripgrep -c bash
 
 # get wlroots revision from submodule
-SUB_REV=$(git submodule status | rg wlroots | awk '{ print substr($1,2)}')
+SUB_REV=$(git submodule status | rg wlroots | awk '{ print substr($1,2) }')
 # and from lockfile
-CRT_REV=$(jq <flake.lock '.nodes.wlroots.locked.rev' -r)
+CRT_REV=$(rg rev flake.nix | awk '{ print substr($3, 2, 40) }')
 
 if [ "$SUB_REV" != "$CRT_REV" ]; then
   echo "Updating wlroots..."
   # update wlroots to submodule revision
-  nix flake lock --override-input wlroots "gitlab:wlroots/wlroots/$SUB_REV?host=gitlab.freedesktop.org"
+  sed -Ei "s/\w{40}/$SUB_REV/g" flake.nix subprojects/wlroots.wrap
+  nix flake lock
 
-  # fix revision in wlroots.wrap
-  sed -Ei "s/[a-z0-9]{40}/$SUB_REV/g" subprojects/wlroots.wrap
+  echo "wlroots: $CRT_REV -> $SUB_REV"
 else
   echo "wlroots is up to date!"
 fi

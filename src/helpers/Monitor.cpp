@@ -10,12 +10,18 @@ int ratHandler(void* data) {
 
 CMonitor::CMonitor() {
     wlr_damage_ring_init(&damage);
-    pixman_region32_init(&lastFrameDamage);
 }
 
 CMonitor::~CMonitor() {
     wlr_damage_ring_finish(&damage);
-    pixman_region32_fini(&lastFrameDamage);
+
+    hyprListener_monitorDestroy.removeCallback();
+    hyprListener_monitorFrame.removeCallback();
+    hyprListener_monitorStateRequest.removeCallback();
+    hyprListener_monitorDamage.removeCallback();
+    hyprListener_monitorNeedsFrame.removeCallback();
+    hyprListener_monitorCommit.removeCallback();
+    hyprListener_monitorBind.removeCallback();
 }
 
 void CMonitor::onConnect(bool noRule) {
@@ -236,6 +242,7 @@ void CMonitor::onDisconnect() {
     hyprListener_monitorDamage.removeCallback();
     hyprListener_monitorNeedsFrame.removeCallback();
     hyprListener_monitorCommit.removeCallback();
+    hyprListener_monitorBind.removeCallback();
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto& ls : m_aLayerSurfaceLayers[i]) {
@@ -320,6 +327,10 @@ void CMonitor::addDamage(const pixman_region32_t* rg) {
 
     if (wlr_damage_ring_add(&damage, rg))
         g_pCompositor->scheduleFrameForMonitor(this);
+}
+
+void CMonitor::addDamage(const CRegion* rg) {
+    addDamage(const_cast<CRegion*>(rg)->pixman());
 }
 
 void CMonitor::addDamage(const wlr_box* box) {

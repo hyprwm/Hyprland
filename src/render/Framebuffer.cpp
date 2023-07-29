@@ -20,7 +20,7 @@ bool CFramebuffer::alloc(int w, int h) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
-    if (firstAlloc || m_Size != Vector2D(w, h)) {
+    if (firstAlloc || m_vSize != Vector2D(w, h)) {
         glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
@@ -48,7 +48,7 @@ bool CFramebuffer::alloc(int w, int h) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_iCurrentOutputFb);
 
-    m_Size = Vector2D(w, h);
+    m_vSize = Vector2D(w, h);
 
     return true;
 }
@@ -73,7 +73,7 @@ void CFramebuffer::release() {
 
     m_cTex.m_iTexID = 0;
     m_iFb           = -1;
-    m_Size          = Vector2D();
+    m_vSize         = Vector2D();
 }
 
 CFramebuffer::~CFramebuffer() {

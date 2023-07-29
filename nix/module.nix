@@ -13,6 +13,10 @@ with lib; let
     inherit (cfg) nvidiaPatches;
   };
 in {
+  imports = [
+    (mkRenamedOptionModule ["fonts" "enableDefaultFonts"] ["fonts" "enableDefaultPackages"])
+  ];
+
   # disables Nixpkgs Hyprland module to avoid conflicts
   disabledModules = ["programs/hyprland.nix"];
 

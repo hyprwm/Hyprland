@@ -72,7 +72,11 @@ in {
       };
     };
 
-    fonts.enableDefaultPackages = mkDefault true;
+    fonts =
+      if versionOlder config.system.stateVersion "23.11"
+      then {enableDefaultFonts = mkDefault true;}
+      else {enableDefaultPackages = mkDefault true;};
+
     hardware.opengl.enable = mkDefault true;
 
     programs = {

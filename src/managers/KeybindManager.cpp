@@ -1837,6 +1837,9 @@ void CKeybindManager::dpms(std::string arg) {
     bool        enable = arg.find("on") == 0;
     std::string port   = "";
 
+    if (arg.find("toggle") == 0)
+        enable = !std::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](const auto& other) { return !other->dpmsStatus; }); // enable if any is off
+
     if (arg.find_first_of(' ') != std::string::npos)
         port = arg.substr(arg.find_first_of(' ') + 1);
 

@@ -99,6 +99,39 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return result;
 }
 
+std::string visibleWorkspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (!m->output)
+                continue;
+
+            result += getFormat(
+                R"#({
+    "id": %i,
+    "name": %s
+},)#",
+                m->activeWorkspace, escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName).c_str());
+        }
+
+        trimTrailingComma(result);
+
+        result += "]";
+    } else {
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (!m->output)
+                continue;
+
+            result += getFormat("Visible Workspace %s (ID %i)\n", g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName.c_str(), m->activeWorkspace);
+        }
+    }
+
+    return result;
+}
+
+
 static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat format) {
     const bool isJson = format == HyprCtl::FORMAT_JSON;
     if (!w->m_sGroupData.pNextWindow)
@@ -1246,6 +1279,8 @@ std::string getReply(std::string request) {
 
     if (request == "monitors")
         return monitorsRequest(format);
+    if (request == "visibleworkspaces")
+        return visibleWorkspacesRequest(format);
     else if (request == "workspaces")
         return workspacesRequest(format);
     else if (request == "activeworkspace")

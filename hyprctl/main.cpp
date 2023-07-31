@@ -23,6 +23,7 @@ const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
 commands:
     monitors
     workspaces
+    visibleworkspaces
     activeworkspace
     clients
     activewindow
@@ -325,6 +326,8 @@ int main(int argc, char** argv) {
     if (fullRequest.contains("/--batch"))
         batchRequest(fullRequest);
     else if (fullRequest.contains("/monitors"))
+        request(fullRequest);
+    else if (fullRequest.contains("/visibleworkspaces"))
         request(fullRequest);
     else if (fullRequest.contains("/clients"))
         request(fullRequest);

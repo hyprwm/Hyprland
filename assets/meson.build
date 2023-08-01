@@ -1,4 +1,4 @@
-wallpaper_types = ['', 'anime_', 'anime2_']
+wallpaper_types = ['turin_', 'turin2_']
 
 foreach type : wallpaper_types
   foreach size : [2, 4, 8]

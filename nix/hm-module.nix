@@ -7,8 +7,7 @@ self: {
   cfg = config.wayland.windowManager.hyprland;
   defaultHyprlandPackage = self.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
-    hidpiXWayland = cfg.xwayland.hidpi;
-    inherit (cfg) nvidiaPatches;
+    inherit (cfg) enableNvidiaPatches;
   };
 in {
   disabledModules = ["services/window-managers/hyprland.nix"];
@@ -36,13 +35,12 @@ in {
       defaultText = lib.literalExpression ''
         hyprland.packages.''${pkgs.stdenv.hostPlatform.system}.default.override {
           enableXWayland = config.wayland.windowManager.hyprland.xwayland.enable;
-          hidpiXWayland = config.wayland.windowManager.hyprland.xwayland.hidpi;
-          inherit (config.wayland.windowManager.hyprland) nvidiaPatches;
+          inherit (config.wayland.windowManager.hyprland) enableNvidiaPatches;
         }
       '';
       description = lib.mdDoc ''
         Hyprland package to use. Will override the 'xwayland' and
-        'nvidiaPatches' options.
+        'enableNvidiaPatches' options.
 
         Defaults to the one provided by the flake. Set it to
         {package}`pkgs.hyprland` to use the one provided by nixpkgs or
@@ -86,19 +84,9 @@ in {
         '';
       };
 
-    xwayland = {
-      enable = lib.mkEnableOption (lib.mdDoc "XWayland") // {default = true;};
-      hidpi =
-        lib.mkEnableOption null
-        // {
-          description = lib.mdDoc ''
-            Enable HiDPI XWayland, based on [XWayland MR 733](https://gitlab.freedesktop.org/xorg/xserver/-/merge_requests/733).
-            See <https://wiki.hyprland.org/Nix/Options-Overrides/#xwayland-hidpi> for more info.
-          '';
-        };
-    };
+    xwayland.enable = lib.mkEnableOption (lib.mdDoc "XWayland") // {default = true;};
 
-    nvidiaPatches = lib.mkEnableOption (lib.mdDoc "patching wlroots for better Nvidia support.");
+    enableNvidiaPatches = lib.mkEnableOption (lib.mdDoc "patching wlroots for better Nvidia support.");
 
     extraConfig = lib.mkOption {
       type = lib.types.nullOr lib.types.lines;
@@ -181,4 +169,9 @@ in {
       };
     };
   };
+
+  imports = [
+    (lib.mkRemovedOptionModule ["wayland" "windowManager" "hyprland" "xwayland" "hidpi"]
+      "Support for this option has been removed. Refer to https://wiki.hyprland.org/Configuring/XWayland for more info")
+  ];
 }

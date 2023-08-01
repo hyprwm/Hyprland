@@ -35,14 +35,14 @@ in {
         commit = self.rev or "";
         inherit (final) udis86 hyprland-protocols;
       };
-
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
       hyprland-debug = final.hyprland.override {debug = true;};
-      hyprland-hidpi = final.hyprland.override {hidpiXWayland = true;};
-      hyprland-nvidia = final.hyprland.override {nvidiaPatches = true;};
-      hyprland-no-hidpi =
-        builtins.trace
-        "hyprland-no-hidpi was removed. Please use the default package."
+      hyprland-nvidia = final.hyprland.override {enableNvidiaPatches = true;};
+      hyprland-hidpi =
+        builtins.trace ''
+          hyprland-hidpi was removed. Please use the hyprland package.
+          For more information, refer to https://wiki.hyprland.org/Configuring/XWayland.
+        ''
         final.hyprland;
     })
   ];
@@ -80,6 +80,7 @@ in {
     wlroots-hyprland = final.callPackage ./wlroots.nix {
       version = "${mkDate (inputs.wlroots.lastModifiedDate or "19700101")}_${inputs.wlroots.shortRev or "dirty"}";
       src = inputs.wlroots;
+
       libdisplay-info = prev.libdisplay-info.overrideAttrs (old: {
         version = "0.1.1+date=2023-03-02";
         src = final.fetchFromGitLab {
@@ -90,6 +91,7 @@ in {
           sha256 = "sha256-/q79o13Zvu7x02SBGu0W5yQznQ+p7ltZ9L6cMW5t/o4=";
         };
       });
+
       libliftoff = prev.libliftoff.overrideAttrs (old: {
         version = "0.5.0-dev";
         src = final.fetchFromGitLab {

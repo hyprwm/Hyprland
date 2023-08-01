@@ -1608,6 +1608,8 @@ void CConfigManager::loadConfigLoadVars() {
         // mark blur dirty
         g_pHyprOpenGL->markBlurDirtyForMonitor(m.get());
 
+        g_pCompositor->scheduleFrameForMonitor(m.get());
+
         // Force the compositor to fully re-render all monitors
         m->forceFullFrames = 2;
     }

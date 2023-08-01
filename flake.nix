@@ -65,9 +65,7 @@
         hyprland
         hyprland-unwrapped
         hyprland-debug
-        hyprland-hidpi
         hyprland-nvidia
-        hyprland-no-hidpi
         # hyprland-extras
         xdg-desktop-portal-hyprland
         hyprland-share-picker

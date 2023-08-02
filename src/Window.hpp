@@ -10,7 +10,8 @@
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
 
-enum eIdleInhibitMode {
+enum eIdleInhibitMode
+{
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
@@ -135,6 +136,7 @@ struct SWindowRule {
     int         bFloating   = -1;
     int         bFullscreen = -1;
     int         bPinned     = -1;
+    std::string szWorkspace = ""; // empty means any
 };
 
 class CWindow {

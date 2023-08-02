@@ -964,9 +964,10 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     const auto FLOATPOS      = VALUE.find("floating:");
     const auto FULLSCREENPOS = VALUE.find("fullscreen:");
     const auto PINNEDPOS     = VALUE.find("pinned:");
+    const auto WORKSPACEPOS  = VALUE.find("workspace:");
 
     if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos &&
-        PINNEDPOS == std::string::npos) {
+        PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: %s", VALUE.c_str());
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -989,6 +990,8 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
             min = FULLSCREENPOS;
         if (PINNEDPOS > pos && PINNEDPOS < min)
             min = PINNEDPOS;
+        if (WORKSPACEPOS > pos && WORKSPACEPOS < min)
+            min = PINNEDPOS;
 
         result = result.substr(0, min - pos);
 
@@ -1000,58 +1003,52 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         return result;
     };
 
-    if (CLASSPOS != std::string::npos) {
+    if (CLASSPOS != std::string::npos)
         rule.szClass = extract(CLASSPOS + 6);
-    }
 
-    if (TITLEPOS != std::string::npos) {
+    if (TITLEPOS != std::string::npos)
         rule.szTitle = extract(TITLEPOS + 6);
-    }
 
-    if (X11POS != std::string::npos) {
+    if (X11POS != std::string::npos)
         rule.bX11 = extract(X11POS + 9) == "1" ? 1 : 0;
-    }
 
-    if (FLOATPOS != std::string::npos) {
+    if (FLOATPOS != std::string::npos)
         rule.bFloating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
-    }
 
-    if (FULLSCREENPOS != std::string::npos) {
+    if (FULLSCREENPOS != std::string::npos)
         rule.bFullscreen = extract(FULLSCREENPOS + 11) == "1" ? 1 : 0;
-    }
 
-    if (PINNEDPOS != std::string::npos) {
+    if (PINNEDPOS != std::string::npos)
         rule.bPinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
-    }
+
+    if (WORKSPACEPOS != std::string::npos)
+        rule.szWorkspace = extract(WORKSPACEPOS + 10);
 
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
             if (!other.v2) {
                 return other.szClass == rule.szClass && !rule.szClass.empty();
             } else {
-                if (!rule.szClass.empty() && rule.szClass != other.szClass) {
+                if (!rule.szClass.empty() && rule.szClass != other.szClass)
                     return false;
-                }
 
-                if (!rule.szTitle.empty() && rule.szTitle != other.szTitle) {
+                if (!rule.szTitle.empty() && rule.szTitle != other.szTitle)
                     return false;
-                }
 
-                if (rule.bX11 != -1 && rule.bX11 != other.bX11) {
+                if (rule.bX11 != -1 && rule.bX11 != other.bX11)
                     return false;
-                }
 
-                if (rule.bFloating != -1 && rule.bFloating != other.bFloating) {
+                if (rule.bFloating != -1 && rule.bFloating != other.bFloating)
                     return false;
-                }
 
-                if (rule.bFullscreen != -1 && rule.bFullscreen != other.bFullscreen) {
+                if (rule.bFullscreen != -1 && rule.bFullscreen != other.bFullscreen)
                     return false;
-                }
 
-                if (rule.bPinned != -1 && rule.bPinned != other.bPinned) {
+                if (rule.bPinned != -1 && rule.bPinned != other.bPinned)
                     return false;
-                }
+
+                if (!rule.szWorkspace.empty() && rule.szWorkspace != other.szWorkspace)
+                    return false;
 
                 return true;
             }
@@ -1847,8 +1844,29 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
                     if (pWindow->m_bPinned != rule.bPinned)
                         continue;
                 }
-            } catch (...) {
-                Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
+
+                if (!rule.szWorkspace.empty()) {
+                    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+                    if (!PWORKSPACE)
+                        continue;
+
+                    if (rule.szWorkspace.find("name:") == 0) {
+                        if (PWORKSPACE->m_szName != rule.szWorkspace.substr(5))
+                            continue;
+                    } else {
+                        // number
+                        if (!isNumber(rule.szWorkspace))
+                            throw std::runtime_error("szWorkspace not name: or number");
+
+                        const int64_t ID = std::stoll(rule.szWorkspace);
+
+                        if (PWORKSPACE->m_iID != ID)
+                            continue;
+                    }
+                }
+            } catch (std::exception& e) {
+                Debug::log(ERR, "Regex error at %s (%s)", rule.szValue.c_str(), e.what());
                 continue;
             }
         }

@@ -46,15 +46,6 @@ assert (lib.assertMsg (hidpiXWayland -> enableXWayland) ''
         ++ (lib.optionals nvidiaPatches [
           ./patches/wlroots-nvidia.patch
         ]);
-      postPatch =
-        (old.postPatch or "")
-        + (
-          if nvidiaPatches
-          then ''
-            substituteInPlace render/gles2/renderer.c --replace "glFlush();" "glFinish();"
-          ''
-          else ""
-        );
       buildInputs = old.buildInputs ++ [hwdata libliftoff libdisplay-info];
 
       NIX_CFLAGS_COMPILE = toString [

@@ -321,6 +321,16 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shBLUR2.radius    = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shBLUR2.halfpixel = glGetUniformLocation(prog, "halfpixel");
 
+    prog                                                    = createProgram(TEXVERTSRC, FRAGBLURFINISH);
+    m_RenderData.pCurrentMonData->m_shBLURFINISH.program    = prog;
+    m_RenderData.pCurrentMonData->m_shBLURFINISH.tex        = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shBLURFINISH.proj       = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shBLURFINISH.posAttrib  = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shBLURFINISH.texAttrib  = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shBLURFINISH.noise      = glGetUniformLocation(prog, "noise");
+    m_RenderData.pCurrentMonData->m_shBLURFINISH.contrast   = glGetUniformLocation(prog, "contrast");
+    m_RenderData.pCurrentMonData->m_shBLURFINISH.brightness = glGetUniformLocation(prog, "brightness");
+
     prog                                                 = createProgram(QUADVERTSRC, FRAGSHADOW);
     m_RenderData.pCurrentMonData->m_shSHADOW.program     = prog;
     m_RenderData.pCurrentMonData->m_shSHADOW.proj        = glGetUniformLocation(prog, "proj");
@@ -889,6 +899,59 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* p
     for (int i = *PBLURPASSES - 1; i >= 0; --i) {
         wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / (1 << i)); // when upsampling we make the region twice as big
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR2, &tempDamage);        // up
+    }
+
+    // finalize with effects
+    {
+        static auto* const PBLURCONTRAST   = &g_pConfigManager->getConfigValuePtr("decoration:blur:contrast")->floatValue;
+        static auto* const PBLURNOISE      = &g_pConfigManager->getConfigValuePtr("decoration:blur:noise")->floatValue;
+        static auto* const PBLURBRIGHTNESS = &g_pConfigManager->getConfigValuePtr("decoration:blur:brightness")->floatValue;
+
+        if (currentRenderToFB == PMIRRORFB)
+            PMIRRORSWAPFB->bind();
+        else
+            PMIRRORFB->bind();
+
+        glActiveTexture(GL_TEXTURE0);
+
+        glBindTexture(currentRenderToFB->m_cTex.m_iTarget, currentRenderToFB->m_cTex.m_iTexID);
+
+        glTexParameteri(currentRenderToFB->m_cTex.m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        glUseProgram(m_RenderData.pCurrentMonData->m_shBLURFINISH.program);
+
+#ifndef GLES2
+        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix);
+#else
+        wlr_matrix_transpose(glMatrix, glMatrix);
+        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_FALSE, glMatrix);
+#endif
+        glUniform1f(m_RenderData.pCurrentMonData->m_shBLURFINISH.contrast, *PBLURCONTRAST);
+        glUniform1f(m_RenderData.pCurrentMonData->m_shBLURFINISH.noise, *PBLURNOISE);
+        glUniform1f(m_RenderData.pCurrentMonData->m_shBLURFINISH.brightness, *PBLURBRIGHTNESS);
+
+        glUniform1i(m_RenderData.pCurrentMonData->m_shBLURFINISH.tex, 0);
+
+        glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBLURFINISH.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+        glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBLURFINISH.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+        glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBLURFINISH.posAttrib);
+        glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBLURFINISH.texAttrib);
+
+        if (!damage.empty()) {
+            for (auto& RECT : damage.getRects()) {
+                scissor(&RECT, false /* this region is already transformed */);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBLURFINISH.posAttrib);
+        glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBLURFINISH.texAttrib);
+
+        if (currentRenderToFB != PMIRRORFB)
+            currentRenderToFB = PMIRRORFB;
+        else
+            currentRenderToFB = PMIRRORSWAPFB;
     }
 
     // finish

@@ -64,10 +64,12 @@ decoration {
     # See https://wiki.hyprland.org/Configuring/Variables/ for more
 
     rounding = 10
-    blur = yes
-    blur_size = 3
-    blur_passes = 1
-    blur_new_optimizations = on
+    
+    blur {
+        enabled = true
+        size = 3
+        passes = 1
+    }
 
     drop_shadow = yes
     shadow_range = 4

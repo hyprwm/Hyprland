@@ -61,6 +61,7 @@ struct SMonitorRenderData {
     CShader m_shEXT;
     CShader m_shBLUR1;
     CShader m_shBLUR2;
+    CShader m_shBLURFINISH;
     CShader m_shSHADOW;
     CShader m_shBORDER1;
     CShader m_shGLITCH;

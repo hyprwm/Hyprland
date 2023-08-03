@@ -126,12 +126,12 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:manual_crash"].intValue       = 0;
 
     configValues["decoration:rounding"].intValue               = 0;
-    configValues["decoration:blur"].intValue                   = 1;
-    configValues["decoration:blur_size"].intValue              = 8;
-    configValues["decoration:blur_passes"].intValue            = 1;
-    configValues["decoration:blur_ignore_opacity"].intValue    = 0;
-    configValues["decoration:blur_new_optimizations"].intValue = 1;
-    configValues["decoration:blur_xray"].intValue              = 0;
+    configValues["decoration:blur:enabled"].intValue           = 1;
+    configValues["decoration:blur:size"].intValue              = 8;
+    configValues["decoration:blur:passes"].intValue            = 1;
+    configValues["decoration:blur:ignore_opacity"].intValue    = 0;
+    configValues["decoration:blur:new_optimizations"].intValue = 1;
+    configValues["decoration:blur:xray"].intValue              = 0;
     configValues["decoration:active_opacity"].floatValue       = 1;
     configValues["decoration:inactive_opacity"].floatValue     = 1;
     configValues["decoration:fullscreen_opacity"].floatValue   = 1;

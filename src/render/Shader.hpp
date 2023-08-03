@@ -43,6 +43,10 @@ class CShader {
     GLint   distort = -1;
     GLint   output  = -1;
 
+    GLint   noise  = -1;
+    GLint   contrast  = -1;
+    GLint   brightness  = -1;
+
     GLint   getUniformLocation(const std::string&);
 
     void    destroy();

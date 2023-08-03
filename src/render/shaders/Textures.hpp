@@ -225,6 +225,36 @@ void main() {
 }
 )#";
 
+inline const std::string FRAGBLURFINISH = R"#(
+precision mediump float;
+varying vec2 v_texcoord; // is in 0-1
+uniform sampler2D tex;
+
+uniform float contrast;
+uniform float noise;
+uniform float brightness;
+
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+void main() {
+    vec4 pixColor = texture2D(tex, v_texcoord);
+
+    // contrast
+    pixColor.rgb = (pixColor.rgb - 0.5) * contrast + 0.5;
+
+    // brightness
+    pixColor.rgb *= brightness;
+
+    // noise
+    float noiseHash = hash(v_texcoord);
+    float noiseAmount = (mod(noiseHash, 1.0) - 0.5);
+    pixColor.rgb += noiseAmount * noise;
+
+    gl_FragColor = pixColor;
+})#";
+
 inline const std::string TEXFRAGSRCEXT = R"#(
 #extension GL_OES_EGL_image_external : require
 

@@ -26,3 +26,4 @@ jobs:
       name: Commit
       with:
         commit_message: "[gha] build man pages"
+        commit_author: Mihai Fufezan <fufexan@protonmail.com>

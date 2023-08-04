@@ -33,3 +33,4 @@ jobs:
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: "Nix: bump wlroots"
+        commit_author: Mihai Fufezan <fufexan@protonmail.com>

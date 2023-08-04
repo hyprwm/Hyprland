@@ -9,7 +9,7 @@
 
 static void destroyManagerResource(wl_client* client, wl_resource* resource) {
     ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource);
-    // will be destroyed by the destruction of the unique_ptr
+    wl_resource_destroy(resource);
 }
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
@@ -45,7 +45,7 @@ void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res) {
 }
 
 void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CWaylandResource>(client, &zxdg_output_manager_v1_interface, ver, id, true)).get();
+    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CWaylandResource>(client, &zxdg_output_manager_v1_interface, ver, id, false)).get();
 
     if (!RESOURCE->good()) {
         Debug::log(LOG, "Couldn't bind XDGOutputMgr");

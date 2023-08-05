@@ -4,15 +4,14 @@
 
 int wlTick(void* data) {
 
-    float refreshRate = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor->refreshRate : 60.f;
-
-    wl_event_source_timer_update(g_pAnimationManager->m_pAnimationTick, 1000 / refreshRate);
-
     if (g_pCompositor->m_bSessionActive && g_pAnimationManager && g_pHookSystem &&
         std::ranges::any_of(g_pCompositor->m_vMonitors, [](const auto& mon) { return mon->m_bEnabled && mon->output; })) {
         g_pAnimationManager->tick();
         EMIT_HOOK_EVENT("tick", nullptr);
     }
+
+    if (g_pAnimationManager && g_pAnimationManager->shouldTickForNext())
+        g_pAnimationManager->scheduleTick();
 
     return 0;
 }
@@ -40,9 +39,14 @@ void CAnimationManager::addBezierWithName(std::string name, const Vector2D& p1, 
 
 void CAnimationManager::tick() {
 
+    m_bTickScheduled = false;
+
     static std::chrono::time_point lastTick = std::chrono::high_resolution_clock::now();
     m_fLastTickTime                         = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
     lastTick                                = std::chrono::high_resolution_clock::now();
+
+    if (m_vActiveAnimatedVariables.empty())
+        return;
 
     bool               animGlobalDisabled = false;
 
@@ -244,8 +248,8 @@ void CAnimationManager::tick() {
                     const auto EXTENTS = PDECO->getWindowDecorationExtents();
 
                     wlr_box    dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
-                                   PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
-                                   PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
+                                      PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
+                                      PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
 
                     if (!*PSHADOWIGNOREWINDOW) {
                         // easy, damage the entire box
@@ -503,4 +507,31 @@ CBezierCurve* CAnimationManager::getBezier(const std::string& name) {
 
 std::unordered_map<std::string, CBezierCurve> CAnimationManager::getAllBeziers() {
     return m_mBezierCurves;
+}
+
+bool CAnimationManager::shouldTickForNext() {
+    return !m_vActiveAnimatedVariables.empty();
+}
+
+void CAnimationManager::scheduleTick() {
+    if (m_bTickScheduled)
+        return;
+
+    m_bTickScheduled = true;
+
+    const auto PMOSTHZ = g_pHyprRenderer->m_pMostHzMonitor;
+
+    float      refreshRate    = PMOSTHZ ? PMOSTHZ->refreshRate : 60.f;
+    float      refreshDelayMs = std::floor(1000.0 / refreshRate);
+
+    if (!PMOSTHZ) {
+        wl_event_source_timer_update(m_pAnimationTick, refreshDelayMs);
+        return;
+    }
+
+    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - PMOSTHZ->lastPresentationTimer.chrono()).count() / 1000.0;
+
+    const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
+
+    wl_event_source_timer_update(m_pAnimationTick, std::floor(TOPRES));
 }

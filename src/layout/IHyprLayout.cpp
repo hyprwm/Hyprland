@@ -269,6 +269,8 @@ void IHyprLayout::onEndDragWindow() {
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
+
+    g_pCompositor->focusWindow(DRAGGINGWINDOW);
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {

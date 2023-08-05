@@ -82,8 +82,11 @@ float CAnimatedVariable::getCurveValue() {
 }
 
 void CAnimatedVariable::connectToActive() {
+    g_pAnimationManager->scheduleTick(); // otherwise the animation manager will never pick this up
+
     if (!m_bIsConnectedToActive)
         g_pAnimationManager->m_vActiveAnimatedVariables.push_back(this);
+
     m_bIsConnectedToActive = true;
 }
 

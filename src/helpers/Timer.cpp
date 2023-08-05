@@ -15,3 +15,7 @@ int CTimer::getMillis() {
 float CTimer::getSeconds() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(getDuration()).count() / 1000.f;
 }
+
+const std::chrono::system_clock::time_point& CTimer::chrono() const {
+    return m_tpLastReset;
+}

@@ -1,8 +1,8 @@
 diff --git a/src/Compositor.cpp b/src/Compositor.cpp
-index a9d95f39..069a03ca 100644
+index 1d978aed..56665389 100644
 --- a/src/Compositor.cpp
 +++ b/src/Compositor.cpp
-@@ -2340,14 +2340,18 @@ void CCompositor::performUserChecks() {
+@@ -2365,17 +2365,16 @@ void CCompositor::performUserChecks() {
  
      static auto* const    PSUPPRESSPORTAL = &g_pConfigManager->getConfigValuePtr("misc:suppress_portal_warnings")->intValue;
  
@@ -18,9 +18,11 @@ index a9d95f39..069a03ca 100644
              g_pHyprNotificationOverlay->addNotification("You have one or more incompatible xdg-desktop-portal impls installed. Please remove incompatible ones to avoid issues.",
                                                          CColor(0), 15000, ICON_ERROR);
          }
- 
+-
 -        if (std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/hyprland.portal") && std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/wlr.portal")) {
-+        if (std::filesystem::exists(PORTALDIR + "/hyprland.portal") && std::filesystem::exists(PORTALDIR + "/wlr.portal")) {
-             g_pHyprNotificationOverlay->addNotification("You have xdg-desktop-portal-hyprland and -wlr installed simultaneously. Please uninstall one to avoid issues.", CColor(0),
-                                                         15000, ICON_ERROR);
-         }
+-            g_pHyprNotificationOverlay->addNotification("You have xdg-desktop-portal-hyprland and -wlr installed simultaneously. Please uninstall one to avoid issues.", CColor(0),
+-                                                        15000, ICON_ERROR);
+-        }
+     }
+ }
+ 

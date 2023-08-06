@@ -111,10 +111,8 @@ void main() {
     if (pixColor[3] == 0.0)
         discard;
 
-    float pixColor3 = pixColor[3];
     pixColor = getColorForCoord(v_texcoord);
-    pixColor[3] *= alpha * pixColor3;
 
-    gl_FragColor = pixColor;
+    gl_FragColor = pixColor * alpha;
 }
 )#";

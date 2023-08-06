@@ -19,7 +19,7 @@ index 3d540522..1c5a2e37 100644
  	xcb_atom_t atoms[ATOM_LAST];
  	xcb_connection_t *xcb_conn;
 diff --git a/xwayland/xwm.c b/xwayland/xwm.c
-index 5f857f24..21584ebd 100644
+index 0c30d8f6..3d49695e 100644
 --- a/xwayland/xwm.c
 +++ b/xwayland/xwm.c
 @@ -19,6 +19,14 @@
@@ -45,7 +45,38 @@ index 5f857f24..21584ebd 100644
  };
  
  #define STARTUP_INFO_REMOVE_PREFIX "remove: ID="
-@@ -965,8 +974,8 @@ static void xwm_handle_create_notify(struct wlr_xwm *xwm,
+@@ -720,17 +729,25 @@ static void read_surface_normal_hints(struct wlr_xwm *xwm,
+ 		xsurface->size_hints->base_width = -1;
+ 		xsurface->size_hints->base_height = -1;
+ 	} else if (!has_base_size_hints) {
+-		xsurface->size_hints->base_width = xsurface->size_hints->min_width;
+-		xsurface->size_hints->base_height = xsurface->size_hints->min_height;
++		xsurface->size_hints->base_width = unscale(xwm, xsurface->size_hints->min_width);
++		xsurface->size_hints->base_height = unscale(xwm, xsurface->size_hints->min_height);
+ 	} else if (!has_min_size_hints) {
+-		xsurface->size_hints->min_width = xsurface->size_hints->base_width;
+-		xsurface->size_hints->min_height = xsurface->size_hints->base_height;
++		xsurface->size_hints->min_width = unscale(xwm, xsurface->size_hints->base_width);
++		xsurface->size_hints->min_height = unscale(xwm, xsurface->size_hints->base_height);
+ 	}
+ 
+ 	if ((flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) == 0) {
+ 		xsurface->size_hints->max_width = -1;
+ 		xsurface->size_hints->max_height = -1;
+-	}
++	} else {
++        xsurface->size_hints->max_width = unscale(xwm, xsurface->size_hints->max_width);
++        xsurface->size_hints->max_height = unscale(xwm, xsurface->size_hints->max_height);
++    }
++
++    xsurface->size_hints->x = unscale(xwm, xsurface->size_hints->x);
++    xsurface->size_hints->y = unscale(xwm, xsurface->size_hints->y);
++    xsurface->size_hints->width = unscale(xwm, xsurface->size_hints->width);
++    xsurface->size_hints->height = unscale(xwm, xsurface->size_hints->height);
+ }
+ 
+ #define MWM_HINTS_FLAGS_FIELD 0
+@@ -962,8 +979,8 @@ static void xwm_handle_create_notify(struct wlr_xwm *xwm,
  		return;
  	}
  
@@ -56,7 +87,7 @@ index 5f857f24..21584ebd 100644
  }
  
  static void xwm_handle_destroy_notify(struct wlr_xwm *xwm,
-@@ -997,10 +1006,10 @@ static void xwm_handle_configure_request(struct wlr_xwm *xwm,
+@@ -994,10 +1011,10 @@ static void xwm_handle_configure_request(struct wlr_xwm *xwm,
  
  	struct wlr_xwayland_surface_configure_event wlr_event = {
  		.surface = surface,
@@ -71,7 +102,7 @@ index 5f857f24..21584ebd 100644
  		.mask = mask,
  	};
  
-@@ -1015,14 +1024,14 @@ static void xwm_handle_configure_notify(struct wlr_xwm *xwm,
+@@ -1012,14 +1029,14 @@ static void xwm_handle_configure_notify(struct wlr_xwm *xwm,
  	}
  
  	bool geometry_changed =
@@ -92,7 +123,7 @@ index 5f857f24..21584ebd 100644
  	}
  
  	if (xsurface->override_redirect != ev->override_redirect) {
-@@ -1133,6 +1142,20 @@ static void xwm_handle_property_notify(struct wlr_xwm *xwm,
+@@ -1137,6 +1154,20 @@ static void xwm_handle_property_notify(struct wlr_xwm *xwm,
  		xcb_property_notify_event_t *ev) {
  	struct wlr_xwayland_surface *xsurface = lookup_surface(xwm, ev->window);
  	if (xsurface == NULL) {
@@ -113,7 +144,7 @@ index 5f857f24..21584ebd 100644
  		return;
  	}
  
-@@ -1760,16 +1783,17 @@ void wlr_xwayland_surface_configure(struct wlr_xwayland_surface *xsurface,
+@@ -1761,16 +1792,17 @@ void wlr_xwayland_surface_configure(struct wlr_xwayland_surface *xsurface,
  	int old_w = xsurface->width;
  	int old_h = xsurface->height;
  
@@ -133,7 +164,7 @@ index 5f857f24..21584ebd 100644
  	xcb_configure_window(xwm->xcb_conn, xsurface->window_id, mask, values);
  
  	// If the window size did not change, then we cannot rely on
-@@ -1777,15 +1801,15 @@ void wlr_xwayland_surface_configure(struct wlr_xwayland_surface *xsurface,
+@@ -1778,15 +1810,15 @@ void wlr_xwayland_surface_configure(struct wlr_xwayland_surface *xsurface,
  	// we are supposed to send a synthetic event. See ICCCM part
  	// 4.1.5. But we ignore override-redirect windows as ICCCM does
  	// not apply to them.
@@ -154,7 +185,7 @@ index 5f857f24..21584ebd 100644
  		};
  
  		xcb_send_event(xwm->xcb_conn, 0, xsurface->window_id,
-@@ -2122,6 +2146,7 @@ struct wlr_xwm *xwm_create(struct wlr_xwayland *xwayland, int wm_fd) {
+@@ -2123,6 +2155,7 @@ struct wlr_xwm *xwm_create(struct wlr_xwayland *xwayland, int wm_fd) {
  	wl_list_init(&xwm->pending_startup_ids);
  	xwm->ping_timeout = 10000;
  

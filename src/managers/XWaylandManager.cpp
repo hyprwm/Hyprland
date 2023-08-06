@@ -143,10 +143,10 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
 void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool force) {
 
     if (!force &&
-        ((pWindow->m_vReportedSize == size && pWindow->m_vRealPosition.vec() == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
+        ((pWindow->m_vReportedSize == size && pWindow->m_vRealPosition.goalv() == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
         return;
 
-    pWindow->m_vReportedPosition = pWindow->m_vRealPosition.vec();
+    pWindow->m_vReportedPosition = pWindow->m_vRealPosition.goalv();
     pWindow->m_vReportedSize     = size;
 
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
@@ -160,11 +160,10 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
         }
     }
 
-    const Vector2D POS = *PXWLFORCESCALEZERO && pWindow->m_bIsX11 ? pWindow->m_vRealPosition.vec() * pWindow->m_fX11SurfaceScaledBy : pWindow->m_vRealPosition.vec();
-
-    if (pWindow->m_bIsX11)
+    if (pWindow->m_bIsX11) {
+        const Vector2D POS = *PXWLFORCESCALEZERO && pWindow->m_bIsX11 ? pWindow->m_vRealPosition.goalv() * pWindow->m_fX11SurfaceScaledBy : pWindow->m_vRealPosition.goalv();
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, POS.x, POS.y, size.x, size.y);
-    else
+    } else
         wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y);
 }
 

@@ -786,8 +786,11 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
         if (!std::filesystem::exists(path))
             Debug::log(ERR, "input:kb_file= file doesnt exist");
-        else
-            KEYMAP = xkb_keymap_new_from_file(CONTEXT, fopen(path.c_str(), "r"), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        else {
+            FILE* const KEYMAPFILE = fopen(FILEPATH.c_str(), "r");
+            KEYMAP                 = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            fclose(KEYMAPFILE);
+        }
     }
 
     if (!KEYMAP)

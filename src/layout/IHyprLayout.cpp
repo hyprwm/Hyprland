@@ -339,12 +339,15 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
                 const float RATIO = m_vBeginDragSizeXY.y / m_vBeginDragSizeXY.x;
 
-                if (RATIO > 1) {
+                if (MINSIZE.x * RATIO > MINSIZE.y) {
                     MINSIZE = Vector2D(MINSIZE.x, MINSIZE.x * RATIO);
-                    MAXSIZE = Vector2D(MAXSIZE.x, MAXSIZE.x * RATIO);
-
                 } else {
                     MINSIZE = Vector2D(MINSIZE.y / RATIO, MINSIZE.y);
+                }
+
+                if (MAXSIZE.x * RATIO < MAXSIZE.y) {
+                    MAXSIZE = Vector2D(MAXSIZE.x, MAXSIZE.x * RATIO);
+                } else {
                     MAXSIZE = Vector2D(MAXSIZE.y / RATIO, MAXSIZE.y);
                 }
 

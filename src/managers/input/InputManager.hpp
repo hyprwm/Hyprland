@@ -7,21 +7,20 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode
-{
+enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode
-{
-    MBIND_INVALID = -1,
-    MBIND_MOVE    = 0,
-    MBIND_RESIZE
+enum eMouseBindMode {
+    MBIND_INVALID            = -1,
+    MBIND_MOVE               = 0,
+    MBIND_RESIZE             = 1,
+    MBIND_RESIZE_BLOCK_RATIO = 2,
+    MBIND_RESIZE_FORCE_RATIO = 3
 };
 
-enum eBorderIconDirection
-{
+enum eBorderIconDirection {
     BORDERICON_NONE,
     BORDERICON_UP,
     BORDERICON_DOWN,

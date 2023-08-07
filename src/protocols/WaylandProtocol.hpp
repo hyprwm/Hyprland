@@ -20,14 +20,14 @@ class CWaylandResource {
     wl_resource* m_pWLResource          = nullptr;
 };
 
-interface IWaylandProtocol {
+class IWaylandProtocol {
   public:
     IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name);
     ~IWaylandProtocol();
 
     virtual void onDisplayDestroy();
 
-    virtual void bindManager(wl_client * client, void* data, uint32_t ver, uint32_t id) = 0;
+    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) = 0;
 
   private:
     wl_global*  m_pGlobal = nullptr;

@@ -1,6 +1,9 @@
 #pragma once
 
-#include "../includes.hpp"
+#include <string>
+#include <wayland-server.h>
+#include <wlr/util/box.h>
+#include "Vector2D.hpp"
 
 std::string absolutePath(const std::string&, const std::string&);
 void        addWLSignal(wl_signal*, wl_listener*, void* pOwner, const std::string& ownerString);

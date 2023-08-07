@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../defines.hpp"
 #include "AnimatedVariable.hpp"
+#include <string>
+#include "../defines.hpp"
+#include "../wlrunstable/wlr_ext_workspace_v1.hpp"
 
-enum eFullscreenMode : uint8_t
-{
+enum eFullscreenMode : uint8_t {
     FULLSCREEN_FULL = 0,
     FULLSCREEN_MAXIMIZED
 };

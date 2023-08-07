@@ -23,7 +23,7 @@ enum eRectCorner {
     CORNER_BOTTOMLEFT
 };
 
-interface IHyprLayout {
+class IHyprLayout {
   public:
     virtual ~IHyprLayout()   = 0;
     virtual void onEnable()  = 0;

@@ -1941,7 +1941,8 @@ void CKeybindManager::pinActive(std::string args) {
 }
 
 void CKeybindManager::mouse(std::string args) {
-    const auto TRUEARG = args.substr(1);
+    const auto TRUEARG = args.substr(1, args.find(' ') - 1);
+    const auto EXTRARG = args.substr(args.find(' ') + 1);
     const auto PRESSED = args[0] == '1';
 
     if (TRUEARG == "movewindow") {
@@ -1966,8 +1967,16 @@ void CKeybindManager::mouse(std::string args) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
-            g_pInputManager->dragMode               = MBIND_RESIZE;
 
+            if (isNumber(EXTRARG)) {
+                switch (stoi(EXTRARG)) {
+                    case 1: g_pInputManager->dragMode = MBIND_RESIZE_FORCE_RATIO; break;
+                    case 2: g_pInputManager->dragMode = MBIND_RESIZE_BLOCK_RATIO; break;
+                    default: g_pInputManager->dragMode = MBIND_RESIZE;
+                }
+            } else {
+                g_pInputManager->dragMode = MBIND_RESIZE;
+            }
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;

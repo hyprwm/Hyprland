@@ -1,6 +1,7 @@
 #pragma once
 
 #include "helpers/MiscFunctions.hpp"
+#include "debug/Log.hpp"
 #include <cmath>
 #include <utility>
 

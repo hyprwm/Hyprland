@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../includes.hpp"
+#include <string>
 #include <functional>
+#include <wayland-server.h>
 
 class CHyprWLListener {
   public:
@@ -9,10 +10,10 @@ class CHyprWLListener {
     CHyprWLListener();
     ~CHyprWLListener();
 
-    CHyprWLListener(const CHyprWLListener&) = delete;
-    CHyprWLListener(CHyprWLListener&&)      = delete;
+    CHyprWLListener(const CHyprWLListener&)            = delete;
+    CHyprWLListener(CHyprWLListener&&)                 = delete;
     CHyprWLListener& operator=(const CHyprWLListener&) = delete;
-    CHyprWLListener& operator=(CHyprWLListener&&) = delete;
+    CHyprWLListener& operator=(CHyprWLListener&&)      = delete;
 
     void             initCallback(wl_signal*, std::function<void(void*, void*)>, void* owner, std::string author = "");
 

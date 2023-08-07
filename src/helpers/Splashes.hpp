@@ -1,9 +1,10 @@
 #pragma once
 
-#include <array>
+#include <vector>
 #include <string>
 
 inline const std::vector<std::string> SPLASHES = {
+    // clang-format off
     "Woo, animations!",
     "It's like Hypr, but better.",
     "Release 1.0 when?",
@@ -60,4 +61,5 @@ inline const std::vector<std::string> SPLASHES = {
     "Thanks ThatOneCalculator!",
     "The AUR packages always work, except for the times they don't.",
     "Funny animation compositor woo"
+    // clang-format on
 };

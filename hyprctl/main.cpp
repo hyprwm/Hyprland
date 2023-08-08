@@ -11,12 +11,16 @@
 #include <unistd.h>
 #include <ranges>
 #include <algorithm>
+#include <signal.h>
 
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <string>
+#include <vector>
 #include <deque>
+#include <filesystem>
+#include <stdarg.h>
 
 const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
 
@@ -45,6 +49,7 @@ commands:
     plugin
     notify
     globalshortcuts
+    instances
 
 flags:
     -j -> output in JSON
@@ -52,6 +57,20 @@ flags:
 )#";
 
 #define PAD
+
+std::string getFormat(const char* fmt, ...) {
+    char*   outputStr = nullptr;
+
+    va_list args;
+    va_start(args, fmt);
+    vasprintf(&outputStr, fmt, args);
+    va_end(args);
+
+    std::string output = std::string(outputStr);
+    free(outputStr);
+
+    return output;
+}
 
 void request(std::string arg, int minArgs = 0) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -260,6 +279,75 @@ void batchRequest(std::string arg) {
     request(rq);
 }
 
+void instancesRequest(bool json) {
+    std::string result = "";
+
+    struct SInstanceData {
+        std::string id;
+        uint64_t    time;
+        uint64_t    pid;
+        std::string wlSocket;
+        bool        valid = true;
+    };
+
+    // gather instance data
+    std::vector<SInstanceData> instances;
+
+    for (const auto& el : std::filesystem::directory_iterator("/tmp/hypr")) {
+        if (el.is_directory())
+            continue;
+
+        // read lock
+        SInstanceData* data = &instances.emplace_back();
+        data->id            = el.path().string();
+        data->id            = data->id.substr(data->id.find_last_of('/') + 1, data->id.find(".lock") - data->id.find_last_of('/') - 1);
+
+        data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+
+        // read file
+        std::ifstream ifs(el.path().string());
+
+        int           i = 0;
+        for (std::string line; std::getline(ifs, line); ++i) {
+            if (i == 0) {
+                data->pid = std::stoull(line);
+            } else if (i == 1) {
+                data->wlSocket = line;
+            } else
+                break;
+        }
+
+        ifs.close();
+    }
+
+    std::erase_if(instances, [&](const auto& el) { return kill(el.pid, 0) != 0 && errno == ESRCH; });
+
+    std::sort(instances.begin(), instances.end(), [&](const auto& a, const auto& b) { return a.time < b.time; });
+
+    if (!json) {
+        for (auto& el : instances) {
+            result += getFormat("instance %s:\n\ttime: %llu\n\tpid: %llu\n\twl socket: %s\n\n", el.id.c_str(), el.time, el.pid, el.wlSocket.c_str());
+        }
+    } else {
+        result += '[';
+        for (auto& el : instances) {
+            result += getFormat(R"#(
+{
+    "instance": "%s",
+    "time": %llu,
+    "pid": %llu,
+    "wl_socket": "%s"
+},)#",
+                                el.id.c_str(), el.time, el.pid, el.wlSocket.c_str());
+        }
+
+        result.pop_back();
+        result += "\n]";
+    }
+
+    std::cout << result << "\n";
+}
+
 std::deque<std::string> splitArgs(int argc, char** argv) {
     std::deque<std::string> result;
 
@@ -287,6 +375,7 @@ int main(int argc, char** argv) {
     std::string fullRequest = "";
     std::string fullArgs    = "";
     const auto  ARGS        = splitArgs(argc, argv);
+    bool        json        = false;
 
     for (auto i = 0; i < ARGS.size(); ++i) {
         if (ARGS[i] == "--") {
@@ -298,6 +387,7 @@ int main(int argc, char** argv) {
             // parse
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";
+                json = true;
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else {
@@ -356,6 +446,8 @@ int main(int argc, char** argv) {
         request(fullRequest);
     else if (fullRequest.contains("/globalshortcuts"))
         request(fullRequest);
+    else if (fullRequest.contains("/instances"))
+        instancesRequest(json);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))

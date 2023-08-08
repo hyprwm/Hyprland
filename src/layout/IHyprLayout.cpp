@@ -235,7 +235,7 @@ void IHyprLayout::onBeginDragWindow() {
         }
     }
 
-    if (g_pInputManager->dragMode != MBIND_RESIZE)
+    if (g_pInputManager->dragMode != MBIND_RESIZE && g_pInputManager->dragMode != MBIND_RESIZE_FORCE_RATIO && g_pInputManager->dragMode != MBIND_RESIZE_BLOCK_RATIO)
         g_pInputManager->setCursorImageUntilUnset("grab");
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
@@ -314,28 +314,54 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         }
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
-    } else if (g_pInputManager->dragMode == MBIND_RESIZE) {
+    } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
-            const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW);
-
-            // calc the new size and pos
+            Vector2D MINSIZE = Vector2D(20, 20);
+            Vector2D MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW);
 
             Vector2D newSize = m_vBeginDragSizeXY;
             Vector2D newPos  = m_vBeginDragPositionXY;
 
-            if (m_eGrabbedCorner == CORNER_BOTTOMRIGHT) {
-                newSize = (newSize + DELTA).clamp(Vector2D(20, 20), MAXSIZE);
-            } else if (m_eGrabbedCorner == CORNER_TOPLEFT) {
-                newSize = (newSize - DELTA).clamp(Vector2D(20, 20), MAXSIZE);
-                newPos  = newPos - newSize + m_vBeginDragSizeXY;
-            } else if (m_eGrabbedCorner == CORNER_TOPRIGHT) {
-                newSize = (newSize + Vector2D(DELTA.x, -DELTA.y)).clamp(Vector2D(20, 20), MAXSIZE);
-                newPos  = newPos + Vector2D(0, (m_vBeginDragSizeXY - newSize).y);
-            } else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT) {
-                newSize = (newSize + Vector2D(-DELTA.x, DELTA.y)).clamp(Vector2D(20, 20), MAXSIZE);
-                newPos  = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0);
+            if (m_eGrabbedCorner == CORNER_BOTTOMRIGHT)
+                newSize = newSize + DELTA;
+            else if (m_eGrabbedCorner == CORNER_TOPLEFT)
+                newSize = newSize - DELTA;
+            else if (m_eGrabbedCorner == CORNER_TOPRIGHT)
+                newSize = newSize + Vector2D(DELTA.x, -DELTA.y);
+            else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
+                newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
+
+            if ((m_vBeginDragSizeXY.x >= 1 && m_vBeginDragSizeXY.y >= 1) &&
+                (g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO ||
+                 (!(g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) && DRAGGINGWINDOW->m_sAdditionalConfigData.keepAspectRatio))) {
+
+                const float RATIO = m_vBeginDragSizeXY.y / m_vBeginDragSizeXY.x;
+
+                if (MINSIZE.x * RATIO > MINSIZE.y)
+                    MINSIZE = Vector2D(MINSIZE.x, MINSIZE.x * RATIO);
+                else
+                    MINSIZE = Vector2D(MINSIZE.y / RATIO, MINSIZE.y);
+
+                if (MAXSIZE.x * RATIO < MAXSIZE.y)
+                    MAXSIZE = Vector2D(MAXSIZE.x, MAXSIZE.x * RATIO);
+                else
+                    MAXSIZE = Vector2D(MAXSIZE.y / RATIO, MAXSIZE.y);
+
+                if (newSize.x * RATIO > newSize.y)
+                    newSize = Vector2D(newSize.x, newSize.x * RATIO);
+                else
+                    newSize = Vector2D(newSize.y / RATIO, newSize.y);
             }
+
+            newSize = newSize.clamp(MINSIZE, MAXSIZE);
+
+            if (m_eGrabbedCorner == CORNER_TOPLEFT)
+                newPos = newPos - newSize + m_vBeginDragSizeXY;
+            else if (m_eGrabbedCorner == CORNER_TOPRIGHT)
+                newPos = newPos + Vector2D(0, (m_vBeginDragSizeXY - newSize).y);
+            else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
+                newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0);
 
             if (*PANIMATE) {
                 DRAGGINGWINDOW->m_vRealSize     = newSize;

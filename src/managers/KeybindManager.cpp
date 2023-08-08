@@ -141,11 +141,12 @@ void CKeybindManager::updateXKBTranslationState() {
     xkb_rule_names rules = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
 
     const auto     PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    FILE* const    KEYMAPFILE = fopen(FILEPATH.c_str(), "r");
+    FILE* const    KEYMAPFILE = FILEPATH == "" ? NULL : fopen(FILEPATH.c_str(), "r");
 
     auto           PKEYMAP = FILEPATH == "" ? xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS) :
                                               xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    fclose(KEYMAPFILE);
+    if (KEYMAPFILE)
+        fclose(KEYMAPFILE);
 
     if (!PKEYMAP) {
         g_pHyprError->queueCreate("[Runtime Error] Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +

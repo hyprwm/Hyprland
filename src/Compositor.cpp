@@ -312,6 +312,8 @@ void CCompositor::cleanup() {
     if (!m_sWLDisplay || m_bIsShuttingDown)
         return;
 
+    removeLockFile();
+
     m_bIsShuttingDown = true;
 
 #ifdef USES_SYSTEMD
@@ -416,6 +418,23 @@ void CCompositor::initManagers(eManagersInitStage stage) {
     }
 }
 
+void CCompositor::createLockFile() {
+    const auto    PATH = "/tmp/hypr/" + m_szInstanceSignature + ".lock";
+
+    std::ofstream ofs(PATH, std::ios::trunc);
+
+    ofs << m_iHyprlandPID << "\n" << m_szWLDisplaySocket << "\n";
+
+    ofs.close();
+}
+
+void CCompositor::removeLockFile() {
+    const auto PATH = "/tmp/hypr/" + m_szInstanceSignature + ".lock";
+
+    if (std::filesystem::exists(PATH))
+        std::filesystem::remove(PATH);
+}
+
 void CCompositor::startCompositor() {
     initAllSignals();
 
@@ -476,6 +495,8 @@ void CCompositor::startCompositor() {
     else
         Debug::log(LOG, "systemd integration is baked in but system itself is not booted à la systemd!");
 #endif
+
+    createLockFile();
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");

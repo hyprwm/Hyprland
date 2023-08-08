@@ -825,6 +825,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static auto* const                                    PVFR                = &g_pConfigManager->getConfigValuePtr("misc:vfr")->intValue;
     static auto* const                                    PZOOMFACTOR         = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
     static auto* const                                    PRENDERTEX          = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
+    static auto* const                                    PBACKGROUNDCOLOR    = &g_pConfigManager->getConfigValuePtr("misc:background_color")->intValue;
     static auto* const                                    PANIMENABLED        = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
@@ -1014,7 +1015,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->blend(false);
         if (!canSkipBackBufferClear(pMonitor)) {
             if (*PRENDERTEX /* inverted cfg flag */)
-                g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
+                g_pHyprOpenGL->clear(CColor(*PBACKGROUNDCOLOR));
             else
                 g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
         }

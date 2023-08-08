@@ -766,7 +766,7 @@ bool CWindow::opaque() {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
 
-    if (PWORKSPACE->m_fAlpha.fl() != 1.f)
+    if (PWORKSPACE && PWORKSPACE->m_fAlpha.fl() != 1.f)
         return false;
 
     if (m_bIsX11)

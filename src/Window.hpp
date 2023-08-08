@@ -10,8 +10,7 @@
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
 
-enum eIdleInhibitMode
-{
+enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
@@ -122,6 +121,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool> noMaxSize             = false;
     CWindowOverridableVar<bool> dimAround             = false;
     CWindowOverridableVar<bool> forceRGBX             = false;
+    CWindowOverridableVar<bool> keepAspectRatio       = false;
     CWindowOverridableVar<int>  borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
 };
 

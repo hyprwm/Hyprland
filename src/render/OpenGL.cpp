@@ -1723,17 +1723,19 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         texName += "2K.png";
     }
 
+    // goto is banned? ok have a do while.
     std::string texPath = "/usr/share/hyprland/" + texName;
-    if (std::filesystem::exists(texPath))
-        goto hastex;
-    texPath = "/usr/local/share/hyprland/" + texName;
-    if (std::filesystem::exists(texPath))
-        goto hastex;
-    texPath = "assets/" + texName;
-    if (std::filesystem::exists(texPath))
-        goto hastex;
-    texPath = "";
-hastex:
+    do {
+        if (std::filesystem::exists(texPath))
+            break;
+        texPath = "/usr/local/share/hyprland/" + texName;
+        if (std::filesystem::exists(texPath))
+            break;
+        texPath = "assets/" + texName;
+        if (std::filesystem::exists(texPath))
+            break;
+        texPath = "";
+    } while (false);
 
     PTEX->m_vSize = textureSize;
 

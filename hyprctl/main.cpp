@@ -236,86 +236,6 @@ void requestHyprpaper(std::string arg) {
     std::cout << std::string(buffer);
 }
 
-int dispatchRequest(int argc, char** argv) {
-
-    if (argc < 3) {
-        std::cout << "Usage: hyprctl dispatch <dispatcher> <arg>\n\
-            Execute a hyprland keybind dispatcher with the given argument";
-        return 1;
-    }
-
-    std::string rq = "/dispatch";
-
-    for (int i = 2; i < argc; i++) {
-        if (!strcmp(argv[i], "--"))
-            continue;
-        rq += " " + std::string(argv[i]);
-    }
-
-    request(rq);
-    return 0;
-}
-
-int keywordRequest(int argc, char** argv) {
-    if (argc < 4) {
-        std::cout << "Usage: hyprctl keyword <keyword> <arg>\n\
-            Execute a hyprland keyword with the given argument";
-        return 1;
-    }
-
-    std::string rq = "/keyword";
-
-    for (int i = 2; i < argc; i++)
-        rq += " " + std::string(argv[i]);
-
-    request(rq);
-    return 0;
-}
-
-int hyprpaperRequest(int argc, char** argv) {
-    if (argc < 4) {
-        std::cout << "Usage: hyprctl hyprpaper <command> <arg>\n\
-            Execute a hyprpaper command with the given argument";
-        return 1;
-    }
-
-    std::string rq = std::string(argv[2]) + " " + std::string(argv[3]);
-
-    requestHyprpaper(rq);
-    return 0;
-}
-
-int setcursorRequest(int argc, char** argv) {
-    if (argc < 4) {
-        std::cout << "Usage: hyprctl setcursor <theme> <size>\n\
-            Sets the cursor theme for everything except GTK and reloads the cursor";
-        return 1;
-    }
-
-    std::string rq = "setcursor ";
-    for (size_t i = 2; i < argc; ++i)
-        rq += std::string(argv[i]) + " ";
-    rq.pop_back();
-
-    request(rq);
-    return 0;
-}
-
-int outputRequest(int argc, char** argv) {
-    if (argc < 4) {
-        std::cout << "Usage: hyprctl output <mode> <name>\n\
-            creates / destroys a fake output\n\
-            with create, name is the backend name to use (available: auto, x11, wayland, headless)\n\
-            with destroy, name is the output name to destroy";
-        return 1;
-    }
-
-    std::string rq = "output " + std::string(argv[2]) + " " + std::string(argv[3]);
-
-    request(rq);
-    return 0;
-}
-
 void batchRequest(std::string arg) {
     std::string rq = "[[BATCH]]" + arg.substr(arg.find_first_of(" ") + 1);
 
@@ -412,6 +332,8 @@ int main(int argc, char** argv) {
             continue;
         }
 
+        std::cout << "adding " << ARGS[i] << "\n";
+
         fullRequest += ARGS[i] + " ";
     }
 
@@ -502,15 +424,15 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/notify"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/output"))
-        exitStatus = outputRequest(argc, argv);
+        request(fullRequest, 2);
     else if (fullRequest.contains("/setcursor"))
-        exitStatus = setcursorRequest(argc, argv);
+        request(fullRequest, 1);
     else if (fullRequest.contains("/dispatch"))
-        exitStatus = dispatchRequest(argc, argv);
+        request(fullRequest, 1);
     else if (fullRequest.contains("/keyword"))
-        exitStatus = keywordRequest(argc, argv);
+        request(fullRequest, 2);
     else if (fullRequest.contains("/hyprpaper"))
-        exitStatus = hyprpaperRequest(argc, argv);
+        request(fullRequest, 2);
     else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {

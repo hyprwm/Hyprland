@@ -28,8 +28,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -107,6 +106,8 @@ class CCompositor {
     void                                      initServer();
     void                                      startCompositor();
     void                                      cleanup();
+    void                                      createLockFile();
+    void                                      removeLockFile();
 
     wlr_surface*                              m_pLastFocus   = nullptr;
     CWindow*                                  m_pLastWindow  = nullptr;

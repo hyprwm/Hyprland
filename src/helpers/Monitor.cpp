@@ -8,12 +8,9 @@ int ratHandler(void* data) {
     return 1;
 }
 
-CMonitor::CMonitor() {
-    wlr_damage_ring_init(&damage);
-}
+CMonitor::CMonitor() {}
 
 CMonitor::~CMonitor() {
-    wlr_damage_ring_finish(&damage);
 
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -138,7 +135,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
-    wlr_damage_ring_set_bounds(&damage, vecTransformedSize.x, vecTransformedSize.y);
+    damage.setBounds(vecTransformedSize);
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
@@ -318,30 +315,8 @@ void CMonitor::onDisconnect() {
     std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
 }
 
-void CMonitor::addDamage(const pixman_region32_t* rg) {
-    static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
-        wlr_damage_ring_add_whole(&damage);
-        g_pCompositor->scheduleFrameForMonitor(this);
-    }
-
-    if (wlr_damage_ring_add(&damage, rg))
-        g_pCompositor->scheduleFrameForMonitor(this);
-}
-
-void CMonitor::addDamage(const CRegion* rg) {
-    addDamage(const_cast<CRegion*>(rg)->pixman());
-}
-
-void CMonitor::addDamage(const wlr_box* box) {
-    static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
-        wlr_damage_ring_add_whole(&damage);
-        g_pCompositor->scheduleFrameForMonitor(this);
-    }
-
-    if (wlr_damage_ring_add_box(&damage, box))
-        g_pCompositor->scheduleFrameForMonitor(this);
+void CMonitor::addDamage(const CRegion& rg, bool blur) {
+    damage.addDamage(rg, blur);
 }
 
 bool CMonitor::isMirror() {

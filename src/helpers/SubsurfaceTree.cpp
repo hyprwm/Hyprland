@@ -107,7 +107,7 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
         extents.x += lx;
         extents.y += ly;
 
-        g_pHyprRenderer->damageBox(&extents);
+        g_pHyprRenderer->damageBox(&extents, !pNode->pSurface->wlr()->opaque);
     }
 
     // remove references to this node
@@ -203,7 +203,7 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
                 extents.width  = PNODE->pSurface->wlr()->current.width;
                 extents.height = PNODE->pSurface->wlr()->current.height;
 
-                g_pHyprRenderer->damageBox(&extents);
+                g_pHyprRenderer->damageBox(&extents, !PNODE->pSurface->wlr()->opaque);
             }
 
             // SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
@@ -239,12 +239,13 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
             const auto NODECOORDS = pNode->pSubsurface ? Vector2D(pNode->pSubsurface->pSubsurface->current.x, pNode->pSubsurface->pSubsurface->current.y) : Vector2D();
 
             if (&cs != pNode->pSubsurface && cs.pSubsurface) {
-                g_pHyprRenderer->damageSurface(cs.pSubsurface->surface, lx - NODECOORDS.x + cs.pSubsurface->current.x, ly - NODECOORDS.y + cs.pSubsurface->current.y, SCALE);
+                g_pHyprRenderer->damageSurface(cs.pSubsurface->surface, lx - NODECOORDS.x + cs.pSubsurface->current.x, ly - NODECOORDS.y + cs.pSubsurface->current.y, SCALE,
+                                               !cs.pSubsurface->surface->opaque);
             }
         }
 
     if (pNode->pSurface && pNode->pSurface->exists())
-        g_pHyprRenderer->damageSurface(pNode->pSurface->wlr(), lx, ly, SCALE);
+        g_pHyprRenderer->damageSurface(pNode->pSurface->wlr(), lx, ly, SCALE, !pNode->pSurface->wlr()->opaque);
 }
 
 void Events::listener_destroySubsurface(void* owner, void* data) {

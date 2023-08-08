@@ -9,6 +9,7 @@
 #include <xf86drmMode.h>
 #include "Timer.hpp"
 #include "Region.hpp"
+#include "DamageRing.hpp"
 
 struct SMonitorRule;
 
@@ -36,7 +37,7 @@ class CMonitor {
     drmModeModeInfo customDrmMode = {};
 
     // WLR stuff
-    wlr_damage_ring     damage;
+    CDamageRing         damage;
     wlr_output*         output          = nullptr;
     float               refreshRate     = 60;
     int                 framesToSkip    = 0;
@@ -84,9 +85,7 @@ class CMonitor {
     // methods
     void                       onConnect(bool noRule);
     void                       onDisconnect();
-    void                       addDamage(const pixman_region32_t* rg);
-    void                       addDamage(const CRegion* rg);
-    void                       addDamage(const wlr_box* box);
+    void                       addDamage(const CRegion& rg, bool blur = false);
     void                       setMirror(const std::string&);
     bool                       isMirror();
     float                      getDefaultScale();

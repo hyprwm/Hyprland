@@ -930,7 +930,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     // check the damage
     CRegion damage;
-    bool    hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
+    bool    hasChanged = pMonitor->output->needs_frame || !pMonitor->damage.empty();
     int     bufferAge;
 
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
@@ -956,7 +956,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         return;
     }
 
-    wlr_damage_ring_get_buffer_damage(&pMonitor->damage, bufferAge, damage.pixman());
+    damage = pMonitor->damage.getDamage(bufferAge);
 
     pMonitor->renderingActive = true;
 
@@ -967,29 +967,10 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0 ||
         pMonitor->isMirror() /* why??? */) {
 
-        damage                    = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
-        pMonitor->lastFrameDamage = damage;
-    } else {
-        static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
-
-        // if we use blur we need to expand the damage for proper blurring
-        if (*PBLURENABLED == 1) {
-            // TODO: can this be optimized?
-            static auto* const PBLURSIZE   = &g_pConfigManager->getConfigValuePtr("decoration:blur:size")->intValue;
-            static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur:passes")->intValue;
-            const auto         BLURRADIUS =
-                *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
-
-            // now, prep the damage, get the extended damage region
-            wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring
-
-            pMonitor->lastFrameDamage = damage;
-
-            wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring 2
-        } else {
-            pMonitor->lastFrameDamage = damage;
-        }
+        damage = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
     }
+
+    pMonitor->lastFrameDamage = damage;
 
     if (pMonitor->forceFullFrames > 0) {
         pMonitor->forceFullFrames -= 1;
@@ -1105,7 +1086,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         return;
     }
 
-    wlr_damage_ring_rotate(&pMonitor->damage);
+    pMonitor->damage.rotate();
 
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, false);
@@ -1414,7 +1395,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
                PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 
-void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, double scale) {
+void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, double scale, bool blur) {
     if (!pSurface)
         return; // wut?
 
@@ -1448,7 +1429,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         wlr_region_scale(damageBoxForEach.pixman(), damageBoxForEach.pixman(), m->scale);
         damageBoxForEach.translate({lx + m->vecPosition.x, ly + m->vecPosition.y});
 
-        m->addDamage(&damageBoxForEach);
+        m->addDamage(damageBoxForEach, blur);
     }
 
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
@@ -1466,7 +1447,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     for (auto& m : g_pCompositor->m_vMonitors) {
         wlr_box fixedDamageBox = {damageBox.x - m->vecPosition.x, damageBox.y - m->vecPosition.y, damageBox.width, damageBox.height};
         scaleBox(&fixedDamageBox, m->scale);
-        m->addDamage(&fixedDamageBox);
+        m->addDamage(&fixedDamageBox, !pWindow->opaque() && !pWindow->m_sAdditionalConfigData.forceNoBlur.toUnderlying());
     }
 
     for (auto& wd : pWindow->m_dWindowDecorations)
@@ -1483,7 +1464,7 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
         return;
 
     wlr_box damageBox = {0, 0, INT16_MAX, INT16_MAX};
-    pMonitor->addDamage(&damageBox);
+    pMonitor->addDamage(&damageBox, false);
 
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
@@ -1491,7 +1472,7 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
         Debug::log(LOG, "Damage: Monitor %s", pMonitor->szName.c_str());
 }
 
-void CHyprRenderer::damageBox(wlr_box* pBox) {
+void CHyprRenderer::damageBox(wlr_box* pBox, bool blur) {
     if (g_pCompositor->m_bUnsafeState)
         return;
 
@@ -1501,7 +1482,7 @@ void CHyprRenderer::damageBox(wlr_box* pBox) {
 
         wlr_box damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
         scaleBox(&damageBox, m->scale);
-        m->addDamage(&damageBox);
+        m->addDamage(&damageBox, blur);
     }
 
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
@@ -1510,14 +1491,14 @@ void CHyprRenderer::damageBox(wlr_box* pBox) {
         Debug::log(LOG, "Damage: Box: xy: %d, %d wh: %d, %d", pBox->x, pBox->y, pBox->width, pBox->height);
 }
 
-void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {
+void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h, bool blur) {
     wlr_box box = {x, y, w, h};
-    damageBox(&box);
+    damageBox(&box, blur);
 }
 
-void CHyprRenderer::damageRegion(const CRegion& rg) {
+void CHyprRenderer::damageRegion(const CRegion& rg, bool blur) {
     for (auto& RECT : rg.getRects()) {
-        damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1);
+        damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1, blur);
     }
 }
 
@@ -1527,7 +1508,7 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion
 
         CRegion  rg{pRegion};
         wlr_region_scale_xy(rg.pixman(), rg.pixman(), scale.x, scale.y);
-        pMonitor->addDamage(&rg);
+        pMonitor->addDamage(rg, false);
 
         g_pCompositor->scheduleFrameForMonitor(mirror);
     }
@@ -1899,13 +1880,13 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     if (!pMonitor->isMirror())
         wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
 
-    wlr_damage_ring_set_bounds(&pMonitor->damage, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
-
     // updato us
     arrangeLayersForMonitor(pMonitor->ID);
 
     // frame skip
     pMonitor->framesToSkip = 1;
+
+    pMonitor->damage.setBounds(pMonitor->vecTransformedSize);
 
     // reload to fix mirrors
     g_pConfigManager->m_bWantsMonitorReload = true;

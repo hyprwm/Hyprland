@@ -203,7 +203,7 @@ void Events::listener_monitorDamage(void* owner, void* data) {
     const auto PMONITOR = (CMonitor*)owner;
     const auto E        = (wlr_output_event_damage*)data;
 
-    PMONITOR->addDamage(E->damage);
+    PMONITOR->addDamage(const_cast<pixman_region32_t*>(E->damage));
 }
 
 void Events::listener_monitorNeedsFrame(void* owner, void* data) {

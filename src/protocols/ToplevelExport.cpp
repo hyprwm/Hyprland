@@ -72,7 +72,8 @@ static const struct hyprland_toplevel_export_manager_v1_interface toplevelExport
 
 static const struct hyprland_toplevel_export_frame_v1_interface toplevelFrameImpl = {.copy = handleCopyFrame, .destroy = handleDestroyFrame};
 
-static CScreencopyClient*                                       clientFromResource(wl_resource* resource) {
+//
+static CScreencopyClient* clientFromResource(wl_resource* resource) {
     ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_manager_v1_interface, &toplevelExportManagerImpl));
     return (CScreencopyClient*)wl_resource_get_user_data(resource);
 }
@@ -286,7 +287,7 @@ void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_outp
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(e->output);
+    const auto                     PMONITOR = g_pCompositor->getMonitorFromOutput(e->output);
 
     std::vector<SScreencopyFrame*> framesToRemove;
 
@@ -435,11 +436,11 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
 
-    CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
+    CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
     g_pHyprOpenGL->begin(PMONITOR, &fakeDamage, true);
 
-    g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
+    g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(frame->pWindow); // block the feedback to avoid spamming the surface if it's visible
     g_pHyprRenderer->renderWindow(frame->pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
@@ -447,7 +448,7 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
 
     g_pHyprOpenGL->bindWlrOutputFb();
 
-    wlr_box monbox = {0, 0, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    wlr_box monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
     g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f);
 
     g_pHyprOpenGL->end();

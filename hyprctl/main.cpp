@@ -54,9 +54,57 @@ commands:
 flags:
     -j -> output in JSON
     --batch -> execute a batch of commands, separated by ';'
+    --instance (-i) -> use a specific instance. Can be either signature or index in hyprctl instances (0, 1, etc)
 )#";
 
 #define PAD
+
+std::string instanceSignature;
+
+struct SInstanceData {
+    std::string id;
+    uint64_t    time;
+    uint64_t    pid;
+    std::string wlSocket;
+    bool        valid = true;
+};
+
+std::vector<SInstanceData> instances() {
+    std::vector<SInstanceData> result;
+
+    for (const auto& el : std::filesystem::directory_iterator("/tmp/hypr")) {
+        if (el.is_directory())
+            continue;
+
+        // read lock
+        SInstanceData* data = &result.emplace_back();
+        data->id            = el.path().string();
+        data->id            = data->id.substr(data->id.find_last_of('/') + 1, data->id.find(".lock") - data->id.find_last_of('/') - 1);
+
+        data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+
+        // read file
+        std::ifstream ifs(el.path().string());
+
+        int           i = 0;
+        for (std::string line; std::getline(ifs, line); ++i) {
+            if (i == 0) {
+                data->pid = std::stoull(line);
+            } else if (i == 1) {
+                data->wlSocket = line;
+            } else
+                break;
+        }
+
+        ifs.close();
+    }
+
+    std::erase_if(result, [&](const auto& el) { return kill(el.pid, 0) != 0 && errno == ESRCH; });
+
+    std::sort(result.begin(), result.end(), [&](const auto& a, const auto& b) { return a.time < b.time; });
+
+    return result;
+}
 
 std::string getFormat(const char* fmt, ...) {
     char*   outputStr = nullptr;
@@ -87,20 +135,15 @@ void request(std::string arg, int minArgs = 0) {
         return;
     }
 
-    // get the instance signature
-    auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
-
-    if (!instanceSig) {
+    if (instanceSignature.empty()) {
         std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
         return;
     }
 
-    std::string instanceSigStr = std::string(instanceSig);
-
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.socket.sock";
+    std::string socketPath = "/tmp/hypr/" + instanceSignature + "/.socket.sock";
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
@@ -282,55 +325,16 @@ void batchRequest(std::string arg) {
 void instancesRequest(bool json) {
     std::string result = "";
 
-    struct SInstanceData {
-        std::string id;
-        uint64_t    time;
-        uint64_t    pid;
-        std::string wlSocket;
-        bool        valid = true;
-    };
-
     // gather instance data
-    std::vector<SInstanceData> instances;
-
-    for (const auto& el : std::filesystem::directory_iterator("/tmp/hypr")) {
-        if (el.is_directory())
-            continue;
-
-        // read lock
-        SInstanceData* data = &instances.emplace_back();
-        data->id            = el.path().string();
-        data->id            = data->id.substr(data->id.find_last_of('/') + 1, data->id.find(".lock") - data->id.find_last_of('/') - 1);
-
-        data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
-
-        // read file
-        std::ifstream ifs(el.path().string());
-
-        int           i = 0;
-        for (std::string line; std::getline(ifs, line); ++i) {
-            if (i == 0) {
-                data->pid = std::stoull(line);
-            } else if (i == 1) {
-                data->wlSocket = line;
-            } else
-                break;
-        }
-
-        ifs.close();
-    }
-
-    std::erase_if(instances, [&](const auto& el) { return kill(el.pid, 0) != 0 && errno == ESRCH; });
-
-    std::sort(instances.begin(), instances.end(), [&](const auto& a, const auto& b) { return a.time < b.time; });
+    std::vector<SInstanceData> inst = instances();
 
     if (!json) {
-        for (auto& el : instances) {
+        for (auto& el : inst) {
             result += getFormat("instance %s:\n\ttime: %llu\n\tpid: %llu\n\twl socket: %s\n\n", el.id.c_str(), el.time, el.pid, el.wlSocket.c_str());
         }
     } else {
         result += '[';
-        for (auto& el : instances) {
+        for (auto& el : inst) {
             result += getFormat(R"#(
 {
     "instance": "%s",
@@ -372,10 +376,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string fullRequest = "";
-    std::string fullArgs    = "";
-    const auto  ARGS        = splitArgs(argc, argv);
-    bool        json        = false;
+    std::string fullRequest      = "";
+    std::string fullArgs         = "";
+    const auto  ARGS             = splitArgs(argc, argv);
+    bool        json             = false;
+    std::string overrideInstance = "";
 
     for (auto i = 0; i < ARGS.size(); ++i) {
         if (ARGS[i] == "--") {
@@ -390,6 +395,15 @@ int main(int argc, char** argv) {
                 json = true;
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
+            } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {
+                ++i;
+
+                if (i >= ARGS.size()) {
+                    printf("%s\n", USAGE.c_str());
+                    return 1;
+                }
+
+                overrideInstance = ARGS[i];
             } else {
                 printf("%s\n", USAGE.c_str());
                 return 1;
@@ -409,6 +423,35 @@ int main(int argc, char** argv) {
     fullRequest.pop_back(); // remove trailing space
 
     fullRequest = fullArgs + "/" + fullRequest;
+
+    if (overrideInstance.contains("_"))
+        instanceSignature = overrideInstance;
+    else if (!overrideInstance.empty()) {
+        if (!isNumber(overrideInstance, false)) {
+            std::cout << "instance invalid\n";
+            return 1;
+        }
+
+        const auto INSTANCENO = std::stoi(overrideInstance);
+
+        const auto INSTANCES = instances();
+
+        if (INSTANCENO < 0 || INSTANCENO >= INSTANCES.size()) {
+            std::cout << "no such instance\n";
+            return 1;
+        }
+
+        instanceSignature = INSTANCES[INSTANCENO].id;
+    } else {
+        const auto ISIG = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+
+        if (!ISIG) {
+            std::cout << "HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)";
+            return 1;
+        }
+
+        instanceSignature = ISIG;
+    }
 
     int exitStatus = 0;
 

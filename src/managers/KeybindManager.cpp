@@ -1942,11 +1942,10 @@ void CKeybindManager::pinActive(std::string args) {
 }
 
 void CKeybindManager::mouse(std::string args) {
-    const auto TRUEARG = args.substr(1, args.find(' ') - 1);
-    const auto EXTRARG = args.substr(args.find(' ') + 1);
+    const auto ARGS    = CVarList(args.substr(1), 2, ' ');
     const auto PRESSED = args[0] == '1';
 
-    if (TRUEARG == "movewindow") {
+    if (ARGS[0] == "movewindow") {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
@@ -1963,21 +1962,19 @@ void CKeybindManager::mouse(std::string args) {
                 g_pInputManager->dragMode               = MBIND_INVALID;
             }
         }
-    } else if (TRUEARG == "resizewindow") {
+    } else if (ARGS[0] == "resizewindow") {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
 
-            if (isNumber(EXTRARG)) {
-                switch (stoi(EXTRARG)) {
+            try {
+                switch (std::stoi(ARGS[1])) {
                     case 1: g_pInputManager->dragMode = MBIND_RESIZE_FORCE_RATIO; break;
                     case 2: g_pInputManager->dragMode = MBIND_RESIZE_BLOCK_RATIO; break;
                     default: g_pInputManager->dragMode = MBIND_RESIZE;
                 }
-            } else {
-                g_pInputManager->dragMode = MBIND_RESIZE;
-            }
+            } catch (std::exception& e) { g_pInputManager->dragMode = MBIND_RESIZE; }
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;

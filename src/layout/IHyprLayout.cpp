@@ -323,15 +323,14 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             Vector2D newSize = m_vBeginDragSizeXY;
             Vector2D newPos  = m_vBeginDragPositionXY;
 
-            if (m_eGrabbedCorner == CORNER_BOTTOMRIGHT) {
+            if (m_eGrabbedCorner == CORNER_BOTTOMRIGHT)
                 newSize = newSize + DELTA;
-            } else if (m_eGrabbedCorner == CORNER_TOPLEFT) {
+            else if (m_eGrabbedCorner == CORNER_TOPLEFT)
                 newSize = newSize - DELTA;
-            } else if (m_eGrabbedCorner == CORNER_TOPRIGHT) {
+            else if (m_eGrabbedCorner == CORNER_TOPRIGHT)
                 newSize = newSize + Vector2D(DELTA.x, -DELTA.y);
-            } else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT) {
+            else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
                 newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
-            }
 
             if ((m_vBeginDragSizeXY.x >= 1 && m_vBeginDragSizeXY.y >= 1) &&
                 (g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO ||
@@ -339,34 +338,30 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
                 const float RATIO = m_vBeginDragSizeXY.y / m_vBeginDragSizeXY.x;
 
-                if (MINSIZE.x * RATIO > MINSIZE.y) {
+                if (MINSIZE.x * RATIO > MINSIZE.y)
                     MINSIZE = Vector2D(MINSIZE.x, MINSIZE.x * RATIO);
-                } else {
+                else
                     MINSIZE = Vector2D(MINSIZE.y / RATIO, MINSIZE.y);
-                }
 
-                if (MAXSIZE.x * RATIO < MAXSIZE.y) {
+                if (MAXSIZE.x * RATIO < MAXSIZE.y)
                     MAXSIZE = Vector2D(MAXSIZE.x, MAXSIZE.x * RATIO);
-                } else {
+                else
                     MAXSIZE = Vector2D(MAXSIZE.y / RATIO, MAXSIZE.y);
-                }
 
-                if (newSize.x * RATIO > newSize.y) {
+                if (newSize.x * RATIO > newSize.y)
                     newSize = Vector2D(newSize.x, newSize.x * RATIO);
-                } else {
+                else
                     newSize = Vector2D(newSize.y / RATIO, newSize.y);
-                }
             }
 
             newSize = newSize.clamp(MINSIZE, MAXSIZE);
 
-            if (m_eGrabbedCorner == CORNER_TOPLEFT) {
+            if (m_eGrabbedCorner == CORNER_TOPLEFT)
                 newPos = newPos - newSize + m_vBeginDragSizeXY;
-            } else if (m_eGrabbedCorner == CORNER_TOPRIGHT) {
+            else if (m_eGrabbedCorner == CORNER_TOPRIGHT)
                 newPos = newPos + Vector2D(0, (m_vBeginDragSizeXY - newSize).y);
-            } else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT) {
+            else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
                 newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0);
-            }
 
             if (*PANIMATE) {
                 DRAGGINGWINDOW->m_vRealSize     = newSize;

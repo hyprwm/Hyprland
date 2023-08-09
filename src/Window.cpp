@@ -548,6 +548,12 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.dimAround = true;
     } else if (r.szRule == "keepaspectratio") {
         m_sAdditionalConfigData.keepAspectRatio = true;
+    } else if (r.szRule.find("xray") == 0) {
+        CVarList vars(r.szRule, 0, ' ');
+
+        try {
+            m_sAdditionalConfigData.xray = configStringToInt(vars[1]);
+        } catch (...) {}
     }
 }
 
@@ -569,6 +575,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceRGBX       = false;
     m_sAdditionalConfigData.borderSize      = -1;
     m_sAdditionalConfigData.keepAspectRatio = false;
+    m_sAdditionalConfigData.xray            = -1;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {

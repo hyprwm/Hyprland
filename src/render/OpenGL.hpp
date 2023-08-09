@@ -26,8 +26,7 @@ inline const float fullVerts[] = {
 };
 inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
-enum eDiscardMode
-{
+enum eDiscardMode {
     DISCARD_OPAQUE = 1,
     DISCARD_ALPHA  = 1 << 1
 };
@@ -149,6 +148,7 @@ class CHyprOpenGLImpl {
     bool                                       m_bReloadScreenShader = true; // at launch it can be set
 
     CWindow*                                   m_pCurrentWindow = nullptr; // hack to get the current rendered window
+    SLayerSurface*                             m_pCurrentLayer  = nullptr; // hack to get the current rendered layer
 
     std::unordered_map<CWindow*, CFramebuffer> m_mWindowFramebuffers;
     std::unordered_map<SLayerSurface*, CFramebuffer>  m_mLayerFramebuffers;
@@ -184,6 +184,8 @@ class CHyprOpenGLImpl {
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double);
 
     void          preBlurForCurrentMonitor();
+
+    bool          shouldUseNewBlurOptimizations(SLayerSurface* pLayer, CWindow* pWindow);
 
     friend class CHyprRenderer;
 };

@@ -414,6 +414,8 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.h                     = pLayer->geometry.height;
     renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
 
+    g_pHyprOpenGL->m_pCurrentLayer = pLayer;
+
     if (pLayer->ignoreAlpha) {
         g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
         g_pHyprOpenGL->m_RenderData.discardOpacity = pLayer->ignoreAlphaValue;
@@ -424,6 +426,8 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
     wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
+
+    g_pHyprOpenGL->m_pCurrentLayer = nullptr;
 }
 
 void CHyprRenderer::renderIMEPopup(SIMEPopup* pPopup, CMonitor* pMonitor, timespec* time) {

@@ -50,6 +50,7 @@ struct SLayerSurface {
     bool                      noAnimations  = false;
 
     bool                      forceBlur        = false;
+    int                       xray             = -1;
     bool                      ignoreAlpha      = false;
     float                     ignoreAlphaValue = 0.f;
 
@@ -242,7 +243,7 @@ struct STablet {
     std::string           name = "";
 
     bool                  operator==(const STablet& b) const {
-        return wlrDevice == b.wlrDevice;
+                         return wlrDevice == b.wlrDevice;
     }
 };
 

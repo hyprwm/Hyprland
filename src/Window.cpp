@@ -22,7 +22,10 @@ CWindow::~CWindow() {
     }
 }
 
-wlr_box CWindow::getFullWindowBoundingBox() {
+SWindowDecorationExtents CWindow::getFullWindowExtents() {
+    if (m_bFadingOut)
+        return m_eOriginalClosedExtents;
+
     static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
     const auto         PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
@@ -37,7 +40,8 @@ wlr_box CWindow::getFullWindowBoundingBox() {
 
     if (m_sAdditionalConfigData.dimAround) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+        return {{m_vRealPosition.vec().x - PMONITOR->vecPosition.x, m_vRealPosition.vec().y - PMONITOR->vecPosition.y},
+                {PMONITOR->vecSize.x - (m_vRealPosition.vec().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.vec().y - PMONITOR->vecPosition.y)}};
     }
 
     SWindowDecorationExtents maxExtents = {{borderSize + 2, borderSize + 2}, {borderSize + 2, borderSize + 2}};
@@ -90,7 +94,17 @@ wlr_box CWindow::getFullWindowBoundingBox() {
             maxExtents.bottomRight.y = surfaceExtents.y + surfaceExtents.height - m_pWLSurface.wlr()->current.height;
     }
 
-    // Add extents to the real base BB and return
+    return maxExtents;
+}
+
+wlr_box CWindow::getFullWindowBoundingBox() {
+    if (m_sAdditionalConfigData.dimAround) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    }
+
+    auto    maxExtents = getFullWindowExtents();
+
     wlr_box finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
                         m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
 

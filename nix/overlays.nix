@@ -10,8 +10,11 @@
     (builtins.substring 4 2 longDate)
     (builtins.substring 6 2 longDate)
   ]);
+
+  mkJoinedOverlays = overlays: final: prev:
+    lib.foldl' (attrs: overlay: attrs // (overlay final prev)) {} overlays;
 in {
-  default = lib.mkJoinedOverlays (with self.overlays; [
+  default = mkJoinedOverlays (with self.overlays; [
     inputs.hyprland-protocols.overlays.default
     wlroots-hyprland
     hyprland-packages
@@ -46,7 +49,7 @@ in {
 
   # Packages for extra software recommended for usage with Hyprland,
   # including forked or patched packages for compatibility.
-  hyprland-extras = lib.mkJoinedOverlays [
+  hyprland-extras = mkJoinedOverlays [
     # Include any inputs' specific overlays whose attributes should
     # be re-exported by the Hyprland flake.
     #

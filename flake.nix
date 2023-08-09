@@ -30,7 +30,7 @@
     nixpkgs,
     ...
   }: let
-    lib = nixpkgs.lib.extend (import ./nix/lib.nix);
+    inherit (nixpkgs) lib;
     genSystems = lib.genAttrs [
       # Add more systems if they are supported
       "aarch64-linux"

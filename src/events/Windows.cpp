@@ -720,8 +720,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // do the animation thing
     if (PMONITOR) {
-        PWINDOW->m_vOriginalClosedPos  = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
-        PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec();
+        const auto RESERVED            = PWINDOW->getFullWindowReservedArea();
+        PWINDOW->m_vOriginalClosedPos  = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition - RESERVED.topLeft;
+        PWINDOW->m_vOriginalClosedSize = PWINDOW->m_vRealSize.vec() + RESERVED.topLeft;
     }
 
     if (!PWINDOW->m_bX11DoesntWantBorders)                                                  // don't animate out if they weren't animated in.

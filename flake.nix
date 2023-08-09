@@ -47,18 +47,7 @@
         ];
       });
   in {
-    overlays =
-      (import ./nix/overlays.nix {inherit self lib inputs;})
-      // {
-        default =
-          lib.mkJoinedOverlays
-          (with self.overlays; [
-            hyprland-packages
-            hyprland-extras
-            wlroots-hyprland
-            inputs.hyprland-protocols.overlays.default
-          ]);
-      };
+    overlays = import ./nix/overlays.nix {inherit self lib inputs;};
 
     checks = genSystems (system:
       (lib.filterAttrs

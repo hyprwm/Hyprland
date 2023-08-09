@@ -11,6 +11,13 @@
     (builtins.substring 6 2 longDate)
   ]);
 in {
+  default = lib.mkJoinedOverlays (with self.overlays; [
+    inputs.hyprland-protocols.overlays.default
+    wlroots-hyprland
+    hyprland-packages
+    hyprland-extras
+  ]);
+
   # Packages for variations of Hyprland, and its dependencies.
   hyprland-packages = final: prev: {
     hyprland = final.callPackage ./default.nix {

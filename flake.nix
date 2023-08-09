@@ -77,7 +77,7 @@
     devShells = genSystems (system: {
       default = pkgsFor.${system}.mkShell {
         name = "hyprland-shell";
-        nativeBuildInputs = with pkgsFor.${system}; [ cmake python3 ];
+        nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
         buildInputs = [self.packages.${system}.wlroots-hyprland];
         inputsFrom = [
           self.packages.${system}.wlroots-hyprland
@@ -86,7 +86,7 @@
       };
     });
 
-    formatter = genSystems (system: pkgsFor.${system}.alejandra);
+    formatter = genSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
 
     nixosModules.default = import ./nix/module.nix inputs;
     homeManagerModules.default = import ./nix/hm-module.nix self;

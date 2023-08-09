@@ -123,7 +123,7 @@ in
         ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
         ${lib.optionalString wrapRuntimeDeps ''
           wrapProgram $out/bin/Hyprland \
-            --suffix PATH : ${lib.makeBinPath [ binutils pciutils ]}
+            --suffix PATH : ${lib.makeBinPath [binutils pciutils]}
         ''}
       '';
 

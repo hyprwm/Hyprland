@@ -241,11 +241,12 @@ class CWindow {
     CAnimatedVariable  m_fBorderAngleAnimationProgress;
 
     // Fade in-out
-    CAnimatedVariable m_fAlpha;
-    bool              m_bFadingOut     = false;
-    bool              m_bReadyToDelete = false;
-    Vector2D          m_vOriginalClosedPos;  // these will be used for calculations later on in
-    Vector2D          m_vOriginalClosedSize; // drawing the closing animations
+    CAnimatedVariable        m_fAlpha;
+    bool                     m_bFadingOut     = false;
+    bool                     m_bReadyToDelete = false;
+    Vector2D                 m_vOriginalClosedPos;  // these will be used for calculations later on in
+    Vector2D                 m_vOriginalClosedSize; // drawing the closing animations
+    SWindowDecorationExtents m_eOriginalClosedExtents;
 
     // For pinned (sticky) windows
     bool m_bPinned = false;
@@ -307,6 +308,7 @@ class CWindow {
 
     // methods
     wlr_box                  getFullWindowBoundingBox();
+    SWindowDecorationExtents getFullWindowExtents();
     wlr_box                  getWindowInputBox();
     wlr_box                  getWindowIdealBoundingBoxIgnoreReserved();
     void                     updateWindowDecos();

@@ -332,8 +332,6 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        std::cout << "adding " << ARGS[i] << "\n";
-
         fullRequest += ARGS[i] + " ";
     }
 

@@ -889,11 +889,11 @@ bool windowRuleValid(const std::string& RULE) {
              RULE != "nofullscreenrequest" && RULE != "nomaximizerequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" &&
              RULE != "dimaround" && RULE != "windowdance" && RULE != "maximize" && RULE != "keepaspectratio" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 &&
              RULE.find("workspace") != 0 && RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" &&
-             RULE.find("bordersize") != 0);
+             RULE.find("bordersize") != 0 && RULE.find("xray") != 0);
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return !(RULE != "noanim" && RULE != "blur" && RULE.find("ignorealpha") != 0 && RULE.find("ignorezero") != 0);
+    return !(RULE != "noanim" && RULE != "blur" && RULE.find("ignorealpha") != 0 && RULE.find("ignorezero") != 0 && RULE.find("xray") != 0);
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {

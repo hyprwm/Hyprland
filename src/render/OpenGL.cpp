@@ -1022,6 +1022,21 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         }
     }
 
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto& lsl : m->m_aLayerSurfaceLayers) {
+            for (auto& ls : lsl) {
+                if (!ls->layerSurface || ls->xray != 1)
+                    continue;
+
+                if (ls->layerSurface->surface->opaque && ls->alpha.fl() >= 1.f)
+                    continue;
+
+                hasWindows = true;
+                break;
+            }
+        }
+    }
+
     if (!hasWindows)
         return;
 
@@ -1073,13 +1088,33 @@ bool CHyprOpenGLImpl::preBlurQueued() {
     return !(!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE || !*PBLUR || !m_RenderData.pCurrentMonData->blurFBShouldRender);
 }
 
+bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(SLayerSurface* pLayer, CWindow* pWindow) {
+    static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur:new_optimizations")->intValue;
+    static auto* const PBLURXRAY        = &g_pConfigManager->getConfigValuePtr("decoration:blur:xray")->intValue;
+
+    if (!m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID)
+        return false;
+
+    if (pWindow && pWindow->m_sAdditionalConfigData.xray.toUnderlying() == 0)
+        return false;
+
+    if (pLayer && pLayer->xray == 0)
+        return false;
+
+    if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_bIsFloating && !g_pCompositor->isWorkspaceSpecial(pWindow->m_iWorkspaceID)) || *PBLURXRAY)
+        return true;
+
+    if ((pLayer && pLayer->xray == 1) || (pWindow && pWindow->m_sAdditionalConfigData.xray.toUnderlying() == 1))
+        return true;
+
+    return false;
+}
+
 void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, float a, wlr_surface* pSurface, int round, bool blockBlurOptimization) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     static auto* const PBLURENABLED     = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
     static auto* const PNOBLUROVERSIZED = &g_pConfigManager->getConfigValuePtr("decoration:no_blur_on_oversized")->intValue;
-    static auto* const PBLURNEWOPTIMIZE = &g_pConfigManager->getConfigValuePtr("decoration:blur:new_optimizations")->intValue;
-    static auto* const PBLURXRAY        = &g_pConfigManager->getConfigValuePtr("decoration:blur:xray")->intValue;
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
 
@@ -1113,10 +1148,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
 
     wlr_region_scale(inverseOpaque.pixman(), inverseOpaque.pixman(), m_RenderData.pMonitor->scale);
 
-    //                                                                        vvv TODO: layered blur fbs?
-    const bool    USENEWOPTIMIZE = (*PBLURNEWOPTIMIZE && !blockBlurOptimization &&
-                                 ((m_pCurrentWindow && !m_pCurrentWindow->m_bIsFloating && !g_pCompositor->isWorkspaceSpecial(m_pCurrentWindow->m_iWorkspaceID)) || *PBLURXRAY) &&
-                                 m_RenderData.pCurrentMonData->blurFB.m_cTex.m_iTexID);
+    //   vvv TODO: layered blur fbs?
+    const bool    USENEWOPTIMIZE = shouldUseNewBlurOptimizations(m_pCurrentLayer, m_pCurrentWindow) && !blockBlurOptimization;
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {

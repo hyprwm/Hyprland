@@ -4,6 +4,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # <https://github.com/nix-systems/nix-systems>
+    systems.url = "github:nix-systems/default-linux";
+
     wlroots = {
       type = "gitlab";
       host = "gitlab.freedesktop.org";
@@ -16,11 +19,13 @@
     hyprland-protocols = {
       url = "github:hyprwm/hyprland-protocols";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
     };
 
     xdph = {
       url = "github:hyprwm/xdg-desktop-portal-hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
       inputs.hyprland-protocols.follows = "hyprland-protocols";
     };
   };
@@ -28,18 +33,14 @@
   outputs = inputs @ {
     self,
     nixpkgs,
+    systems,
     ...
   }: let
     inherit (nixpkgs) lib;
-    genSystems = lib.genAttrs [
-      # Add more systems if they are supported
-      "aarch64-linux"
-      "x86_64-linux"
-    ];
-
-    pkgsFor = genSystems (system:
+    eachSystem = lib.genAttrs (import systems);
+    pkgsFor = eachSystem (system:
       import nixpkgs {
-        inherit system;
+        localSystem = system;
         overlays = [
           self.overlays.hyprland-packages
           self.overlays.wlroots-hyprland
@@ -49,7 +50,7 @@
   in {
     overlays = import ./nix/overlays.nix {inherit self lib inputs;};
 
-    checks = genSystems (system:
+    checks = eachSystem (system:
       (lib.filterAttrs
         (n: _: (lib.hasPrefix "hyprland" n) && !(lib.hasSuffix "debug" n))
         self.packages.${system})
@@ -57,13 +58,13 @@
         inherit (self.packages.${system}) xdg-desktop-portal-hyprland;
       });
 
-    packages = genSystems (system:
+    packages = eachSystem (system:
       (self.overlays.default pkgsFor.${system} pkgsFor.${system})
       // {
         default = self.packages.${system}.hyprland;
       });
 
-    devShells = genSystems (system: {
+    devShells = eachSystem (system: {
       default = pkgsFor.${system}.mkShell {
         name = "hyprland-shell";
         nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
@@ -75,7 +76,7 @@
       };
     });
 
-    formatter = genSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
+    formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.alejandra);
 
     nixosModules.default = import ./nix/module.nix inputs;
     homeManagerModules.default = import ./nix/hm-module.nix self;

@@ -929,9 +929,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         auto curr = pWindow;
         do {
             curr = curr->m_sGroupData.pNextWindow;
-            if (curr->m_phForeignToplevel) {
+            if (curr->m_phForeignToplevel)
                 wlr_foreign_toplevel_handle_v1_set_activated(curr->m_phForeignToplevel, false);
-            }
         } while (curr->m_sGroupData.pNextWindow != pWindow);
     }
 

@@ -1005,6 +1005,9 @@ void CHyprDwindleLayout::toggleSplit(CWindow* pWindow) {
     if (!PNODE || !PNODE->pParent)
         return;
 
+    if (pWindow->m_bIsFullscreen)
+        return;
+
     PNODE->pParent->splitTop = !PNODE->pParent->splitTop;
 
     PNODE->pParent->recalcSizePosRecursive();

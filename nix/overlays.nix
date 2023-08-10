@@ -50,16 +50,8 @@ in {
   # Packages for extra software recommended for usage with Hyprland,
   # including forked or patched packages for compatibility.
   hyprland-extras = mkJoinedOverlays [
-    # Include any inputs' specific overlays whose attributes should
-    # be re-exported by the Hyprland flake.
-    #
-    inputs.xdph.overlays.default
-    # Provides:
-    # - xdg-desktop-portal-hyprland
-    # - hyprland-share-picker
-    #
-    # Attributes for `hyprland-extras` defined by this flake can
-    # go in the oberlay below.
+    inputs.xdph.overlays.xdg-desktop-portal-hyprland
+    inputs.xdph.overlays.hyprland-share-picker
     self.overlays.waybar-hyprland
   ];
 

@@ -41,10 +41,9 @@
     pkgsFor = eachSystem (system:
       import nixpkgs {
         localSystem = system;
-        overlays = [
-          self.overlays.hyprland-packages
-          self.overlays.wlroots-hyprland
-          inputs.hyprland-protocols.overlays.default
+        overlays = with self.overlays; [
+          hyprland-packages
+          hyprland-extras
         ];
       });
   in {
@@ -58,11 +57,27 @@
         inherit (self.packages.${system}) xdg-desktop-portal-hyprland;
       });
 
-    packages = eachSystem (system:
-      (self.overlays.default pkgsFor.${system} pkgsFor.${system})
-      // {
-        default = self.packages.${system}.hyprland;
-      });
+    packages = eachSystem (system: {
+      default = self.packages.${system}.hyprland;
+      inherit
+        (pkgsFor.${system})
+        # hyprland-packages
+        hyprland
+        hyprland-unwrapped
+        hyprland-debug
+        hyprland-hidpi
+        hyprland-nvidia
+        hyprland-no-hidpi
+        # hyprland-extras
+        xdg-desktop-portal-hyprland
+        hyprland-share-picker
+        waybar-hyprland
+        # dependencies
+        hyprland-protocols
+        wlroots-hyprland
+        udis86
+        ;
+    });
 
     devShells = eachSystem (system: {
       default = pkgsFor.${system}.mkShell {

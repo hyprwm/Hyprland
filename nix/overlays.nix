@@ -14,33 +14,38 @@
   mkJoinedOverlays = overlays: final: prev:
     lib.foldl' (attrs: overlay: attrs // (overlay final prev)) {} overlays;
 in {
+  # Contains what a user is most likely to care about:
+  # Hyprland itself, XDPH, the Share Picker, and patched Waybar.
   default = mkJoinedOverlays (with self.overlays; [
-    inputs.hyprland-protocols.overlays.default
-    wlroots-hyprland
     hyprland-packages
     hyprland-extras
   ]);
 
-  # Packages for variations of Hyprland, and its dependencies.
-  hyprland-packages = final: prev: {
-    hyprland = final.callPackage ./default.nix {
-      version = "${props.version}+date=${mkDate (self.lastModifiedDate or "19700101")}_${self.shortRev or "dirty"}";
-      wlroots = final.wlroots-hyprland;
-      commit = self.rev or "";
-      inherit (final) udis86 hyprland-protocols;
-    };
+  # Packages for variations of Hyprland, dependencies included.
+  hyprland-packages = mkJoinedOverlays [
+    # Dependencies
+    inputs.hyprland-protocols.overlays.default
+    self.overlays.wlroots-hyprland
+    self.overlays.udis86
+    # Hyprland packages themselves
+    (final: prev: {
+      hyprland = final.callPackage ./default.nix {
+        version = "${props.version}+date=${mkDate (self.lastModifiedDate or "19700101")}_${self.shortRev or "dirty"}";
+        wlroots = final.wlroots-hyprland;
+        commit = self.rev or "";
+        inherit (final) udis86 hyprland-protocols;
+      };
 
-    hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
-    hyprland-debug = final.hyprland.override {debug = true;};
-    hyprland-hidpi = final.hyprland.override {hidpiXWayland = true;};
-    hyprland-nvidia = final.hyprland.override {nvidiaPatches = true;};
-    hyprland-no-hidpi =
-      builtins.trace
-      "hyprland-no-hidpi was removed. Please use the default package."
-      final.hyprland;
-
-    udis86 = final.callPackage ./udis86.nix {};
-  };
+      hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
+      hyprland-debug = final.hyprland.override {debug = true;};
+      hyprland-hidpi = final.hyprland.override {hidpiXWayland = true;};
+      hyprland-nvidia = final.hyprland.override {nvidiaPatches = true;};
+      hyprland-no-hidpi =
+        builtins.trace
+        "hyprland-no-hidpi was removed. Please use the default package."
+        final.hyprland;
+    })
+  ];
 
   # Packages for extra software recommended for usage with Hyprland,
   # including forked or patched packages for compatibility.
@@ -62,6 +67,10 @@ in {
       '';
       mesonFlags = old.mesonFlags ++ ["-Dexperimental=true"];
     });
+  };
+
+  udis86 = final: prev: {
+    udis86 = final.callPackage ./udis86.nix {};
   };
 
   # Patched version of wlroots for Hyprland.

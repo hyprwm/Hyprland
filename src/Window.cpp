@@ -687,7 +687,7 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
         g_pCompositor->setWindowFullscreen(PCURRENT, false, WORKSPACE->m_efFullscreenMode);
 
     PCURRENT->setHidden(true);
-    pWindow->setHidden(false);
+    pWindow->setHidden(false); // can remove m_pLastWindow 
 
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 

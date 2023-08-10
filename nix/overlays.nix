@@ -24,12 +24,7 @@ in {
   # Packages for variations of Hyprland, and its dependencies.
   hyprland-packages = final: prev: {
     hyprland = final.callPackage ./default.nix {
-      version =
-        props.version
-        + "+date="
-        + (mkDate (self.lastModifiedDate or "19700101"))
-        + "_"
-        + (self.shortRev or "dirty");
+      version = "${props.version}+date=${mkDate (self.lastModifiedDate or "19700101")}_${self.shortRev or "dirty"}";
       wlroots = final.wlroots-hyprland;
       commit = self.rev or "";
       inherit (final) udis86 hyprland-protocols;
@@ -74,10 +69,7 @@ in {
   # the standard version in nixpkgs.
   wlroots-hyprland = final: prev: {
     wlroots-hyprland = final.callPackage ./wlroots.nix {
-      version =
-        mkDate (inputs.wlroots.lastModifiedDate or "19700101")
-        + "_"
-        + (inputs.wlroots.shortRev or "dirty");
+      version = "${mkDate (inputs.wlroots.lastModifiedDate or "19700101")}_${inputs.wlroots.shortRev or "dirty"}";
       src = inputs.wlroots;
       libdisplay-info = prev.libdisplay-info.overrideAttrs (old: {
         version = "0.1.1+date=2023-03-02";

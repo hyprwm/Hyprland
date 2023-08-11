@@ -8,11 +8,13 @@
 #define OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION 3
 
 static void destroyManagerResource(wl_client* client, wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource, false);
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource, true);
+    wl_resource_destroy(resource);
 }
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource, false);
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource, true);
+    wl_resource_destroy(resource);
 }
 
 static void destroyOutputResourceOnly(wl_resource* resource) {

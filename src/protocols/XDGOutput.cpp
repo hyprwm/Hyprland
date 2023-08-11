@@ -98,6 +98,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 
     if (!pXDGOutput->resource->good()) {
         pXDGOutput->resource.release();
+        m_vXDGOutputs.pop_back();
         return;
     }
 

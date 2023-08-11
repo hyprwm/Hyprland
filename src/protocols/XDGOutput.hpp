@@ -18,8 +18,8 @@ class CXDGOutputProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         onManagerResourceDestroy(wl_resource* res);
-    void         onOutputResourceDestroy(wl_resource* res);
+    void         onManagerResourceDestroy(wl_resource* res, bool blockDestroy);
+    void         onOutputResourceDestroy(wl_resource* res, bool blockDestroy);
     void         onManagerGetXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource);
 
   private:

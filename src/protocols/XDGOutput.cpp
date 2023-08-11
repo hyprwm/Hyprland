@@ -8,19 +8,19 @@
 #define OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION 3
 
 static void destroyManagerResource(wl_client* client, wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource);
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource, false);
 }
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource);
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource, false);
 }
 
 static void destroyOutputResourceOnly(wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource);
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource, true);
 }
 
 static void destroyManagerResourceOnly(wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource);
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource, true);
 }
 
 static void getXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
@@ -38,12 +38,22 @@ static const struct zxdg_output_v1_interface OUTPUT_IMPL = {
     .destroy = destroyOutputResource,
 };
 
-void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagerResources, [&](const auto& other) { return !other->good() || other->resource() == res; });
+void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res, bool blockDestroy) {
+    std::erase_if(m_vManagerResources, [&](const auto& other) {
+        const bool TOREMOVE = !other || !other->good() || other->resource() == res;
+        if (blockDestroy && TOREMOVE && other)
+            other->blockDestroy(true);
+        return TOREMOVE;
+    });
 }
 
-void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vXDGOutputs, [&](const auto& other) { return !other->resource || !other->resource->good() || other->resource->resource() == res; });
+void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res, bool blockDestroy) {
+    std::erase_if(m_vXDGOutputs, [&](const auto& other) {
+        const bool TOREMOVE = !other || !other->resource || !other->resource->good() || other->resource->resource() == res;
+        if (blockDestroy && TOREMOVE && other && other->resource)
+            other->resource->blockDestroy(true);
+        return TOREMOVE;
+    });
 }
 
 void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

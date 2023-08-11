@@ -29,6 +29,10 @@ void CWaylandResource::onResourceDestroy() {
     m_bDefunct = true;
 }
 
+void CWaylandResource::blockDestroy(bool block) {
+    m_bDestroyInDestructor = !block;
+}
+
 CWaylandResource::~CWaylandResource() {
     const bool DESTROY = m_pWLResource && m_bDestroyInDestructor && !m_bDefunct;
 

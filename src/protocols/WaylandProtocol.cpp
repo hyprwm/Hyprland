@@ -17,6 +17,7 @@ CWaylandResource::CWaylandResource(wl_client* client, const wl_interface* wlInte
     m_pWLClient            = client;
     m_bDestroyInDestructor = destroyInDestructor;
 
+    wl_list_init(&m_liResourceDestroy.link);
     m_liResourceDestroy.notify = resourceDestroyNotify;
     wl_resource_add_destroy_listener(m_pWLResource, &m_liResourceDestroy);
 
@@ -30,6 +31,11 @@ void CWaylandResource::onResourceDestroy() {
 
 CWaylandResource::~CWaylandResource() {
     const bool DESTROY = m_pWLResource && m_bDestroyInDestructor && !m_bDefunct;
+
+    if (good()) {
+        wl_list_remove(&m_liResourceDestroy.link);
+        wl_list_init(&m_liResourceDestroy.link);
+    }
 
     Debug::log(TRACE, "[wl res %lx] destroying (wl_resource_destroy will be %s)", m_pWLResource, (DESTROY ? "sent" : "not sent"));
 

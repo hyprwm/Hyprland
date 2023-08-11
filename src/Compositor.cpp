@@ -826,6 +826,7 @@ CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
 }
 
 void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
+
     if (g_pCompositor->m_sSeat.exclusiveClient) {
         Debug::log(LOG, "Disallowing setting focus to a window due to there being an active input inhibitor layer.");
         return;

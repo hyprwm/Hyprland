@@ -79,12 +79,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "Backtrace:\n";
 
-    void*  bt[1024];
-    size_t btSize;
-    char** btSymbols;
-
-    btSize    = backtrace(bt, 1024);
-    btSymbols = backtrace_symbols(bt, btSize);
+    const auto CALLSTACK = getBacktrace();
 
 #if defined(KERN_PROC_PATHNAME)
     int mib[] = {
@@ -111,19 +106,17 @@ void CrashReporter::createAndSaveCrash(int sig) {
     const auto FPATH = std::filesystem::canonical("/proc/self/exe");
 #endif
 
-    for (size_t i = 0; i < btSize; ++i) {
-        finalCrashReport += getFormat("\t#%lu | %s\n", i, btSymbols[i]);
+    for (size_t i = 0; i < CALLSTACK.size(); ++i) {
+        finalCrashReport += getFormat("\t#%lu | %s\n", i, CALLSTACK[i].desc.c_str());
 
 #ifdef __clang__
-        const auto CMD = getFormat("llvm-addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)bt[i]);
+        const auto CMD = getFormat("llvm-addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
 #else
-        const auto CMD = getFormat("addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)bt[i]);
+        const auto CMD = getFormat("addr2line -e %s -f 0x%lx", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
 #endif
         const auto ADDR2LINE = replaceInString(execAndGet(CMD.c_str()), "\n", "\n\t\t");
         finalCrashReport += "\t\t" + ADDR2LINE.substr(0, ADDR2LINE.length() - 2);
     }
-
-    free(btSymbols);
 
     finalCrashReport += "\n\nLog tail:\n";
 

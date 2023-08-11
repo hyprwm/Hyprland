@@ -6,6 +6,7 @@
 #include <sys/utsname.h>
 #include <iomanip>
 #include <sstream>
+#include <execinfo.h>
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -695,4 +696,21 @@ std::string replaceInString(std::string subject, const std::string& search, cons
         pos += replace.length();
     }
     return subject;
+}
+
+std::vector<SCallstackFrameInfo> getBacktrace() {
+    std::vector<SCallstackFrameInfo> callstack;
+
+    void*                            bt[1024];
+    size_t                           btSize;
+    char**                           btSymbols;
+
+    btSize    = backtrace(bt, 1024);
+    btSymbols = backtrace_symbols(bt, btSize);
+
+    for (size_t i = 0; i < btSize; ++i) {
+        callstack.emplace_back(SCallstackFrameInfo{bt[i], std::string{btSymbols[i]}});
+    }
+
+    return callstack;
 }

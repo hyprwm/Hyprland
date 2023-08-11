@@ -412,7 +412,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
-            } else if (r.szRule == "center") {
             } else if (r.szRule.find("center") == 0) {
                 auto RESERVEDOFFSET = Vector2D();
                 try {

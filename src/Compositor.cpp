@@ -832,6 +832,11 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
+    if (pWindow && pWindow->isHidden() && pWindow->m_sGroupData.pNextWindow) {
+        // grouped, change the current to us
+        pWindow->setGroupCurrent(pWindow);
+    }
+
     if (!pWindow || !windowValidMapped(pWindow)) {
         const auto PLASTWINDOW = m_pLastWindow;
         m_pLastWindow          = nullptr;

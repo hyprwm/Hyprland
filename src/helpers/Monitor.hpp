@@ -9,8 +9,21 @@
 #include <xf86drmMode.h>
 #include "Timer.hpp"
 #include "Region.hpp"
+#include <optional>
 
-struct SMonitorRule;
+struct SMonitorRule {
+    std::string         name        = "";
+    Vector2D            resolution  = Vector2D(1280, 720);
+    Vector2D            offset      = Vector2D(0, 0);
+    float               scale       = 1;
+    float               refreshRate = 60;
+    bool                disabled    = false;
+    wl_output_transform transform   = WL_OUTPUT_TRANSFORM_NORMAL;
+    std::string         mirrorOf    = "";
+    bool                enable10bit = false;
+    drmModeModeInfo     drmMode     = {};
+    std::optional<int>  vrr;
+};
 
 class CMonitor {
   public:
@@ -57,6 +70,8 @@ class CMonitor {
     wl_event_source*    renderTimer  = nullptr; // for RAT
     bool                RATScheduled = false;
     CTimer              lastPresentationTimer;
+
+    SMonitorRule        activeMonitorRule;
 
     // mirroring
     CMonitor*              pMirrorOf = nullptr;

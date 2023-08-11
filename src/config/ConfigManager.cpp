@@ -660,6 +660,9 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         } else if (ARGS[argno] == "transform") {
             newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
             argno++;
+        } else if (ARGS[argno] == "vrr") {
+            newrule.vrr = std::stoi(ARGS[argno + 1]);
+            argno++;
         } else if (ARGS[argno] == "workspace") {
             std::string    name = "";
             int            wsId = getWorkspaceIDFromString(ARGS[argno + 1], name);
@@ -2070,7 +2073,9 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
         if (!m->output)
             return;
 
-        if (*PVRR == 0) {
+        const auto USEVRR = m->activeMonitorRule.vrr.has_value() ? m->activeMonitorRule.vrr.value() : *PVRR;
+
+        if (USEVRR == 0) {
             if (m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
 
@@ -2080,7 +2085,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             }
             m->vrrActive = false;
             return;
-        } else if (*PVRR == 1) {
+        } else if (USEVRR == 1) {
             if (!m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 1);
 
@@ -2095,7 +2100,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             }
             m->vrrActive = true;
             return;
-        } else if (*PVRR == 2) {
+        } else if (USEVRR == 2) {
             /* fullscreen */
             m->vrrActive = true;
 

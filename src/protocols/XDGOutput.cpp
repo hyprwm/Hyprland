@@ -8,13 +8,11 @@
 #define OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION 3
 
 static void destroyManagerResource(wl_client* client, wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource, true);
-    wl_resource_destroy(resource);
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource, false);
 }
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource, true);
-    wl_resource_destroy(resource);
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource, false);
 }
 
 static void destroyOutputResourceOnly(wl_resource* resource) {
@@ -43,7 +41,7 @@ static const struct zxdg_output_v1_interface OUTPUT_IMPL = {
 void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res, bool blockDestroy) {
     std::erase_if(m_vManagerResources, [&](const auto& other) {
         const bool TOREMOVE = !other || !other->good() || other->resource() == res;
-        if (blockDestroy && TOREMOVE && other)
+        if (blockDestroy && TOREMOVE && other && other->resource() != res)
             other->blockDestroy(true);
         return TOREMOVE;
     });
@@ -52,7 +50,7 @@ void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res, bool blockDe
 void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res, bool blockDestroy) {
     std::erase_if(m_vXDGOutputs, [&](const auto& other) {
         const bool TOREMOVE = !other || !other->resource || !other->resource->good() || other->resource->resource() == res;
-        if (blockDestroy && TOREMOVE && other && other->resource)
+        if (blockDestroy && TOREMOVE && other && other->resource && other->resource() != res)
             other->resource->blockDestroy(true);
         return TOREMOVE;
     });

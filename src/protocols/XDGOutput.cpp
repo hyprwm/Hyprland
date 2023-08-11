@@ -50,7 +50,7 @@ void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res, bool blockDe
 void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res, bool blockDestroy) {
     std::erase_if(m_vXDGOutputs, [&](const auto& other) {
         const bool TOREMOVE = !other || !other->resource || !other->resource->good() || other->resource->resource() == res;
-        if (blockDestroy && TOREMOVE && other && other->resource && other->resource() != res)
+        if (blockDestroy && TOREMOVE && other && other->resource && other->resource->resource() != res)
             other->resource->blockDestroy(true);
         return TOREMOVE;
     });

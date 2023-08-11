@@ -885,11 +885,11 @@ void CConfigManager::handleUnbind(const std::string& command, const std::string&
 bool windowRuleValid(const std::string& RULE) {
     return !(RULE != "float" && RULE != "tile" && RULE.find("opacity") != 0 && RULE.find("move") != 0 && RULE.find("size") != 0 && RULE.find("minsize") != 0 &&
              RULE.find("maxsize") != 0 && RULE.find("pseudo") != 0 && RULE.find("monitor") != 0 && RULE.find("idleinhibit") != 0 && RULE != "nofocus" && RULE != "noblur" &&
-             RULE != "noshadow" && RULE != "nodim" && RULE != "noborder" && RULE != "center" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" &&
-             RULE != "nofullscreenrequest" && RULE != "nomaximizerequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" &&
-             RULE != "dimaround" && RULE != "windowdance" && RULE != "maximize" && RULE != "keepaspectratio" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 &&
-             RULE.find("workspace") != 0 && RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" &&
-             RULE.find("bordersize") != 0 && RULE.find("xray") != 0);
+             RULE != "noshadow" && RULE != "nodim" && RULE != "noborder" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" && RULE != "nofullscreenrequest" &&
+             RULE != "nomaximizerequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" && RULE != "windowdance" &&
+             RULE != "maximize" && RULE != "keepaspectratio" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 && RULE.find("workspace") != 0 &&
+             RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" && RULE.find("bordersize") != 0 && RULE.find("xray") != 0 &&
+             RULE.find("center") != 0);
 }
 
 bool layerRuleValid(const std::string& RULE) {
@@ -917,7 +917,10 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         return;
     }
 
-    m_dWindowRules.push_back({RULE, VALUE});
+    if (RULE.find("size") == 0 || RULE.find("maxsize") == 0 || RULE.find("minsize") == 0)
+        m_dWindowRules.push_front({RULE, VALUE});
+    else
+        m_dWindowRules.push_back({RULE, VALUE});
 }
 
 void CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
@@ -1061,7 +1064,10 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         return;
     }
 
-    m_dWindowRules.push_back(rule);
+    if (RULE.find("size") == 0 || RULE.find("maxsize") == 0 || RULE.find("minsize") == 0)
+        m_dWindowRules.push_front(rule);
+    else
+        m_dWindowRules.push_back(rule);
 }
 
 void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBlur) {

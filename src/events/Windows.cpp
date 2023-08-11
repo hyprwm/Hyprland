@@ -414,10 +414,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 } catch (...) { Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
             } else if (r.szRule.find("center") == 0) {
                 auto RESERVEDOFFSET = Vector2D();
-                try {
-                    if (std::stoi(r.szRule.substr(7)) == 1)
-                        RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
-                } catch (std::exception& e) {}
+                const auto ARGS = CVarList(r.szRule, 2, ' ');
+                if (ARGS[1] == "1")
+                    RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
                 PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f + RESERVEDOFFSET;
             }

@@ -4,7 +4,7 @@
 
 class CWaylandResource {
   public:
-    CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id, bool destroyInDestructor = false);
+    CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id, bool destroyInDestructor = true);
     ~CWaylandResource();
 
     bool         good();
@@ -13,9 +13,13 @@ class CWaylandResource {
 
     void         setImplementation(const void* impl, void* data, wl_resource_destroy_func_t df);
 
+    wl_listener  m_liResourceDestroy; // private but has to be public
+    void         onResourceDestroy();
+
   private:
     bool         m_bDestroyInDestructor = false;
     bool         m_bImplementationSet   = false;
+    bool         m_bDefunct             = false; // m_liResourceDestroy fired
     wl_client*   m_pWLClient            = nullptr;
     wl_resource* m_pWLResource          = nullptr;
 };

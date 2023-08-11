@@ -9,16 +9,18 @@
 
 static void destroyManagerResource(wl_client* client, wl_resource* resource) {
     ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource);
-    wl_resource_destroy(resource);
 }
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
     ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource);
-    wl_resource_destroy(resource);
 }
 
 static void destroyOutputResourceOnly(wl_resource* resource) {
     ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource);
+}
+
+static void destroyManagerResourceOnly(wl_resource* resource) {
+    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource);
 }
 
 static void getXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
@@ -37,22 +39,22 @@ static const struct zxdg_output_v1_interface OUTPUT_IMPL = {
 };
 
 void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagerResources, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_vManagerResources, [&](const auto& other) { return !other->good() || other->resource() == res; });
 }
 
 void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vXDGOutputs, [&](const auto& other) { return !other->resource || other->resource->resource() == res; });
+    std::erase_if(m_vXDGOutputs, [&](const auto& other) { return !other->resource || !other->resource->good() || other->resource->resource() == res; });
 }
 
 void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CWaylandResource>(client, &zxdg_output_manager_v1_interface, ver, id, false)).get();
+    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CWaylandResource>(client, &zxdg_output_manager_v1_interface, ver, id, true)).get();
 
     if (!RESOURCE->good()) {
         Debug::log(LOG, "Couldn't bind XDGOutputMgr");
         return;
     }
 
-    RESOURCE->setImplementation(&MANAGER_IMPL, this, nullptr);
+    RESOURCE->setImplementation(&MANAGER_IMPL, this, destroyManagerResourceOnly);
 }
 
 CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

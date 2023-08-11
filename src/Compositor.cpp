@@ -99,6 +99,9 @@ void CCompositor::initServer() {
 
     initManagers(STAGE_PRIORITY);
 
+    if (const auto ENV = getenv("HYPRLAND_TRACE"); ENV && std::string(ENV) == "1")
+        Debug::trace = true;
+
     wlr_log_init(WLR_INFO, NULL);
 
     const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");

@@ -33,6 +33,9 @@ void Debug::log(LogLevel level, const char* fmt, ...) {
     if (disableLogs && *disableLogs)
         return;
 
+    if (level == TRACE && !trace)
+        return;
+
     // log to a file
     std::ofstream ofs;
     ofs.open(logFile, std::ios::out | std::ios::app);

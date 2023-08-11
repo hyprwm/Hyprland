@@ -4,7 +4,7 @@
 
 class CWaylandResource {
   public:
-    CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id, bool destroyInDestructor = true);
+    CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id, bool destroyInDestructor = false);
     ~CWaylandResource();
 
     bool         good();

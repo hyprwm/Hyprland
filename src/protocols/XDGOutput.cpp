@@ -41,8 +41,8 @@ static const struct zxdg_output_v1_interface OUTPUT_IMPL = {
 void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res, bool blockDestroy) {
     std::erase_if(m_vManagerResources, [&](const auto& other) {
         const bool TOREMOVE = !other || !other->good() || other->resource() == res;
-        if (blockDestroy && TOREMOVE && other && other->resource() != res)
-            other->blockDestroy(true);
+        if (!blockDestroy && other && other->resource() == res)
+            other->blockDestroy(false);
         return TOREMOVE;
     });
 }
@@ -50,14 +50,14 @@ void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res, bool blockDe
 void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res, bool blockDestroy) {
     std::erase_if(m_vXDGOutputs, [&](const auto& other) {
         const bool TOREMOVE = !other || !other->resource || !other->resource->good() || other->resource->resource() == res;
-        if (blockDestroy && TOREMOVE && other && other->resource && other->resource->resource() != res)
-            other->resource->blockDestroy(true);
+        if (!blockDestroy && TOREMOVE && other && other->resource && other->resource->resource() == res)
+            other->resource->blockDestroy(false);
         return TOREMOVE;
     });
 }
 
 void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CWaylandResource>(client, &zxdg_output_manager_v1_interface, ver, id, true)).get();
+    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CWaylandResource>(client, &zxdg_output_manager_v1_interface, ver, id)).get();
 
     if (!RESOURCE->good()) {
         Debug::log(LOG, "Couldn't bind XDGOutputMgr");

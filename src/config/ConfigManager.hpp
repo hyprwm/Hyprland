@@ -48,6 +48,7 @@ struct SWorkspaceRule {
     std::optional<int>     border;
     std::optional<int>     rounding;
     std::optional<int>     decorate;
+    std::optional<int>     shadow;
 };
 
 struct SMonitorAdditionalReservedArea {

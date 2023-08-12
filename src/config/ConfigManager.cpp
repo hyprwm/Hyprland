@@ -1144,6 +1144,8 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
             wsRule.borderSize = std::stoi(rule.substr(delim + 11));
         else if ((delim = rule.find("border:")) != std::string::npos)
             wsRule.border = configStringToInt(rule.substr(delim + 7));
+        else if ((delim = rule.find("shadow:")) != std::string::npos)
+            wsRule.shadow= configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("rounding:")) != std::string::npos)
             wsRule.rounding = configStringToInt(rule.substr(delim + 9));
         else if ((delim = rule.find("decorate:")) != std::string::npos)

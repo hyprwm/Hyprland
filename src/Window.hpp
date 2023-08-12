@@ -104,6 +104,7 @@ struct SWindowSpecialRenderData {
     bool                       rounding   = true;
     bool                       border     = true;
     bool                       decorate   = true;
+    bool                       shadow     = true;
 };
 
 struct SWindowAdditionalConfigData {

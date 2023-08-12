@@ -4,6 +4,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # <https://github.com/nix-systems/nix-systems>
+    systems.url = "github:nix-systems/default-linux";
+
     wlroots = {
       type = "gitlab";
       host = "gitlab.freedesktop.org";
@@ -16,11 +19,13 @@
     hyprland-protocols = {
       url = "github:hyprwm/hyprland-protocols";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
     };
 
     xdph = {
       url = "github:hyprwm/xdg-desktop-portal-hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
       inputs.hyprland-protocols.follows = "hyprland-protocols";
     };
   };
@@ -28,39 +33,23 @@
   outputs = inputs @ {
     self,
     nixpkgs,
+    systems,
     ...
   }: let
-    lib = nixpkgs.lib.extend (import ./nix/lib.nix);
-    genSystems = lib.genAttrs [
-      # Add more systems if they are supported
-      "aarch64-linux"
-      "x86_64-linux"
-    ];
-
-    pkgsFor = genSystems (system:
+    inherit (nixpkgs) lib;
+    eachSystem = lib.genAttrs (import systems);
+    pkgsFor = eachSystem (system:
       import nixpkgs {
-        inherit system;
-        overlays = [
-          self.overlays.hyprland-packages
-          self.overlays.wlroots-hyprland
-          inputs.hyprland-protocols.overlays.default
+        localSystem = system;
+        overlays = with self.overlays; [
+          hyprland-packages
+          hyprland-extras
         ];
       });
   in {
-    overlays =
-      (import ./nix/overlays.nix {inherit self lib inputs;})
-      // {
-        default =
-          lib.mkJoinedOverlays
-          (with self.overlays; [
-            hyprland-packages
-            hyprland-extras
-            wlroots-hyprland
-            inputs.hyprland-protocols.overlays.default
-          ]);
-      };
+    overlays = import ./nix/overlays.nix {inherit self lib inputs;};
 
-    checks = genSystems (system:
+    checks = eachSystem (system:
       (lib.filterAttrs
         (n: _: (lib.hasPrefix "hyprland" n) && !(lib.hasSuffix "debug" n))
         self.packages.${system})
@@ -68,16 +57,32 @@
         inherit (self.packages.${system}) xdg-desktop-portal-hyprland;
       });
 
-    packages = genSystems (system:
-      (self.overlays.default pkgsFor.${system} pkgsFor.${system})
-      // {
-        default = self.packages.${system}.hyprland;
-      });
+    packages = eachSystem (system: {
+      default = self.packages.${system}.hyprland;
+      inherit
+        (pkgsFor.${system})
+        # hyprland-packages
+        hyprland
+        hyprland-unwrapped
+        hyprland-debug
+        hyprland-hidpi
+        hyprland-nvidia
+        hyprland-no-hidpi
+        # hyprland-extras
+        xdg-desktop-portal-hyprland
+        hyprland-share-picker
+        waybar-hyprland
+        # dependencies
+        hyprland-protocols
+        wlroots-hyprland
+        udis86
+        ;
+    });
 
-    devShells = genSystems (system: {
+    devShells = eachSystem (system: {
       default = pkgsFor.${system}.mkShell {
         name = "hyprland-shell";
-        nativeBuildInputs = with pkgsFor.${system}; [ cmake python3 ];
+        nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
         buildInputs = [self.packages.${system}.wlroots-hyprland];
         inputsFrom = [
           self.packages.${system}.wlroots-hyprland
@@ -86,7 +91,7 @@
       };
     });
 
-    formatter = genSystems (system: pkgsFor.${system}.alejandra);
+    formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.alejandra);
 
     nixosModules.default = import ./nix/module.nix inputs;
     homeManagerModules.default = import ./nix/hm-module.nix self;

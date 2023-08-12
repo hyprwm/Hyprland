@@ -59,6 +59,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
+    if (!m_pWindow->m_sSpecialRenderData.shadow)
+        return;
+
     if (m_pWindow->m_sAdditionalConfigData.forceNoShadow)
         return;
 

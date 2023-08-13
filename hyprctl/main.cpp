@@ -193,20 +193,15 @@ void requestHyprpaper(std::string arg) {
         return;
     }
 
-    // get the instance signature
-    auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
-
-    if (!instanceSig) {
+    if (instanceSignature.empty()) {
         std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
         return;
     }
 
-    std::string instanceSigStr = std::string(instanceSig);
-
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.hyprpaper.sock";
+    std::string socketPath = "/tmp/hypr/" + instanceSignature + "/.hyprpaper.sock";
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
@@ -214,6 +209,9 @@ void requestHyprpaper(std::string arg) {
         std::cout << "Couldn't connect to " << socketPath << ". (3)";
         return;
     }
+
+    arg = arg.substr(arg.find_first_of('/') + 1); // strip flags
+    arg = arg.substr(arg.find_first_of(' ') + 1); // strip "hyprpaper"
 
     auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
 
@@ -430,7 +428,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/keyword"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/hyprpaper"))
-        request(fullRequest, 2);
+        requestHyprpaper(fullRequest);
     else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {

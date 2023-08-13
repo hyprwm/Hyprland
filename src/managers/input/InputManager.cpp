@@ -85,6 +85,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored && !refocus)
         return;
 
+    if (time)
+        g_pCompositor->notifyIdleActivity();
+
     EMIT_HOOK_EVENT("mouseMove", MOUSECOORDSFLOORED);
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
@@ -318,9 +321,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     m_bEmptyFocusCursorSet = false;
-
-    if (time)
-        g_pCompositor->notifyIdleActivity();
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 

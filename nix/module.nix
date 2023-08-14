@@ -30,9 +30,7 @@ in {
         '';
       };
 
-    package = (mkPackageOptionMD pkgs "hyprland") {
-      default = inputs.self.packages.${pkgs.system}.hyprland;
-    };
+    package = mkPackageOptionMD inputs.self.packages.${pkgs.system} "hyprland" { };
 
     finalPackage = mkOption {
       type = types.package;

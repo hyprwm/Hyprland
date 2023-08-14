@@ -605,19 +605,20 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         return;
     }
 
-    // get monitor
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const  auto        PMONITOR       = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const  auto        PWORKSPACEDATA = getMasterWorkspaceData(PMONITOR->activeWorkspace);
+    static auto* const ALWAYSCENTER   = &g_pConfigManager->getConfigValuePtr("master:always_center_master")->intValue;
 
-    if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) < 2)
+    eOrientation orientation = PWORKSPACEDATA->orientation;
+    bool         centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
+    double       delta       = 0;
+
+    if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 && !centered)
         return;
 
     m_bForceWarps = true;
 
-    const auto PWORKSPACEDATA = getMasterWorkspaceData(PMONITOR->activeWorkspace);
-
-    double     delta = 0;
-
-    switch (PWORKSPACEDATA->orientation) {
+    switch (orientation) {
         case ORIENTATION_LEFT: delta = pixResize.x / PMONITOR->vecSize.x; break;
         case ORIENTATION_RIGHT: delta = -pixResize.x / PMONITOR->vecSize.x; break;
         case ORIENTATION_BOTTOM: delta = -pixResize.y / PMONITOR->vecSize.y; break;

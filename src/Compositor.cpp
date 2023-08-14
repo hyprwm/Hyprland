@@ -2485,3 +2485,37 @@ void CCompositor::setIdleActivityInhibit(bool enabled) {
     wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, enabled);
     wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, !enabled);
 }
+
+void CCompositor::arrangeMonitors() {
+    std::vector<CMonitor*> toArrange;
+    std::vector<CMonitor*> arranged;
+
+    for (auto& m : m_vMonitors)
+        toArrange.push_back(m.get());
+
+    for (auto it = toArrange.begin(); it != toArrange.end(); ++it) {
+        auto m = *it;
+
+        if (m->activeMonitorRule.offset > Vector2D{-1, -1}) {
+            // explicit.
+            m->moveTo(m->activeMonitorRule.offset);
+            arranged.push_back(m);
+            it = toArrange.erase(it);
+
+            if (it == toArrange.end())
+                break;
+        }
+    }
+
+    // auto left
+    int maxOffset = 0;
+    for (auto& m : arranged) {
+        if (m->vecPosition.x + m->vecSize.x > maxOffset)
+            maxOffset = m->vecPosition.x + m->vecSize.x;
+    }
+
+    for (auto& m : toArrange) {
+        m->moveTo({maxOffset, 0});
+        maxOffset += m->vecPosition.x;
+    }
+}

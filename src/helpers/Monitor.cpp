@@ -489,6 +489,8 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         // remove from mvmonitors
         std::erase_if(g_pCompositor->m_vMonitors, [&](const auto& other) { return other.get() == this; });
 
+        g_pCompositor->arrangeMonitors();
+
         g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
 
         g_pCompositor->sanityCheckWorkspaces();
@@ -621,4 +623,11 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
 
 void CMonitor::setSpecialWorkspace(const int& id) {
     setSpecialWorkspace(g_pCompositor->getWorkspaceByID(id));
+}
+
+void CMonitor::moveTo(const Vector2D& pos) {
+    vecPosition = pos;
+
+    if (!isMirror())
+        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, output, (int)vecPosition.x, (int)vecPosition.y);
 }

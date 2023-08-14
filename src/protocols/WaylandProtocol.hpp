@@ -4,25 +4,27 @@
 
 class CWaylandResource {
   public:
-    CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id, bool destroyInDestructor = false);
+    CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id);
     ~CWaylandResource();
 
     bool         good();
     wl_resource* resource();
     uint32_t     version();
-    void         blockDestroy(bool block);
 
-    void         setImplementation(const void* impl, void* data, wl_resource_destroy_func_t df);
+    void         setImplementation(const void* impl, wl_resource_destroy_func_t df);
 
     wl_listener  m_liResourceDestroy; // private but has to be public
-    void         onResourceDestroy();
+    void         markDefunct();
+
+    void*        data();
+    void         setData(void* data);
 
   private:
-    bool         m_bDestroyInDestructor = false;
-    bool         m_bImplementationSet   = false;
-    bool         m_bDefunct             = false; // m_liResourceDestroy fired
-    wl_client*   m_pWLClient            = nullptr;
-    wl_resource* m_pWLResource          = nullptr;
+    bool         m_bImplementationSet = false;
+    bool         m_bDefunct           = false; // m_liResourceDestroy fired
+    wl_client*   m_pWLClient          = nullptr;
+    wl_resource* m_pWLResource        = nullptr;
+    void*        m_pData              = nullptr;
 };
 
 class IWaylandProtocol {

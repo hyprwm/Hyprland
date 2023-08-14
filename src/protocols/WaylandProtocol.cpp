@@ -3,10 +3,10 @@
 
 static void resourceDestroyNotify(wl_listener* listener, void* data) {
     CWaylandResource* pResource = wl_container_of(listener, pResource, m_liResourceDestroy);
-    pResource->onResourceDestroy();
+    pResource->markDefunct();
 }
 
-CWaylandResource::CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id, bool destroyInDestructor) {
+CWaylandResource::CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id) {
     m_pWLResource = wl_resource_create(client, wlInterface, version, id);
 
     if (!m_pWLResource) {
@@ -14,8 +14,9 @@ CWaylandResource::CWaylandResource(wl_client* client, const wl_interface* wlInte
         return;
     }
 
-    m_pWLClient            = client;
-    m_bDestroyInDestructor = destroyInDestructor;
+    wl_resource_set_user_data(m_pWLResource, this);
+
+    m_pWLClient = client;
 
     wl_list_init(&m_liResourceDestroy.link);
     m_liResourceDestroy.notify = resourceDestroyNotify;
@@ -24,22 +25,19 @@ CWaylandResource::CWaylandResource(wl_client* client, const wl_interface* wlInte
     Debug::log(TRACE, "[wl res %lx] created", m_pWLResource);
 }
 
-void CWaylandResource::onResourceDestroy() {
+void CWaylandResource::markDefunct() {
     Debug::log(TRACE, "[wl res %lx] now defunct", m_pWLResource);
     m_bDefunct = true;
 }
 
-void CWaylandResource::blockDestroy(bool block) {
-    m_bDestroyInDestructor = !block;
-}
-
 CWaylandResource::~CWaylandResource() {
-    const bool DESTROY = m_pWLResource && m_bDestroyInDestructor && !m_bDefunct;
+    const bool DESTROY = m_pWLResource && !m_bDefunct;
 
-    if (good()) {
-        wl_list_remove(&m_liResourceDestroy.link);
-        wl_list_init(&m_liResourceDestroy.link);
-    }
+    wl_list_remove(&m_liResourceDestroy.link);
+    wl_list_init(&m_liResourceDestroy.link);
+
+    if (m_pWLResource)
+        wl_resource_set_user_data(m_pWLResource, nullptr);
 
     Debug::log(TRACE, "[wl res %lx] destroying (wl_resource_destroy will be %s)", m_pWLResource, (DESTROY ? "sent" : "not sent"));
 
@@ -52,8 +50,6 @@ bool CWaylandResource::good() {
 }
 
 wl_resource* CWaylandResource::resource() {
-    RASSERT(good(), "Attempted to call resource() on a bad resource");
-
     return m_pWLResource;
 }
 
@@ -63,15 +59,24 @@ uint32_t CWaylandResource::version() {
     return wl_resource_get_version(m_pWLResource);
 }
 
-void CWaylandResource::setImplementation(const void* impl, void* data, wl_resource_destroy_func_t df) {
+void CWaylandResource::setImplementation(const void* impl, wl_resource_destroy_func_t df) {
     RASSERT(good(), "Attempted to call setImplementation() on a bad resource");
     RASSERT(!m_bImplementationSet, "Wayland Resource %lx already has an implementation, cannot re-set!", m_pWLResource);
 
-    wl_resource_set_implementation(m_pWLResource, impl, data, df);
+    wl_resource_set_implementation(m_pWLResource, impl, this, df);
 
-    Debug::log(LOG, "[wl res %lx] set impl to %lx", m_pWLResource, impl);
+    Debug::log(TRACE, "[wl res %lx] set impl to %lx", m_pWLResource, impl);
 
     m_bImplementationSet = true;
+}
+
+void CWaylandResource::setData(void* data) {
+    Debug::log(TRACE, "[wl res %lx] set data to %lx", m_pWLResource, data);
+    m_pData = data;
+}
+
+void* CWaylandResource::data() {
+    return m_pData;
 }
 
 static void bindManagerInternal(wl_client* client, void* data, uint32_t ver, uint32_t id) {

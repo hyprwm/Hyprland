@@ -1531,14 +1531,16 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     }
 
     static auto* const PROUNDING         = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static const auto* PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static const auto* PEXTENDBORDERGRAB = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    const int          BORDERSIZE        = w->getRealBorderSize();
+
     // give a small leeway (10 px) for corner icon
-    const auto           CORNER           = *PROUNDING + *PBORDERSIZE + 10;
+    const auto           CORNER           = *PROUNDING + BORDERSIZE + 10;
     const auto           mouseCoords      = getMouseCoordsInternal();
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
-    wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB, box.y - *PEXTENDBORDERGRAB, box.width + 2 * *PEXTENDBORDERGRAB, box.height + 2 * *PEXTENDBORDERGRAB};
+    wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
+                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

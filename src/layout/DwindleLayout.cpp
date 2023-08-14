@@ -117,21 +117,20 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     const auto PWINDOW = pNode->pWindow;
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto         WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
-    static auto* const PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
-    static auto* const PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
-    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    PWINDOW->m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(true);
+    PWINDOW->m_sSpecialRenderData.borderSize = WORKSPACERULE.borderSize.value_or(-1);
+    PWINDOW->m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
+    PWINDOW->m_sSpecialRenderData.rounding   = WORKSPACERULE.rounding.value_or(true);
+    PWINDOW->m_sSpecialRenderData.shadow     = WORKSPACERULE.shadow.value_or(true);
+
+    static auto* const PGAPSIN         = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+    static auto* const PGAPSOUT        = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
+    static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
 
     auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
-    auto               borderSize =
-        PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() != -1 ? PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() : WORKSPACERULE.borderSize.value_or(*PBORDERSIZE);
-
-    if (PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
-        borderSize = PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying();
-
-    borderSize *= PWINDOW->m_sSpecialRenderData.border && !PWINDOW->m_sAdditionalConfigData.forceNoBorder;
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
         Debug::log(ERR, "Node %lx holding invalid window %lx!!", pNode, PWINDOW);
@@ -142,38 +141,32 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->m_vSize     = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
-    static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
-
-    const auto         NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
+    const auto NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
 
     if (*PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
         (NODESONWORKSPACE == 1 || (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
 
+        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
+        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
         PWINDOW->m_sSpecialRenderData.rounding = false;
         PWINDOW->m_sSpecialRenderData.shadow   = false;
-        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
-        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
 
         const auto RESERVED = PWINDOW->getFullWindowReservedArea();
 
-        borderSize *= PWINDOW->m_sSpecialRenderData.border;
+        const int  BORDERSIZE = PWINDOW->getRealBorderSize();
 
-        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + Vector2D(borderSize, borderSize) + RESERVED.topLeft;
-        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - Vector2D(2 * borderSize, 2 * borderSize) - (RESERVED.topLeft + RESERVED.bottomRight);
+        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE) + RESERVED.topLeft;
+        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE) - (RESERVED.topLeft + RESERVED.bottomRight);
 
         PWINDOW->updateWindowDecos();
 
         return;
     }
 
-    PWINDOW->m_sSpecialRenderData.rounding   = WORKSPACERULE.rounding.value_or(true);
-    PWINDOW->m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
-    PWINDOW->m_sSpecialRenderData.shadow     = WORKSPACERULE.shadow.value_or(true);
-    PWINDOW->m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(true);
-    PWINDOW->m_sSpecialRenderData.borderSize = WORKSPACERULE.borderSize.value_or(-1);
+    const int  BORDERSIZE = PWINDOW->getRealBorderSize();
 
-    auto       calcPos  = PWINDOW->m_vPosition + Vector2D(borderSize, borderSize);
-    auto       calcSize = PWINDOW->m_vSize - Vector2D(2 * borderSize, 2 * borderSize);
+    auto       calcPos  = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
+    auto       calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
 
     const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut : gapsIn, DISPLAYTOP ? gapsOut : gapsIn);
 

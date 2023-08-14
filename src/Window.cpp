@@ -687,7 +687,7 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
         g_pCompositor->setWindowFullscreen(PCURRENT, false, WORKSPACE->m_efFullscreenMode);
 
     PCURRENT->setHidden(true);
-    pWindow->setHidden(false); // can remove m_pLastWindow 
+    pWindow->setHidden(false); // can remove m_pLastWindow
 
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 
@@ -809,4 +809,17 @@ float CWindow::rounding() {
     float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
 
     return rounding;
+}
+
+int CWindow::getRealBorderSize() {
+    if (!m_sSpecialRenderData.border || m_sAdditionalConfigData.forceNoBorder)
+        return 0;
+
+    if (m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
+        return m_sAdditionalConfigData.borderSize.toUnderlying();
+
+    if (m_sSpecialRenderData.borderSize.toUnderlying() != -1)
+        return m_sSpecialRenderData.borderSize.toUnderlying();
+
+    return g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 }

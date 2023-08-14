@@ -334,6 +334,8 @@ class CWindow {
     bool                     opaque();
     float                    rounding();
 
+    int                      getRealBorderSize();
+
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);
     bool                     hasPopupAt(const Vector2D& pos);

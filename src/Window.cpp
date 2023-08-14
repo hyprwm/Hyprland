@@ -26,17 +26,7 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
     if (m_bFadingOut)
         return m_eOriginalClosedExtents;
 
-    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-
-    const auto         PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
-
-    const auto         WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
-
-    auto borderSize = m_sSpecialRenderData.borderSize.toUnderlying() != -1 ? m_sSpecialRenderData.borderSize.toUnderlying() : WORKSPACERULE.borderSize.value_or(*PBORDERSIZE);
-    if (m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
-        borderSize = m_sAdditionalConfigData.borderSize.toUnderlying();
-
-    borderSize *= m_sSpecialRenderData.border && !m_sAdditionalConfigData.forceNoBorder;
+    const int BORDERSIZE = getRealBorderSize();
 
     if (m_sAdditionalConfigData.dimAround) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
@@ -44,7 +34,7 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
                 {PMONITOR->vecSize.x - (m_vRealPosition.vec().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.vec().y - PMONITOR->vecPosition.y)}};
     }
 
-    SWindowDecorationExtents maxExtents = {{borderSize + 2, borderSize + 2}, {borderSize + 2, borderSize + 2}};
+    SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
     for (auto& wd : m_dWindowDecorations) {
 
@@ -590,9 +580,8 @@ void CWindow::updateDynamicRules() {
 // otherwise behaviour is undefined
 bool CWindow::isInCurvedCorner(double x, double y) {
     static auto* const ROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static auto* const BORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-    if (BORDERSIZE >= ROUNDING || ROUNDING == 0)
+    if (getRealBorderSize() >= *ROUNDING || *ROUNDING == 0)
         return false;
 
     // (x0, y0), (x0, y1), ... are the center point of rounding at each corner

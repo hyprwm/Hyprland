@@ -13,6 +13,9 @@ with lib; let
     };
   };
 in {
+  # disables Nixpkgs Hyprland module to avoid conflicts
+  disabledModules = ["programs/hyprland.nix"];
+
   options.programs.hyprland = {
     enable =
       mkEnableOption null
@@ -48,9 +51,11 @@ in {
 
     xwayland.enable = mkEnableOption (mdDoc "support for XWayland") // {default = true;};
 
-    enableNvidiaPatches = mkEnableOption null // {
-      description = mdDoc "Whether to apply patches to wlroots for better Nvidia support.";
-    };
+    enableNvidiaPatches =
+      mkEnableOption null
+      // {
+        description = mdDoc "Whether to apply patches to wlroots for better Nvidia support.";
+      };
   };
 
   config = mkIf cfg.enable {

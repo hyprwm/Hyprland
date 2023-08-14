@@ -2516,6 +2516,6 @@ void CCompositor::arrangeMonitors() {
 
     for (auto& m : toArrange) {
         m->moveTo({maxOffset, 0});
-        maxOffset += m->vecPosition.x;
+        maxOffset += m->vecPosition.x + m->vecSize.x;
     }
 }

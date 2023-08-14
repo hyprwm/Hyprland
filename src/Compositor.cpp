@@ -2493,7 +2493,7 @@ void CCompositor::arrangeMonitors() {
     for (auto& m : m_vMonitors)
         toArrange.push_back(m.get());
 
-    for (auto it = toArrange.begin(); it != toArrange.end(); ++it) {
+    for (auto it = toArrange.begin(); it != toArrange.end();) {
         auto m = *it;
 
         if (m->activeMonitorRule.offset.x >= 0 && m->activeMonitorRule.offset.y >= 0) {
@@ -2504,7 +2504,11 @@ void CCompositor::arrangeMonitors() {
 
             if (it == toArrange.end())
                 break;
+
+            continue;
         }
+
+        ++it;
     }
 
     // auto left

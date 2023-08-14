@@ -1879,24 +1879,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }
 
-    if (pMonitorRule->offset == Vector2D(-1, -1) && pMonitor->vecPosition == Vector2D(-1, -1)) {
-        // let's find manually a sensible position for it, to the right.
-        Vector2D finalPos;
-
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (m->ID == pMonitor->ID)
-                continue;
-
-            if (m->vecPosition.x + std::ceil(m->vecSize.x) > finalPos.x) {
-                finalPos.x = m->vecPosition.x + std::ceil(m->vecSize.x);
-            }
-        }
-
-        pMonitor->vecPosition = finalPos;
-    } else if (pMonitorRule->offset != Vector2D(-1, -1)) {
-        pMonitor->vecPosition = pMonitorRule->offset;
-    }
-
     wlr_output_enable(pMonitor->output, 1);
 
     // update renderer (here because it will call rollback, so we cannot do this before committing)

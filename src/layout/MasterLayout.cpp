@@ -268,9 +268,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         return;
 
     const auto PWORKSPACEDATA = getMasterWorkspaceData(ws);
-
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
-
     const auto PMASTERNODE = getMasterNodeOnWorkspace(PWORKSPACE->m_iID);
 
     if (!PMASTERNODE)
@@ -279,200 +277,192 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     eOrientation       orientation        = PWORKSPACEDATA->orientation;
     bool               centerMasterWindow = false;
     static auto* const ALWAYSCENTER       = &g_pConfigManager->getConfigValuePtr("master:always_center_master")->intValue;
+
+    const auto MASTERS      = getMastersOnWorkspace(PWORKSPACE->m_iID);
+    const auto WINDOWS      = getNodesOnWorkspace(PWORKSPACE->m_iID);
+    const auto STACKWINDOWS = WINDOWS - MASTERS;
+    const auto WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+    const auto WSPOS        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+
     if (orientation == ORIENTATION_CENTER) {
-        if (getNodesOnWorkspace(PWORKSPACE->m_iID) > 2 || (*ALWAYSCENTER == 1)) {
+        if (STACKWINDOWS >= 2 || (*ALWAYSCENTER == 1)) {
             centerMasterWindow = true;
         } else {
             orientation = ORIENTATION_LEFT;
         }
     }
 
-    const auto MASTERS      = getMastersOnWorkspace(PWORKSPACE->m_iID);
-    const auto WINDOWS      = getNodesOnWorkspace(PWORKSPACE->m_iID);
-    const auto STACKWINDOWS = WINDOWS - MASTERS;
-    //compute placement of master window(s)
-    if ((WINDOWS < 2) && !centerMasterWindow) {
-        PMASTERNODE->position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition;
-        PMASTERNODE->size     = Vector2D(PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x,
-                                         PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
+    // compute placement of master window(s)
+    if (WINDOWS == 1 && !centerMasterWindow) {
+        PMASTERNODE->size     = WSSIZE;
+        PMASTERNODE->position = WSPOS;
+
         applyNodeDataToWindow(PMASTERNODE);
         return;
-    } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || (orientation == ORIENTATION_CENTER && STACKWINDOWS <= 1)) {
-        float heightLeft = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y;
-        int   nodesLeft  = MASTERS;
-        float nextY      = 0;
-        float WIDTH      = 0;
-
-        if (STACKWINDOWS == 0 && MASTERS > 0)
-            WIDTH = (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x);
-        else
-            WIDTH = (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) * PMASTERNODE->percMaster;
-
-        for (auto& n : m_lMasterNodesData) {
-            if (n.workspaceID == PWORKSPACE->m_iID && n.isMaster) {
-                if (orientation == ORIENTATION_RIGHT) {
-                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition +
-                        Vector2D(PMONITOR->vecSize.x - WIDTH - PMONITOR->vecReservedBottomRight.x - PMONITOR->vecReservedTopLeft.x, nextY);
-                } else {
-                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(0, nextY);
-                }
-                float HEIGHT = nodesLeft > 1 ? heightLeft / nodesLeft * n.percSize : heightLeft;
-                if (HEIGHT > heightLeft * 0.9f && nodesLeft > 1)
-                    HEIGHT = heightLeft * 0.9f;
-                n.size = Vector2D(WIDTH, HEIGHT);
-
-                nodesLeft--;
-                heightLeft -= HEIGHT;
-                nextY += HEIGHT;
-
-                applyNodeDataToWindow(&n);
-            }
-        }
     } else if (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) {
-        float       widthLeft = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PMONITOR->vecReservedTopLeft.x;
-        int         nodesLeft = MASTERS;
-        float       nextX     = 0;
-        const float HEIGHT    = (PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y) * PMASTERNODE->percMaster;
+        const float HEIGHT      = WSSIZE.y * PMASTERNODE->percMaster;
+        float       widthLeft   = WSSIZE.x;
+        int         mastersLeft = MASTERS;
+        float       nextX       = 0;
+        float       nextY       = 0;
 
-        for (auto& n : m_lMasterNodesData) {
-            if (n.workspaceID == PWORKSPACE->m_iID && n.isMaster) {
-                if (orientation == ORIENTATION_BOTTOM) {
-                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition +
-                        Vector2D(nextX, PMONITOR->vecSize.y - HEIGHT - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y);
-                } else {
-                    n.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(nextX, 0);
-                }
-                float WIDTH = nodesLeft > 1 ? widthLeft / nodesLeft * n.percSize : widthLeft;
-                if (WIDTH > widthLeft * 0.9f && nodesLeft > 1)
-                    WIDTH = widthLeft * 0.9f;
-                n.size = Vector2D(WIDTH, HEIGHT);
+        for (auto& nd : m_lMasterNodesData) {
+            if (nd.workspaceID != PWORKSPACE->m_iID || !nd.isMaster)
+                continue;
 
-                nodesLeft--;
-                widthLeft -= WIDTH;
-                nextX += WIDTH;
+            if (orientation == ORIENTATION_BOTTOM)
+                nextY = WSSIZE.y - HEIGHT;
 
-                applyNodeDataToWindow(&n);
-            }
+            float WIDTH = mastersLeft > 1 ? widthLeft / mastersLeft * nd.percSize : widthLeft;
+            if (WIDTH > widthLeft * 0.9f && mastersLeft > 1)
+                WIDTH = widthLeft * 0.9f;
+
+            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.position = WSPOS + Vector2D(nextX, nextY);
+            applyNodeDataToWindow(&nd);
+
+            mastersLeft--;
+            widthLeft -= WIDTH;
+            nextX += WIDTH;
         }
-    } else if (orientation == ORIENTATION_CENTER && STACKWINDOWS >= 2) {
-        float       heightLeft = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y;
-        int         nodesLeft  = MASTERS;
-        float       nextY      = 0;
-        const float WIDTH      = (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) * PMASTERNODE->percMaster;
+    } else { // orientation left, right or center
+        float WIDTH        = WSSIZE.x;
+        float heightLeft   = WSSIZE.y;
+        int   mastersLeft  = MASTERS;
+        float nextX        = 0;
+        float nextY        = 0;
 
-        for (auto& n : m_lMasterNodesData) {
-            if (n.workspaceID == PWORKSPACE->m_iID && n.isMaster) {
-                float CENTER_OFFSET = (PMONITOR->vecSize.x - WIDTH) / 2;
-                n.position          = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(CENTER_OFFSET, nextY);
-                float HEIGHT        = nodesLeft > 1 ? heightLeft / nodesLeft * n.percSize : heightLeft;
-                if (HEIGHT > heightLeft * 0.9f && nodesLeft > 1)
-                    HEIGHT = heightLeft * 0.9f;
-                n.size = Vector2D(WIDTH, HEIGHT);
+        if (STACKWINDOWS > 0 || centerMasterWindow)
+            WIDTH *= PMASTERNODE->percMaster;
 
-                nodesLeft--;
-                heightLeft -= HEIGHT;
-                nextY += HEIGHT;
+        if (orientation == ORIENTATION_RIGHT) {
+            nextX = WSSIZE.x - WIDTH;
+        } else if (centerMasterWindow) {
+            nextX = (WSSIZE.x - WIDTH) / 2;
+        }
 
-                applyNodeDataToWindow(&n);
-            }
+        for (auto& nd : m_lMasterNodesData) {
+            if (nd.workspaceID != PWORKSPACE->m_iID || !nd.isMaster)
+                continue;
+
+            float HEIGHT = mastersLeft > 1 ? heightLeft / mastersLeft * nd.percSize : heightLeft;
+            if (HEIGHT > heightLeft * 0.9f && mastersLeft > 1)
+                HEIGHT = heightLeft * 0.9f;
+
+            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.position = WSPOS + Vector2D(nextX, nextY);
+            applyNodeDataToWindow(&nd);
+
+            mastersLeft--;
+            heightLeft -= HEIGHT;
+            nextY += HEIGHT;
         }
     }
 
-    //compute placement of slave window(s)
-    int slavesLeft = getNodesOnWorkspace(PWORKSPACE->m_iID) - MASTERS;
-    if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || (orientation == ORIENTATION_CENTER && STACKWINDOWS <= 1)) {
-        float       heightLeft = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y;
-        float       nextY      = 0;
-        const float WIDTH      = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PMONITOR->vecReservedTopLeft.x - PMASTERNODE->size.x;
+    if (STACKWINDOWS == 0)
+        return;
 
-        for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
-                continue;
-
-            if (orientation == ORIENTATION_LEFT || (orientation == ORIENTATION_CENTER && STACKWINDOWS <= 1)) {
-                nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition +
-                    Vector2D(PMASTERNODE->percMaster * (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x), nextY);
-            } else {
-                nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(0, nextY);
-            }
-            float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
-            if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
-                HEIGHT = heightLeft * 0.9f;
-            nd.size = Vector2D(WIDTH, HEIGHT);
-
-            slavesLeft--;
-            heightLeft -= HEIGHT;
-            nextY += HEIGHT;
-
-            applyNodeDataToWindow(&nd);
-        }
-    } else if (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) {
-        float       widthLeft = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PMONITOR->vecReservedTopLeft.x;
+    // compute placement of slave window(s)
+    int slavesLeft = STACKWINDOWS;
+    if (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) {
+        const float HEIGHT    = WSSIZE.y - PMASTERNODE->size.y;
+        float       widthLeft = WSSIZE.x;
         float       nextX     = 0;
-        const float HEIGHT    = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y - PMASTERNODE->size.y;
+        float       nextY     = 0;
+
+        if (orientation == ORIENTATION_TOP)
+            nextY = PMASTERNODE->size.y;
 
         for (auto& nd : m_lMasterNodesData) {
             if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
                 continue;
-            if (orientation == ORIENTATION_TOP) {
-                nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition +
-                    Vector2D(nextX, PMASTERNODE->percMaster * (PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y));
-            } else {
-                nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(nextX, 0);
-            }
+
             float WIDTH = slavesLeft > 1 ? widthLeft / slavesLeft * nd.percSize : widthLeft;
             if (WIDTH > widthLeft * 0.9f && slavesLeft > 1)
                 WIDTH = widthLeft * 0.9f;
+
             nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.position = WSPOS + Vector2D(nextX, nextY);
+            applyNodeDataToWindow(&nd);
 
             slavesLeft--;
             widthLeft -= WIDTH;
             nextX += WIDTH;
-
-            applyNodeDataToWindow(&nd);
         }
-    } else if (orientation == ORIENTATION_CENTER && STACKWINDOWS >= 2) {
-        float       heightLeftL = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PMONITOR->vecReservedTopLeft.y;
-        float       heightLeftR = heightLeftL;
-        float       heightLeft  = 0;
-        float       nextYL      = 0;
-        float       nextYR      = 0;
-        const float WIDTH       = (PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PMONITOR->vecReservedTopLeft.x - PMASTERNODE->size.x) / 2.0;
-        bool        on_left     = true;
+    } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT) {
+        const float WIDTH      = WSSIZE.x - PMASTERNODE->size.x;
+        float       heightLeft = WSSIZE.y;
+        float       nextY      = 0;
+        float       nextX      = 0;
 
-        int         slavesLeftL = 1 + (slavesLeft - 1) / 2;
-        int         slavesLeftR = slavesLeft - slavesLeftL;
+        if (orientation == ORIENTATION_LEFT)
+            nextX = PMASTERNODE->size.x;
 
         for (auto& nd : m_lMasterNodesData) {
             if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
                 continue;
 
-            if (on_left) {
-                nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(0, nextYL);
-                heightLeft  = heightLeftL;
-                slavesLeft  = slavesLeftL;
-            } else {
-                nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(WIDTH + PMASTERNODE->size.x, nextYR);
-                heightLeft  = heightLeftR;
-                slavesLeft  = slavesLeftR;
-            }
             float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
             if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
                 HEIGHT = heightLeft * 0.9f;
-            nd.size = Vector2D(WIDTH, HEIGHT);
 
-            if (on_left) {
-                heightLeftL -= HEIGHT;
-                nextYL += HEIGHT;
-                slavesLeftL--;
+            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.position = WSPOS + Vector2D(nextX, nextY);
+            applyNodeDataToWindow(&nd);
+
+            slavesLeft--;
+            heightLeft -= HEIGHT;
+            nextY += HEIGHT;
+        }
+    } else { // slaves for centered master window(s)
+        const float WIDTH       = (WSSIZE.x - PMASTERNODE->size.x) / 2.0;
+        float       heightLeft  = 0;
+        float       heightLeftL = WSSIZE.y;
+        float       heightLeftR = WSSIZE.y;
+        float       nextX       = 0;
+        float       nextY       = 0;
+        float       nextYL      = 0;
+        float       nextYR      = 0;
+        bool        onRight     = true;
+
+        int         slavesLeftR = 1 + (slavesLeft - 1) / 2;
+        int         slavesLeftL = slavesLeft - slavesLeftR;
+
+        for (auto& nd : m_lMasterNodesData) {
+            if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
+                continue;
+
+            if (onRight) {
+                nextX = WIDTH + PMASTERNODE->size.x;
+                nextY = nextYR;
+                heightLeft = heightLeftR;
+                slavesLeft = slavesLeftR;
             } else {
+                nextX = 0;
+                nextY = nextYL;
+                heightLeft = heightLeftL;
+                slavesLeft = slavesLeftL;
+            }
+
+            float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
+            if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
+                HEIGHT = heightLeft * 0.9f;
+
+            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.position = WSPOS + Vector2D(nextX, nextY);
+            applyNodeDataToWindow(&nd);
+
+            if (onRight) {
                 heightLeftR -= HEIGHT;
                 nextYR += HEIGHT;
                 slavesLeftR--;
+            } else {
+                heightLeftL -= HEIGHT;
+                nextYL += HEIGHT;
+                slavesLeftL--;
             }
 
-            applyNodeDataToWindow(&nd);
-            on_left = !on_left;
+            onRight = !onRight;
         }
     }
 }
@@ -615,19 +605,20 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         return;
     }
 
-    // get monitor
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const  auto        PMONITOR       = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const  auto        PWORKSPACEDATA = getMasterWorkspaceData(PMONITOR->activeWorkspace);
+    static auto* const ALWAYSCENTER   = &g_pConfigManager->getConfigValuePtr("master:always_center_master")->intValue;
 
-    if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) < 2)
+    eOrientation orientation = PWORKSPACEDATA->orientation;
+    bool         centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
+    double       delta       = 0;
+
+    if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 && !centered)
         return;
 
     m_bForceWarps = true;
 
-    const auto PWORKSPACEDATA = getMasterWorkspaceData(PMONITOR->activeWorkspace);
-
-    double     delta = 0;
-
-    switch (PWORKSPACEDATA->orientation) {
+    switch (orientation) {
         case ORIENTATION_LEFT: delta = pixResize.x / PMONITOR->vecSize.x; break;
         case ORIENTATION_RIGHT: delta = -pixResize.x / PMONITOR->vecSize.x; break;
         case ORIENTATION_BOTTOM: delta = -pixResize.y / PMONITOR->vecSize.y; break;

@@ -1,12 +1,15 @@
 #pragma once
 
 #include "WaylandProtocol.hpp"
+#include <optional>
 
 class CMonitor;
 
 struct SXDGOutput {
     CMonitor*                         monitor = nullptr;
     std::unique_ptr<CWaylandResource> resource;
+
+    std::optional<Vector2D>           overridePosition;
 
     wl_client*                        client     = nullptr;
     bool                              isXWayland = false;

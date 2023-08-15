@@ -21,22 +21,6 @@ static void destroyOutputResource(wl_client* client, wl_resource* resource) {
     ((CXDGOutputProtocol*)PRESOURCE->data())->onOutputResourceDestroy(resource);
 }
 
-static void destroyOutputResourceOnly(wl_resource* resource) {
-    const auto PRESOURCE = (CWaylandResource*)wl_resource_get_user_data(resource);
-    if (!PRESOURCE)
-        return;
-    PRESOURCE->markDefunct();
-    ((CXDGOutputProtocol*)PRESOURCE->data())->onOutputResourceDestroy(resource);
-}
-
-static void destroyManagerResourceOnly(wl_resource* resource) {
-    const auto PRESOURCE = (CWaylandResource*)wl_resource_get_user_data(resource);
-    if (!PRESOURCE)
-        return;
-    PRESOURCE->markDefunct();
-    ((CXDGOutputProtocol*)PRESOURCE->data())->onManagerResourceDestroy(resource);
-}
-
 static void getXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
     const auto PRESOURCE = (CWaylandResource*)wl_resource_get_user_data(resource);
     if (!PRESOURCE)
@@ -75,7 +59,7 @@ void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver
         return;
     }
 
-    RESOURCE->setImplementation(&MANAGER_IMPL, destroyManagerResourceOnly);
+    RESOURCE->setImplementation(&MANAGER_IMPL, nullptr);
     RESOURCE->setData(this);
 }
 
@@ -114,7 +98,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
         return;
     }
 
-    pXDGOutput->resource->setImplementation(&OUTPUT_IMPL, destroyOutputResourceOnly);
+    pXDGOutput->resource->setImplementation(&OUTPUT_IMPL, nullptr);
     pXDGOutput->resource->setData(this);
     const auto XDGVER = pXDGOutput->resource->version();
 

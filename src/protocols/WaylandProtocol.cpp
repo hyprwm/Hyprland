@@ -26,6 +26,9 @@ CWaylandResource::CWaylandResource(wl_client* client, const wl_interface* wlInte
 }
 
 void CWaylandResource::markDefunct() {
+    if (m_bDefunct)
+        return;
+
     Debug::log(TRACE, "[wl res %lx] now defunct", m_pWLResource);
     m_bDefunct = true;
 }

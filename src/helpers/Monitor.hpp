@@ -30,10 +30,11 @@ class CMonitor {
     CMonitor();
     ~CMonitor();
 
-    Vector2D        vecPosition        = Vector2D(-1, -1); // means unset
-    Vector2D        vecSize            = Vector2D(0, 0);
-    Vector2D        vecPixelSize       = Vector2D(0, 0);
-    Vector2D        vecTransformedSize = Vector2D(0, 0);
+    Vector2D        vecPosition         = Vector2D(-1, -1); // means unset
+    Vector2D        vecXWaylandPosition = Vector2D(-1, -1); // means unset
+    Vector2D        vecSize             = Vector2D(0, 0);
+    Vector2D        vecPixelSize        = Vector2D(0, 0);
+    Vector2D        vecTransformedSize  = Vector2D(0, 0);
 
     bool            primary = false;
 

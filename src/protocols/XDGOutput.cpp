@@ -97,7 +97,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
     if (XDGVER >= ZXDG_OUTPUT_V1_DESCRIPTION_SINCE_VERSION && PMONITOR->output->description)
         zxdg_output_v1_send_description(pXDGOutput->resource->resource(), PMONITOR->output->description);
 
-    updateOutputDetails(pXDGOutput);
+    updateAllOutputs();
 
     const auto OUTPUTVER = wl_resource_get_version(outputResource);
     if (OUTPUTVER >= WL_OUTPUT_DONE_SINCE_VERSION && XDGVER >= OUTPUT_DONE_DEPRECATED_SINCE_VERSION)
@@ -107,10 +107,11 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
-    zxdg_output_v1_send_logical_position(pOutput->resource->resource(), pOutput->monitor->vecPosition.x, pOutput->monitor->vecPosition.y);
+    const auto         POS = pOutput->isXWayland ? pOutput->monitor->vecXWaylandPosition : pOutput->monitor->vecPosition;
+    zxdg_output_v1_send_logical_position(pOutput->resource->resource(), POS.x, POS.y);
 
     if (*PXWLFORCESCALEZERO && pOutput->isXWayland)
-        zxdg_output_v1_send_logical_size(pOutput->resource->resource(), pOutput->monitor->vecPixelSize.x, pOutput->monitor->vecPixelSize.y);
+        zxdg_output_v1_send_logical_size(pOutput->resource->resource(), pOutput->monitor->vecTransformedSize.x, pOutput->monitor->vecTransformedSize.y);
     else
         zxdg_output_v1_send_logical_size(pOutput->resource->resource(), pOutput->monitor->vecSize.x, pOutput->monitor->vecSize.y);
 

@@ -2487,6 +2487,8 @@ void CCompositor::setIdleActivityInhibit(bool enabled) {
 }
 
 void CCompositor::arrangeMonitors() {
+    static auto* const     PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+
     std::vector<CMonitor*> toArrange;
     std::vector<CMonitor*> arranged;
 
@@ -2521,5 +2523,13 @@ void CCompositor::arrangeMonitors() {
     for (auto& m : toArrange) {
         m->moveTo({maxOffset, 0});
         maxOffset += m->vecPosition.x + m->vecSize.x;
+    }
+
+    // reset maxOffset (reuse)
+    // and set xwayland positions aka auto for all
+    maxOffset = 0;
+    for (auto& m : m_vMonitors) {
+        m->vecXWaylandPosition = {maxOffset, 0};
+        maxOffset += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
     }
 }

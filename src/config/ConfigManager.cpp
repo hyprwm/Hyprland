@@ -1145,7 +1145,7 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
         else if ((delim = rule.find("border:")) != std::string::npos)
             wsRule.border = configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("shadow:")) != std::string::npos)
-            wsRule.shadow= configStringToInt(rule.substr(delim + 7));
+            wsRule.shadow = configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("rounding:")) != std::string::npos)
             wsRule.rounding = configStringToInt(rule.substr(delim + 9));
         else if ((delim = rule.find("decorate:")) != std::string::npos)
@@ -1590,12 +1590,13 @@ void CConfigManager::loadConfigLoadVars() {
         ensureVRR();
     }
 
-    // Updates dynamic window rules
+    // Updates dynamic window and workspace rules
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped)
             continue;
 
         w->updateDynamicRules();
+        w->updateSpecialRenderData();
     }
 
     // Update window border colors

@@ -413,8 +413,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
             } else if (r.szRule.find("center") == 0) {
-                auto RESERVEDOFFSET = Vector2D();
-                const auto ARGS = CVarList(r.szRule, 2, ' ');
+                auto       RESERVEDOFFSET = Vector2D();
+                const auto ARGS           = CVarList(r.szRule, 2, ' ');
                 if (ARGS[1] == "1")
                     RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
@@ -994,7 +994,9 @@ void Events::listener_configureX11(void* owner, void* data) {
     else
         PWINDOW->setHidden(true);
 
-    PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(E->x, E->y));
+    const auto LOGICALPOS = g_pXWaylandManager->xwaylandToWaylandCoords({E->x, E->y});
+
+    PWINDOW->m_vRealPosition.setValueAndWarp(LOGICALPOS);
     PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(E->width, E->height));
 
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;

@@ -356,6 +356,9 @@ void CWindow::moveToWorkspace(int workspaceID) {
         m_pSwallowed->moveToWorkspace(workspaceID);
         m_pSwallowed->m_iMonitorID = m_iMonitorID;
     }
+
+    // update xwayland coords
+    g_pXWaylandManager->setWindowSize(this, m_vRealSize.vec());
 }
 
 CWindow* CWindow::X11TransientFor() {
@@ -687,7 +690,7 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
         g_pCompositor->setWindowFullscreen(PCURRENT, false, WORKSPACE->m_efFullscreenMode);
 
     PCURRENT->setHidden(true);
-    pWindow->setHidden(false); // can remove m_pLastWindow 
+    pWindow->setHidden(false); // can remove m_pLastWindow
 
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 

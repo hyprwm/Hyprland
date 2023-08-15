@@ -107,7 +107,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
-    const auto         POS = pOutput->overridePosition.value_or(pOutput->monitor->vecPosition);
+    const auto         POS = pOutput->isXWayland ? pOutput->monitor->vecXWaylandPosition : pOutput->monitor->vecPosition;
     zxdg_output_v1_send_logical_position(pOutput->resource->resource(), POS.x, POS.y);
 
     if (*PXWLFORCESCALEZERO && pOutput->isXWayland)
@@ -120,46 +120,8 @@ void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
 }
 
 void CXDGOutputProtocol::updateAllOutputs() {
-    static auto* const       PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
-    std::vector<SXDGOutput*> xwlOutputs;
-
     for (auto& o : m_vXDGOutputs) {
-        if (o->isXWayland && *PXWLFORCESCALEZERO) {
-            xwlOutputs.push_back(o.get());
-            o->overridePosition.reset();
-            continue;
-        }
-
         updateOutputDetails(o.get());
-
-        wlr_output_schedule_done(o->monitor->output);
-    }
-
-    // all of this will be noop if force_zero_scaling is off
-    std::sort(xwlOutputs.begin(), xwlOutputs.end(), [&](const auto& a, const auto& b) { return a->monitor->vecPosition < b->monitor->vecPosition; });
-
-    for (auto& o : xwlOutputs) {
-        Vector2D suggestedPos = o->monitor->vecPosition;
-
-        // check for overlaps
-        for (auto& o1 : xwlOutputs) {
-            if (!o1->overridePosition.has_value())
-                continue;
-
-            const auto OPOS = o1->overridePosition.value();
-
-            if (OPOS.x + o1->monitor->vecTransformedSize.x > suggestedPos.x && /* Y overlap */
-                !(suggestedPos.y + o->monitor->vecTransformedSize.y <= OPOS.y || OPOS.y + o1->monitor->vecTransformedSize.y <= suggestedPos.y))
-                suggestedPos.x = OPOS.x + o1->monitor->vecTransformedSize.x;
-
-            if (OPOS.y + o1->monitor->vecTransformedSize.y > suggestedPos.y && /* X overlap */
-                !(suggestedPos.x + o->monitor->vecTransformedSize.x <= OPOS.x || OPOS.x + o1->monitor->vecTransformedSize.x <= suggestedPos.x))
-                suggestedPos.y = OPOS.y + o1->monitor->vecTransformedSize.y;
-        }
-
-        o->overridePosition = suggestedPos;
-
-        updateOutputDetails(o);
 
         wlr_output_schedule_done(o->monitor->output);
     }

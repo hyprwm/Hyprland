@@ -337,6 +337,8 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
 
+    updateSpecialRenderData();
+
     if (PWORKSPACE) {
         g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%lx,%s", this, PWORKSPACE->m_szName.c_str())});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
@@ -579,7 +581,7 @@ void CWindow::updateDynamicRules() {
 // it is assumed that the point is within the real window box (m_vRealPosition, m_vRealSize)
 // otherwise behaviour is undefined
 bool CWindow::isInCurvedCorner(double x, double y) {
-    static auto* const ROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    static auto* const ROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
 
     if (getRealBorderSize() >= *ROUNDING || *ROUNDING == 0)
         return false;
@@ -798,6 +800,21 @@ float CWindow::rounding() {
     float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
 
     return rounding;
+}
+
+void CWindow::updateSpecialRenderData() {
+    const auto PWORKSPACE    = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+    const auto WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
+    bool       border        = true;
+
+    if (m_bIsFloating && g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue == 1)
+        border = false;
+
+    m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(border);
+    m_sSpecialRenderData.borderSize = WORKSPACERULE.borderSize.value_or(-1);
+    m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
+    m_sSpecialRenderData.rounding   = WORKSPACERULE.rounding.value_or(true);
+    m_sSpecialRenderData.shadow     = WORKSPACERULE.shadow.value_or(true);
 }
 
 int CWindow::getRealBorderSize() {

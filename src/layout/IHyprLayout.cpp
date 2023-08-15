@@ -75,6 +75,7 @@ void IHyprLayout::onWindowRemovedFloating(CWindow* pWindow) {
 }
 
 void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
+
     wlr_box desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
@@ -460,9 +461,7 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
-        pWindow->m_sSpecialRenderData.rounding = true;
-        pWindow->m_sSpecialRenderData.border   = true;
-        pWindow->m_sSpecialRenderData.decorate = true;
+        pWindow->updateSpecialRenderData();
 
         if (pWindow == m_pLastTiledWindow)
             m_pLastTiledWindow = nullptr;

@@ -335,6 +335,7 @@ class CWindow {
     float                    rounding();
 
     int                      getRealBorderSize();
+    void                     updateSpecialRenderData();
 
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);

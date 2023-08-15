@@ -223,6 +223,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
     }
 
+    PWINDOW->updateSpecialRenderData();
+
     // disallow tiled pinned
     if (PWINDOW->m_bPinned && !PWINDOW->m_bIsFloating)
         PWINDOW->m_bPinned = false;
@@ -413,8 +415,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
             } else if (r.szRule.find("center") == 0) {
-                auto RESERVEDOFFSET = Vector2D();
-                const auto ARGS = CVarList(r.szRule, 2, ' ');
+                auto       RESERVEDOFFSET = Vector2D();
+                const auto ARGS           = CVarList(r.szRule, 2, ' ');
                 if (ARGS[1] == "1")
                     RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 

@@ -2,6 +2,11 @@
 
 #include "../defines.hpp"
 
+#define RESOURCE_OR_BAIL(resname)                                                                                                                                                  \
+    const auto resname = (CWaylandResource*)wl_resource_get_user_data(resource);                                                                                                   \
+    if (!resname)                                                                                                                                                                  \
+        return;
+
 class CWaylandResource {
   public:
     CWaylandResource(wl_client* client, const wl_interface* wlInterface, uint32_t version, uint32_t id);

@@ -8,24 +8,18 @@
 #define OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION 3
 
 static void destroyManagerResource(wl_client* client, wl_resource* resource) {
-    const auto PRESOURCE = (CWaylandResource*)wl_resource_get_user_data(resource);
-    if (!PRESOURCE)
-        return;
-    ((CXDGOutputProtocol*)PRESOURCE->data())->onManagerResourceDestroy(resource);
+    RESOURCE_OR_BAIL(PRESOURCE);
+    reinterpret_cast<CXDGOutputProtocol*>(PRESOURCE->data())->onManagerResourceDestroy(resource);
 }
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
-    const auto PRESOURCE = (CWaylandResource*)wl_resource_get_user_data(resource);
-    if (!PRESOURCE)
-        return;
-    ((CXDGOutputProtocol*)PRESOURCE->data())->onOutputResourceDestroy(resource);
+    RESOURCE_OR_BAIL(PRESOURCE);
+    reinterpret_cast<CXDGOutputProtocol*>(PRESOURCE->data())->onOutputResourceDestroy(resource);
 }
 
 static void getXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
-    const auto PRESOURCE = (CWaylandResource*)wl_resource_get_user_data(resource);
-    if (!PRESOURCE)
-        return;
-    ((CXDGOutputProtocol*)PRESOURCE->data())->onManagerGetXDGOutput(client, resource, id, outputResource);
+    RESOURCE_OR_BAIL(PRESOURCE);
+    reinterpret_cast<CXDGOutputProtocol*>(PRESOURCE->data())->onManagerGetXDGOutput(client, resource, id, outputResource);
 }
 
 //

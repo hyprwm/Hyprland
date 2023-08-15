@@ -77,7 +77,14 @@ void IHyprLayout::onWindowRemovedFloating(CWindow* pWindow) {
 void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     wlr_box desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
-    const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+
+    if (pWindow->m_bIsX11) {
+        Vector2D xy       = {desiredGeometry.x, desiredGeometry.y};
+        xy                = g_pXWaylandManager->xwaylandToWaylandCoords(xy);
+        desiredGeometry.x = xy.x;
+        desiredGeometry.y = xy.y;
+    }
 
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
@@ -103,7 +110,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         if (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect) {
 
             if (pWindow->m_uSurface.xwayland->x != 0 && pWindow->m_uSurface.xwayland->y != 0)
-                pWindow->m_vRealPosition = Vector2D{pWindow->m_uSurface.xwayland->x, pWindow->m_uSurface.xwayland->y};
+                pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords({pWindow->m_uSurface.xwayland->x, pWindow->m_uSurface.xwayland->y});
             else
                 pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goalv().x) / 2.f,
                                                     PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goalv().y) / 2.f);
@@ -153,10 +160,8 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
     }
 
-    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11) {
-        pWindow->m_vRealSize     = pWindow->m_vRealSize.goalv() / PMONITOR->scale;
-        pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() / PMONITOR->scale;
-    }
+    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11)
+        pWindow->m_vRealSize = pWindow->m_vRealSize.goalv() / PMONITOR->scale;
 
     if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect)) {
         pWindow->m_vRealPosition.warp();

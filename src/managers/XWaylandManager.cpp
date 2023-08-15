@@ -309,3 +309,30 @@ Vector2D CHyprXWaylandManager::getMaxSizeForWindow(CWindow* pWindow) {
 
     return MAXSIZE;
 }
+
+Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
+
+    static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+
+    CMonitor*          pMonitor = nullptr;
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
+        if (VECINRECT(coord, m->vecXWaylandPosition.x, m->vecXWaylandPosition.y, SIZ.x, SIZ.y)) {
+            pMonitor = m.get();
+            break;
+        }
+    }
+
+    if (!pMonitor)
+        return Vector2D{};
+
+    // get local coords
+    Vector2D result = coord - pMonitor->vecXWaylandPosition;
+    // if scaled, unscale
+    if (*PXWLFORCESCALEZERO)
+        result = result / pMonitor->scale;
+    // add pos
+    result = result + pMonitor->vecPosition;
+
+    return result;
+}

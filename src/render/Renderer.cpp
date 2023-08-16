@@ -1593,7 +1593,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) &&
         DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale &&
         ((DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1)) ||
-         pMonitorRule->offset == Vector2D(-1, -1)) &&
+         pMonitorRule->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
         pMonitor->transform == pMonitorRule->transform && pMonitorRule->enable10bit == pMonitor->enabled10bit &&
         !memcmp(&pMonitor->customDrmMode, &pMonitorRule->drmMode, sizeof(pMonitor->customDrmMode))) {
 

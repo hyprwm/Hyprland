@@ -2498,7 +2498,7 @@ void CCompositor::arrangeMonitors() {
     for (auto it = toArrange.begin(); it != toArrange.end();) {
         auto m = *it;
 
-        if (m->activeMonitorRule.offset.x >= 0 && m->activeMonitorRule.offset.y >= 0) {
+        if (m->activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
             // explicit.
             m->moveTo(m->activeMonitorRule.offset);
             arranged.push_back(m);

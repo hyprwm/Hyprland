@@ -527,7 +527,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
                 ttynum = st.v_active;
 #elif defined(VT_GETACTIVE)
             int vt;
-            if (!ioctl(0, VT_GETACTIVE, &vt))
+            if (!ioctl(fd, VT_GETACTIVE, &vt))
                 ttynum = vt;
 #endif
             close(fd);

@@ -626,15 +626,10 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     }
 
     if (ARGS[2].find("auto") == 0) {
-        newrule.offset = Vector2D(-1, -1);
+        newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
     } else {
         newrule.offset.x = stoi(ARGS[2].substr(0, ARGS[2].find_first_of('x')));
         newrule.offset.y = stoi(ARGS[2].substr(ARGS[2].find_first_of('x') + 1));
-
-        if (newrule.offset.x < 0 || newrule.offset.y < 0) {
-            parseError     = "invalid offset. Offset cannot be negative.";
-            newrule.offset = Vector2D();
-        }
     }
 
     if (ARGS[3].find("auto") == 0) {
@@ -1145,7 +1140,7 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
         else if ((delim = rule.find("border:")) != std::string::npos)
             wsRule.border = configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("shadow:")) != std::string::npos)
-            wsRule.shadow= configStringToInt(rule.substr(delim + 7));
+            wsRule.shadow = configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("rounding:")) != std::string::npos)
             wsRule.rounding = configStringToInt(rule.substr(delim + 9));
         else if ((delim = rule.find("decorate:")) != std::string::npos)
@@ -1780,7 +1775,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const st
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
-    return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-1, -1), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
+    return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-INT32_MAX, -INT32_MAX), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
 }
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {

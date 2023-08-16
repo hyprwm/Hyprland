@@ -1723,19 +1723,15 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         texName += "2K.png";
     }
 
-    // goto is banned? ok have a do while.
-    std::string texPath = "/usr/share/hyprland/" + texName;
-    do {
-        if (std::filesystem::exists(texPath))
-            break;
-        texPath = "/usr/local/share/hyprland/" + texName;
-        if (std::filesystem::exists(texPath))
-            break;
-        texPath = "assets/" + texName;
+    std::string texPath;
+    auto        paths = {"/usr/share/hyprland/", "/usr/local/share/hyprland/", "assets/"};
+
+    for (auto& path : paths) {
+        texPath = path + texName;
         if (std::filesystem::exists(texPath))
             break;
         texPath = "";
-    } while (false);
+    }
 
     PTEX->m_vSize = textureSize;
 
@@ -1771,7 +1767,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     if (texPath.empty()) {
         cairo_set_source_rgba(CAIRO, 0.106, 0.106, 0.106, 1.0);
-        cairo_rectangle(CAIRO, 0, 0, box.width, box.height);
+        cairo_rectangle(CAIRO, 0, 0, textureSize.x, textureSize.y);
         cairo_fill(CAIRO);
     }
 

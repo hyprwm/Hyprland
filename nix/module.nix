@@ -6,9 +6,10 @@ inputs: {
 }:
 with lib; let
   cfg = config.programs.hyprland;
+  inherit (pkgs.stdenv.hostPlatform) system;
 
   finalPortalPackage = cfg.portalPackage.override {
-    hyprland-share-picker = inputs.xdph.packages.${pkgs.system}.hyprland-share-picker.override {
+    hyprland-share-picker = inputs.xdph.packages.${system}.hyprland-share-picker.override {
       hyprland = cfg.finalPackage;
     };
   };
@@ -30,7 +31,7 @@ in {
         '';
       };
 
-    package = mkPackageOptionMD inputs.self.packages.${pkgs.system} "hyprland" { };
+    package = mkPackageOptionMD inputs.self.packages.${system} "hyprland" { };
 
     finalPackage = mkOption {
       type = types.package;
@@ -47,7 +48,7 @@ in {
       '';
     };
 
-    portalPackage = mkPackageOptionMD inputs.xdph.packages.${pkgs.system} "xdg-desktop-portal-hyprland" {};
+    portalPackage = mkPackageOptionMD inputs.xdph.packages.${system} "xdg-desktop-portal-hyprland" {};
 
     xwayland.enable = mkEnableOption (mdDoc "support for XWayland") // {default = true;};
 

@@ -55,19 +55,7 @@ in {
     self.overlays.waybar-hyprland
   ];
 
-  waybar-hyprland = final: prev: {
-    waybar-hyprland = prev.waybar.overrideAttrs (old: {
-      postPatch = ''
-        # use hyprctl to switch workspaces
-        sed -i 's/zext_workspace_handle_v1_activate(workspace_handle_);/const std::string command = "hyprctl dispatch workspace " + name_;\n\tsystem(command.c_str());/g' src/modules/wlr/workspace_manager.cpp
-      '';
-      postFixup = ''
-        wrapProgram $out/bin/waybar \
-          --suffix PATH : ${lib.makeBinPath [final.hyprland]}
-      '';
-      mesonFlags = old.mesonFlags ++ ["-Dexperimental=true"];
-    });
-  };
+  waybar-hyprland = lib.warn "The `waybar-hyprland` package is now in Nixpkgs" (final: prev: {inherit (prev) waybar-hyprland;});
 
   udis86 = final: prev: {
     udis86 = final.callPackage ./udis86.nix {};

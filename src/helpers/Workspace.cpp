@@ -60,7 +60,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 
     if (ANIMSTYLE.find("slidefade") == 0) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        float      movePerc  = 0.f;
+        float      movePerc  = 100.f;
 
         if (ANIMSTYLE.find("%") != std::string::npos) {
             try {

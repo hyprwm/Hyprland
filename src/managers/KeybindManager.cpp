@@ -2042,7 +2042,7 @@ void moveWindowOutOfGroup(CWindow* pWindow) {
 void CKeybindManager::moveIntoGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const GROUPLOCKCHECK = &g_pConfigManager->getConfigValuePtr("misc:moveintogroup_lock_check")->intValue;
+    static auto* const BCHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:check_group_lock")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2059,7 +2059,8 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
 
-    if (*GROUPLOCKCHECK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.locked)))
+    // Do not move window into locked group if binds:check_group_lock is true
+    if (*BCHECKGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->getGroupHead()->m_sGroupData.locked)))
         return;
 
     moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
@@ -2077,7 +2078,7 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
 void CKeybindManager::moveWindowOrGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const CHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:check_group_lock")->intValue;
+    static auto* const BCHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:check_group_lock")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2109,28 +2110,28 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_bIsFloating
     if (ISWINDOWINDIRGROUP && !ISWINDOWINDIRGROUPLOCKED) {
-        if (ISWINDOWGROUPLOCKED && *CHECKGROUPLOCK) {
+        if (ISWINDOWGROUPLOCKED && *BCHECKGROUPLOCK) {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
         } else {
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
         }
     } else if (ISWINDOWINDIRGROUPLOCKED) {
-        if (*CHECKGROUPLOCK) {
+        if (*BCHECKGROUPLOCK) {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
         } else {
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
         }
     } else if (PWINDOWINDIR) { // PWINDOWINDIR is not a group
-        if (ISWINDOWGROUP && (!*CHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
+        if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
             moveWindowOutOfGroup(PWINDOW);
         } else {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
         }
     } else { // no window in direction
-        if (ISWINDOWGROUPLOCKED && *CHECKGROUPLOCK) {
+        if (ISWINDOWGROUPLOCKED && *BCHECKGROUPLOCK) {
             // do nothing
         } else if (ISWINDOWGROUP) {
             moveWindowOutOfGroup(PWINDOW);

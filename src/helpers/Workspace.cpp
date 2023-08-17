@@ -67,7 +67,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
                 auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);
                 movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
             } catch (std::exception& e) {
-                ; // oops
+                Debug::log(ERR, "Error in startAnim: invalid percentage");
             }
         }
 

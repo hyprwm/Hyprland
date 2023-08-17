@@ -69,6 +69,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
     m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
     m_mDispatchers["movewindoworgroup"]             = moveWindowOrGroup;
+    m_mDispatchers["setgrouplockchecking"]          = setGroupLockChecking;
     m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
@@ -2144,6 +2145,15 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
             moveWindowOutOfGroup(PWINDOW);
         }
     }
+}
+
+void CKeybindManager::setGroupLockChecking(std::string args) {
+    static auto* const BCHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:check_group_lock")->intValue;
+
+    if (args == "toggle")
+        *BCHECKGROUPLOCK = !*BCHECKGROUPLOCK;
+    else
+        *BCHECKGROUPLOCK = args == "on";
 }
 
 void CKeybindManager::global(std::string args) {

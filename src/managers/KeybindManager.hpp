@@ -145,6 +145,7 @@ class CKeybindManager {
     static void     moveOutOfGroup(std::string);
     static void     moveGroupWindow(std::string);
     static void     moveWindowOrGroup(std::string);
+    static void     setGroupLockChecking(std::string);
     static void     global(std::string);
 
     friend class CCompositor;

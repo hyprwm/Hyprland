@@ -2103,19 +2103,6 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
     const auto ISWINDOWINDIRGROUP       = PWINDOWINDIR && PWINDOWINDIR->m_sGroupData.pNextWindow;
     const auto ISWINDOWINDIRGROUPLOCKED = ISWINDOWINDIRGROUP && PWINDOWINDIR->getGroupHead()->m_sGroupData.locked;
 
-    // !FIXME: remove logging
-    Debug::log(INFO, "==> movewindoworgroup");
-    Debug::log(INFO,
-               "\twindow           %x\n"
-               "\tis group:        %s\n"
-               "\tgroup is locked: %s\n",
-               PWINDOW, ISWINDOWGROUP ? "true" : "false", ISWINDOWGROUPLOCKED ? "true" : "false");
-    Debug::log(INFO,
-               "\tdirection                  %x\n"
-               "\tdirection is group:        %s\n"
-               "\tdirection group is locked: %s\n",
-               PWINDOWINDIR, ISWINDOWINDIRGROUP ? "true" : "false", ISWINDOWINDIRGROUPLOCKED ? "true" : "false");
-
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_bIsFloating
     if (ISWINDOWINDIRGROUP && !ISWINDOWINDIRGROUPLOCKED) {
         if (ISWINDOWGROUPLOCKED && *BCHECKGROUPLOCK) {

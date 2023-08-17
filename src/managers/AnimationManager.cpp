@@ -490,7 +490,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
             float movePerc = 0.f;
             if (style.find("%") != std::string::npos) {
                 try {
-                    auto percstr = style.substr(style.find_last_of(' '));
+                    auto percstr = style.substr(style.find_last_of(' ') + 1);
                     movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
                 } catch (std::exception& e) { return "invalid movePerc"; }
 

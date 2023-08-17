@@ -64,7 +64,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 
         if (ANIMSTYLE.find("%") != std::string::npos) {
             try {
-                auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
+                auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);
                 movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
             } catch (std::exception& e) {
                 ; // oops

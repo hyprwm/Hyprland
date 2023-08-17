@@ -60,12 +60,12 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 
     if (ANIMSTYLE.find("slidefade") == 0) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        float      minPerc  = 0.f;
+        float      movePerc  = 0.f;
 
         if (ANIMSTYLE.find("%") != std::string::npos) {
             try {
                 auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
-                minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+                movePerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
             } catch (std::exception& e) {
                 ; // oops
             }
@@ -77,24 +77,24 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         if (ANIMSTYLE.find("slidefadevert") == 0) { // vertical
             if (in) {
                 m_fAlpha.setValueAndWarp(0.f);
-                m_vRenderOffset.setValueAndWarp(Vector2D(0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (minPerc / 100.f)));
+                m_vRenderOffset.setValueAndWarp(Vector2D(0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
                 m_fAlpha        = 1.f;
                 m_vRenderOffset = Vector2D(0, 0);
             } else {
                 m_fAlpha.setValueAndWarp(1.f);
                 m_fAlpha        = 0.f;
-                m_vRenderOffset = Vector2D(0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (minPerc / 100.f));
+                m_vRenderOffset = Vector2D(0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
             }
         } else { // horizontal
             if (in) {
                 m_fAlpha.setValueAndWarp(0.f);
-                m_vRenderOffset.setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (minPerc / 100.f), 0));
+                m_vRenderOffset.setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0));
                 m_fAlpha        = 1.f;
                 m_vRenderOffset = Vector2D(0, 0);
             } else {
                 m_fAlpha.setValueAndWarp(1.f);
                 m_fAlpha        = 0.f;
-                m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (minPerc / 100.f), 0);
+                m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0);
             }
         }
     } else if (ANIMSTYLE == "fade") {

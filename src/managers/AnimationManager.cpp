@@ -55,7 +55,6 @@ void CAnimationManager::tick() {
     if (!*PANIMENABLED)
         animGlobalDisabled = true;
 
-    static auto* const              PBORDERSIZE     = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const              PSHADOWSENABLED = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
 
     const auto                      DEFAULTBEZIER = m_mBezierCurves.find("default");
@@ -217,7 +216,7 @@ void CAnimationManager::tick() {
                 // damage only the border.
                 static auto* const PROUNDING    = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
                 const auto         ROUNDINGSIZE = *PROUNDING + 1;
-                const auto         BORDERSIZE   = *PBORDERSIZE;
+                const auto         BORDERSIZE   = PWINDOW->getRealBorderSize();
 
                 // damage for old box
                 g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top

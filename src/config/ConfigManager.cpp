@@ -1585,12 +1585,13 @@ void CConfigManager::loadConfigLoadVars() {
         ensureVRR();
     }
 
-    // Updates dynamic window rules
+    // Updates dynamic window and workspace rules
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped)
             continue;
 
         w->updateDynamicRules();
+        w->updateSpecialRenderData();
     }
 
     // Update window border colors

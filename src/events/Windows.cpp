@@ -223,6 +223,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
     }
 
+    PWINDOW->updateSpecialRenderData();
+
     // disallow tiled pinned
     if (PWINDOW->m_bPinned && !PWINDOW->m_bIsFloating)
         PWINDOW->m_bPinned = false;

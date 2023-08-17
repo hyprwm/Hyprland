@@ -2025,7 +2025,7 @@ void moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection) {
 
 void moveWindowOutOfGroup(CWindow* pWindow) {
     static auto* const BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("misc:group_focus_removed_window")->intValue;
-    static auto const  PWINDOWPREV         = pWindow->getGroupPrevious();
+    const auto         PWINDOWPREV         = pWindow->getGroupPrevious();
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
 

@@ -485,6 +485,22 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
     } else if (config == "workspaces" || config == "specialWorkspace") {
         if (style == "slide" || style == "slidevert" || style == "fade")
             return "";
+        else if (style.find("slidefade") == 0) { // slidefade and slidefadevert
+            // try parsing
+            float minPerc = 0.f;
+            if (style.find("%") != std::string::npos) {
+                try {
+                    auto percstr = style.substr(style.find_last_of(' '));
+                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) { return "invalid minperc"; }
+
+                return "";
+            }
+
+            minPerc; // fix warning
+
+            return "";
+        }
 
         return "unknown style";
     } else if (config == "borderangle") {

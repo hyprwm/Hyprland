@@ -2075,9 +2075,9 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
 }
 
 void CKeybindManager::chicken(std::string args) {
-    char              arg = args[0];
+    char               arg = args[0];
 
-    static auto const CHICKEN_ALT = false;
+    static auto* const CHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:chicken_checkgrouplock")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2094,7 +2094,7 @@ void CKeybindManager::chicken(std::string args) {
     const auto ISWINDOWINDIRGROUP       = PWINDOWINDIR && PWINDOWINDIR->m_sGroupData.pNextWindow;
     const auto ISWINDOWINDIRGROUPLOCKED = ISWINDOWINDIRGROUP && PWINDOWINDIR->getGroupHead()->m_sGroupData.locked;
 
-    // NOTE: logging is temporary, remove when pr is complete
+    // !FIXME: remove logging
     Debug::log(INFO, "==> chicken");
     Debug::log(INFO,
                "\twindow           %x\n"
@@ -2108,29 +2108,29 @@ void CKeybindManager::chicken(std::string args) {
                PWINDOWINDIR, ISWINDOWINDIRGROUP ? "true" : "false", ISWINDOWINDIRGROUPLOCKED ? "true" : "false");
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_bIsFloating
-    if (!ISWINDOWINDIRGROUPLOCKED) {
-        if (ISWINDOWGROUPLOCKED && CHICKEN_ALT) {
-            // !FIXME: not implmented
+    if (ISWINDOWINDIRGROUP && !ISWINDOWINDIRGROUPLOCKED) {
+        if (ISWINDOWGROUPLOCKED && *CHECKGROUPLOCK) {
+            g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
+            g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
         } else {
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
         }
     } else if (ISWINDOWINDIRGROUPLOCKED) {
-        if (CHICKEN_ALT) {
-            // !FIXME: not implmented
+        if (*CHECKGROUPLOCK) {
+            g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
+            g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
         } else {
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
         }
     } else if (PWINDOWINDIR) { // PWINDOWINDIR is not a group
-        if (ISWINDOWGROUPLOCKED && CHICKEN_ALT) {
-            // !FIXME: not implmented
-        } else if (ISWINDOWGROUP) {
+        if (ISWINDOWGROUP && (!*CHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
             moveWindowOutOfGroup(PWINDOW);
         } else {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
         }
     } else { // no window in direction
-        if (ISWINDOWGROUPLOCKED && CHICKEN_ALT) {
+        if (ISWINDOWGROUPLOCKED && *CHECKGROUPLOCK) {
             // do nothing
         } else if (ISWINDOWGROUP) {
             moveWindowOutOfGroup(PWINDOW);

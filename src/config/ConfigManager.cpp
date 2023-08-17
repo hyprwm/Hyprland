@@ -221,7 +221,7 @@ void CConfigManager::setDefaultVars() {
     configValues["binds:workspace_back_and_forth"].intValue = 0;
     configValues["binds:allow_workspace_cycles"].intValue   = 0;
     configValues["binds:focus_preferred_method"].intValue   = 0;
-    configValues["binds:chicken_checkgrouplock"].intValue   = 0;
+    configValues["binds:check_group_lock"].intValue         = 0;
 
     configValues["gestures:workspace_swipe"].intValue                          = 0;
     configValues["gestures:workspace_swipe_fingers"].intValue                  = 3;

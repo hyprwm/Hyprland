@@ -68,7 +68,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["lockactivegroup"]               = lockActiveGroup;
     m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
     m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
-    m_mDispatchers["chicken"]                       = chicken;
+    m_mDispatchers["movewindoworgroup"]             = moveWindowOrGroup;
     m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
@@ -2074,10 +2074,10 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
     moveWindowOutOfGroup(PWINDOW);
 }
 
-void CKeybindManager::chicken(std::string args) {
+void CKeybindManager::moveWindowOrGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const CHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:chicken_checkgrouplock")->intValue;
+    static auto* const CHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:check_group_lock")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2095,7 +2095,7 @@ void CKeybindManager::chicken(std::string args) {
     const auto ISWINDOWINDIRGROUPLOCKED = ISWINDOWINDIRGROUP && PWINDOWINDIR->getGroupHead()->m_sGroupData.locked;
 
     // !FIXME: remove logging
-    Debug::log(INFO, "==> chicken");
+    Debug::log(INFO, "==> movewindoworgroup");
     Debug::log(INFO,
                "\twindow           %x\n"
                "\tis group:        %s\n"

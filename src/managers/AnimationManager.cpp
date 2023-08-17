@@ -485,7 +485,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
     } else if (config == "workspaces" || config == "specialWorkspace") {
         if (style == "slide" || style == "slidevert" || style == "fade")
             return "";
-        else if (style.find("slidefade") == 0) { // slidefade and slidefadevert
+        else if (style.find("slidefade") == 0) {
             // try parsing
             float movePerc = 0.f;
             if (style.find("%") != std::string::npos) {

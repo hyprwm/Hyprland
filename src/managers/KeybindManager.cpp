@@ -2006,6 +2006,38 @@ void CKeybindManager::lockActiveGroup(std::string args) {
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 }
 
+void moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection) {
+    if (!pWindow->m_sGroupData.pNextWindow)
+        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes groupped property!
+
+    static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+    pWindowInDirection            = *USECURRPOS ? pWindowInDirection : pWindowInDirection->getGroupTail();
+
+    pWindowInDirection->insertWindowToGroup(pWindow);
+    pWindowInDirection->setGroupCurrent(pWindow);
+    pWindow->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    g_pCompositor->focusWindow(pWindow);
+}
+
+void moveWindowOutOfGroup(CWindow* pWindow) {
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+
+    const auto GROUPSLOCKEDPREV = g_pKeybindManager->m_bGroupsLocked;
+
+    g_pKeybindManager->m_bGroupsLocked = true;
+
+    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+
+    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+
+    // TODO: configurable
+    g_pCompositor->focusWindow(pWindow);
+    g_pCompositor->warpCursorTo(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.0);
+}
+
 void CKeybindManager::moveIntoGroup(std::string args) {
     char               arg = args[0];
 
@@ -2029,19 +2061,7 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (*GROUPLOCKCHECK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.locked)))
         return;
 
-    if (!PWINDOW->m_sGroupData.pNextWindow)
-        PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
-
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW); // This removes groupped property!
-
-    static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
-    PWINDOWINDIR                  = *USECURRPOS ? PWINDOWINDIR : PWINDOWINDIR->getGroupTail();
-
-    PWINDOWINDIR->insertWindowToGroup(PWINDOW);
-    PWINDOWINDIR->setGroupCurrent(PWINDOW);
-    PWINDOW->updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
-    g_pCompositor->focusWindow(PWINDOW);
+    moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
 }
 
 void CKeybindManager::moveOutOfGroup(std::string args) {
@@ -2050,15 +2070,7 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
     if (!PWINDOW || !PWINDOW->m_sGroupData.pNextWindow)
         return;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
-
-    const auto GROUPSLOCKEDPREV = g_pKeybindManager->m_bGroupsLocked;
-
-    g_pKeybindManager->m_bGroupsLocked = true;
-
-    g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
-
-    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    moveWindowOutOfGroup(PWINDOW);
 }
 
 void CKeybindManager::global(std::string args) {

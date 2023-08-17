@@ -58,7 +58,46 @@ CWorkspace::~CWorkspace() {
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
     const auto ANIMSTYLE = m_fAlpha.m_pConfig->pValues->internalStyle;
 
-    if (ANIMSTYLE == "fade") {
+    if (ANIMSTYLE.find("slidefade") == 0) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        float      movePerc = 100.f;
+
+        if (ANIMSTYLE.find("%") != std::string::npos) {
+            try {
+                auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);
+                movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
+            } catch (std::exception& e) {
+                Debug::log(ERR, "Error in startAnim: invalid percentage");
+            }
+        }
+
+        m_fAlpha.setValueAndWarp(1.f);
+        m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
+
+        if (ANIMSTYLE.find("slidefadevert") == 0) {
+            if (in) {
+                m_fAlpha.setValueAndWarp(0.f);
+                m_vRenderOffset.setValueAndWarp(Vector2D(0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
+                m_fAlpha        = 1.f;
+                m_vRenderOffset = Vector2D(0, 0);
+            } else {
+                m_fAlpha.setValueAndWarp(1.f);
+                m_fAlpha        = 0.f;
+                m_vRenderOffset = Vector2D(0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
+            }
+        } else {
+            if (in) {
+                m_fAlpha.setValueAndWarp(0.f);
+                m_vRenderOffset.setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0));
+                m_fAlpha        = 1.f;
+                m_vRenderOffset = Vector2D(0, 0);
+            } else {
+                m_fAlpha.setValueAndWarp(1.f);
+                m_fAlpha        = 0.f;
+                m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0);
+            }
+        }
+    } else if (ANIMSTYLE == "fade") {
         m_vRenderOffset.setValueAndWarp(Vector2D(0, 0)); // fix a bug, if switching from slide -> fade.
 
         if (in) {

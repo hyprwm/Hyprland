@@ -2118,17 +2118,15 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
         } else {
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
         }
-    } else if (PWINDOWINDIR) { // PWINDOWINDIR is not a group
+    } else if (PWINDOWINDIR) {
         if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
             moveWindowOutOfGroup(PWINDOW);
         } else {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
         }
-    } else { // no window in direction
-        if (ISWINDOWGROUPLOCKED && *BCHECKGROUPLOCK) {
-            // do nothing
-        } else if (ISWINDOWGROUP) {
+    } else {
+        if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
             moveWindowOutOfGroup(PWINDOW);
         }
     }

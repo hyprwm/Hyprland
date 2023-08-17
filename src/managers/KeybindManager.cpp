@@ -2034,9 +2034,9 @@ void moveWindowOutOfGroup(CWindow* pWindow) {
 
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
 
-    // TODO: configurable
+    // TODO: Add a variable to configure whether the focus should stay in the group or move to the window in question.
     g_pCompositor->focusWindow(pWindow);
-    g_pCompositor->warpCursorTo(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.0);
+    g_pCompositor->warpCursorTo(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.0);
 }
 
 void CKeybindManager::moveIntoGroup(std::string args) {

@@ -317,7 +317,7 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
     CMonitor*          pMonitor = nullptr;
     for (auto& m : g_pCompositor->m_vMonitors) {
         const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
-        if (VECINRECT(coord, m->vecXWaylandPosition.x, m->vecXWaylandPosition.y, SIZ.x, SIZ.y)) {
+        if (VECINRECT(coord, m->vecXWaylandPosition.x, m->vecXWaylandPosition.y, m->vecXWaylandPosition.x + SIZ.x, m->vecXWaylandPosition.y + SIZ.y)) {
             pMonitor = m.get();
             break;
         }

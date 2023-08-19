@@ -12,11 +12,10 @@
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal %d", signo);
 
-    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL) {
+    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL)
         g_pCompositor->cleanup();
-    }
 
-    return 0; // everything went fine
+    return 0;
 }
 
 void handleUnrecoverableSignal(int sig) {

@@ -97,7 +97,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
     if (XDGVER >= ZXDG_OUTPUT_V1_DESCRIPTION_SINCE_VERSION && PMONITOR->output->description)
         zxdg_output_v1_send_description(pXDGOutput->resource->resource(), PMONITOR->output->description);
 
-    updateAllOutputs();
+    updateOutputDetails(pXDGOutput);
 
     const auto OUTPUTVER = wl_resource_get_version(outputResource);
     if (OUTPUTVER >= WL_OUTPUT_DONE_SINCE_VERSION && XDGVER >= OUTPUT_DONE_DEPRECATED_SINCE_VERSION)

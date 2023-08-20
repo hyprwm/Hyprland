@@ -22,7 +22,7 @@ void help() {
 int main(int argc, char** argv) {
 
     if (!getenv("XDG_RUNTIME_DIR"))
-        throw std::runtime_error("XDG_RUNTIME_DIR is not set!");
+        throwError("XDG_RUNTIME_DIR is not set!");
 
     // export HYPRLAND_CMD
     std::string cmd = "";

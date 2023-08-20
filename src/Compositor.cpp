@@ -460,7 +460,7 @@ void CCompositor::startCompositor() {
     if (m_szWLDisplaySocket.empty()) {
         Debug::log(CRIT, "m_szWLDisplaySocket NULL!");
         wlr_backend_destroy(m_sWLRBackend);
-        throw std::runtime_error("m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)");
+        throwError("m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)");
     }
 
     setenv("WAYLAND_DISPLAY", m_szWLDisplaySocket.c_str(), 1);
@@ -482,7 +482,7 @@ void CCompositor::startCompositor() {
         Debug::log(CRIT, "Backend did not start!");
         wlr_backend_destroy(m_sWLRBackend);
         wl_display_destroy(m_sWLDisplay);
-        throw std::runtime_error("The backend could not start!");
+        throwError("The backend could not start!");
     }
 
     wlr_cursor_set_xcursor(m_sWLRCursor, m_sWLRXCursorMgr, "left_ptr");

@@ -60,6 +60,7 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     pHyprPopup->hyprListener_unmapPopupXDG.initCallback(&popup->base->surface->events.unmap, &Events::listener_unmapPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_newPopupFromPopupXDG.initCallback(&popup->base->events.new_popup, &Events::listener_newPopupFromPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_commitPopupXDG.initCallback(&popup->base->surface->events.commit, &Events::listener_commitPopupXDG, pHyprPopup, "HyprPopup");
+    pHyprPopup->hyprListener_repositionPopupXDG.initCallback(&popup->events.reposition, &Events::listener_repositionPopupXDG, pHyprPopup, "HyprPopup");
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
@@ -170,6 +171,21 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
     Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode %lx", PPOPUP->pSurfaceTree);
 }
 
+void Events::listener_repositionPopupXDG(void* owner, void* data) {
+    SXDGPopup* PPOPUP = (SXDGPopup*)owner;
+
+    Debug::log(LOG, "XDG Popup %lx asks for a reposition", PPOPUP);
+
+    int lx = 0, ly = 0;
+    addPopupGlobalCoords(PPOPUP, &lx, &ly);
+
+    wlr_box extents;
+    wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
+
+    PPOPUP->lastPos             = {lx - extents.x, ly - extents.y};
+    PPOPUP->repositionRequested = true;
+}
+
 void Events::listener_unmapPopupXDG(void* owner, void* data) {
     SXDGPopup* PPOPUP = (SXDGPopup*)owner;
     Debug::log(LOG, "XDG Popup unmapped");
@@ -207,8 +223,16 @@ void Events::listener_commitPopupXDG(void* owner, void* data) {
         PPOPUP->ly = PPOPUP->parentWindow->m_vRealPosition.vec().y;
     }
 
-    int        lx = 0, ly = 0;
+    int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
+
+    wlr_box extents;
+    wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
+
+    if (PPOPUP->repositionRequested)
+        g_pHyprRenderer->damageBox(PPOPUP->lastPos.x, PPOPUP->lastPos.y, extents.width + 2, extents.height + 2);
+
+    PPOPUP->repositionRequested = false;
 
     g_pHyprRenderer->damageSurface(PPOPUP->popup->base->surface, lx, ly);
 }

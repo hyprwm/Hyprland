@@ -2022,6 +2022,7 @@ void moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection) {
     pWindow->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
     g_pCompositor->focusWindow(pWindow);
+    g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
 void moveWindowOutOfGroup(CWindow* pWindow) {

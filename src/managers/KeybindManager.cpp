@@ -2040,10 +2040,10 @@ void moveWindowOutOfGroup(CWindow* pWindow) {
 
     if (*BFOCUSREMOVEDWINDOW) {
         g_pCompositor->focusWindow(pWindow);
-        g_pCompositor->warpCursorTo(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.0);
+        g_pCompositor->warpCursorTo(pWindow->middle());
     } else {
         g_pCompositor->focusWindow(PWINDOWPREV);
-        g_pCompositor->warpCursorTo(PWINDOWPREV->m_vRealPosition.goalv() + PWINDOWPREV->m_vRealSize.goalv() / 2.0);
+        g_pCompositor->warpCursorTo(pWindow->middle());
     }
 }
 
@@ -2107,14 +2107,14 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
     if (ISWINDOWINDIRGROUP && !ISWINDOWINDIRGROUPLOCKED) {
         if (ISWINDOWGROUPLOCKED && *BCHECKGROUPLOCK) {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
-            g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
+            g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else {
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
         }
     } else if (ISWINDOWINDIRGROUPLOCKED) {
         if (*BCHECKGROUPLOCK) {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
-            g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
+            g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else {
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
         }
@@ -2123,7 +2123,7 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
             moveWindowOutOfGroup(PWINDOW);
         } else {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
-            g_pCompositor->warpCursorTo(PWINDOWINDIR->m_vRealPosition.vec() + PWINDOWINDIR->m_vRealSize.vec() / 2.0);
+            g_pCompositor->warpCursorTo(PWINDOW->middle());
         }
     } else {
         if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {

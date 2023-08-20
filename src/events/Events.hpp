@@ -39,6 +39,7 @@ namespace Events {
     DYNLISTENFUNC(destroyPopupXDG);
     DYNLISTENFUNC(commitPopupXDG);
     DYNLISTENFUNC(newPopupFromPopupXDG);
+    DYNLISTENFUNC(repositionPopupXDG);
 
     // Surface XDG (window)
     LISTENER(newXDGSurface);

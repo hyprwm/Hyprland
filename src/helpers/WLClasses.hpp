@@ -191,9 +191,13 @@ struct SXDGPopup {
     DYNLISTENER(mapPopupXDG);
     DYNLISTENER(unmapPopupXDG);
     DYNLISTENER(commitPopupXDG);
+    DYNLISTENER(repositionPopupXDG);
 
     double            lx;
     double            ly;
+
+    Vector2D          lastPos             = {};
+    bool              repositionRequested = false;
 
     SSurfaceTreeNode* pSurfaceTree = nullptr;
 
@@ -242,8 +246,9 @@ struct STablet {
 
     std::string           name = "";
 
-    bool                  operator==(const STablet& b) const {
-                         return wlrDevice == b.wlrDevice;
+    //
+    bool operator==(const STablet& b) const {
+        return wlrDevice == b.wlrDevice;
     }
 };
 

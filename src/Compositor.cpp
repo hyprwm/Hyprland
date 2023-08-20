@@ -108,20 +108,20 @@ void CCompositor::initServer() {
 
     if (!m_sWLRBackend) {
         Debug::log(CRIT, "m_sWLRBackend was NULL!");
-        throw std::runtime_error("wlr_backend_autocreate() failed!");
+        throwError("wlr_backend_autocreate() failed!");
     }
 
     m_iDRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
     if (m_iDRMFD < 0) {
         Debug::log(CRIT, "Couldn't query the DRM FD!");
-        throw std::runtime_error("wlr_backend_get_drm_fd() failed!");
+        throwError("wlr_backend_get_drm_fd() failed!");
     }
 
     m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
 
     if (!m_sWLRRenderer) {
         Debug::log(CRIT, "m_sWLRRenderer was NULL!");
-        throw std::runtime_error("wlr_gles2_renderer_create_with_drm_fd() failed!");
+        throwError("wlr_gles2_renderer_create_with_drm_fd() failed!");
     }
 
     wlr_renderer_init_wl_shm(m_sWLRRenderer, m_sWLDisplay);
@@ -137,14 +137,14 @@ void CCompositor::initServer() {
 
     if (!m_sWLRAllocator) {
         Debug::log(CRIT, "m_sWLRAllocator was NULL!");
-        throw std::runtime_error("wlr_allocator_autocreate() failed!");
+        throwError("wlr_allocator_autocreate() failed!");
     }
 
     m_sWLREGL = wlr_gles2_renderer_get_egl(m_sWLRRenderer);
 
     if (!m_sWLREGL) {
         Debug::log(CRIT, "m_sWLREGL was NULL!");
-        throw std::runtime_error("wlr_gles2_renderer_get_egl() failed!");
+        throwError("wlr_gles2_renderer_get_egl() failed!");
     }
 
     m_sWLRCompositor    = wlr_compositor_create(m_sWLDisplay, 6, m_sWLRRenderer);
@@ -243,7 +243,7 @@ void CCompositor::initServer() {
 
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
-        throw std::runtime_error("wlr_headless_backend_create() failed!");
+        throwError("wlr_headless_backend_create() failed!");
     }
 
     wlr_single_pixel_buffer_manager_v1_create(m_sWLDisplay);

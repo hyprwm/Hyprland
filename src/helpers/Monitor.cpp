@@ -551,18 +551,26 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
             }
         }
 
+        static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+
         if (const auto PLASTWINDOW = pWorkspace->getLastFocusedWindow(); PLASTWINDOW)
             g_pCompositor->focusWindow(PLASTWINDOW);
-        else if (g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue != 1) {
-            CWindow* pWindow = g_pCompositor->getTopLeftWindowOnWorkspace(pWorkspace->m_iID);
+        else {
+            CWindow* pWindow = nullptr;
+
+            if (*PFOLLOWMOUSE == 1)
+                pWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
+
+            if (!pWindow)
+                pWindow = g_pCompositor->getTopLeftWindowOnWorkspace(pWorkspace->m_iID);
+
             if (!pWindow)
                 pWindow = g_pCompositor->getFirstWindowOnWorkspace(pWorkspace->m_iID);
+
             g_pCompositor->focusWindow(pWindow);
-            g_pInputManager->simulateMouseMovement();
-        } else {
-            g_pCompositor->focusWindow(nullptr);
-            g_pInputManager->simulateMouseMovement();
         }
+
+        g_pInputManager->simulateMouseMovement();
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 

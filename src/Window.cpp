@@ -26,17 +26,7 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
     if (m_bFadingOut)
         return m_eOriginalClosedExtents;
 
-    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-
-    const auto         PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
-
-    const auto         WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
-
-    auto borderSize = m_sSpecialRenderData.borderSize.toUnderlying() != -1 ? m_sSpecialRenderData.borderSize.toUnderlying() : WORKSPACERULE.borderSize.value_or(*PBORDERSIZE);
-    if (m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
-        borderSize = m_sAdditionalConfigData.borderSize.toUnderlying();
-
-    borderSize *= m_sSpecialRenderData.border && !m_sAdditionalConfigData.forceNoBorder;
+    const int BORDERSIZE = getRealBorderSize();
 
     if (m_sAdditionalConfigData.dimAround) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
@@ -44,7 +34,7 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
                 {PMONITOR->vecSize.x - (m_vRealPosition.vec().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.vec().y - PMONITOR->vecPosition.y)}};
     }
 
-    SWindowDecorationExtents maxExtents = {{borderSize + 2, borderSize + 2}, {borderSize + 2, borderSize + 2}};
+    SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
     for (auto& wd : m_dWindowDecorations) {
 
@@ -144,14 +134,14 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 }
 
 wlr_box CWindow::getWindowInputBox() {
-    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    const int BORDERSIZE = getRealBorderSize();
 
     if (m_sAdditionalConfigData.dimAround) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
-    SWindowDecorationExtents maxExtents = {{*PBORDERSIZE + 2, *PBORDERSIZE + 2}, {*PBORDERSIZE + 2, *PBORDERSIZE + 2}};
+    SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
     for (auto& wd : m_dWindowDecorations) {
 
@@ -347,6 +337,8 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
 
+    updateSpecialRenderData();
+
     if (PWORKSPACE) {
         g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%lx,%s", this, PWORKSPACE->m_szName.c_str())});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
@@ -356,6 +348,9 @@ void CWindow::moveToWorkspace(int workspaceID) {
         m_pSwallowed->moveToWorkspace(workspaceID);
         m_pSwallowed->m_iMonitorID = m_iMonitorID;
     }
+
+    // update xwayland coords
+    g_pXWaylandManager->setWindowSize(this, m_vRealSize.vec());
 }
 
 CWindow* CWindow::X11TransientFor() {
@@ -589,29 +584,27 @@ void CWindow::updateDynamicRules() {
 // it is assumed that the point is within the real window box (m_vRealPosition, m_vRealSize)
 // otherwise behaviour is undefined
 bool CWindow::isInCurvedCorner(double x, double y) {
-    static auto* const ROUNDING   = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static auto* const BORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-
-    if (BORDERSIZE >= ROUNDING || ROUNDING == 0)
+    const int ROUNDING = rounding();
+    if (getRealBorderSize() >= ROUNDING)
         return false;
 
     // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
-    double x0 = m_vRealPosition.vec().x + *ROUNDING;
-    double y0 = m_vRealPosition.vec().y + *ROUNDING;
-    double x1 = m_vRealPosition.vec().x + m_vRealSize.vec().x - *ROUNDING;
-    double y1 = m_vRealPosition.vec().y + m_vRealSize.vec().y - *ROUNDING;
+    double x0 = m_vRealPosition.vec().x + ROUNDING;
+    double y0 = m_vRealPosition.vec().y + ROUNDING;
+    double x1 = m_vRealPosition.vec().x + m_vRealSize.vec().x - ROUNDING;
+    double y1 = m_vRealPosition.vec().y + m_vRealSize.vec().y - ROUNDING;
 
     if (x < x0 && y < y0) {
-        return Vector2D{x0, y0}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+        return Vector2D{x0, y0}.distance(Vector2D{x, y}) > (double)ROUNDING;
     }
     if (x > x1 && y < y0) {
-        return Vector2D{x1, y0}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+        return Vector2D{x1, y0}.distance(Vector2D{x, y}) > (double)ROUNDING;
     }
     if (x < x0 && y > y1) {
-        return Vector2D{x0, y1}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+        return Vector2D{x0, y1}.distance(Vector2D{x, y}) > (double)ROUNDING;
     }
     if (x > x1 && y > y1) {
-        return Vector2D{x1, y1}.distance(Vector2D{x, y}) > (double)*ROUNDING;
+        return Vector2D{x1, y1}.distance(Vector2D{x, y}) > (double)ROUNDING;
     }
 
     return false;
@@ -687,7 +680,7 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
         g_pCompositor->setWindowFullscreen(PCURRENT, false, WORKSPACE->m_efFullscreenMode);
 
     PCURRENT->setHidden(true);
-    pWindow->setHidden(false); // can remove m_pLastWindow 
+    pWindow->setHidden(false); // can remove m_pLastWindow
 
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 
@@ -809,4 +802,32 @@ float CWindow::rounding() {
     float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
 
     return rounding;
+}
+
+void CWindow::updateSpecialRenderData() {
+    const auto PWORKSPACE    = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+    const auto WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
+    bool       border        = true;
+
+    if (m_bIsFloating && g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue == 1)
+        border = false;
+
+    m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(border);
+    m_sSpecialRenderData.borderSize = WORKSPACERULE.borderSize.value_or(-1);
+    m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
+    m_sSpecialRenderData.rounding   = WORKSPACERULE.rounding.value_or(true);
+    m_sSpecialRenderData.shadow     = WORKSPACERULE.shadow.value_or(true);
+}
+
+int CWindow::getRealBorderSize() {
+    if (!m_sSpecialRenderData.border || m_sAdditionalConfigData.forceNoBorder)
+        return 0;
+
+    if (m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
+        return m_sAdditionalConfigData.borderSize.toUnderlying();
+
+    if (m_sSpecialRenderData.borderSize.toUnderlying() != -1)
+        return m_sSpecialRenderData.borderSize.toUnderlying();
+
+    return g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 }

@@ -109,11 +109,14 @@ void main() {
             discard;
     }
 
-    if (pixColor[3] == 0.0)
+    if (additionalAlpha == 0.0)
         discard;
 
     pixColor = getColorForCoord(v_texcoord);
+    pixColor.rgb *= pixColor[3];
 
-    gl_FragColor = pixColor * alpha * additionalAlpha;
+    pixColor *= alpha * additionalAlpha;
+
+    gl_FragColor = pixColor;
 }
 )#";

@@ -202,6 +202,7 @@ class CCompositor {
     CWindow*       getForceFocus();
     void           notifyIdleActivity();
     void           setIdleActivityInhibit(bool inhibit);
+    void           arrangeMonitors();
 
     std::string    explicitConfigPath;
 

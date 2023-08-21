@@ -104,6 +104,7 @@ struct SWindowSpecialRenderData {
     bool                       rounding   = true;
     bool                       border     = true;
     bool                       decorate   = true;
+    bool                       shadow     = true;
 };
 
 struct SWindowAdditionalConfigData {
@@ -332,6 +333,9 @@ class CWindow {
     Vector2D                 middle();
     bool                     opaque();
     float                    rounding();
+
+    int                      getRealBorderSize();
+    void                     updateSpecialRenderData();
 
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);

@@ -3,6 +3,7 @@
 #include <regex>
 
 #include <sys/ioctl.h>
+#include <fcntl.h>
 #if defined(__linux__)
 #include <linux/vt.h>
 #elif defined(__NetBSD__) || defined(__OpenBSD__)
@@ -518,15 +519,19 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         // vtnr is bugged for some reason.
         unsigned int ttynum = 0;
+        int          fd;
+        if ((fd = open("/dev/tty", O_RDONLY | O_NOCTTY)) >= 0) {
 #if defined(VT_GETSTATE)
-        struct vt_stat st;
-        if (!ioctl(0, VT_GETSTATE, &st))
-            ttynum = st.v_active;
+            struct vt_stat st;
+            if (!ioctl(fd, VT_GETSTATE, &st))
+                ttynum = st.v_active;
 #elif defined(VT_GETACTIVE)
-        int vt;
-        if (!ioctl(0, VT_GETACTIVE, &vt))
-            ttynum = vt;
+            int vt;
+            if (!ioctl(fd, VT_GETACTIVE, &vt))
+                ttynum = vt;
 #endif
+            close(fd);
+        }
 
         if (ttynum == TTY)
             return true;

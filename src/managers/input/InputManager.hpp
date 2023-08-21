@@ -79,6 +79,7 @@ class CInputManager {
     void               destroySwitch(SSwitchDevice*);
 
     void               constrainMouse(SMouse*, wlr_pointer_constraint_v1*);
+    void               warpMouseToConstraintMiddle(SConstraint*);
     void               recheckConstraint(SMouse*);
     void               unconstrainMouse();
     SConstraint*       constraintFromWlr(wlr_pointer_constraint_v1*);

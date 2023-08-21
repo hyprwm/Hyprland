@@ -223,6 +223,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
     }
 
+    PWINDOW->updateSpecialRenderData();
+
     // disallow tiled pinned
     if (PWINDOW->m_bPinned && !PWINDOW->m_bIsFloating)
         PWINDOW->m_bPinned = false;
@@ -413,8 +415,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
             } else if (r.szRule.find("center") == 0) {
-                auto RESERVEDOFFSET = Vector2D();
-                const auto ARGS = CVarList(r.szRule, 2, ' ');
+                auto       RESERVEDOFFSET = Vector2D();
+                const auto ARGS           = CVarList(r.szRule, 2, ' ');
                 if (ARGS[1] == "1")
                     RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
@@ -994,7 +996,9 @@ void Events::listener_configureX11(void* owner, void* data) {
     else
         PWINDOW->setHidden(true);
 
-    PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(E->x, E->y));
+    const auto LOGICALPOS = g_pXWaylandManager->xwaylandToWaylandCoords({E->x, E->y});
+
+    PWINDOW->m_vRealPosition.setValueAndWarp(LOGICALPOS);
     PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(E->width, E->height));
 
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
@@ -1044,13 +1048,15 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
-    if (abs(std::floor(POS.x) - PWINDOW->m_uSurface.xwayland->x) > 2 || abs(std::floor(POS.y) - PWINDOW->m_uSurface.xwayland->y) > 2 ||
-        abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
-        Debug::log(LOG, "Unmanaged window %lx requests geometry update to %i %i %i %i", PWINDOW, (int)PWINDOW->m_uSurface.xwayland->x, (int)PWINDOW->m_uSurface.xwayland->y,
-                   (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);
+    const auto         LOGICALPOS = g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y});
+
+    if (abs(std::floor(POS.x) - LOGICALPOS.x) > 2 || abs(std::floor(POS.y) - LOGICALPOS.y) > 2 || abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 ||
+        abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
+        Debug::log(LOG, "Unmanaged window %lx requests geometry update to %i %i %i %i", PWINDOW, (int)LOGICALPOS.x, (int)LOGICALPOS.y, (int)PWINDOW->m_uSurface.xwayland->width,
+                   (int)PWINDOW->m_uSurface.xwayland->height);
 
         g_pHyprRenderer->damageWindow(PWINDOW);
-        PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y));
+        PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(LOGICALPOS.x, LOGICALPOS.y));
 
         if (abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2)
             PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height));

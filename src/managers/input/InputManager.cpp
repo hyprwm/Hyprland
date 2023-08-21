@@ -85,6 +85,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored && !refocus)
         return;
 
+    if (time)
+        g_pCompositor->notifyIdleActivity();
+
     EMIT_HOOK_EVENT("mouseMove", MOUSECOORDSFLOORED);
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
@@ -318,9 +321,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     m_bEmptyFocusCursorSet = false;
-
-    if (time)
-        g_pCompositor->notifyIdleActivity();
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
@@ -1177,31 +1177,8 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     pMouse->hyprListener_commitConstraint.removeCallback();
 
     if (pMouse->currentConstraint) {
-        if (!constraint) {
-            // warpe to hint
-
-            if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
-                if (PWINDOW) {
-                    if (PWINDOW->m_bIsX11) {
-                        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, constraint->current.cursor_hint.x + PWINDOW->m_uSurface.xwayland->x,
-                                        constraint->current.cursor_hint.y + PWINDOW->m_uSurface.xwayland->y);
-
-                        wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
-                    } else {
-                        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.vec().x,
-                                        constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.vec().y);
-
-                        wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
-                    }
-                }
-
-                const auto PCONSTRAINT = constraintFromWlr(constraint);
-                if (PCONSTRAINT) { // should never be null but who knows
-                    PCONSTRAINT->positionHint = Vector2D(constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
-                    PCONSTRAINT->hintSet      = true;
-                }
-            }
-        }
+        if (constraint && constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT)
+            warpMouseToConstraintMiddle(constraintFromWlr(constraint));
 
         wlr_pointer_constraint_v1_send_deactivated(pMouse->currentConstraint);
     }
@@ -1222,6 +1199,27 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     pMouse->hyprListener_commitConstraint.initCallback(&pMouse->currentConstraint->surface->events.commit, &Events::listener_commitConstraint, pMouse, "Mouse constraint commit");
 
     Debug::log(LOG, "Constrained mouse to %lx", pMouse->currentConstraint);
+}
+
+void CInputManager::warpMouseToConstraintMiddle(SConstraint* pConstraint) {
+
+    if (!pConstraint)
+        return;
+
+    pConstraint->positionHint = Vector2D(pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
+    pConstraint->hintSet      = true;
+
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(pConstraint->constraint->surface);
+
+    if (PWINDOW) {
+        const auto RELATIVETO = PWINDOW->m_bIsX11 ?
+            g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y}) / PWINDOW->m_fX11SurfaceScaledBy :
+            PWINDOW->m_vRealPosition.goalv();
+        const auto HINTSCALE  = PWINDOW->m_fX11SurfaceScaledBy;
+
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, RELATIVETO.x + pConstraint->positionHint.x / HINTSCALE, RELATIVETO.y + pConstraint->positionHint.y / HINTSCALE);
+        wlr_seat_pointer_warp(pConstraint->constraint->seat, pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
+    }
 }
 
 void CInputManager::unconstrainMouse() {
@@ -1531,14 +1529,16 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     }
 
     static auto* const PROUNDING         = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static const auto* PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static const auto* PEXTENDBORDERGRAB = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    const int          BORDERSIZE        = w->getRealBorderSize();
+
     // give a small leeway (10 px) for corner icon
-    const auto           CORNER           = *PROUNDING + *PBORDERSIZE + 10;
+    const auto           CORNER           = *PROUNDING + BORDERSIZE + 10;
     const auto           mouseCoords      = getMouseCoordsInternal();
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
-    wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB, box.y - *PEXTENDBORDERGRAB, box.width + 2 * *PEXTENDBORDERGRAB, box.height + 2 * *PEXTENDBORDERGRAB};
+    wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
+                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

@@ -714,3 +714,8 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 
     return callstack;
 }
+
+void throwError(const std::string& err) {
+    Debug::log(CRIT, "Critical error thrown: %s", err.c_str());
+    throw std::runtime_error(err);
+}

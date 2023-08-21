@@ -55,7 +55,6 @@ void CAnimationManager::tick() {
     if (!*PANIMENABLED)
         animGlobalDisabled = true;
 
-    static auto* const              PBORDERSIZE     = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const              PSHADOWSENABLED = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
 
     const auto                      DEFAULTBEZIER = m_mBezierCurves.find("default");
@@ -217,7 +216,7 @@ void CAnimationManager::tick() {
                 // damage only the border.
                 static auto* const PROUNDING    = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
                 const auto         ROUNDINGSIZE = *PROUNDING + 1;
-                const auto         BORDERSIZE   = *PBORDERSIZE;
+                const auto         BORDERSIZE   = PWINDOW->getRealBorderSize();
 
                 // damage for old box
                 g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top
@@ -486,6 +485,22 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
     } else if (config == "workspaces" || config == "specialWorkspace") {
         if (style == "slide" || style == "slidevert" || style == "fade")
             return "";
+        else if (style.find("slidefade") == 0) {
+            // try parsing
+            float movePerc = 0.f;
+            if (style.find("%") != std::string::npos) {
+                try {
+                    auto percstr = style.substr(style.find_last_of(' ') + 1);
+                    movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) { return "invalid movePerc"; }
+
+                return "";
+            }
+
+            movePerc; // fix warning
+
+            return "";
+        }
 
         return "unknown style";
     } else if (config == "borderangle") {

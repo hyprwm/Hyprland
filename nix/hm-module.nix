@@ -7,8 +7,7 @@ self: {
   cfg = config.wayland.windowManager.hyprland;
   defaultHyprlandPackage = self.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
-    hidpiXWayland = cfg.xwayland.hidpi;
-    inherit (cfg) nvidiaPatches;
+    inherit (cfg) enableNvidiaPatches;
   };
 in {
   disabledModules = ["services/window-managers/hyprland.nix"];
@@ -36,13 +35,12 @@ in {
       defaultText = lib.literalExpression ''
         hyprland.packages.''${pkgs.stdenv.hostPlatform.system}.default.override {
           enableXWayland = config.wayland.windowManager.hyprland.xwayland.enable;
-          hidpiXWayland = config.wayland.windowManager.hyprland.xwayland.hidpi;
-          inherit (config.wayland.windowManager.hyprland) nvidiaPatches;
+          inherit (config.wayland.windowManager.hyprland) enableNvidiaPatches;
         }
       '';
       description = lib.mdDoc ''
         Hyprland package to use. Will override the 'xwayland' and
-        'nvidiaPatches' options.
+        'enableNvidiaPatches' options.
 
         Defaults to the one provided by the flake. Set it to
         {package}`pkgs.hyprland` to use the one provided by nixpkgs or
@@ -86,19 +84,9 @@ in {
         '';
       };
 
-    xwayland = {
-      enable = lib.mkEnableOption (lib.mdDoc "XWayland") // {default = true;};
-      hidpi =
-        lib.mkEnableOption null
-        // {
-          description = lib.mdDoc ''
-            Enable HiDPI XWayland, based on [XWayland MR 733](https://gitlab.freedesktop.org/xorg/xserver/-/merge_requests/733).
-            See <https://wiki.hyprland.org/Nix/Options-Overrides/#xwayland-hidpi> for more info.
-          '';
-        };
-    };
+    xwayland.enable = lib.mkEnableOption (lib.mdDoc "XWayland") // {default = true;};
 
-    nvidiaPatches = lib.mkEnableOption (lib.mdDoc "patching wlroots for better Nvidia support.");
+    enableNvidiaPatches = lib.mkEnableOption (lib.mdDoc "patching wlroots for better Nvidia support.");
 
     extraConfig = lib.mkOption {
       type = lib.types.nullOr lib.types.lines;
@@ -119,10 +107,14 @@ in {
 
   config = lib.mkIf cfg.enable {
     warnings =
-      if (cfg.systemdIntegration || cfg.plugins != []) && cfg.extraConfig == null then
-        [ ''You have enabled hyprland.systemdIntegration or listed plugins in hyprland.plugins.
-            Your Hyprland config will be linked by home manager.
-            Set hyprland.extraConfig or unset hyprland.systemdIntegration and hyprland.plugins to remove this warning.'' ]
+      if (cfg.systemdIntegration || cfg.plugins != []) && cfg.extraConfig == null
+      then [
+        ''
+          You have enabled hyprland.systemdIntegration or listed plugins in hyprland.plugins.
+          Your Hyprland config will be linked by home manager.
+          Set hyprland.extraConfig or unset hyprland.systemdIntegration and hyprland.plugins to remove this warning.
+        ''
+      ]
       else [];
 
     home.packages =
@@ -138,9 +130,17 @@ in {
           exec-once=${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && systemctl --user start hyprland-session.target
         '')
         + lib.concatStrings (builtins.map (entry: let
-            plugin = if lib.types.package.check entry then "${entry}/lib/lib${entry.pname}.so" else entry;
-          in "plugin = ${plugin}\n") cfg.plugins)
-        + (if cfg.extraConfig != null then cfg.extraConfig else "");
+          plugin =
+            if lib.types.package.check entry
+            then "${entry}/lib/lib${entry.pname}.so"
+            else entry;
+        in "plugin = ${plugin}\n")
+        cfg.plugins)
+        + (
+          if cfg.extraConfig != null
+          then cfg.extraConfig
+          else ""
+        );
 
       onChange = let
         hyprlandPackage =
@@ -169,4 +169,9 @@ in {
       };
     };
   };
+
+  imports = [
+    (lib.mkRemovedOptionModule ["wayland" "windowManager" "hyprland" "xwayland" "hidpi"]
+      "Support for this option has been removed. Refer to https://wiki.hyprland.org/Configuring/XWayland for more info")
+  ];
 }

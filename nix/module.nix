@@ -6,11 +6,12 @@ inputs: {
 }:
 with lib; let
   cfg = config.programs.hyprland;
+  inherit (pkgs.stdenv.hostPlatform) system;
 
-  defaultHyprlandPackage = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
-    enableXWayland = cfg.xwayland.enable;
-    hidpiXWayland = cfg.xwayland.hidpi;
-    inherit (cfg) nvidiaPatches;
+  finalPortalPackage = cfg.portalPackage.override {
+    hyprland-share-picker = inputs.xdph.packages.${system}.hyprland-share-picker.override {
+      hyprland = cfg.finalPackage;
+    };
   };
 in {
   # disables Nixpkgs Hyprland module to avoid conflicts
@@ -30,47 +31,36 @@ in {
         '';
       };
 
-    package = mkOption {
-      type = types.path;
-      default = defaultHyprlandPackage;
-      defaultText = literalExpression ''
-        hyprland.packages.''${pkgs.stdenv.hostPlatform.system}.default.override {
-          enableXWayland = config.programs.hyprland.xwayland.enable;
-          hidpiXWayland = config.programs.hyprland.xwayland.hidpi;
-          inherit (config.programs.hyprland) nvidiaPatches;
-        }
-      '';
-      example = literalExpression "pkgs.hyprland";
+    package = mkPackageOptionMD inputs.self.packages.${system} "hyprland" { };
+
+    finalPackage = mkOption {
+      type = types.package;
+      readOnly = true;
+      default = cfg.package.override {
+        enableXWayland = cfg.xwayland.enable;
+        enableNvidiaPatches = cfg.enableNvidiaPatches;
+      };
+      defaultText =
+        literalExpression
+        "`programs.hyprland.package` with applied configuration";
       description = mdDoc ''
-        The Hyprland package to use.
-        Setting this option will make {option}`programs.hyprland.xwayland` and
-        {option}`programs.hyprland.nvidiaPatches` not work.
+        The Hyprland package after applying configuration.
       '';
     };
 
-    xwayland = {
-      enable = mkEnableOption (mdDoc "XWayland") // {default = true;};
-      hidpi =
-        mkEnableOption null
-        // {
-          description = mdDoc ''
-            Enable HiDPI XWayland, based on [XWayland MR 733](https://gitlab.freedesktop.org/xorg/xserver/-/merge_requests/733).
-            See <https://wiki.hyprland.org/Nix/Options-Overrides/#xwayland-hidpi> for more info.
-          '';
-        };
-    };
+    portalPackage = mkPackageOptionMD inputs.xdph.packages.${system} "xdg-desktop-portal-hyprland" {};
 
-    nvidiaPatches = mkEnableOption (mdDoc "patching wlroots for better Nvidia support");
+    xwayland.enable = mkEnableOption (mdDoc "support for XWayland") // {default = true;};
+
+    enableNvidiaPatches =
+      mkEnableOption null
+      // {
+        description = mdDoc "Whether to apply patches to wlroots for better Nvidia support.";
+      };
   };
 
   config = mkIf cfg.enable {
-    environment = {
-      systemPackages = [cfg.package];
-
-      sessionVariables = {
-        NIXOS_OZONE_WL = mkDefault "1";
-      };
-    };
+    environment.systemPackages = [cfg.finalPackage];
 
     fonts =
       if versionOlder config.system.stateVersion "23.11"
@@ -81,22 +71,29 @@ in {
 
     programs = {
       dconf.enable = mkDefault true;
-      xwayland.enable = mkDefault true;
+      xwayland.enable = mkDefault cfg.xwayland.enable;
     };
 
     security.polkit.enable = true;
 
-    services.xserver.displayManager.sessionPackages = [cfg.package];
+    services.xserver.displayManager.sessionPackages = [cfg.finalPackage];
 
     xdg.portal = {
       enable = mkDefault true;
-      extraPortals = lib.mkIf (cfg.package != null) [
-        (inputs.xdph.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland.override {
-          hyprland-share-picker = inputs.xdph.packages.${pkgs.stdenv.hostPlatform.system}.hyprland-share-picker.override {
-            hyprland = cfg.package;
-          };
-        })
-      ];
+      extraPortals = [finalPortalPackage];
     };
   };
+
+  imports = with lib; [
+    (
+      mkRemovedOptionModule
+      ["programs" "hyprland" "xwayland" "hidpi"]
+      "XWayland patches are deprecated. Refer to https://wiki.hyprland.org/Configuring/XWayland"
+    )
+    (
+      mkRenamedOptionModule
+      ["programs" "hyprland" "nvidiaPatches"]
+      ["programs" "hyprland" "enableNvidiaPatches"]
+    )
+  ];
 }

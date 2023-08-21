@@ -122,19 +122,8 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
 
         const auto PWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
-        if (PWINDOW && PCONSTRAINT->positionHint != Vector2D{-1, -1}) {
-            if (PWINDOW->m_bIsX11) {
-                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PCONSTRAINT->positionHint.x + PWINDOW->m_uSurface.xwayland->x,
-                                PWINDOW->m_uSurface.xwayland->y + PCONSTRAINT->positionHint.y);
-
-                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y);
-            } else {
-                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PCONSTRAINT->positionHint.x + PWINDOW->m_vRealPosition.vec().x,
-                                PCONSTRAINT->positionHint.y + PWINDOW->m_vRealPosition.vec().y);
-
-                wlr_seat_pointer_warp(PCONSTRAINT->constraint->seat, PCONSTRAINT->positionHint.x, PCONSTRAINT->positionHint.y);
-            }
-        }
+        if (PWINDOW && PCONSTRAINT->positionHint != Vector2D{-1, -1})
+            g_pInputManager->warpMouseToConstraintMiddle(PCONSTRAINT);
 
         PCONSTRAINT->pMouse->currentConstraint = nullptr;
     }

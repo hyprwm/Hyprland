@@ -43,6 +43,14 @@ class Vector2D {
         return Vector2D(this->x / a.x, this->y / a.y);
     }
 
+    bool operator>(const Vector2D& a) const {
+        return this->x > a.x && this->y > a.y;
+    }
+
+    bool operator<(const Vector2D& a) const {
+        return this->x < a.x && this->y < a.y;
+    }
+
     double   distance(const Vector2D& other) const;
 
     Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D()) const;

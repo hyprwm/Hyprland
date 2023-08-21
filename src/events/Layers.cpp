@@ -142,8 +142,11 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
 
-    if (layersurface->layerSurface->current.keyboard_interactive &&
-        (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)) { // don't focus if constrained
+    const bool GRABSFOCUS = layersurface->layerSurface->current.keyboard_interactive &&
+        // don't focus if constrained
+        (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint);
+
+    if (GRABSFOCUS) {
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
         const auto LOCAL =
@@ -161,7 +164,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     const bool FULLSCREEN = WORKSPACE->m_bHasFullscreenWindow && WORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
 
     layersurface->alpha.setValue(0);
-    layersurface->alpha         = ((layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN) ? 0.f : 1.f);
+    layersurface->alpha         = ((layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS) ? 0.f : 1.f);
     layersurface->readyToDelete = false;
     layersurface->fadingOut     = false;
 

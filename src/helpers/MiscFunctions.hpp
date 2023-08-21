@@ -30,3 +30,4 @@ void                             matrixProjection(float mat[9], int w, int h, wl
 double                           normalizeAngleRad(double ang);
 std::string                      replaceInString(std::string subject, const std::string& search, const std::string& replace);
 std::vector<SCallstackFrameInfo> getBacktrace();
+void                             throwError(const std::string& err);

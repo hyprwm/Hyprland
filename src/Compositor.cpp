@@ -2087,9 +2087,11 @@ void CCompositor::updateFullscreenFadeOnWorkspace(CWorkspace* pWorkspace) {
 
     const auto PMONITOR = getMonitorFromID(pWorkspace->m_iMonitorID);
 
-    for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (!ls->fadingOut)
-            ls->alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
+    if (pWorkspace->m_iID == PMONITOR->activeWorkspace) {
+        for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            if (!ls->fadingOut)
+                ls->alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
+        }
     }
 }
 

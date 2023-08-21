@@ -4,14 +4,14 @@
 
 #define LOGMESSAGESIZE 1024
 
-enum LogLevel
-{
+enum LogLevel {
     NONE = -1,
     LOG  = 0,
     WARN,
     ERR,
     CRIT,
-    INFO
+    INFO,
+    TRACE
 };
 
 namespace Debug {
@@ -23,4 +23,5 @@ namespace Debug {
     inline int64_t*    disableLogs   = nullptr;
     inline int64_t*    disableTime   = nullptr;
     inline bool        disableStdout = false;
+    inline bool        trace         = false;
 };

@@ -74,7 +74,6 @@
         wlroots-hyprland
         udis86
         ;
-      waybar-hyprland = lib.warn "The `waybar-hyprland` package is now in Nixpkgs" pkgsFor.${system}.waybar-hyprland;
     });
 
     devShells = eachSystem (system: {

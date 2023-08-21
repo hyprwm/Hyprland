@@ -15,7 +15,7 @@
     lib.foldl' (attrs: overlay: attrs // (overlay final prev)) {} overlays;
 in {
   # Contains what a user is most likely to care about:
-  # Hyprland itself, XDPH, the Share Picker, and patched Waybar.
+  # Hyprland itself, XDPH and the Share Picker.
   default = mkJoinedOverlays (with self.overlays; [
     hyprland-packages
     hyprland-extras
@@ -52,10 +52,7 @@ in {
   hyprland-extras = mkJoinedOverlays [
     inputs.xdph.overlays.xdg-desktop-portal-hyprland
     inputs.xdph.overlays.hyprland-share-picker
-    self.overlays.waybar-hyprland
   ];
-
-  waybar-hyprland = lib.warn "The `waybar-hyprland` package is now in Nixpkgs" (final: prev: {inherit (prev) waybar-hyprland;});
 
   udis86 = final: prev: {
     udis86 = final.callPackage ./udis86.nix {};

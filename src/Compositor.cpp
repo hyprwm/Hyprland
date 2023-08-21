@@ -2497,11 +2497,15 @@ void CCompositor::arrangeMonitors() {
     for (auto& m : m_vMonitors)
         toArrange.push_back(m.get());
 
+    Debug::log(LOG, "arrangeMonitors: %llu to arrange", toArrange.size());
+
     for (auto it = toArrange.begin(); it != toArrange.end();) {
         auto m = *it;
 
         if (m->activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
             // explicit.
+            Debug::log(LOG, "arrangeMonitors: %s explicit [%.2f, %.2f]", m->szName.c_str(), m->activeMonitorRule.offset.x, m->activeMonitorRule.offset.y);
+
             m->moveTo(m->activeMonitorRule.offset);
             arranged.push_back(m);
             it = toArrange.erase(it);
@@ -2523,6 +2527,7 @@ void CCompositor::arrangeMonitors() {
     }
 
     for (auto& m : toArrange) {
+        Debug::log(LOG, "arrangeMonitors: %s auto [%.2f, %.2f]", m->szName.c_str(), maxOffset, 0);
         m->moveTo({maxOffset, 0});
         maxOffset += m->vecPosition.x + m->vecSize.x;
     }
@@ -2531,6 +2536,7 @@ void CCompositor::arrangeMonitors() {
     // and set xwayland positions aka auto for all
     maxOffset = 0;
     for (auto& m : m_vMonitors) {
+        Debug::log(LOG, "arrangeMonitors: %s xwayland [%.2f, %.2f]", m->szName.c_str(), maxOffset, 0);
         m->vecXWaylandPosition = {maxOffset, 0};
         maxOffset += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
     }

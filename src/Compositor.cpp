@@ -1198,6 +1198,26 @@ CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
     return nullptr;
 }
 
+CWindow* CCompositor::getTopLeftWindowOnWorkspace(const int& id) {
+    const auto PWORKSPACE = getWorkspaceByID(id);
+
+    if (!PWORKSPACE)
+        return nullptr;
+
+    const auto PMONITOR = getMonitorFromID(PWORKSPACE->m_iMonitorID);
+
+    for (auto& w : m_vWindows) {
+        if (w->m_iWorkspaceID != id || !w->m_bIsMapped || w->isHidden())
+            continue;
+
+        const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
+
+        if (WINDOWIDEALBB.x <= PMONITOR->vecPosition.x + 1 && WINDOWIDEALBB.y <= PMONITOR->vecPosition.y + 1)
+            return w.get();
+    }
+    return nullptr;
+}
+
 bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
     if (g_pSessionLockManager->isSessionLocked()) {
         if (g_pSessionLockManager->isSurfaceSessionLock(surface))

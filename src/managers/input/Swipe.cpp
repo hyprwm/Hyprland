@@ -175,6 +175,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     m_sActiveSwipe.pWorkspaceBegin->m_bForceRendering = false;
 
     m_sActiveSwipe.pWorkspaceBegin = nullptr;
+    m_sActiveSwipe.initialDirection = 0;
 
     g_pInputManager->refocus();
 
@@ -191,11 +192,12 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     static auto* const PSWIPEDIST    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
     static auto* const PSWIPEINVR    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_invert")->intValue;
     static auto* const PSWIPENEW     = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
+    static auto* const PSWIPEDIRLOCK = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_direction_lock")->intValue;
     static auto* const PSWIPEFOREVER = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_forever")->intValue;
     static auto* const PSWIPENUMBER  = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_numbered")->intValue;
     static auto* const PSWIPEUSER    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
 
-    const bool         VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" || 
+    const bool         VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.find("slidefadevert") == 0;
 
     m_sActiveSwipe.delta += VERTANIMS ? (*PSWIPEINVR ? -e->dy : e->dy) : (*PSWIPEINVR ? -e->dx : e->dx);
@@ -222,11 +224,17 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         (m_sActiveSwipe.delta < 0 && m_sActiveSwipe.pWorkspaceBegin->m_iID <= workspaceIDLeft)) {
 
         m_sActiveSwipe.delta = 0;
-        return;
+    }
+
+    if(*PSWIPEDIRLOCK && m_sActiveSwipe.initialDirection != 0 && m_sActiveSwipe.initialDirection != (m_sActiveSwipe.delta < 0 ? -1 : 1)) {
+        m_sActiveSwipe.delta = 0;
     }
 
     if (m_sActiveSwipe.delta < 0) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+
+        if (m_sActiveSwipe.initialDirection == 0)
+            m_sActiveSwipe.initialDirection = -1;
 
         if (workspaceIDLeft > m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
             if (*PSWIPENEW || *PSWIPENUMBER) {
@@ -269,6 +277,9 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         g_pCompositor->updateWorkspaceWindowDecos(workspaceIDLeft);
     } else {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+
+        if (m_sActiveSwipe.initialDirection == 0)
+            m_sActiveSwipe.initialDirection = 1;
 
         if (workspaceIDRight < m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
             if (*PSWIPENEW || *PSWIPENUMBER) {

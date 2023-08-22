@@ -174,7 +174,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         PWORKSPACER->m_bForceRendering = false;
     m_sActiveSwipe.pWorkspaceBegin->m_bForceRendering = false;
 
-    m_sActiveSwipe.pWorkspaceBegin = nullptr;
+    m_sActiveSwipe.pWorkspaceBegin  = nullptr;
     m_sActiveSwipe.initialDirection = 0;
 
     g_pInputManager->refocus();
@@ -226,15 +226,16 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         m_sActiveSwipe.delta = 0;
     }
 
-    if(*PSWIPEDIRLOCK && m_sActiveSwipe.initialDirection != 0 && m_sActiveSwipe.initialDirection != (m_sActiveSwipe.delta < 0 ? -1 : 1)) {
-        m_sActiveSwipe.delta = 0;
+    if (*PSWIPEDIRLOCK) {
+        if (m_sActiveSwipe.initialDirection != 0 && m_sActiveSwipe.initialDirection != (m_sActiveSwipe.delta < 0 ? -1 : 1)) {
+            m_sActiveSwipe.delta = 0;
+        } else if (m_sActiveSwipe.initialDirection == 0) {
+            m_sActiveSwipe.initialDirection = m_sActiveSwipe.delta < 0 ? -1 : 1;
+        }
     }
 
     if (m_sActiveSwipe.delta < 0) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
-
-        if (m_sActiveSwipe.initialDirection == 0)
-            m_sActiveSwipe.initialDirection = -1;
 
         if (workspaceIDLeft > m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
             if (*PSWIPENEW || *PSWIPENUMBER) {
@@ -277,9 +278,6 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         g_pCompositor->updateWorkspaceWindowDecos(workspaceIDLeft);
     } else {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
-
-        if (m_sActiveSwipe.initialDirection == 0)
-            m_sActiveSwipe.initialDirection = 1;
 
         if (workspaceIDRight < m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
             if (*PSWIPENEW || *PSWIPENUMBER) {

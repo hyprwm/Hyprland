@@ -32,9 +32,6 @@ jobs:
     - name: Build packages
       run: nix flake check --print-build-logs --accept-flake-config
 
-    - name: Build Waybar-Hyprland
-      run: nix build .#waybar-hyprland --print-build-logs
-
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: "Nix: bump inputs"

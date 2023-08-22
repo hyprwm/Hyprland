@@ -224,6 +224,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         (m_sActiveSwipe.delta < 0 && m_sActiveSwipe.pWorkspaceBegin->m_iID <= workspaceIDLeft)) {
 
         m_sActiveSwipe.delta = 0;
+        return;
     }
 
     if (*PSWIPEDIRLOCK) {

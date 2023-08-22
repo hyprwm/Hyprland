@@ -2549,7 +2549,7 @@ void CCompositor::arrangeMonitors() {
     }
 
     for (auto& m : toArrange) {
-        Debug::log(LOG, "arrangeMonitors: %s auto [%.2f, %.2f]", m->szName.c_str(), maxOffset, 0);
+        Debug::log(LOG, "arrangeMonitors: %s auto [%i, %.2f]", m->szName.c_str(), maxOffset, 0);
         m->moveTo({maxOffset, 0});
         maxOffset += m->vecPosition.x + m->vecSize.x;
     }
@@ -2558,7 +2558,7 @@ void CCompositor::arrangeMonitors() {
     // and set xwayland positions aka auto for all
     maxOffset = 0;
     for (auto& m : m_vMonitors) {
-        Debug::log(LOG, "arrangeMonitors: %s xwayland [%.2f, %.2f]", m->szName.c_str(), maxOffset, 0);
+        Debug::log(LOG, "arrangeMonitors: %s xwayland [%i, %.2f]", m->szName.c_str(), maxOffset, 0);
         m->vecXWaylandPosition = {maxOffset, 0};
         maxOffset += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
     }

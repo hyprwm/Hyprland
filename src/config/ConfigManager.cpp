@@ -219,16 +219,18 @@ void CConfigManager::setDefaultVars() {
     configValues["binds:allow_workspace_cycles"].intValue   = 0;
     configValues["binds:focus_preferred_method"].intValue   = 0;
 
-    configValues["gestures:workspace_swipe"].intValue                    = 0;
-    configValues["gestures:workspace_swipe_fingers"].intValue            = 3;
-    configValues["gestures:workspace_swipe_distance"].intValue           = 300;
-    configValues["gestures:workspace_swipe_invert"].intValue             = 1;
-    configValues["gestures:workspace_swipe_min_speed_to_force"].intValue = 30;
-    configValues["gestures:workspace_swipe_cancel_ratio"].floatValue     = 0.5f;
-    configValues["gestures:workspace_swipe_create_new"].intValue         = 1;
-    configValues["gestures:workspace_swipe_forever"].intValue            = 0;
-    configValues["gestures:workspace_swipe_numbered"].intValue           = 0;
-    configValues["gestures:workspace_swipe_use_r"].intValue              = 0;
+    configValues["gestures:workspace_swipe"].intValue                          = 0;
+    configValues["gestures:workspace_swipe_fingers"].intValue                  = 3;
+    configValues["gestures:workspace_swipe_distance"].intValue                 = 300;
+    configValues["gestures:workspace_swipe_invert"].intValue                   = 1;
+    configValues["gestures:workspace_swipe_min_speed_to_force"].intValue       = 30;
+    configValues["gestures:workspace_swipe_cancel_ratio"].floatValue           = 0.5f;
+    configValues["gestures:workspace_swipe_create_new"].intValue               = 1;
+    configValues["gestures:workspace_swipe_direction_lock"].intValue           = 1;
+    configValues["gestures:workspace_swipe_direction_lock_threshold"].intValue = 10;
+    configValues["gestures:workspace_swipe_forever"].intValue                  = 0;
+    configValues["gestures:workspace_swipe_numbered"].intValue                 = 0;
+    configValues["gestures:workspace_swipe_use_r"].intValue                    = 0;
 
     configValues["xwayland:use_nearest_neighbor"].intValue = 1;
     configValues["xwayland:force_zero_scaling"].intValue   = 0;

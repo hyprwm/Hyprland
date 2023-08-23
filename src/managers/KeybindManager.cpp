@@ -2109,27 +2109,23 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
         if (ISWINDOWGROUPLOCKED && *BCHECKGROUPLOCK) {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
-        } else {
+        } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
-        }
     } else if (ISWINDOWINDIRGROUPLOCKED) {
         if (*BCHECKGROUPLOCK) {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
-        } else {
+        } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
-        }
     } else if (PWINDOWINDIR) {
-        if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
+        if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED))
             moveWindowOutOfGroup(PWINDOW);
-        } else {
+        else {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         }
-    } else {
-        if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
-            moveWindowOutOfGroup(PWINDOW);
-        }
+    } else if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
+        moveWindowOutOfGroup(PWINDOW);
     }
 }
 

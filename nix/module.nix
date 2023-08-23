@@ -2,6 +2,7 @@ inputs: {
   config,
   lib,
   pkgs,
+  options,
   ...
 }:
 with lib; let
@@ -62,10 +63,11 @@ in {
   config = mkIf cfg.enable {
     environment.systemPackages = [cfg.finalPackage];
 
-    fonts =
-      if versionOlder config.system.stateVersion "23.11"
-      then {enableDefaultFonts = mkDefault true;}
-      else {enableDefaultPackages = mkDefault true;};
+    # NixOS changed the name of this attribute between NixOS 23.05 and
+    # 23.11
+    fonts = if builtins.hasAttr "enableDefaultPackages" options.fonts
+      then {enableDefaultPackages = mkDefault true;}
+      else {enableDefaultFonts = mkDefault true;};
 
     hardware.opengl.enable = mkDefault true;
 

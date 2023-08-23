@@ -228,11 +228,12 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         return;
     }
 
-    if (*PSWIPEDIRLOCK)
+    if (*PSWIPEDIRLOCK) {
         if (m_sActiveSwipe.initialDirection != 0 && m_sActiveSwipe.initialDirection != (m_sActiveSwipe.delta < 0 ? -1 : 1))
             m_sActiveSwipe.delta = 0;
         else if (m_sActiveSwipe.initialDirection == 0 && abs(m_sActiveSwipe.delta) > *PSWIPEDIRLOCKTHRESHOLD)
             m_sActiveSwipe.initialDirection = m_sActiveSwipe.delta < 0 ? -1 : 1;
+    }
 
     if (m_sActiveSwipe.delta < 0) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);

@@ -309,6 +309,7 @@ struct SSwipeGesture {
 
     double      delta = 0;
 
+    int         initialDirection = 0;
     float       avgSpeed    = 0;
     int         speedPoints = 0;
 

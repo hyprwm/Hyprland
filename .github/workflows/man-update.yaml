@@ -28,4 +28,4 @@ jobs:
         commit_message: "[gha] build man pages"
         commit_user_name: Mihai Fufezan
         commit_user_email: fufexan@protonmail.com
-        commit_author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+        commit_author: Mihai Fufezan <fufexan@protonmail.com>

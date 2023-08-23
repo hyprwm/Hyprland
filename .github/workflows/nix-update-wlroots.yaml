@@ -32,7 +32,7 @@ jobs:
 
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: "Nix: bump wlroots"
+        commit_message: "[gha] Nix: bump wlroots"
         commit_user_name: Mihai Fufezan
         commit_user_email: fufexan@protonmail.com
-        commit_author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+        commit_author: Mihai Fufezan <fufexan@protonmail.com>

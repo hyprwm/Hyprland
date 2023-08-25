@@ -473,6 +473,54 @@ void CHyprOpenGLImpl::renderRect(wlr_box* box, const CColor& col, int round) {
         renderRectWithDamage(box, col, &m_RenderData.damage, round);
 }
 
+void CHyprOpenGLImpl::renderRectWithBlur(wlr_box* box, const CColor& col, int round, float blurA) {
+    if (m_RenderData.damage.empty())
+        return;
+
+    CRegion damage{m_RenderData.damage};
+    damage.intersect(box);
+
+    CFramebuffer* POUTFB = blurMainFramebufferWithDamage(blurA, &damage);
+
+    // bind primary
+    m_RenderData.pCurrentMonData->primaryFB.bind();
+
+    // make a stencil for rounded corners to work with blur
+    scissor((wlr_box*)nullptr); // allow the entire window and stencil to render
+    glClearStencil(0);
+    glClear(GL_STENCIL_BUFFER_BIT);
+
+    glEnable(GL_STENCIL_TEST);
+
+    glStencilFunc(GL_ALWAYS, 1, -1);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    renderRect(box, CColor(0, 0, 0, 0), round);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+    glStencilFunc(GL_EQUAL, 1, -1);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    scissor(box);
+    wlr_box MONITORBOX          = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+    m_bEndFrame                 = true; // fix transformed
+    const auto SAVEDRENDERMODIF = m_RenderData.renderModif;
+    m_RenderData.renderModif    = {}; // fix shit
+    renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, blurA, &damage, 0, false, false, false);
+    m_bEndFrame              = false;
+    m_RenderData.renderModif = SAVEDRENDERMODIF;
+
+    glClearStencil(0);
+    glClear(GL_STENCIL_BUFFER_BIT);
+    glDisable(GL_STENCIL_TEST);
+    glStencilMask(-1);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    scissor((wlr_box*)nullptr);
+
+    renderRectWithDamage(box, col, &m_RenderData.damage, round);
+}
+
 void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, CRegion* damage, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
@@ -788,7 +836,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(const CTexture& tex, wlr_box* pBox)
 // but it works... well, I guess?
 //
 // Dual (or more) kawase blur
-CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, wlr_box* pBox, CRegion* originalDamage) {
+CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* originalDamage) {
 
     TRACY_GPU_ZONE("RenderBlurMainFramebufferWithDamage");
 
@@ -1054,7 +1102,7 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     // make the fake dmg
     CRegion    fakeDamage{0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
     wlr_box    wholeMonitor = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-    const auto POUTFB       = blurMainFramebufferWithDamage(1, &wholeMonitor, &fakeDamage);
+    const auto POUTFB       = blurMainFramebufferWithDamage(1, &fakeDamage);
 
     // render onto blurFB
     m_RenderData.pCurrentMonData->blurFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
@@ -1155,7 +1203,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, wlr_box* pBox, 
     if (!USENEWOPTIMIZE) {
         inverseOpaque.translate({pBox->x, pBox->y}).intersect(texDamage);
 
-        POUTFB = blurMainFramebufferWithDamage(a, pBox, &inverseOpaque);
+        POUTFB = blurMainFramebufferWithDamage(a, &inverseOpaque);
     } else {
         POUTFB = &m_RenderData.pCurrentMonData->blurFB;
     }

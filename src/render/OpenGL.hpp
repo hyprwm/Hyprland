@@ -103,6 +103,7 @@ class CHyprOpenGLImpl {
     void               bindWlrOutputFb();
 
     void               renderRect(wlr_box*, const CColor&, int round = 0);
+    void               renderRectWithBlur(wlr_box*, const CColor&, int round = 0, float blurA = 1.f);
     void               renderRectWithDamage(wlr_box*, const CColor&, CRegion* damage, int round = 0);
     void               renderTexture(wlr_texture*, wlr_box*, float a, int round = 0, bool allowCustomUV = false);
     void               renderTexture(const CTexture&, wlr_box*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
@@ -177,7 +178,7 @@ class CHyprOpenGLImpl {
     void              initShaders();
 
     // returns the out FB, can be either Mirror or MirrorSwap
-    CFramebuffer* blurMainFramebufferWithDamage(float a, wlr_box* pBox, CRegion* damage);
+    CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
     void          renderTextureInternalWithDamage(const CTexture&, wlr_box* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
                                                   bool allowCustomUV = false, bool allowDim = false);

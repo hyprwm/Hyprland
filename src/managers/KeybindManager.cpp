@@ -388,10 +388,11 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
-    if (pressed && m_kHeldBack) {
-        // release the held back event
-        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, time, m_kHeldBack, WL_KEYBOARD_KEY_STATE_PRESSED);
-        m_kHeldBack = 0;
+    if (pressed && !m_vHeldBack.empty()) {
+        // release the held back events
+        for (auto& k : m_vHeldBack)
+            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, time, k, WL_KEYBOARD_KEY_STATE_PRESSED);
+        m_vHeldBack.clear();
     }
 
     for (auto& k : m_lKeybinds) {
@@ -420,11 +421,15 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
         if (pressed && k.release) {
             if (k.nonConsuming)
-                return false;
+                continue;
+
+            found = true;
+
+            if (k.transparent)
+                continue;
 
             // suppress down event
-            m_kHeldBack = keysym;
-            return true;
+            m_vHeldBack.push_back(keysym);
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
@@ -474,7 +479,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const int& 
 
         bool shadow = false;
 
-        if (k.handler == "global")
+        if (k.handler == "global" || k.transparent)
             continue; // can't be shadowed
 
         const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);

@@ -1145,14 +1145,20 @@ void CCompositor::sanityCheckWorkspaces() {
 
         const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace((*it)->m_iID);
 
-        if ((*it)->m_bIsSpecialWorkspace && WINDOWSONWORKSPACE == 0) {
-            getMonitorFromID((*it)->m_iMonitorID)->setSpecialWorkspace(nullptr);
-
-            it = m_vWorkspaces.erase(it);
-            continue;
-        }
-
         if ((WINDOWSONWORKSPACE == 0 && !isWorkspaceVisible((*it)->m_iID))) {
+
+            if ((*it)->m_bIsSpecialWorkspace) {
+                if ((*it)->m_fAlpha.fl() > 0.f /* don't abruptly end the fadeout */) {
+                    ++it;
+                    continue;
+                }
+
+                const auto PMONITOR = getMonitorFromID((*it)->m_iMonitorID);
+
+                if (PMONITOR && PMONITOR->specialWorkspaceID == (*it)->m_iID)
+                    PMONITOR->setSpecialWorkspace(nullptr);
+            }
+
             it = m_vWorkspaces.erase(it);
             continue;
         }

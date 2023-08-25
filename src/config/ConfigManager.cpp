@@ -103,7 +103,6 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:moveintogroup_lock_check"].intValue     = 0;
     configValues["misc:hide_cursor_on_touch"].intValue         = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue   = 1;
-    configValues["misc:suppress_portal_warnings"].intValue     = 0;
     configValues["misc:render_ahead_of_time"].intValue         = 0;
     configValues["misc:render_ahead_safezone"].intValue        = 1;
     configValues["misc:cursor_zoom_factor"].floatValue         = 1.f;

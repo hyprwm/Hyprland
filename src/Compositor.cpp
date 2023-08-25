@@ -2551,7 +2551,7 @@ void CCompositor::arrangeMonitors() {
     for (auto& m : toArrange) {
         Debug::log(LOG, "arrangeMonitors: %s auto [%i, %.2f]", m->szName.c_str(), maxOffset, 0);
         m->moveTo({maxOffset, 0});
-        maxOffset += m->vecPosition.x + m->vecSize.x;
+        maxOffset += m->vecSize.x;
     }
 
     // reset maxOffset (reuse)

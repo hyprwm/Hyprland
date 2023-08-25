@@ -594,22 +594,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     }
 
     // and then special
-    bool renderedSpecialBG = false;
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
-            continue;
-
-        if (!g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue;
-
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
-            continue;
-
-        if (!renderedSpecialBG) {
-            const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID);
-            const auto SPECIALANIMPROGRS =
-                PSPECIALWORKSPACE->m_vRenderOffset.isBeingAnimated() ? PSPECIALWORKSPACE->m_vRenderOffset.getCurveValue() : PSPECIALWORKSPACE->m_fAlpha.getCurveValue();
-            const bool ANIMOUT = !pMonitor->specialWorkspaceID;
+    for (auto& ws : g_pCompositor->m_vWorkspaces) {
+        if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.fl() > 0.f && ws->m_bIsSpecialWorkspace) {
+            const auto SPECIALANIMPROGRS = ws->m_vRenderOffset.isBeingAnimated() ? ws->m_vRenderOffset.getCurveValue() : ws->m_fAlpha.getCurveValue();
+            const bool ANIMOUT           = !pMonitor->specialWorkspaceID;
 
             if (*PDIMSPECIAL != 0.f) {
                 wlr_box monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
@@ -621,8 +609,19 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
                 g_pHyprOpenGL->renderRectWithBlur(&monbox, CColor(0, 0, 0, 0), 0, (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
             }
 
-            renderedSpecialBG = true;
+            break;
         }
+    }
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
+
+        if (!g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+            continue;
+
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+            continue;
 
         // render the bad boy
         renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);

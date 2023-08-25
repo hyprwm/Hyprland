@@ -1515,12 +1515,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         return;
     }
 
-    if (g_pCompositor->getWindowsOnWorkspace(workspaceID) == 0) {
-        Debug::log(LOG, "Can't open empty special workspace!");
-        return;
-    }
-
     bool       requestedWorkspaceIsAlreadyOpen = false;
+    bool       requestedWorkspaceExists        = g_pCompositor->getWorkspaceByID(workspaceID);
     const auto PMONITOR                        = *PFOLLOWMOUSE == 1 ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->m_pLastMonitor;
     int        specialOpenOnMonitor            = PMONITOR->specialWorkspaceID;
 
@@ -1566,10 +1562,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         // not open anywhere
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
-        if (!PSPECIALWORKSPACE) {
-            // ??? happens sometimes...?
+        if (!PSPECIALWORKSPACE)
             PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
-        }
 
         PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);
     }

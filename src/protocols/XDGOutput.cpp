@@ -62,7 +62,12 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
     g_pHookSystem->hookDynamic("configReloaded", [&](void* self, std::any param) { this->updateAllOutputs(); });
     g_pHookSystem->hookDynamic("monitorRemoved", [&](void* self, std::any param) {
         const auto PMONITOR = std::any_cast<CMonitor*>(param);
-        std::erase_if(m_vXDGOutputs, [&](const auto& other) { return other->monitor == PMONITOR; });
+        std::erase_if(m_vXDGOutputs, [&](const auto& other) {
+            const bool R = other->monitor == PMONITOR;
+            if (R)
+                other->resource->markDefunct();
+            return R;
+        });
     });
 }
 
@@ -110,11 +115,11 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 
 void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
-  
+
     if (!pOutput->resource->good())
         return;
 
-    const auto         POS = pOutput->isXWayland ? pOutput->monitor->vecXWaylandPosition : pOutput->monitor->vecPosition;
+    const auto POS = pOutput->isXWayland ? pOutput->monitor->vecXWaylandPosition : pOutput->monitor->vecPosition;
     zxdg_output_v1_send_logical_position(pOutput->resource->resource(), POS.x, POS.y);
 
     if (*PXWLFORCESCALEZERO && pOutput->isXWayland)

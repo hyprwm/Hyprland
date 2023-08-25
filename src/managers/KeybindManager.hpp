@@ -22,6 +22,7 @@ struct SKeybind {
     bool        repeat       = false;
     bool        mouse        = false;
     bool        nonConsuming = false;
+    bool        transparent  = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -67,7 +68,7 @@ class CKeybindManager {
 
     inline static std::string m_szCurrentSelectedSubmap = "";
 
-    xkb_keysym_t              m_kHeldBack = 0;
+    std::vector<xkb_keysym_t> m_vHeldBack;
 
     SKeybind*                 m_pActiveKeybind = nullptr;
 

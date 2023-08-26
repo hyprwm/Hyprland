@@ -100,8 +100,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     patches = [
       # make meson use the provided wlroots instead of the git submodule
       ./patches/meson-build.patch
-      # fixes portals search path to be picked up from $XDG_DESKTOP_PORTAL_DIR
-      ./patches/portals.patch
     ];
 
     postPatch = ''

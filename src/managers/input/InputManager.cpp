@@ -564,21 +564,10 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
         const wlr_box box = w->getWindowGroupBarBox();
         if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
             if (e->state == WLR_BUTTON_PRESSED) {
-                int      size = 1;
-                CWindow* curr = w;
-                while (curr->m_sGroupData.pNextWindow != w) {
-                    curr = curr->m_sGroupData.pNextWindow;
-                    size++;
-                }
-
-                int      index   = (mouseCoords.x - box.x) * size / box.width;
-                CWindow* pWindow = w->getGroupHead();
-                while (index > 0) {
-                    pWindow = pWindow->m_sGroupData.pNextWindow;
-                    index--;
-                }
-
-                w->setGroupCurrent(pWindow);
+                const int SIZE    = w->getGroupSize();
+                CWindow*  pWindow = w->getGroupWindowByIndex((mouseCoords.x - box.x) * SIZE / box.width);
+                if (w != pWindow)
+                    w->setGroupCurrent(pWindow);
             }
             return;
         }

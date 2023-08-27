@@ -346,6 +346,8 @@ class CWindow {
     CWindow*                 getGroupTail();
     CWindow*                 getGroupCurrent();
     CWindow*                 getGroupPrevious();
+    CWindow*                 getGroupWindowByIndex(int);
+    int                      getGroupSize();
     void                     setGroupCurrent(CWindow* pWindow);
     void                     insertWindowToGroup(CWindow* pWindow);
     void                     updateGroupOutputs();

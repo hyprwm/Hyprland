@@ -666,6 +666,27 @@ CWindow* CWindow::getGroupCurrent() {
     return curr;
 }
 
+int CWindow::getGroupSize() {
+    int      size = 1;
+    CWindow* curr = this;
+    while (curr->m_sGroupData.pNextWindow != this) {
+        curr = curr->m_sGroupData.pNextWindow;
+        size++;
+    }
+    return size;
+}
+
+CWindow* CWindow::getGroupWindowByIndex(int index) {
+    const int SIZE = getGroupSize();
+    index          = index % SIZE;
+    CWindow* curr  = getGroupHead();
+    while (index > 0) {
+        curr = curr->m_sGroupData.pNextWindow;
+        index--;
+    }
+    return curr;
+}
+
 void CWindow::setGroupCurrent(CWindow* pWindow) {
     CWindow* curr     = this->m_sGroupData.pNextWindow;
     bool     isMember = false;

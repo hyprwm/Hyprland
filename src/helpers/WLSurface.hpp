@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../defines.hpp"
-
 class CWLSurface {
   public:
     CWLSurface() = default;
@@ -11,20 +10,20 @@ class CWLSurface {
     void assign(wlr_surface* pSurface);
     void unassign();
 
-    CWLSurface(const CWLSurface&) = delete;
-    CWLSurface(CWLSurface&&)      = delete;
+    CWLSurface(const CWLSurface&)             = delete;
+    CWLSurface(CWLSurface&&)                  = delete;
     CWLSurface&  operator=(const CWLSurface&) = delete;
-    CWLSurface&  operator=(CWLSurface&&) = delete;
+    CWLSurface&  operator=(CWLSurface&&)      = delete;
 
     wlr_surface* wlr() const;
     bool         exists() const;
 
     CWLSurface&  operator=(wlr_surface* pSurface) {
-        destroy();
-        m_pWLRSurface = pSurface;
-        init();
+         destroy();
+         m_pWLRSurface = pSurface;
+         init();
 
-        return *this;
+         return *this;
     }
 
     bool operator==(const CWLSurface& other) const {

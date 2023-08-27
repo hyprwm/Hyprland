@@ -630,9 +630,12 @@ std::string bindsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
 std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
+    auto commitMsg = removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE);
+    std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
+
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" +
-            removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str() + ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
+        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
+            ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";
@@ -655,8 +658,9 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "commit": "%s",
     "dirty": %s,
     "commit_message": "%s",
+    "tag": "%s",
     "flags": [)#",
-            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE).c_str());
+            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg).c_str(), GIT_TAG);
 
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";
@@ -735,7 +739,7 @@ std::string dispatchKeyword(std::string in) {
     }
 
     // decorations will probably need a repaint
-    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace") {
+    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("cursor_zoom_factor")) {
         for (auto& m : g_pCompositor->m_vMonitors) {
             g_pHyprRenderer->damageMonitor(m.get());
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
@@ -998,6 +1002,8 @@ std::string dispatchSetProp(std::string request) {
             PWINDOW->m_sAdditionalConfigData.forceRGBX.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "bordersize") {
             PWINDOW->m_sSpecialRenderData.borderSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "keepaspectratio") {
+            PWINDOW->m_sAdditionalConfigData.keepAspectRatio.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else {
             return "prop not found";
         }

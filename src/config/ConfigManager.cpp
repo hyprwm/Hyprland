@@ -100,9 +100,9 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:swallow_exception_regex"].strValue      = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue            = 0;
     configValues["misc:no_direct_scanout"].intValue            = 1;
+    configValues["misc:moveintogroup_lock_check"].intValue     = 0;
     configValues["misc:hide_cursor_on_touch"].intValue         = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue   = 1;
-    configValues["misc:suppress_portal_warnings"].intValue     = 0;
     configValues["misc:render_ahead_of_time"].intValue         = 0;
     configValues["misc:render_ahead_safezone"].intValue        = 1;
     configValues["misc:cursor_zoom_factor"].floatValue         = 1.f;
@@ -113,6 +113,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:groupbar_titles_font_size"].intValue    = 8;
     configValues["misc:groupbar_gradients"].intValue           = 1;
     configValues["misc:groupbar_text_color"].intValue          = 0xffffffff;
+    configValues["misc:background_color"].intValue             = 0xff111111;
 
     configValues["debug:int"].intValue                = 0;
     configValues["debug:log_damage"].intValue         = 0;
@@ -123,14 +124,19 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:enable_stdout_logs"].intValue = 0;
     configValues["debug:damage_tracking"].intValue    = DAMAGE_TRACKING_FULL;
     configValues["debug:manual_crash"].intValue       = 0;
+    configValues["debug:suppress_errors"].intValue    = 0;
 
     configValues["decoration:rounding"].intValue               = 0;
-    configValues["decoration:blur"].intValue                   = 1;
-    configValues["decoration:blur_size"].intValue              = 8;
-    configValues["decoration:blur_passes"].intValue            = 1;
-    configValues["decoration:blur_ignore_opacity"].intValue    = 0;
-    configValues["decoration:blur_new_optimizations"].intValue = 1;
-    configValues["decoration:blur_xray"].intValue              = 0;
+    configValues["decoration:blur:enabled"].intValue           = 1;
+    configValues["decoration:blur:size"].intValue              = 8;
+    configValues["decoration:blur:passes"].intValue            = 1;
+    configValues["decoration:blur:ignore_opacity"].intValue    = 0;
+    configValues["decoration:blur:new_optimizations"].intValue = 1;
+    configValues["decoration:blur:xray"].intValue              = 0;
+    configValues["decoration:blur:noise"].floatValue           = 0.0117;
+    configValues["decoration:blur:contrast"].floatValue        = 0.8916;
+    configValues["decoration:blur:brightness"].floatValue      = 0.8172;
+    configValues["decoration:blur:special"].intValue           = 1;
     configValues["decoration:active_opacity"].floatValue       = 1;
     configValues["decoration:inactive_opacity"].floatValue     = 1;
     configValues["decoration:fullscreen_opacity"].floatValue   = 1;
@@ -160,6 +166,7 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:use_active_for_splits"].intValue        = 1;
     configValues["dwindle:default_split_ratio"].floatValue        = 1.f;
     configValues["dwindle:smart_split"].intValue                  = 0;
+    configValues["dwindle:smart_resizing"].intValue               = 1;
 
     configValues["master:special_scale_factor"].floatValue = 0.8f;
     configValues["master:mfact"].floatValue                = 0.55f;
@@ -212,16 +219,18 @@ void CConfigManager::setDefaultVars() {
     configValues["binds:allow_workspace_cycles"].intValue   = 0;
     configValues["binds:focus_preferred_method"].intValue   = 0;
 
-    configValues["gestures:workspace_swipe"].intValue                    = 0;
-    configValues["gestures:workspace_swipe_fingers"].intValue            = 3;
-    configValues["gestures:workspace_swipe_distance"].intValue           = 300;
-    configValues["gestures:workspace_swipe_invert"].intValue             = 1;
-    configValues["gestures:workspace_swipe_min_speed_to_force"].intValue = 30;
-    configValues["gestures:workspace_swipe_cancel_ratio"].floatValue     = 0.5f;
-    configValues["gestures:workspace_swipe_create_new"].intValue         = 1;
-    configValues["gestures:workspace_swipe_forever"].intValue            = 0;
-    configValues["gestures:workspace_swipe_numbered"].intValue           = 0;
-    configValues["gestures:workspace_swipe_use_r"].intValue              = 0;
+    configValues["gestures:workspace_swipe"].intValue                          = 0;
+    configValues["gestures:workspace_swipe_fingers"].intValue                  = 3;
+    configValues["gestures:workspace_swipe_distance"].intValue                 = 300;
+    configValues["gestures:workspace_swipe_invert"].intValue                   = 1;
+    configValues["gestures:workspace_swipe_min_speed_to_force"].intValue       = 30;
+    configValues["gestures:workspace_swipe_cancel_ratio"].floatValue           = 0.5f;
+    configValues["gestures:workspace_swipe_create_new"].intValue               = 1;
+    configValues["gestures:workspace_swipe_direction_lock"].intValue           = 1;
+    configValues["gestures:workspace_swipe_direction_lock_threshold"].intValue = 10;
+    configValues["gestures:workspace_swipe_forever"].intValue                  = 0;
+    configValues["gestures:workspace_swipe_numbered"].intValue                 = 0;
+    configValues["gestures:workspace_swipe_use_r"].intValue                    = 0;
 
     configValues["xwayland:use_nearest_neighbor"].intValue = 1;
     configValues["xwayland:force_zero_scaling"].intValue   = 0;
@@ -620,15 +629,10 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
     }
 
     if (ARGS[2].find("auto") == 0) {
-        newrule.offset = Vector2D(-1, -1);
+        newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
     } else {
         newrule.offset.x = stoi(ARGS[2].substr(0, ARGS[2].find_first_of('x')));
         newrule.offset.y = stoi(ARGS[2].substr(ARGS[2].find_first_of('x') + 1));
-
-        if (newrule.offset.x < 0 || newrule.offset.y < 0) {
-            parseError     = "invalid offset. Offset cannot be negative.";
-            newrule.offset = Vector2D();
-        }
     }
 
     if (ARGS[3].find("auto") == 0) {
@@ -653,6 +657,9 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             argno++;
         } else if (ARGS[argno] == "transform") {
             newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
+            argno++;
+        } else if (ARGS[argno] == "vrr") {
+            newrule.vrr = std::stoi(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
             std::string    name = "";
@@ -788,6 +795,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     bool       repeat       = false;
     bool       mouse        = false;
     bool       nonConsuming = false;
+    bool       transparent  = false;
     const auto BINDARGS     = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -801,6 +809,8 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
             mouse = true;
         } else if (arg == 'n') {
             nonConsuming = true;
+        } else if (arg == 't') {
+            transparent = true;
         } else {
             parseError = "bind: invalid flag";
             return;
@@ -858,11 +868,12 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming});
+            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
         else if (KEY.find("code:") == 0 && isNumber(KEY.substr(5)))
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming});
+            g_pKeybindManager->addKeybind(
+                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
     }
 }
 
@@ -879,14 +890,15 @@ void CConfigManager::handleUnbind(const std::string& command, const std::string&
 bool windowRuleValid(const std::string& RULE) {
     return !(RULE != "float" && RULE != "tile" && RULE.find("opacity") != 0 && RULE.find("move") != 0 && RULE.find("size") != 0 && RULE.find("minsize") != 0 &&
              RULE.find("maxsize") != 0 && RULE.find("pseudo") != 0 && RULE.find("monitor") != 0 && RULE.find("idleinhibit") != 0 && RULE != "nofocus" && RULE != "noblur" &&
-             RULE != "noshadow" && RULE != "nodim" && RULE != "noborder" && RULE != "center" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" &&
-             RULE != "nofullscreenrequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" &&
-             RULE != "windowdance" && RULE != "maximize" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 && RULE.find("workspace") != 0 &&
-             RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" && RULE.find("bordersize") != 0);
+             RULE != "noshadow" && RULE != "nodim" && RULE != "noborder" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" && RULE != "nofullscreenrequest" &&
+             RULE != "nomaximizerequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" && RULE != "windowdance" &&
+             RULE != "maximize" && RULE != "keepaspectratio" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 && RULE.find("workspace") != 0 &&
+             RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" && RULE.find("bordersize") != 0 && RULE.find("xray") != 0 &&
+             RULE.find("center") != 0);
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return !(RULE != "noanim" && RULE != "blur" && RULE.find("ignorealpha") != 0 && RULE.find("ignorezero") != 0);
+    return !(RULE != "noanim" && RULE != "blur" && RULE.find("ignorealpha") != 0 && RULE.find("ignorezero") != 0 && RULE.find("xray") != 0);
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
@@ -910,7 +922,10 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         return;
     }
 
-    m_dWindowRules.push_back({RULE, VALUE});
+    if (RULE.find("size") == 0 || RULE.find("maxsize") == 0 || RULE.find("minsize") == 0)
+        m_dWindowRules.push_front({RULE, VALUE});
+    else
+        m_dWindowRules.push_back({RULE, VALUE});
 }
 
 void CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
@@ -962,9 +977,10 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     const auto FLOATPOS      = VALUE.find("floating:");
     const auto FULLSCREENPOS = VALUE.find("fullscreen:");
     const auto PINNEDPOS     = VALUE.find("pinned:");
+    const auto WORKSPACEPOS  = VALUE.find("workspace:");
 
     if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos &&
-        PINNEDPOS == std::string::npos) {
+        PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: %s", VALUE.c_str());
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -987,6 +1003,8 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
             min = FULLSCREENPOS;
         if (PINNEDPOS > pos && PINNEDPOS < min)
             min = PINNEDPOS;
+        if (WORKSPACEPOS > pos && WORKSPACEPOS < min)
+            min = PINNEDPOS;
 
         result = result.substr(0, min - pos);
 
@@ -998,58 +1016,52 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         return result;
     };
 
-    if (CLASSPOS != std::string::npos) {
+    if (CLASSPOS != std::string::npos)
         rule.szClass = extract(CLASSPOS + 6);
-    }
 
-    if (TITLEPOS != std::string::npos) {
+    if (TITLEPOS != std::string::npos)
         rule.szTitle = extract(TITLEPOS + 6);
-    }
 
-    if (X11POS != std::string::npos) {
+    if (X11POS != std::string::npos)
         rule.bX11 = extract(X11POS + 9) == "1" ? 1 : 0;
-    }
 
-    if (FLOATPOS != std::string::npos) {
+    if (FLOATPOS != std::string::npos)
         rule.bFloating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
-    }
 
-    if (FULLSCREENPOS != std::string::npos) {
+    if (FULLSCREENPOS != std::string::npos)
         rule.bFullscreen = extract(FULLSCREENPOS + 11) == "1" ? 1 : 0;
-    }
 
-    if (PINNEDPOS != std::string::npos) {
+    if (PINNEDPOS != std::string::npos)
         rule.bPinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
-    }
+
+    if (WORKSPACEPOS != std::string::npos)
+        rule.szWorkspace = extract(WORKSPACEPOS + 10);
 
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
             if (!other.v2) {
                 return other.szClass == rule.szClass && !rule.szClass.empty();
             } else {
-                if (!rule.szClass.empty() && rule.szClass != other.szClass) {
+                if (!rule.szClass.empty() && rule.szClass != other.szClass)
                     return false;
-                }
 
-                if (!rule.szTitle.empty() && rule.szTitle != other.szTitle) {
+                if (!rule.szTitle.empty() && rule.szTitle != other.szTitle)
                     return false;
-                }
 
-                if (rule.bX11 != -1 && rule.bX11 != other.bX11) {
+                if (rule.bX11 != -1 && rule.bX11 != other.bX11)
                     return false;
-                }
 
-                if (rule.bFloating != -1 && rule.bFloating != other.bFloating) {
+                if (rule.bFloating != -1 && rule.bFloating != other.bFloating)
                     return false;
-                }
 
-                if (rule.bFullscreen != -1 && rule.bFullscreen != other.bFullscreen) {
+                if (rule.bFullscreen != -1 && rule.bFullscreen != other.bFullscreen)
                     return false;
-                }
 
-                if (rule.bPinned != -1 && rule.bPinned != other.bPinned) {
+                if (rule.bPinned != -1 && rule.bPinned != other.bPinned)
                     return false;
-                }
+
+                if (!rule.szWorkspace.empty() && rule.szWorkspace != other.szWorkspace)
+                    return false;
 
                 return true;
             }
@@ -1057,7 +1069,10 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         return;
     }
 
-    m_dWindowRules.push_back(rule);
+    if (RULE.find("size") == 0 || RULE.find("maxsize") == 0 || RULE.find("minsize") == 0)
+        m_dWindowRules.push_front(rule);
+    else
+        m_dWindowRules.push_back(rule);
 }
 
 void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBlur) {
@@ -1131,6 +1146,8 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
             wsRule.borderSize = std::stoi(rule.substr(delim + 11));
         else if ((delim = rule.find("border:")) != std::string::npos)
             wsRule.border = configStringToInt(rule.substr(delim + 7));
+        else if ((delim = rule.find("shadow:")) != std::string::npos)
+            wsRule.shadow = configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("rounding:")) != std::string::npos)
             wsRule.rounding = configStringToInt(rule.substr(delim + 9));
         else if ((delim = rule.find("decorate:")) != std::string::npos)
@@ -1556,7 +1573,7 @@ void CConfigManager::loadConfigLoadVars() {
         g_pHyprOpenGL->m_bReloadScreenShader = true;
 
     // parseError will be displayed next frame
-    if (parseError != "")
+    if (parseError != "" && !configValues["debug:suppress_errors"].intValue)
         g_pHyprError->queueCreate(parseError + "\nHyprland may not work correctly.", CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
     else if (configValues["autogenerated"].intValue == 1)
         g_pHyprError->queueCreate("Warning: You're using an autogenerated config! (config file: " + mainConfigPath + " )\nSUPER+Q -> kitty\nSUPER+M -> exit Hyprland",
@@ -1575,12 +1592,13 @@ void CConfigManager::loadConfigLoadVars() {
         ensureVRR();
     }
 
-    // Updates dynamic window rules
+    // Updates dynamic window and workspace rules
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped)
             continue;
 
         w->updateDynamicRules();
+        w->updateSpecialRenderData();
     }
 
     // Update window border colors
@@ -1605,6 +1623,8 @@ void CConfigManager::loadConfigLoadVars() {
     for (auto& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty
         g_pHyprOpenGL->markBlurDirtyForMonitor(m.get());
+
+        g_pCompositor->scheduleFrameForMonitor(m.get());
 
         // Force the compositor to fully re-render all monitors
         m->forceFullFrames = 2;
@@ -1763,7 +1783,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const st
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
-    return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-1, -1), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
+    return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-INT32_MAX, -INT32_MAX), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
 }
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
@@ -1843,8 +1863,29 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
                     if (pWindow->m_bPinned != rule.bPinned)
                         continue;
                 }
-            } catch (...) {
-                Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
+
+                if (!rule.szWorkspace.empty()) {
+                    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+
+                    if (!PWORKSPACE)
+                        continue;
+
+                    if (rule.szWorkspace.find("name:") == 0) {
+                        if (PWORKSPACE->m_szName != rule.szWorkspace.substr(5))
+                            continue;
+                    } else {
+                        // number
+                        if (!isNumber(rule.szWorkspace))
+                            throw std::runtime_error("szWorkspace not name: or number");
+
+                        const int64_t ID = std::stoll(rule.szWorkspace);
+
+                        if (PWORKSPACE->m_iID != ID)
+                            continue;
+                    }
+                }
+            } catch (std::exception& e) {
+                Debug::log(ERR, "Regex error at %s (%s)", rule.szValue.c_str(), e.what());
                 continue;
             }
         }
@@ -2037,7 +2078,9 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
         if (!m->output)
             return;
 
-        if (*PVRR == 0) {
+        const auto USEVRR = m->activeMonitorRule.vrr.has_value() ? m->activeMonitorRule.vrr.value() : *PVRR;
+
+        if (USEVRR == 0) {
             if (m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
 
@@ -2047,7 +2090,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             }
             m->vrrActive = false;
             return;
-        } else if (*PVRR == 1) {
+        } else if (USEVRR == 1) {
             if (!m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 1);
 
@@ -2062,7 +2105,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             }
             m->vrrActive = true;
             return;
-        } else if (*PVRR == 2) {
+        } else if (USEVRR == 2) {
             /* fullscreen */
             m->vrrActive = true;
 

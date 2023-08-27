@@ -14,6 +14,7 @@
 #include <xf86drmMode.h>
 #include "../Window.hpp"
 #include "../helpers/WLClasses.hpp"
+#include "../helpers/Monitor.hpp"
 
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
@@ -35,19 +36,6 @@ struct SConfigValue {
     bool                                    set = false; // used for device configs
 };
 
-struct SMonitorRule {
-    std::string         name        = "";
-    Vector2D            resolution  = Vector2D(1280, 720);
-    Vector2D            offset      = Vector2D(0, 0);
-    float               scale       = 1;
-    float               refreshRate = 60;
-    bool                disabled    = false;
-    wl_output_transform transform   = WL_OUTPUT_TRANSFORM_NORMAL;
-    std::string         mirrorOf    = "";
-    bool                enable10bit = false;
-    drmModeModeInfo     drmMode     = {};
-};
-
 struct SWorkspaceRule {
     std::string            monitor         = "";
     std::string            workspaceString = "";
@@ -60,6 +48,7 @@ struct SWorkspaceRule {
     std::optional<int>     border;
     std::optional<int>     rounding;
     std::optional<int>     decorate;
+    std::optional<int>     shadow;
 };
 
 struct SMonitorAdditionalReservedArea {

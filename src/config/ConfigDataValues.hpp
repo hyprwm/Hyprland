@@ -7,7 +7,7 @@ enum eConfigValueDataTypes {
     CVD_TYPE_GRADIENT = 0
 };
 
-interface ICustomConfigValueData {
+class ICustomConfigValueData {
   public:
     virtual ~ICustomConfigValueData() = 0;
 

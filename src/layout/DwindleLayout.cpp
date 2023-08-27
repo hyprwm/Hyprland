@@ -117,18 +117,16 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     const auto PWINDOW = pNode->pWindow;
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto         WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
-    static auto* const PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
-    static auto* const PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
-    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    PWINDOW->updateSpecialRenderData();
+
+    static auto* const PGAPSIN         = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+    static auto* const PGAPSOUT        = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
+    static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
 
     auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
-    auto               borderSize =
-        PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() != -1 ? PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() : WORKSPACERULE.borderSize.value_or(*PBORDERSIZE);
-    if (PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
-        borderSize = PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying();
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
         Debug::log(ERR, "Node %lx holding invalid window %lx!!", pNode, PWINDOW);
@@ -139,31 +137,32 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->m_vSize     = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
-    static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
+    const auto NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
 
-    auto               calcPos  = PWINDOW->m_vPosition + Vector2D(borderSize, borderSize);
-    auto               calcSize = PWINDOW->m_vSize - Vector2D(2 * borderSize, 2 * borderSize);
-
-    const auto         NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->m_iWorkspaceID);
-
-    if (*PNOGAPSWHENONLY && !WORKSPACERULE.border && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
+    if (*PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
         (NODESONWORKSPACE == 1 || (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
-        PWINDOW->m_vRealPosition = calcPos - Vector2D(borderSize, borderSize);
-        PWINDOW->m_vRealSize     = calcSize + Vector2D(2 * borderSize, 2 * borderSize);
+
+        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
+        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
+        PWINDOW->m_sSpecialRenderData.rounding = false;
+        PWINDOW->m_sSpecialRenderData.shadow   = false;
+
+        const auto RESERVED = PWINDOW->getFullWindowReservedArea();
+
+        const int  BORDERSIZE = PWINDOW->getRealBorderSize();
+
+        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE) + RESERVED.topLeft;
+        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE) - (RESERVED.topLeft + RESERVED.bottomRight);
 
         PWINDOW->updateWindowDecos();
-
-        PWINDOW->m_sSpecialRenderData.rounding = false;
-        PWINDOW->m_sSpecialRenderData.border   = false;
-        PWINDOW->m_sSpecialRenderData.decorate = false;
 
         return;
     }
 
-    PWINDOW->m_sSpecialRenderData.rounding   = WORKSPACERULE.rounding.value_or(true);
-    PWINDOW->m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
-    PWINDOW->m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(true);
-    PWINDOW->m_sSpecialRenderData.borderSize = WORKSPACERULE.borderSize.value_or(-1);
+    const int  BORDERSIZE = PWINDOW->getRealBorderSize();
+
+    auto       calcPos  = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
+    auto       calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
 
     const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut : gapsIn, DISPLAYTOP ? gapsOut : gapsIn);
 
@@ -483,9 +482,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
         return;
     }
 
-    pWindow->m_sSpecialRenderData.rounding = true;
-    pWindow->m_sSpecialRenderData.border   = true;
-    pWindow->m_sSpecialRenderData.decorate = true;
+    pWindow->updateSpecialRenderData();
 
     if (pWindow->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
@@ -603,7 +600,8 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         return;
     }
 
-    const auto PANIMATE = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
+    const auto PANIMATE       = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
+    const auto PSMARTRESIZING = &g_pConfigManager->getConfigValuePtr("dwindle:smart_resizing")->intValue;
 
     // get some data about our window
     const auto PMONITOR      = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
@@ -658,63 +656,121 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     if (DISPLAYBOTTOM && DISPLAYTOP)
         allowedMovement.y = 0;
 
-    // Identify inner and outer nodes for both directions.
+    if (*PSMARTRESIZING == 1) {
+        // Identify inner and outer nodes for both directions
+        SDwindleNodeData* PVOUTER = nullptr;
+        SDwindleNodeData* PVINNER = nullptr;
+        SDwindleNodeData* PHOUTER = nullptr;
+        SDwindleNodeData* PHINNER = nullptr;
 
-    SDwindleNodeData* PVOUTER = nullptr;
-    SDwindleNodeData* PVINNER = nullptr;
-    SDwindleNodeData* PHOUTER = nullptr;
-    SDwindleNodeData* PHINNER = nullptr;
+        const auto        LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
+        const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
+        const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
+        const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
+        const auto        NONE   = corner == CORNER_NONE;
 
-    const auto        LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
-    const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
-    const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT;
-    const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT;
-    const auto        NONE   = corner == CORNER_NONE;
+        for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {
+            const auto PPARENT = PCURRENT->pParent;
 
-    for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {
-        const auto PPARENT = PCURRENT->pParent;
+            if (!PVOUTER && PPARENT->splitTop && (NONE || (TOP && PPARENT->children[1] == PCURRENT) || (BOTTOM && PPARENT->children[0] == PCURRENT)))
+                PVOUTER = PCURRENT;
+            else if (!PVOUTER && !PVINNER && PPARENT->splitTop)
+                PVINNER = PCURRENT;
+            else if (!PHOUTER && !PPARENT->splitTop && (NONE || (LEFT && PPARENT->children[1] == PCURRENT) || (RIGHT && PPARENT->children[0] == PCURRENT)))
+                PHOUTER = PCURRENT;
+            else if (!PHOUTER && !PHINNER && !PPARENT->splitTop)
+                PHINNER = PCURRENT;
 
-        if (!PVOUTER && PPARENT->splitTop && (NONE || (TOP && PPARENT->children[1] == PCURRENT) || (BOTTOM && PPARENT->children[0] == PCURRENT)))
-            PVOUTER = PCURRENT;
-        else if (!PVOUTER && !PVINNER && PPARENT->splitTop)
-            PVINNER = PCURRENT;
-        else if (!PHOUTER && !PPARENT->splitTop && (NONE || (LEFT && PPARENT->children[1] == PCURRENT) || (RIGHT && PPARENT->children[0] == PCURRENT)))
-            PHOUTER = PCURRENT;
-        else if (!PHOUTER && !PHINNER && !PPARENT->splitTop)
-            PHINNER = PCURRENT;
+            if (PVOUTER && PHOUTER)
+                break;
+        }
 
-        if (PVOUTER && PHOUTER)
-            break;
-    }
+        if (PHOUTER) {
+            PHOUTER->pParent->splitRatio = std::clamp(PHOUTER->pParent->splitRatio + allowedMovement.x * 2.f / PHOUTER->pParent->size.x, 0.1, 1.9);
 
-    if (PHOUTER) {
-        PHOUTER->pParent->splitRatio = std::clamp(PHOUTER->pParent->splitRatio + allowedMovement.x * 2.f / PHOUTER->pParent->size.x, 0.1, 1.9);
+            if (PHINNER) {
+                const auto ORIGINAL = PHINNER->size.x;
+                PHOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+                if (PHINNER->pParent->children[0] == PHINNER)
+                    PHINNER->pParent->splitRatio = std::clamp((ORIGINAL - allowedMovement.x) / PHINNER->pParent->size.x * 2.f, 0.1, 1.9);
+                else
+                    PHINNER->pParent->splitRatio = std::clamp(2 - (ORIGINAL + allowedMovement.x) / PHINNER->pParent->size.x * 2.f, 0.1, 1.9);
+                PHINNER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+            } else
+                PHOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+        }
 
-        if (PHINNER) {
-            const auto ORIGINAL = PHINNER->size.x;
-            PHOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
-            if (PHINNER->pParent->children[0] == PHINNER)
-                PHINNER->pParent->splitRatio = std::clamp((ORIGINAL - allowedMovement.x) / PHINNER->pParent->size.x * 2.f, 0.1, 1.9);
-            else
-                PHINNER->pParent->splitRatio = std::clamp(2 - (ORIGINAL + allowedMovement.x) / PHINNER->pParent->size.x * 2.f, 0.1, 1.9);
-            PHINNER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
-        } else
-            PHOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
-    }
+        if (PVOUTER) {
+            PVOUTER->pParent->splitRatio = std::clamp(PVOUTER->pParent->splitRatio + allowedMovement.y * 2.f / PVOUTER->pParent->size.y, 0.1, 1.9);
 
-    if (PVOUTER) {
-        PVOUTER->pParent->splitRatio = std::clamp(PVOUTER->pParent->splitRatio + allowedMovement.y * 2.f / PVOUTER->pParent->size.y, 0.1, 1.9);
+            if (PVINNER) {
+                const auto ORIGINAL = PVINNER->size.y;
+                PVOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+                if (PVINNER->pParent->children[0] == PVINNER)
+                    PVINNER->pParent->splitRatio = std::clamp((ORIGINAL - allowedMovement.y) / PVINNER->pParent->size.y * 2.f, 0.1, 1.9);
+                else
+                    PVINNER->pParent->splitRatio = std::clamp(2 - (ORIGINAL + allowedMovement.y) / PVINNER->pParent->size.y * 2.f, 0.1, 1.9);
+                PVINNER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+            } else
+                PVOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+        }
+    } else {
+        // get the correct containers to apply splitratio to
+        const auto PPARENT = PNODE->pParent;
 
-        if (PVINNER) {
-            const auto ORIGINAL = PVINNER->size.y;
-            PVOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
-            if (PVINNER->pParent->children[0] == PVINNER)
-                PVINNER->pParent->splitRatio = std::clamp((ORIGINAL - allowedMovement.y) / PVINNER->pParent->size.y * 2.f, 0.1, 1.9);
-            else
-                PVINNER->pParent->splitRatio = std::clamp(2 - (ORIGINAL + allowedMovement.y) / PVINNER->pParent->size.y * 2.f, 0.1, 1.9);
-            PVINNER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
-        } else
-            PVOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+        if (!PPARENT)
+            return; // the only window on a workspace, ignore
+
+        const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
+
+        // Get the parent's parent
+        auto PPARENT2 = PPARENT->pParent;
+
+        // No parent means we have only 2 windows, and thus one axis of freedom
+        if (!PPARENT2) {
+            if (PARENTSIDEBYSIDE) {
+                allowedMovement.x *= 2.f / PPARENT->size.x;
+                PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, 0.1, 1.9);
+                PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
+            } else {
+                allowedMovement.y *= 2.f / PPARENT->size.y;
+                PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, 0.1, 1.9);
+                PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
+            }
+
+            return;
+        }
+
+        // Get first parent with other split
+        while (PPARENT2 && PPARENT2->splitTop == !PARENTSIDEBYSIDE)
+            PPARENT2 = PPARENT2->pParent;
+
+        // no parent, one axis of freedom
+        if (!PPARENT2) {
+            if (PARENTSIDEBYSIDE) {
+                allowedMovement.x *= 2.f / PPARENT->size.x;
+                PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, 0.1, 1.9);
+                PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
+            } else {
+                allowedMovement.y *= 2.f / PPARENT->size.y;
+                PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, 0.1, 1.9);
+                PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
+            }
+
+            return;
+        }
+
+        // 2 axes of freedom
+        const auto SIDECONTAINER = PARENTSIDEBYSIDE ? PPARENT : PPARENT2;
+        const auto TOPCONTAINER  = PARENTSIDEBYSIDE ? PPARENT2 : PPARENT;
+
+        allowedMovement.x *= 2.f / SIDECONTAINER->size.x;
+        allowedMovement.y *= 2.f / TOPCONTAINER->size.y;
+
+        SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, 0.1, 1.9);
+        TOPCONTAINER->splitRatio  = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, 0.1, 1.9);
+        SIDECONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
+        TOPCONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
     }
 }
 
@@ -751,9 +807,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
             pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
             pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
 
-            pWindow->m_sSpecialRenderData.rounding = true;
-            pWindow->m_sSpecialRenderData.border   = true;
-            pWindow->m_sSpecialRenderData.decorate = true;
+            pWindow->updateSpecialRenderData();
         }
     } else {
         // if it now got fullscreen, make it fullscreen
@@ -936,6 +990,9 @@ void CHyprDwindleLayout::toggleSplit(CWindow* pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);
 
     if (!PNODE || !PNODE->pParent)
+        return;
+
+    if (pWindow->m_bIsFullscreen)
         return;
 
     PNODE->pParent->splitTop = !PNODE->pParent->splitTop;

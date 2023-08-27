@@ -489,6 +489,8 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         // remove from mvmonitors
         std::erase_if(g_pCompositor->m_vMonitors, [&](const auto& other) { return other.get() == this; });
 
+        g_pCompositor->arrangeMonitors();
+
         g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
 
         g_pCompositor->sanityCheckWorkspaces();
@@ -549,12 +551,26 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
             }
         }
 
+        static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+
         if (const auto PLASTWINDOW = pWorkspace->getLastFocusedWindow(); PLASTWINDOW)
             g_pCompositor->focusWindow(PLASTWINDOW);
         else {
-            g_pCompositor->focusWindow(nullptr);
-            g_pInputManager->simulateMouseMovement();
+            CWindow* pWindow = nullptr;
+
+            if (*PFOLLOWMOUSE == 1)
+                pWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
+
+            if (!pWindow)
+                pWindow = g_pCompositor->getTopLeftWindowOnWorkspace(pWorkspace->m_iID);
+
+            if (!pWindow)
+                pWindow = g_pCompositor->getFirstWindowOnWorkspace(pWorkspace->m_iID);
+
+            g_pCompositor->focusWindow(pWindow);
         }
+
+        g_pInputManager->simulateMouseMovement();
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
@@ -621,4 +637,11 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
 
 void CMonitor::setSpecialWorkspace(const int& id) {
     setSpecialWorkspace(g_pCompositor->getWorkspaceByID(id));
+}
+
+void CMonitor::moveTo(const Vector2D& pos) {
+    vecPosition = pos;
+
+    if (!isMirror())
+        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, output, (int)vecPosition.x, (int)vecPosition.y);
 }

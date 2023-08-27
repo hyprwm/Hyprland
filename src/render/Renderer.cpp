@@ -54,7 +54,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         } else {
             if (RDATA->blur)
-                g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, RDATA->blockBlurOptimization);
+                g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
             else
                 g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         }
@@ -261,11 +261,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     TRACY_GPU_ZONE("RenderWindow");
 
-    const auto         PWORKSPACE         = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    const auto         REALPOS            = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
-    static auto* const PNOFLOATINGBORDERS = &g_pConfigManager->getConfigValuePtr("general:no_border_on_floating")->intValue;
-    static auto* const PDIMAROUND         = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
-    static auto* const PBORDERSIZE        = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    const auto         PWORKSPACE  = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    const auto         REALPOS     = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
+    static auto* const PDIMAROUND  = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
+    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
     SRenderData        renderdata = {pMonitor, time, REALPOS.x, REALPOS.y};
     if (ignorePosition) {
@@ -282,11 +281,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
     renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.fl());
     renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.fl();
-    renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && (pWindow->m_bIsFloating ? *PNOFLOATINGBORDERS == 0 : true) &&
-        (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
-    renderdata.rounding = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
-    renderdata.blur     = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
-    renderdata.pWindow  = pWindow;
+    renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
+    renderdata.rounding  = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
+    renderdata.blur      = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
+    renderdata.pWindow   = pWindow;
 
     if (ignoreAllGeometry) {
         renderdata.alpha     = 1.f;
@@ -414,6 +412,8 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.h                     = pLayer->geometry.height;
     renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
 
+    g_pHyprOpenGL->m_pCurrentLayer = pLayer;
+
     if (pLayer->ignoreAlpha) {
         g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
         g_pHyprOpenGL->m_RenderData.discardOpacity = pLayer->ignoreAlphaValue;
@@ -424,6 +424,8 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
     wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
+
+    g_pHyprOpenGL->m_pCurrentLayer = nullptr;
 }
 
 void CHyprRenderer::renderIMEPopup(SIMEPopup* pPopup, CMonitor* pMonitor, timespec* time) {
@@ -451,7 +453,9 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
-    static auto* const     PDIMSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
+    static auto* const     PDIMSPECIAL  = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
+    static auto* const     PBLURSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:blur:special")->intValue;
+    static auto* const     PBLUR        = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
 
     const SRenderModifData RENDERMODIFDATA = {translate, scale};
 
@@ -591,7 +595,25 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     }
 
     // and then special
-    bool renderedSpecialBG = false;
+    for (auto& ws : g_pCompositor->m_vWorkspaces) {
+        if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.fl() > 0.f && ws->m_bIsSpecialWorkspace) {
+            const auto SPECIALANIMPROGRS = ws->m_vRenderOffset.isBeingAnimated() ? ws->m_vRenderOffset.getCurveValue() : ws->m_fAlpha.getCurveValue();
+            const bool ANIMOUT           = !pMonitor->specialWorkspaceID;
+
+            if (*PDIMSPECIAL != 0.f) {
+                wlr_box monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
+                g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
+            }
+
+            if (*PBLURSPECIAL && *PBLUR) {
+                wlr_box monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
+                g_pHyprOpenGL->renderRectWithBlur(&monbox, CColor(0, 0, 0, 0), 0, (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
+            }
+
+            break;
+        }
+    }
+
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
@@ -601,22 +623,6 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
 
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
-
-        if (!renderedSpecialBG) {
-            if (*PDIMSPECIAL != 0.f) {
-                const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID);
-
-                const auto SPECIALANIMPROGRS =
-                    PSPECIALWORKSPACE->m_vRenderOffset.isBeingAnimated() ? PSPECIALWORKSPACE->m_vRenderOffset.getCurveValue() : PSPECIALWORKSPACE->m_fAlpha.getCurveValue();
-
-                const bool ANIMOUT = !pMonitor->specialWorkspaceID;
-
-                wlr_box    monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
-                g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
-            }
-
-            renderedSpecialBG = true;
-        }
 
         // render the bad boy
         renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
@@ -825,6 +831,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static auto* const                                    PVFR                = &g_pConfigManager->getConfigValuePtr("misc:vfr")->intValue;
     static auto* const                                    PZOOMFACTOR         = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
     static auto* const                                    PRENDERTEX          = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
+    static auto* const                                    PBACKGROUNDCOLOR    = &g_pConfigManager->getConfigValuePtr("misc:background_color")->intValue;
+    static auto* const                                    PANIMENABLED        = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
@@ -842,8 +850,13 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 
     if (m_tRenderTimer.getSeconds() < 1.5f && firstLaunchAnimActive) { // TODO: make the animation system more damage-flexible so that this can be migrated to there
-        zoomInFactorFirstLaunch = 2.f - g_pAnimationManager->getBezier("default")->getYForPoint(m_tRenderTimer.getSeconds() / 1.5);
-        damageMonitor(pMonitor);
+        if (!*PANIMENABLED) {
+            zoomInFactorFirstLaunch = 1.f;
+            firstLaunchAnimActive   = false;
+        } else {
+            zoomInFactorFirstLaunch = 2.f - g_pAnimationManager->getBezier("default")->getYForPoint(m_tRenderTimer.getSeconds() / 1.5);
+            damageMonitor(pMonitor);
+        }
     } else {
         firstLaunchAnimActive = false;
     }
@@ -963,13 +976,13 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         damage                    = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
         pMonitor->lastFrameDamage = damage;
     } else {
-        static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur")->intValue;
+        static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
 
         // if we use blur we need to expand the damage for proper blurring
         if (*PBLURENABLED == 1) {
             // TODO: can this be optimized?
-            static auto* const PBLURSIZE   = &g_pConfigManager->getConfigValuePtr("decoration:blur_size")->intValue;
-            static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur_passes")->intValue;
+            static auto* const PBLURSIZE   = &g_pConfigManager->getConfigValuePtr("decoration:blur:size")->intValue;
+            static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur:passes")->intValue;
             const auto         BLURRADIUS =
                 *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
 
@@ -1008,7 +1021,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->blend(false);
         if (!canSkipBackBufferClear(pMonitor)) {
             if (*PRENDERTEX /* inverted cfg flag */)
-                g_pHyprOpenGL->clear(CColor(17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0));
+                g_pHyprOpenGL->clear(CColor(*PBACKGROUNDCOLOR));
             else
                 g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
         }
@@ -1557,6 +1570,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     Debug::log(LOG, "Applying monitor rule for %s", pMonitor->szName.c_str());
 
+    pMonitor->activeMonitorRule = *pMonitorRule;
+
     // if it's disabled, disable and ignore
     if (pMonitorRule->disabled) {
 
@@ -1576,10 +1591,11 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     }
 
     // Check if the rule isn't already applied
+    // TODO: clean this up lol
     if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) &&
         DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale &&
         ((DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1)) ||
-         pMonitorRule->offset == Vector2D(-1, -1)) &&
+         pMonitorRule->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
         pMonitor->transform == pMonitorRule->transform && pMonitorRule->enable10bit == pMonitor->enabled10bit &&
         !memcmp(&pMonitor->customDrmMode, &pMonitorRule->drmMode, sizeof(pMonitor->customDrmMode))) {
 
@@ -1865,32 +1881,13 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }
 
-    if (pMonitorRule->offset == Vector2D(-1, -1) && pMonitor->vecPosition == Vector2D(-1, -1)) {
-        // let's find manually a sensible position for it, to the right.
-        Vector2D finalPos;
-
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (m->ID == pMonitor->ID)
-                continue;
-
-            if (m->vecPosition.x + std::ceil(m->vecSize.x) > finalPos.x) {
-                finalPos.x = m->vecPosition.x + std::ceil(m->vecSize.x);
-            }
-        }
-
-        pMonitor->vecPosition = finalPos;
-    } else if (pMonitorRule->offset != Vector2D(-1, -1)) {
-        pMonitor->vecPosition = pMonitorRule->offset;
-    }
-
     wlr_output_enable(pMonitor->output, 1);
 
     // update renderer (here because it will call rollback, so we cannot do this before committing)
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 
     // updato wlroots
-    if (!pMonitor->isMirror())
-        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, pMonitor->output, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y);
+    g_pCompositor->arrangeMonitors();
 
     wlr_damage_ring_set_bounds(&pMonitor->damage, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
 
@@ -2010,7 +2007,7 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
             continue;
 
         const auto     ROUNDING = w->rounding() * PMONITOR->scale;
-        const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + pWorkspace->m_vRenderOffset.vec();
+        const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
         const Vector2D SIZE     = w->m_vRealSize.vec() - Vector2D{ROUNDING * 2, ROUNDING * 2};
 
         wlr_box        box = {POS.x, POS.y, SIZE.x, SIZE.y};

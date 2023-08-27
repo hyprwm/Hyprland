@@ -1,5 +1,8 @@
 #include "BezierCurve.hpp"
+#include "../debug/Log.hpp"
+#include "../macros.hpp"
 
+#include <chrono>
 #include <algorithm>
 
 void CBezierCurve::setup(std::vector<Vector2D>* pVec) {

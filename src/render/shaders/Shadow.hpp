@@ -78,5 +78,8 @@ void main() {
         discard; return;
     }
 
+    // premultiply
+    pixColor.rgb *= pixColor[3];
+
 	gl_FragColor = pixColor;
 })#";

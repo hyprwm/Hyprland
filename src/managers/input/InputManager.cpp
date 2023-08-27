@@ -85,6 +85,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored && !refocus)
         return;
 
+    if (time)
+        g_pCompositor->notifyIdleActivity();
+
     EMIT_HOOK_EVENT("mouseMove", MOUSECOORDSFLOORED);
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
@@ -319,9 +322,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     m_bEmptyFocusCursorSet = false;
 
-    if (time)
-        g_pCompositor->notifyIdleActivity();
-
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
     if (pFoundWindow && !pFoundWindow->m_bIsX11 && surfacePos != Vector2D(-1337, -1337)) {
@@ -464,23 +464,14 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e) {
-    if (!g_pHyprRenderer->shouldRenderCursor())
-        return;
 
-    if (!e->surface) {
+    if (!e->surface)
         g_pHyprRenderer->m_bWindowRequestedCursorHide = true;
-    } else {
+    else
         g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
-    }
 
-    if (m_bCursorImageOverridden) {
+    if (!cursorImageUnlocked() || !g_pHyprRenderer->shouldRenderCursor())
         return;
-    }
-
-    if (m_ecbClickBehavior == CLICKMODE_KILL) {
-        wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "crosshair");
-        return;
-    }
 
     // cursorSurfaceInfo.pSurface = e->surface;
 
@@ -493,6 +484,27 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
         wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, e->surface, e->hotspot_x, e->hotspot_y);
+}
+
+void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
+    if (!g_pHyprRenderer->shouldRenderCursor() || !cursorImageUnlocked())
+        return;
+
+    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
+        wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, wlr_cursor_shape_v1_name(e->shape));
+}
+
+bool CInputManager::cursorImageUnlocked() {
+    if (!g_pHyprRenderer->shouldRenderCursor())
+        return false;
+
+    if (m_ecbClickBehavior == CLICKMODE_KILL)
+        return false;
+
+    if (m_bCursorImageOverridden)
+        return false;
+
+    return true;
 }
 
 eClickBehaviorMode CInputManager::getClickMode() {
@@ -609,9 +621,8 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
     g_pCompositor->notifyIdleActivity();
 
-    if (passEvent) {
+    if (passEvent)
         wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
-    }
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
@@ -773,16 +784,16 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     if (!FILEPATH.empty()) {
         auto path = absolutePath(FILEPATH, g_pConfigManager->configCurrentPath);
 
-        if (!std::filesystem::exists(path)) {
-            Debug::log(ERR, "input:kb_file= file doesnt exist");
-        } else {
-            KEYMAP = xkb_keymap_new_from_file(CONTEXT, fopen(path.c_str(), "r"), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
+            Debug::log(ERR, "Cannot open input:kb_file= file for reading");
+        else {
+            KEYMAP                 = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            fclose(KEYMAPFILE);
         }
     }
 
-    if (!KEYMAP) {
+    if (!KEYMAP)
         KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    }
 
     if (!KEYMAP) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
@@ -813,9 +824,8 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
             wlrMods.locked |= (uint32_t)1 << IDX;
     }
 
-    if (wlrMods.locked != 0) {
+    if (wlrMods.locked != 0)
         wlr_keyboard_notify_modifiers(wlr_keyboard_from_input_device(pKeyboard->keyboard), 0, 0, wlrMods.locked, 0);
-    }
 
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
@@ -1042,9 +1052,8 @@ void CInputManager::updateKeyboardsLeds(wlr_input_device* pKeyboard) {
 
     uint32_t leds = 0;
     for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i])) {
+        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i]))
             leds |= (1 << i);
-        }
     }
 
     for (auto& kb : m_lKeyboards) {
@@ -1150,11 +1159,10 @@ void CInputManager::recheckConstraint(SMouse* pMouse) {
 
     const auto PREGION = &pMouse->currentConstraint->region;
 
-    if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED) {
+    if (pMouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_CONFINED)
         pMouse->confinedTo.set(PREGION);
-    } else {
+    else
         pMouse->confinedTo.clear();
-    }
 }
 
 void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* constraint) {
@@ -1168,31 +1176,8 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     pMouse->hyprListener_commitConstraint.removeCallback();
 
     if (pMouse->currentConstraint) {
-        if (!constraint) {
-            // warpe to hint
-
-            if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
-                if (PWINDOW) {
-                    if (PWINDOW->m_bIsX11) {
-                        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, constraint->current.cursor_hint.x + PWINDOW->m_uSurface.xwayland->x,
-                                        PWINDOW->m_uSurface.xwayland->y + PWINDOW->m_vRealPosition.vec().y);
-
-                        wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
-                    } else {
-                        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, constraint->current.cursor_hint.x + PWINDOW->m_vRealPosition.vec().x,
-                                        constraint->current.cursor_hint.y + PWINDOW->m_vRealPosition.vec().y);
-
-                        wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
-                    }
-                }
-
-                const auto PCONSTRAINT = constraintFromWlr(constraint);
-                if (PCONSTRAINT) { // should never be null but who knows
-                    PCONSTRAINT->positionHint = Vector2D(constraint->current.cursor_hint.x, constraint->current.cursor_hint.y);
-                    PCONSTRAINT->hintSet      = true;
-                }
-            }
-        }
+        if (constraint && constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT)
+            warpMouseToConstraintMiddle(constraintFromWlr(constraint));
 
         wlr_pointer_constraint_v1_send_deactivated(pMouse->currentConstraint);
     }
@@ -1200,11 +1185,10 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     pMouse->currentConstraint = constraint;
     pMouse->constraintActive  = true;
 
-    if (pixman_region32_not_empty(&constraint->current.region)) {
+    if (pixman_region32_not_empty(&constraint->current.region))
         pixman_region32_intersect(&constraint->region, &constraint->surface->input_region, &constraint->current.region);
-    } else {
+    else
         pixman_region32_copy(&constraint->region, &constraint->surface->input_region);
-    }
 
     // warp to the constraint
     recheckConstraint(pMouse);
@@ -1216,15 +1200,35 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     Debug::log(LOG, "Constrained mouse to %lx", pMouse->currentConstraint);
 }
 
+void CInputManager::warpMouseToConstraintMiddle(SConstraint* pConstraint) {
+
+    if (!pConstraint)
+        return;
+
+    pConstraint->positionHint = Vector2D(pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
+    pConstraint->hintSet      = true;
+
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(pConstraint->constraint->surface);
+
+    if (PWINDOW) {
+        const auto RELATIVETO = PWINDOW->m_bIsX11 ?
+            g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y}) / PWINDOW->m_fX11SurfaceScaledBy :
+            PWINDOW->m_vRealPosition.goalv();
+        const auto HINTSCALE  = PWINDOW->m_fX11SurfaceScaledBy;
+
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, RELATIVETO.x + pConstraint->positionHint.x / HINTSCALE, RELATIVETO.y + pConstraint->positionHint.y / HINTSCALE);
+        wlr_seat_pointer_warp(pConstraint->constraint->seat, pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
+    }
+}
+
 void CInputManager::unconstrainMouse() {
     if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint)
         return;
 
     const auto CONSTRAINTWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
-    if (CONSTRAINTWINDOW) {
+    if (CONSTRAINTWINDOW)
         g_pXWaylandManager->activateSurface(CONSTRAINTWINDOW->m_pWLSurface.wlr(), false);
-    }
 
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
@@ -1247,11 +1251,10 @@ void Events::listener_commitConstraint(void* owner, void* data) {
     }
 
     if (PMOUSE->currentConstraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_REGION) {
-        if (pixman_region32_not_empty(&PMOUSE->currentConstraint->current.region)) {
+        if (pixman_region32_not_empty(&PMOUSE->currentConstraint->current.region))
             pixman_region32_intersect(&PMOUSE->currentConstraint->region, &PMOUSE->currentConstraint->surface->input_region, &PMOUSE->currentConstraint->current.region);
-        } else {
+        else
             pixman_region32_copy(&PMOUSE->currentConstraint->region, &PMOUSE->currentConstraint->surface->input_region);
-        }
 
         g_pInputManager->recheckConstraint(PMOUSE);
     }
@@ -1459,6 +1462,7 @@ void CInputManager::unsetCursorImage() {
 
 std::string CInputManager::deviceNameToInternalString(std::string in) {
     std::replace(in.begin(), in.end(), ' ', '-');
+    std::replace(in.begin(), in.end(), '\n', '-');
     std::transform(in.begin(), in.end(), in.begin(), ::tolower);
     return in;
 }
@@ -1525,14 +1529,16 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     }
 
     static auto* const PROUNDING         = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-    static const auto* PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static const auto* PEXTENDBORDERGRAB = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    const int          BORDERSIZE        = w->getRealBorderSize();
+
     // give a small leeway (10 px) for corner icon
-    const auto           CORNER           = *PROUNDING + *PBORDERSIZE + 10;
+    const auto           CORNER           = *PROUNDING + BORDERSIZE + 10;
     const auto           mouseCoords      = getMouseCoordsInternal();
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
-    wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB, box.y - *PEXTENDBORDERGRAB, box.width + 2 * *PEXTENDBORDERGRAB, box.height + 2 * *PEXTENDBORDERGRAB};
+    wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
+                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

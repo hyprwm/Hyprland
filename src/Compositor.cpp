@@ -12,11 +12,10 @@
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal %d", signo);
 
-    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL) {
+    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL)
         g_pCompositor->cleanup();
-    }
 
-    return 0; // everything went fine
+    return 0;
 }
 
 void handleUnrecoverableSignal(int sig) {
@@ -99,6 +98,9 @@ void CCompositor::initServer() {
 
     initManagers(STAGE_PRIORITY);
 
+    if (const auto ENV = getenv("HYPRLAND_TRACE"); ENV && std::string(ENV) == "1")
+        Debug::trace = true;
+
     wlr_log_init(WLR_INFO, NULL);
 
     const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");
@@ -109,20 +111,20 @@ void CCompositor::initServer() {
 
     if (!m_sWLRBackend) {
         Debug::log(CRIT, "m_sWLRBackend was NULL!");
-        throw std::runtime_error("wlr_backend_autocreate() failed!");
+        throwError("wlr_backend_autocreate() failed!");
     }
 
     m_iDRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
     if (m_iDRMFD < 0) {
         Debug::log(CRIT, "Couldn't query the DRM FD!");
-        throw std::runtime_error("wlr_backend_get_drm_fd() failed!");
+        throwError("wlr_backend_get_drm_fd() failed!");
     }
 
     m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
 
     if (!m_sWLRRenderer) {
         Debug::log(CRIT, "m_sWLRRenderer was NULL!");
-        throw std::runtime_error("wlr_gles2_renderer_create_with_drm_fd() failed!");
+        throwError("wlr_gles2_renderer_create_with_drm_fd() failed!");
     }
 
     wlr_renderer_init_wl_shm(m_sWLRRenderer, m_sWLDisplay);
@@ -138,14 +140,14 @@ void CCompositor::initServer() {
 
     if (!m_sWLRAllocator) {
         Debug::log(CRIT, "m_sWLRAllocator was NULL!");
-        throw std::runtime_error("wlr_allocator_autocreate() failed!");
+        throwError("wlr_allocator_autocreate() failed!");
     }
 
     m_sWLREGL = wlr_gles2_renderer_get_egl(m_sWLRRenderer);
 
     if (!m_sWLREGL) {
         Debug::log(CRIT, "m_sWLREGL was NULL!");
-        throw std::runtime_error("wlr_gles2_renderer_get_egl() failed!");
+        throwError("wlr_gles2_renderer_get_egl() failed!");
     }
 
     m_sWLRCompositor    = wlr_compositor_create(m_sWLDisplay, 6, m_sWLRRenderer);
@@ -240,9 +242,11 @@ void CCompositor::initServer() {
 
     m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
 
+    m_sWLRCursorShapeMgr = wlr_cursor_shape_manager_v1_create(m_sWLDisplay, 1);
+
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
-        throw std::runtime_error("wlr_headless_backend_create() failed!");
+        throwError("wlr_headless_backend_create() failed!");
     }
 
     wlr_single_pixel_buffer_manager_v1_create(m_sWLDisplay);
@@ -297,6 +301,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
     addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
+    addWLSignal(&m_sWLRCursorShapeMgr->events.request_set_shape, &Events::listen_setCursorShape, m_sWLRCursorShapeMgr, "CursorShapeMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
@@ -308,6 +313,8 @@ void CCompositor::initAllSignals() {
 void CCompositor::cleanup() {
     if (!m_sWLDisplay || m_bIsShuttingDown)
         return;
+
+    removeLockFile();
 
     m_bIsShuttingDown = true;
 
@@ -413,6 +420,23 @@ void CCompositor::initManagers(eManagersInitStage stage) {
     }
 }
 
+void CCompositor::createLockFile() {
+    const auto    PATH = "/tmp/hypr/" + m_szInstanceSignature + ".lock";
+
+    std::ofstream ofs(PATH, std::ios::trunc);
+
+    ofs << m_iHyprlandPID << "\n" << m_szWLDisplaySocket << "\n";
+
+    ofs.close();
+}
+
+void CCompositor::removeLockFile() {
+    const auto PATH = "/tmp/hypr/" + m_szInstanceSignature + ".lock";
+
+    if (std::filesystem::exists(PATH))
+        std::filesystem::remove(PATH);
+}
+
 void CCompositor::startCompositor() {
     initAllSignals();
 
@@ -439,7 +463,7 @@ void CCompositor::startCompositor() {
     if (m_szWLDisplaySocket.empty()) {
         Debug::log(CRIT, "m_szWLDisplaySocket NULL!");
         wlr_backend_destroy(m_sWLRBackend);
-        throw std::runtime_error("m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)");
+        throwError("m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)");
     }
 
     setenv("WAYLAND_DISPLAY", m_szWLDisplaySocket.c_str(), 1);
@@ -461,7 +485,7 @@ void CCompositor::startCompositor() {
         Debug::log(CRIT, "Backend did not start!");
         wlr_backend_destroy(m_sWLRBackend);
         wl_display_destroy(m_sWLDisplay);
-        throw std::runtime_error("The backend could not start!");
+        throwError("The backend could not start!");
     }
 
     wlr_cursor_set_xcursor(m_sWLRCursor, m_sWLRXCursorMgr, "left_ptr");
@@ -473,6 +497,8 @@ void CCompositor::startCompositor() {
     else
         Debug::log(LOG, "systemd integration is baked in but system itself is not booted à la systemd!");
 #endif
+
+    createLockFile();
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");
@@ -808,6 +834,11 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
+    if (pWindow && pWindow->isHidden() && pWindow->m_sGroupData.pNextWindow) {
+        // grouped, change the current to us
+        pWindow->setGroupCurrent(pWindow);
+    }
+
     if (!pWindow || !windowValidMapped(pWindow)) {
         const auto PLASTWINDOW = m_pLastWindow;
         m_pLastWindow          = nullptr;
@@ -899,6 +930,16 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
     g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
+
+    // TODO: implement this better
+    if (!PLASTWINDOW && pWindow->m_sGroupData.pNextWindow && pWindow->m_sGroupData.pNextWindow != pWindow) {
+        auto curr = pWindow;
+        do {
+            curr = curr->m_sGroupData.pNextWindow;
+            if (curr->m_phForeignToplevel)
+                wlr_foreign_toplevel_handle_v1_set_activated(curr->m_phForeignToplevel, false);
+        } while (curr->m_sGroupData.pNextWindow != pWindow);
+    }
 
     if (pWindow->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_activated(pWindow->m_phForeignToplevel, true);
@@ -1104,14 +1145,20 @@ void CCompositor::sanityCheckWorkspaces() {
 
         const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace((*it)->m_iID);
 
-        if ((*it)->m_bIsSpecialWorkspace && WINDOWSONWORKSPACE == 0) {
-            getMonitorFromID((*it)->m_iMonitorID)->setSpecialWorkspace(nullptr);
-
-            it = m_vWorkspaces.erase(it);
-            continue;
-        }
-
         if ((WINDOWSONWORKSPACE == 0 && !isWorkspaceVisible((*it)->m_iID))) {
+
+            if ((*it)->m_bIsSpecialWorkspace) {
+                if ((*it)->m_fAlpha.fl() > 0.f /* don't abruptly end the fadeout */) {
+                    ++it;
+                    continue;
+                }
+
+                const auto PMONITOR = getMonitorFromID((*it)->m_iMonitorID);
+
+                if (PMONITOR && PMONITOR->specialWorkspaceID == (*it)->m_iID)
+                    PMONITOR->setSpecialWorkspace(nullptr);
+            }
+
             it = m_vWorkspaces.erase(it);
             continue;
         }
@@ -1154,6 +1201,26 @@ CWindow* CCompositor::getFirstWindowOnWorkspace(const int& id) {
             return w.get();
     }
 
+    return nullptr;
+}
+
+CWindow* CCompositor::getTopLeftWindowOnWorkspace(const int& id) {
+    const auto PWORKSPACE = getWorkspaceByID(id);
+
+    if (!PWORKSPACE)
+        return nullptr;
+
+    const auto PMONITOR = getMonitorFromID(PWORKSPACE->m_iMonitorID);
+
+    for (auto& w : m_vWindows) {
+        if (w->m_iWorkspaceID != id || !w->m_bIsMapped || w->isHidden())
+            continue;
+
+        const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
+
+        if (WINDOWIDEALBB.x <= PMONITOR->vecPosition.x + 1 && WINDOWIDEALBB.y <= PMONITOR->vecPosition.y + 1)
+            return w.get();
+    }
     return nullptr;
 }
 
@@ -2026,9 +2093,11 @@ void CCompositor::updateFullscreenFadeOnWorkspace(CWorkspace* pWorkspace) {
 
     const auto PMONITOR = getMonitorFromID(pWorkspace->m_iMonitorID);
 
-    for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (!ls->fadingOut)
-            ls->alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
+    if (pWorkspace->m_iID == PMONITOR->activeWorkspace) {
+        for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            if (!ls->fadingOut)
+                ls->alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
+        }
     }
 }
 
@@ -2358,22 +2427,7 @@ int CCompositor::getNewSpecialID() {
 }
 
 void CCompositor::performUserChecks() {
-    static constexpr auto BAD_PORTALS = {"kde", "gnome"};
-
-    static auto* const    PSUPPRESSPORTAL = &g_pConfigManager->getConfigValuePtr("misc:suppress_portal_warnings")->intValue;
-
-    if (!*PSUPPRESSPORTAL) {
-        if (std::ranges::any_of(BAD_PORTALS, [&](const std::string& portal) { return std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/" + portal + ".portal"); })) {
-            // bad portal detected
-            g_pHyprNotificationOverlay->addNotification("You have one or more incompatible xdg-desktop-portal impls installed. Please remove incompatible ones to avoid issues.",
-                                                        CColor(0), 15000, ICON_ERROR);
-        }
-
-        if (std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/hyprland.portal") && std::filesystem::exists("/usr/share/xdg-desktop-portal/portals/wlr.portal")) {
-            g_pHyprNotificationOverlay->addNotification("You have xdg-desktop-portal-hyprland and -wlr installed simultaneously. Please uninstall one to avoid issues.", CColor(0),
-                                                        15000, ICON_ERROR);
-        }
-    }
+    // empty
 }
 
 void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace) {
@@ -2391,6 +2445,7 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
 
     pWindow->moveToWorkspace(pWorkspace->m_iID);
     pWindow->updateToplevel();
+    pWindow->updateDynamicRules();
 
     if (!pWindow->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
@@ -2444,4 +2499,58 @@ void CCompositor::notifyIdleActivity() {
 void CCompositor::setIdleActivityInhibit(bool enabled) {
     wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, enabled);
     wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, !enabled);
+}
+
+void CCompositor::arrangeMonitors() {
+    static auto* const     PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+
+    std::vector<CMonitor*> toArrange;
+    std::vector<CMonitor*> arranged;
+
+    for (auto& m : m_vMonitors)
+        toArrange.push_back(m.get());
+
+    Debug::log(LOG, "arrangeMonitors: %llu to arrange", toArrange.size());
+
+    for (auto it = toArrange.begin(); it != toArrange.end();) {
+        auto m = *it;
+
+        if (m->activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
+            // explicit.
+            Debug::log(LOG, "arrangeMonitors: %s explicit [%.2f, %.2f]", m->szName.c_str(), m->activeMonitorRule.offset.x, m->activeMonitorRule.offset.y);
+
+            m->moveTo(m->activeMonitorRule.offset);
+            arranged.push_back(m);
+            it = toArrange.erase(it);
+
+            if (it == toArrange.end())
+                break;
+
+            continue;
+        }
+
+        ++it;
+    }
+
+    // auto left
+    int maxOffset = 0;
+    for (auto& m : arranged) {
+        if (m->vecPosition.x + m->vecSize.x > maxOffset)
+            maxOffset = m->vecPosition.x + m->vecSize.x;
+    }
+
+    for (auto& m : toArrange) {
+        Debug::log(LOG, "arrangeMonitors: %s auto [%i, %.2f]", m->szName.c_str(), maxOffset, 0);
+        m->moveTo({maxOffset, 0});
+        maxOffset += m->vecSize.x;
+    }
+
+    // reset maxOffset (reuse)
+    // and set xwayland positions aka auto for all
+    maxOffset = 0;
+    for (auto& m : m_vMonitors) {
+        Debug::log(LOG, "arrangeMonitors: %s xwayland [%i, %.2f]", m->szName.c_str(), maxOffset, 0);
+        m->vecXWaylandPosition = {maxOffset, 0};
+        maxOffset += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
+    }
 }

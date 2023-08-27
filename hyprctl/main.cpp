@@ -11,12 +11,16 @@
 #include <unistd.h>
 #include <ranges>
 #include <algorithm>
+#include <signal.h>
 
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <string>
+#include <vector>
 #include <deque>
+#include <filesystem>
+#include <stdarg.h>
 
 const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
 
@@ -45,13 +49,76 @@ commands:
     plugin
     notify
     globalshortcuts
+    instances
 
 flags:
     -j -> output in JSON
     --batch -> execute a batch of commands, separated by ';'
+    --instance (-i) -> use a specific instance. Can be either signature or index in hyprctl instances (0, 1, etc)
 )#";
 
 #define PAD
+
+std::string instanceSignature;
+
+struct SInstanceData {
+    std::string id;
+    uint64_t    time;
+    uint64_t    pid;
+    std::string wlSocket;
+    bool        valid = true;
+};
+
+std::vector<SInstanceData> instances() {
+    std::vector<SInstanceData> result;
+
+    for (const auto& el : std::filesystem::directory_iterator("/tmp/hypr")) {
+        if (el.is_directory())
+            continue;
+
+        // read lock
+        SInstanceData* data = &result.emplace_back();
+        data->id            = el.path().string();
+        data->id            = data->id.substr(data->id.find_last_of('/') + 1, data->id.find(".lock") - data->id.find_last_of('/') - 1);
+
+        data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+
+        // read file
+        std::ifstream ifs(el.path().string());
+
+        int           i = 0;
+        for (std::string line; std::getline(ifs, line); ++i) {
+            if (i == 0) {
+                data->pid = std::stoull(line);
+            } else if (i == 1) {
+                data->wlSocket = line;
+            } else
+                break;
+        }
+
+        ifs.close();
+    }
+
+    std::erase_if(result, [&](const auto& el) { return kill(el.pid, 0) != 0 && errno == ESRCH; });
+
+    std::sort(result.begin(), result.end(), [&](const auto& a, const auto& b) { return a.time < b.time; });
+
+    return result;
+}
+
+std::string getFormat(const char* fmt, ...) {
+    char*   outputStr = nullptr;
+
+    va_list args;
+    va_start(args, fmt);
+    vasprintf(&outputStr, fmt, args);
+    va_end(args);
+
+    std::string output = std::string(outputStr);
+    free(outputStr);
+
+    return output;
+}
 
 void request(std::string arg, int minArgs = 0) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -68,20 +135,15 @@ void request(std::string arg, int minArgs = 0) {
         return;
     }
 
-    // get the instance signature
-    auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
-
-    if (!instanceSig) {
+    if (instanceSignature.empty()) {
         std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
         return;
     }
 
-    std::string instanceSigStr = std::string(instanceSig);
-
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.socket.sock";
+    std::string socketPath = "/tmp/hypr/" + instanceSignature + "/.socket.sock";
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
@@ -131,20 +193,15 @@ void requestHyprpaper(std::string arg) {
         return;
     }
 
-    // get the instance signature
-    auto instanceSig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
-
-    if (!instanceSig) {
+    if (instanceSignature.empty()) {
         std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
         return;
     }
 
-    std::string instanceSigStr = std::string(instanceSig);
-
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = "/tmp/hypr/" + instanceSigStr + "/.hyprpaper.sock";
+    std::string socketPath = "/tmp/hypr/" + instanceSignature + "/.hyprpaper.sock";
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
@@ -152,6 +209,9 @@ void requestHyprpaper(std::string arg) {
         std::cout << "Couldn't connect to " << socketPath << ". (3)";
         return;
     }
+
+    arg = arg.substr(arg.find_first_of('/') + 1); // strip flags
+    arg = arg.substr(arg.find_first_of(' ') + 1); // strip "hyprpaper"
 
     auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
 
@@ -174,90 +234,40 @@ void requestHyprpaper(std::string arg) {
     std::cout << std::string(buffer);
 }
 
-int dispatchRequest(int argc, char** argv) {
-
-    if (argc < 3) {
-        std::cout << "Usage: hyprctl dispatch <dispatcher> <arg>\n\
-            Execute a hyprland keybind dispatcher with the given argument";
-        return 1;
-    }
-
-    std::string rq = "/dispatch";
-
-    for (int i = 2; i < argc; i++) {
-        if (!strcmp(argv[i], "--"))
-            continue;
-        rq += " " + std::string(argv[i]);
-    }
-
-    request(rq);
-    return 0;
-}
-
-int keywordRequest(int argc, char** argv) {
-    if (argc < 4) {
-        std::cout << "Usage: hyprctl keyword <keyword> <arg>\n\
-            Execute a hyprland keyword with the given argument";
-        return 1;
-    }
-
-    std::string rq = "/keyword";
-
-    for (int i = 2; i < argc; i++)
-        rq += " " + std::string(argv[i]);
-
-    request(rq);
-    return 0;
-}
-
-int hyprpaperRequest(int argc, char** argv) {
-    if (argc < 4) {
-        std::cout << "Usage: hyprctl hyprpaper <command> <arg>\n\
-            Execute a hyprpaper command with the given argument";
-        return 1;
-    }
-
-    std::string rq = std::string(argv[2]) + " " + std::string(argv[3]);
-
-    requestHyprpaper(rq);
-    return 0;
-}
-
-int setcursorRequest(int argc, char** argv) {
-    if (argc < 4) {
-        std::cout << "Usage: hyprctl setcursor <theme> <size>\n\
-            Sets the cursor theme for everything except GTK and reloads the cursor";
-        return 1;
-    }
-
-    std::string rq = "setcursor ";
-    for (size_t i = 2; i < argc; ++i)
-        rq += std::string(argv[i]) + " ";
-    rq.pop_back();
-
-    request(rq);
-    return 0;
-}
-
-int outputRequest(int argc, char** argv) {
-    if (argc < 4) {
-        std::cout << "Usage: hyprctl output <mode> <name>\n\
-            creates / destroys a fake output\n\
-            with create, name is the backend name to use (available: auto, x11, wayland, headless)\n\
-            with destroy, name is the output name to destroy";
-        return 1;
-    }
-
-    std::string rq = "output " + std::string(argv[2]) + " " + std::string(argv[3]);
-
-    request(rq);
-    return 0;
-}
-
 void batchRequest(std::string arg) {
     std::string rq = "[[BATCH]]" + arg.substr(arg.find_first_of(" ") + 1);
 
     request(rq);
+}
+
+void instancesRequest(bool json) {
+    std::string result = "";
+
+    // gather instance data
+    std::vector<SInstanceData> inst = instances();
+
+    if (!json) {
+        for (auto& el : inst) {
+            result += getFormat("instance %s:\n\ttime: %llu\n\tpid: %llu\n\twl socket: %s\n\n", el.id.c_str(), el.time, el.pid, el.wlSocket.c_str());
+        }
+    } else {
+        result += '[';
+        for (auto& el : inst) {
+            result += getFormat(R"#(
+{
+    "instance": "%s",
+    "time": %llu,
+    "pid": %llu,
+    "wl_socket": "%s"
+},)#",
+                                el.id.c_str(), el.time, el.pid, el.wlSocket.c_str());
+        }
+
+        result.pop_back();
+        result += "\n]";
+    }
+
+    std::cout << result << "\n";
 }
 
 std::deque<std::string> splitArgs(int argc, char** argv) {
@@ -284,9 +294,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string fullRequest = "";
-    std::string fullArgs    = "";
-    const auto  ARGS        = splitArgs(argc, argv);
+    std::string fullRequest      = "";
+    std::string fullArgs         = "";
+    const auto  ARGS             = splitArgs(argc, argv);
+    bool        json             = false;
+    std::string overrideInstance = "";
 
     for (auto i = 0; i < ARGS.size(); ++i) {
         if (ARGS[i] == "--") {
@@ -298,8 +310,18 @@ int main(int argc, char** argv) {
             // parse
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";
+                json = true;
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
+            } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {
+                ++i;
+
+                if (i >= ARGS.size()) {
+                    printf("%s\n", USAGE.c_str());
+                    return 1;
+                }
+
+                overrideInstance = ARGS[i];
             } else {
                 printf("%s\n", USAGE.c_str());
                 return 1;
@@ -319,6 +341,35 @@ int main(int argc, char** argv) {
     fullRequest.pop_back(); // remove trailing space
 
     fullRequest = fullArgs + "/" + fullRequest;
+
+    if (overrideInstance.contains("_"))
+        instanceSignature = overrideInstance;
+    else if (!overrideInstance.empty()) {
+        if (!isNumber(overrideInstance, false)) {
+            std::cout << "instance invalid\n";
+            return 1;
+        }
+
+        const auto INSTANCENO = std::stoi(overrideInstance);
+
+        const auto INSTANCES = instances();
+
+        if (INSTANCENO < 0 || INSTANCENO >= INSTANCES.size()) {
+            std::cout << "no such instance\n";
+            return 1;
+        }
+
+        instanceSignature = INSTANCES[INSTANCENO].id;
+    } else {
+        const auto ISIG = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+
+        if (!ISIG) {
+            std::cout << "HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)";
+            return 1;
+        }
+
+        instanceSignature = ISIG;
+    }
 
     int exitStatus = 0;
 
@@ -356,6 +407,8 @@ int main(int argc, char** argv) {
         request(fullRequest);
     else if (fullRequest.contains("/globalshortcuts"))
         request(fullRequest);
+    else if (fullRequest.contains("/instances"))
+        instancesRequest(json);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))
@@ -367,15 +420,15 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/notify"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/output"))
-        exitStatus = outputRequest(argc, argv);
+        request(fullRequest, 2);
     else if (fullRequest.contains("/setcursor"))
-        exitStatus = setcursorRequest(argc, argv);
+        request(fullRequest, 1);
     else if (fullRequest.contains("/dispatch"))
-        exitStatus = dispatchRequest(argc, argv);
+        request(fullRequest, 1);
     else if (fullRequest.contains("/keyword"))
-        exitStatus = keywordRequest(argc, argv);
+        request(fullRequest, 2);
     else if (fullRequest.contains("/hyprpaper"))
-        exitStatus = hyprpaperRequest(argc, argv);
+        requestHyprpaper(fullRequest);
     else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {

@@ -44,12 +44,7 @@ install:
 	cp -f ./hyprctl/hyprctl ${PREFIX}/bin
 	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
 	mkdir -p ${PREFIX}/share/hyprland
-	cp ./assets/wall_2K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_4K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_8K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_anime_2K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_anime_4K.png ${PREFIX}/share/hyprland
-	cp ./assets/wall_anime_8K.png ${PREFIX}/share/hyprland
+	cp ./assets/wall_* ${PREFIX}/share/hyprland
 
 	mkdir -p ${PREFIX}/share/man/man1
 	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1
@@ -64,6 +59,7 @@ install:
 	cd subprojects/wlroots/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
+	cp ./assets/hyprland-portals.conf ${PREFIX}/share/xdg-desktop-portal/
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
 cleaninstall:

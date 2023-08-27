@@ -3,6 +3,7 @@
 #include <regex>
 
 #include <sys/ioctl.h>
+#include <fcntl.h>
 #if defined(__linux__)
 #include <linux/vt.h>
 #elif defined(__NetBSD__) || defined(__OpenBSD__)
@@ -138,12 +139,14 @@ void CKeybindManager::updateXKBTranslationState() {
     const auto     VARIANT  = g_pConfigManager->getString("input:kb_variant");
     const auto     OPTIONS  = g_pConfigManager->getString("input:kb_options");
 
-    xkb_rule_names rules = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
+    xkb_rule_names rules      = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
+    const auto     PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    FILE* const    KEYMAPFILE = FILEPATH == "" ? NULL : fopen(absolutePath(FILEPATH, g_pConfigManager->configCurrentPath).c_str(), "r");
 
-    const auto     PCONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-
-    auto           PKEYMAP = FILEPATH == "" ? xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS) :
-                                              xkb_keymap_new_from_file(PCONTEXT, fopen(FILEPATH.c_str(), "r"), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    auto           PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS) :
+                                          xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    if (KEYMAPFILE)
+        fclose(KEYMAPFILE);
 
     if (!PKEYMAP) {
         g_pHyprError->queueCreate("[Runtime Error] Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
@@ -384,10 +387,11 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
-    if (pressed && m_kHeldBack) {
-        // release the held back event
-        wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, time, m_kHeldBack, WL_KEYBOARD_KEY_STATE_PRESSED);
-        m_kHeldBack = 0;
+    if (pressed && !m_vHeldBack.empty()) {
+        // release the held back events
+        for (auto& k : m_vHeldBack)
+            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, time, k, WL_KEYBOARD_KEY_STATE_PRESSED);
+        m_vHeldBack.clear();
     }
 
     for (auto& k : m_lKeybinds) {
@@ -416,11 +420,15 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
         if (pressed && k.release) {
             if (k.nonConsuming)
-                return false;
+                continue;
+
+            found = true;
+
+            if (k.transparent)
+                continue;
 
             // suppress down event
-            m_kHeldBack = keysym;
-            return true;
+            m_vHeldBack.push_back(keysym);
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
@@ -470,7 +478,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const int& 
 
         bool shadow = false;
 
-        if (k.handler == "global")
+        if (k.handler == "global" || k.transparent)
             continue; // can't be shadowed
 
         const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
@@ -515,15 +523,19 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         // vtnr is bugged for some reason.
         unsigned int ttynum = 0;
+        int          fd;
+        if ((fd = open("/dev/tty", O_RDONLY | O_NOCTTY)) >= 0) {
 #if defined(VT_GETSTATE)
-        struct vt_stat st;
-        if (!ioctl(0, VT_GETSTATE, &st))
-            ttynum = st.v_active;
+            struct vt_stat st;
+            if (!ioctl(fd, VT_GETSTATE, &st))
+                ttynum = st.v_active;
 #elif defined(VT_GETACTIVE)
-        int vt;
-        if (!ioctl(0, VT_GETACTIVE, &vt))
-            ttynum = vt;
+            int vt;
+            if (!ioctl(fd, VT_GETACTIVE, &vt))
+                ttynum = vt;
 #endif
+            close(fd);
+        }
 
         if (ttynum == TTY)
             return true;
@@ -714,7 +726,11 @@ void CKeybindManager::centerWindow(std::string args) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-    PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f;
+    auto       RESERVEDOFFSET = Vector2D();
+    if (args == "1")
+        RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
+
+    PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f + RESERVEDOFFSET;
     PWINDOW->m_vPosition     = PWINDOW->m_vRealPosition.goalv();
 }
 
@@ -1496,12 +1512,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         return;
     }
 
-    if (g_pCompositor->getWindowsOnWorkspace(workspaceID) == 0) {
-        Debug::log(LOG, "Can't open empty special workspace!");
-        return;
-    }
-
     bool       requestedWorkspaceIsAlreadyOpen = false;
+    bool       requestedWorkspaceExists        = g_pCompositor->getWorkspaceByID(workspaceID);
     const auto PMONITOR                        = *PFOLLOWMOUSE == 1 ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->m_pLastMonitor;
     int        specialOpenOnMonitor            = PMONITOR->specialWorkspaceID;
 
@@ -1547,10 +1559,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         // not open anywhere
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
-        if (!PSPECIALWORKSPACE) {
-            // ??? happens sometimes...?
+        if (!PSPECIALWORKSPACE)
             PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
-        }
 
         PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);
     }
@@ -1702,11 +1712,6 @@ void CKeybindManager::focusWindow(std::string regexp) {
         changeworkspace(PWORKSPACE->getConfigName());
     }
 
-    if (PWINDOW->isHidden() && PWINDOW->m_sGroupData.pNextWindow) {
-        // grouped, change the current to us
-        PWINDOW->setGroupCurrent(PWINDOW);
-    }
-
     g_pCompositor->focusWindow(PWINDOW);
 
     const auto MIDPOINT = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
@@ -1834,6 +1839,9 @@ void CKeybindManager::dpms(std::string arg) {
     bool        enable = arg.find("on") == 0;
     std::string port   = "";
 
+    if (arg.find("toggle") == 0)
+        enable = !std::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](const auto& other) { return !other->dpmsStatus; }); // enable if any is off
+
     if (arg.find_first_of(' ') != std::string::npos)
         port = arg.substr(arg.find_first_of(' ') + 1);
 
@@ -1933,10 +1941,10 @@ void CKeybindManager::pinActive(std::string args) {
 }
 
 void CKeybindManager::mouse(std::string args) {
-    const auto TRUEARG = args.substr(1);
+    const auto ARGS    = CVarList(args.substr(1), 2, ' ');
     const auto PRESSED = args[0] == '1';
 
-    if (TRUEARG == "movewindow") {
+    if (ARGS[0] == "movewindow") {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
@@ -1953,13 +1961,19 @@ void CKeybindManager::mouse(std::string args) {
                 g_pInputManager->dragMode               = MBIND_INVALID;
             }
         }
-    } else if (TRUEARG == "resizewindow") {
+    } else if (ARGS[0] == "resizewindow") {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
-            g_pInputManager->dragMode               = MBIND_RESIZE;
 
+            try {
+                switch (std::stoi(ARGS[1])) {
+                    case 1: g_pInputManager->dragMode = MBIND_RESIZE_FORCE_RATIO; break;
+                    case 2: g_pInputManager->dragMode = MBIND_RESIZE_BLOCK_RATIO; break;
+                    default: g_pInputManager->dragMode = MBIND_RESIZE;
+                }
+            } catch (std::exception& e) { g_pInputManager->dragMode = MBIND_RESIZE; }
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;
@@ -2015,7 +2029,9 @@ void CKeybindManager::lockActiveGroup(std::string args) {
 }
 
 void CKeybindManager::moveIntoGroup(std::string args) {
-    char arg = args[0];
+    char               arg = args[0];
+
+    static auto* const GROUPLOCKCHECK = &g_pConfigManager->getConfigValuePtr("misc:moveintogroup_lock_check")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2032,7 +2048,7 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
 
-    if (PWINDOW->m_sGroupData.locked || PWINDOWINDIR->m_sGroupData.locked)
+    if (*GROUPLOCKCHECK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.locked)))
         return;
 
     if (!PWINDOW->m_sGroupData.pNextWindow)

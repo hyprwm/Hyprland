@@ -8,21 +8,18 @@
 #define OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION 3
 
 static void destroyManagerResource(wl_client* client, wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerResourceDestroy(resource);
-    // will be destroyed by the destruction of the unique_ptr
+    RESOURCE_OR_BAIL(PRESOURCE);
+    reinterpret_cast<CXDGOutputProtocol*>(PRESOURCE->data())->onManagerResourceDestroy(resource);
 }
 
 static void destroyOutputResource(wl_client* client, wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource);
-    wl_resource_destroy(resource);
-}
-
-static void destroyOutputResourceOnly(wl_resource* resource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onOutputResourceDestroy(resource);
+    RESOURCE_OR_BAIL(PRESOURCE);
+    reinterpret_cast<CXDGOutputProtocol*>(PRESOURCE->data())->onOutputResourceDestroy(resource);
 }
 
 static void getXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
-    ((CXDGOutputProtocol*)wl_resource_get_user_data(resource))->onManagerGetXDGOutput(client, resource, id, outputResource);
+    RESOURCE_OR_BAIL(PRESOURCE);
+    reinterpret_cast<CXDGOutputProtocol*>(PRESOURCE->data())->onManagerGetXDGOutput(client, resource, id, outputResource);
 }
 
 //
@@ -41,18 +38,23 @@ void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res) {
 }
 
 void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vXDGOutputs, [&](const auto& other) { return !other->resource || other->resource->resource() == res; });
+    std::erase_if(m_vXDGOutputs, [&](const auto& other) {
+        if (!other->resource)
+            return false; // ???
+        return other->resource->resource() == res;
+    });
 }
 
 void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CWaylandResource>(client, &zxdg_output_manager_v1_interface, ver, id, true)).get();
+    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CWaylandResource>(client, &zxdg_output_manager_v1_interface, ver, id)).get();
 
     if (!RESOURCE->good()) {
         Debug::log(LOG, "Couldn't bind XDGOutputMgr");
         return;
     }
 
-    RESOURCE->setImplementation(&MANAGER_IMPL, this, nullptr);
+    RESOURCE->setImplementation(&MANAGER_IMPL, nullptr);
+    RESOURCE->setData(this);
 }
 
 CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -60,7 +62,12 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
     g_pHookSystem->hookDynamic("configReloaded", [&](void* self, std::any param) { this->updateAllOutputs(); });
     g_pHookSystem->hookDynamic("monitorRemoved", [&](void* self, std::any param) {
         const auto PMONITOR = std::any_cast<CMonitor*>(param);
-        std::erase_if(m_vXDGOutputs, [&](const auto& other) { return other->monitor == PMONITOR; });
+        std::erase_if(m_vXDGOutputs, [&](const auto& other) {
+            const bool R = other->monitor == PMONITOR;
+            if (R)
+                other->resource->markDefunct();
+            return R;
+        });
     });
 }
 
@@ -77,7 +84,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 
     SXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<SXDGOutput>(PMONITOR)).get();
 #ifndef NO_XWAYLAND
-    if (g_pXWaylandManager->m_sWLRXWayland->server->client == client)
+    if (g_pXWaylandManager->m_sWLRXWayland && g_pXWaylandManager->m_sWLRXWayland->server && g_pXWaylandManager->m_sWLRXWayland->server->client == client)
         pXDGOutput->isXWayland = true;
 #endif
     pXDGOutput->client = client;
@@ -86,10 +93,12 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 
     if (!pXDGOutput->resource->good()) {
         pXDGOutput->resource.release();
+        m_vXDGOutputs.pop_back();
         return;
     }
 
-    pXDGOutput->resource->setImplementation(&OUTPUT_IMPL, this, destroyOutputResourceOnly);
+    pXDGOutput->resource->setImplementation(&OUTPUT_IMPL, nullptr);
+    pXDGOutput->resource->setData(this);
     const auto XDGVER = pXDGOutput->resource->version();
 
     if (XDGVER >= ZXDG_OUTPUT_V1_NAME_SINCE_VERSION)
@@ -107,10 +116,14 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
-    zxdg_output_v1_send_logical_position(pOutput->resource->resource(), pOutput->monitor->vecPosition.x, pOutput->monitor->vecPosition.y);
+    if (!pOutput->resource->good())
+        return;
+
+    const auto POS = pOutput->isXWayland ? pOutput->monitor->vecXWaylandPosition : pOutput->monitor->vecPosition;
+    zxdg_output_v1_send_logical_position(pOutput->resource->resource(), POS.x, POS.y);
 
     if (*PXWLFORCESCALEZERO && pOutput->isXWayland)
-        zxdg_output_v1_send_logical_size(pOutput->resource->resource(), pOutput->monitor->vecPixelSize.x, pOutput->monitor->vecPixelSize.y);
+        zxdg_output_v1_send_logical_size(pOutput->resource->resource(), pOutput->monitor->vecTransformedSize.x, pOutput->monitor->vecTransformedSize.y);
     else
         zxdg_output_v1_send_logical_size(pOutput->resource->resource(), pOutput->monitor->vecSize.x, pOutput->monitor->vecSize.y);
 

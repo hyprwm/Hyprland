@@ -28,8 +28,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -86,6 +85,7 @@ class CCompositor {
     wlr_backend*                               m_sWLRHeadlessBackend;
     wlr_session_lock_manager_v1*               m_sWLRSessionLockMgr;
     wlr_gamma_control_manager_v1*              m_sWLRGammaCtrlMgr;
+    wlr_cursor_shape_manager_v1*               m_sWLRCursorShapeMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szWLDisplaySocket   = "";
@@ -101,11 +101,13 @@ class CCompositor {
     std::vector<CWindow*>                     m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
 
-    std::unordered_map<std::string, uint64_t>  m_mMonitorIDMap;
+    std::unordered_map<std::string, uint64_t> m_mMonitorIDMap;
 
     void                                      initServer();
     void                                      startCompositor();
     void                                      cleanup();
+    void                                      createLockFile();
+    void                                      removeLockFile();
 
     wlr_surface*                              m_pLastFocus   = nullptr;
     CWindow*                                  m_pLastWindow  = nullptr;
@@ -156,6 +158,7 @@ class CCompositor {
     CWindow*       getUrgentWindow();
     bool           hasUrgentWindowOnWorkspace(const int&);
     CWindow*       getFirstWindowOnWorkspace(const int&);
+    CWindow*       getTopLeftWindowOnWorkspace(const int&);
     CWindow*       getFullscreenWindowOnWorkspace(const int&);
     bool           doesSeatAcceptInput(wlr_surface*);
     bool           isWindowActive(CWindow*);
@@ -200,6 +203,7 @@ class CCompositor {
     CWindow*       getForceFocus();
     void           notifyIdleActivity();
     void           setIdleActivityInhibit(bool inhibit);
+    void           arrangeMonitors();
 
     std::string    explicitConfigPath;
 

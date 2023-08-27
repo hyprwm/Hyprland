@@ -54,6 +54,7 @@ void main() {
     highp vec2 pixCoord = vec2(gl_FragCoord);
     highp vec2 originalPixCoord = v_texcoord;
     originalPixCoord *= fullSizeUntransformed;
+    float additionalAlpha = 1.0;
 
     vec4 pixColor = vec4(1.0, 1.0, 1.0, 1.0);
 
@@ -86,7 +87,7 @@ void main() {
 
 	        distances /= 4.0;
 
-	        pixColor[3] *= distances;
+	        additionalAlpha *= distances;
         } else if (dist > radius || dist < radius - thick)
             discard;
 
@@ -108,12 +109,13 @@ void main() {
             discard;
     }
 
-    if (pixColor[3] == 0.0)
+    if (additionalAlpha == 0.0)
         discard;
 
-    float pixColor3 = pixColor[3];
     pixColor = getColorForCoord(v_texcoord);
-    pixColor[3] *= alpha * pixColor3;
+    pixColor.rgb *= pixColor[3];
+
+    pixColor *= alpha * additionalAlpha;
 
     gl_FragColor = pixColor;
 }

@@ -10,8 +10,7 @@
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
 
-enum eIdleInhibitMode
-{
+enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
@@ -105,6 +104,7 @@ struct SWindowSpecialRenderData {
     bool                       rounding   = true;
     bool                       border     = true;
     bool                       decorate   = true;
+    bool                       shadow     = true;
 };
 
 struct SWindowAdditionalConfigData {
@@ -122,6 +122,8 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool> noMaxSize             = false;
     CWindowOverridableVar<bool> dimAround             = false;
     CWindowOverridableVar<bool> forceRGBX             = false;
+    CWindowOverridableVar<bool> keepAspectRatio       = false;
+    CWindowOverridableVar<int>  xray                  = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<int>  borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
 };
 
@@ -136,6 +138,7 @@ struct SWindowRule {
     int         bFloating   = -1;
     int         bFullscreen = -1;
     int         bPinned     = -1;
+    std::string szWorkspace = ""; // empty means any
 };
 
 class CWindow {
@@ -226,9 +229,10 @@ class CWindow {
     bool m_bNoFocus        = false;
     bool m_bNoInitialFocus = false;
 
-    // initial fullscreen and fullscreen disabled
+    // Fullscreen and Maximize
     bool              m_bWantsInitialFullscreen = false;
     bool              m_bNoFullscreenRequest    = false;
+    bool              m_bNoMaximizeRequest      = false;
 
     SSurfaceTreeNode* m_pSurfaceTree = nullptr;
 
@@ -239,11 +243,12 @@ class CWindow {
     CAnimatedVariable  m_fBorderAngleAnimationProgress;
 
     // Fade in-out
-    CAnimatedVariable m_fAlpha;
-    bool              m_bFadingOut     = false;
-    bool              m_bReadyToDelete = false;
-    Vector2D          m_vOriginalClosedPos;  // these will be used for calculations later on in
-    Vector2D          m_vOriginalClosedSize; // drawing the closing animations
+    CAnimatedVariable        m_fAlpha;
+    bool                     m_bFadingOut     = false;
+    bool                     m_bReadyToDelete = false;
+    Vector2D                 m_vOriginalClosedPos;  // these will be used for calculations later on in
+    Vector2D                 m_vOriginalClosedSize; // drawing the closing animations
+    SWindowDecorationExtents m_eOriginalClosedExtents;
 
     // For pinned (sticky) windows
     bool m_bPinned = false;
@@ -305,6 +310,7 @@ class CWindow {
 
     // methods
     wlr_box                  getFullWindowBoundingBox();
+    SWindowDecorationExtents getFullWindowExtents();
     wlr_box                  getWindowInputBox();
     wlr_box                  getWindowIdealBoundingBoxIgnoreReserved();
     void                     updateWindowDecos();
@@ -327,6 +333,9 @@ class CWindow {
     Vector2D                 middle();
     bool                     opaque();
     float                    rounding();
+
+    int                      getRealBorderSize();
+    void                     updateSpecialRenderData();
 
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);

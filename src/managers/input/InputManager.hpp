@@ -13,9 +13,11 @@ enum eClickBehaviorMode {
 };
 
 enum eMouseBindMode {
-    MBIND_INVALID = -1,
-    MBIND_MOVE    = 0,
-    MBIND_RESIZE
+    MBIND_INVALID            = -1,
+    MBIND_MOVE               = 0,
+    MBIND_RESIZE             = 1,
+    MBIND_RESIZE_BLOCK_RATIO = 2,
+    MBIND_RESIZE_FORCE_RATIO = 3
 };
 
 enum eBorderIconDirection {
@@ -77,6 +79,7 @@ class CInputManager {
     void               destroySwitch(SSwitchDevice*);
 
     void               constrainMouse(SMouse*, wlr_pointer_constraint_v1*);
+    void               warpMouseToConstraintMiddle(SConstraint*);
     void               recheckConstraint(SMouse*);
     void               unconstrainMouse();
     SConstraint*       constraintFromWlr(wlr_pointer_constraint_v1*);
@@ -96,7 +99,8 @@ class CInputManager {
 
     void               setClickMode(eClickBehaviorMode);
     eClickBehaviorMode getClickMode();
-    void               processMouseRequest(wlr_seat_pointer_request_set_cursor_event*);
+    void               processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e);
+    void               processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e);
 
     void               onTouchDown(wlr_touch_down_event*);
     void               onTouchUp(wlr_touch_up_event*);
@@ -189,6 +193,8 @@ class CInputManager {
 
     void               processMouseDownNormal(wlr_pointer_button_event* e);
     void               processMouseDownKill(wlr_pointer_button_event* e);
+
+    bool               cursorImageUnlocked();
 
     void               disableAllKeyboards(bool virt = false);
 

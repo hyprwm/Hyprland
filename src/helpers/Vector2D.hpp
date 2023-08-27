@@ -1,6 +1,6 @@
 #pragma once
 
-#include <math.h>
+#include <cmath>
 
 class Vector2D {
   public:
@@ -41,6 +41,14 @@ class Vector2D {
 
     Vector2D operator/(const Vector2D& a) const {
         return Vector2D(this->x / a.x, this->y / a.y);
+    }
+
+    bool operator>(const Vector2D& a) const {
+        return this->x > a.x && this->y > a.y;
+    }
+
+    bool operator<(const Vector2D& a) const {
+        return this->x < a.x && this->y < a.y;
     }
 
     double   distance(const Vector2D& other) const;

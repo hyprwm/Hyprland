@@ -545,17 +545,42 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     if (!PASS && !*PPASSMOUSE)
         return;
 
+    const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+    const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+
     // clicking on border triggers resize
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
-        const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-        const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
         if (w && !w->m_bIsFullscreen) {
             const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
             if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
                 g_pKeybindManager->resizeWithBorder(e);
                 return;
             }
+        }
+    }
+
+    if (w && !w->m_bIsFullscreen && !w->hasPopupAt(mouseCoords) && w->m_sGroupData.pNextWindow) {
+        const wlr_box box = w->getWindowGroupBarBox();
+        if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+            if (e->state == WLR_BUTTON_PRESSED) {
+                int      size = 1;
+                CWindow* curr = w;
+                while (curr->m_sGroupData.pNextWindow != w) {
+                    curr = curr->m_sGroupData.pNextWindow;
+                    size++;
+                }
+
+                int      index   = (mouseCoords.x - box.x) * size / box.width;
+                CWindow* pWindow = w->getGroupHead();
+                while (index > 0) {
+                    pWindow = pWindow->m_sGroupData.pNextWindow;
+                    index--;
+                }
+
+                w->setGroupCurrent(pWindow);
+            }
+            return;
         }
     }
 
@@ -787,7 +812,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
             Debug::log(ERR, "Cannot open input:kb_file= file for reading");
         else {
-            KEYMAP                 = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            KEYMAP = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
             fclose(KEYMAPFILE);
         }
     }
@@ -1538,7 +1563,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

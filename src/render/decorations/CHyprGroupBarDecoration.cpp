@@ -306,3 +306,7 @@ void CHyprGroupBarDecoration::refreshGradients() {
     renderGradientTo(m_tGradientActive, ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0]);
     renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0]);
 }
+
+bool CHyprGroupBarDecoration::allowsInput() {
+    return true;
+}

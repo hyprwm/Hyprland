@@ -170,6 +170,19 @@ wlr_box CWindow::getWindowInputBox() {
     return finalBox;
 }
 
+wlr_box CWindow::getWindowGroupBarBox() {
+    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    const int  BORDERSIZE      = getRealBorderSize();
+    for (auto& wd : m_dWindowDecorations) {
+        if (wd->getDecorationType() == DECORATION_GROUPBAR) {
+            const SWindowDecorationExtents EXTENTS = wd->getWindowDecorationReservedArea();
+            return {m_vRealPosition.vec().x, m_vRealPosition.vec().y - BORDERSIZE - EXTENTS.topLeft.y, m_vRealSize.vec().x, EXTENTS.topLeft.y};
+        }
+    }
+    return {0, 0, 0, 0};
+}
+
 SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
     SWindowDecorationExtents extents;
 

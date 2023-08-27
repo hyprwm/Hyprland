@@ -316,24 +316,16 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     if (OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&
         !g_pKeybindManager->m_bGroupsLocked) { // target is an unlocked group
 
-        if (!pWindow->m_sGroupData.pNextWindow) { // source is not a group
+        if (!pWindow->m_sGroupData.pNextWindow || !pWindow->getGroupHead()->m_sGroupData.locked) { // source is not a group or an unlocked group
+            if (!pWindow->m_sGroupData.pNextWindow)
+                pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
             m_lDwindleNodesData.remove(*PNODE);
+            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+            OPENINGON->pWindow            = *USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail();
+
             OPENINGON->pWindow->insertWindowToGroup(pWindow);
             OPENINGON->pWindow->setGroupCurrent(pWindow);
-
-            pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-            pWindow->updateWindowDecos();
-            recalculateWindow(pWindow);
-
-            g_pCompositor->focusWindow(pWindow);
-            return;
-        }
-
-        if (!pWindow->getGroupHead()->m_sGroupData.locked) { // source is an unlocked group
-            m_lDwindleNodesData.remove(*PNODE);
-            OPENINGON->pWindow->insertWindowToGroup(pWindow);
-            OPENINGON->pWindow->setGroupCurrent(pWindow);
-
             pWindow->updateWindowDecos();
             recalculateWindow(pWindow);
 

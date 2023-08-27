@@ -714,10 +714,8 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
 }
 
 void CWindow::insertWindowToGroup(CWindow* pWindow) {
-    static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
-
-    const auto         BEGINAT = *USECURRPOS ? this : getGroupTail();
-    const auto         ENDAT   = *USECURRPOS ? m_sGroupData.pNextWindow : getGroupHead();
+    const auto BEGINAT = this;
+    const auto ENDAT   = m_sGroupData.pNextWindow;
 
     if (!pWindow->m_sGroupData.pNextWindow) {
         BEGINAT->m_sGroupData.pNextWindow = pWindow;

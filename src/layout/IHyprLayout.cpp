@@ -394,11 +394,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
     if (pWindow->m_bIsFullscreen) {
-        Debug::log(LOG, "Rejecting a change float order because window is fullscreen.");
-
-        // restore its' floating mode
-        pWindow->m_bIsFloating = !pWindow->m_bIsFloating;
-        return;
+        Debug::log(LOG, "changeWindowFloatingMode: fullscreen");
+        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
     }
 
     pWindow->m_bPinned = false;

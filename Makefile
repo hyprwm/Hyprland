@@ -53,6 +53,7 @@ install:
 	mkdir -p ${PREFIX}/include/hyprland/protocols
 	mkdir -p ${PREFIX}/include/hyprland/wlroots
 	mkdir -p ${PREFIX}/share/pkgconfig
+	mkdir -p ${PREFIX}/share/xdg-desktop-portal
 	
 	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
 	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..

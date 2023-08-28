@@ -91,6 +91,8 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :
                       getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
+    const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+
     // if it's a group, add the window
     if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && !g_pKeybindManager->m_bGroupsLocked &&
         OPENINGON != PNODE) { // target is an unlocked group
@@ -100,10 +102,21 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
                 pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
             m_lMasterNodesData.remove(*PNODE);
-            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
-            OPENINGON->pWindow            = *USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail();
 
-            OPENINGON->pWindow->insertWindowToGroup(pWindow);
+            const wlr_box box = OPENINGON->pWindow->getWindowGroupBarBox();
+            if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
+                const int SIZE               = OPENINGON->pWindow->getGroupSize();
+                const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
+                CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
+                pWindowInsertAfter->insertWindowToGroup(pWindow);
+                if (INDEX == -1) {
+                    std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
+                }
+            } else {
+                static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+                (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
+            }
+
             OPENINGON->pWindow->setGroupCurrent(pWindow);
             pWindow->updateWindowDecos();
             recalculateWindow(pWindow);

@@ -312,6 +312,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         return;
     }
 
+    const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+
     // if it's a group, add the window
     if (OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&
         !g_pKeybindManager->m_bGroupsLocked) { // target is an unlocked group
@@ -321,10 +323,21 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
                 pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
             m_lDwindleNodesData.remove(*PNODE);
-            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
-            OPENINGON->pWindow            = *USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail();
 
-            OPENINGON->pWindow->insertWindowToGroup(pWindow);
+            const wlr_box box = OPENINGON->pWindow->getWindowGroupBarBox();
+            if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
+                const int SIZE               = OPENINGON->pWindow->getGroupSize();
+                const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
+                CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
+                pWindowInsertAfter->insertWindowToGroup(pWindow);
+                if (INDEX == -1) {
+                    std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
+                }
+            } else {
+                static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+                (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
+            }
+
             OPENINGON->pWindow->setGroupCurrent(pWindow);
             pWindow->updateWindowDecos();
             recalculateWindow(pWindow);
@@ -352,8 +365,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     // if cursor over first child, make it first, etc
     const auto SIDEBYSIDE = NEWPARENT->size.x > NEWPARENT->size.y * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop   = !SIDEBYSIDE;
-
-    const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     static auto* const PFORCESPLIT                = &g_pConfigManager->getConfigValuePtr("dwindle:force_split")->intValue;
     static auto* const PERMANENTDIRECTIONOVERRIDE = &g_pConfigManager->getConfigValuePtr("dwindle:permanent_direction_override")->intValue;

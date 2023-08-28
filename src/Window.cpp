@@ -678,7 +678,7 @@ int CWindow::getGroupSize() {
 
 CWindow* CWindow::getGroupWindowByIndex(int index) {
     const int SIZE = getGroupSize();
-    index          = index % SIZE;
+    index          = ((index % SIZE) + SIZE) % SIZE;
     CWindow* curr  = getGroupHead();
     while (index > 0) {
         curr = curr->m_sGroupData.pNextWindow;

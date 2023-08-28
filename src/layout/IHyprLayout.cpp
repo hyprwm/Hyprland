@@ -179,9 +179,8 @@ void IHyprLayout::onBeginDragWindow() {
     }
 
     if (DRAGGINGWINDOW->m_bIsFullscreen) {
-        Debug::log(LOG, "Rejecting drag on a fullscreen window.");
-        g_pInputManager->currentlyDraggedWindow = nullptr;
-        return;
+        Debug::log(LOG, "Dragging a fullscreen window");
+        g_pCompositor->setWindowFullscreen(DRAGGINGWINDOW, false, FULLSCREEN_FULL);
     }
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(DRAGGINGWINDOW->m_iWorkspaceID);

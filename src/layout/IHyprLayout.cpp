@@ -56,6 +56,9 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
 
             pWindow->setHidden(false);
 
+            pWindow->updateWindowDecos();
+            g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
+
             return;
         }
     }

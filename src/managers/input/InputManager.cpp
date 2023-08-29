@@ -549,7 +549,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
     if (w && !w->m_bIsFullscreen && !w->hasPopupAt(mouseCoords) && w->m_sGroupData.pNextWindow) {
-        const wlr_box box = w->getWindowGroupBarBox();
+        const wlr_box box = w->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationBox();
         if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
             if (e->state == WLR_BUTTON_PRESSED) {
                 const int SIZE    = w->getGroupSize();

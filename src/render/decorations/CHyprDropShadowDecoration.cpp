@@ -2,7 +2,7 @@
 
 #include "../../Compositor.hpp"
 
-CHyprDropShadowDecoration::CHyprDropShadowDecoration(CWindow* pWindow) {
+CHyprDropShadowDecoration::CHyprDropShadowDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
 }
 

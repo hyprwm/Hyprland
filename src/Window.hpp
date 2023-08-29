@@ -313,7 +313,6 @@ class CWindow {
     SWindowDecorationExtents getFullWindowExtents();
     wlr_box                  getWindowInputBox();
     wlr_box                  getWindowIdealBoundingBoxIgnoreReserved();
-    wlr_box                  getWindowGroupBarBox();
     void                     updateWindowDecos();
     pid_t                    getPID();
     IHyprWindowDecoration*   getDecorationByType(eDecorationType);

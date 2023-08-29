@@ -7,7 +7,7 @@
 static CTexture m_tGradientActive;
 static CTexture m_tGradientInactive;
 
-CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) {
+CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
 }
 

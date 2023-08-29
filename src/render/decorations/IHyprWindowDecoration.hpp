@@ -19,6 +19,7 @@ class CMonitor;
 
 class IHyprWindowDecoration {
   public:
+    IHyprWindowDecoration(CWindow*);
     virtual ~IHyprWindowDecoration() = 0;
 
     virtual SWindowDecorationExtents getWindowDecorationExtents() = 0;
@@ -33,5 +34,10 @@ class IHyprWindowDecoration {
 
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
+    virtual wlr_box                  getWindowDecorationBox();
+
     virtual bool                     allowsInput();
+
+  private:
+    CWindow* m_pWindow = nullptr;
 };

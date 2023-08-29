@@ -63,13 +63,11 @@ void CFramebuffer::bind() {
 }
 
 void CFramebuffer::release() {
-    if (m_iFb != (uint32_t)-1 && m_iFb) {
+    if (m_iFb != (uint32_t)-1 && m_iFb)
         glDeleteFramebuffers(1, &m_iFb);
-    }
 
-    if (m_cTex.m_iTexID) {
+    if (m_cTex.m_iTexID)
         glDeleteTextures(1, &m_cTex.m_iTexID);
-    }
 
     m_cTex.m_iTexID = 0;
     m_iFb           = -1;

@@ -330,9 +330,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
                 const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
                 CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
                 pWindowInsertAfter->insertWindowToGroup(pWindow);
-                if (INDEX == -1) {
+                if (INDEX == -1)
                     std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
-                }
             } else {
                 static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
                 (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);

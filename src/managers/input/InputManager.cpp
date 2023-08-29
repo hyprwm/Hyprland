@@ -548,18 +548,6 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
     const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
-    // clicking on border triggers resize
-    // TODO detect click on LS properly
-    if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
-        if (w && !w->m_bIsFullscreen) {
-            const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-            if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
-                g_pKeybindManager->resizeWithBorder(e);
-                return;
-            }
-        }
-    }
-
     if (w && !w->m_bIsFullscreen && !w->hasPopupAt(mouseCoords) && w->m_sGroupData.pNextWindow) {
         const wlr_box box = w->getWindowGroupBarBox();
         if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
@@ -570,6 +558,18 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
                     w->setGroupCurrent(pWindow);
             }
             return;
+        }
+    }
+
+    // clicking on border triggers resize
+    // TODO detect click on LS properly
+    if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
+        if (w && !w->m_bIsFullscreen) {
+            const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+            if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
+                g_pKeybindManager->resizeWithBorder(e);
+                return;
+            }
         }
     }
 

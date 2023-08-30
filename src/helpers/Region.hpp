@@ -42,6 +42,8 @@ class CRegion {
     CRegion&                    intersect(double x, double y, double w, double h);
     CRegion&                    translate(const Vector2D& vec);
     CRegion&                    invert(pixman_box32_t* box);
+    wlr_box                     getExtents();
+    bool                        containsPoint(const Vector2D& vec);
     bool                        empty();
 
     std::vector<pixman_box32_t> getRects() const;

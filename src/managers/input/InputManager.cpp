@@ -545,11 +545,25 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     if (!PASS && !*PPASSMOUSE)
         return;
 
+    const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+    const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+
+    if (w && !w->m_bIsFullscreen && !w->hasPopupAt(mouseCoords) && w->m_sGroupData.pNextWindow) {
+        const wlr_box box = w->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+        if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+            if (e->state == WLR_BUTTON_PRESSED) {
+                const int SIZE    = w->getGroupSize();
+                CWindow*  pWindow = w->getGroupWindowByIndex((mouseCoords.x - box.x) * SIZE / box.width);
+                if (w != pWindow)
+                    w->setGroupCurrent(pWindow);
+            }
+            return;
+        }
+    }
+
     // clicking on border triggers resize
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
-        const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-        const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
         if (w && !w->m_bIsFullscreen) {
             const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
             if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
@@ -613,13 +627,28 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
-    static auto* const PSCROLLFACTOR = &g_pConfigManager->getConfigValuePtr("input:touchpad:scroll_factor")->floatValue;
+    static auto* const PSCROLLFACTOR      = &g_pConfigManager->getConfigValuePtr("input:touchpad:scroll_factor")->floatValue;
+    static auto* const PGROUPBARSCROLLING = &g_pConfigManager->getConfigValuePtr("misc:groupbar_scrolling")->intValue;
 
     auto               factor = (*PSCROLLFACTOR <= 0.f || e->source != WLR_AXIS_SOURCE_FINGER ? 1.f : *PSCROLLFACTOR);
 
     bool               passEvent = g_pKeybindManager->onAxisEvent(e);
 
     g_pCompositor->notifyIdleActivity();
+
+    const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    const auto pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
+
+    if (*PGROUPBARSCROLLING && pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(MOUSECOORDS) && pWindow->m_sGroupData.pNextWindow) {
+        const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+        if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) {
+            if (e->delta > 0)
+                pWindow->setGroupCurrent(pWindow->m_sGroupData.pNextWindow);
+            else
+                pWindow->setGroupCurrent(pWindow->getGroupPrevious());
+            return;
+        }
+    }
 
     if (passEvent)
         wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
@@ -1546,7 +1575,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

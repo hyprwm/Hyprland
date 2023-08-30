@@ -1226,13 +1226,13 @@ void CKeybindManager::toggleGroup(std::string args) {
                 w->m_sGroupData.head = false;
             }
 
-            bool prevState                     = g_pKeybindManager->m_bGroupsLocked;
+            const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
             g_pKeybindManager->m_bGroupsLocked = true;
             for (auto& w : members) {
                 g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
                 w->updateWindowDecos();
             }
-            g_pKeybindManager->m_bGroupsLocked = prevState;
+            g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
         }
     }
 
@@ -1951,9 +1951,28 @@ void CKeybindManager::mouse(std::string args) {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
-            g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
-            g_pInputManager->dragMode               = MBIND_MOVE;
+            const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+            CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
+            if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords) && pWindow->m_sGroupData.pNextWindow) {
+                const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+                if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+                    const int SIZE = pWindow->getGroupSize();
+                    pWindow        = pWindow->getGroupWindowByIndex((mouseCoords.x - box.x) * SIZE / box.width);
+
+                    // hack
+                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+                    if (!pWindow->m_bIsFloating) {
+                        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+                        g_pKeybindManager->m_bGroupsLocked = true;
+                        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+                        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+                    }
+                }
+            }
+
+            g_pInputManager->currentlyDraggedWindow = pWindow;
+            g_pInputManager->dragMode               = MBIND_MOVE;
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;
@@ -2046,7 +2065,7 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOW || PWINDOW->m_bIsFloating)
         return;
 
-    const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
+    auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
 
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
@@ -2058,6 +2077,9 @@ void CKeybindManager::moveIntoGroup(std::string args) {
         PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW); // This removes groupped property!
+
+    static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+    PWINDOWINDIR                  = *USECURRPOS ? PWINDOWINDIR : PWINDOWINDIR->getGroupTail();
 
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
     PWINDOWINDIR->setGroupCurrent(PWINDOW);

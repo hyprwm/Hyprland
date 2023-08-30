@@ -92,6 +92,15 @@ std::vector<pixman_box32_t> CRegion::getRects() const {
     return result;
 }
 
+wlr_box CRegion::getExtents() {
+    pixman_box32_t* box = pixman_region32_extents(&m_rRegion);
+    return {box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1};
+}
+
+bool CRegion::containsPoint(const Vector2D& vec) {
+    return pixman_region32_contains_point(&m_rRegion, vec.x, vec.y, nullptr);
+}
+
 bool CRegion::empty() {
     return !pixman_region32_not_empty(&m_rRegion);
 }

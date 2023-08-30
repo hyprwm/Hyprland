@@ -108,6 +108,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:cursor_zoom_factor"].floatValue         = 1.f;
     configValues["misc:cursor_zoom_rigid"].intValue            = 0;
     configValues["misc:allow_session_lock_restore"].intValue   = 0;
+    configValues["misc:groupbar_scrolling"].intValue           = 1;
     configValues["misc:group_insert_after_current"].intValue   = 1;
     configValues["misc:render_titles_in_groupbar"].intValue    = 1;
     configValues["misc:groupbar_titles_font_size"].intValue    = 8;

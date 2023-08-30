@@ -787,7 +787,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
             Debug::log(ERR, "Cannot open input:kb_file= file for reading");
         else {
-            KEYMAP                 = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            KEYMAP = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
             fclose(KEYMAPFILE);
         }
     }
@@ -1231,6 +1231,12 @@ void CInputManager::unconstrainMouse() {
         g_pXWaylandManager->activateSurface(CONSTRAINTWINDOW->m_pWLSurface.wlr(), false);
 
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);
+
+    const auto PCONSTRAINT = constraintFromWlr(g_pCompositor->m_sSeat.mouse->currentConstraint);
+    warpMouseToConstraintMiddle(PCONSTRAINT);
+    PCONSTRAINT->hintSet      = false;
+    PCONSTRAINT->positionHint = {-1, -1};
+
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
 
     // TODO: its better to somehow detect the workspace...

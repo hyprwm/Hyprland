@@ -28,7 +28,8 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage {
+enum eManagersInitStage
+{
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -61,7 +62,6 @@ class CCompositor {
     wlr_virtual_keyboard_manager_v1*           m_sWLRVKeyboardMgr;
     wlr_output_manager_v1*                     m_sWLROutputMgr;
     wlr_presentation*                          m_sWLRPresentation;
-    wlr_scene*                                 m_sWLRScene;
     wlr_input_inhibit_manager*                 m_sWLRInhibitMgr;
     wlr_keyboard_shortcuts_inhibit_manager_v1* m_sWLRKbShInhibitMgr;
     wlr_egl*                                   m_sWLREGL;

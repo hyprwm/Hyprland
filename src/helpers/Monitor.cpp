@@ -259,33 +259,29 @@ void CMonitor::onDisconnect() {
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
-
-        hyprListener_monitorStateRequest.removeCallback();
-        hyprListener_monitorDestroy.removeCallback();
-
         g_pCompositor->m_bUnsafeState = true;
-
-        std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
-
-        return;
     }
 
-    // snap cursor
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f,
-                    BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
+    if (BACKUPMON) {
+        // snap cursor
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f,
+                        BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
 
-    // move workspaces
-    std::deque<CWorkspace*> wspToMove;
-    for (auto& w : g_pCompositor->m_vWorkspaces) {
-        if (w->m_iMonitorID == ID) {
-            wspToMove.push_back(w.get());
+        // move workspaces
+        std::deque<CWorkspace*> wspToMove;
+        for (auto& w : g_pCompositor->m_vWorkspaces) {
+            if (w->m_iMonitorID == ID) {
+                wspToMove.push_back(w.get());
+            }
         }
-    }
 
-    for (auto& w : wspToMove) {
-        w->m_szLastMonitor = szName;
-        g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
-        w->startAnim(true, true, true);
+        for (auto& w : wspToMove) {
+            w->m_szLastMonitor = szName;
+            g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
+            w->startAnim(true, true, true);
+        }
+
+        std::erase_if(g_pCompositor->m_vWorkspaces, [&](std::unique_ptr<CWorkspace>& el) { return el->m_iMonitorID == ID; });
     }
 
     activeWorkspace = -1;
@@ -295,8 +291,6 @@ void CMonitor::onDisconnect() {
     wlr_output_enable(output, false);
 
     wlr_output_commit(output);
-
-    std::erase_if(g_pCompositor->m_vWorkspaces, [&](std::unique_ptr<CWorkspace>& el) { return el->m_iMonitorID == ID; });
 
     if (g_pCompositor->m_pLastMonitor == this)
         g_pCompositor->setActiveMonitor(BACKUPMON);

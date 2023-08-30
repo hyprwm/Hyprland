@@ -57,27 +57,15 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         return;
     }
 
-    if (g_pCompositor->m_bUnsafeState) {
+    if (g_pCompositor->m_bUnsafeState)
         Debug::log(WARN, "Recovering from an unsafe state. May you be lucky.");
-    }
 
     // add it to real
     std::shared_ptr<CMonitor>* PNEWMONITORWRAP = nullptr;
 
-    for (auto& rm : g_pCompositor->m_vRealMonitors) {
-        if (rm->szName == OUTPUT->name) {
-            PNEWMONITORWRAP = &rm;
-            Debug::log(LOG, "Recovering a removed monitor.");
-            break;
-        }
-    }
+    PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
 
-    if (!PNEWMONITORWRAP) {
-        Debug::log(LOG, "Adding completely new monitor.");
-        PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
-
-        (*PNEWMONITORWRAP)->ID = g_pCompositor->getNextAvailableMonitorID(OUTPUT->name);
-    }
+    (*PNEWMONITORWRAP)->ID = g_pCompositor->getNextAvailableMonitorID(OUTPUT->name);
 
     const auto PNEWMONITOR = PNEWMONITORWRAP->get();
 
@@ -91,6 +79,20 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     // ready to process cuz we have a monitor
     if (PNEWMONITOR->m_bEnabled) {
+
+        if (g_pCompositor->m_bUnsafeState) {
+            // recover workspaces
+            for (auto& ws : g_pCompositor->m_vWorkspaces) {
+                g_pCompositor->moveWorkspaceToMonitor(ws.get(), PNEWMONITOR);
+            }
+
+            g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
+
+            const auto POS = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+            if (g_pCompositor->m_sSeat.mouse)
+                wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
+        }
+
         g_pCompositor->m_bReadyToProcess = true;
         g_pCompositor->m_bUnsafeState    = false;
     }
@@ -184,12 +186,9 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     pMonitor->output                 = nullptr;
     pMonitor->m_bRenderingInitPassed = false;
 
-    // cleanup if not unsafe
-    if (!g_pCompositor->m_bUnsafeState) {
-        Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->szName.c_str());
+    Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->szName.c_str());
 
-        std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
-    }
+    std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
 }
 
 void Events::listener_monitorStateRequest(void* owner, void* data) {

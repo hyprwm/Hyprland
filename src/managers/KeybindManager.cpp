@@ -1962,10 +1962,12 @@ void CKeybindManager::mouse(std::string args) {
 
                     // hack
                     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
-                    const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
-                    g_pKeybindManager->m_bGroupsLocked = true;
-                    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-                    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+                    if (!pWindow->m_bIsFloating) {
+                        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+                        g_pKeybindManager->m_bGroupsLocked = true;
+                        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+                        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+                    }
                 }
             }
 

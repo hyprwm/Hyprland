@@ -62,12 +62,7 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
     g_pHookSystem->hookDynamic("configReloaded", [&](void* self, std::any param) { this->updateAllOutputs(); });
     g_pHookSystem->hookDynamic("monitorRemoved", [&](void* self, std::any param) {
         const auto PMONITOR = std::any_cast<CMonitor*>(param);
-        std::erase_if(m_vXDGOutputs, [&](const auto& other) {
-            const bool R = other->monitor == PMONITOR;
-            if (R)
-                other->resource->markDefunct();
-            return R;
-        });
+        std::erase_if(m_vXDGOutputs, [&](const auto& other) { return other->monitor == PMONITOR; });
     });
 }
 

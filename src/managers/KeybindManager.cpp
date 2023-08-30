@@ -1955,7 +1955,7 @@ void CKeybindManager::mouse(std::string args) {
             CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
             if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords) && pWindow->m_sGroupData.pNextWindow) {
-                const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationBox().getExtents();
+                const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
                 if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
                     const int SIZE = pWindow->getGroupSize();
                     pWindow        = pWindow->getGroupWindowByIndex((mouseCoords.x - box.x) * SIZE / box.width);

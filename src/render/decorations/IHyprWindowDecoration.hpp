@@ -35,7 +35,7 @@ class IHyprWindowDecoration {
 
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
-    virtual CRegion                  getWindowDecorationBox();
+    virtual CRegion                  getWindowDecorationRegion();
 
     virtual bool                     allowsInput();
 

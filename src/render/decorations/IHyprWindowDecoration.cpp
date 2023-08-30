@@ -12,7 +12,7 @@ SWindowDecorationExtents IHyprWindowDecoration::getWindowDecorationReservedArea(
     return SWindowDecorationExtents{};
 }
 
-CRegion IHyprWindowDecoration::getWindowDecorationBox() {
+CRegion IHyprWindowDecoration::getWindowDecorationRegion() {
     const SWindowDecorationExtents RESERVED   = getWindowDecorationReservedArea();
     const int                      BORDERSIZE = m_pWindow->getRealBorderSize();
     return CRegion(m_pWindow->m_vRealPosition.vec().x - (BORDERSIZE + RESERVED.topLeft.x) * (int)(RESERVED.topLeft.x != 0),

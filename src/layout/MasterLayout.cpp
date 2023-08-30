@@ -103,7 +103,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
             m_lMasterNodesData.remove(*PNODE);
 
-            const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationBox().getExtents();
+            const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
             if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
                 const int SIZE               = OPENINGON->pWindow->getGroupSize();
                 const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;

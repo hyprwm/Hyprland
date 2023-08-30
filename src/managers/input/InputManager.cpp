@@ -549,7 +549,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
     if (w && !w->m_bIsFullscreen && !w->hasPopupAt(mouseCoords) && w->m_sGroupData.pNextWindow) {
-        const wlr_box box = w->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationBox().getExtents();
+        const wlr_box box = w->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
         if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
             if (e->state == WLR_BUTTON_PRESSED) {
                 const int SIZE    = w->getGroupSize();
@@ -640,7 +640,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
     const auto pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
 
     if (*PGROUPBARSCROLLING && pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(MOUSECOORDS) && pWindow->m_sGroupData.pNextWindow) {
-        const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationBox().getExtents();
+        const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
         if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) {
             if (e->delta > 0)
                 pWindow->setGroupCurrent(pWindow->m_sGroupData.pNextWindow);

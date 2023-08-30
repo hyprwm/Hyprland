@@ -1193,6 +1193,8 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     // warp to the constraint
     recheckConstraint(pMouse);
 
+    constraintFromWlr(constraint)->active = true;
+
     wlr_pointer_constraint_v1_send_activated(pMouse->currentConstraint);
 
     pMouse->hyprListener_commitConstraint.initCallback(&pMouse->currentConstraint->surface->events.commit, &Events::listener_commitConstraint, pMouse, "Mouse constraint commit");
@@ -1212,7 +1214,8 @@ void CInputManager::warpMouseToConstraintMiddle(SConstraint* pConstraint) {
 
     if (PWINDOW) {
         const auto RELATIVETO = PWINDOW->m_bIsX11 ?
-            g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y}) / PWINDOW->m_fX11SurfaceScaledBy :
+            (PWINDOW->m_bIsMapped ? PWINDOW->m_vRealPosition.goalv() :
+                                    g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y})) :
             PWINDOW->m_vRealPosition.goalv();
         const auto HINTSCALE  = PWINDOW->m_fX11SurfaceScaledBy;
 
@@ -1234,8 +1237,7 @@ void CInputManager::unconstrainMouse() {
 
     const auto PCONSTRAINT = constraintFromWlr(g_pCompositor->m_sSeat.mouse->currentConstraint);
     warpMouseToConstraintMiddle(PCONSTRAINT);
-    PCONSTRAINT->hintSet      = false;
-    PCONSTRAINT->positionHint = {-1, -1};
+    PCONSTRAINT->active = false;
 
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
 

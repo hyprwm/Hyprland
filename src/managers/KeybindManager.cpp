@@ -387,13 +387,6 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
-    if (pressed && !m_vHeldBack.empty()) {
-        // release the held back events
-        for (auto& k : m_vHeldBack)
-            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, time, k, WL_KEYBOARD_KEY_STATE_PRESSED);
-        m_vHeldBack.clear();
-    }
-
     for (auto& k : m_lKeybinds) {
         if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap ||
             (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse" && k.handler != "global") || k.shadowed)
@@ -427,8 +420,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             if (k.transparent)
                 continue;
 
-            // suppress down event
-            m_vHeldBack.push_back(keysym);
+            continue;
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);

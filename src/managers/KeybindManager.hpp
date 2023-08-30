@@ -68,8 +68,6 @@ class CKeybindManager {
 
     inline static std::string m_szCurrentSelectedSubmap = "";
 
-    std::vector<xkb_keysym_t> m_vHeldBack;
-
     SKeybind*                 m_pActiveKeybind = nullptr;
 
     uint32_t                  m_uTimeLastMs    = 0;

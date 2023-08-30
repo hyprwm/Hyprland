@@ -280,8 +280,6 @@ void CMonitor::onDisconnect() {
             g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
             w->startAnim(true, true, true);
         }
-
-        std::erase_if(g_pCompositor->m_vWorkspaces, [&](std::unique_ptr<CWorkspace>& el) { return el->m_iMonitorID == ID; });
     } else {
         g_pCompositor->m_pLastFocus   = nullptr;
         g_pCompositor->m_pLastWindow  = nullptr;

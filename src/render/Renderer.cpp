@@ -1973,7 +1973,7 @@ static int handleCrashLoop(void* data) {
     g_pHyprRenderer->m_fCrashingDistort += 0.5f;
 
     if (g_pHyprRenderer->m_fCrashingDistort >= 5.5f)
-        *((int*)nullptr) = 1337;
+        raise(SIGABRT);
 
     wl_event_source_timer_update(g_pHyprRenderer->m_pCrashingLoop, 1000);
 

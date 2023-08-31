@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Compositor.hpp"
 
 #include <algorithm>

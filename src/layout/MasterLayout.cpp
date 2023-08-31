@@ -1104,9 +1104,55 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         }
 
         recalculateMonitor(header.pWindow->m_iMonitorID);
+    } else if (command == "orientationcycle") {
+        std::vector<eOrientation> cycle;
+        buildOrientationCycle(&cycle, &vars);
+
+        if (cycle.size() == 0)
+            return 0;
+
+        const auto PWINDOW = header.pWindow;
+
+        if (!PWINDOW)
+            return 0;
+
+        prepareLoseFocus(PWINDOW);
+
+        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
+
+        size_t     next = 0;
+        for (size_t i = 0; i < cycle.size(); ++i) {
+            if (PWORKSPACEDATA->orientation == cycle[i]) {
+                next = i + 1;
+                break;
+            }
+        }
+
+        if (next >= cycle.size()) {
+            next = 0;
+        }
+
+        PWORKSPACEDATA->orientation = cycle[next];
+        recalculateMonitor(header.pWindow->m_iMonitorID);
     }
 
     return 0;
+}
+
+void CHyprMasterLayout::buildOrientationCycle(std::vector<eOrientation>* cycle, CVarList* vars) {
+    for (size_t i = 1; i < vars->size(); ++i) {
+        if ((*vars)[i] == "top") {
+            cycle->push_back(ORIENTATION_TOP);
+        } else if ((*vars)[i] == "right") {
+            cycle->push_back(ORIENTATION_RIGHT);
+        } else if ((*vars)[i] == "bottom") {
+            cycle->push_back(ORIENTATION_BOTTOM);
+        } else if ((*vars)[i] == "left") {
+            cycle->push_back(ORIENTATION_LEFT);
+        } else if ((*vars)[i] == "center") {
+            cycle->push_back(ORIENTATION_CENTER);
+        }
+    }
 }
 
 void CHyprMasterLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {

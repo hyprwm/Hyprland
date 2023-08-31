@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IHyprLayout.hpp"
+#include "../config/ConfigManager.hpp"
 #include <vector>
 #include <list>
 #include <deque>
@@ -69,6 +70,7 @@ class CHyprMasterLayout : public IHyprLayout {
 
     bool                              m_bForceWarps = false;
 
+    void                              buildOrientationCycle(std::vector<eOrientation>* cycle, CVarList* vars);
     int                               getNodesOnWorkspace(const int&);
     void                              applyNodeDataToWindow(SMasterNodeData*);
     SMasterNodeData*                  getNodeFromWindow(CWindow*);

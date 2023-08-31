@@ -111,8 +111,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool requestsMaximize       = false;
     bool overridingNoFullscreen = false;
     bool overridingNoMaximize   = false;
-    bool shouldFocus            = true;
-    bool workspaceSpecial       = false;
 
     PWINDOW->m_szInitialTitle = g_pXWaylandManager->getTitle(PWINDOW);
     PWINDOW->m_szInitialClass = g_pXWaylandManager->getAppIDClass(PWINDOW);
@@ -231,71 +229,33 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_bPinned && !PWINDOW->m_bIsFloating)
         PWINDOW->m_bPinned = false;
 
-    if (requestedWorkspace != "") {
-        // process requested workspace
-        if (requestedWorkspace.contains(' ')) {
-            // check for silent
-            if (requestedWorkspace.contains("silent")) {
+    const CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 2, ' ');
+
+    if (!WORKSPACEARGS[0].empty()) {
+        std::string requestedWorkspaceName;
+        const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString(WORKSPACEARGS[0], requestedWorkspaceName);
+
+        if (REQUESTEDWORKSPACEID != INT_MAX) {
+
+            if (WORKSPACEARGS[1].find("silent") == 0)
                 workspaceSilent = true;
-                shouldFocus     = false;
 
-                requestedWorkspace = requestedWorkspace.substr(0, requestedWorkspace.find_first_of(' '));
+            auto pWorkspace = g_pCompositor->getWorkspaceByID(REQUESTEDWORKSPACEID);
+
+            if (!pWorkspace)
+                pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->m_iMonitorID, requestedWorkspaceName);
+
+            PWINDOW->m_iWorkspaceID = pWorkspace->m_iID;
+            PWINDOW->m_iMonitorID   = pWorkspace->m_iMonitorID;
+
+            if (!workspaceSilent) {
+                if (pWorkspace->m_bIsSpecialWorkspace)
+                    g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID)->setSpecialWorkspace(pWorkspace);
+                else
+                    g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
+
+                PMONITOR = g_pCompositor->m_pLastMonitor;
             }
-
-            if (!shouldFocus && requestedWorkspace == std::to_string(PMONITOR->activeWorkspace))
-                shouldFocus = true;
-        }
-
-        if (requestedWorkspace.find("special") == 0) {
-            workspaceSpecial = true;
-            workspaceSilent  = true;
-        }
-
-        if (!workspaceSilent) {
-            g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspace);
-
-            PWINDOW->m_iMonitorID   = g_pCompositor->m_pLastMonitor->ID;
-            PWINDOW->m_iWorkspaceID = g_pCompositor->m_pLastMonitor->activeWorkspace;
-
-            PMONITOR = g_pCompositor->m_pLastMonitor;
-        }
-    }
-
-    if (workspaceSilent) {
-        // get the workspace
-
-        auto PWORKSPACE = g_pCompositor->getWorkspaceByString(requestedWorkspace);
-
-        if (!PWORKSPACE) {
-            std::string workspaceName = "";
-            int         workspaceID   = 0;
-
-            if (requestedWorkspace.find("name:") == 0) {
-                workspaceName = requestedWorkspace.substr(5);
-                workspaceID   = g_pCompositor->getNextAvailableNamedWorkspace();
-            } else if (workspaceSpecial) {
-                workspaceName = "";
-                workspaceID   = getWorkspaceIDFromString(requestedWorkspace, workspaceName);
-            } else {
-                try {
-                    workspaceID = std::stoi(requestedWorkspace);
-                } catch (...) {
-                    workspaceID = -1;
-                    Debug::log(ERR, "Invalid workspace requested in workspace silent rule!");
-                }
-
-                if (workspaceID < 1) {
-                    workspaceID = -1; // means invalid
-                }
-            }
-
-            if (workspaceID != -1)
-                PWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PWINDOW->m_iMonitorID, workspaceName);
-        }
-
-        if (PWORKSPACE) {
-            PWINDOW->m_iWorkspaceID = PWORKSPACE->m_iID;
-            PWINDOW->m_iMonitorID   = PWORKSPACE->m_iMonitorID;
         }
     }
 
@@ -531,7 +491,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->updateToplevel();
 
-    if (!shouldFocus) {
+    if (workspaceSilent) {
         if (g_pCompositor->windowValidMapped(PFOCUSEDWINDOWPREV)) {
             g_pCompositor->focusWindow(PFOCUSEDWINDOWPREV);
             PFOCUSEDWINDOWPREV->updateWindowDecos(); // need to for some reason i cba to find out why

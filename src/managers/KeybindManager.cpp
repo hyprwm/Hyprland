@@ -1975,8 +1975,7 @@ void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDi
 }
 
 void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir) {
-
-    static auto* const BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("misc:group_focus_removed_window")->intValue;
+    static auto* const BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("group:focus_removed_window")->intValue;
     const auto         PWINDOWPREV         = pWindow->getGroupPrevious();
     eDirection         direction;
 
@@ -2037,6 +2036,20 @@ void CKeybindManager::moveIntoGroup(std::string args) {
         return;
 
     moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
+
+    if (!PWINDOW->m_sGroupData.pNextWindow)
+        PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW); // This removes groupped property!
+
+    static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
+    PWINDOWINDIR                  = *USECURRPOS ? PWINDOWINDIR : PWINDOWINDIR->getGroupTail();
+
+    PWINDOWINDIR->insertWindowToGroup(PWINDOW);
+    PWINDOWINDIR->setGroupCurrent(PWINDOW);
+    PWINDOW->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
+    g_pCompositor->focusWindow(PWINDOW);
 }
 
 void CKeybindManager::moveOutOfGroup(std::string args) {

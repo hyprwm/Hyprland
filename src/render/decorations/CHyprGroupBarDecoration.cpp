@@ -6,6 +6,8 @@
 // shared things to conserve VRAM
 static CTexture m_tGradientActive;
 static CTexture m_tGradientInactive;
+static CTexture m_tGradientLockedActive;
+static CTexture m_tGradientLockedInactive;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
@@ -136,10 +138,12 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
             rect.y -= rect.height;
             rect.width = BARW * pMonitor->scale;
 
-            refreshGradients();
-
-            if (*PGRADIENTS == 1)
-                g_pHyprOpenGL->renderTexture((m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? m_tGradientActive : m_tGradientInactive), &rect, 1.0);
+            if (*PGRADIENTS == 1) {
+                refreshGradients();
+                g_pHyprOpenGL->renderTexture((m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
+                                                                                                    (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive)),
+                                             &rect, 1.0);
+            }
 
             rect.y -= (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * 0.2 * pMonitor->scale;
             rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;
@@ -293,12 +297,10 @@ void CHyprGroupBarDecoration::refreshGradients() {
     static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
     static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
 
-    const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
-    const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
-    const auto* const  PCOLINACTIVE = GROUPLOCKED ? PGROUPCOLINACTIVELOCKED : PGROUPCOLINACTIVE;
-
-    renderGradientTo(m_tGradientActive, ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0]);
-    renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0]);
+    renderGradientTo(m_tGradientActive, ((CGradientValueData*)PGROUPCOLACTIVE->get())->m_vColors[0]);
+    renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0]);
+    renderGradientTo(m_tGradientLockedActive, ((CGradientValueData*)PGROUPCOLACTIVELOCKED->get())->m_vColors[0]);
+    renderGradientTo(m_tGradientLockedInactive, ((CGradientValueData*)PGROUPCOLINACTIVELOCKED->get())->m_vColors[0]);
 }
 
 int CHyprGroupBarDecoration::getBarHeight() {
@@ -307,6 +309,12 @@ int CHyprGroupBarDecoration::getBarHeight() {
     static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:titles_font_size")->intValue;
     const int          BARHEIGHT      = *PGRADIENTS == 0 ? g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue : BAR_INDICATOR_HEIGHT;
     return BARHEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0);
+}
+
+void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
+    m_tGradientActive.destroyTexture();
+    m_tGradientInactive.destroyTexture();
+    updateWindow(pWindow);
 }
 
 bool CHyprGroupBarDecoration::allowsInput() {

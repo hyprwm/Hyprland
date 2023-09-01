@@ -25,6 +25,10 @@ CRegion IHyprWindowDecoration::getWindowDecorationRegion() {
                           m_pWindow->m_vRealSize.vec().y + 2 * BORDERSIZE));
 }
 
+void IHyprWindowDecoration::forceReload(CWindow* pWindow) {
+    updateWindow(pWindow);
+}
+
 bool IHyprWindowDecoration::allowsInput() {
     return false;
 }

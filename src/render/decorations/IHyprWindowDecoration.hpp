@@ -33,6 +33,8 @@ class IHyprWindowDecoration {
 
     virtual void                     damageEntire() = 0;
 
+    virtual void                     forceReload(CWindow*);
+
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
     virtual CRegion                  getWindowDecorationRegion();

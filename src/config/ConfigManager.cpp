@@ -1648,6 +1648,8 @@ void CConfigManager::loadConfigLoadVars() {
 
         w->updateDynamicRules();
         w->updateSpecialRenderData();
+        for (auto& wd : w->m_dWindowDecorations)
+            wd->forceReload(w.get());
     }
 
     // Update window border colors

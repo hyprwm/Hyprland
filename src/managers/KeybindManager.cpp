@@ -196,8 +196,6 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     const auto PNEWMAINWORKSPACE = g_pCompositor->getWorkspaceByID(monitor->activeWorkspace);
 
     g_pCompositor->setActiveMonitor(monitor);
-    g_pCompositor->deactivateAllWLRWorkspaces(PNEWMAINWORKSPACE->m_pWlrHandle);
-    PNEWMAINWORKSPACE->setActive(true);
     PNEWMAINWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
 
     const auto PNEWWORKSPACE = monitor->specialWorkspaceID != 0 ? g_pCompositor->getWorkspaceByID(monitor->specialWorkspaceID) : PNEWMAINWORKSPACE;
@@ -1011,12 +1009,8 @@ void CKeybindManager::moveFocusTo(std::string args) {
             if (PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
                 // event
                 const auto PNEWMON       = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
-                const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOWTOCHANGETO->m_iWorkspaceID);
 
                 g_pCompositor->setActiveMonitor(PNEWMON);
-
-                g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
-                PNEWWORKSPACE->setActive(true);
             }
         }
     };

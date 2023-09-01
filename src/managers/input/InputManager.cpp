@@ -199,14 +199,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
-    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && (*PMOUSEFOCUSMON || refocus)) {
+    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && (*PMOUSEFOCUSMON || refocus))
         g_pCompositor->setActiveMonitor(PMONITOR);
-
-        // set active workspace and deactivate all other in wlr
-        const auto ACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-        g_pCompositor->deactivateAllWLRWorkspaces(ACTIVEWORKSPACE->m_pWlrHandle);
-        ACTIVEWORKSPACE->setActive(true);
-    }
 
     if (g_pSessionLockManager->isSessionLocked()) {
         const auto PSLS = PMONITOR ? g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID) : nullptr;

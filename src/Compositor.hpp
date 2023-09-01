@@ -66,7 +66,6 @@ class CCompositor {
     wlr_keyboard_shortcuts_inhibit_manager_v1* m_sWLRKbShInhibitMgr;
     wlr_egl*                                   m_sWLREGL;
     int                                        m_iDRMFD;
-    wlr_ext_workspace_manager_v1*              m_sWLREXTWorkspaceMgr;
     wlr_pointer_constraints_v1*                m_sWLRPointerConstraints;
     wlr_relative_pointer_manager_v1*           m_sWLRRelPointerMgr;
     wlr_server_decoration_manager*             m_sWLRServerDecoMgr;
@@ -151,7 +150,6 @@ class CCompositor {
     CWorkspace*    getWorkspaceByID(const int&);
     CWorkspace*    getWorkspaceByName(const std::string&);
     CWorkspace*    getWorkspaceByString(const std::string&);
-    CWorkspace*    getWorkspaceByWorkspaceHandle(const wlr_ext_workspace_handle_v1*);
     void           sanityCheckWorkspaces();
     void           updateWorkspaceWindowDecos(const int&);
     int            getWindowsOnWorkspace(const int&);
@@ -165,7 +163,6 @@ class CCompositor {
     void           moveWindowToTop(CWindow*);
     void           cleanupFadingOut(const int& monid);
     CWindow*       getWindowInDirection(CWindow*, char);
-    void           deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude = nullptr);
     CWindow*       getNextWindowOnWorkspace(CWindow*, bool focusableOnly = false);
     CWindow*       getPrevWindowOnWorkspace(CWindow*, bool focusableOnly = false);
     int            getNextAvailableNamedWorkspace();

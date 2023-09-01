@@ -126,6 +126,7 @@ void CConfigManager::setDefaultVars() {
     configValues["group:groupbar:scrolling"].intValue        = 1;
     configValues["group:groupbar:text_color"].intValue       = 0xffffffff;
     configValues["group:groupbar:titles_font_size"].intValue = 8;
+    configValues["group:groupbar:top"].intValue              = 1;
 
     configValues["debug:int"].intValue                = 0;
     configValues["debug:log_damage"].intValue         = 0;

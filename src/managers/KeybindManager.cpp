@@ -1538,9 +1538,9 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
         POLDMON->specialWorkspaceID = 0;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
-        PMONITOR->specialWorkspaceID = workspaceID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        PMONITOR->specialWorkspaceID    = workspaceID;
         PSPECIALWORKSPACE->m_iMonitorID = PMONITOR->ID;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 
         if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); PWINDOW)
             g_pCompositor->focusWindow(PWINDOW);

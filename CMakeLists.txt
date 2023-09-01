@@ -200,7 +200,6 @@ target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
 )
 
-protocol("protocols/ext-workspace-unstable-v1.xml" "ext-workspace-unstable-v1" true)
 protocol("protocols/idle.xml" "idle" true)
 protocol("protocols/pointer-constraints-unstable-v1.xml" "pointer-constraints-unstable-v1" true)
 protocol("protocols/tablet-unstable-v2.xml" "tablet-unstable-v2" true)

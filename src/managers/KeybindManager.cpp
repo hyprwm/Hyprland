@@ -386,8 +386,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap ||
-            (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse" && k.handler != "global") || k.shadowed)
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -413,11 +412,15 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             if (k.nonConsuming)
                 continue;
 
-            found = true;
+            found = true; // suppress the event
+            continue;
+        }
 
-            if (k.transparent)
+        if (!pressed && !k.release) {
+            if (k.nonConsuming)
                 continue;
 
+            found = true; // suppress the event
             continue;
         }
 
@@ -1008,7 +1011,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
             if (PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
                 // event
-                const auto PNEWMON       = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
+                const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
 
                 g_pCompositor->setActiveMonitor(PNEWMON);
             }

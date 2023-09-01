@@ -923,11 +923,6 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
 
     PWINDOW->m_bIsUrgent = true;
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-    if (PWORKSPACE->m_pWlrHandle) {
-        wlr_ext_workspace_handle_v1_set_urgent(PWORKSPACE->m_pWlrHandle, 1);
-    }
-
     if (!*PFOCUSONACTIVATE)
         return;
 

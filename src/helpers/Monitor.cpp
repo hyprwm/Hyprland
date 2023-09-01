@@ -145,13 +145,6 @@ void CMonitor::onConnect(bool noRule) {
     Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %lx", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x,
                (int)vecPixelSize.y, output);
 
-    // add a WLR workspace group
-    if (!pWLRWorkspaceGroupHandle) {
-        pWLRWorkspaceGroupHandle = wlr_ext_workspace_group_handle_v1_create(g_pCompositor->m_sWLREXTWorkspaceMgr);
-    }
-
-    wlr_ext_workspace_group_handle_v1_output_enter(pWLRWorkspaceGroupHandle, output);
-
     setupDefaultWS(monitorRule);
 
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
@@ -392,15 +385,11 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
 
         PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(ID, newDefaultWorkspaceName)).get();
 
-        // We are required to set the name here immediately
-        wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, newDefaultWorkspaceName.c_str());
-
         PNEWWORKSPACE->m_iID = WORKSPACEID;
     }
 
     activeWorkspace = PNEWWORKSPACE->m_iID;
 
-    g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
     PNEWWORKSPACE->setActive(true);
     PNEWWORKSPACE->m_szLastMonitor = "";
 }
@@ -527,14 +516,6 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
         return;
     }
 
-    if (pWorkspace->m_iID == activeWorkspace) {
-        // in some cases (e.g. workspace from one monitor to another)
-        // we need to send this
-        g_pCompositor->deactivateAllWLRWorkspaces(pWorkspace->m_pWlrHandle);
-        pWorkspace->setActive(true);
-        return;
-    }
-
     const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(activeWorkspace);
 
     activeWorkspace = pWorkspace->m_iID;
@@ -574,9 +555,6 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
-        // set some flags and fire event
-        g_pCompositor->deactivateAllWLRWorkspaces(pWorkspace->m_pWlrHandle);
-        pWorkspace->setActive(true);
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_szName});
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }

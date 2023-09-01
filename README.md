@@ -16,7 +16,8 @@
 
 Hyprland is a dynamic tiling Wayland compositor based on wlroots that doesn't sacrifice on its looks.
 
-It supports multiple layouts, fancy effects, has a very flexible IPC model allowing for a lot of customization, a powerful plugin system and more.
+It provides the latest Wayland features, is highly customizable, has all the eyecandy, the most powerful plugins,
+easy IPC, much more QoL stuff than other wlr-based compositors and more...
 <br>
 <br>
 
@@ -32,39 +33,28 @@ It supports multiple layouts, fancy effects, has a very flexible IPC model allow
 <br>
 
 </div>
- 
-# Notice
-
-Hyprland is still in pretty early development compared to some other Wayland compositors.
-
-Although Hyprland is pretty stable, it may have some bugs.
 
 # Features
 
+- All of the eyecandy: gradient borders, blur, animations, shadows and much more
+- A lot of customization
+- Much more QoL stuff than other wlr-based compositors
+- Custom bezier curves for the best animations
+- Powerful plugin support
 - Easily expandable and readable codebase
-- Plugin support
+- Fast and active development
+- Not scared to provide bleeding-edge features
 - Config reloaded instantly upon saving
-- Custom bezier curve based animations
-- Dual Kawase blur
-- Drop shadows
-- Rounded corners
-- Gradient borders
 - Fully dynamic workspaces
+- Two built-in layouts and more available as plugins
 - Closely follows `wlroots-git`
 - Global keybinds passed to your apps of choice
-- A lot of customization
-- Bundled wlroots
-- Window/layer fade in/out
 - Tiling/pseudotiling/floating/fullscreen windows
-- Switching workspaces between window modes on the fly
 - Special workspaces (scratchpads)
-- Window/monitor rules
+- Window groups (tabbed mode)
+- Powerful window/monitor/layer rules
 - Socket-based IPC
-- Event system for bash scripts
-- Full damage tracking
-- Docks support
-- Drawing tablet support
-- Native IME + Input panels support
+- Native IME and Input Panels Support
 - and much more...
 
 <br>
@@ -85,15 +75,6 @@ Although Hyprland is pretty stable, it may have some bugs.
 <br>
 
 ![Preview C]
-
-<br>
-<br>
-
-# Stars Over Time
-
-<br>
-
-[![Stars Preview]][Stars]
 
 <br>
 <br>

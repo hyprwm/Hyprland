@@ -60,7 +60,6 @@ Although Hyprland is pretty stable, it may have some bugs.
 - Special workspaces (scratchpads)
 - Window/monitor rules
 - Socket-based IPC
-- `wlr_ext` workspaces protocol support
 - Event system for bash scripts
 - Full damage tracking
 - Docks support

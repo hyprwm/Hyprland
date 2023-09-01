@@ -1128,9 +1128,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             }
         }
 
-        if (next >= cycle.size()) {
+        if (next >= cycle.size())
             next = 0;
-        }
 
         PWORKSPACEDATA->orientation = cycle[next];
         recalculateMonitor(header.pWindow->m_iMonitorID);

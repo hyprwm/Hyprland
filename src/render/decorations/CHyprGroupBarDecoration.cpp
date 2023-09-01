@@ -180,6 +180,7 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
 
     static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:titles_font_size")->intValue;
     static auto* const PTEXTCOLOR     = &g_pConfigManager->getConfigValuePtr("group:groupbar:text_color")->intValue;
+    static auto* const PFONT          = &g_pConfigManager->getConfigValuePtr("group:groupbar:font")->strValue;
 
     const CColor       COLOR = CColor(*PTEXTCOLOR);
 
@@ -193,7 +194,7 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     PangoLayout* layout = pango_cairo_create_layout(CAIRO);
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
-    PangoFontDescription* fontDesc = pango_font_description_from_string("Sans");
+    PangoFontDescription* fontDesc = pango_font_description_from_string(PFONT->c_str());
     pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);

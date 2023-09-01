@@ -3,9 +3,9 @@
 #include "AnimatedVariable.hpp"
 #include <string>
 #include "../defines.hpp"
-#include "../wlrunstable/wlr_ext_workspace_v1.hpp"
 
-enum eFullscreenMode : uint8_t {
+enum eFullscreenMode : uint8_t
+{
     FULLSCREEN_FULL = 0,
     FULLSCREEN_MAXIMIZED
 };
@@ -29,12 +29,10 @@ class CWorkspace {
         std::string name = "";
     } m_sPrevWorkspace;
 
-    bool                         m_bHasFullscreenWindow = false;
-    eFullscreenMode              m_efFullscreenMode     = FULLSCREEN_FULL;
+    bool            m_bHasFullscreenWindow = false;
+    eFullscreenMode m_efFullscreenMode     = FULLSCREEN_FULL;
 
-    wlr_ext_workspace_handle_v1* m_pWlrHandle = nullptr;
-
-    wl_array                     m_wlrCoordinateArr;
+    wl_array        m_wlrCoordinateArr;
 
     // for animations
     CAnimatedVariable m_vRenderOffset;

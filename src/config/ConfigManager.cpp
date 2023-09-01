@@ -1976,11 +1976,6 @@ void CConfigManager::dispatchExecOnce() {
     g_pInputManager->setTouchDeviceConfigs();
     g_pInputManager->setTabletConfigs();
 
-    // set ws names again
-    for (auto& ws : g_pCompositor->m_vWorkspaces) {
-        wlr_ext_workspace_handle_v1_set_name(ws->m_pWlrHandle, ws->m_szName.c_str());
-    }
-
     // check for user's possible errors with their setup and notify them if needed
     g_pCompositor->performUserChecks();
 }

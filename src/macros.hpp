@@ -3,6 +3,7 @@
 #include "helpers/MiscFunctions.hpp"
 #include "debug/Log.hpp"
 #include <cmath>
+#include <csignal>
 #include <utility>
 
 #ifndef NDEBUG
@@ -57,9 +58,9 @@
     if (!(expr)) {                                                                                                                                                                 \
         Debug::log(CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n%s\n\nat: line %d in %s",            \
                    getFormat(reason, ##__VA_ARGS__).c_str(), __LINE__,                                                                                                             \
-                   ([]() constexpr->std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })().c_str());                                 \
+                   ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })().c_str());                               \
         printf("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");                                                                                          \
-        *((int*)nullptr) = 1; /* so that we crash and get a coredump */                                                                                                            \
+        raise(SIGABRT);                                                                                                                                                            \
     }
 #else
 #define RASSERT(expr, reason, ...)
@@ -71,7 +72,7 @@
 #define UNREACHABLE()                                                                                                                                                              \
     {                                                                                                                                                                              \
         Debug::log(CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)");                                                     \
-        *((int*)nullptr) = 1;                                                                                                                                                      \
+        raise(SIGABRT);                                                                                                                                                            \
     }
 #else
 #define UNREACHABLE() std::unreachable();

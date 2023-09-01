@@ -122,6 +122,7 @@ void CConfigManager::setDefaultVars() {
     configValues["group:focus_removed_window"].intValue = 1;
 
     configValues["group:groupbar:font"].strValue             = "Sans";
+    configValues["group:groupbar:height"].intValue           = 20;
     configValues["group:groupbar:gradients"].intValue        = 1;
     configValues["group:groupbar:render_titles"].intValue    = 1;
     configValues["group:groupbar:scrolling"].intValue        = 1;

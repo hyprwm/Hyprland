@@ -1100,7 +1100,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, std::v
 
     const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
 
-    int     nextOrPrev = 0;
+    int        nextOrPrev = 0;
     for (size_t i = 0; i < cycle->size(); ++i) {
         if (PWORKSPACEDATA->orientation == cycle->at(i)) {
             nextOrPrev = i + direction;
@@ -1108,7 +1108,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, std::v
         }
     }
 
-    if (nextOrPrev >= (int) cycle->size())
+    if (nextOrPrev >= (int)cycle->size())
         nextOrPrev = 0;
     else if (nextOrPrev < 0)
         nextOrPrev = cycle->size() - 1;
@@ -1118,8 +1118,8 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, std::v
 }
 
 void CHyprMasterLayout::buildOrientationCycleFromEOperation(std::vector<eOrientation>* cycle) {
-    for(int i = 0; i <= ORIENTATION_CENTER; ++i){
-        cycle->push_back((eOrientation) i);
+    for (int i = 0; i <= ORIENTATION_CENTER; ++i) {
+        cycle->push_back((eOrientation)i);
     }
 }
 

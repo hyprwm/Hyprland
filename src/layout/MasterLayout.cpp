@@ -1108,9 +1108,9 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
     }
 
     if (nextOrPrev >= (int)cycle.size())
-        nextOrPrev = 0;
+        nextOrPrev = nextOrPrev % (int)cycle.size();
     else if (nextOrPrev < 0)
-        nextOrPrev = cycle.size() - 1;
+        nextOrPrev = cycle.size() + (nextOrPrev % (int)cycle.size());
 
     PWORKSPACEDATA->orientation = cycle.at(nextOrPrev);
     recalculateMonitor(header.pWindow->m_iMonitorID);

@@ -230,6 +230,11 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
         renderLayer(ls.get(), pMonitor, time);
     }
 
+    // Render IME popups
+    for (auto& imep : g_pInputManager->m_sIMERelay.m_lIMEPopups) {
+        renderIMEPopup(&imep, pMonitor, time);
+    }
+
     renderDragIcon(pMonitor, time);
 
     // if correct monitor draw hyprerror

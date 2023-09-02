@@ -1088,7 +1088,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, CVarLi
         buildOrientationCycleVectorFromVars(&cycle, vars);
 
     if (cycle.size() == 0)
-        buildOrientationCycleFromEOperation(&cycle);
+        buildOrientationCycleVectorFromEOperation(&cycle);
 
     const auto PWINDOW = header->pWindow;
 
@@ -1116,7 +1116,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, CVarLi
     recalculateMonitor(header->pWindow->m_iMonitorID);
 }
 
-void CHyprMasterLayout::buildOrientationCycleFromEOperation(std::vector<eOrientation>* cycle) {
+void CHyprMasterLayout::buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>* cycle) {
     for (int i = 0; i <= ORIENTATION_CENTER; ++i) {
         cycle->push_back((eOrientation)i);
     }

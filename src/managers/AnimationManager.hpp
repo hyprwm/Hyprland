@@ -14,6 +14,7 @@ class CAnimationManager {
 
     void                                          tick();
     bool                                          shouldTickForNext();
+    void                                          onTicked();
     void                                          scheduleTick();
     void                                          addBezierWithName(std::string, const Vector2D&, const Vector2D&);
     void                                          removeAllBeziers();

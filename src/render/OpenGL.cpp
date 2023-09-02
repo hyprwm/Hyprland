@@ -1161,6 +1161,8 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     m_RenderData.pCurrentMonData->blurFBDirty = false;
 
     m_RenderData.renderModif = SAVEDRENDERMODIF;
+
+    m_mMonitorRenderResources[m_RenderData.pMonitor].blurFBShouldRender = false;
 }
 
 void CHyprOpenGLImpl::preWindowPass() {

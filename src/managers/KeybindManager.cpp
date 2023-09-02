@@ -196,8 +196,6 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     const auto PNEWMAINWORKSPACE = g_pCompositor->getWorkspaceByID(monitor->activeWorkspace);
 
     g_pCompositor->setActiveMonitor(monitor);
-    g_pCompositor->deactivateAllWLRWorkspaces(PNEWMAINWORKSPACE->m_pWlrHandle);
-    PNEWMAINWORKSPACE->setActive(true);
     PNEWMAINWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
 
     const auto PNEWWORKSPACE = monitor->specialWorkspaceID != 0 ? g_pCompositor->getWorkspaceByID(monitor->specialWorkspaceID) : PNEWMAINWORKSPACE;
@@ -217,7 +215,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
 }
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
-    if (!g_pCompositor->m_bSessionActive) {
+    if (!g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
         m_dPressedKeycodes.clear();
         m_dPressedKeysyms.clear();
         return true;
@@ -388,8 +386,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap ||
-            (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse" && k.handler != "global") || k.shadowed)
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -415,11 +412,15 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             if (k.nonConsuming)
                 continue;
 
-            found = true;
+            found = true; // suppress the event
+            continue;
+        }
 
-            if (k.transparent)
+        if (!pressed && !k.release) {
+            if (k.nonConsuming)
                 continue;
 
+            found = true; // suppress the event
             continue;
         }
 
@@ -1010,13 +1011,9 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
             if (PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
                 // event
-                const auto PNEWMON       = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
-                const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOWTOCHANGETO->m_iWorkspaceID);
+                const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
 
                 g_pCompositor->setActiveMonitor(PNEWMON);
-
-                g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
-                PNEWWORKSPACE->setActive(true);
             }
         }
     };
@@ -1508,7 +1505,6 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     }
 
     bool       requestedWorkspaceIsAlreadyOpen = false;
-    bool       requestedWorkspaceExists        = g_pCompositor->getWorkspaceByID(workspaceID);
     const auto PMONITOR                        = *PFOLLOWMOUSE == 1 ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->m_pLastMonitor;
     int        specialOpenOnMonitor            = PMONITOR->specialWorkspaceID;
 
@@ -1542,9 +1538,9 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
         POLDMON->specialWorkspaceID = 0;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
-        PMONITOR->specialWorkspaceID = workspaceID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        PMONITOR->specialWorkspaceID    = workspaceID;
         PSPECIALWORKSPACE->m_iMonitorID = PMONITOR->ID;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
 
         if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); PWINDOW)
             g_pCompositor->focusWindow(PWINDOW);

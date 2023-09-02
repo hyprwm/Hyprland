@@ -13,18 +13,6 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     m_szName              = name;
     m_bIsSpecialWorkspace = special;
 
-    if (!special) {
-        m_pWlrHandle = wlr_ext_workspace_handle_v1_create(PMONITOR->pWLRWorkspaceGroupHandle);
-
-        // set geometry here cuz we can
-        wl_array_init(&m_wlrCoordinateArr);
-        *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.x;
-        *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.y;
-        wlr_ext_workspace_handle_v1_set_coordinates(m_pWlrHandle, &m_wlrCoordinateArr);
-        wlr_ext_workspace_handle_v1_set_hidden(m_pWlrHandle, false);
-        wlr_ext_workspace_handle_v1_set_urgent(m_pWlrHandle, false);
-    }
-
     m_vRenderOffset.m_pWorkspace = this;
     m_vRenderOffset.create(AVARTYPE_VECTOR, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"),
                            nullptr, AVARDAMAGE_ENTIRE);
@@ -44,12 +32,6 @@ CWorkspace::~CWorkspace() {
     m_vRenderOffset.unregister();
 
     Debug::log(LOG, "Destroying workspace ID %d", m_iID);
-
-    if (m_pWlrHandle) {
-        wlr_ext_workspace_handle_v1_set_active(m_pWlrHandle, false);
-        wlr_ext_workspace_handle_v1_destroy(m_pWlrHandle);
-        m_pWlrHandle = nullptr;
-    }
 
     g_pEventManager->postEvent({"destroyworkspace", m_szName});
     EMIT_HOOK_EVENT("destroyWorkspace", this);
@@ -149,31 +131,11 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 }
 
 void CWorkspace::setActive(bool on) {
-    if (m_pWlrHandle) {
-        wlr_ext_workspace_handle_v1_set_active(m_pWlrHandle, on);
-    }
+    ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
 void CWorkspace::moveToMonitor(const int& id) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(id);
-
-    if (!PMONITOR || m_bIsSpecialWorkspace)
-        return;
-
-    wlr_ext_workspace_handle_v1_set_active(m_pWlrHandle, false);
-    wlr_ext_workspace_handle_v1_destroy(m_pWlrHandle);
-
-    m_pWlrHandle = wlr_ext_workspace_handle_v1_create(PMONITOR->pWLRWorkspaceGroupHandle);
-
-    // set geometry here cuz we can
-    wl_array_init(&m_wlrCoordinateArr);
-    *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.x;
-    *reinterpret_cast<int*>(wl_array_add(&m_wlrCoordinateArr, sizeof(int))) = (int)PMONITOR->vecPosition.y;
-    wlr_ext_workspace_handle_v1_set_coordinates(m_pWlrHandle, &m_wlrCoordinateArr);
-    wlr_ext_workspace_handle_v1_set_hidden(m_pWlrHandle, false);
-    wlr_ext_workspace_handle_v1_set_urgent(m_pWlrHandle, false);
-
-    wlr_ext_workspace_handle_v1_set_name(m_pWlrHandle, m_szName.c_str());
+    ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
 CWindow* CWorkspace::getLastFocusedWindow() {

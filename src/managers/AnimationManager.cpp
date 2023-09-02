@@ -3,8 +3,10 @@
 #include "HookSystemManager.hpp"
 
 int wlTick(void* data) {
+    if (g_pAnimationManager)
+        g_pAnimationManager->onTicked();
 
-    if (g_pCompositor->m_bSessionActive && g_pAnimationManager && g_pHookSystem &&
+    if (g_pCompositor->m_bSessionActive && g_pAnimationManager && g_pHookSystem && !g_pCompositor->m_bUnsafeState &&
         std::ranges::any_of(g_pCompositor->m_vMonitors, [](const auto& mon) { return mon->m_bEnabled && mon->output; })) {
         g_pAnimationManager->tick();
         EMIT_HOOK_EVENT("tick", nullptr);
@@ -37,10 +39,11 @@ void CAnimationManager::addBezierWithName(std::string name, const Vector2D& p1, 
     m_mBezierCurves[name].setup(&points);
 }
 
-void CAnimationManager::tick() {
-
+void CAnimationManager::onTicked() {
     m_bTickScheduled = false;
+}
 
+void CAnimationManager::tick() {
     static std::chrono::time_point lastTick = std::chrono::high_resolution_clock::now();
     m_fLastTickTime                         = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
     lastTick                                = std::chrono::high_resolution_clock::now();
@@ -247,8 +250,8 @@ void CAnimationManager::tick() {
                     const auto EXTENTS = PDECO->getWindowDecorationExtents();
 
                     wlr_box    dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
-                                      PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
-                                      PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
+                                   PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
+                                   PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
 
                     if (!*PSHADOWIGNOREWINDOW) {
                         // easy, damage the entire box

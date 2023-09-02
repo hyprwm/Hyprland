@@ -31,6 +31,7 @@ void CWaylandResource::markDefunct() {
 
     Debug::log(TRACE, "[wl res %lx] now defunct", m_pWLResource);
     m_bDefunct = true;
+    wl_resource_set_user_data(m_pWLResource, nullptr);
 }
 
 CWaylandResource::~CWaylandResource() {
@@ -38,9 +39,6 @@ CWaylandResource::~CWaylandResource() {
 
     wl_list_remove(&m_liResourceDestroy.link);
     wl_list_init(&m_liResourceDestroy.link);
-
-    if (m_pWLResource)
-        wl_resource_set_user_data(m_pWLResource, nullptr);
 
     Debug::log(TRACE, "[wl res %lx] destroying (wl_resource_destroy will be %s)", m_pWLResource, (DESTROY ? "sent" : "not sent"));
 

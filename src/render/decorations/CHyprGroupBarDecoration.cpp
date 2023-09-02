@@ -315,6 +315,8 @@ int CHyprGroupBarDecoration::getBarHeight() {
 void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
     m_tGradientActive.destroyTexture();
     m_tGradientInactive.destroyTexture();
+    m_tGradientLockedActive.destroyTexture();
+    m_tGradientLockedInactive.destroyTexture();
     updateWindow(pWindow);
 }
 

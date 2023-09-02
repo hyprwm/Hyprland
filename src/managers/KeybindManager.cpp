@@ -408,7 +408,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
                 continue;
         }
 
-        if (pressed && k.release) {
+        if (pressed && k.release && k.handler != "global") {
             if (k.nonConsuming)
                 continue;
 
@@ -416,7 +416,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             continue;
         }
 
-        if (!pressed && !k.release) {
+        if (!pressed && !k.release && k.handler != "global") {
             if (k.nonConsuming)
                 continue;
 

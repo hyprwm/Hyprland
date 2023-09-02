@@ -102,15 +102,20 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
     const auto* const  PCOLINACTIVE = GROUPLOCKED ? PGROUPCOLINACTIVELOCKED : PGROUPCOLINACTIVE;
 
-    const int          PAD  = 2; //2px
-    const int          BARW = (m_vLastWindowSize.x - PAD * (barsToDraw - 1)) / barsToDraw;
+    // TODO: fix mouse event with rounding
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const int  ROUNDING =
+        (m_pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!m_pWindow->m_sSpecialRenderData.rounding) ? 0 : m_pWindow->rounding();
+
+    const int PAD  = 2; //2px
+    const int BARW = (m_vLastWindowSize.x - 2 * ROUNDING - PAD * (barsToDraw - 1)) / barsToDraw;
 
     //  TODO: check for invalid config
     if (BARW <= 0)
         return;
 
     // Bottom left of groupbar
-    Vector2D pos = Vector2D(m_vLastWindowPos.x - pMonitor->vecPosition.x + offset.x,
+    Vector2D pos = Vector2D(m_vLastWindowPos.x - pMonitor->vecPosition.x + offset.x + ROUNDING,
                             m_vLastWindowPos.y - pMonitor->vecPosition.y + offset.y +
                                 (*PLOCATIONTOP ? -BORDERSIZE : m_vLastWindowSize.y + BORDERSIZE + getBarHeight() + BAR_INTERNAL_PADDING));
 

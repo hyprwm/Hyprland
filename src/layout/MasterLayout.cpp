@@ -1072,13 +1072,9 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
     } else if (command == "orientationnext") {
         std::vector<eOrientation> cycle;
-        buildOrientationCycleFromEOperation(&cycle);
-
         runOrientationCycle(&header, &cycle, 1);
     } else if (command == "orientationprev") {
         std::vector<eOrientation> cycle;
-        buildOrientationCycleFromEOperation(&cycle);
-
         runOrientationCycle(&header, &cycle, -1);
     } else if (command == "orientationcycle") {
         std::vector<eOrientation> cycle;
@@ -1090,9 +1086,10 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     return 0;
 }
 
+// If cycle is empty, we use the default list
 void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, std::vector<eOrientation>* cycle, int direction) {
     if (cycle->size() == 0)
-        return;
+        buildOrientationCycleFromEOperation(cycle);
 
     const auto PWINDOW = header->pWindow;
 

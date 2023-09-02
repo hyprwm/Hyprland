@@ -1121,7 +1121,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, std::v
 }
 
 void CHyprMasterLayout::buildOrientationCycleFromEOperation(std::vector<eOrientation>* cycle) {
-    for(int i = ORIENTATION_LEFT; i <= ORIENTATION_CENTER; ++i){
+    for(int i = 0; i <= ORIENTATION_CENTER; ++i){
         cycle->push_back((eOrientation) i);
     }
 }

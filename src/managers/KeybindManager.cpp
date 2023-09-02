@@ -2097,7 +2097,7 @@ void CKeybindManager::global(std::string args) {
     const auto APPID = args.substr(0, args.find_first_of(':'));
     const auto NAME  = args.substr(args.find_first_of(':') + 1);
 
-    if (APPID.empty() || NAME.empty())
+    if (NAME.empty())
         return;
 
     if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))

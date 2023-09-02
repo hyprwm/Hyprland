@@ -1071,25 +1071,24 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         recalculateMonitor(header.pWindow->m_iMonitorID);
 
     } else if (command == "orientationnext") {
-        std::vector<eOrientation> cycle;
-        runOrientationCycle(&header, &cycle, 1);
+        runOrientationCycle(&header, nullptr, 1);
     } else if (command == "orientationprev") {
-        std::vector<eOrientation> cycle;
-        runOrientationCycle(&header, &cycle, -1);
+        runOrientationCycle(&header, nullptr, -1);
     } else if (command == "orientationcycle") {
-        std::vector<eOrientation> cycle;
-        buildOrientationCycleVectorFromVars(&cycle, &vars);
-
-        runOrientationCycle(&header, &cycle, 1);
+        runOrientationCycle(&header, &vars, 1);
     }
 
     return 0;
 }
 
-// If cycle is empty, we use the default list
-void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, std::vector<eOrientation>* cycle, int direction) {
-    if (cycle->size() == 0)
-        buildOrientationCycleFromEOperation(cycle);
+// If vars is null, we use the default list
+void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, CVarList* vars, int direction) {
+    std::vector<eOrientation> cycle;
+    if (vars != nullptr)
+        buildOrientationCycleVectorFromVars(&cycle, vars);
+
+    if (cycle.size() == 0)
+        buildOrientationCycleFromEOperation(&cycle);
 
     const auto PWINDOW = header->pWindow;
 
@@ -1101,19 +1100,19 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader* header, std::v
     const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
 
     int        nextOrPrev = 0;
-    for (size_t i = 0; i < cycle->size(); ++i) {
-        if (PWORKSPACEDATA->orientation == cycle->at(i)) {
+    for (size_t i = 0; i < cycle.size(); ++i) {
+        if (PWORKSPACEDATA->orientation == cycle.at(i)) {
             nextOrPrev = i + direction;
             break;
         }
     }
 
-    if (nextOrPrev >= (int)cycle->size())
+    if (nextOrPrev >= (int)cycle.size())
         nextOrPrev = 0;
     else if (nextOrPrev < 0)
-        nextOrPrev = cycle->size() - 1;
+        nextOrPrev = cycle.size() - 1;
 
-    PWORKSPACEDATA->orientation = cycle->at(nextOrPrev);
+    PWORKSPACEDATA->orientation = cycle.at(nextOrPrev);
     recalculateMonitor(header->pWindow->m_iMonitorID);
 }
 

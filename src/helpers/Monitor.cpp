@@ -512,6 +512,9 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
         return;
     }
 
+    if (pWorkspace->m_iID == activeWorkspace)
+        return;
+
     const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(activeWorkspace);
 
     activeWorkspace = pWorkspace->m_iID;

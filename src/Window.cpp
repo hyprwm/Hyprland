@@ -410,7 +410,7 @@ void CWindow::onUnmap() {
 
     if (*PCLOSEONLASTSPECIAL && g_pCompositor->getWindowsOnWorkspace(m_iWorkspaceID) == 0 && g_pCompositor->isWorkspaceSpecial(m_iWorkspaceID)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        if (PMONITOR)
+        if (PMONITOR && PMONITOR->specialWorkspaceID == m_iWorkspaceID)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
 }

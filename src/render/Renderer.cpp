@@ -1886,8 +1886,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }
 
-    wlr_output_enable(pMonitor->output, 1);
-
     // update renderer (here because it will call rollback, so we cannot do this before committing)
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 

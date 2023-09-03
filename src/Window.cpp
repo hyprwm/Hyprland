@@ -417,6 +417,8 @@ void CWindow::onUnmap() {
 
 void CWindow::onMap() {
 
+    static auto* const PISOLATESPECIAL = &g_pConfigManager->getConfigValuePtr("misc:isolate_special")->intValue;
+
     m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(this));
 
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
@@ -447,6 +449,12 @@ void CWindow::onMap() {
 
     hyprListener_unmapWindow.initCallback(m_bIsX11 ? &m_uSurface.xwayland->surface->events.unmap : &m_uSurface.xdg->surface->events.unmap, &Events::listener_unmapWindow, this,
                                           "CWindow");
+    
+    if (*PISOLATESPECIAL && g_pCompositor->getWindowsOnWorkspace(m_iWorkspaceID) > *PISOLATESPECIAL && g_pCompositor->isWorkspaceSpecial(m_iWorkspaceID)) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        this->moveToWorkspace(PMONITOR->activeWorkspace);
+    }
+
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {

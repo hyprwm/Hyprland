@@ -114,6 +114,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:groupbar_titles_font_size"].intValue    = 8;
     configValues["misc:groupbar_gradients"].intValue           = 1;
     configValues["misc:close_special_on_empty"].intValue       = 1;
+    configValues["misc:isolate_special"].intValue              = 0;
     configValues["misc:groupbar_text_color"].intValue          = 0xffffffff;
     configValues["misc:background_color"].intValue             = 0xff111111;
 

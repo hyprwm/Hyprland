@@ -142,11 +142,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 const auto PMONITORFROMID = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-                PWINDOW->m_iWorkspaceID = PMONITOR->specialWorkspaceID ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
                 if (PWINDOW->m_iMonitorID != PMONITOR->ID) {
                     g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->m_iMonitorID));
                     PMONITOR = PMONITORFROMID;
                 }
+                PWINDOW->m_iWorkspaceID = PMONITOR->specialWorkspaceID ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
 
                 Debug::log(ERR, "Rule monitor, applying to window %lx -> mon: %i, workspace: %i", PWINDOW, PWINDOW->m_iMonitorID, PWINDOW->m_iWorkspaceID);
             } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: %s -> %s | err: %s", r.szRule.c_str(), r.szValue.c_str(), e.what()); }
@@ -247,6 +247,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
             PWINDOW->m_iWorkspaceID = pWorkspace->m_iID;
             PWINDOW->m_iMonitorID   = pWorkspace->m_iMonitorID;
+
+            if (g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->specialWorkspaceID && !pWorkspace->m_bIsSpecialWorkspace)
+                workspaceSilent = true;
 
             if (!workspaceSilent) {
                 if (pWorkspace->m_bIsSpecialWorkspace)

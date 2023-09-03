@@ -572,8 +572,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
 
     if (!pWorkspace) {
         // remove special if exists
-        if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL)
+        if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL) {
             EXISTINGSPECIAL->startAnim(false, false);
+            g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "none," + szName});
+        }
         specialWorkspaceID = 0;
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
@@ -610,6 +612,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         g_pCompositor->focusWindow(PLAST);
     else
         g_pInputManager->refocus();
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {

@@ -248,6 +248,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_iWorkspaceID = pWorkspace->m_iID;
             PWINDOW->m_iMonitorID   = pWorkspace->m_iMonitorID;
 
+            if (g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->specialWorkspaceID && !pWorkspace->m_bIsSpecialWorkspace)
+                workspaceSilent = true;
+
             if (!workspaceSilent) {
                 if (pWorkspace->m_bIsSpecialWorkspace)
                     g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID)->setSpecialWorkspace(pWorkspace);

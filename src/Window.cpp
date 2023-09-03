@@ -386,6 +386,8 @@ void unregisterVar(void* ptr) {
 }
 
 void CWindow::onUnmap() {
+    static auto* const PCLOSEONLASTSPECIAL = &g_pConfigManager->getConfigValuePtr("misc:close_special_on_empty")->intValue;
+
     if (g_pCompositor->m_pLastWindow == this)
         g_pCompositor->m_pLastWindow = nullptr;
 
@@ -405,6 +407,12 @@ void CWindow::onUnmap() {
     m_pWLSurface.unassign();
 
     hyprListener_unmapWindow.removeCallback();
+
+    if (*PCLOSEONLASTSPECIAL && g_pCompositor->getWindowsOnWorkspace(m_iWorkspaceID) == 0 && g_pCompositor->isWorkspaceSpecial(m_iWorkspaceID)) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        if (PMONITOR)
+            PMONITOR->setSpecialWorkspace(nullptr);
+    }
 }
 
 void CWindow::onMap() {

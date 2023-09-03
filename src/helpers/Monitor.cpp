@@ -594,6 +594,11 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
             EXISTINGSPECIAL->startAnim(false, false);
     }
 
+    const auto PMONITORWORKSPACEOWNER = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+    if (PMONITORWORKSPACEOWNER->specialWorkspaceID == pWorkspace->m_iID)
+        PMONITORWORKSPACEOWNER->setSpecialWorkspace(nullptr);
+
+
     // open special
     pWorkspace->m_iMonitorID = ID;
     specialWorkspaceID       = pWorkspace->m_iID;

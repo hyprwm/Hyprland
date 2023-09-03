@@ -408,7 +408,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
                 continue;
         }
 
-        if (pressed && k.release) {
+        if (pressed && k.release && k.handler != "global") {
             if (k.nonConsuming)
                 continue;
 
@@ -416,7 +416,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             continue;
         }
 
-        if (!pressed && !k.release) {
+        if (!pressed && !k.release && k.handler != "global") {
             if (k.nonConsuming)
                 continue;
 
@@ -2097,7 +2097,7 @@ void CKeybindManager::global(std::string args) {
     const auto APPID = args.substr(0, args.find_first_of(':'));
     const auto NAME  = args.substr(args.find_first_of(':') + 1);
 
-    if (APPID.empty() || NAME.empty())
+    if (NAME.empty())
         return;
 
     if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))

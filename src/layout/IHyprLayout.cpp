@@ -57,6 +57,7 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             pWindow->setHidden(false);
 
             pWindow->updateWindowDecos();
+            curr->getGroupCurrent()->updateWindowDecos();
             g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
 
             return;
@@ -140,7 +141,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
 
         // TODO: detect a popup in a more consistent way.
-        if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible) {
+        if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible || !pWindow->m_bIsX11) {
             // if it's not, fall back to the center placement
             pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
         } else {

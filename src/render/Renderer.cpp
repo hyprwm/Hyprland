@@ -230,6 +230,11 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
         renderLayer(ls.get(), pMonitor, time);
     }
 
+    // Render IME popups
+    for (auto& imep : g_pInputManager->m_sIMERelay.m_lIMEPopups) {
+        renderIMEPopup(&imep, pMonitor, time);
+    }
+
     renderDragIcon(pMonitor, time);
 
     // if correct monitor draw hyprerror
@@ -266,7 +271,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     static auto* const PDIMAROUND  = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
     static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
 
-    SRenderData        renderdata = {pMonitor, time, std::round(REALPOS.x), std::round(REALPOS.y)};
+    SRenderData        renderdata = {pMonitor, time, REALPOS.x, REALPOS.y};
     if (ignorePosition) {
         renderdata.x = pMonitor->vecPosition.x;
         renderdata.y = pMonitor->vecPosition.y;
@@ -276,8 +281,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         decorate = false;
 
     renderdata.surface   = pWindow->m_pWLSurface.wlr();
-    renderdata.w         = std::round(std::max(pWindow->m_vRealSize.vec().x, 5.0)); // clamp the size to min 5,
-    renderdata.h         = std::round(std::max(pWindow->m_vRealSize.vec().y, 5.0)); // otherwise we'll have issues later with invalid boxes
+    renderdata.w         = std::max(pWindow->m_vRealSize.vec().x, 5.0); // clamp the size to min 5,
+    renderdata.h         = std::max(pWindow->m_vRealSize.vec().y, 5.0); // otherwise we'll have issues later with invalid boxes
     renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
     renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.fl());
     renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.fl();
@@ -1880,8 +1885,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }
-
-    wlr_output_enable(pMonitor->output, 1);
 
     // update renderer (here because it will call rollback, so we cannot do this before committing)
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);

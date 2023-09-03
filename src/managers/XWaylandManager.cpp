@@ -176,9 +176,9 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
     }
 
     if (pWindow->m_bIsX11)
-        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, windowPos.x, windowPos.y, std::round(size.x), std::round(size.y));
+        wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, windowPos.x, windowPos.y, size.x, size.y);
     else
-        wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, std::round(size.x), std::round(size.y));
+        wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y);
 }
 
 void CHyprXWaylandManager::setWindowStyleTiled(CWindow* pWindow, uint32_t edgez) {

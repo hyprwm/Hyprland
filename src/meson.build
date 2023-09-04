@@ -4,6 +4,7 @@ src = globber.stdout().strip().split('\n')
 executable('Hyprland', src,
   cpp_args: ['-DWLR_USE_UNSTABLE'],
   link_args: '-rdynamic',
+  cpp_pch: 'pch/pch.hpp',
   dependencies: [
     server_protos,
     dependency('wayland-server'),

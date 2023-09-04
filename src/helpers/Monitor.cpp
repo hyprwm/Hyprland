@@ -572,8 +572,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
 
     if (!pWorkspace) {
         // remove special if exists
-        if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL)
+        if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL) {
             EXISTINGSPECIAL->startAnim(false, false);
+            g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + szName});
+        }
         specialWorkspaceID = 0;
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
@@ -592,10 +594,21 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
             EXISTINGSPECIAL->startAnim(false, false);
     }
 
+    bool animate = true;
+    //close if open elsewhere
+    const auto PMONITORWORKSPACEOWNER = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+    if (PMONITORWORKSPACEOWNER->specialWorkspaceID == pWorkspace->m_iID) {
+        PMONITORWORKSPACEOWNER->specialWorkspaceID = 0;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITORWORKSPACEOWNER->ID);
+        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITORWORKSPACEOWNER->szName});
+        animate = false;
+    }
+
     // open special
     pWorkspace->m_iMonitorID = ID;
     specialWorkspaceID       = pWorkspace->m_iID;
-    pWorkspace->startAnim(true, true);
+    if (animate)
+        pWorkspace->startAnim(true, true);
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == pWorkspace->m_iID) {
@@ -610,6 +623,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         g_pCompositor->focusWindow(PLAST);
     else
         g_pInputManager->refocus();
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {

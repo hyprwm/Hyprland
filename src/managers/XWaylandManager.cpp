@@ -314,12 +314,17 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
-    CMonitor*          pMonitor = nullptr;
+    CMonitor*          pMonitor     = nullptr;
+    double             bestDistance = __FLT_MAX__;
     for (auto& m : g_pCompositor->m_vMonitors) {
         const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
-        if (VECINRECT(coord, m->vecXWaylandPosition.x, m->vecXWaylandPosition.y, m->vecXWaylandPosition.x + SIZ.x, m->vecXWaylandPosition.y + SIZ.y)) {
-            pMonitor = m.get();
-            break;
+
+        double     distance =
+            vecToRectDistanceSquared(coord, {m->vecXWaylandPosition.x, m->vecXWaylandPosition.y}, {m->vecXWaylandPosition.x + SIZ.x, m->vecXWaylandPosition.y + SIZ.y});
+
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            pMonitor     = m.get();
         }
     }
 

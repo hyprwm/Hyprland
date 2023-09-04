@@ -229,13 +229,15 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_bPinned && !PWINDOW->m_bIsFloating)
         PWINDOW->m_bPinned = false;
 
-    const CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 2, ' ');
+    bool           isWorkspaceSet = false;
+    const CVarList WORKSPACEARGS  = CVarList(requestedWorkspace, 2, ' ');
 
     if (!WORKSPACEARGS[0].empty()) {
         std::string requestedWorkspaceName;
         const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString(WORKSPACEARGS[0], requestedWorkspaceName);
 
         if (REQUESTEDWORKSPACEID != INT_MAX) {
+            isWorkspaceSet = true;
 
             if (WORKSPACEARGS[1].find("silent") == 0)
                 workspaceSilent = true;
@@ -255,7 +257,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (pWorkspace->m_bIsSpecialWorkspace)
                     g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID)->setSpecialWorkspace(pWorkspace);
                 else
-                    g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
+                    g_pKeybindManager->m_mDispatchers["workspace"](pWorkspace->m_szName);
 
                 PMONITOR = g_pCompositor->m_pLastMonitor;
             }
@@ -566,6 +568,32 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         finalFound->setHidden(true);
                     }
                 }
+            }
+        }
+    }
+
+    if (!isWorkspaceSet) {
+        auto       pWorkspace    = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+        auto       workspaceRule = pWorkspace ? g_pConfigManager->getWorkspaceRuleFor(pWorkspace) : SWorkspaceRule{};
+        const auto PMONITOR      = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+
+        int        maxSize = workspaceRule.maxSize;
+        if (maxSize != 0 && maxSize < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
+            if (pWorkspace->m_bIsSpecialWorkspace) {
+                g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace));
+                PMONITOR->setSpecialWorkspace(nullptr);
+            }
+
+            pWorkspace    = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+            workspaceRule = pWorkspace ? g_pConfigManager->getWorkspaceRuleFor(pWorkspace) : SWorkspaceRule{};
+            maxSize       = workspaceRule.maxSize;
+            if (maxSize != 0 && maxSize < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
+                std::string requestedWorkspaceName;
+                const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString("empty", requestedWorkspaceName);
+                // doesn't exist since it's empty
+                pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->m_iMonitorID, requestedWorkspaceName);
+                g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
+                g_pKeybindManager->m_mDispatchers["workspace"](pWorkspace->m_szName);
             }
         }
     }

@@ -71,6 +71,7 @@ endif()
 
 include_directories(
   .
+  "src/"
   "subprojects/wlroots/include/"
   "subprojects/wlroots/build/include/"
   "subprojects/udis86/"
@@ -167,6 +168,10 @@ target_compile_definitions(Hyprland
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
+message(STATUS "Setting precompiled headers")
+
+target_precompile_headers(Hyprland PRIVATE $<$<COMPILE_LANGUAGE:CXX>:src/pch/pch.hpp>)
 
 message(STATUS "Setting link libraries")
 

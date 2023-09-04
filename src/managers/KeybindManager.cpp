@@ -1515,39 +1515,12 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         }
     }
 
-    if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID)
-        Debug::log(LOG, "Toggling special workspace %d to closed", workspaceID);
-    else
-        Debug::log(LOG, "Toggling special workspace %d to open", workspaceID);
-
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor
+        Debug::log(LOG, "Toggling special workspace %d to closed", workspaceID);
         PMONITOR->setSpecialWorkspace(nullptr);
-    } else if (requestedWorkspaceIsAlreadyOpen) {
-        // already open on another monitor
-
-        if (specialOpenOnMonitor) {
-            g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID)->startAnim(false, false);
-            PMONITOR->specialWorkspaceID = 0;
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-        }
-
-        // move to current
-        const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
-        const auto POLDMON           = g_pCompositor->getMonitorFromID(PSPECIALWORKSPACE->m_iMonitorID);
-
-        POLDMON->specialWorkspaceID = 0;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
-        PMONITOR->specialWorkspaceID    = workspaceID;
-        PSPECIALWORKSPACE->m_iMonitorID = PMONITOR->ID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-
-        if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); PWINDOW)
-            g_pCompositor->focusWindow(PWINDOW);
-        else
-            g_pInputManager->refocus();
     } else {
-        // not open anywhere
+        Debug::log(LOG, "Toggling special workspace %d to open", workspaceID);
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
         if (!PSPECIALWORKSPACE)

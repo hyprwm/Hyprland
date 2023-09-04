@@ -1243,10 +1243,7 @@ void CKeybindManager::changeGroupActive(std::string args) {
     if (args != "b" && args != "prev") {
         PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
     } else {
-        CWindow* curr = PWINDOW->m_sGroupData.pNextWindow;
-        while (curr->m_sGroupData.pNextWindow != PWINDOW)
-            curr = curr->m_sGroupData.pNextWindow;
-        PWINDOW->setGroupCurrent(curr);
+        PWINDOW->setGroupCurrent(PWINDOW->getGroupPrevious());
     }
 }
 

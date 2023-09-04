@@ -91,28 +91,32 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :
                       getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
+    const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+
     // if it's a group, add the window
     if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && !g_pKeybindManager->m_bGroupsLocked &&
         OPENINGON != PNODE) { // target is an unlocked group
 
-        if (!pWindow->m_sGroupData.pNextWindow) { // source is not a group
+        if (!pWindow->m_sGroupData.pNextWindow || !pWindow->getGroupHead()->m_sGroupData.locked) { // source is not a group or an unlocked group
+            if (!pWindow->m_sGroupData.pNextWindow)
+                pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
             m_lMasterNodesData.remove(*PNODE);
-            OPENINGON->pWindow->insertWindowToGroup(pWindow);
+
+            const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+            if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
+                const int SIZE               = OPENINGON->pWindow->getGroupSize();
+                const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
+                CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
+                pWindowInsertAfter->insertWindowToGroup(pWindow);
+                if (INDEX == -1)
+                    std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
+            } else {
+                static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+                (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
+            }
+
             OPENINGON->pWindow->setGroupCurrent(pWindow);
-
-            pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-            pWindow->updateWindowDecos();
-            recalculateWindow(pWindow);
-
-            g_pCompositor->focusWindow(pWindow);
-            return;
-        }
-
-        if (!pWindow->getGroupHead()->m_sGroupData.locked) { // source is an unlocked group
-            m_lMasterNodesData.remove(*PNODE);
-            OPENINGON->pWindow->insertWindowToGroup(pWindow);
-            OPENINGON->pWindow->setGroupCurrent(pWindow);
-
             pWindow->updateWindowDecos();
             recalculateWindow(pWindow);
 
@@ -266,8 +270,8 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         return;
 
     const auto PWORKSPACEDATA = getMasterWorkspaceData(ws);
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
-    const auto PMASTERNODE = getMasterNodeOnWorkspace(PWORKSPACE->m_iID);
+    const auto PMONITOR       = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+    const auto PMASTERNODE    = getMasterNodeOnWorkspace(PWORKSPACE->m_iID);
 
     if (!PMASTERNODE)
         return;
@@ -276,11 +280,11 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     bool               centerMasterWindow = false;
     static auto* const ALWAYSCENTER       = &g_pConfigManager->getConfigValuePtr("master:always_center_master")->intValue;
 
-    const auto MASTERS      = getMastersOnWorkspace(PWORKSPACE->m_iID);
-    const auto WINDOWS      = getNodesOnWorkspace(PWORKSPACE->m_iID);
-    const auto STACKWINDOWS = WINDOWS - MASTERS;
-    const auto WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-    const auto WSPOS        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+    const auto         MASTERS      = getMastersOnWorkspace(PWORKSPACE->m_iID);
+    const auto         WINDOWS      = getNodesOnWorkspace(PWORKSPACE->m_iID);
+    const auto         STACKWINDOWS = WINDOWS - MASTERS;
+    const auto         WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+    const auto         WSPOS        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
 
     if (orientation == ORIENTATION_CENTER) {
         if (STACKWINDOWS >= 2 || (*ALWAYSCENTER == 1)) {
@@ -315,7 +319,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             if (WIDTH > widthLeft * 0.9f && mastersLeft > 1)
                 WIDTH = widthLeft * 0.9f;
 
-            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
@@ -324,11 +328,11 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             nextX += WIDTH;
         }
     } else { // orientation left, right or center
-        float WIDTH        = WSSIZE.x;
-        float heightLeft   = WSSIZE.y;
-        int   mastersLeft  = MASTERS;
-        float nextX        = 0;
-        float nextY        = 0;
+        float WIDTH       = WSSIZE.x;
+        float heightLeft  = WSSIZE.y;
+        int   mastersLeft = MASTERS;
+        float nextX       = 0;
+        float nextY       = 0;
 
         if (STACKWINDOWS > 0 || centerMasterWindow)
             WIDTH *= PMASTERNODE->percMaster;
@@ -347,7 +351,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             if (HEIGHT > heightLeft * 0.9f && mastersLeft > 1)
                 HEIGHT = heightLeft * 0.9f;
 
-            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
@@ -379,7 +383,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             if (WIDTH > widthLeft * 0.9f && slavesLeft > 1)
                 WIDTH = widthLeft * 0.9f;
 
-            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
@@ -404,7 +408,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
                 HEIGHT = heightLeft * 0.9f;
 
-            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
@@ -431,13 +435,13 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
                 continue;
 
             if (onRight) {
-                nextX = WIDTH + PMASTERNODE->size.x;
-                nextY = nextYR;
+                nextX      = WIDTH + PMASTERNODE->size.x;
+                nextY      = nextYR;
                 heightLeft = heightLeftR;
                 slavesLeft = slavesLeftR;
             } else {
-                nextX = 0;
-                nextY = nextYL;
+                nextX      = 0;
+                nextY      = nextYL;
                 heightLeft = heightLeftL;
                 slavesLeft = slavesLeftL;
             }
@@ -446,7 +450,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
                 HEIGHT = heightLeft * 0.9f;
 
-            nd.size = Vector2D(WIDTH, HEIGHT);
+            nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
@@ -593,13 +597,13 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         return;
     }
 
-    const  auto        PMONITOR       = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-    const  auto        PWORKSPACEDATA = getMasterWorkspaceData(PMONITOR->activeWorkspace);
+    const auto         PMONITOR       = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const auto         PWORKSPACEDATA = getMasterWorkspaceData(PMONITOR->activeWorkspace);
     static auto* const ALWAYSCENTER   = &g_pConfigManager->getConfigValuePtr("master:always_center_master")->intValue;
 
-    eOrientation orientation = PWORKSPACEDATA->orientation;
-    bool         centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
-    double       delta       = 0;
+    eOrientation       orientation = PWORKSPACEDATA->orientation;
+    bool               centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
+    double             delta       = 0;
 
     if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 && !centered)
         return;
@@ -631,9 +635,10 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                 (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / getMastersOnWorkspace(PNODE->workspaceID);
             PNODE->percSize = std::clamp(PNODE->percSize + RESIZEDELTA / SIZE, 0.05, 1.95);
         } else if (!PNODE->isMaster && (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) > 1) {
-            const auto SIZE = PWORKSPACEDATA->orientation % 2 == 1 ?
-                (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) :
-                (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID));
+            const auto SIZE = PWORKSPACEDATA->orientation % 2 == 1 ? (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) /
+                    (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) :
+                                                                     (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) /
+                    (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID));
             PNODE->percSize = std::clamp(PNODE->percSize + RESIZEDELTA / SIZE, 0.05, 1.95);
         }
     }
@@ -736,6 +741,15 @@ SWindowRenderLayoutHints CHyprMasterLayout::requestRenderHints(CWindow* pWindow)
     SWindowRenderLayoutHints hints;
 
     return hints; // master doesnt have any hints
+}
+
+void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
+    if (!isDirection(dir))
+        return;
+
+    const auto PWINDOW2 = g_pCompositor->getWindowInDirection(pWindow, dir[0]);
+
+    switchWindows(pWindow, PWINDOW2);
 }
 
 void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
@@ -1066,42 +1080,71 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         recalculateMonitor(header.pWindow->m_iMonitorID);
 
     } else if (command == "orientationnext") {
-        const auto PWINDOW = header.pWindow;
-
-        if (!PWINDOW)
-            return 0;
-
-        prepareLoseFocus(PWINDOW);
-
-        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
-
-        if (PWORKSPACEDATA->orientation == ORIENTATION_CENTER) {
-            PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
-        } else {
-            PWORKSPACEDATA->orientation = (eOrientation)(PWORKSPACEDATA->orientation + 1);
-        }
-
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        runOrientationCycle(header, nullptr, 1);
     } else if (command == "orientationprev") {
-        const auto PWINDOW = header.pWindow;
-
-        if (!PWINDOW)
-            return 0;
-
-        prepareLoseFocus(PWINDOW);
-
-        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
-
-        if (PWORKSPACEDATA->orientation == ORIENTATION_LEFT) {
-            PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
-        } else {
-            PWORKSPACEDATA->orientation = (eOrientation)(PWORKSPACEDATA->orientation - 1);
-        }
-
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        runOrientationCycle(header, nullptr, -1);
+    } else if (command == "orientationcycle") {
+        runOrientationCycle(header, &vars, 1);
     }
 
     return 0;
+}
+
+// If vars is null, we use the default list
+void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int direction) {
+    std::vector<eOrientation> cycle;
+    if (vars != nullptr)
+        buildOrientationCycleVectorFromVars(cycle, *vars);
+
+    if (cycle.size() == 0)
+        buildOrientationCycleVectorFromEOperation(cycle);
+
+    const auto PWINDOW = header.pWindow;
+
+    if (!PWINDOW)
+        return;
+
+    prepareLoseFocus(PWINDOW);
+
+    const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
+
+    int        nextOrPrev = 0;
+    for (size_t i = 0; i < cycle.size(); ++i) {
+        if (PWORKSPACEDATA->orientation == cycle.at(i)) {
+            nextOrPrev = i + direction;
+            break;
+        }
+    }
+
+    if (nextOrPrev >= (int)cycle.size())
+        nextOrPrev = nextOrPrev % (int)cycle.size();
+    else if (nextOrPrev < 0)
+        nextOrPrev = cycle.size() + (nextOrPrev % (int)cycle.size());
+
+    PWORKSPACEDATA->orientation = cycle.at(nextOrPrev);
+    recalculateMonitor(header.pWindow->m_iMonitorID);
+}
+
+void CHyprMasterLayout::buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle) {
+    for (int i = 0; i <= ORIENTATION_CENTER; ++i) {
+        cycle.push_back((eOrientation)i);
+    }
+}
+
+void CHyprMasterLayout::buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, CVarList& vars) {
+    for (size_t i = 1; i < vars.size(); ++i) {
+        if (vars[i] == "top") {
+            cycle.push_back(ORIENTATION_TOP);
+        } else if (vars[i] == "right") {
+            cycle.push_back(ORIENTATION_RIGHT);
+        } else if (vars[i] == "bottom") {
+            cycle.push_back(ORIENTATION_BOTTOM);
+        } else if (vars[i] == "left") {
+            cycle.push_back(ORIENTATION_LEFT);
+        } else if (vars[i] == "center") {
+            cycle.push_back(ORIENTATION_CENTER);
+        }
+    }
 }
 
 void CHyprMasterLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {

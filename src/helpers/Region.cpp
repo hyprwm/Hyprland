@@ -92,6 +92,46 @@ std::vector<pixman_box32_t> CRegion::getRects() const {
     return result;
 }
 
+wlr_box CRegion::getExtents() {
+    pixman_box32_t* box = pixman_region32_extents(&m_rRegion);
+    return {box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1};
+}
+
+bool CRegion::containsPoint(const Vector2D& vec) {
+    return pixman_region32_contains_point(&m_rRegion, vec.x, vec.y, nullptr);
+}
+
 bool CRegion::empty() {
     return !pixman_region32_not_empty(&m_rRegion);
+}
+
+Vector2D CRegion::closestPoint(const Vector2D& vec) {
+    double   bestDist = __FLT_MAX__;
+    Vector2D leader   = vec;
+
+    for (auto& box : getRects()) {
+        double x = 0, y = 0;
+
+        if (vec.x >= box.x2)
+            x = box.x2 - 1;
+        else if (vec.x < box.x1)
+            x = box.x1;
+        else
+            x = vec.x;
+
+        if (vec.y >= box.y2)
+            y = box.y2 - 1;
+        else if (vec.y < box.y1)
+            y = box.y1;
+        else
+            y = vec.y;
+
+        double distance = sqrt(pow(x, 2) + pow(y, 2));
+        if (distance < bestDist) {
+            bestDist = distance;
+            leader   = {x, y};
+        }
+    }
+
+    return leader;
 }

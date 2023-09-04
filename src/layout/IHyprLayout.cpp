@@ -31,30 +31,29 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             pWindow->m_sGroupData.pNextWindow = nullptr;
         else {
             // find last window and update
-            CWindow*   curr           = pWindow;
-            const auto CURRWASVISIBLE = curr->getGroupCurrent() == curr;
+            CWindow*   PWINDOWPREV     = pWindow->getGroupPrevious();
+            const auto WINDOWISVISIBLE = pWindow->getGroupCurrent() == pWindow;
 
-            while (curr->m_sGroupData.pNextWindow != pWindow)
-                curr = curr->m_sGroupData.pNextWindow;
+            if (WINDOWISVISIBLE)
+                PWINDOWPREV->setGroupCurrent(PWINDOWPREV);
 
-            if (CURRWASVISIBLE)
-                curr->setGroupCurrent(curr);
-
-            curr->m_sGroupData.pNextWindow = pWindow->m_sGroupData.pNextWindow;
+            PWINDOWPREV->m_sGroupData.pNextWindow = pWindow->m_sGroupData.pNextWindow;
 
             pWindow->m_sGroupData.pNextWindow = nullptr;
 
             if (pWindow->m_sGroupData.head) {
-                pWindow->m_sGroupData.head   = false;
-                curr->m_sGroupData.head      = true;
-                curr->m_sGroupData.locked    = pWindow->m_sGroupData.locked;
-                pWindow->m_sGroupData.locked = false;
+                std::swap(PWINDOWPREV->m_sGroupData.head, pWindow->m_sGroupData.head);
+                std::swap(PWINDOWPREV->m_sGroupData.locked, pWindow->m_sGroupData.locked);
             }
 
             if (pWindow == m_pLastTiledWindow)
                 m_pLastTiledWindow = nullptr;
 
             pWindow->setHidden(false);
+
+            pWindow->updateWindowDecos();
+            PWINDOWPREV->getGroupCurrent()->updateWindowDecos();
+            g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
 
             return;
         }
@@ -137,7 +136,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
 
         // TODO: detect a popup in a more consistent way.
-        if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible) {
+        if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible || !pWindow->m_bIsX11) {
             // if it's not, fall back to the center placement
             pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
         } else {
@@ -179,9 +178,8 @@ void IHyprLayout::onBeginDragWindow() {
     }
 
     if (DRAGGINGWINDOW->m_bIsFullscreen) {
-        Debug::log(LOG, "Rejecting drag on a fullscreen window.");
-        g_pInputManager->currentlyDraggedWindow = nullptr;
-        return;
+        Debug::log(LOG, "Dragging a fullscreen window");
+        g_pCompositor->setWindowFullscreen(DRAGGINGWINDOW, false, FULLSCREEN_FULL);
     }
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(DRAGGINGWINDOW->m_iWorkspaceID);
@@ -395,11 +393,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow, bool preserveSpecialWorkspace) {
 
     if (pWindow->m_bIsFullscreen) {
-        Debug::log(LOG, "Rejecting a change float order because window is fullscreen.");
-
-        // restore its' floating mode
-        pWindow->m_bIsFloating = !pWindow->m_bIsFloating;
-        return;
+        Debug::log(LOG, "changeWindowFloatingMode: fullscreen");
+        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
     }
 
     pWindow->m_bPinned = false;

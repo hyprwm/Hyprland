@@ -77,7 +77,8 @@ class CHyprRenderer {
 
   private:
     void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
-    void renderWorkspaceWithFullscreenWindow(CMonitor*, CWorkspace*, timespec*);
+    void renderWorkspaceWindowsFullscreen(CMonitor*, CWorkspace*, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
+    void renderWorkspaceWindows(CMonitor*, CWorkspace*, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
     void renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
     void renderLayer(SLayerSurface*, CMonitor*, timespec*);
     void renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);

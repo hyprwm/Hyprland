@@ -108,10 +108,12 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:cursor_zoom_factor"].floatValue         = 1.f;
     configValues["misc:cursor_zoom_rigid"].intValue            = 0;
     configValues["misc:allow_session_lock_restore"].intValue   = 0;
+    configValues["misc:groupbar_scrolling"].intValue           = 1;
     configValues["misc:group_insert_after_current"].intValue   = 1;
     configValues["misc:render_titles_in_groupbar"].intValue    = 1;
     configValues["misc:groupbar_titles_font_size"].intValue    = 8;
     configValues["misc:groupbar_gradients"].intValue           = 1;
+    configValues["misc:close_special_on_empty"].intValue       = 1;
     configValues["misc:groupbar_text_color"].intValue          = 0xffffffff;
     configValues["misc:background_color"].intValue             = 0xff111111;
 
@@ -1975,11 +1977,6 @@ void CConfigManager::dispatchExecOnce() {
     g_pInputManager->setTouchDeviceConfigs();
     g_pInputManager->setTabletConfigs();
 
-    // set ws names again
-    for (auto& ws : g_pCompositor->m_vWorkspaces) {
-        wlr_ext_workspace_handle_v1_set_name(ws->m_pWlrHandle, ws->m_szName.c_str());
-    }
-
     // check for user's possible errors with their setup and notify them if needed
     g_pCompositor->performUserChecks();
 }
@@ -2084,9 +2081,8 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             if (m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
 
-                if (!wlr_output_commit(m->output)) {
+                if (!wlr_output_commit(m->output))
                     Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
-                }
             }
             m->vrrActive = false;
             return;
@@ -2099,9 +2095,8 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                     wlr_output_enable_adaptive_sync(m->output, 0);
                 }
 
-                if (!wlr_output_commit(m->output)) {
+                if (!wlr_output_commit(m->output))
                     Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
-                }
             }
             m->vrrActive = true;
             return;
@@ -2114,7 +2109,9 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             if (!PWORKSPACE)
                 return; // ???
 
-            if (PWORKSPACE->m_bHasFullscreenWindow && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED) {
+            const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
+
+            if (WORKSPACEFULL && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED) {
                 wlr_output_enable_adaptive_sync(m->output, 1);
 
                 if (!wlr_output_test(m->output)) {
@@ -2122,15 +2119,14 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                     wlr_output_enable_adaptive_sync(m->output, 0);
                 }
 
-                if (!wlr_output_commit(m->output)) {
+                if (!wlr_output_commit(m->output))
                     Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
-                }
-            } else if (!PWORKSPACE->m_bHasFullscreenWindow && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
+
+            } else if (!WORKSPACEFULL && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
 
-                if (!wlr_output_commit(m->output)) {
+                if (!wlr_output_commit(m->output))
                     Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
-                }
             }
         }
     };

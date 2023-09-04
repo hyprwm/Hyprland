@@ -441,8 +441,8 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
 
     float glMatrix[9];
     wlr_matrix_identity(glMatrix);
-    wlr_matrix_scale(glMatrix, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
     wlr_matrix_translate(glMatrix, -frame->box.x, -frame->box.y);
+    wlr_matrix_scale(glMatrix, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
 
     if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, frame->buffer)) {
         wlr_texture_destroy(sourceTex);

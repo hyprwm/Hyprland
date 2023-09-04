@@ -386,6 +386,8 @@ void unregisterVar(void* ptr) {
 }
 
 void CWindow::onUnmap() {
+    static auto* const PCLOSEONLASTSPECIAL = &g_pConfigManager->getConfigValuePtr("misc:close_special_on_empty")->intValue;
+
     if (g_pCompositor->m_pLastWindow == this)
         g_pCompositor->m_pLastWindow = nullptr;
 
@@ -405,6 +407,12 @@ void CWindow::onUnmap() {
     m_pWLSurface.unassign();
 
     hyprListener_unmapWindow.removeCallback();
+
+    if (*PCLOSEONLASTSPECIAL && g_pCompositor->getWindowsOnWorkspace(m_iWorkspaceID) == 0 && g_pCompositor->isWorkspaceSpecial(m_iWorkspaceID)) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        if (PMONITOR && PMONITOR->specialWorkspaceID == m_iWorkspaceID)
+            PMONITOR->setSpecialWorkspace(nullptr);
+    }
 }
 
 void CWindow::onMap() {
@@ -653,6 +661,27 @@ CWindow* CWindow::getGroupCurrent() {
     return curr;
 }
 
+int CWindow::getGroupSize() {
+    int      size = 1;
+    CWindow* curr = this;
+    while (curr->m_sGroupData.pNextWindow != this) {
+        curr = curr->m_sGroupData.pNextWindow;
+        size++;
+    }
+    return size;
+}
+
+CWindow* CWindow::getGroupWindowByIndex(int index) {
+    const int SIZE = getGroupSize();
+    index          = ((index % SIZE) + SIZE) % SIZE;
+    CWindow* curr  = getGroupHead();
+    while (index > 0) {
+        curr = curr->m_sGroupData.pNextWindow;
+        index--;
+    }
+    return curr;
+}
+
 void CWindow::setGroupCurrent(CWindow* pWindow) {
     CWindow* curr     = this->m_sGroupData.pNextWindow;
     bool     isMember = false;
@@ -701,10 +730,8 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
 }
 
 void CWindow::insertWindowToGroup(CWindow* pWindow) {
-    static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
-
-    const auto         BEGINAT = *USECURRPOS ? this : getGroupTail();
-    const auto         ENDAT   = *USECURRPOS ? m_sGroupData.pNextWindow : getGroupHead();
+    const auto BEGINAT = this;
+    const auto ENDAT   = m_sGroupData.pNextWindow;
 
     if (!pWindow->m_sGroupData.pNextWindow) {
         BEGINAT->m_sGroupData.pNextWindow = pWindow;

@@ -136,7 +136,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
     return false;
 }
 
-void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
+void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
     CWindow* pWorkspaceWindow = nullptr;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
@@ -201,51 +201,92 @@ void CHyprRenderer::renderWorkspaceWithFullscreenWindow(CMonitor* pMonitor, CWor
 
         renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
+}
 
-    // and then special windows
-    if (pMonitor->specialWorkspaceID)
-        for (auto& w : g_pCompositor->m_vWindows) {
-            if (!g_pCompositor->windowValidMapped(w.get()) && !w->m_bFadingOut)
-                continue;
+void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time) {
+    CWindow* lastWindow = nullptr;
 
-            if (w->m_iWorkspaceID != pMonitor->specialWorkspaceID)
-                continue;
+    EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
-            if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
-                continue;
+    // Non-floating main
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
 
-            // render the bad boy
-            renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+        if (w->m_bIsFloating)
+            continue; // floating are in the second pass
+
+        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+            continue; // special are in the third pass
+
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+            continue;
+
+        // render active window after all others of this pass
+        if (w.get() == g_pCompositor->m_pLastWindow) {
+            lastWindow = w.get();
+            continue;
         }
 
-    EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);
-
-    // and the overlay layers
-    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (ls->alpha.fl() != 0.f)
-            renderLayer(ls.get(), pMonitor, time);
+        // render the bad boy
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_MAIN);
     }
 
-    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ls.get(), pMonitor, time);
+    if (lastWindow)
+        renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
+
+    // Non-floating popup
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
+
+        if (w->m_bIsFloating)
+            continue; // floating are in the second pass
+
+        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+            continue; // special are in the third pass
+
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+            continue;
+
+        // render the bad boy
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_POPUP);
     }
 
-    renderDragIcon(pMonitor, time);
+    // floating on top
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
 
-    // if correct monitor draw hyprerror
-    if (pMonitor == g_pCompositor->m_vMonitors.front().get())
-        g_pHyprError->draw();
+        if (!w->m_bIsFloating || w->m_bPinned)
+            continue;
 
-    if (g_pSessionLockManager->isSessionLocked()) {
-        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
+        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+            continue;
 
-        if (!PSLS) {
-            // locked with no surface, fill with red
-            wlr_box boxe = {0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));
-        } else {
-            renderSessionLockSurface(PSLS, pMonitor, time);
-        }
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+            continue;
+
+        // render the bad boy
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+    }
+
+    // pinned always above
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
+
+        if (!w->m_bPinned || !w->m_bIsFloating)
+            continue;
+
+        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+            continue;
+
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+            continue;
+
+        // render the bad boy
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
 }
 
@@ -484,7 +525,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
         !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.vec() != Vector2D{}) {
 
-        if (!g_pHyprOpenGL->preBlurQueued())
+        if (!g_pHyprOpenGL->m_RenderData.pCurrentMonData->blurFBShouldRender)
             setOccludedForBackLayers(g_pHyprOpenGL->m_RenderData.damage, pWorkspace);
 
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
@@ -500,99 +541,12 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     // pre window pass
     g_pHyprOpenGL->preWindowPass();
 
-    // if there is a fullscreen window, render it and then do not render anymore.
-    // fullscreen window will hide other windows and top layers
+    if (pWorkspace->m_bHasFullscreenWindow)
+        renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
+    else
+        renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
-    if (pWorkspace->m_bHasFullscreenWindow) {
-        renderWorkspaceWithFullscreenWindow(pMonitor, pWorkspace, time);
-        g_pHyprOpenGL->m_RenderData.renderModif = {};
-        return;
-    }
-
-    CWindow* lastWindow = nullptr;
-
-    EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
-
-    // Non-floating main
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
-            continue;
-
-        if (w->m_bIsFloating)
-            continue; // floating are in the second pass
-
-        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue; // special are in the third pass
-
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
-            continue;
-
-        // render active window after all others of this pass
-        if (w.get() == g_pCompositor->m_pLastWindow) {
-            lastWindow = w.get();
-            continue;
-        }
-
-        // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_MAIN);
-    }
-
-    if (lastWindow)
-        renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
-
-    // Non-floating popup
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
-            continue;
-
-        if (w->m_bIsFloating)
-            continue; // floating are in the second pass
-
-        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue; // special are in the third pass
-
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
-            continue;
-
-        // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_POPUP);
-    }
-
-    // floating on top
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
-            continue;
-
-        if (!w->m_bIsFloating || w->m_bPinned)
-            continue;
-
-        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue;
-
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
-            continue;
-
-        // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
-    }
-
-    // pinned always above
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
-            continue;
-
-        if (!w->m_bPinned || !w->m_bIsFloating)
-            continue;
-
-        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue;
-
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
-            continue;
-
-        // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
-    }
+    g_pHyprOpenGL->m_RenderData.renderModif = {};
 
     // and then special
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
@@ -1881,8 +1835,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }
 
-    wlr_output_enable(pMonitor->output, 1);
-
     // update renderer (here because it will call rollback, so we cannot do this before committing)
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 
@@ -1973,7 +1925,7 @@ static int handleCrashLoop(void* data) {
     g_pHyprRenderer->m_fCrashingDistort += 0.5f;
 
     if (g_pHyprRenderer->m_fCrashingDistort >= 5.5f)
-        *((int*)nullptr) = 1337;
+        raise(SIGABRT);
 
     wl_event_source_timer_update(g_pHyprRenderer->m_pCrashingLoop, 1000);
 

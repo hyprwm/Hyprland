@@ -71,6 +71,7 @@ endif()
 
 include_directories(
   .
+  "src/"
   "subprojects/wlroots/include/"
   "subprojects/wlroots/build/include/"
   "subprojects/udis86/"
@@ -168,6 +169,10 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
+message(STATUS "Setting precompiled headers")
+
+target_precompile_headers(Hyprland PRIVATE $<$<COMPILE_LANGUAGE:CXX>:src/pch/pch.hpp>)
+
 message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland rt PkgConfig::deps)
@@ -200,7 +205,6 @@ target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
 )
 
-protocol("protocols/ext-workspace-unstable-v1.xml" "ext-workspace-unstable-v1" true)
 protocol("protocols/idle.xml" "idle" true)
 protocol("protocols/pointer-constraints-unstable-v1.xml" "pointer-constraints-unstable-v1" true)
 protocol("protocols/tablet-unstable-v2.xml" "tablet-unstable-v2" true)

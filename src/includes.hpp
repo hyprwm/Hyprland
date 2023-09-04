@@ -70,7 +70,7 @@ extern "C" {
 #include <wlr/types/wlr_xdg_output_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_subcompositor.h>
-#include <wlr/types/wlr_scene.h>
+#include <wlr/types/wlr_damage_ring.h>
 #include <wlr/types/wlr_input_inhibitor.h>
 #include <wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
@@ -145,6 +145,3 @@ extern "C" {
 #endif
 
 #include "helpers/Vector2D.hpp"
-
-#include "ext-workspace-unstable-v1-protocol.h"
-#include "wlrunstable/wlr_ext_workspace_v1.hpp"

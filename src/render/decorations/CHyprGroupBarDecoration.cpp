@@ -7,7 +7,7 @@
 static CTexture m_tGradientActive;
 static CTexture m_tGradientInactive;
 
-CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) {
+CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
 }
 
@@ -57,15 +57,10 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
     }
 
     m_dwGroupMembers.clear();
-    CWindow* curr = pWindow;
-    CWindow* head = nullptr;
-    while (!curr->m_sGroupData.head) {
-        curr = curr->m_sGroupData.pNextWindow;
-    }
+    CWindow* head = pWindow->getGroupHead();
+    m_dwGroupMembers.push_back(head);
 
-    head = curr;
-    m_dwGroupMembers.push_back(curr);
-    curr = curr->m_sGroupData.pNextWindow;
+    CWindow* curr = head->m_sGroupData.pNextWindow;
     while (curr != head) {
         m_dwGroupMembers.push_back(curr);
         curr = curr->m_sGroupData.pNextWindow;
@@ -305,4 +300,8 @@ void CHyprGroupBarDecoration::refreshGradients() {
 
     renderGradientTo(m_tGradientActive, ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0]);
     renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0]);
+}
+
+bool CHyprGroupBarDecoration::allowsInput() {
+    return true;
 }

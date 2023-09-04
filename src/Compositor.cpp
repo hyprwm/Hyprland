@@ -165,9 +165,6 @@ void CCompositor::initServer() {
 
     m_sWLROutputPowerMgr = wlr_output_power_manager_v1_create(m_sWLDisplay);
 
-    m_sWLRScene = wlr_scene_create();
-    wlr_scene_attach_output_layout(m_sWLRScene, m_sWLROutputLayout);
-
     m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 5);
 
     m_sWLRCursor = wlr_cursor_create();
@@ -202,8 +199,6 @@ void CCompositor::initServer() {
 
     m_sWLRInhibitMgr     = wlr_input_inhibit_manager_create(m_sWLDisplay);
     m_sWLRKbShInhibitMgr = wlr_keyboard_shortcuts_inhibit_v1_create(m_sWLDisplay);
-
-    m_sWLREXTWorkspaceMgr = wlr_ext_workspace_manager_v1_create(m_sWLDisplay);
 
     m_sWLRPointerConstraints = wlr_pointer_constraints_v1_create(m_sWLDisplay);
 
@@ -912,16 +907,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     updateWindowAnimatedDecorationValues(pWindow);
 
-    // Handle urgency hint on the workspace
-    if (pWindow->m_bIsUrgent) {
+    if (pWindow->m_bIsUrgent)
         pWindow->m_bIsUrgent = false;
-        if (!hasUrgentWindowOnWorkspace(pWindow->m_iWorkspaceID)) {
-            const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
-            if (PWORKSPACE->m_pWlrHandle) {
-                wlr_ext_workspace_handle_v1_set_urgent(PWORKSPACE->m_pWlrHandle, 0);
-            }
-        }
-    }
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
@@ -1483,13 +1470,6 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
     return nullptr;
 }
 
-void CCompositor::deactivateAllWLRWorkspaces(wlr_ext_workspace_handle_v1* exclude) {
-    for (auto& w : m_vWorkspaces) {
-        if (w->m_pWlrHandle && w->m_pWlrHandle != exclude)
-            w->setActive(false);
-    }
-}
-
 CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow, bool focusableOnly) {
     bool gotToWindow = false;
     for (auto& w : m_vWindows) {
@@ -1564,15 +1544,6 @@ CWorkspace* CCompositor::getWorkspaceByString(const std::string& str) {
         std::string name = "";
         return getWorkspaceByID(getWorkspaceIDFromString(str, name));
     } catch (std::exception& e) { Debug::log(ERR, "Error in getWorkspaceByString, invalid id"); }
-
-    return nullptr;
-}
-
-CWorkspace* CCompositor::getWorkspaceByWorkspaceHandle(const wlr_ext_workspace_handle_v1* handle) {
-    for (auto& ws : m_vWorkspaces) {
-        if (ws->m_pWlrHandle == handle)
-            return ws.get();
-    }
 
     return nullptr;
 }
@@ -2371,10 +2342,6 @@ CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, con
 
     const auto PWORKSPACE = m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(monID, NAME, SPECIAL)).get();
 
-    // We are required to set the name here immediately
-    if (!SPECIAL)
-        wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, NAME.c_str());
-
     PWORKSPACE->m_iID        = id;
     PWORKSPACE->m_iMonitorID = monID;
 
@@ -2391,7 +2358,6 @@ void CCompositor::renameWorkspace(const int& id, const std::string& name) {
         return;
 
     Debug::log(LOG, "renameWorkspace: Renaming workspace %d to '%s'", id, name.c_str());
-    wlr_ext_workspace_handle_v1_set_name(PWORKSPACE->m_pWlrHandle, name.c_str());
     PWORKSPACE->m_szName = name;
 }
 

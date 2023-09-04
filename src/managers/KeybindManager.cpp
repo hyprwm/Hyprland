@@ -196,8 +196,6 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     const auto PNEWMAINWORKSPACE = g_pCompositor->getWorkspaceByID(monitor->activeWorkspace);
 
     g_pCompositor->setActiveMonitor(monitor);
-    g_pCompositor->deactivateAllWLRWorkspaces(PNEWMAINWORKSPACE->m_pWlrHandle);
-    PNEWMAINWORKSPACE->setActive(true);
     PNEWMAINWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
 
     const auto PNEWWORKSPACE = monitor->specialWorkspaceID != 0 ? g_pCompositor->getWorkspaceByID(monitor->specialWorkspaceID) : PNEWMAINWORKSPACE;
@@ -217,7 +215,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
 }
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
-    if (!g_pCompositor->m_bSessionActive) {
+    if (!g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
         m_dPressedKeycodes.clear();
         m_dPressedKeysyms.clear();
         return true;
@@ -387,16 +385,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
-    if (pressed && !m_vHeldBack.empty()) {
-        // release the held back events
-        for (auto& k : m_vHeldBack)
-            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, time, k, WL_KEYBOARD_KEY_STATE_PRESSED);
-        m_vHeldBack.clear();
-    }
-
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap ||
-            (!pressed && !k.release && k.handler != "pass" && k.handler != "mouse" && k.handler != "global") || k.shadowed)
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -418,17 +408,20 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
                 continue;
         }
 
-        if (pressed && k.release) {
+        if (pressed && k.release && k.handler != "global") {
             if (k.nonConsuming)
                 continue;
 
-            found = true;
+            found = true; // suppress the event
+            continue;
+        }
 
-            if (k.transparent)
+        if (!pressed && !k.release && k.handler != "global") {
+            if (k.nonConsuming)
                 continue;
 
-            // suppress down event
-            m_vHeldBack.push_back(keysym);
+            found = true; // suppress the event
+            continue;
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
@@ -1015,13 +1008,9 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
             if (PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
                 // event
-                const auto PNEWMON       = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
-                const auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOWTOCHANGETO->m_iWorkspaceID);
+                const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
 
                 g_pCompositor->setActiveMonitor(PNEWMON);
-
-                g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
-                PNEWWORKSPACE->setActive(true);
             }
         }
     };
@@ -1168,9 +1157,9 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
     // If the window to change to is on the same workspace, switch them
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
-    if (PWINDOWTOCHANGETO && PWINDOWTOCHANGETO->m_iWorkspaceID == PLASTWINDOW->m_iWorkspaceID) {
-        g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
-        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.vec() + PWINDOWTOCHANGETO->m_vRealSize.vec() / 2.0);
+    if (PWINDOWTOCHANGETO) {
+        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args);
+        g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.goalv() + PLASTWINDOW->m_vRealSize.goalv() / 2.0);
         return;
     }
 
@@ -1223,13 +1212,13 @@ void CKeybindManager::toggleGroup(std::string args) {
                 w->m_sGroupData.head = false;
             }
 
-            bool prevState                     = g_pKeybindManager->m_bGroupsLocked;
+            const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
             g_pKeybindManager->m_bGroupsLocked = true;
             for (auto& w : members) {
                 g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
                 w->updateWindowDecos();
             }
-            g_pKeybindManager->m_bGroupsLocked = prevState;
+            g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
         }
     }
 
@@ -1251,10 +1240,7 @@ void CKeybindManager::changeGroupActive(std::string args) {
     if (args != "b" && args != "prev") {
         PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
     } else {
-        CWindow* curr = PWINDOW->m_sGroupData.pNextWindow;
-        while (curr->m_sGroupData.pNextWindow != PWINDOW)
-            curr = curr->m_sGroupData.pNextWindow;
-        PWINDOW->setGroupCurrent(curr);
+        PWINDOW->setGroupCurrent(PWINDOW->getGroupPrevious());
     }
 }
 
@@ -1513,7 +1499,6 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     }
 
     bool       requestedWorkspaceIsAlreadyOpen = false;
-    bool       requestedWorkspaceExists        = g_pCompositor->getWorkspaceByID(workspaceID);
     const auto PMONITOR                        = *PFOLLOWMOUSE == 1 ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->m_pLastMonitor;
     int        specialOpenOnMonitor            = PMONITOR->specialWorkspaceID;
 
@@ -1524,39 +1509,12 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         }
     }
 
-    if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID)
-        Debug::log(LOG, "Toggling special workspace %d to closed", workspaceID);
-    else
-        Debug::log(LOG, "Toggling special workspace %d to open", workspaceID);
-
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor
+        Debug::log(LOG, "Toggling special workspace %d to closed", workspaceID);
         PMONITOR->setSpecialWorkspace(nullptr);
-    } else if (requestedWorkspaceIsAlreadyOpen) {
-        // already open on another monitor
-
-        if (specialOpenOnMonitor) {
-            g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID)->startAnim(false, false);
-            PMONITOR->specialWorkspaceID = 0;
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-        }
-
-        // move to current
-        const auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
-        const auto POLDMON           = g_pCompositor->getMonitorFromID(PSPECIALWORKSPACE->m_iMonitorID);
-
-        POLDMON->specialWorkspaceID = 0;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
-        PMONITOR->specialWorkspaceID = workspaceID;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-        PSPECIALWORKSPACE->m_iMonitorID = PMONITOR->ID;
-
-        if (const auto PWINDOW = PSPECIALWORKSPACE->getLastFocusedWindow(); PWINDOW)
-            g_pCompositor->focusWindow(PWINDOW);
-        else
-            g_pInputManager->refocus();
     } else {
-        // not open anywhere
+        Debug::log(LOG, "Toggling special workspace %d to open", workspaceID);
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
         if (!PSPECIALWORKSPACE)
@@ -1948,9 +1906,28 @@ void CKeybindManager::mouse(std::string args) {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
-            g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
-            g_pInputManager->dragMode               = MBIND_MOVE;
+            const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+            CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
+            if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords) && pWindow->m_sGroupData.pNextWindow) {
+                const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+                if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+                    const int SIZE = pWindow->getGroupSize();
+                    pWindow        = pWindow->getGroupWindowByIndex((mouseCoords.x - box.x) * SIZE / box.width);
+
+                    // hack
+                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+                    if (!pWindow->m_bIsFloating) {
+                        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+                        g_pKeybindManager->m_bGroupsLocked = true;
+                        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+                        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+                    }
+                }
+            }
+
+            g_pInputManager->currentlyDraggedWindow = pWindow;
+            g_pInputManager->dragMode               = MBIND_MOVE;
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;
@@ -2043,7 +2020,7 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOW || PWINDOW->m_bIsFloating)
         return;
 
-    const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
+    auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
 
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
@@ -2055,6 +2032,9 @@ void CKeybindManager::moveIntoGroup(std::string args) {
         PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW); // This removes groupped property!
+
+    static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+    PWINDOWINDIR                  = *USECURRPOS ? PWINDOWINDIR : PWINDOWINDIR->getGroupTail();
 
     PWINDOWINDIR->insertWindowToGroup(PWINDOW);
     PWINDOWINDIR->setGroupCurrent(PWINDOW);
@@ -2084,7 +2064,7 @@ void CKeybindManager::global(std::string args) {
     const auto APPID = args.substr(0, args.find_first_of(':'));
     const auto NAME  = args.substr(args.find_first_of(':') + 1);
 
-    if (APPID.empty() || NAME.empty())
+    if (NAME.empty())
         return;
 
     if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))

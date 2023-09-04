@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../defines.hpp"
+#include "../../helpers/Region.hpp"
 
 enum eDecorationType {
     DECORATION_NONE = -1,
@@ -19,6 +20,7 @@ class CMonitor;
 
 class IHyprWindowDecoration {
   public:
+    IHyprWindowDecoration(CWindow*);
     virtual ~IHyprWindowDecoration() = 0;
 
     virtual SWindowDecorationExtents getWindowDecorationExtents() = 0;
@@ -33,5 +35,10 @@ class IHyprWindowDecoration {
 
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
+    virtual CRegion                  getWindowDecorationRegion();
+
     virtual bool                     allowsInput();
+
+  private:
+    CWindow* m_pWindow = nullptr;
 };

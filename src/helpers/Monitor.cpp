@@ -145,13 +145,6 @@ void CMonitor::onConnect(bool noRule) {
     Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %lx", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x,
                (int)vecPixelSize.y, output);
 
-    // add a WLR workspace group
-    if (!pWLRWorkspaceGroupHandle) {
-        pWLRWorkspaceGroupHandle = wlr_ext_workspace_group_handle_v1_create(g_pCompositor->m_sWLREXTWorkspaceMgr);
-    }
-
-    wlr_ext_workspace_group_handle_v1_output_enter(pWLRWorkspaceGroupHandle, output);
-
     setupDefaultWS(monitorRule);
 
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
@@ -259,33 +252,31 @@ void CMonitor::onDisconnect() {
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
-
-        hyprListener_monitorStateRequest.removeCallback();
-        hyprListener_monitorDestroy.removeCallback();
-
         g_pCompositor->m_bUnsafeState = true;
-
-        std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
-
-        return;
     }
 
-    // snap cursor
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f,
-                    BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
+    if (BACKUPMON) {
+        // snap cursor
+        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f,
+                        BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
 
-    // move workspaces
-    std::deque<CWorkspace*> wspToMove;
-    for (auto& w : g_pCompositor->m_vWorkspaces) {
-        if (w->m_iMonitorID == ID) {
-            wspToMove.push_back(w.get());
+        // move workspaces
+        std::deque<CWorkspace*> wspToMove;
+        for (auto& w : g_pCompositor->m_vWorkspaces) {
+            if (w->m_iMonitorID == ID) {
+                wspToMove.push_back(w.get());
+            }
         }
-    }
 
-    for (auto& w : wspToMove) {
-        w->m_szLastMonitor = szName;
-        g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
-        w->startAnim(true, true, true);
+        for (auto& w : wspToMove) {
+            w->m_szLastMonitor = szName;
+            g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
+            w->startAnim(true, true, true);
+        }
+    } else {
+        g_pCompositor->m_pLastFocus   = nullptr;
+        g_pCompositor->m_pLastWindow  = nullptr;
+        g_pCompositor->m_pLastMonitor = nullptr;
     }
 
     activeWorkspace = -1;
@@ -295,8 +286,6 @@ void CMonitor::onDisconnect() {
     wlr_output_enable(output, false);
 
     wlr_output_commit(output);
-
-    std::erase_if(g_pCompositor->m_vWorkspaces, [&](std::unique_ptr<CWorkspace>& el) { return el->m_iMonitorID == ID; });
 
     if (g_pCompositor->m_pLastMonitor == this)
         g_pCompositor->setActiveMonitor(BACKUPMON);
@@ -392,15 +381,11 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
 
         PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(ID, newDefaultWorkspaceName)).get();
 
-        // We are required to set the name here immediately
-        wlr_ext_workspace_handle_v1_set_name(PNEWWORKSPACE->m_pWlrHandle, newDefaultWorkspaceName.c_str());
-
         PNEWWORKSPACE->m_iID = WORKSPACEID;
     }
 
     activeWorkspace = PNEWWORKSPACE->m_iID;
 
-    g_pCompositor->deactivateAllWLRWorkspaces(PNEWWORKSPACE->m_pWlrHandle);
     PNEWWORKSPACE->setActive(true);
     PNEWWORKSPACE->m_szLastMonitor = "";
 }
@@ -527,13 +512,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
         return;
     }
 
-    if (pWorkspace->m_iID == activeWorkspace) {
-        // in some cases (e.g. workspace from one monitor to another)
-        // we need to send this
-        g_pCompositor->deactivateAllWLRWorkspaces(pWorkspace->m_pWlrHandle);
-        pWorkspace->setActive(true);
+    if (pWorkspace->m_iID == activeWorkspace)
         return;
-    }
 
     const auto POLDWORKSPACE = g_pCompositor->getWorkspaceByID(activeWorkspace);
 
@@ -574,9 +554,6 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
-        // set some flags and fire event
-        g_pCompositor->deactivateAllWLRWorkspaces(pWorkspace->m_pWlrHandle);
-        pWorkspace->setActive(true);
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_szName});
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }
@@ -595,8 +572,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
 
     if (!pWorkspace) {
         // remove special if exists
-        if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL)
+        if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL) {
             EXISTINGSPECIAL->startAnim(false, false);
+            g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + szName});
+        }
         specialWorkspaceID = 0;
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
@@ -615,10 +594,21 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
             EXISTINGSPECIAL->startAnim(false, false);
     }
 
+    bool animate = true;
+    //close if open elsewhere
+    const auto PMONITORWORKSPACEOWNER = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+    if (PMONITORWORKSPACEOWNER->specialWorkspaceID == pWorkspace->m_iID) {
+        PMONITORWORKSPACEOWNER->specialWorkspaceID = 0;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITORWORKSPACEOWNER->ID);
+        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITORWORKSPACEOWNER->szName});
+        animate = false;
+    }
+
     // open special
     pWorkspace->m_iMonitorID = ID;
     specialWorkspaceID       = pWorkspace->m_iID;
-    pWorkspace->startAnim(true, true);
+    if (animate)
+        pWorkspace->startAnim(true, true);
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == pWorkspace->m_iID) {
@@ -633,6 +623,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         g_pCompositor->focusWindow(PLAST);
     else
         g_pInputManager->refocus();
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {

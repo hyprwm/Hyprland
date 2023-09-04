@@ -2090,9 +2090,8 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             if (m->vrrActive) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
 
-                if (!wlr_output_commit(m->output)) {
+                if (!wlr_output_commit(m->output))
                     Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
-                }
             }
             m->vrrActive = false;
             return;
@@ -2105,9 +2104,8 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                     wlr_output_enable_adaptive_sync(m->output, 0);
                 }
 
-                if (!wlr_output_commit(m->output)) {
+                if (!wlr_output_commit(m->output))
                     Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
-                }
             }
             m->vrrActive = true;
             return;
@@ -2120,7 +2118,9 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             if (!PWORKSPACE)
                 return; // ???
 
-            if (PWORKSPACE->m_bHasFullscreenWindow && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED) {
+            const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
+
+            if (WORKSPACEFULL && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED) {
                 wlr_output_enable_adaptive_sync(m->output, 1);
 
                 if (!wlr_output_test(m->output)) {
@@ -2128,15 +2128,14 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                     wlr_output_enable_adaptive_sync(m->output, 0);
                 }
 
-                if (!wlr_output_commit(m->output)) {
+                if (!wlr_output_commit(m->output))
                     Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
-                }
-            } else if (!PWORKSPACE->m_bHasFullscreenWindow && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
+
+            } else if (!WORKSPACEFULL && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
 
-                if (!wlr_output_commit(m->output)) {
+                if (!wlr_output_commit(m->output))
                     Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
-                }
             }
         }
     };

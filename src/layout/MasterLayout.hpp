@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IHyprLayout.hpp"
+#include "../config/ConfigManager.hpp"
 #include <vector>
 #include <list>
 #include <deque>
@@ -32,7 +33,7 @@ struct SMasterNodeData {
     int      workspaceID = -1;
 
     bool     operator==(const SMasterNodeData& rhs) const {
-        return pWindow == rhs.pWindow;
+            return pWindow == rhs.pWindow;
     }
 };
 
@@ -41,7 +42,7 @@ struct SMasterWorkspaceData {
     eOrientation orientation = ORIENTATION_LEFT;
 
     bool         operator==(const SMasterWorkspaceData& rhs) const {
-        return workspaceID == rhs.workspaceID;
+                return workspaceID == rhs.workspaceID;
     }
 };
 
@@ -71,6 +72,9 @@ class CHyprMasterLayout : public IHyprLayout {
 
     bool                              m_bForceWarps = false;
 
+    void                              buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, CVarList& vars);
+    void                              buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle);
+    void                              runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);
     int                               getNodesOnWorkspace(const int&);
     void                              applyNodeDataToWindow(SMasterNodeData*);
     SMasterNodeData*                  getNodeFromWindow(CWindow*);

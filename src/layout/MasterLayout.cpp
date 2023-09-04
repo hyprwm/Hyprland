@@ -1080,42 +1080,71 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         recalculateMonitor(header.pWindow->m_iMonitorID);
 
     } else if (command == "orientationnext") {
-        const auto PWINDOW = header.pWindow;
-
-        if (!PWINDOW)
-            return 0;
-
-        prepareLoseFocus(PWINDOW);
-
-        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
-
-        if (PWORKSPACEDATA->orientation == ORIENTATION_CENTER) {
-            PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
-        } else {
-            PWORKSPACEDATA->orientation = (eOrientation)(PWORKSPACEDATA->orientation + 1);
-        }
-
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        runOrientationCycle(header, nullptr, 1);
     } else if (command == "orientationprev") {
-        const auto PWINDOW = header.pWindow;
-
-        if (!PWINDOW)
-            return 0;
-
-        prepareLoseFocus(PWINDOW);
-
-        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
-
-        if (PWORKSPACEDATA->orientation == ORIENTATION_LEFT) {
-            PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
-        } else {
-            PWORKSPACEDATA->orientation = (eOrientation)(PWORKSPACEDATA->orientation - 1);
-        }
-
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        runOrientationCycle(header, nullptr, -1);
+    } else if (command == "orientationcycle") {
+        runOrientationCycle(header, &vars, 1);
     }
 
     return 0;
+}
+
+// If vars is null, we use the default list
+void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int direction) {
+    std::vector<eOrientation> cycle;
+    if (vars != nullptr)
+        buildOrientationCycleVectorFromVars(cycle, *vars);
+
+    if (cycle.size() == 0)
+        buildOrientationCycleVectorFromEOperation(cycle);
+
+    const auto PWINDOW = header.pWindow;
+
+    if (!PWINDOW)
+        return;
+
+    prepareLoseFocus(PWINDOW);
+
+    const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
+
+    int        nextOrPrev = 0;
+    for (size_t i = 0; i < cycle.size(); ++i) {
+        if (PWORKSPACEDATA->orientation == cycle.at(i)) {
+            nextOrPrev = i + direction;
+            break;
+        }
+    }
+
+    if (nextOrPrev >= (int)cycle.size())
+        nextOrPrev = nextOrPrev % (int)cycle.size();
+    else if (nextOrPrev < 0)
+        nextOrPrev = cycle.size() + (nextOrPrev % (int)cycle.size());
+
+    PWORKSPACEDATA->orientation = cycle.at(nextOrPrev);
+    recalculateMonitor(header.pWindow->m_iMonitorID);
+}
+
+void CHyprMasterLayout::buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle) {
+    for (int i = 0; i <= ORIENTATION_CENTER; ++i) {
+        cycle.push_back((eOrientation)i);
+    }
+}
+
+void CHyprMasterLayout::buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, CVarList& vars) {
+    for (size_t i = 1; i < vars.size(); ++i) {
+        if (vars[i] == "top") {
+            cycle.push_back(ORIENTATION_TOP);
+        } else if (vars[i] == "right") {
+            cycle.push_back(ORIENTATION_RIGHT);
+        } else if (vars[i] == "bottom") {
+            cycle.push_back(ORIENTATION_BOTTOM);
+        } else if (vars[i] == "left") {
+            cycle.push_back(ORIENTATION_LEFT);
+        } else if (vars[i] == "center") {
+            cycle.push_back(ORIENTATION_CENTER);
+        }
+    }
 }
 
 void CHyprMasterLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {

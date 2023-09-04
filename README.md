@@ -143,3 +143,4 @@ easy IPC, much more QoL stuff than other wlr-based compositors and more...
 [Badge License]: https://img.shields.io/github/license/hyprwm/Hyprland
 [Badge Lines]: https://img.shields.io/tokei/lines/github/hyprwm/Hyprland
 [Badge Hi Mom]: https://img.shields.io/badge/Hi-mom!-ff69b4
+Ayee It's Aryan here lol hehe

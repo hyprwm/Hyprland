@@ -7,14 +7,16 @@
 #include "Color.hpp"
 #include "../macros.hpp"
 
-enum ANIMATEDVARTYPE {
+enum ANIMATEDVARTYPE
+{
     AVARTYPE_INVALID = -1,
     AVARTYPE_FLOAT,
     AVARTYPE_VECTOR,
     AVARTYPE_COLOR
 };
 
-enum AVARDAMAGEPOLICY {
+enum AVARDAMAGEPOLICY
+{
     AVARDAMAGE_NONE   = -1,
     AVARDAMAGE_ENTIRE = 0,
     AVARDAMAGE_BORDER,
@@ -34,10 +36,10 @@ class CAnimatedVariable {
     void create(ANIMATEDVARTYPE, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
     void create(ANIMATEDVARTYPE, std::any val, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
 
-    CAnimatedVariable(const CAnimatedVariable&)            = delete;
-    CAnimatedVariable(CAnimatedVariable&&)                 = delete;
+    CAnimatedVariable(const CAnimatedVariable&) = delete;
+    CAnimatedVariable(CAnimatedVariable&&)      = delete;
     CAnimatedVariable& operator=(const CAnimatedVariable&) = delete;
-    CAnimatedVariable& operator=(CAnimatedVariable&&)      = delete;
+    CAnimatedVariable& operator=(CAnimatedVariable&&) = delete;
 
     ~CAnimatedVariable();
 
@@ -75,6 +77,9 @@ class CAnimatedVariable {
     }
 
     CAnimatedVariable& operator=(const Vector2D& v) {
+        if (v == m_vGoal)
+            return *this;
+
         m_vGoal        = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun       = m_vValue;
@@ -85,6 +90,9 @@ class CAnimatedVariable {
     }
 
     CAnimatedVariable& operator=(const float& v) {
+        if (v == m_fGoal)
+            return *this;
+
         m_fGoal        = v;
         animationBegin = std::chrono::system_clock::now();
         m_fBegun       = m_fValue;
@@ -95,6 +103,9 @@ class CAnimatedVariable {
     }
 
     CAnimatedVariable& operator=(const CColor& v) {
+        if (v == m_cGoal)
+            return *this;
+
         m_cGoal        = v;
         animationBegin = std::chrono::system_clock::now();
         m_cBegun       = m_cValue;
@@ -106,6 +117,9 @@ class CAnimatedVariable {
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const Vector2D& v) {
+        if (v == m_vValue)
+            return;
+
         m_vValue       = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun       = m_vValue;
@@ -115,6 +129,9 @@ class CAnimatedVariable {
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const float& v) {
+        if (v == m_fValue)
+            return;
+
         m_fValue       = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun       = m_vValue;
@@ -124,6 +141,9 @@ class CAnimatedVariable {
 
     // Sets the actual stored value, without affecting the goal, but resets the timer
     void setValue(const CColor& v) {
+        if (v == m_cValue)
+            return;
+
         m_cValue       = v;
         animationBegin = std::chrono::system_clock::now();
         m_vBegun       = m_vValue;

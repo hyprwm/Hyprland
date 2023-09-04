@@ -260,6 +260,30 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 PMONITOR = g_pCompositor->m_pLastMonitor;
             }
         }
+    } else {
+        auto       pWorkspace    = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+        auto       workspaceRule = pWorkspace ? g_pConfigManager->getWorkspaceRuleFor(pWorkspace) : SWorkspaceRule{};
+        const auto PMONITOR      = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+
+        int        maxSize = workspaceRule.maxSize;
+        if (maxSize != 0 && maxSize < g_pCompositor->getWindowsOnWorkspace(pWorkspace->m_iID)) {
+            if (pWorkspace->m_bIsSpecialWorkspace) {
+                PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
+                PMONITOR->setSpecialWorkspace(nullptr);
+            }
+
+            pWorkspace    = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+            workspaceRule = pWorkspace ? g_pConfigManager->getWorkspaceRuleFor(pWorkspace) : SWorkspaceRule{};
+            maxSize       = workspaceRule.maxSize;
+            if (maxSize != 0 && maxSize < g_pCompositor->getWindowsOnWorkspace(pWorkspace->m_iID)) {
+                std::string requestedWorkspaceName;
+                const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString("empty", requestedWorkspaceName);
+                // doesn't exist since it's empty
+                pWorkspace              = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->m_iMonitorID, requestedWorkspaceName);
+                PWINDOW->m_iWorkspaceID = pWorkspace->m_iID;
+                g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
+            }
+        }
     }
 
     if (PWINDOW->m_bIsFloating) {

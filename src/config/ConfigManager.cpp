@@ -1431,10 +1431,14 @@ void CConfigManager::parseLine(std::string& line) {
             currentCategory = cat;
         }
 
+        onOpenCategory();
+
         return;
     }
 
     if (line.contains("}") && currentCategory != "") {
+
+        onCloseCategory();
 
         const auto LASTSEP = currentCategory.find_last_of(':');
 
@@ -1461,6 +1465,23 @@ void CConfigManager::parseLine(std::string& line) {
     //
 
     parseKeyword(COMMAND, VALUE);
+}
+
+void CConfigManager::onOpenCategory() {
+    if (currentCategory.starts_with("submap")) {
+        const size_t index = currentCategory.find_first_of("-");
+        if (index == std::string::npos)
+            parseError = "submap does not have a name";
+        else {
+            const std::string submapName = currentCategory.substr(index + 1);
+            handleSubmap("submap", submapName);
+        }
+    }
+}
+
+void CConfigManager::onCloseCategory() {
+    if (currentCategory.starts_with("submap"))
+        handleSubmap("submap", "reset");
 }
 
 void CConfigManager::loadConfigLoadVars() {

@@ -275,6 +275,8 @@ class CConfigManager {
     void         handleBindWS(const std::string&, const std::string&);
     void         handleEnv(const std::string&, const std::string&);
     void         handlePlugin(const std::string&, const std::string&);
+    void         onOpenCategory();
+    void         onCloseCategory();
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

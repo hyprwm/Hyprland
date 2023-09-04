@@ -114,7 +114,6 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:groupbar_titles_font_size"].intValue    = 8;
     configValues["misc:groupbar_gradients"].intValue           = 1;
     configValues["misc:close_special_on_empty"].intValue       = 1;
-    configValues["misc:isolate_special"].intValue              = 0;
     configValues["misc:groupbar_text_color"].intValue          = 0xffffffff;
     configValues["misc:background_color"].intValue             = 0xff111111;
 
@@ -1159,6 +1158,8 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
             wsRule.monitor = rule.substr(delim + 8);
         else if ((delim = rule.find("default:")) != std::string::npos)
             wsRule.isDefault = configStringToInt(rule.substr(delim + 8));
+        else if ((delim = rule.find("maxsize:")) != std::string::npos)
+            wsRule.maxSize = configStringToInt(rule.substr(delim + 8));
     };
 
     size_t      pos = 0;

@@ -1030,6 +1030,10 @@ void CInputManager::setPointerConfigs() {
 
             libinput_device_config_scroll_set_button(LIBINPUTDEV, SCROLLBUTTON == 0 ? libinput_device_config_scroll_get_default_button(LIBINPUTDEV) : SCROLLBUTTON);
 
+            const auto SCROLLBUTTONLOCK = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "scroll_button_lock", 0) : g_pConfigManager->getInt("input:scroll_button_lock");
+
+            libinput_device_config_scroll_set_button_lock(LIBINPUTDEV, SCROLLBUTTONLOCK == 0 ? LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_DISABLED : LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_ENABLED);
+
             Debug::log(LOG, "Applied config to mouse {}, sens {:.2f}", m.name.c_str(), LIBINPUTSENS);
         }
     }

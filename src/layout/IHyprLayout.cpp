@@ -31,24 +31,19 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             pWindow->m_sGroupData.pNextWindow = nullptr;
         else {
             // find last window and update
-            CWindow*   curr           = pWindow;
-            const auto CURRWASVISIBLE = curr->getGroupCurrent() == curr;
+            CWindow*   PWINDOWPREV     = pWindow->getGroupPrevious();
+            const auto WINDOWISVISIBLE = pWindow->getGroupCurrent() == pWindow;
 
-            while (curr->m_sGroupData.pNextWindow != pWindow)
-                curr = curr->m_sGroupData.pNextWindow;
+            if (WINDOWISVISIBLE)
+                PWINDOWPREV->setGroupCurrent(PWINDOWPREV);
 
-            if (CURRWASVISIBLE)
-                curr->setGroupCurrent(curr);
-
-            curr->m_sGroupData.pNextWindow = pWindow->m_sGroupData.pNextWindow;
+            PWINDOWPREV->m_sGroupData.pNextWindow = pWindow->m_sGroupData.pNextWindow;
 
             pWindow->m_sGroupData.pNextWindow = nullptr;
 
             if (pWindow->m_sGroupData.head) {
-                pWindow->m_sGroupData.head   = false;
-                curr->m_sGroupData.head      = true;
-                curr->m_sGroupData.locked    = pWindow->m_sGroupData.locked;
-                pWindow->m_sGroupData.locked = false;
+                std::swap(PWINDOWPREV->m_sGroupData.head, pWindow->m_sGroupData.head);
+                std::swap(PWINDOWPREV->m_sGroupData.locked, pWindow->m_sGroupData.locked);
             }
 
             if (pWindow == m_pLastTiledWindow)
@@ -57,7 +52,7 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             pWindow->setHidden(false);
 
             pWindow->updateWindowDecos();
-            curr->getGroupCurrent()->updateWindowDecos();
+            PWINDOWPREV->getGroupCurrent()->updateWindowDecos();
             g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
 
             return;

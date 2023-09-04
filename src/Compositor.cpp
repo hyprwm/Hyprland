@@ -1164,6 +1164,16 @@ int CCompositor::getWindowsOnWorkspace(const int& id) {
     return no;
 }
 
+int CCompositor::getVisibleWindowsOnWorkspace(const int& id) {
+    int no = 0;
+    for (auto& w : m_vWindows) {
+        if (w->m_iWorkspaceID == id && w->m_bIsMapped && !w->isHidden())
+            no++;
+    }
+
+    return no;
+}
+
 CWindow* CCompositor::getUrgentWindow() {
     for (auto& w : m_vWindows) {
         if (w->m_bIsMapped && w->m_bIsUrgent)

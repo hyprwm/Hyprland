@@ -153,6 +153,7 @@ class CCompositor {
     void           sanityCheckWorkspaces();
     void           updateWorkspaceWindowDecos(const int&);
     int            getWindowsOnWorkspace(const int&);
+    int            getVisibleWindowsOnWorkspace(const int&);
     CWindow*       getUrgentWindow();
     bool           hasUrgentWindowOnWorkspace(const int&);
     CWindow*       getFirstWindowOnWorkspace(const int&);

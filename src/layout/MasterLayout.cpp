@@ -743,6 +743,15 @@ SWindowRenderLayoutHints CHyprMasterLayout::requestRenderHints(CWindow* pWindow)
     return hints; // master doesnt have any hints
 }
 
+void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
+    if (!isDirection(dir))
+        return;
+
+    const auto PWINDOW2 = g_pCompositor->getWindowInDirection(pWindow, dir[0]);
+
+    switchWindows(pWindow, PWINDOW2);
+}
+
 void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     // windows should be valid, insallah
 

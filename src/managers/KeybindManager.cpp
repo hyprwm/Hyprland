@@ -1160,9 +1160,9 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
     // If the window to change to is on the same workspace, switch them
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
-    if (PWINDOWTOCHANGETO && PWINDOWTOCHANGETO->m_iWorkspaceID == PLASTWINDOW->m_iWorkspaceID) {
-        g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
-        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.vec() + PWINDOWTOCHANGETO->m_vRealSize.vec() / 2.0);
+    if (PWINDOWTOCHANGETO) {
+        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args);
+        g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.goalv() + PLASTWINDOW->m_vRealSize.goalv() / 2.0);
         return;
     }
 

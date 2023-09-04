@@ -245,11 +245,13 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     PNODE->layout      = this;
 
     SDwindleNodeData* OPENINGON;
-    const auto        MONFROMCURSOR = g_pCompositor->getMonitorFromCursor();
+
+    const auto        MOUSECOORDS   = m_vOverrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
+    const auto        MONFROMCURSOR = g_pCompositor->getMonitorFromVector(MOUSECOORDS);
 
     if (PMONITOR->ID == MONFROMCURSOR->ID &&
         (PNODE->workspaceID == PMONITOR->activeWorkspace || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->specialWorkspaceID)) && !*PUSEACTIVE) {
-        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
+        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(MOUSECOORDS));
 
         // happens on reserved area
         if (!OPENINGON && g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID) > 0)
@@ -260,7 +262,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
             g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsMapped) {
             OPENINGON = getNodeFromWindow(g_pCompositor->m_pLastWindow);
         } else {
-            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal()));
+            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(MOUSECOORDS));
         }
 
         if (!OPENINGON && g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID) > 0)
@@ -311,8 +313,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
         return;
     }
-
-    const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     // if it's a group, add the window
     if (OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&
@@ -882,6 +882,41 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
         return hints; // left for the future, maybe floating funkiness
 
     return hints;
+}
+
+void CHyprDwindleLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
+    if (!isDirection(dir))
+        return;
+
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE)
+        return;
+
+    Vector2D focalPoint;
+
+    switch (dir[0]) {
+        case 't':
+        case 'u': focalPoint = pWindow->m_vPosition + Vector2D{pWindow->m_vSize.x / 2.f, -1}; break;
+        case 'd':
+        case 'b': focalPoint = pWindow->m_vPosition + Vector2D{pWindow->m_vSize.x / 2.f, pWindow->m_vSize.y + 1}; break;
+        case 'l': focalPoint = pWindow->m_vPosition + Vector2D{-1, pWindow->m_vSize.y / 2.f}; break;
+        case 'r': focalPoint = pWindow->m_vPosition + Vector2D{pWindow->m_vSize.x + 1, pWindow->m_vSize.y / 2.f}; break;
+        default: UNREACHABLE();
+    }
+
+    onWindowRemovedTiling(pWindow);
+
+    m_vOverrideFocalPoint = focalPoint;
+
+    const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(focalPoint);
+
+    pWindow->moveToWorkspace(PMONITORFOCAL->activeWorkspace);
+    pWindow->m_iMonitorID = PMONITORFOCAL->ID;
+
+    onWindowCreatedTiling(pWindow);
+
+    m_vOverrideFocalPoint.reset();
 }
 
 void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {

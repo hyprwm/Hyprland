@@ -15,7 +15,8 @@ struct SLayoutMessageHeader {
 
 enum eFullscreenMode : uint8_t;
 
-enum eRectCorner {
+enum eRectCorner
+{
     CORNER_NONE = 0,
     CORNER_TOPLEFT,
     CORNER_TOPRIGHT,
@@ -121,6 +122,12 @@ class IHyprLayout {
         The layout is free to ignore.
     */
     virtual void switchWindows(CWindow*, CWindow*) = 0;
+
+    /*
+        Called when the user requests a window move in a direction.
+        The layout is free to ignore.
+    */
+    virtual void moveWindowTo(CWindow*, const std::string& direction) = 0;
 
     /*
         Called when the user requests to change the splitratio by or to X

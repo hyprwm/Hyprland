@@ -5,11 +5,13 @@
 #include <deque>
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include <array>
+#include <optional>
 
 class CHyprDwindleLayout;
 enum eFullscreenMode : uint8_t;
 
-enum OneTimeFocus {
+enum OneTimeFocus
+{
     UP = 0,
     RIGHT,
     DOWN,
@@ -60,6 +62,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
     virtual void                     switchWindows(CWindow*, CWindow*);
+    virtual void                     moveWindowTo(CWindow*, const std::string& dir);
     virtual void                     alterSplitRatio(CWindow*, float, bool);
     virtual std::string              getLayoutName();
     virtual void                     replaceWindowDataWith(CWindow* from, CWindow* to);
@@ -77,15 +80,17 @@ class CHyprDwindleLayout : public IHyprLayout {
         bool yExtent = false;
     } m_PseudoDragFlags;
 
-    int               getNodesOnWorkspace(const int&);
-    void              applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
-    SDwindleNodeData* getNodeFromWindow(CWindow*);
-    SDwindleNodeData* getFirstNodeOnWorkspace(const int&);
-    SDwindleNodeData* getMasterNodeOnWorkspace(const int&);
+    std::optional<Vector2D> m_vOverrideFocalPoint; // for onWindowCreatedTiling.
 
-    void              toggleSplit(CWindow*);
+    int                     getNodesOnWorkspace(const int&);
+    void                    applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
+    SDwindleNodeData*       getNodeFromWindow(CWindow*);
+    SDwindleNodeData*       getFirstNodeOnWorkspace(const int&);
+    SDwindleNodeData*       getMasterNodeOnWorkspace(const int&);
 
-    OneTimeFocus      overrideDirection = OneTimeFocus::NOFOCUS;
+    void                    toggleSplit(CWindow*);
+
+    OneTimeFocus            overrideDirection = OneTimeFocus::NOFOCUS;
 
     friend struct SDwindleNodeData;
 };

@@ -9,7 +9,8 @@
 enum eFullscreenMode : uint8_t;
 
 //orientation determines which side of the screen the master area resides
-enum eOrientation : uint8_t {
+enum eOrientation : uint8_t
+{
     ORIENTATION_LEFT = 0,
     ORIENTATION_TOP,
     ORIENTATION_RIGHT,
@@ -56,6 +57,7 @@ class CHyprMasterLayout : public IHyprLayout {
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
     virtual void                     switchWindows(CWindow*, CWindow*);
+    virtual void                     moveWindowTo(CWindow*, const std::string& dir);
     virtual void                     alterSplitRatio(CWindow*, float, bool);
     virtual std::string              getLayoutName();
     virtual void                     replaceWindowDataWith(CWindow* from, CWindow* to);

@@ -168,8 +168,8 @@ struct SConstraint {
 
     bool                       active = false;
 
-    bool                       hintSet = false;
-    Vector2D                   positionHint; // the position hint, but will be set to the current cursor pos if not set.
+    bool                       hintSet      = false;
+    Vector2D                   positionHint = {-1, -1}; // the position hint, but will be set to the current cursor pos if not set.
 
     DYNLISTENER(setConstraintRegion);
     DYNLISTENER(destroyConstraint);

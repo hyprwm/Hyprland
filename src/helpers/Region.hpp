@@ -45,6 +45,7 @@ class CRegion {
     wlr_box                     getExtents();
     bool                        containsPoint(const Vector2D& vec);
     bool                        empty();
+    Vector2D                    closestPoint(const Vector2D& vec);
 
     std::vector<pixman_box32_t> getRects() const;
 

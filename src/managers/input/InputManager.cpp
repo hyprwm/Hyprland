@@ -146,7 +146,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 // we restrict the cursor to the confined region
                 if (!pixman_region32_contains_point(&PCONSTRAINT->constraint->region, mouseCoords.x - CONSTRAINTPOS.x, mouseCoords.y - CONSTRAINTPOS.y, nullptr)) {
                     if (g_pCompositor->m_sSeat.mouse->constraintActive) {
-                        wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, NULL, mouseCoords.x, mouseCoords.y);
+                        const auto CLOSEST = CRegion(&PCONSTRAINT->constraint->region).closestPoint(mouseCoords - CONSTRAINTPOS) + CONSTRAINTPOS;
+                        wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, NULL, CLOSEST.x, CLOSEST.y);
                         mouseCoords = getMouseCoordsInternal();
                     }
                 } else {
@@ -1230,9 +1231,6 @@ void CInputManager::warpMouseToConstraintMiddle(SConstraint* pConstraint) {
     if (!pConstraint)
         return;
 
-    pConstraint->positionHint = Vector2D(pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
-    pConstraint->hintSet      = true;
-
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(pConstraint->constraint->surface);
 
     if (PWINDOW) {
@@ -1242,8 +1240,18 @@ void CInputManager::warpMouseToConstraintMiddle(SConstraint* pConstraint) {
             PWINDOW->m_vRealPosition.goalv();
         const auto HINTSCALE  = PWINDOW->m_fX11SurfaceScaledBy;
 
-        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, RELATIVETO.x + pConstraint->positionHint.x / HINTSCALE, RELATIVETO.y + pConstraint->positionHint.y / HINTSCALE);
-        wlr_seat_pointer_warp(pConstraint->constraint->seat, pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
+        if (pConstraint->hintSet) {
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, RELATIVETO.x + pConstraint->positionHint.x / HINTSCALE, RELATIVETO.y + pConstraint->positionHint.y / HINTSCALE);
+            wlr_seat_pointer_warp(pConstraint->constraint->seat, pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
+        } else {
+            const auto RELATIVESIZE = PWINDOW->m_bIsX11 ?
+                (PWINDOW->m_bIsMapped ? PWINDOW->m_vRealSize.goalv() :
+                                        g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height})) :
+                PWINDOW->m_vRealSize.goalv();
+
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, RELATIVETO.x + RELATIVESIZE.x / 2.f, RELATIVETO.y + RELATIVESIZE.y / 2.f);
+            wlr_seat_pointer_warp(pConstraint->constraint->seat, RELATIVESIZE.x / 2.f, RELATIVESIZE.y / 2.f);
+        }
     }
 }
 
@@ -1259,8 +1267,7 @@ void CInputManager::unconstrainMouse() {
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);
 
     const auto PCONSTRAINT = constraintFromWlr(g_pCompositor->m_sSeat.mouse->currentConstraint);
-    warpMouseToConstraintMiddle(PCONSTRAINT);
-    PCONSTRAINT->active = false;
+    PCONSTRAINT->active    = false;
 
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
 
@@ -1569,7 +1576,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

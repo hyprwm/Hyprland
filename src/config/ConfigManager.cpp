@@ -1301,7 +1301,11 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     } else if (COMMAND == "monitor")
         handleMonitor(COMMAND, VALUE);
     else if (COMMAND.find("bind") == 0)
-        handleBind(COMMAND, VALUE);
+        handleBind("bind", VALUE);
+    else if (COMMAND.find("reset") == 0) {
+        if (m_szCurrentSubmap != "")
+            handleBind("bind", VALUE + ",submap,reset");
+    }
     else if (COMMAND == "unbind")
         handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace")

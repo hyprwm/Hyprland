@@ -1303,7 +1303,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     } else if (COMMAND == "monitor")
         handleMonitor(COMMAND, VALUE);
     else if (COMMAND.find("bind") == 0)
-        handleBind("bind", VALUE);
+        handleBind(COMMAND, VALUE);
     else if (COMMAND == "unbind")
         handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace")

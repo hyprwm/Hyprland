@@ -1427,14 +1427,15 @@ void CKeybindManager::renameWorkspace(std::string args) {
     try {
         const auto FIRSTSPACEPOS = args.find_first_of(' ');
         if (FIRSTSPACEPOS != std::string::npos) {
-            int         workspace = std::stoi(args.substr(0, FIRSTSPACEPOS));
-            std::string name      = args.substr(FIRSTSPACEPOS + 1);
+            int workspace = std::stoi(args.substr(0, FIRSTSPACEPOS));
+            std::string name = args.substr(FIRSTSPACEPOS + 1);
             g_pCompositor->renameWorkspace(workspace, name);
-            EMIT_HOOK_EVENT("rename", (std::vector<void*>{workspace, name}));
         } else {
+            int workspace = std::stoi(args);
+            std::string name = "";
             g_pCompositor->renameWorkspace(std::stoi(args), "");
-            EMIT_HOOK_EVENT("rename", (std::vector<void*>{std::stoi(args), ""}));
         }
+        EMIT_HOOK_EVENT("renameWorkspace", (std::vector<void*>{workspace, name}));
     } catch (std::exception& e) {
         Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"%s\": \"%s\"", args.c_str(), e.what());
     }

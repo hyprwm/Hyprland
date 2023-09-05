@@ -52,12 +52,8 @@ namespace Debug {
         ofs.open(logFile, std::ios::out | std::ios::app);
 
         // print date and time to the ofs
-        if (disableTime && !*disableTime) {
-            auto       timet  = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-            const auto MILLIS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 1000;
-
+        if (disableTime && !*disableTime)
             logMsg += std::format("[{:%T}] ", std::chrono::hh_mm_ss{std::chrono::system_clock::now() - std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now())});
-        }
 
         logMsg += std::vformat(fmt, std::make_format_args(args...));
 

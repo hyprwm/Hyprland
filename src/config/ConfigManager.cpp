@@ -1182,8 +1182,10 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
 }
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
-    if (submap == "reset")
+    if (submap == "reset") {
+        runSubmapDelay();
         m_szCurrentSubmap = Submap("");
+    }
     else
         m_szCurrentSubmap = Submap(submap);
 }
@@ -1465,7 +1467,7 @@ void CConfigManager::parseLine(std::string& line) {
     const auto VALUE   = removeBeginEndSpacesTabs(line.substr(EQUALSPLACE + 1));
     //
 
-    if (m_szCurrentSubmap.isParsingSubmap())
+    if (m_szCurrentSubmap.isParsingSubmap() && COMMAND != "submap")
         m_szCurrentSubmap.addToDelayList(COMMAND, VALUE);
     else
         parseKeyword(COMMAND, VALUE);
@@ -1485,13 +1487,12 @@ void CConfigManager::onOpenCategory() {
 
 void CConfigManager::onCloseCategory() {
     if (currentCategory.starts_with("submap")) {
-        runSubmapDelay();
         handleSubmap("submap", "reset");
     }
 }
 
 void CConfigManager::runSubmapDelay() {
-    bool hasAtLeastOneResetBind = false;
+    bool hasAtLeastOneResetBind = !currentCategory.starts_with("submap");
     for (auto parse : m_szCurrentSubmap.getDelayList()) {
         if (parse.command.find("reset") == 0) {
             this->parseKeyword("bind", parse.value + ",submap,reset");

@@ -753,7 +753,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     Debug::log(LOG, "Window {:x} destroyed, queueing. (class {})", (uintptr_t)PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
     if (PWINDOW->m_bIsX11)
-        Debug::log(LOG, "XWayland class raw: {}", PWINDOW->m_uSurface.xwayland->_class);
+        Debug::log(LOG, "XWayland class raw: {}", PWINDOW->m_uSurface.xwayland->_class ? PWINDOW->m_uSurface.xwayland->_class : "null");
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) {
         g_pCompositor->m_pLastWindow = nullptr;

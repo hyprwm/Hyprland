@@ -2369,6 +2369,8 @@ void CCompositor::renameWorkspace(const int& id, const std::string& name) {
 
     Debug::log(LOG, "renameWorkspace: Renaming workspace %d to '%s'", id, name.c_str());
     PWORKSPACE->m_szName = name;
+
+    g_pEventManager->postEvent({"renameworkspace", std::to_string(PWORKSPACE->m_iID) + "," + PWORKSPACE->m_szName});
 }
 
 void CCompositor::setActiveMonitor(CMonitor* pMonitor) {

@@ -975,13 +975,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
     // damage region will be scaled, make a temp
     CRegion tempDamage{damage};
-    wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / 2.f); // when DOWNscaling, we make the region twice as small because it's the TARGET
-
-    drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage);
 
     // and draw
-    for (int i = 1; i < *PBLURPASSES; ++i) {
-        wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / (1 << (i + 1)));
+    for (int i = 1; i <= *PBLURPASSES; ++i) {
+        wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / (1 << i));
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage); // down
     }
 

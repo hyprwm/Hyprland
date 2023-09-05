@@ -870,12 +870,13 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
+            g_pKeybindManager->addKeybind(
+                SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
         else if (KEY.find("code:") == 0 && isNumber(KEY.substr(5)))
             g_pKeybindManager->addKeybind(
-                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
+                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
     }
 }
 
@@ -1182,9 +1183,9 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
     if (submap == "reset")
-        m_szCurrentSubmap = "";
+        m_szCurrentSubmap = Submap("");
     else
-        m_szCurrentSubmap = submap;
+        m_szCurrentSubmap = Submap(submap);
 }
 
 void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
@@ -1302,10 +1303,6 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleMonitor(COMMAND, VALUE);
     else if (COMMAND.find("bind") == 0)
         handleBind("bind", VALUE);
-    else if (COMMAND.find("reset") == 0) {
-        if (m_szCurrentSubmap != "")
-            handleBind("bind", VALUE + ",submap,reset");
-    }
     else if (COMMAND == "unbind")
         handleUnbind(COMMAND, VALUE);
     else if (COMMAND == "workspace")
@@ -1468,7 +1465,10 @@ void CConfigManager::parseLine(std::string& line) {
     const auto VALUE   = removeBeginEndSpacesTabs(line.substr(EQUALSPLACE + 1));
     //
 
-    parseKeyword(COMMAND, VALUE);
+    if (m_szCurrentSubmap.isParsingSubmap())
+        m_szCurrentSubmap.addToDelayList(COMMAND, VALUE);
+    else
+        parseKeyword(COMMAND, VALUE);
 }
 
 void CConfigManager::onOpenCategory() {
@@ -1484,8 +1484,25 @@ void CConfigManager::onOpenCategory() {
 }
 
 void CConfigManager::onCloseCategory() {
-    if (currentCategory.starts_with("submap"))
+    if (currentCategory.starts_with("submap")) {
+        runSubmapDelay();
         handleSubmap("submap", "reset");
+    }
+}
+
+void CConfigManager::runSubmapDelay() {
+    for (auto parse : m_szCurrentSubmap.getDelayList()) {
+        if (parse.command.find("reset") == 0)
+            this->parseKeyword("bind", parse.value + ",submap,reset");
+        else {
+            this->parseKeyword(parse.command, parse.value);
+
+            if (!m_szCurrentSubmap.getPersist() && parse.command.find("bind") == 0) {
+                CVarList p(parse.value);
+                this->parseKeyword("bind", p[0] + "," + p[1] + ",submap,reset");
+            }
+        }
+    }
 }
 
 void CConfigManager::loadConfigLoadVars() {

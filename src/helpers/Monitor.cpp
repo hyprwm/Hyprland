@@ -83,9 +83,8 @@ void CMonitor::onConnect(bool noRule) {
 
         wlr_output_enable(output, 0);
 
-        if (!wlr_output_commit(output)) {
+        if (!wlr_output_commit(output))
             Debug::log(ERR, "Couldn't commit disabled state on output %s", output->name);
-        }
 
         Events::listener_change(nullptr, nullptr);
 
@@ -126,11 +125,6 @@ void CMonitor::onConnect(bool noRule) {
     }
 
     m_bEnabled = true;
-
-    // create it in the arr
-    vecPosition = monitorRule.offset;
-    vecSize     = monitorRule.resolution;
-    refreshRate = monitorRule.refreshRate;
 
     wlr_output_enable(output, 1);
 

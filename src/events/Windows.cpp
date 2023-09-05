@@ -1060,9 +1060,9 @@ void Events::listener_dissociateX11(void* owner, void* data) {
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     const auto XWSURFACE = (wlr_xwayland_surface*)data;
 
-    Debug::log(LOG, "New XWayland Surface created (class {}).", XWSURFACE->_class);
+    Debug::log(LOG, "New XWayland Surface created (class {}).", XWSURFACE->_class ? XWSURFACE->_class : "null");
     if (XWSURFACE->parent)
-        Debug::log(LOG, "Window parent data: {} at {:x}", XWSURFACE->parent->_class, (uintptr_t)XWSURFACE->parent);
+        Debug::log(LOG, "Window parent data: {} at {:x}",  XWSURFACE->parent->_class ? XWSURFACE->parent->_class : "null", (uintptr_t)XWSURFACE->parent);
 
     const auto PNEWWINDOW = (CWindow*)g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
 

@@ -540,7 +540,7 @@ void CAnimationManager::scheduleTick() {
     const auto PMOSTHZ = g_pHyprRenderer->m_pMostHzMonitor;
 
     if (!PMOSTHZ) {
-        wl_event_source_timer_update(m_pAnimationTick, 16.f);
+        wl_event_source_timer_update(m_pAnimationTick, 16);
         return;
     }
 

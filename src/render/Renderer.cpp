@@ -1541,6 +1541,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     if (!pMonitor->m_bEnabled) {
         pMonitor->onConnect(true); // enable it.
+        Debug::log(LOG, "Monitor %s is disabled but is requested to be enabled", pMonitor->szName.c_str());
         force = true;
     }
 

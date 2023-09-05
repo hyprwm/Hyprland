@@ -1,16 +1,17 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 struct ParseObject {
     const std::string command;
     const std::string value;
 };
 
-class Submap {
+class SubmapBuilder {
 
   public:
-    Submap(std::string name) {
+    SubmapBuilder(std::string name) {
         this->name    = name;
         this->persist = true;
     }
@@ -23,18 +24,14 @@ class Submap {
         return this->name != "";
     }
 
-    void setPersist(bool persist) {
-        this->persist = persist;
-    }
-
     bool getPersist() {
         return this->persist;
     }
 
     void addToDelayList(const std::string COMMAND, const std::string VALUE) {
-        if (COMMAND == "persist") {
-            this->setPersist(VALUE == "true");
-        } else
+        if (COMMAND == "persist")
+            this->persist = VALUE == "true";
+        else
             this->toParseList.push_back(ParseObject{.command = COMMAND, .value = VALUE});
     }
 

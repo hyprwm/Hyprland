@@ -18,7 +18,7 @@
 
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
-#include "Submap.hpp"
+#include "SubmapBuilder.hpp"
 
 #define STRVAL_EMPTY "[[EMPTY]]"
 
@@ -221,7 +221,7 @@ class CConfigManager {
 
     std::string                                                                                parseError = ""; // For storing a parse error to display later
 
-    Submap                                                                                     m_szCurrentSubmap = Submap(""); // For storing the current keybind submap
+    SubmapBuilder                                                                              m_szCurrentSubmap = SubmapBuilder(""); // For storing the current keybind submap
 
     std::vector<SExecRequestedRule>                                                            execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 
@@ -250,7 +250,7 @@ class CConfigManager {
     void         setDeviceDefaultVars(const std::string&);
     void         populateEnvironment();
 
-    void         runSubmapDelay();
+    void         runDelayedSubmapBindings();
 
     void         setAnimForChildren(SAnimationPropertyConfig* const);
     void         updateBlurredLS(const std::string&, const bool);

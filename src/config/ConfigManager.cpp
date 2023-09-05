@@ -1183,11 +1183,10 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
     if (submap == "reset") {
-        runSubmapDelay();
-        m_szCurrentSubmap = Submap("");
-    }
-    else
-        m_szCurrentSubmap = Submap(submap);
+        runDelayedSubmapBindings();
+        m_szCurrentSubmap = SubmapBuilder("");
+    } else
+        m_szCurrentSubmap = SubmapBuilder(submap);
 }
 
 void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
@@ -1467,6 +1466,9 @@ void CConfigManager::parseLine(std::string& line) {
     const auto VALUE   = removeBeginEndSpacesTabs(line.substr(EQUALSPLACE + 1));
     //
 
+    // COMMAND != "submap" is to support the old format. Otherwise, it should not be needed
+    // To allow the persist option, wait to parse the full submap before
+    // adding the binding (see onCloseCategory)
     if (m_szCurrentSubmap.isParsingSubmap() && COMMAND != "submap")
         m_szCurrentSubmap.addToDelayList(COMMAND, VALUE);
     else
@@ -1491,18 +1493,21 @@ void CConfigManager::onCloseCategory() {
     }
 }
 
-void CConfigManager::runSubmapDelay() {
+void CConfigManager::runDelayedSubmapBindings() {
+    // This is here to support the old format, otherwise this should be false
     bool hasAtLeastOneResetBind = !currentCategory.starts_with("submap");
+
     for (auto parse : m_szCurrentSubmap.getDelayList()) {
         if (parse.command.find("reset") == 0) {
             this->parseKeyword("bind", parse.value + ",submap,reset");
             hasAtLeastOneResetBind = true;
-        }
-        else {
+        } else {
             this->parseKeyword(parse.command, parse.value);
 
             if (!m_szCurrentSubmap.getPersist() && parse.command.find("bind") == 0) {
                 CVarList p(parse.value);
+
+                // We create a new reset binding for each "bind", when persist is false
                 this->parseKeyword("bind", p[0] + "," + p[1] + ",submap,reset");
             }
         }

@@ -1467,8 +1467,8 @@ void CConfigManager::parseLine(std::string& line) {
     //
 
     // COMMAND != "submap" is to support the old format. Otherwise, it should not be needed
-    // To allow the persist option, wait to parse the full submap before
-    // adding the binding (see onCloseCategory)
+    // To allow the persist option, we wait to parse the full submap before
+    // adding the bindings (see onCloseCategory)
     if (m_szCurrentSubmap.isParsingSubmap() && COMMAND != "submap")
         m_szCurrentSubmap.addToDelayList(COMMAND, VALUE);
     else

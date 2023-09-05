@@ -1491,9 +1491,12 @@ void CConfigManager::onCloseCategory() {
 }
 
 void CConfigManager::runSubmapDelay() {
+    bool hasAtLeastOneResetBind = false;
     for (auto parse : m_szCurrentSubmap.getDelayList()) {
-        if (parse.command.find("reset") == 0)
+        if (parse.command.find("reset") == 0) {
             this->parseKeyword("bind", parse.value + ",submap,reset");
+            hasAtLeastOneResetBind = true;
+        }
         else {
             this->parseKeyword(parse.command, parse.value);
 
@@ -1502,6 +1505,10 @@ void CConfigManager::runSubmapDelay() {
                 this->parseKeyword("bind", p[0] + "," + p[1] + ",submap,reset");
             }
         }
+    }
+
+    if (!hasAtLeastOneResetBind) {
+        parseError = "The reset variable is required in a submap";
     }
 }
 

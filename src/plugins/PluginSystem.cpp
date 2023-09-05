@@ -22,7 +22,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     HANDLE MODULE = dlopen(path.c_str(), RTLD_LAZY);
 
     if (!MODULE) {
-        Debug::log(ERR, " [PluginSystem] Plugin %s could not be loaded: %s", path.c_str(), dlerror());
+        Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded: {}", path.c_str(), dlerror());
         m_vLoadedPlugins.pop_back();
         return nullptr;
     }
@@ -33,7 +33,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     PPLUGIN_INIT_FUNC        initFunc   = (PPLUGIN_INIT_FUNC)dlsym(MODULE, PLUGIN_INIT_FUNC_STR);
 
     if (!apiVerFunc || !initFunc) {
-        Debug::log(ERR, " [PluginSystem] Plugin %s could not be loaded. (No apiver/init func)", path.c_str());
+        Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded. (No apiver/init func)", path.c_str());
         dlclose(MODULE);
         m_vLoadedPlugins.pop_back();
         return nullptr;
@@ -42,7 +42,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     const std::string PLUGINAPIVER = apiVerFunc();
 
     if (PLUGINAPIVER != HYPRLAND_API_VERSION) {
-        Debug::log(ERR, " [PluginSystem] Plugin %s could not be loaded. (API version mismatch)", path.c_str());
+        Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded. (API version mismatch)", path.c_str());
         dlclose(MODULE);
         m_vLoadedPlugins.pop_back();
         return nullptr;
@@ -60,7 +60,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
         }
     } catch (std::exception& e) {
         m_bAllowConfigVars = false;
-        Debug::log(ERR, " [PluginSystem] Plugin %s (Handle %lx) crashed in init. Unloading.", path.c_str(), MODULE);
+        Debug::log(ERR, " [PluginSystem] Plugin {} (Handle {:x}) crashed in init. Unloading.", path.c_str(), (uintptr_t)MODULE);
         unloadPlugin(PLUGIN, true); // Plugin could've already hooked/done something
         return nullptr;
     }
@@ -72,8 +72,8 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     PLUGIN->version     = PLUGINDATA.version;
     PLUGIN->name        = PLUGINDATA.name;
 
-    Debug::log(LOG, " [PluginSystem] Plugin %s loaded. Handle: %lx, path: \"%s\", author: \"%s\", description: \"%s\", version: \"%s\"", PLUGINDATA.name.c_str(), MODULE,
-               path.c_str(), PLUGINDATA.author.c_str(), PLUGINDATA.description.c_str(), PLUGINDATA.version.c_str());
+    Debug::log(LOG, " [PluginSystem] Plugin {} loaded. Handle: {:x}, path: \"{}\", author: \"{}\", description: \"{}\", version: \"{}\"", PLUGINDATA.name.c_str(),
+               (uintptr_t)MODULE, path.c_str(), PLUGINDATA.author.c_str(), PLUGINDATA.description.c_str(), PLUGINDATA.version.c_str());
 
     return PLUGIN;
 }
@@ -109,7 +109,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
 
     dlclose(plugin->m_pHandle);
 
-    Debug::log(LOG, " [PluginSystem] Plugin %s unloaded.", plugin->name.c_str());
+    Debug::log(LOG, " [PluginSystem] Plugin {} unloaded.", plugin->name.c_str());
 
     std::erase_if(m_vLoadedPlugins, [&](const auto& other) { return other->m_pHandle == plugin->m_pHandle; });
 
@@ -128,7 +128,7 @@ std::vector<std::string> CPluginSystem::updateConfigPlugins(const std::vector<st
     // unload all plugins that are no longer present
     for (auto& p : m_vLoadedPlugins | std::views::reverse) {
         if (p->m_bLoadedWithConfig && std::find(plugins.begin(), plugins.end(), p->path) == plugins.end()) {
-            Debug::log(LOG, "Unloading plugin %s which is no longer present in config", p->path.c_str());
+            Debug::log(LOG, "Unloading plugin {} which is no longer present in config", p->path.c_str());
             unloadPlugin(p.get(), false);
             changed = true;
         }
@@ -137,7 +137,7 @@ std::vector<std::string> CPluginSystem::updateConfigPlugins(const std::vector<st
     // load all new plugins
     for (auto& path : plugins) {
         if (std::find_if(m_vLoadedPlugins.begin(), m_vLoadedPlugins.end(), [&](const auto& other) { return other->path == path; }) == m_vLoadedPlugins.end()) {
-            Debug::log(LOG, "Loading plugin %s which is now present in config", path.c_str());
+            Debug::log(LOG, "Loading plugin {} which is now present in config", path.c_str());
             const auto plugin = loadPlugin(path);
 
             if (plugin) {

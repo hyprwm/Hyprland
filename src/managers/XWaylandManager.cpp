@@ -21,7 +21,7 @@ CHyprXWaylandManager::CHyprXWaylandManager() {
 
     setenv("DISPLAY", m_sWLRXWayland->display_name, 1);
 
-    Debug::log(LOG, "CHyprXWaylandManager started on display %s", m_sWLRXWayland->display_name);
+    Debug::log(LOG, "CHyprXWaylandManager started on display {}", m_sWLRXWayland->display_name);
 #else
     unsetenv("DISPLAY"); // unset DISPLAY so that X11 apps do not try to start on a different/invalid DISPLAY
 #endif
@@ -129,7 +129,7 @@ std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
             }
         } else
             return "";
-    } catch (std::logic_error& e) { Debug::log(ERR, "Error in getAppIDClass: %s", e.what()); }
+    } catch (std::logic_error& e) { Debug::log(ERR, "Error in getAppIDClass: {}", e.what()); }
 
     return "";
 }
@@ -223,7 +223,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                 if (winrole.contains("pop-up") || winrole.contains("task_dialog")) {
                     return true;
                 }
-            } catch (std::exception& e) { Debug::log(ERR, "Error in shouldBeFloated, winrole threw %s", e.what()); }
+            } catch (std::exception& e) { Debug::log(ERR, "Error in shouldBeFloated, winrole threw {}", e.what()); }
         }
 
         if (pWindow->m_uSurface.xwayland->modal) {

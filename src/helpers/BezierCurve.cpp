@@ -18,7 +18,7 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
 
     m_dPoints.emplace_back(Vector2D(1, 1));
 
-    RASSERT(m_dPoints.size() == 4, "CBezierCurve only supports cubic beziers! (points num: %i)", m_dPoints.size());
+    RASSERT(m_dPoints.size() == 4, "CBezierCurve only supports cubic beziers! (points num: {})", m_dPoints.size());
 
     // bake BAKEDPOINTS points for faster lookups
     // T -> X ( / BAKEDPOINTS )
@@ -34,8 +34,8 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
         getYForPoint(i);
     const auto ELAPSEDCALCAVG = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - BEGINCALC).count() / 1000.f / 10.f;
 
-    Debug::log(LOG, "Created a bezier curve, baked %i points, mem usage: %.2fkB, time to bake: %.2fµs. Estimated average calc time: %.2fµs.", BAKEDPOINTS, POINTSSIZE, ELAPSEDUS,
-               ELAPSEDCALCAVG);
+    Debug::log(LOG, "Created a bezier curve, baked {} points, mem usage: {:.2f}kB, time to bake: {:.2f}µs. Estimated average calc time: {:.2f}µs.", BAKEDPOINTS, POINTSSIZE,
+               ELAPSEDUS, ELAPSEDCALCAVG);
 }
 
 float CBezierCurve::getYForT(float t) {

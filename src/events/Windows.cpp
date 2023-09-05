@@ -134,7 +134,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         if (PMONITOR)
                             PWINDOW->m_iMonitorID = PMONITOR->ID;
                         else {
-                            Debug::log(ERR, "No monitor in monitor %s rule", MONITORSTR.c_str());
+                            Debug::log(ERR, "No monitor in monitor {} rule", MONITORSTR.c_str());
                             continue;
                         }
                     }
@@ -148,8 +148,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 }
                 PWINDOW->m_iWorkspaceID = PMONITOR->specialWorkspaceID ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
 
-                Debug::log(ERR, "Rule monitor, applying to window %lx -> mon: %i, workspace: %i", PWINDOW, PWINDOW->m_iMonitorID, PWINDOW->m_iWorkspaceID);
-            } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: %s -> %s | err: %s", r.szRule.c_str(), r.szValue.c_str(), e.what()); }
+                Debug::log(ERR, "Rule monitor, applying to window {:x} -> mon: {}, workspace: {}", (uintptr_t)PWINDOW, PWINDOW->m_iMonitorID, PWINDOW->m_iWorkspaceID);
+            } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r.szRule.c_str(), r.szValue.c_str(), e.what()); }
         } else if (r.szRule.find("workspace") == 0) {
             // check if it isnt unset
             const auto WORKSPACERQ = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
@@ -165,7 +165,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             if (JUSTWORKSPACE == PWORKSPACE->m_szName || JUSTWORKSPACE == "name:" + PWORKSPACE->m_szName)
                 requestedWorkspace = "";
 
-            Debug::log(LOG, "Rule workspace matched by window %lx, %s applied.", PWINDOW, r.szValue.c_str());
+            Debug::log(LOG, "Rule workspace matched by window {:x}, {} applied.", (uintptr_t)PWINDOW, r.szValue.c_str());
         } else if (r.szRule.find("float") == 0) {
             PWINDOW->m_bIsFloating = true;
         } else if (r.szRule.find("tile") == 0) {
@@ -210,7 +210,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             } else if (IDLERULE == "fullscreen") {
                 PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
             } else {
-                Debug::log(ERR, "Rule idleinhibit: unknown mode %s", IDLERULE.c_str());
+                Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE.c_str());
             }
         }
         PWINDOW->applyDynamicRule(r);
@@ -283,13 +283,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) :
                         (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stof(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
 
-                    Debug::log(LOG, "Rule size, applying to window %lx", PWINDOW);
+                    Debug::log(LOG, "Rule size, applying to window {:x}", (uintptr_t)PWINDOW);
 
                     PWINDOW->m_vRealSize = Vector2D(SIZEX, SIZEY);
                     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
                     PWINDOW->setHidden(false);
-                } catch (...) { Debug::log(LOG, "Rule size failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
+                } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule.c_str(), r.szValue.c_str()); }
             } else if (r.szRule.find("minsize") == 0) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
@@ -303,7 +303,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
                     PWINDOW->setHidden(false);
-                } catch (...) { Debug::log(LOG, "Rule minsize failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
+                } catch (...) { Debug::log(LOG, "Rule minsize failed, rule: {} -> {}", r.szRule.c_str(), r.szValue.c_str()); }
             } else if (r.szRule.find("maxsize") == 0) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
@@ -317,7 +317,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
                     PWINDOW->setHidden(false);
-                } catch (...) { Debug::log(LOG, "Rule maxsize failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
+                } catch (...) { Debug::log(LOG, "Rule maxsize failed, rule: {} -> {}", r.szRule.c_str(), r.szValue.c_str()); }
             } else if (r.szRule.find("move") == 0) {
                 try {
                     auto       value = r.szRule.substr(r.szRule.find(' ') + 1);
@@ -373,12 +373,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         }
                     }
 
-                    Debug::log(LOG, "Rule move, applying to window %lx", PWINDOW);
+                    Debug::log(LOG, "Rule move, applying to window {:x}", (uintptr_t)PWINDOW);
 
                     PWINDOW->m_vRealPosition = Vector2D(posX, posY) + PMONITOR->vecPosition;
 
                     PWINDOW->setHidden(false);
-                } catch (...) { Debug::log(LOG, "Rule move failed, rule: %s -> %s", r.szRule.c_str(), r.szValue.c_str()); }
+                } catch (...) { Debug::log(LOG, "Rule move failed, rule: {} -> {}", r.szRule.c_str(), r.szValue.c_str()); }
             } else if (r.szRule.find("center") == 0) {
                 auto       RESERVEDOFFSET = Vector2D();
                 const auto ARGS           = CVarList(r.szRule, 2, ' ');
@@ -426,7 +426,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_fDimPercent.setValueAndWarp(0);
     }
 
-    Debug::log(LOG, "Window got assigned a surfaceTreeNode %lx", PWINDOW->m_pSurfaceTree);
+    Debug::log(LOG, "Window got assigned a surfaceTreeNode {:x}", (uintptr_t)PWINDOW->m_pSurfaceTree);
 
     if (!PWINDOW->m_bIsX11) {
         PWINDOW->hyprListener_commitWindow.initCallback(&PWINDOW->m_uSurface.xdg->surface->events.commit, &Events::listener_commitWindow, PWINDOW, "XDG Window Late");
@@ -572,12 +572,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->m_bFirstMap = false;
 
-    Debug::log(LOG, "Map request dispatched, monitor %s, xywh: %f %f %f %f", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y,
-               PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
+    Debug::log(LOG, "Map request dispatched, monitor {}, xywh: {:.5f} {:.5f} {:.5f} {:.5f}", PMONITOR->szName.c_str(), PWINDOW->m_vRealPosition.goalv().x,
+               PWINDOW->m_vRealPosition.goalv().y, PWINDOW->m_vRealSize.goalv().x, PWINDOW->m_vRealSize.goalv().y);
 
     auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
-    g_pEventManager->postEvent(
-        SHyprIPCEvent{"openwindow", getFormat("%lx,%s,%s,%s", PWINDOW, workspaceID.c_str(), g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), PWINDOW->m_szTitle.c_str())});
+    g_pEventManager->postEvent(SHyprIPCEvent{
+        "openwindow", getFormat("{:x},{},{},{}", (uintptr_t)PWINDOW, workspaceID.c_str(), g_pXWaylandManager->getAppIDClass(PWINDOW).c_str(), PWINDOW->m_szTitle.c_str())});
     EMIT_HOOK_EVENT("openWindow", PWINDOW);
 
     // recalc the values for this window
@@ -589,15 +589,15 @@ void Events::listener_mapWindow(void* owner, void* data) {
 void Events::listener_unmapWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    Debug::log(LOG, "Window %lx unmapped (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
+    Debug::log(LOG, "Window {:x} unmapped (class {})", (uintptr_t)PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
     if (!PWINDOW->m_pWLSurface.exists() || !PWINDOW->m_bIsMapped) {
-        Debug::log(WARN, "Window %lx unmapped without being mapped??", PWINDOW);
+        Debug::log(WARN, "Window {:x} unmapped without being mapped??", (uintptr_t)PWINDOW);
         PWINDOW->m_bFadingOut = false;
         return;
     }
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("%lx", PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
     g_pProtocolManager->m_pToplevelExportProtocolManager->onWindowUnmap(PWINDOW);
@@ -669,7 +669,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     if (wasLastWindow) {
         const auto PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
 
-        Debug::log(LOG, "On closed window, new focused candidate is %lx", PWINDOWCANDIDATE);
+        Debug::log(LOG, "On closed window, new focused candidate is {:x}", (uintptr_t)PWINDOWCANDIDATE);
 
         if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow) {
             if (!PWINDOWCANDIDATE)
@@ -683,7 +683,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
     }
 
-    Debug::log(LOG, "Destroying the SubSurface tree of unmapped window %lx", PWINDOW);
+    Debug::log(LOG, "Destroying the SubSurface tree of unmapped window {:x}", (uintptr_t)PWINDOW);
     SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
 
     PWINDOW->m_pSurfaceTree = nullptr;
@@ -750,10 +750,10 @@ void Events::listener_commitWindow(void* owner, void* data) {
 void Events::listener_destroyWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    Debug::log(LOG, "Window %lx destroyed, queueing. (class %s)", PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
+    Debug::log(LOG, "Window {:x} destroyed, queueing. (class {})", (uintptr_t)PWINDOW, g_pXWaylandManager->getAppIDClass(PWINDOW).c_str());
 
     if (PWINDOW->m_bIsX11)
-        Debug::log(LOG, "XWayland class raw: %s", PWINDOW->m_uSurface.xwayland->_class);
+        Debug::log(LOG, "XWayland class raw: {}", PWINDOW->m_uSurface.xwayland->_class);
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) {
         g_pCompositor->m_pLastWindow = nullptr;
@@ -771,7 +771,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     if (PWINDOW->m_pSurfaceTree) {
-        Debug::log(LOG, "Destroying Subsurface tree of %lx in destroyWindow", PWINDOW);
+        Debug::log(LOG, "Destroying Subsurface tree of {:x} in destroyWindow", (uintptr_t)PWINDOW);
         SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
         PWINDOW->m_pSurfaceTree = nullptr;
     }
@@ -780,7 +780,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_bFadingOut) {
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
-        Debug::log(LOG, "Unmapped window %lx removed instantly", PWINDOW);
+        Debug::log(LOG, "Unmapped window {:x} removed instantly", (uintptr_t)PWINDOW);
     }
 }
 
@@ -791,12 +791,12 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
         return;
 
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
-    g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", getFormat("%lx", PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", getFormat("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("windowTitle", PWINDOW);
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle});
-        g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("%lx", PWINDOW)});
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("{:x}", (uintptr_t)PWINDOW)});
         EMIT_HOOK_EVENT("activeWindow", PWINDOW);
     }
 
@@ -804,7 +804,7 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
     PWINDOW->updateToplevel();
 
-    Debug::log(LOG, "Window %lx set title to %s", PWINDOW, PWINDOW->m_szTitle.c_str());
+    Debug::log(LOG, "Window {:x} set title to {}", (uintptr_t)PWINDOW, PWINDOW->m_szTitle.c_str());
 }
 
 void Events::listener_fullscreenWindow(void* owner, void* data) {
@@ -863,7 +863,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
 
     PWINDOW->updateToplevel();
 
-    Debug::log(LOG, "Window %lx fullscreen to %i", PWINDOW, PWINDOW->m_bIsFullscreen);
+    Debug::log(LOG, "Window {:x} fullscreen to {}", (uintptr_t)PWINDOW, PWINDOW->m_bIsFullscreen);
 }
 
 void Events::listener_activateXDG(wl_listener* listener, void* data) {
@@ -871,7 +871,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
 
     static auto* const PFOCUSONACTIVATE = &g_pConfigManager->getConfigValuePtr("misc:focus_on_activate")->intValue;
 
-    Debug::log(LOG, "Activate request for surface at %lx", E->surface);
+    Debug::log(LOG, "Activate request for surface at {:x}", (uintptr_t)E->surface);
 
     if (!wlr_xdg_surface_try_from_wlr_surface(E->surface))
         return;
@@ -881,7 +881,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
     if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow)
         return;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%lx", PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("urgent", PWINDOW);
 
     PWINDOW->m_bIsUrgent = true;
@@ -902,11 +902,11 @@ void Events::listener_activateX11(void* owner, void* data) {
 
     static auto* const PFOCUSONACTIVATE = &g_pConfigManager->getConfigValuePtr("misc:focus_on_activate")->intValue;
 
-    Debug::log(LOG, "X11 Activate request for window %lx", PWINDOW);
+    Debug::log(LOG, "X11 Activate request for window {:x}", (uintptr_t)PWINDOW);
 
     if (PWINDOW->m_iX11Type == 2) {
 
-        Debug::log(LOG, "Unmanaged X11 %lx requests activate", PWINDOW);
+        Debug::log(LOG, "Unmanaged X11 {:x} requests activate", (uintptr_t)PWINDOW);
 
         if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->getPID() != PWINDOW->getPID())
             return;
@@ -918,7 +918,7 @@ void Events::listener_activateX11(void* owner, void* data) {
     if (PWINDOW == g_pCompositor->m_pLastWindow)
         return;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("%lx", PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("urgent", PWINDOW);
 
     if (!*PFOCUSONACTIVATE)
@@ -1012,8 +1012,8 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
     if (abs(std::floor(POS.x) - LOGICALPOS.x) > 2 || abs(std::floor(POS.y) - LOGICALPOS.y) > 2 || abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 ||
         abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2) {
-        Debug::log(LOG, "Unmanaged window %lx requests geometry update to %i %i %i %i", PWINDOW, (int)LOGICALPOS.x, (int)LOGICALPOS.y, (int)PWINDOW->m_uSurface.xwayland->width,
-                   (int)PWINDOW->m_uSurface.xwayland->height);
+        Debug::log(LOG, "Unmanaged window {:x} requests geometry update to {} {} {} {}", (uintptr_t)PWINDOW, (int)LOGICALPOS.x, (int)LOGICALPOS.y,
+                   (int)PWINDOW->m_uSurface.xwayland->width, (int)PWINDOW->m_uSurface.xwayland->height);
 
         g_pHyprRenderer->damageWindow(PWINDOW);
         PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(LOGICALPOS.x, LOGICALPOS.y));
@@ -1060,9 +1060,9 @@ void Events::listener_dissociateX11(void* owner, void* data) {
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     const auto XWSURFACE = (wlr_xwayland_surface*)data;
 
-    Debug::log(LOG, "New XWayland Surface created (class %s).", XWSURFACE->_class);
+    Debug::log(LOG, "New XWayland Surface created (class {}).", XWSURFACE->_class);
     if (XWSURFACE->parent)
-        Debug::log(LOG, "Window parent data: %s at %lx", XWSURFACE->parent->_class, XWSURFACE->parent);
+        Debug::log(LOG, "Window parent data: {} at {:x}", XWSURFACE->parent->_class, (uintptr_t)XWSURFACE->parent);
 
     const auto PNEWWINDOW = (CWindow*)g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
 
@@ -1086,7 +1086,7 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return;
 
-    Debug::log(LOG, "New XDG Surface created. (class: %s)", XDGSURFACE->toplevel->app_id);
+    Debug::log(LOG, "New XDG Surface created. (class: {})", XDGSURFACE->toplevel->app_id);
 
     const auto PNEWWINDOW      = g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
@@ -1106,7 +1106,7 @@ void Events::listener_requestMaximize(void* owner, void* data) {
     if (PWINDOW->m_bNoMaximizeRequest)
         return;
 
-    Debug::log(LOG, "Maximize request for %lx", PWINDOW);
+    Debug::log(LOG, "Maximize request for {:x}", (uintptr_t)PWINDOW);
     if (!PWINDOW->m_bIsX11) {
         const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
 
@@ -1125,7 +1125,7 @@ void Events::listener_requestMaximize(void* owner, void* data) {
 void Events::listener_requestMinimize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    Debug::log(LOG, "Minimize request for %lx", PWINDOW);
+    Debug::log(LOG, "Minimize request for {:x}", (uintptr_t)PWINDOW);
 
     if (PWINDOW->m_bIsX11) {
         if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
@@ -1133,13 +1133,13 @@ void Events::listener_requestMinimize(void* owner, void* data) {
 
         const auto E = (wlr_xwayland_minimize_event*)data;
 
-        g_pEventManager->postEvent({"minimize", getFormat("%lx,%i", PWINDOW, (int)E->minimize)});
+        g_pEventManager->postEvent({"minimize", getFormat("{:x},{}", (uintptr_t)PWINDOW, (int)E->minimize)});
         EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)E->minimize}));
 
         wlr_xwayland_surface_set_minimized(PWINDOW->m_uSurface.xwayland, E->minimize && g_pCompositor->m_pLastWindow != PWINDOW); // fucking DXVK
     } else {
         const auto E = (wlr_foreign_toplevel_handle_v1_minimized_event*)data;
-        g_pEventManager->postEvent({"minimize", getFormat("%lx,%i", PWINDOW, E ? (int)E->minimized : 1)});
+        g_pEventManager->postEvent({"minimize", getFormat("{:x},{}", (uintptr_t)PWINDOW, E ? (int)E->minimized : 1)});
         EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)(E ? (uint64_t)E->minimized : 1)}));
     }
 }

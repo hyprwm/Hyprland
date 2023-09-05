@@ -19,7 +19,7 @@ void Events::listener_keyboardDestroy(void* owner, void* data) {
     SKeyboard* PKEYBOARD = (SKeyboard*)owner;
     g_pInputManager->destroyKeyboard(PKEYBOARD);
 
-    Debug::log(LOG, "Destroyed keyboard %lx", PKEYBOARD);
+    Debug::log(LOG, "Destroyed keyboard {:x}", (uintptr_t)PKEYBOARD);
 }
 
 void Events::listener_keyboardKey(void* owner, void* data) {
@@ -63,30 +63,30 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
 
     switch (DEVICE->type) {
         case WLR_INPUT_DEVICE_KEYBOARD:
-            Debug::log(LOG, "Attached a keyboard with name %s", DEVICE->name);
+            Debug::log(LOG, "Attached a keyboard with name {}", DEVICE->name);
             g_pInputManager->newKeyboard(DEVICE);
             break;
         case WLR_INPUT_DEVICE_POINTER:
-            Debug::log(LOG, "Attached a mouse with name %s", DEVICE->name);
+            Debug::log(LOG, "Attached a mouse with name {}", DEVICE->name);
             g_pInputManager->newMouse(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TOUCH:
-            Debug::log(LOG, "Attached a touch device with name %s", DEVICE->name);
+            Debug::log(LOG, "Attached a touch device with name {}", DEVICE->name);
             g_pInputManager->newTouchDevice(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET_TOOL:
-            Debug::log(LOG, "Attached a tablet tool with name %s", DEVICE->name);
+            Debug::log(LOG, "Attached a tablet tool with name {}", DEVICE->name);
             g_pInputManager->newTabletTool(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET_PAD:
-            Debug::log(LOG, "Attached a tablet pad with name %s", DEVICE->name);
+            Debug::log(LOG, "Attached a tablet pad with name {}", DEVICE->name);
             g_pInputManager->newTabletPad(DEVICE);
             break;
         case WLR_INPUT_DEVICE_SWITCH:
-            Debug::log(LOG, "Attached a switch device with name %s", DEVICE->name);
+            Debug::log(LOG, "Attached a switch device with name {}", DEVICE->name);
             g_pInputManager->newSwitch(DEVICE);
             break;
-        default: Debug::log(WARN, "Unrecognized input device plugged in: %s", DEVICE->name); break;
+        default: Debug::log(WARN, "Unrecognized input device plugged in: {}", DEVICE->name); break;
     }
 
     g_pInputManager->updateCapabilities();
@@ -95,7 +95,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
 void Events::listener_newConstraint(wl_listener* listener, void* data) {
     const auto PCONSTRAINT = (wlr_pointer_constraint_v1*)data;
 
-    Debug::log(LOG, "New mouse constraint at %lx", PCONSTRAINT);
+    Debug::log(LOG, "New mouse constraint at {:x}", (uintptr_t)PCONSTRAINT);
 
     g_pInputManager->m_lConstraints.emplace_back();
     const auto CONSTRAINT = &g_pInputManager->m_lConstraints.back();
@@ -128,7 +128,7 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
         PCONSTRAINT->pMouse->currentConstraint = nullptr;
     }
 
-    Debug::log(LOG, "Unconstrained mouse from %lx", PCONSTRAINT->constraint);
+    Debug::log(LOG, "Unconstrained mouse from {:x}", (uintptr_t)PCONSTRAINT->constraint);
 
     g_pInputManager->m_lConstraints.remove(*PCONSTRAINT);
 }

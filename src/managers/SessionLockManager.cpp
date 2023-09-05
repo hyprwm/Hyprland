@@ -4,7 +4,7 @@
 static void handleSurfaceMap(void* owner, void* data) {
     const auto PSURFACE = (SSessionLockSurface*)owner;
 
-    Debug::log(LOG, "SessionLockSurface %lx mapped", PSURFACE);
+    Debug::log(LOG, "SessionLockSurface {:x} mapped", (uintptr_t)PSURFACE);
 
     PSURFACE->mapped = true;
 
@@ -30,7 +30,7 @@ static void handleSurfaceCommit(void* owner, void* data) {
 static void handleSurfaceDestroy(void* owner, void* data) {
     const auto PSURFACE = (SSessionLockSurface*)owner;
 
-    Debug::log(LOG, "SessionLockSurface %lx destroyed", PSURFACE);
+    Debug::log(LOG, "SessionLockSurface {:x} destroyed", (uintptr_t)PSURFACE);
 
     PSURFACE->hyprListener_commit.removeCallback();
     PSURFACE->hyprListener_destroy.removeCallback();
@@ -52,7 +52,7 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
         return;
     }
 
-    Debug::log(LOG, "Session got locked by %lx", pWlrLock);
+    Debug::log(LOG, "Session got locked by {:x}", (uintptr_t)pWlrLock);
 
     m_sSessionLock.pWlrLock = pWlrLock;
 

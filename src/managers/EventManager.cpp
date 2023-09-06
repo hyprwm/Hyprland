@@ -42,7 +42,7 @@ int fdHandleWrite(int fd, uint32_t mask, void* data) {
 
     int availableBytes;
     if (ioctl(fd, FIONREAD, &availableBytes) == -1) {
-        Debug::log(ERR, "fd %d sent invalid data (1)", fd);
+        Debug::log(ERR, "fd {} sent invalid data (1)", fd);
         removeFD(fd);
         return 0;
     }
@@ -50,7 +50,7 @@ int fdHandleWrite(int fd, uint32_t mask, void* data) {
     char       buf[availableBytes];
     const auto RECEIVED = recv(fd, buf, availableBytes, 0);
     if (RECEIVED == -1) {
-        Debug::log(ERR, "fd %d sent invalid data (2)", fd);
+        Debug::log(ERR, "fd {} sent invalid data (2)", fd);
         removeFD(fd);
         return 0;
     }
@@ -79,7 +79,7 @@ void CEventManager::startThread() {
         sockaddr_in clientAddress;
         socklen_t   clientSize = sizeof(clientAddress);
 
-        Debug::log(LOG, "Hypr socket 2 started at %s", socketPath.c_str());
+        Debug::log(LOG, "Hypr socket 2 started at {}", socketPath);
 
         while (1) {
             const auto ACCEPTEDCONNECTION = accept4(SOCKET, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
@@ -90,7 +90,7 @@ void CEventManager::startThread() {
                 int flagsNew = fcntl(ACCEPTEDCONNECTION, F_GETFL, 0);
                 fcntl(ACCEPTEDCONNECTION, F_SETFL, flagsNew | O_NONBLOCK);
 
-                Debug::log(LOG, "Socket 2 accepted a new client at FD %d", ACCEPTEDCONNECTION);
+                Debug::log(LOG, "Socket 2 accepted a new client at FD {}", ACCEPTEDCONNECTION);
 
                 // add to event loop so we can close it when we need to
                 m_dAcceptedSocketFDs.push_back(
@@ -112,7 +112,7 @@ void CEventManager::flushEvents() {
         for (auto& fd : m_dAcceptedSocketFDs) {
             try {
                 write(fd.first, eventString.c_str(), eventString.length());
-            } catch(...) {}
+            } catch (...) {}
         }
     }
 
@@ -124,7 +124,7 @@ void CEventManager::flushEvents() {
 void CEventManager::postEvent(const SHyprIPCEvent event) {
 
     if (g_pCompositor->m_bIsShuttingDown) {
-        Debug::log(WARN, "Suppressed (ignoreevents true / shutting down) event of type %s, content: %s", event.event.c_str(), event.data.c_str());
+        Debug::log(WARN, "Suppressed (ignoreevents true / shutting down) event of type {}, content: {}", event.event, event.data);
         return;
     }
 

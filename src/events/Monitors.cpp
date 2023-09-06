@@ -179,14 +179,14 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     if (!pMonitor)
         return;
 
-    Debug::log(LOG, "Destroy called for monitor %s", pMonitor->output->name);
+    Debug::log(LOG, "Destroy called for monitor {}", pMonitor->output->name);
 
     pMonitor->onDisconnect();
 
     pMonitor->output                 = nullptr;
     pMonitor->m_bRenderingInitPassed = false;
 
-    Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->szName.c_str());
+    Debug::log(LOG, "Removing monitor {} from realMonitors", pMonitor->szName);
 
     std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
 }

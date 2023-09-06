@@ -21,7 +21,7 @@ CHyprXWaylandManager::CHyprXWaylandManager() {
 
     setenv("DISPLAY", m_sWLRXWayland->display_name, 1);
 
-    Debug::log(LOG, "CHyprXWaylandManager started on display %s", m_sWLRXWayland->display_name);
+    Debug::log(LOG, "CHyprXWaylandManager started on display {}", m_sWLRXWayland->display_name);
 #else
     unsetenv("DISPLAY"); // unset DISPLAY so that X11 apps do not try to start on a different/invalid DISPLAY
 #endif
@@ -129,7 +129,7 @@ std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
             }
         } else
             return "";
-    } catch (std::logic_error& e) { Debug::log(ERR, "Error in getAppIDClass: %s", e.what()); }
+    } catch (std::logic_error& e) { Debug::log(ERR, "Error in getAppIDClass: {}", e.what()); }
 
     return "";
 }
@@ -223,7 +223,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
                 if (winrole.contains("pop-up") || winrole.contains("task_dialog")) {
                     return true;
                 }
-            } catch (std::exception& e) { Debug::log(ERR, "Error in shouldBeFloated, winrole threw %s", e.what()); }
+            } catch (std::exception& e) { Debug::log(ERR, "Error in shouldBeFloated, winrole threw {}", e.what()); }
         }
 
         if (pWindow->m_uSurface.xwayland->modal) {
@@ -314,12 +314,17 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
-    CMonitor*          pMonitor = nullptr;
+    CMonitor*          pMonitor     = nullptr;
+    double             bestDistance = __FLT_MAX__;
     for (auto& m : g_pCompositor->m_vMonitors) {
         const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
-        if (VECINRECT(coord, m->vecXWaylandPosition.x, m->vecXWaylandPosition.y, m->vecXWaylandPosition.x + SIZ.x, m->vecXWaylandPosition.y + SIZ.y)) {
-            pMonitor = m.get();
-            break;
+
+        double     distance =
+            vecToRectDistanceSquared(coord, {m->vecXWaylandPosition.x, m->vecXWaylandPosition.y}, {m->vecXWaylandPosition.x + SIZ.x, m->vecXWaylandPosition.y + SIZ.y});
+
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            pMonitor     = m.get();
         }
     }
 

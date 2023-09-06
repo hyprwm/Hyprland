@@ -343,7 +343,10 @@ void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    Vector2D   posOffset;
+    if (!PMONITOR)
+        return; // unsafe state most likely
+
+    Vector2D posOffset;
 
     if (force != "") {
         if (force == "bottom")
@@ -539,15 +542,14 @@ void CAnimationManager::scheduleTick() {
 
     const auto PMOSTHZ = g_pHyprRenderer->m_pMostHzMonitor;
 
-    float      refreshRate    = PMOSTHZ ? PMOSTHZ->refreshRate : 60.f;
-    float      refreshDelayMs = std::floor(1000.0 / refreshRate);
-
     if (!PMOSTHZ) {
-        wl_event_source_timer_update(m_pAnimationTick, refreshDelayMs);
+        wl_event_source_timer_update(m_pAnimationTick, 16);
         return;
     }
 
-    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - PMOSTHZ->lastPresentationTimer.chrono()).count() / 1000.0;
+    float       refreshDelayMs = std::floor(1000.f / PMOSTHZ->refreshRate);
+
+    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - PMOSTHZ->lastPresentationTimer.chrono()).count() / 1000.f;
 
     const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
 

@@ -151,25 +151,11 @@ void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, const
 
     wl_signal_add(pSignal, pListener);
 
-    Debug::log(LOG, "Registered signal for owner %lx: %lx -> %lx (owner: %s)", pOwner, pSignal, pListener, ownerString.c_str());
+    Debug::log(LOG, "Registered signal for owner {:x}: {:x} -> {:x} (owner: {})", (uintptr_t)pOwner, (uintptr_t)pSignal, (uintptr_t)pListener, ownerString);
 }
 
 void handleNoop(struct wl_listener* listener, void* data) {
     // Do nothing
-}
-
-std::string getFormat(const char* fmt, ...) {
-    char*   outputStr = nullptr;
-
-    va_list args;
-    va_start(args, fmt);
-    vasprintf(&outputStr, fmt, args);
-    va_end(args);
-
-    std::string output = std::string(outputStr);
-    free(outputStr);
-
-    return output;
 }
 
 std::string escapeJSONStrings(const std::string& str) {
@@ -224,7 +210,7 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
     try {
         return relative + stof(source);
     } catch (...) {
-        Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
+        Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return INT_MAX;
     }
 }
@@ -539,10 +525,10 @@ void logSystemInfo() {
 
     uname(&unameInfo);
 
-    Debug::log(LOG, "System name: %s", unameInfo.sysname);
-    Debug::log(LOG, "Node name: %s", unameInfo.nodename);
-    Debug::log(LOG, "Release: %s", unameInfo.release);
-    Debug::log(LOG, "Version: %s", unameInfo.version);
+    Debug::log(LOG, "System name: {}", unameInfo.sysname);
+    Debug::log(LOG, "Node name: {}", unameInfo.nodename);
+    Debug::log(LOG, "Release: {}", unameInfo.release);
+    Debug::log(LOG, "Version: {}", unameInfo.version);
 
     Debug::log(NONE, "\n");
 
@@ -551,7 +537,7 @@ void logSystemInfo() {
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
-    Debug::log(LOG, "GPU information:\n%s\n", GPUINFO.c_str());
+    Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
 
     if (GPUINFO.contains("NVIDIA")) {
         Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
@@ -560,7 +546,7 @@ void logSystemInfo() {
     // log etc
     Debug::log(LOG, "os-release:");
 
-    Debug::log(NONE, "%s", execAndGet("cat /etc/os-release").c_str());
+    Debug::log(NONE, "{}", execAndGet("cat /etc/os-release"));
 }
 
 void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
@@ -604,8 +590,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
-    FILE*             infile;
+    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)
@@ -646,7 +632,7 @@ int64_t configStringToInt(const std::string& VALUE) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
-            Debug::log(WARN, "invalid length %i for rgba", VALUEWITHOUTFUNC.length());
+            Debug::log(WARN, "invalid length {} for rgba", VALUEWITHOUTFUNC.length());
             throw std::invalid_argument("rgba() expects length of 8 characters (4 bytes)");
         }
 
@@ -658,7 +644,7 @@ int64_t configStringToInt(const std::string& VALUE) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {
-            Debug::log(WARN, "invalid length %i for rgb", VALUEWITHOUTFUNC.length());
+            Debug::log(WARN, "invalid length {} for rgb", VALUEWITHOUTFUNC.length());
             throw std::invalid_argument("rgb() expects length of 6 characters (3 bytes)");
         }
 
@@ -716,6 +702,10 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 }
 
 void throwError(const std::string& err) {
-    Debug::log(CRIT, "Critical error thrown: %s", err.c_str());
+    Debug::log(CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
+}
+
+std::string sendToLog(uint8_t level, const std::string& s) {
+    Debug::log((LogLevel)level, s);
 }

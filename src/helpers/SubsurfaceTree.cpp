@@ -55,7 +55,7 @@ SSurfaceTreeNode* createSubsurfaceNode(SSurfaceTreeNode* pParent, SSubsurface* p
     PNODE->pParent     = pParent;
     PNODE->pSubsurface = pSubsurface;
 
-    Debug::log(LOG, "Creating a subsurface Node! (pWindow: %lx)", pWindow);
+    Debug::log(LOG, "Creating a subsurface Node! (pWindow: {:x})", (uintptr_t)pWindow);
 
     return PNODE;
 }
@@ -63,7 +63,7 @@ SSurfaceTreeNode* createSubsurfaceNode(SSurfaceTreeNode* pParent, SSubsurface* p
 SSurfaceTreeNode* SubsurfaceTree::createTreeRoot(wlr_surface* pSurface, applyGlobalOffsetFn fn, void* data, CWindow* pWindow) {
     const auto PNODE = createTree(pSurface, pWindow);
 
-    Debug::log(LOG, "Creating a surfaceTree Root! (pWindow: %lx)", pWindow);
+    Debug::log(LOG, "Creating a surfaceTree Root! (pWindow: {:x})", (uintptr_t)pWindow);
 
     PNODE->offsetfn         = fn;
     PNODE->globalOffsetData = data;
@@ -83,7 +83,7 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
     }
 
     if (!exists) {
-        Debug::log(ERR, "Tried to remove a SurfaceTreeNode that doesn't exist?? (Node %lx)", pNode);
+        Debug::log(ERR, "Tried to remove a SurfaceTreeNode that doesn't exist?? (Node {:x})", (uintptr_t)pNode);
         return;
     }
 
@@ -145,7 +145,7 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
 
     const auto        PNEWSUBSURFACE = &pNode->childSubsurfaces.emplace_back();
 
-    Debug::log(LOG, "Added a new subsurface %lx", PSUBSURFACE);
+    Debug::log(LOG, "Added a new subsurface {:x}", (uintptr_t)PSUBSURFACE);
 
     PNEWSUBSURFACE->pSubsurface = PSUBSURFACE;
     PNEWSUBSURFACE->pParent     = pNode;
@@ -174,7 +174,7 @@ void Events::listener_mapSubsurface(void* owner, void* data) {
     if (subsurface->pChild)
         return;
 
-    Debug::log(LOG, "Subsurface %lx mapped", subsurface->pSubsurface);
+    Debug::log(LOG, "Subsurface {:x} mapped", (uintptr_t)subsurface->pSubsurface);
 
     subsurface->pChild = createSubsurfaceNode(subsurface->pParent, subsurface, subsurface->pSubsurface->surface, subsurface->pWindowOwner);
 }
@@ -182,7 +182,7 @@ void Events::listener_mapSubsurface(void* owner, void* data) {
 void Events::listener_unmapSubsurface(void* owner, void* data) {
     SSubsurface* subsurface = (SSubsurface*)owner;
 
-    Debug::log(LOG, "Subsurface %lx unmapped", subsurface);
+    Debug::log(LOG, "Subsurface {:x} unmapped", (uintptr_t)subsurface);
 
     if (subsurface->pSubsurface->surface == g_pCompositor->m_pLastFocus)
         g_pInputManager->releaseAllMouseButtons();
@@ -221,7 +221,7 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
     if (!g_pHyprRenderer->shouldRenderWindow(pNode->pWindowOwner)) {
         static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
         if (*PLOGDAMAGE)
-            Debug::log(LOG, "Refusing to commit damage from %lx because it's invisible.", pNode->pWindowOwner);
+            Debug::log(LOG, "Refusing to commit damage from {:x} because it's invisible.", (uintptr_t)pNode->pWindowOwner);
         return;
     }
 
@@ -254,7 +254,7 @@ void Events::listener_destroySubsurface(void* owner, void* data) {
         SubsurfaceTree::destroySurfaceTree(subsurface->pChild);
     }
 
-    Debug::log(LOG, "Subsurface %lx destroyed", subsurface);
+    Debug::log(LOG, "Subsurface {:x} destroyed", (uintptr_t)subsurface);
 
     subsurface->hyprListener_destroy.removeCallback();
     subsurface->hyprListener_map.removeCallback();
@@ -266,7 +266,7 @@ void Events::listener_destroySubsurface(void* owner, void* data) {
 void Events::listener_destroySubsurfaceNode(void* owner, void* data) {
     SSurfaceTreeNode* pNode = (SSurfaceTreeNode*)owner;
 
-    Debug::log(LOG, "Subsurface Node %lx destroyed", pNode);
+    Debug::log(LOG, "Subsurface Node {:x} destroyed", (uintptr_t)pNode);
 
     for (auto& c : pNode->childSubsurfaces)
         destroySubsurface(&c);

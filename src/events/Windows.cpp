@@ -1062,7 +1062,7 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
 
     Debug::log(LOG, "New XWayland Surface created (class {}).", XWSURFACE->_class ? XWSURFACE->_class : "null");
     if (XWSURFACE->parent)
-        Debug::log(LOG, "Window parent data: {} at {:x}",  XWSURFACE->parent->_class ? XWSURFACE->parent->_class : "null", (uintptr_t)XWSURFACE->parent);
+        Debug::log(LOG, "Window parent data: {} at {:x}", XWSURFACE->parent->_class ? XWSURFACE->parent->_class : "null", (uintptr_t)XWSURFACE->parent);
 
     const auto PNEWWINDOW = (CWindow*)g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
 
@@ -1086,7 +1086,7 @@ void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return;
 
-    Debug::log(LOG, "New XDG Surface created. (class: {})", XDGSURFACE->toplevel->app_id);
+    Debug::log(LOG, "New XDG Surface created. (class: {})", XDGSURFACE->toplevel->app_id ? XDGSURFACE->toplevel->app_id : "null");
 
     const auto PNEWWINDOW      = g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;

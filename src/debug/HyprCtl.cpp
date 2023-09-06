@@ -1046,7 +1046,7 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
             R"#(
 {{
     "option": "{}",
-    "int": {}
+    "int": {},
     "float": {:.5f},
     "str": "{}",
     "data": "0x{:x}"

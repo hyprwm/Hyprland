@@ -363,6 +363,16 @@ void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
     refreshGradients();
 }
 
+CRegion CHyprGroupBarDecoration::getWindowDecorationRegion() {
+    const int ROUNDING   = !m_pWindow->m_sSpecialRenderData.rounding ? 0 : m_pWindow->rounding();
+    const int BORDERSIZE = m_pWindow->getRealBorderSize();
+    return CRegion(m_vLastWindowPos.x + ROUNDING,
+                   m_vLastWindowPos.y +
+                       (m_bOnTop ? -BAR_INTERNAL_PADDING - m_iBarInternalHeight - (m_bInternalBorder ? 0 : BORDERSIZE) :
+                                   m_vLastWindowSize.y + BAR_INTERNAL_PADDING + (m_bInternalBorder ? 0 : BORDERSIZE)),
+                   m_vLastWindowSize.x - 2 * ROUNDING, m_iBarInternalHeight);
+}
+
 bool CHyprGroupBarDecoration::allowsInput() {
     return true;
 }

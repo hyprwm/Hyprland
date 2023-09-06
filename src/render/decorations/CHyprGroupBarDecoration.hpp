@@ -33,6 +33,8 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
+    virtual CRegion                  getWindowDecorationRegion();
+
     virtual void                     forceReload(CWindow*);
 
     virtual bool                     allowsInput();

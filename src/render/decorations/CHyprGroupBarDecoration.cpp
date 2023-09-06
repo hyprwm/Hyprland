@@ -195,7 +195,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 }
 
 SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationReservedArea() {
-    return {{0, m_bOnTop ? m_iBarFullHeight : 0}, {0, m_bOnTop ? 0 : m_iBarFullHeight}};
+    return m_seExtents;
 }
 
 CTitleTex* CHyprGroupBarDecoration::textureFromTitle(const std::string& title) {

@@ -14,7 +14,7 @@ SWindowDecorationExtents IHyprWindowDecoration::getWindowDecorationReservedArea(
 
 CRegion IHyprWindowDecoration::getWindowDecorationRegion() {
     const SWindowDecorationExtents RESERVED   = getWindowDecorationReservedArea();
-    const int                      BORDERSIZE = m_pWindow->getRealBorderSize();
+    const int                      BORDERSIZE = RESERVED.isInternalDecoration ? 0 : m_pWindow->getRealBorderSize();
     return CRegion(m_pWindow->m_vRealPosition.vec().x - (BORDERSIZE + RESERVED.topLeft.x) * (int)(RESERVED.topLeft.x != 0),
                    m_pWindow->m_vRealPosition.vec().y - (BORDERSIZE + RESERVED.topLeft.y) * (int)(RESERVED.topLeft.y != 0),
                    m_pWindow->m_vRealSize.vec().x + (BORDERSIZE + RESERVED.topLeft.x) * (int)(RESERVED.topLeft.x != 0) +

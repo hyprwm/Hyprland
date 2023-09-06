@@ -1695,14 +1695,14 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
         return SConfigValue();
     }
 
-    const SConfigValue deviceConfig = it->second[val];
+    const SConfigValue DEVICECONFIG = it->second[val];
 
     // fallback if not set explicitly
-    if (!deviceConfig.set && !fallback.empty()) {
+    if (!DEVICECONFIG.set && !fallback.empty()) {
         return configValues[fallback];
     }
 
-    return deviceConfig;
+    return DEVICECONFIG;
 }
 
 int CConfigManager::getInt(const std::string& v) {

@@ -1400,8 +1400,9 @@ void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
         if (wlr_input_device_is_libinput(PTOUCHDEV->pWlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(PTOUCHDEV->pWlrDevice);
 
-            const int  ROTATION = std::clamp(
-                HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice") : g_pConfigManager->getInt("input:touchdevice:transform"), 0, 7);
+            const int  ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform") :
+                                                         g_pConfigManager->getInt("input:touchdevice:transform"),
+                                            0, 7);
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
@@ -1434,7 +1435,7 @@ void CInputManager::setTabletConfigs() {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
             const int  ROTATION =
-                std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform", "input:tablet:tranform") : g_pConfigManager->getInt("input:tablet:transform"), 0, 7);
+                std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform", "input:tablet:transform") : g_pConfigManager->getInt("input:tablet:transform"), 0, 7);
             Debug::log(LOG, "Setting calibration matrix for device {}", t.name.c_str());
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 

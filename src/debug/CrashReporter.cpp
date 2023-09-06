@@ -14,19 +14,19 @@
 std::string getRandomMessage() {
 
     const std::vector<std::string>  MESSAGES = {"Sorry, didn't mean to...",
-                                               "This was an accident, I swear!",
-                                               "Calm down, it was a misinput! MISINPUT!",
-                                               "Oops",
-                                               "Vaxry is going to be upset.",
-                                               "Who tried dividing by zero?!",
-                                               "Maybe you should try dusting your PC in the meantime?",
-                                               "I tried so hard, and got so far...",
-                                               "I don't feel so good...",
-                                               "*thud*",
-                                               "Well this is awkward.",
-                                               "\"stable\"",
-                                               "I hope you didn't have any unsaved progress.",
-                                               "All these computers..."};
+                                                "This was an accident, I swear!",
+                                                "Calm down, it was a misinput! MISINPUT!",
+                                                "Oops",
+                                                "Vaxry is going to be upset.",
+                                                "Who tried dividing by zero?!",
+                                                "Maybe you should try dusting your PC in the meantime?",
+                                                "I tried so hard, and got so far...",
+                                                "I don't feel so good...",
+                                                "*thud*",
+                                                "Well this is awkward.",
+                                                "\"stable\"",
+                                                "I hope you didn't have any unsaved progress.",
+                                                "All these computers..."};
 
     std::random_device              dev;
     std::mt19937                    engine(dev());
@@ -53,7 +53,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
         for (auto& p : g_pPluginSystem->getAllPlugins()) {
-            finalCrashReport += getFormat("\t{} ({}) {}\n", p->name.c_str(), p->author.c_str(), p->version.c_str());
+            finalCrashReport += getFormat("\t{} ({}) {}\n", p->name, p->author, p->version);
         }
 
         finalCrashReport += "\n\n";
@@ -75,7 +75,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "GPU:\n\t" + GPUINFO;
 
-    finalCrashReport += getFormat("\n\nos-release:\n\t{}\n\n\n", replaceInString(execAndGet("cat /etc/os-release"), "\n", "\n\t").c_str());
+    finalCrashReport += getFormat("\n\nos-release:\n\t{}\n\n\n", replaceInString(execAndGet("cat /etc/os-release"), "\n", "\n\t"));
 
     finalCrashReport += "Backtrace:\n";
 
@@ -107,7 +107,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 #endif
 
     for (size_t i = 0; i < CALLSTACK.size(); ++i) {
-        finalCrashReport += getFormat("\t#{} | {}\n", i, CALLSTACK[i].desc.c_str());
+        finalCrashReport += getFormat("\t#{} | {}\n", i, CALLSTACK[i].desc);
 
 #ifdef __clang__
         const auto CMD = getFormat("llvm-addr2line -e {} -f 0x{:x}", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
@@ -156,5 +156,5 @@ void CrashReporter::createAndSaveCrash(int sig) {
     ofs.close();
 
     Debug::disableStdout = false;
-    Debug::log(CRIT, "Hyprland has crashed :( Consult the crash report at {} for more information.", path.c_str());
+    Debug::log(CRIT, "Hyprland has crashed :( Consult the crash report at {} for more information.", path);
 }

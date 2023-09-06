@@ -210,7 +210,7 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
     try {
         return relative + stof(source);
     } catch (...) {
-        Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source.c_str());
+        Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return INT_MAX;
     }
 }
@@ -537,7 +537,7 @@ void logSystemInfo() {
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
-    Debug::log(LOG, "GPU information:\n{}\n", GPUINFO.c_str());
+    Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
 
     if (GPUINFO.contains("NVIDIA")) {
         Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
@@ -546,7 +546,7 @@ void logSystemInfo() {
     // log etc
     Debug::log(LOG, "os-release:");
 
-    Debug::log(NONE, "{}", execAndGet("cat /etc/os-release").c_str());
+    Debug::log(NONE, "{}", execAndGet("cat /etc/os-release"));
 }
 
 void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
@@ -590,8 +590,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
-    FILE*             infile;
+    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)
@@ -702,7 +702,7 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 }
 
 void throwError(const std::string& err) {
-    Debug::log(CRIT, "Critical error thrown: {}", err.c_str());
+    Debug::log(CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
 }
 

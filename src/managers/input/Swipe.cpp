@@ -25,7 +25,7 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
 void CInputManager::beginWorkspaceSwipe() {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
-    Debug::log(LOG, "Starting a swipe from {}", PWORKSPACE->m_szName.c_str());
+    Debug::log(LOG, "Starting a swipe from {}", PWORKSPACE->m_szName);
 
     m_sActiveSwipe.pWorkspaceBegin = PWORKSPACE;
     m_sActiveSwipe.delta           = 0;

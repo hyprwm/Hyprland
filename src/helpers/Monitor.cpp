@@ -239,7 +239,7 @@ void CMonitor::onDisconnect() {
         m_aLayerSurfaceLayers[i].clear();
     }
 
-    Debug::log(LOG, "Removed monitor {}!", szName.c_str());
+    Debug::log(LOG, "Removed monitor {}!", szName);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
     EMIT_HOOK_EVENT("monitorRemoved", this);
@@ -356,7 +356,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         WORKSPACEID             = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 
-        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName).c_str());
+        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName));
     }
 
     auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);

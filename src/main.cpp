@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
             }
 
             configPath = next_arg;
-            Debug::log(LOG, "User-specified config location: '{}'", configPath.c_str());
+            Debug::log(LOG, "User-specified config location: '{}'", configPath);
 
             it++;
 

@@ -53,7 +53,7 @@ CCompositor::CCompositor() {
 
     Debug::init(m_szInstanceSignature);
 
-    Debug::log(LOG, "Instance Signature: {}", m_szInstanceSignature.c_str());
+    Debug::log(LOG, "Instance Signature: {}", m_szInstanceSignature);
 
     Debug::log(LOG, "Hyprland PID: {}", m_iHyprlandPID);
 
@@ -69,7 +69,7 @@ CCompositor::CCompositor() {
 
     setRandomSplash();
 
-    Debug::log(LOG, "\nCurrent splash: {}\n\n", m_szCurrentSplash.c_str());
+    Debug::log(LOG, "\nCurrent splash: {}\n\n", m_szCurrentSplash);
 }
 
 CCompositor::~CCompositor() {
@@ -441,10 +441,10 @@ void CCompositor::startCompositor() {
         const auto RETVAL       = wl_display_add_socket(m_sWLDisplay, CANDIDATESTR.c_str());
         if (RETVAL >= 0) {
             m_szWLDisplaySocket = CANDIDATESTR;
-            Debug::log(LOG, "wl_display_add_socket for {} succeeded with {}", CANDIDATESTR.c_str(), RETVAL);
+            Debug::log(LOG, "wl_display_add_socket for {} succeeded with {}", CANDIDATESTR, RETVAL);
             break;
         } else {
-            Debug::log(WARN, "wl_display_add_socket for {} returned {}: skipping candidate {}", CANDIDATESTR.c_str(), RETVAL, candidate);
+            Debug::log(WARN, "wl_display_add_socket for {} returned {}: skipping candidate {}", CANDIDATESTR, RETVAL, candidate);
         }
     }
 
@@ -474,7 +474,7 @@ void CCompositor::startCompositor() {
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE",
             nullptr);
 
-    Debug::log(LOG, "Running on WAYLAND_DISPLAY: {}", m_szWLDisplaySocket.c_str());
+    Debug::log(LOG, "Running on WAYLAND_DISPLAY: {}", m_szWLDisplaySocket);
 
     if (!wlr_backend_start(m_sWLRBackend)) {
         Debug::log(CRIT, "Backend did not start!");
@@ -988,7 +988,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     wl_signal_emit_mutable(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
 
     if (pWindowOwner)
-        Debug::log(LOG, "Set keyboard focus to surface {:x}, with window name: {}", (uintptr_t)pSurface, pWindowOwner->m_szTitle.c_str());
+        Debug::log(LOG, "Set keyboard focus to surface {:x}, with window name: {}", (uintptr_t)pSurface, pWindowOwner->m_szTitle);
     else
         Debug::log(LOG, "Set keyboard focus to surface {:x}", (uintptr_t)pSurface);
 
@@ -2367,7 +2367,7 @@ void CCompositor::renameWorkspace(const int& id, const std::string& name) {
     if (isWorkspaceSpecial(id))
         return;
 
-    Debug::log(LOG, "renameWorkspace: Renaming workspace {} to '{}'", id, name.c_str());
+    Debug::log(LOG, "renameWorkspace: Renaming workspace {} to '{}'", id, name);
     PWORKSPACE->m_szName = name;
 
     g_pEventManager->postEvent({"renameworkspace", std::to_string(PWORKSPACE->m_iID) + "," + PWORKSPACE->m_szName});
@@ -2495,7 +2495,7 @@ void CCompositor::arrangeMonitors() {
 
         if (m->activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
             // explicit.
-            Debug::log(LOG, "arrangeMonitors: {} explicit [{:.2f}, {:.2f}]", m->szName.c_str(), m->activeMonitorRule.offset.x, m->activeMonitorRule.offset.y);
+            Debug::log(LOG, "arrangeMonitors: {} explicit [{:.2f}, {:.2f}]", m->szName, m->activeMonitorRule.offset.x, m->activeMonitorRule.offset.y);
 
             m->moveTo(m->activeMonitorRule.offset);
             arranged.push_back(m);
@@ -2518,7 +2518,7 @@ void CCompositor::arrangeMonitors() {
     }
 
     for (auto& m : toArrange) {
-        Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]", m->szName.c_str(), maxOffset, 0.f);
+        Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]", m->szName, maxOffset, 0.f);
         m->moveTo({maxOffset, 0});
         maxOffset += m->vecSize.x;
     }
@@ -2527,7 +2527,7 @@ void CCompositor::arrangeMonitors() {
     // and set xwayland positions aka auto for all
     maxOffset = 0;
     for (auto& m : m_vMonitors) {
-        Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {:.2f}]", m->szName.c_str(), maxOffset, 0.f);
+        Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {:.2f}]", m->szName, maxOffset, 0.f);
         m->vecXWaylandPosition = {maxOffset, 0};
         maxOffset += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
     }

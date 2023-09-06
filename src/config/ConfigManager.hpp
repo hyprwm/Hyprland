@@ -156,12 +156,9 @@ class CConfigManager {
     void                                                            setInt(const std::string&, int);
     void                                                            setString(const std::string&, const std::string&);
 
-    int                                                             getDeviceInt(const std::string&, const std::string&);
-    int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback);
-    float                                                           getDeviceFloat(const std::string&, const std::string&);
-    float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback);
-    std::string                                                     getDeviceString(const std::string&, const std::string&);
-    std::string                                                     getDeviceString(const std::string&, const std::string&, const std::string& fallback);
+    int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
+    float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
+    std::string                                                     getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
     bool                                                            deviceConfigExists(const std::string&);
     bool                                                            shouldBlurLS(const std::string&);
 
@@ -258,8 +255,7 @@ class CConfigManager {
     void         applyUserDefinedVars(std::string&, const size_t);
     void         loadConfigLoadVars();
     SConfigValue getConfigValueSafe(const std::string&);
-    SConfigValue getConfigValueSafeDevice(const std::string&, const std::string&);
-    SConfigValue getConfigValueSafeDevice(const std::string&, const std::string&, const std::string& fallback);
+    SConfigValue getConfigValueSafeDevice(const std::string&, const std::string&, const std::string& fallback = "");
     void         parseLine(std::string&);
     void         configSetValueSafe(const std::string&, const std::string&);
     void         handleDeviceConfig(const std::string&, const std::string&);

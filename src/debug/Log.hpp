@@ -52,8 +52,15 @@ namespace Debug {
         ofs.open(logFile, std::ios::out | std::ios::app);
 
         // print date and time to the ofs
-        if (disableTime && !*disableTime)
+        if (disableTime && !*disableTime) {
+#ifndef _LIBCPP_VERSION
             logMsg += std::format("[{:%T}] ", std::chrono::hh_mm_ss{std::chrono::system_clock::now() - std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now())});
+#else
+            auto c = std::chrono::hh_mm_ss{std::chrono::system_clock::now() - std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now())};
+            logMsg += std::format("{:%H}:{:%M}:{:%S}", c.hours(), c.minutes(), c.subseconds());
+
+#endif
+        }
 
         logMsg += std::vformat(fmt, std::make_format_args(args...));
 

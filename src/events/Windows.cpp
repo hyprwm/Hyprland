@@ -578,10 +578,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
         const auto PMONITOR      = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
         int        maxClients = workspaceRule.maxClients;
+        bool       silent     = workspaceRule.maxClientsSilent;
         if (maxClients != 0 && maxClients < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
             if (pWorkspace->m_bIsSpecialWorkspace) {
                 g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace));
-                if (!workspaceRule.maxClientsSilent)
+                if (!silent)
                     PMONITOR->setSpecialWorkspace(nullptr);
             }
 
@@ -594,8 +595,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 // doesn't exist since it's empty
                 pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->m_iMonitorID, requestedWorkspaceName);
                 g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
-                if (!workspaceRule.maxClientsSilent)
+                if (!silent)
                 g_pKeybindManager->m_mDispatchers["workspace"](pWorkspace->m_szName);
+            }
+
+            if (silent) {
+                if (g_pCompositor->windowValidMapped(PFOCUSEDWINDOWPREV)) {
+                g_pCompositor->focusWindow(PFOCUSEDWINDOWPREV);
+                PFOCUSEDWINDOWPREV->updateWindowDecos();
+                } else if (!PFOCUSEDWINDOWPREV)
+                g_pCompositor->focusWindow(nullptr);
             }
         }
     }

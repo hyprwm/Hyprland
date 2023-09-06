@@ -343,7 +343,10 @@ void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    Vector2D   posOffset;
+    if (!PMONITOR)
+        return; // unsafe state most likely
+
+    Vector2D posOffset;
 
     if (force != "") {
         if (force == "bottom")
@@ -544,7 +547,7 @@ void CAnimationManager::scheduleTick() {
         return;
     }
 
-    float      refreshDelayMs = std::floor(1000.f / PMOSTHZ->refreshRate);
+    float       refreshDelayMs = std::floor(1000.f / PMOSTHZ->refreshRate);
 
     const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - PMOSTHZ->lastPresentationTimer.chrono()).count() / 1000.f;
 

@@ -763,7 +763,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (wlr_output_commit(pMonitor->output)) {
         if (!m_pLastScanout) {
             m_pLastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to %lx: \"%s\"", PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
+            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
         }
     } else {
         m_pLastScanout = nullptr;
@@ -827,7 +827,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         if (!pMonitor->noFrameSchedule)
             g_pCompositor->scheduleFrameForMonitor(pMonitor);
         else {
-            Debug::log(LOG, "NoFrameSchedule hit for %s.", pMonitor->szName.c_str());
+            Debug::log(LOG, "NoFrameSchedule hit for {}.", pMonitor->szName.c_str());
         }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
 
@@ -862,12 +862,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         const auto PGAMMACTRL = wlr_gamma_control_manager_v1_get_control(g_pCompositor->m_sWLRGammaCtrlMgr, pMonitor->output);
 
         if (!wlr_gamma_control_v1_apply(PGAMMACTRL, &pMonitor->output->pending)) {
-            Debug::log(ERR, "Could not apply gamma control to %s", pMonitor->szName.c_str());
+            Debug::log(ERR, "Could not apply gamma control to {}", pMonitor->szName.c_str());
             return;
         }
 
         if (!wlr_output_test(pMonitor->output)) {
-            Debug::log(ERR, "Output test failed for setting gamma to %s", pMonitor->szName.c_str());
+            Debug::log(ERR, "Output test failed for setting gamma to {}", pMonitor->szName.c_str());
             wlr_output_rollback(pMonitor->output);
             wlr_gamma_control_v1_send_failed_and_destroy(PGAMMACTRL);
         }
@@ -908,7 +908,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         wlr_output_lock_software_cursors(pMonitor->output, true);
 
     if (!wlr_output_attach_render(pMonitor->output, &bufferAge)) {
-        Debug::log(ERR, "Couldn't attach render to display %s ???", pMonitor->szName.c_str());
+        Debug::log(ERR, "Couldn't attach render to display {} ???", pMonitor->szName.c_str());
 
         if (UNLOCK_SC)
             wlr_output_lock_software_cursors(pMonitor->output, false);
@@ -1111,7 +1111,7 @@ void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
 
     if (!pWindow->m_bIsFullscreen) {
         wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface.wlr(), nullptr);
-        Debug::log(LOG, "Scanout mode OFF set for %lx", pWindow);
+        Debug::log(LOG, "Scanout mode OFF set for {:x}", (uintptr_t)pWindow);
         return;
     }
 
@@ -1130,7 +1130,7 @@ void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
     wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface.wlr(), &feedback);
     wlr_linux_dmabuf_feedback_v1_finish(&feedback);
 
-    Debug::log(LOG, "Scanout mode ON set for %lx", pWindow);
+    Debug::log(LOG, "Scanout mode ON set for {:x}", (uintptr_t)pWindow);
 }
 
 void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {
@@ -1319,7 +1319,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
             box.y -= PSTATE->margin.bottom;
         }
         if (box.width <= 0 || box.height <= 0) {
-            Debug::log(ERR, "LayerSurface %lx has a negative/zero w/h???", ls.get());
+            Debug::log(ERR, "LayerSurface {:x} has a negative/zero w/h???", (uintptr_t)ls.get());
             continue;
         }
         // Apply
@@ -1329,8 +1329,8 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
 
         wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
 
-        Debug::log(LOG, "LayerSurface %lx arranged: x: %i y: %i w: %i h: %i with margins: t: %i l: %i r: %i b: %i", &ls, box.x, box.y, box.width, box.height, PSTATE->margin.top,
-                   PSTATE->margin.left, PSTATE->margin.right, PSTATE->margin.bottom);
+        Debug::log(LOG, "LayerSurface {:x} arranged: x: {} y: {} w: {} h: {} with margins: t: {} l: {} r: {} b: {}", (uintptr_t)&ls, box.x, box.y, box.width, box.height,
+                   PSTATE->margin.top, PSTATE->margin.left, PSTATE->margin.right, PSTATE->margin.bottom);
     }
 }
 
@@ -1370,7 +1370,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
 
-    Debug::log(LOG, "Monitor %s layers arranged: reserved: %f %f %f %f", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y,
+    Debug::log(LOG, "Monitor {} layers arranged: reserved: {:.5f} {:.5f} {:.5f} {:.5f}", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y,
                PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 
@@ -1414,7 +1414,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Surface (extents): xy: %d, %d wh: %d, %d", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
+        Debug::log(LOG, "Damage: Surface (extents): xy: {}, {} wh: {}, {}", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
                    damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
 
@@ -1435,7 +1435,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Window (%s): xy: %d, %d wh: %d, %d", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
+        Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
 }
 
 void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
@@ -1448,7 +1448,7 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Monitor %s", pMonitor->szName.c_str());
+        Debug::log(LOG, "Damage: Monitor {}", pMonitor->szName.c_str());
 }
 
 void CHyprRenderer::damageBox(wlr_box* pBox) {
@@ -1467,7 +1467,7 @@ void CHyprRenderer::damageBox(wlr_box* pBox) {
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Box: xy: %d, %d wh: %d, %d", pBox->x, pBox->y, pBox->width, pBox->height);
+        Debug::log(LOG, "Damage: Box: xy: {}, {} wh: {}, {}", pBox->x, pBox->y, pBox->width, pBox->height);
 }
 
 void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {
@@ -1522,7 +1522,7 @@ DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& 
 
 bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
 
-    Debug::log(LOG, "Applying monitor rule for %s", pMonitor->szName.c_str());
+    Debug::log(LOG, "Applying monitor rule for {}", pMonitor->szName.c_str());
 
     pMonitor->activeMonitorRule = *pMonitorRule;
 
@@ -1541,7 +1541,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     if (!pMonitor->m_bEnabled) {
         pMonitor->onConnect(true); // enable it.
-        Debug::log(LOG, "Monitor %s is disabled but is requested to be enabled", pMonitor->szName.c_str());
+        Debug::log(LOG, "Monitor {} is disabled but is requested to be enabled", pMonitor->szName.c_str());
         force = true;
     }
 
@@ -1554,7 +1554,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->transform == pMonitorRule->transform && pMonitorRule->enable10bit == pMonitor->enabled10bit &&
         !memcmp(&pMonitor->customDrmMode, &pMonitorRule->drmMode, sizeof(pMonitor->customDrmMode))) {
 
-        Debug::log(LOG, "Not applying a new rule to %s because it's already applied!", pMonitor->szName.c_str());
+        Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", pMonitor->szName.c_str());
         return true;
     }
 
@@ -1588,12 +1588,12 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     wlr_output_set_mode(pMonitor->output, mode);
 
                     if (!wlr_output_test(pMonitor->output)) {
-                        Debug::log(LOG, "Monitor %s: REJECTED available mode: %ix%i@%2f!", pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y,
-                                   (float)pMonitorRule->refreshRate, mode->width, mode->height, mode->refresh / 1000.f);
+                        Debug::log(LOG, "Monitor {}: REJECTED available mode: {}x{}@{:2f}!", pMonitor->output->name, (int)pMonitorRule->resolution.x,
+                                   (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate, mode->width, mode->height, mode->refresh / 1000.f);
                         continue;
                     }
 
-                    Debug::log(LOG, "Monitor %s: requested %ix%i@%2f, found available mode: %ix%i@%imHz, applying.", pMonitor->output->name, (int)pMonitorRule->resolution.x,
+                    Debug::log(LOG, "Monitor {}: requested {}x{}@{:2f}, found available mode: {}x{}@{}mHz, applying.", pMonitor->output->name, (int)pMonitorRule->resolution.x,
                                (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate, mode->width, mode->height, mode->refresh);
 
                     found = true;
@@ -1616,7 +1616,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
 
                     if (!PREFERREDMODE) {
-                        Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f", (int)pMonitorRule->resolution.x,
+                        Debug::log(ERR, "Monitor {} has NO PREFERRED MODE, and an INVALID one was requested: {}x{}@{:2f}", (int)pMonitorRule->resolution.x,
                                    (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
                         return true;
                     }
@@ -1624,14 +1624,14 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     // Preferred is valid
                     wlr_output_set_mode(pMonitor->output, PREFERREDMODE);
 
-                    Debug::log(ERR, "Monitor %s got an invalid requested mode: %ix%i@%2f, using the preferred one instead: %ix%i@%2f", pMonitor->output->name,
+                    Debug::log(ERR, "Monitor {} got an invalid requested mode: {}x{}@{:2f}, using the preferred one instead: {}x{}@{:2f}", pMonitor->output->name,
                                (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate, PREFERREDMODE->width, PREFERREDMODE->height,
                                PREFERREDMODE->refresh / 1000.f);
 
                     pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
                     pMonitor->vecSize     = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
                 } else {
-                    Debug::log(LOG, "Set a custom mode %ix%i@%2f (mode not found in monitor modes)", (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y,
+                    Debug::log(LOG, "Set a custom mode {}x{}@{:2f} (mode not found in monitor modes)", (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y,
                                (float)pMonitorRule->refreshRate);
                 }
             }
@@ -1666,7 +1666,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
 
                 if (!PREFERREDMODE) {
-                    Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f", pMonitor->output->name, (int)pMonitorRule->resolution.x,
+                    Debug::log(ERR, "Monitor {} has NO PREFERRED MODE, and an INVALID one was requested: {}x{}@{:2f}", pMonitor->output->name, (int)pMonitorRule->resolution.x,
                                (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
                     return true;
                 }
@@ -1674,7 +1674,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 // Preferred is valid
                 wlr_output_set_mode(pMonitor->output, PREFERREDMODE);
 
-                Debug::log(ERR, "Monitor %s got an invalid requested mode: %ix%i@%2f, using the preferred one instead: %ix%i@%2f", pMonitor->output->name,
+                Debug::log(ERR, "Monitor {} got an invalid requested mode: {}x{}@{:2f}, using the preferred one instead: {}x{}@{:2f}", pMonitor->output->name,
                            (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate, PREFERREDMODE->width, PREFERREDMODE->height,
                            PREFERREDMODE->refresh / 1000.f);
 
@@ -1682,7 +1682,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 pMonitor->vecSize       = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
                 pMonitor->customDrmMode = {};
             } else {
-                Debug::log(LOG, "Set a custom mode %ix%i@%2f (mode not found in monitor modes)", (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y,
+                Debug::log(LOG, "Set a custom mode {}x{}@{:2f} (mode not found in monitor modes)", (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y,
                            (float)pMonitorRule->refreshRate);
             }
         }
@@ -1723,13 +1723,13 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             }
 
             if (!success) {
-                Debug::log(LOG, "Monitor %s: REJECTED mode: %ix%i@%2f! Falling back to preferred.", pMonitor->output->name, (int)pMonitorRule->resolution.x,
+                Debug::log(LOG, "Monitor {}: REJECTED mode: {}x{}@{:2f}! Falling back to preferred.", pMonitor->output->name, (int)pMonitorRule->resolution.x,
                            (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate, mode->width, mode->height, mode->refresh / 1000.f);
 
                 const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
 
                 if (!PREFERREDMODE) {
-                    Debug::log(ERR, "Monitor %s has NO PREFERRED MODE, and an INVALID one was requested: %ix%i@%2f", (int)pMonitorRule->resolution.x,
+                    Debug::log(ERR, "Monitor {} has NO PREFERRED MODE, and an INVALID one was requested: {}x{}@{:2f}", (int)pMonitorRule->resolution.x,
                                (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
                     return true;
                 }
@@ -1737,7 +1737,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 // Preferred is valid
                 wlr_output_set_mode(pMonitor->output, PREFERREDMODE);
 
-                Debug::log(ERR, "Monitor %s got an invalid requested mode: %ix%i@%2f, using the preferred one instead: %ix%i@%2f", pMonitor->output->name,
+                Debug::log(ERR, "Monitor {} got an invalid requested mode: {}x{}@{:2f}, using the preferred one instead: {}x{}@{:2f}", pMonitor->output->name,
                            (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate, PREFERREDMODE->width, PREFERREDMODE->height,
                            PREFERREDMODE->refresh / 1000.f);
 
@@ -1745,7 +1745,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 pMonitor->vecSize     = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
             } else {
 
-                Debug::log(LOG, "Monitor %s: Applying highest mode %ix%i@%2f.", pMonitor->output->name, (int)currentWidth, (int)currentHeight, (int)currentRefresh / 1000.f,
+                Debug::log(LOG, "Monitor {}: Applying highest mode {}x{}@{:2f}.", pMonitor->output->name, (int)currentWidth, (int)currentHeight, (int)currentRefresh / 1000.f,
                            mode->width, mode->height, mode->refresh / 1000.f);
 
                 pMonitor->refreshRate = currentRefresh / 1000.f;
@@ -1756,7 +1756,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
 
         if (!PREFERREDMODE) {
-            Debug::log(ERR, "Monitor %s has NO PREFERRED MODE", (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
+            Debug::log(ERR, "Monitor {} has NO PREFERRED MODE", (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
 
             if (!wl_list_empty(&pMonitor->output->modes)) {
                 wlr_output_mode* mode;
@@ -1765,12 +1765,12 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     wlr_output_set_mode(pMonitor->output, mode);
 
                     if (!wlr_output_test(pMonitor->output)) {
-                        Debug::log(LOG, "Monitor %s: REJECTED available mode: %ix%i@%2f!", pMonitor->output->name, (int)pMonitorRule->resolution.x, (int)pMonitorRule->resolution.y,
-                                   (float)pMonitorRule->refreshRate, mode->width, mode->height, mode->refresh / 1000.f);
+                        Debug::log(LOG, "Monitor {}: REJECTED available mode: {}x{}@{:2f}!", pMonitor->output->name, (int)pMonitorRule->resolution.x,
+                                   (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate, mode->width, mode->height, mode->refresh / 1000.f);
                         continue;
                     }
 
-                    Debug::log(LOG, "Monitor %s: requested %ix%i@%2f, found available mode: %ix%i@%imHz, applying.", pMonitor->output->name, (int)pMonitorRule->resolution.x,
+                    Debug::log(LOG, "Monitor {}: requested {}x{}@{:2f}, found available mode: {}x{}@{}mHz, applying.", pMonitor->output->name, (int)pMonitorRule->resolution.x,
                                (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate, mode->width, mode->height, mode->refresh);
 
                     pMonitor->refreshRate = mode->refresh / 1000.f;
@@ -1786,7 +1786,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             pMonitor->vecSize     = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
             pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
 
-            Debug::log(LOG, "Setting preferred mode for %s", pMonitor->output->name);
+            Debug::log(LOG, "Setting preferred mode for {}", pMonitor->output->name);
         }
     }
 
@@ -1800,19 +1800,19 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->enabled10bit = true;
 
         if (!wlr_output_test(pMonitor->output)) {
-            Debug::log(ERR, "Output %s -> 10 bit enabled, but failed format DRM_FORMAT_XRGB2101010. Trying BGR.", pMonitor->output->name);
+            Debug::log(ERR, "Output {} -> 10 bit enabled, but failed format DRM_FORMAT_XRGB2101010. Trying BGR.", pMonitor->output->name);
 
             wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XBGR2101010);
 
             if (!wlr_output_test(pMonitor->output)) {
-                Debug::log(ERR, "Output %s -> 10 bit enabled, but failed format DRM_FORMAT_XBGR2101010. Falling back to 8 bit.", pMonitor->output->name);
+                Debug::log(ERR, "Output {} -> 10 bit enabled, but failed format DRM_FORMAT_XBGR2101010. Falling back to 8 bit.", pMonitor->output->name);
 
                 wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XRGB8888);
             } else {
-                Debug::log(LOG, "10bit format DRM_FORMAT_XBGR2101010 succeeded for output %s", pMonitor->output->name);
+                Debug::log(LOG, "10bit format DRM_FORMAT_XBGR2101010 succeeded for output {}", pMonitor->output->name);
             }
         } else {
-            Debug::log(LOG, "10bit format DRM_FORMAT_XRGB2101010 succeeded for output %s", pMonitor->output->name);
+            Debug::log(LOG, "10bit format DRM_FORMAT_XRGB2101010 succeeded for output {}", pMonitor->output->name);
         }
     } else {
         wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XRGB8888);
@@ -1820,7 +1820,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     }
 
     if (!wlr_output_commit(pMonitor->output)) {
-        Debug::log(ERR, "Couldn't commit output named %s", pMonitor->output->name);
+        Debug::log(ERR, "Couldn't commit output named {}", pMonitor->output->name);
     }
 
     int x, y;
@@ -1853,7 +1853,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     // reload to fix mirrors
     g_pConfigManager->m_bWantsMonitorReload = true;
 
-    Debug::log(LOG, "Monitor %s data dump: res %ix%i@%.2fHz, scale %.2f, transform %i, pos %ix%i, 10b %i", pMonitor->szName.c_str(), (int)pMonitor->vecPixelSize.x,
+    Debug::log(LOG, "Monitor {} data dump: res {}x{}@{:.2f}Hz, scale {:.2f}, transform {}, pos {}x{}, 10b {}", pMonitor->szName.c_str(), (int)pMonitor->vecPixelSize.x,
                (int)pMonitor->vecPixelSize.y, pMonitor->refreshRate, pMonitor->scale, (int)pMonitor->transform, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y,
                (int)pMonitor->enabled10bit);
 

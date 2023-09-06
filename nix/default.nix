@@ -1,6 +1,7 @@
 {
   lib,
   stdenv,
+  gcc13Stdenv,
   pkg-config,
   makeWrapper,
   meson,
@@ -39,7 +40,7 @@
 }:
 assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been renamed `enableNvidiaPatches`";
 assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
-  stdenv.mkDerivation {
+  gcc13Stdenv.mkDerivation {
     pname = "hyprland${lib.optionalString enableNvidiaPatches "-nvidia"}${lib.optionalString debug "-debug"}";
     inherit version;
 

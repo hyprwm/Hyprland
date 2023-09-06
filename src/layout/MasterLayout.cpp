@@ -484,7 +484,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node %lx (workspace ID: %i)!!", pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node {:x} (workspace ID: {})!!", (uintptr_t)pNode, pNode->workspaceID);
         return;
     }
 
@@ -509,7 +509,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
-        Debug::log(ERR, "Node %lx holding invalid window %lx!!", pNode, PWINDOW);
+        Debug::log(ERR, "Node {:x} holding invalid window {:x}!!", (uintptr_t)pNode, (uintptr_t)PWINDOW);
         return;
     }
 

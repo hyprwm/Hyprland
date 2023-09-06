@@ -22,14 +22,14 @@ CWaylandResource::CWaylandResource(wl_client* client, const wl_interface* wlInte
     m_liResourceDestroy.notify = resourceDestroyNotify;
     wl_resource_add_destroy_listener(m_pWLResource, &m_liResourceDestroy);
 
-    Debug::log(TRACE, "[wl res %lx] created", m_pWLResource);
+    Debug::log(TRACE, "[wl res {:x}] created", (uintptr_t)m_pWLResource);
 }
 
 void CWaylandResource::markDefunct() {
     if (m_bDefunct)
         return;
 
-    Debug::log(TRACE, "[wl res %lx] now defunct", m_pWLResource);
+    Debug::log(TRACE, "[wl res {:x}] now defunct", (uintptr_t)m_pWLResource);
     m_bDefunct = true;
     wl_resource_set_user_data(m_pWLResource, nullptr);
 }
@@ -40,7 +40,7 @@ CWaylandResource::~CWaylandResource() {
     wl_list_remove(&m_liResourceDestroy.link);
     wl_list_init(&m_liResourceDestroy.link);
 
-    Debug::log(TRACE, "[wl res %lx] destroying (wl_resource_destroy will be %s)", m_pWLResource, (DESTROY ? "sent" : "not sent"));
+    Debug::log(TRACE, "[wl res {:x}] destroying (wl_resource_destroy will be {})", (uintptr_t)m_pWLResource, (DESTROY ? "sent" : "not sent"));
 
     if (DESTROY)
         wl_resource_destroy(m_pWLResource);
@@ -62,17 +62,17 @@ uint32_t CWaylandResource::version() {
 
 void CWaylandResource::setImplementation(const void* impl, wl_resource_destroy_func_t df) {
     RASSERT(good(), "Attempted to call setImplementation() on a bad resource");
-    RASSERT(!m_bImplementationSet, "Wayland Resource %lx already has an implementation, cannot re-set!", m_pWLResource);
+    RASSERT(!m_bImplementationSet, "Wayland Resource {:x} already has an implementation, cannot re-set!", (uintptr_t)m_pWLResource);
 
     wl_resource_set_implementation(m_pWLResource, impl, this, df);
 
-    Debug::log(TRACE, "[wl res %lx] set impl to %lx", m_pWLResource, impl);
+    Debug::log(TRACE, "[wl res {:x}] set impl to {:x}", (uintptr_t)m_pWLResource, (uintptr_t)impl);
 
     m_bImplementationSet = true;
 }
 
 void CWaylandResource::setData(void* data) {
-    Debug::log(TRACE, "[wl res %lx] set data to %lx", m_pWLResource, data);
+    Debug::log(TRACE, "[wl res {:x}] set data to {:x}", (uintptr_t)m_pWLResource, (uintptr_t)data);
     m_pData = data;
 }
 
@@ -96,14 +96,14 @@ IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, co
     m_pGlobal = wl_global_create(g_pCompositor->m_sWLDisplay, iface, ver, this, &bindManagerInternal);
 
     if (!m_pGlobal) {
-        Debug::log(ERR, "[proto %s] could not create a global", name.c_str());
+        Debug::log(ERR, "[proto {}] could not create a global", name);
         return;
     }
 
     m_liDisplayDestroy.notify = displayDestroyInternal;
     wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy);
 
-    Debug::log(LOG, "[proto %s] started", name.c_str());
+    Debug::log(LOG, "[proto {}] started", name);
 }
 
 IWaylandProtocol::~IWaylandProtocol() {

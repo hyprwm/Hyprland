@@ -1868,7 +1868,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     cairo_surface_destroy(CAIROSURFACE);
     cairo_destroy(CAIRO);
 
-    Debug::log(LOG, "Background created for monitor {}", pMonitor->szName.c_str());
+    Debug::log(LOG, "Background created for monitor {}", pMonitor->szName);
 }
 
 void CHyprOpenGLImpl::clearWithTex() {
@@ -1900,7 +1900,7 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprOpenGL->m_mMonitorRenderResources.erase(pMonitor);
     g_pHyprOpenGL->m_mMonitorBGTextures.erase(pMonitor);
 
-    Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName.c_str());
+    Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName);
 
     wlr_output_rollback(pMonitor->output);
 }

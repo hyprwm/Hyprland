@@ -58,7 +58,7 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
         xcb_intern_atom_reply_t* reply  = xcb_intern_atom_reply(XCBCONNECTION, cookie, NULL);
 
         if (!reply) {
-            Debug::log(LogLevel::ERR, "XWayland -> Atom failed: {}", ATOM.first.c_str());
+            Debug::log(LogLevel::ERR, "XWayland -> Atom failed: {}", ATOM.first);
             continue;
         }
 

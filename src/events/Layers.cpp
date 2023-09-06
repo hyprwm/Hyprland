@@ -26,7 +26,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
             return;
         }
 
-        Debug::log(LOG, "New LayerSurface has no preferred monitor. Assigning Monitor {}", PMONITOR->szName.c_str());
+        Debug::log(LOG, "New LayerSurface has no preferred monitor. Assigning Monitor {}", PMONITOR->szName);
 
         WLRLAYERSURFACE->output = PMONITOR->output;
     }
@@ -56,7 +56,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     layerSurface->forceBlur = g_pConfigManager->shouldBlurLS(layerSurface->szNamespace);
 
     Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)layerSurface->layerSurface, layerSurface->layerSurface->_namespace,
-               (int)layerSurface->layer, PMONITOR->szName.c_str());
+               (int)layerSurface->layer, PMONITOR->szName);
 }
 
 void Events::listener_destroyLayerSurface(void* owner, void* data) {

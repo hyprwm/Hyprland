@@ -73,7 +73,7 @@ std::vector<SCallbackFNPtr>* CHookSystemManager::getVecForEvent(const std::strin
     if (IT != m_lpRegisteredHooks.end())
         return &IT->second;
 
-    Debug::log(LOG, " [hookSystem] New hook event registered: {}", event.c_str());
+    Debug::log(LOG, " [hookSystem] New hook event registered: {}", event);
 
     return &m_lpRegisteredHooks.emplace_back(std::make_pair<>(event, std::vector<SCallbackFNPtr>{})).second;
 }

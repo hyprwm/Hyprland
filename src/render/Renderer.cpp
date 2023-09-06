@@ -763,7 +763,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (wlr_output_commit(pMonitor->output)) {
         if (!m_pLastScanout) {
             m_pLastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE, PCANDIDATE->m_szTitle.c_str());
+            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE, PCANDIDATE->m_szTitle);
         }
     } else {
         m_pLastScanout = nullptr;
@@ -827,7 +827,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         if (!pMonitor->noFrameSchedule)
             g_pCompositor->scheduleFrameForMonitor(pMonitor);
         else {
-            Debug::log(LOG, "NoFrameSchedule hit for {}.", pMonitor->szName.c_str());
+            Debug::log(LOG, "NoFrameSchedule hit for {}.", pMonitor->szName);
         }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
 
@@ -862,12 +862,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         const auto PGAMMACTRL = wlr_gamma_control_manager_v1_get_control(g_pCompositor->m_sWLRGammaCtrlMgr, pMonitor->output);
 
         if (!wlr_gamma_control_v1_apply(PGAMMACTRL, &pMonitor->output->pending)) {
-            Debug::log(ERR, "Could not apply gamma control to {}", pMonitor->szName.c_str());
+            Debug::log(ERR, "Could not apply gamma control to {}", pMonitor->szName);
             return;
         }
 
         if (!wlr_output_test(pMonitor->output)) {
-            Debug::log(ERR, "Output test failed for setting gamma to {}", pMonitor->szName.c_str());
+            Debug::log(ERR, "Output test failed for setting gamma to {}", pMonitor->szName);
             wlr_output_rollback(pMonitor->output);
             wlr_gamma_control_v1_send_failed_and_destroy(PGAMMACTRL);
         }
@@ -908,7 +908,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         wlr_output_lock_software_cursors(pMonitor->output, true);
 
     if (!wlr_output_attach_render(pMonitor->output, &bufferAge)) {
-        Debug::log(ERR, "Couldn't attach render to display {} ???", pMonitor->szName.c_str());
+        Debug::log(ERR, "Couldn't attach render to display {} ???", pMonitor->szName);
 
         if (UNLOCK_SC)
             wlr_output_lock_software_cursors(pMonitor->output, false);
@@ -1370,7 +1370,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
 
-    Debug::log(LOG, "Monitor {} layers arranged: reserved: {:.5f} {:.5f} {:.5f} {:.5f}", PMONITOR->szName.c_str(), PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y,
+    Debug::log(LOG, "Monitor {} layers arranged: reserved: {:.5f} {:.5f} {:.5f} {:.5f}", PMONITOR->szName, PMONITOR->vecReservedTopLeft.x, PMONITOR->vecReservedTopLeft.y,
                PMONITOR->vecReservedBottomRight.x, PMONITOR->vecReservedBottomRight.y);
 }
 
@@ -1435,7 +1435,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle.c_str(), damageBox.x, damageBox.y, damageBox.width, damageBox.height);
+        Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, damageBox.x, damageBox.y, damageBox.width, damageBox.height);
 }
 
 void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
@@ -1448,7 +1448,7 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
     static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Monitor {}", pMonitor->szName.c_str());
+        Debug::log(LOG, "Damage: Monitor {}", pMonitor->szName);
 }
 
 void CHyprRenderer::damageBox(wlr_box* pBox) {
@@ -1522,7 +1522,7 @@ DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& 
 
 bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
 
-    Debug::log(LOG, "Applying monitor rule for {}", pMonitor->szName.c_str());
+    Debug::log(LOG, "Applying monitor rule for {}", pMonitor->szName);
 
     pMonitor->activeMonitorRule = *pMonitorRule;
 
@@ -1541,7 +1541,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     if (!pMonitor->m_bEnabled) {
         pMonitor->onConnect(true); // enable it.
-        Debug::log(LOG, "Monitor {} is disabled but is requested to be enabled", pMonitor->szName.c_str());
+        Debug::log(LOG, "Monitor {} is disabled but is requested to be enabled", pMonitor->szName);
         force = true;
     }
 
@@ -1554,7 +1554,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->transform == pMonitorRule->transform && pMonitorRule->enable10bit == pMonitor->enabled10bit &&
         !memcmp(&pMonitor->customDrmMode, &pMonitorRule->drmMode, sizeof(pMonitor->customDrmMode))) {
 
-        Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", pMonitor->szName.c_str());
+        Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", pMonitor->szName);
         return true;
     }
 
@@ -1853,7 +1853,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     // reload to fix mirrors
     g_pConfigManager->m_bWantsMonitorReload = true;
 
-    Debug::log(LOG, "Monitor {} data dump: res {}x{}@{:.2f}Hz, scale {:.2f}, transform {}, pos {}x{}, 10b {}", pMonitor->szName.c_str(), (int)pMonitor->vecPixelSize.x,
+    Debug::log(LOG, "Monitor {} data dump: res {}x{}@{:.2f}Hz, scale {:.2f}, transform {}, pos {}x{}, 10b {}", pMonitor->szName, (int)pMonitor->vecPixelSize.x,
                (int)pMonitor->vecPixelSize.y, pMonitor->refreshRate, pMonitor->scale, (int)pMonitor->transform, (int)pMonitor->vecPosition.x, (int)pMonitor->vecPosition.y,
                (int)pMonitor->enabled10bit);
 

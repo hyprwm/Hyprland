@@ -79,7 +79,7 @@ void CEventManager::startThread() {
         sockaddr_in clientAddress;
         socklen_t   clientSize = sizeof(clientAddress);
 
-        Debug::log(LOG, "Hypr socket 2 started at {}", socketPath.c_str());
+        Debug::log(LOG, "Hypr socket 2 started at {}", socketPath);
 
         while (1) {
             const auto ACCEPTEDCONNECTION = accept4(SOCKET, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
@@ -112,7 +112,7 @@ void CEventManager::flushEvents() {
         for (auto& fd : m_dAcceptedSocketFDs) {
             try {
                 write(fd.first, eventString.c_str(), eventString.length());
-            } catch(...) {}
+            } catch (...) {}
         }
     }
 
@@ -124,7 +124,7 @@ void CEventManager::flushEvents() {
 void CEventManager::postEvent(const SHyprIPCEvent event) {
 
     if (g_pCompositor->m_bIsShuttingDown) {
-        Debug::log(WARN, "Suppressed (ignoreevents true / shutting down) event of type {}, content: {}", event.event.c_str(), event.data.c_str());
+        Debug::log(WARN, "Suppressed (ignoreevents true / shutting down) event of type {}, content: {}", event.event, event.data);
         return;
     }
 

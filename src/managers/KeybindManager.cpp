@@ -428,10 +428,10 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
-            Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k.handler.c_str());
+            Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k.handler);
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key.c_str(), keysym);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key, keysym);
 
             m_iPassPressed = (int)pressed;
 
@@ -603,7 +603,7 @@ void CKeybindManager::spawn(std::string args) {
 }
 
 uint64_t CKeybindManager::spawnRaw(std::string args) {
-    Debug::log(LOG, "Executing {}", args.c_str());
+    Debug::log(LOG, "Executing {}", args);
 
     int socket[2];
     if (pipe(socket) != 0) {
@@ -1415,7 +1415,7 @@ void CKeybindManager::workspaceOpt(std::string args) {
             }
         }
     } else {
-        Debug::log(ERR, "Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args.c_str());
+        Debug::log(ERR, "Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args);
         return;
     }
 
@@ -1433,9 +1433,7 @@ void CKeybindManager::renameWorkspace(std::string args) {
         } else {
             g_pCompositor->renameWorkspace(std::stoi(args), "");
         }
-    } catch (std::exception& e) {
-        Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"{}\": \"{}\"", args.c_str(), e.what());
-    }
+    } catch (std::exception& e) { Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"{}\": \"{}\"", args, e.what()); }
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
@@ -1661,7 +1659,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
     if (!PWINDOW)
         return;
 
-    Debug::log(LOG, "Focusing to window name: {}", PWINDOW->m_szTitle.c_str());
+    Debug::log(LOG, "Focusing to window name: {}", PWINDOW->m_szTitle);
 
     if (g_pCompositor->m_pLastMonitor->activeWorkspace != PWINDOW->m_iWorkspaceID) {
         Debug::log(LOG, "Fake executing workspace to move focus");
@@ -1692,14 +1690,14 @@ void CKeybindManager::setSubmap(std::string submap) {
     for (auto& k : g_pKeybindManager->m_lKeybinds) {
         if (k.submap == submap) {
             m_szCurrentSelectedSubmap = submap;
-            Debug::log(LOG, "Changed keybind submap to {}", submap.c_str());
+            Debug::log(LOG, "Changed keybind submap to {}", submap);
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
             EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
             return;
         }
     }
 
-    Debug::log(ERR, "Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap.c_str());
+    Debug::log(ERR, "Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap);
 }
 
 void CKeybindManager::pass(std::string regexp) {
@@ -1816,7 +1814,7 @@ void CKeybindManager::dpms(std::string arg) {
         m->dpmsStatus = enable;
 
         if (!wlr_output_commit(m->output)) {
-            Debug::log(ERR, "Couldn't commit output {}", m->szName.c_str());
+            Debug::log(ERR, "Couldn't commit output {}", m->szName);
         }
 
         if (enable)

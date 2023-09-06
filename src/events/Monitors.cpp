@@ -186,7 +186,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     pMonitor->output                 = nullptr;
     pMonitor->m_bRenderingInitPassed = false;
 
-    Debug::log(LOG, "Removing monitor {} from realMonitors", pMonitor->szName.c_str());
+    Debug::log(LOG, "Removing monitor {} from realMonitors", pMonitor->szName);
 
     std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
 }

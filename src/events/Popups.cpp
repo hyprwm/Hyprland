@@ -103,7 +103,7 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     if (!PWINDOW->m_bIsMapped)
         return;
 
-    Debug::log(LOG, "New layer popup created from XDG window {:x} -> {}", (uintptr_t)PWINDOW, PWINDOW->m_szTitle.c_str());
+    Debug::log(LOG, "New layer popup created from XDG window {:x} -> {}", (uintptr_t)PWINDOW, PWINDOW->m_szTitle);
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
@@ -125,7 +125,7 @@ void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
     ASSERT(PPOPUP);
 
     if (PPOPUP->parentWindow)
-        Debug::log(LOG, "New popup created from XDG Window popup {:x} -> {}", (uintptr_t)PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
+        Debug::log(LOG, "New popup created from XDG Window popup {:x} -> {}", (uintptr_t)PPOPUP, PPOPUP->parentWindow->m_szTitle);
     else
         Debug::log(LOG, "New popup created from Non-Window popup {:x}", (uintptr_t)PPOPUP);
 

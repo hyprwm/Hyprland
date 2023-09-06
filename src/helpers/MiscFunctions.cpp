@@ -705,3 +705,7 @@ void throwError(const std::string& err) {
     Debug::log(CRIT, "Critical error thrown: {}", err.c_str());
     throw std::runtime_error(err);
 }
+
+std::string sendToLog(uint8_t level, const std::string& s) {
+    Debug::log((LogLevel)level, s);
+}

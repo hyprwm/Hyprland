@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include "../helpers/MiscFunctions.hpp"
 
 #define LOGMESSAGESIZE 1024
 
@@ -62,7 +63,20 @@ namespace Debug {
 #endif
         }
 
-        logMsg += std::vformat(fmt, std::make_format_args(args...));
+        try {
+            logMsg += std::vformat(fmt, std::make_format_args(args...));
+        } catch (std::exception& e) {
+            std::string exceptionMsg = e.what();
+            Debug::log(ERR, "caught exception in Debug::log: {}", exceptionMsg);
+
+            const auto CALLSTACK = getBacktrace();
+
+            Debug::log(LOG, "stacktrace:");
+
+            for (size_t i = 0; i < CALLSTACK.size(); ++i) {
+                Debug::log(NONE, "\t #{} | {}", i, CALLSTACK[i].desc);
+            }
+        }
 
         ofs << logMsg << "\n";
 

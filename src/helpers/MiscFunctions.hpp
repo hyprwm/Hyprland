@@ -32,7 +32,26 @@ std::string                      replaceInString(std::string subject, const std:
 std::vector<SCallstackFrameInfo> getBacktrace();
 void                             throwError(const std::string& err);
 
+// why, C++.
+std::string sendToLog(uint8_t, const std::string&);
 template <typename... Args>
 std::string getFormat(const std::string& fmt, Args&&... args) {
-    return std::vformat(fmt, std::make_format_args(args...));
+    std::string fmtdMsg;
+
+    try {
+        fmtdMsg += std::vformat(fmt, std::make_format_args(args...));
+    } catch (std::exception& e) {
+        std::string exceptionMsg = e.what();
+        sendToLog(2, std::format("caught exception in getFormat: {}", exceptionMsg));
+
+        const auto CALLSTACK = getBacktrace();
+
+        sendToLog(0, "stacktrace:");
+
+        for (size_t i = 0; i < CALLSTACK.size(); ++i) {
+            sendToLog(1, std::format("\t #{} | {}", i, CALLSTACK[i].desc));
+        }
+    }
+
+    return fmtdMsg;
 }

@@ -752,35 +752,37 @@ void CConfigManager::handleAnimation(const std::string& command, const std::stri
         parseError = "invalid animation on/off state";
     }
 
-    // speed
-    if (isNumber(ARGS[2], true)) {
-        PANIM->second.internalSpeed = std::stof(ARGS[2]);
+    if (PANIM->second.internalEnabled) {
+        // speed
+        if (isNumber(ARGS[2], true)) {
+            PANIM->second.internalSpeed = std::stof(ARGS[2]);
 
-        if (PANIM->second.internalSpeed <= 0) {
+            if (PANIM->second.internalSpeed <= 0) {
+                parseError                  = "invalid speed";
+                PANIM->second.internalSpeed = 1.f;
+            }
+        } else {
+            PANIM->second.internalSpeed = 10.f;
             parseError                  = "invalid speed";
-            PANIM->second.internalSpeed = 1.f;
         }
-    } else {
-        PANIM->second.internalSpeed = 10.f;
-        parseError                  = "invalid speed";
-    }
 
-    // curve
-    PANIM->second.internalBezier = ARGS[3];
+        // curve
+        PANIM->second.internalBezier = ARGS[3];
 
-    if (!g_pAnimationManager->bezierExists(ARGS[3])) {
-        parseError                   = "no such bezier";
-        PANIM->second.internalBezier = "default";
-    }
+        if (!g_pAnimationManager->bezierExists(ARGS[3])) {
+            parseError                   = "no such bezier";
+            PANIM->second.internalBezier = "default";
+        }
 
-    // style
-    PANIM->second.internalStyle = ARGS[4];
+        // style
+        PANIM->second.internalStyle = ARGS[4];
 
-    if (ARGS[4] != "") {
-        const auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
+        if (ARGS[4] != "") {
+            const auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
 
-        if (ERR != "")
-            parseError = ERR;
+            if (ERR != "")
+                parseError = ERR;
+        }
     }
 
     // now, check for children, recursively

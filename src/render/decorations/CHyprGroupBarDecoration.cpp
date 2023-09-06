@@ -24,10 +24,11 @@ eDecorationType CHyprGroupBarDecoration::getDecorationType() {
     return DECORATION_GROUPBAR;
 }
 
-constexpr int BAR_INDICATOR_HEIGHT = 3;
-constexpr int BAR_INTERNAL_PADDING = 3;
-constexpr int BAR_EXTERNAL_PADDING = 3;
-constexpr int BAR_TEXT_PAD         = 3;
+constexpr int BAR_INDICATOR_HEIGHT   = 3;
+constexpr int BAR_INTERNAL_PADDING   = 3;
+constexpr int BAR_EXTERNAL_PADDING   = 3;
+constexpr int BAR_HORIZONTAL_PADDING = 5;
+constexpr int BAR_TEXT_PAD           = 3;
 
 //
 
@@ -93,8 +94,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     const int  ROUNDING   = !m_pWindow->m_sSpecialRenderData.rounding ? 0 : m_pWindow->rounding();
     const int  BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    const int  PAD  = 2; //2px
-    const int  BARW = (m_vLastWindowSize.x - 2 * ROUNDING - PAD * (barsToDraw - 1)) / barsToDraw;
+    const int  BARW = (m_vLastWindowSize.x - 2 * ROUNDING - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
 
     //  TODO: check for invalid config
     if (BARW <= 0)
@@ -166,7 +166,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         CColor color =
             m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0] : ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0];
         color.a *= a;
-        g_pHyprOpenGL->renderRect(&barBox, color);
+        g_pHyprOpenGL->renderRect(&barBox, color, std::sqrt(m_iBarHeight) / 2);
 
         // render title if necessary
         if (*PRENDERTITLES) {
@@ -185,9 +185,9 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
                                          &gradBox, 1.0);
         }
 
-        barBox.x += (PAD + BARW) * pMonitor->scale;
-        gradBox.x += (PAD + BARW) * pMonitor->scale;
-        textBox.x += (PAD + BARW) * pMonitor->scale;
+        barBox.x += (BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
+        gradBox.x += (BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
+        textBox.x += (BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
     }
 
     if (*PRENDERTITLES)

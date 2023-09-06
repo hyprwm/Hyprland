@@ -743,7 +743,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
-    Debug::log(LOG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", pKeyboard->name.c_str(), (int)HASCONFIG);
+    Debug::log(LOG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", pKeyboard->name, (int)HASCONFIG);
 
     ASSERT(pKeyboard);
 
@@ -1029,7 +1029,7 @@ void CInputManager::setPointerConfigs() {
             libinput_device_config_scroll_set_button_lock(LIBINPUTDEV,
                                                           SCROLLBUTTONLOCK == 0 ? LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_DISABLED : LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_ENABLED);
 
-            Debug::log(LOG, "Applied config to mouse {}, sens {:.2f}", m.name.c_str(), LIBINPUTSENS);
+            Debug::log(LOG, "Applied config to mouse {}, sens {:.2f}", m.name, LIBINPUTSENS);
         }
     }
 }
@@ -1414,7 +1414,7 @@ void CInputManager::setTabletConfigs() {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
             const int  ROTATION = std::clamp(g_pConfigManager->getDeviceInt(t.name, "transform", "input:tablet:transform"), 0, 7);
-            Debug::log(LOG, "Setting calibration matrix for device {}", t.name.c_str());
+            Debug::log(LOG, "Setting calibration matrix for device {}", t.name);
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
             const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output", "input:tablet:output");
@@ -1454,17 +1454,17 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
             if (PDEVICE->status != -1 && PDEVICE->status == E->switch_state)
                 return;
 
-            Debug::log(LOG, "Switch {} fired, triggering binds.", NAME.c_str());
+            Debug::log(LOG, "Switch {} fired, triggering binds.", NAME);
 
             g_pKeybindManager->onSwitchEvent(NAME);
 
             switch (E->switch_state) {
                 case WLR_SWITCH_STATE_ON:
-                    Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME.c_str());
+                    Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME);
                     g_pKeybindManager->onSwitchOnEvent(NAME);
                     break;
                 case WLR_SWITCH_STATE_OFF:
-                    Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME.c_str());
+                    Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME);
                     g_pKeybindManager->onSwitchOffEvent(NAME);
                     break;
             }

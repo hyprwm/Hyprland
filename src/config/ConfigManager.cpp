@@ -328,7 +328,7 @@ void CConfigManager::init() {
     struct stat       fileStat;
     int               err = stat(CONFIGPATH.c_str(), &fileStat);
     if (err != 0) {
-        Debug::log(WARN, "Error at statting config, error %i", errno);
+        Debug::log(WARN, "Error at statting config, error {}", errno);
     }
 
     configModifyTimes[CONFIGPATH] = fileStat.st_mtime;
@@ -341,7 +341,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         if (COMMAND.find("device:") != 0 /* devices parsed later */ && COMMAND.find("plugin:") != 0 /* plugins parsed later */) {
             if (COMMAND[0] == '$') {
                 // register a dynamic var
-                Debug::log(LOG, "Registered dynamic var \"%s\" -> %s", COMMAND.c_str(), VALUE.c_str());
+                Debug::log(LOG, "Registered dynamic var \"{}\" -> {}", COMMAND.c_str(), VALUE.c_str());
                 configDynamicVars.emplace_back(std::make_pair<>(COMMAND.substr(1), VALUE));
 
                 std::sort(configDynamicVars.begin(), configDynamicVars.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
@@ -399,21 +399,21 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         try {
             CONFIGENTRY->intValue = configStringToInt(VALUE);
         } catch (std::exception& e) {
-            Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+            Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. " + e.what();
         }
     } else if (CONFIGENTRY->floatValue != -__FLT_MAX__) {
         try {
             CONFIGENTRY->floatValue = stof(VALUE);
         } catch (...) {
-            Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+            Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
         }
     } else if (CONFIGENTRY->strValue != "") {
         try {
             CONFIGENTRY->strValue = VALUE;
         } catch (...) {
-            Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+            Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
         }
     } else if (CONFIGENTRY->vecValue != Vector2D(-__FLT_MAX__, -__FLT_MAX__)) {
@@ -426,11 +426,11 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                     CONFIGENTRY->vecValue = Vector2D(std::stof(X), std::stof(Y));
                 }
             } else {
-                Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
                 parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
             }
         } catch (...) {
-            Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+            Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
         }
     } else if (CONFIGENTRY->data.get() != nullptr) {
@@ -449,7 +449,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                         try {
                             data->m_fAngle = std::stoi(var.substr(0, var.find("deg"))) * (PI / 180.0); // radians
                         } catch (...) {
-                            Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                            Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
                             parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">.";
                         }
 
@@ -457,7 +457,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                     }
 
                     if (data->m_vColors.size() >= 10) {
-                        Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                        Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
                         parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. Max colors in a gradient is 10.";
                         break;
                     }
@@ -465,13 +465,13 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                     try {
                         data->m_vColors.push_back(CColor(configStringToInt(var)));
                     } catch (std::exception& e) {
-                        Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                        Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
                         parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. " + e.what();
                     }
                 }
 
                 if (data->m_vColors.size() == 0) {
-                    Debug::log(WARN, "Error reading value of %s", COMMAND.c_str());
+                    Debug::log(WARN, "Error reading value of {}", COMMAND.c_str());
                     parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. No colors provided.";
 
                     data->m_vColors.push_back(0); // transparent
@@ -493,7 +493,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         struct stat fileStat;
         int         err = stat(PATH.c_str(), &fileStat);
         if (err != 0) {
-            Debug::log(WARN, "Error at ticking config at %s, error %i: %s", PATH.c_str(), err, strerror(err));
+            Debug::log(WARN, "Error at ticking config at {}, error {}: {}", PATH.c_str(), err, strerror(err));
             return;
         }
 
@@ -516,7 +516,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
         return false;
 
     if (args.size() < 10) {
-        Debug::log(ERR, "modeline parse error: expected at least 9 arguments, got %i", args.size() - 1);
+        Debug::log(ERR, "modeline parse error: expected at least 9 arguments, got {}", args.size() - 1);
         return false;
     }
 
@@ -550,7 +550,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
         if (it != flagsmap.end())
             mode.flags |= it->second;
         else
-            Debug::log(ERR, "invalid flag %s in modeline", it->first.c_str());
+            Debug::log(ERR, "invalid flag {} in modeline", it->first.c_str());
     }
 
     snprintf(mode.name, sizeof(mode.name), "%dx%d@%d", mode.hdisplay, mode.vdisplay, mode.vrefresh / 1000);
@@ -573,7 +573,7 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         else if (ARGS[1] == "transform") {
             const auto TSF = std::stoi(ARGS[2]);
             if (std::clamp(TSF, 0, 7) != TSF) {
-                Debug::log(ERR, "invalid transform %i in monitor", TSF);
+                Debug::log(ERR, "invalid transform {} in monitor", TSF);
                 parseError = "invalid transform";
                 return;
             }
@@ -919,7 +919,7 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
 
     // verify we support a rule
     if (!windowRuleValid(RULE)) {
-        Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
+        Debug::log(ERR, "Invalid rule found: {}", RULE.c_str());
         parseError = "Invalid rule found: " + RULE;
         return;
     }
@@ -944,7 +944,7 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
     }
 
     if (!layerRuleValid(RULE)) {
-        Debug::log(ERR, "Invalid rule found: %s", RULE.c_str());
+        Debug::log(ERR, "Invalid rule found: {}", RULE.c_str());
         parseError = "Invalid rule found: " + RULE;
         return;
     }
@@ -962,7 +962,7 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
     if (!windowRuleValid(RULE) && RULE != "unset") {
-        Debug::log(ERR, "Invalid rulev2 found: %s", RULE.c_str());
+        Debug::log(ERR, "Invalid rulev2 found: {}", RULE.c_str());
         parseError = "Invalid rulev2 found: " + RULE;
         return;
     }
@@ -983,7 +983,7 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 
     if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos &&
         PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos) {
-        Debug::log(ERR, "Invalid rulev2 syntax: %s", VALUE.c_str());
+        Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE.c_str());
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
     }
@@ -1089,7 +1089,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
         for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
                 if (BYADDRESS) {
-                    if (getFormat("0x%lx", ls.get()) == matchName)
+                    if (getFormat("0x{:x}", (uintptr_t)ls.get()) == matchName)
                         ls->forceBlur = forceBlur;
                 } else if (ls->szNamespace == matchName)
                     ls->forceBlur = forceBlur;
@@ -1128,7 +1128,7 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
         auto       wsIdent         = removeBeginEndSpacesTabs(value.substr(FIRST_DELIM + 1, (WORKSPACE_DELIM - FIRST_DELIM - 1)));
         id                         = getWorkspaceIDFromString(wsIdent, name);
         if (id == INT_MAX) {
-            Debug::log(ERR, "Invalid workspace identifier found: %s", wsIdent.c_str());
+            Debug::log(ERR, "Invalid workspace identifier found: {}", wsIdent.c_str());
             parseError = "Invalid workspace identifier found: " + wsIdent;
             return;
         }
@@ -1207,7 +1207,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
     struct stat fileStat;
     int         err = stat(value.c_str(), &fileStat);
     if (err != 0) {
-        Debug::log(WARN, "Error at ticking config at %s, error %i: %s", value.c_str(), err, strerror(err));
+        Debug::log(WARN, "Error at ticking config at {}, error {}: {}", value.c_str(), err, strerror(err));
         return;
     }
 
@@ -1225,7 +1225,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
                 parseLine(line);
             } catch (...) {
                 Debug::log(ERR, "Error reading line from config. Line:");
-                Debug::log(NONE, "%s", line.c_str());
+                Debug::log(NONE, "{}", line.c_str());
 
                 parseError += "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): Line parsing error.";
             }
@@ -1487,7 +1487,7 @@ void CConfigManager::loadConfigLoadVars() {
     // paths
     configPaths.clear();
     std::string mainConfigPath = getMainConfigPath();
-    Debug::log(LOG, "Using config: %s", mainConfigPath.c_str());
+    Debug::log(LOG, "Using config: {}", mainConfigPath.c_str());
     configPaths.push_back(mainConfigPath);
     std::string configPath = mainConfigPath.substr(0, mainConfigPath.find_last_of('/'));
     // find_last_of never returns npos since main_config at least has /hypr/
@@ -1545,7 +1545,7 @@ void CConfigManager::loadConfigLoadVars() {
                 parseLine(line);
             } catch (...) {
                 Debug::log(ERR, "Error reading line from config. Line:");
-                Debug::log(NONE, "%s", line.c_str());
+                Debug::log(NONE, "{}", line.c_str());
 
                 parseError += "Config error at line " + std::to_string(linenum) + " (" + mainConfigPath + "): Line parsing error.";
             }
@@ -1654,7 +1654,7 @@ void CConfigManager::tick() {
         struct stat fileStat;
         int         err = stat(cf.c_str(), &fileStat);
         if (err != 0) {
-            Debug::log(WARN, "Error at ticking config at %s, error %i: %s", cf.c_str(), err, strerror(err));
+            Debug::log(WARN, "Error at ticking config at {}, error {}: {}", cf.c_str(), err, strerror(err));
             continue;
         }
 
@@ -1687,7 +1687,7 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
     const auto                  it = deviceConfigs.find(dev);
 
     if (it == deviceConfigs.end()) {
-        Debug::log(ERR, "getConfigValueSafeDevice: No device config for %s found???", dev.c_str());
+        Debug::log(ERR, "getConfigValueSafeDevice: No device config for {} found???", dev.c_str());
         return SConfigValue();
     }
 
@@ -1771,7 +1771,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const st
     if (found)
         return *found;
 
-    Debug::log(WARN, "No rule found for %s, trying to use the first.", name.c_str());
+    Debug::log(WARN, "No rule found for {}, trying to use the first.", name.c_str());
 
     for (auto& r : m_dMonitorRules) {
         if (r.name == "") {
@@ -1804,7 +1804,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
     std::string              title      = g_pXWaylandManager->getTitle(pWindow);
     std::string              appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
 
-    Debug::log(LOG, "Searching for matching rules for %s (title: %s)", appidclass.c_str(), title.c_str());
+    Debug::log(LOG, "Searching for matching rules for {} (title: {})", appidclass.c_str(), title.c_str());
 
     // since some rules will be applied later, we need to store some flags
     bool hasFloating   = pWindow->m_bIsFloating;
@@ -1827,7 +1827,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
                         continue;
                 }
             } catch (...) {
-                Debug::log(ERR, "Regex error at %s", rule.szValue.c_str());
+                Debug::log(ERR, "Regex error at {}", rule.szValue.c_str());
                 continue;
             }
         } else {
@@ -1887,13 +1887,13 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
                     }
                 }
             } catch (std::exception& e) {
-                Debug::log(ERR, "Regex error at %s (%s)", rule.szValue.c_str(), e.what());
+                Debug::log(ERR, "Regex error at {} ({})", rule.szValue.c_str(), e.what());
                 continue;
             }
         }
 
         // applies. Read the rule and behave accordingly
-        Debug::log(LOG, "Window rule %s -> %s matched %lx [%s]", rule.szRule.c_str(), rule.szValue.c_str(), pWindow, pWindow->m_szTitle.c_str());
+        Debug::log(LOG, "Window rule {} -> {} matched {:x} [{}]", rule.szRule.c_str(), rule.szValue.c_str(), (uintptr_t)pWindow, pWindow->m_szTitle.c_str());
 
         returns.push_back(rule);
 
@@ -1931,7 +1931,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
 
     for (auto& lr : m_dLayerRules) {
         if (lr.targetNamespace.find("address:0x") == 0) {
-            if (getFormat("address:0x%lx", pLS) != lr.targetNamespace)
+            if (getFormat("address:0x{:x}", (uintptr_t)pLS) != lr.targetNamespace)
                 continue;
         } else {
             std::regex NSCHECK(lr.targetNamespace);
@@ -2082,7 +2082,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
 
                 if (!wlr_output_commit(m->output))
-                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
+                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->output->name);
             }
             m->vrrActive = false;
             return;
@@ -2091,12 +2091,12 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                 wlr_output_enable_adaptive_sync(m->output, 1);
 
                 if (!wlr_output_test(m->output)) {
-                    Debug::log(LOG, "Pending output %s does not accept VRR.", m->output->name);
+                    Debug::log(LOG, "Pending output {} does not accept VRR.", m->output->name);
                     wlr_output_enable_adaptive_sync(m->output, 0);
                 }
 
                 if (!wlr_output_commit(m->output))
-                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
+                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
             }
             m->vrrActive = true;
             return;
@@ -2115,18 +2115,18 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                 wlr_output_enable_adaptive_sync(m->output, 1);
 
                 if (!wlr_output_test(m->output)) {
-                    Debug::log(LOG, "Pending output %s does not accept VRR.", m->output->name);
+                    Debug::log(LOG, "Pending output {} does not accept VRR.", m->output->name);
                     wlr_output_enable_adaptive_sync(m->output, 0);
                 }
 
                 if (!wlr_output_commit(m->output))
-                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> true", m->output->name);
+                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
 
             } else if (!WORKSPACEFULL && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
                 wlr_output_enable_adaptive_sync(m->output, 0);
 
                 if (!wlr_output_commit(m->output))
-                    Debug::log(ERR, "Couldn't commit output %s in ensureVRR -> false", m->output->name);
+                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->output->name);
             }
         }
     };

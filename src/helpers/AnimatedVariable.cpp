@@ -41,8 +41,8 @@ void CAnimatedVariable::create(ANIMATEDVARTYPE type, std::any val, SAnimationPro
             default: ASSERT(false); break;
         }
     } catch (std::exception& e) {
-        Debug::log(ERR, "CAnimatedVariable create error: %s", e.what());
-        RASSERT(false, "CAnimatedVariable create error: %s", e.what());
+        Debug::log(ERR, "CAnimatedVariable create error: {}", e.what());
+        RASSERT(false, "CAnimatedVariable create error: {}", e.what());
     }
 }
 

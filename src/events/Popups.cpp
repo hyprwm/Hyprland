@@ -70,8 +70,8 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
 
     pHyprPopup->monitor = PMONITOR;
 
-    Debug::log(LOG, "Popup: Unconstrained from lx ly: %f %f, pHyprPopup lx ly: %f %f", (float)PMONITOR->vecPosition.x, (float)PMONITOR->vecPosition.y, (float)pHyprPopup->lx,
-               (float)pHyprPopup->ly);
+    Debug::log(LOG, "Popup: Unconstrained from lx ly: {:.5f} {:.5f}, pHyprPopup lx ly: {:.5f} {:.5f}", (float)PMONITOR->vecPosition.x, (float)PMONITOR->vecPosition.y,
+               (float)pHyprPopup->lx, (float)pHyprPopup->ly);
 }
 
 void Events::listener_newPopup(void* owner, void* data) {
@@ -79,7 +79,7 @@ void Events::listener_newPopup(void* owner, void* data) {
 
     ASSERT(layersurface);
 
-    Debug::log(LOG, "New layer popup created from surface %lx", layersurface);
+    Debug::log(LOG, "New layer popup created from surface {:x}", (uintptr_t)layersurface);
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
@@ -103,7 +103,7 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     if (!PWINDOW->m_bIsMapped)
         return;
 
-    Debug::log(LOG, "New layer popup created from XDG window %lx -> %s", PWINDOW, PWINDOW->m_szTitle.c_str());
+    Debug::log(LOG, "New layer popup created from XDG window {:x} -> {}", (uintptr_t)PWINDOW, PWINDOW->m_szTitle.c_str());
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
@@ -125,9 +125,9 @@ void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
     ASSERT(PPOPUP);
 
     if (PPOPUP->parentWindow)
-        Debug::log(LOG, "New popup created from XDG Window popup %lx -> %s", PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
+        Debug::log(LOG, "New popup created from XDG Window popup {:x} -> {}", (uintptr_t)PPOPUP, PPOPUP->parentWindow->m_szTitle.c_str());
     else
-        Debug::log(LOG, "New popup created from Non-Window popup %lx", PPOPUP);
+        Debug::log(LOG, "New popup created from Non-Window popup {:x}", (uintptr_t)PPOPUP);
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
@@ -148,7 +148,7 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
 
     ASSERT(PPOPUP);
 
-    Debug::log(LOG, "New XDG Popup mapped at %d %d", (int)PPOPUP->lx, (int)PPOPUP->ly);
+    Debug::log(LOG, "New XDG Popup mapped at {} {}", (int)PPOPUP->lx, (int)PPOPUP->ly);
 
     if (PPOPUP->parentWindow)
         PPOPUP->parentWindow->m_lPopupSurfaces.emplace_back(PPOPUP->popup->base->surface);
@@ -168,13 +168,13 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
     if (PPOPUP->monitor)
         g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->scale);
 
-    Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode %lx", PPOPUP->pSurfaceTree);
+    Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode {:x}", (uintptr_t)PPOPUP->pSurfaceTree);
 }
 
 void Events::listener_repositionPopupXDG(void* owner, void* data) {
     SXDGPopup* PPOPUP = (SXDGPopup*)owner;
 
-    Debug::log(LOG, "XDG Popup %lx asks for a reposition", PPOPUP);
+    Debug::log(LOG, "XDG Popup {:x} asks for a reposition", (uintptr_t)PPOPUP);
 
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
@@ -242,7 +242,7 @@ void Events::listener_destroyPopupXDG(void* owner, void* data) {
 
     ASSERT(PPOPUP);
 
-    Debug::log(LOG, "Destroyed popup XDG %lx", PPOPUP);
+    Debug::log(LOG, "Destroyed popup XDG {:x}", (uintptr_t)PPOPUP);
 
     if (PPOPUP->pSurfaceTree) {
         SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);

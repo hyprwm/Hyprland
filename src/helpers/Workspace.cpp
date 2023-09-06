@@ -31,7 +31,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
 CWorkspace::~CWorkspace() {
     m_vRenderOffset.unregister();
 
-    Debug::log(LOG, "Destroying workspace ID %d", m_iID);
+    Debug::log(LOG, "Destroying workspace ID {}", m_iID);
 
     g_pEventManager->postEvent({"destroyworkspace", m_szName});
     EMIT_HOOK_EVENT("destroyWorkspace", this);

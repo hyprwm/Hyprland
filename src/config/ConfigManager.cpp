@@ -201,6 +201,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:left_handed"].intValue                      = 0;
     configValues["input:scroll_method"].strValue                    = STRVAL_EMPTY;
     configValues["input:scroll_button"].intValue                    = 0;
+    configValues["input:scroll_button_lock"].intValue               = 0;
     configValues["input:touchpad:natural_scroll"].intValue          = 0;
     configValues["input:touchpad:disable_while_typing"].intValue    = 1;
     configValues["input:touchpad:clickfinger_behavior"].intValue    = 0;
@@ -265,6 +266,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["left_handed"].intValue             = 0;
     cfgValues["scroll_method"].strValue           = STRVAL_EMPTY;
     cfgValues["scroll_button"].intValue           = 0;
+    cfgValues["scroll_button_lock"].intValue      = 0;
     cfgValues["transform"].intValue               = 0;
     cfgValues["output"].strValue                  = STRVAL_EMPTY;
     cfgValues["enabled"].intValue                 = 1; // only for mice / touchpads

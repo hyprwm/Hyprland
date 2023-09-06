@@ -52,6 +52,7 @@ in {
   hyprland-extras = mkJoinedOverlays [
     inputs.xdph.overlays.xdg-desktop-portal-hyprland
     inputs.xdph.overlays.hyprland-share-picker
+    inputs.xdph.overlays.package-overrides
   ];
 
   udis86 = final: prev: {

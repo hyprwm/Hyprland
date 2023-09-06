@@ -1685,7 +1685,7 @@ SConfigValue CConfigManager::getConfigValueSafe(const std::string& val) {
     return copy;
 }
 
-SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback = "") {
+SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback) {
     std::lock_guard<std::mutex> lg(configmtx);
 
     const auto                  it = deviceConfigs.find(dev);
@@ -1722,15 +1722,15 @@ std::string CConfigManager::getString(const std::string& v) {
     return VAL;
 }
 
-int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v, const std::string& fallback = "") {
+int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v, const std::string& fallback) {
     return getConfigValueSafeDevice(dev, v, fallback).intValue;
 }
 
-float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& v, const std::string& fallback = "") {
+float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& v, const std::string& fallback) {
     return getConfigValueSafeDevice(dev, v, fallback).floatValue;
 }
 
-std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v, const std::string& fallback = "") {
+std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v, const std::string& fallback) {
     auto VAL = getConfigValueSafeDevice(dev, v, fallback).strValue;
 
     if (VAL == STRVAL_EMPTY)

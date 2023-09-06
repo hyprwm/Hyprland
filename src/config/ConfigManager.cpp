@@ -1691,13 +1691,15 @@ SConfigValue CConfigManager::getConfigValueSafeDevice(const std::string& dev, co
     const auto                  it = deviceConfigs.find(dev);
 
     if (it == deviceConfigs.end()) {
-        Debug::log(ERR, "getConfigValueSafeDevice: No device config for {} found???", dev.c_str());
-        return SConfigValue();
+        if (fallback.empty()) {
+            Debug::log(ERR, "getConfigValueSafeDevice: No device config for {} found???", dev.c_str());
+            return SConfigValue();
+        }
+        return configValues[fallback];
     }
 
     const SConfigValue DEVICECONFIG = it->second[val];
 
-    // fallback if not set explicitly
     if (!DEVICECONFIG.set && !fallback.empty()) {
         return configValues[fallback];
     }

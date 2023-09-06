@@ -750,18 +750,17 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     if (!wlr_keyboard_from_input_device(pKeyboard->keyboard))
         return;
 
-    const auto REPEATRATE  = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "repeat_rate", "input:repeat_rate") : g_pConfigManager->getInt("input:repeat_rate");
-    const auto REPEATDELAY = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "repeat_delay", "input:repeat_delay") : g_pConfigManager->getInt("input:repeat_delay");
+    const auto REPEATRATE  = g_pConfigManager->getDeviceInt(devname, "repeat_rate", "input:repeat_rate");
+    const auto REPEATDELAY = g_pConfigManager->getDeviceInt(devname, "repeat_delay", "input:repeat_delay");
 
-    const auto NUMLOCKON =
-        HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "numlock_by_default", "input:numlock_by_default") : g_pConfigManager->getInt("input:numlock_by_default");
+    const auto NUMLOCKON = g_pConfigManager->getDeviceInt(devname, "numlock_by_default", "input:numlock_by_default");
 
-    const auto FILEPATH = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_file", "input:kb_file") : g_pConfigManager->getString("input:kb_file");
-    const auto RULES    = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_rules", "input:kb_rules") : g_pConfigManager->getString("input:kb_rules");
-    const auto MODEL    = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_model", "input:kb_model") : g_pConfigManager->getString("input:kb_model");
-    const auto LAYOUT   = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_layout", "input:kb_layout") : g_pConfigManager->getString("input:kb_layout");
-    const auto VARIANT  = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_variant", "input:kb_variant") : g_pConfigManager->getString("input:kb_variant");
-    const auto OPTIONS  = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "kb_options", "input:kb_options") : g_pConfigManager->getString("input:kb_options");
+    const auto FILEPATH = g_pConfigManager->getDeviceString(devname, "kb_file", "input:kb_file");
+    const auto RULES    = g_pConfigManager->getDeviceString(devname, "kb_rules", "input:kb_rules");
+    const auto MODEL    = g_pConfigManager->getDeviceString(devname, "kb_model", "input:kb_model");
+    const auto LAYOUT   = g_pConfigManager->getDeviceString(devname, "kb_layout", "input:kb_layout");
+    const auto VARIANT  = g_pConfigManager->getDeviceString(devname, "kb_variant", "input:kb_variant");
+    const auto OPTIONS  = g_pConfigManager->getDeviceString(devname, "kb_options", "input:kb_options");
 
     const auto ENABLED = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
 
@@ -924,26 +923,23 @@ void CInputManager::setPointerConfigs() {
             const auto ISTOUCHPAD = libinput_device_has_capability(LIBINPUTDEV, LIBINPUT_DEVICE_CAP_POINTER) &&
                 libinput_device_get_size(LIBINPUTDEV, &touchw, &touchh) == 0; // pointer with size is a touchpad
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "clickfinger_behavior", "input:touchpad:clickfinger_behavior") :
-                             g_pConfigManager->getInt("input:touchpad:clickfinger_behavior")) == 0) // toggle software buttons or clickfinger
+            if (g_pConfigManager->getDeviceInt(devname, "clickfinger_behavior", "input:touchpad:clickfinger_behavior") == 0) // toggle software buttons or clickfinger
                 libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
             else
                 libinput_device_config_click_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "left_handed", "input:left_handed") : g_pConfigManager->getInt("input:left_handed")) == 0)
+            if (g_pConfigManager->getDeviceInt(devname, "left_handed", "input:left_handed") == 0)
                 libinput_device_config_left_handed_set(LIBINPUTDEV, 0);
             else
                 libinput_device_config_left_handed_set(LIBINPUTDEV, 1);
 
             if (libinput_device_config_middle_emulation_is_available(LIBINPUTDEV)) { // middleclick on r+l mouse button pressed
-                if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "middle_button_emulation", "input:touchpad:middle_button_emulation") :
-                                 g_pConfigManager->getInt("input:touchpad:middle_button_emulation")) == 1)
+                if (g_pConfigManager->getDeviceInt(devname, "middle_button_emulation", "input:touchpad:middle_button_emulation") == 1)
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED);
                 else
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
 
-                const auto TAP_MAP = HASCONFIG ? g_pConfigManager->getDeviceString(devname, "tap_button_map", "input:touchpad:tap_button_map") :
-                                                 g_pConfigManager->getString("input:touchpad:tap_button_map");
+                const auto TAP_MAP = g_pConfigManager->getDeviceString(devname, "tap_button_map", "input:touchpad:tap_button_map");
                 if (TAP_MAP == "" || TAP_MAP == "lrm")
                     libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LRM);
                 else if (TAP_MAP == "lmr")
@@ -952,8 +948,7 @@ void CInputManager::setPointerConfigs() {
                     Debug::log(WARN, "Tap button mapping unknown");
             }
 
-            const auto SCROLLMETHOD =
-                HASCONFIG ? g_pConfigManager->getDeviceString(devname, "scroll_method", "input:scroll_method") : g_pConfigManager->getString("input:scroll_method");
+            const auto SCROLLMETHOD = g_pConfigManager->getDeviceString(devname, "scroll_method", "input:scroll_method");
             if (SCROLLMETHOD == "") {
                 libinput_device_config_scroll_set_method(LIBINPUTDEV, libinput_device_config_scroll_get_default_method(LIBINPUTDEV));
             } else if (SCROLLMETHOD == "no_scroll") {
@@ -968,47 +963,39 @@ void CInputManager::setPointerConfigs() {
                 Debug::log(WARN, "Scroll method unknown");
             }
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "tap-and-drag", "input:touchpad:tap-and-drag") : g_pConfigManager->getInt("input:touchpad:tap-and-drag")) == 0)
+            if (g_pConfigManager->getDeviceInt(devname, "tap-and-drag", "input:touchpad:tap-and-drag") == 0)
                 libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_DISABLED);
             else
                 libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_ENABLED);
 
-            if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "drag_lock", "input:touchpad:drag_lock") : g_pConfigManager->getInt("input:touchpad:drag_lock")) == 0)
+            if (g_pConfigManager->getDeviceInt(devname, "drag_lock", "input:touchpad:drag_lock") == 0)
                 libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_DISABLED);
             else
                 libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_ENABLED);
 
             if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV)) // this is for tapping (like on a laptop)
-                if ((HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "tap-to-click", "input:touchpad:tap-to-click") :
-                                 g_pConfigManager->getInt("input:touchpad:tap-to-click")) == 1)
+                if (g_pConfigManager->getDeviceInt(devname, "tap-to-click", "input:touchpad:tap-to-click") == 1)
                     libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
 
             if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {
 
                 if (ISTOUCHPAD)
                     libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV,
-                                                                             (HASCONFIG ?
-                                                                                  g_pConfigManager->getDeviceInt(devname, "natural_scroll", "input:touchpad:natural_scroll") :
-                                                                                  g_pConfigManager->getInt("input:touchpad:natural_scroll")));
+                                                                             g_pConfigManager->getDeviceInt(devname, "natural_scroll", "input:touchpad:natural_scroll"));
                 else
-                    libinput_device_config_scroll_set_natural_scroll_enabled(
-                        LIBINPUTDEV,
-                        (HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "natural_scroll", "input:natural_scroll") : g_pConfigManager->getInt("input:natural_scroll")));
+                    libinput_device_config_scroll_set_natural_scroll_enabled(LIBINPUTDEV, g_pConfigManager->getDeviceInt(devname, "natural_scroll", "input:natural_scroll"));
             }
 
             if (libinput_device_config_dwt_is_available(LIBINPUTDEV)) {
-                const auto DWT = static_cast<enum libinput_config_dwt_state>(
-                    (HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "disable_while_typing", "input:touchpad:disable_while_typing") :
-                                 g_pConfigManager->getInt("input:touchpad:disable_while_typing")) != 0);
+                const auto DWT =
+                    static_cast<enum libinput_config_dwt_state>(g_pConfigManager->getDeviceInt(devname, "disable_while_typing", "input:touchpad:disable_while_typing") != 0);
                 libinput_device_config_dwt_set_enabled(LIBINPUTDEV, DWT);
             }
 
-            const auto LIBINPUTSENS = std::clamp(
-                (HASCONFIG ? g_pConfigManager->getDeviceFloat(devname, "sensitivity", "input:sensitivity") : g_pConfigManager->getFloat("input:sensitivity")), -1.f, 1.f);
+            const auto LIBINPUTSENS = std::clamp(g_pConfigManager->getDeviceFloat(devname, "sensitivity", "input:sensitivity"), -1.f, 1.f);
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
 
-            const auto ACCELPROFILE =
-                HASCONFIG ? g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile") : g_pConfigManager->getString("input:accel_profile");
+            const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
 
             if (ACCELPROFILE == "") {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
@@ -1033,12 +1020,11 @@ void CInputManager::setPointerConfigs() {
                 Debug::log(WARN, "Unknown acceleration profile, falling back to default");
             }
 
-            const auto SCROLLBUTTON = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "scroll_button", "input:scroll_button") : g_pConfigManager->getInt("input:scroll_button");
+            const auto SCROLLBUTTON = g_pConfigManager->getDeviceInt(devname, "scroll_button", "input:scroll_button");
 
             libinput_device_config_scroll_set_button(LIBINPUTDEV, SCROLLBUTTON == 0 ? libinput_device_config_scroll_get_default_button(LIBINPUTDEV) : SCROLLBUTTON);
 
-            const auto SCROLLBUTTONLOCK =
-                HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "scroll_button_lock", "input:scroll_button_lock") : g_pConfigManager->getInt("input:scroll_button_lock");
+            const auto SCROLLBUTTONLOCK = g_pConfigManager->getDeviceInt(devname, "scroll_button_lock", "input:scroll_button_lock");
 
             libinput_device_config_scroll_set_button_lock(LIBINPUTDEV,
                                                           SCROLLBUTTONLOCK == 0 ? LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_DISABLED : LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_ENABLED);
@@ -1395,19 +1381,14 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
 
     auto setConfig = [&](STouchDevice* const PTOUCHDEV) -> void {
-        const auto HASCONFIG = g_pConfigManager->deviceConfigExists(PTOUCHDEV->name);
-
         if (wlr_input_device_is_libinput(PTOUCHDEV->pWlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(PTOUCHDEV->pWlrDevice);
 
-            const int  ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform") :
-                                                         g_pConfigManager->getInt("input:touchdevice:transform"),
-                                            0, 7);
+            const int  ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform"), 0, 7);
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
-            const auto OUTPUT =
-                HASCONFIG ? g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output", "input:touchdevice:output") : g_pConfigManager->getString("input:touchdevice:output");
+            const auto OUTPUT = g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output", "input:touchdevice:output");
             if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY)
                 PTOUCHDEV->boundOutput = OUTPUT;
             else
@@ -1429,17 +1410,14 @@ void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
 
 void CInputManager::setTabletConfigs() {
     for (auto& t : m_lTablets) {
-        const auto HASCONFIG = g_pConfigManager->deviceConfigExists(t.name);
-
         if (wlr_input_device_is_libinput(t.wlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
-            const int  ROTATION =
-                std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform", "input:tablet:transform") : g_pConfigManager->getInt("input:tablet:transform"), 0, 7);
+            const int  ROTATION = std::clamp(g_pConfigManager->getDeviceInt(t.name, "transform", "input:tablet:transform"), 0, 7);
             Debug::log(LOG, "Setting calibration matrix for device {}", t.name.c_str());
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
-            const auto OUTPUT   = HASCONFIG ? g_pConfigManager->getDeviceString(t.name, "output", "input:tablet:output") : g_pConfigManager->getString("input:tablet:output");
+            const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output", "input:tablet:output");
             const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
             if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY && PMONITOR) {
                 wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, t.wlrDevice, PMONITOR->output);

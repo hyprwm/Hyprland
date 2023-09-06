@@ -130,7 +130,7 @@ void CConfigManager::setDefaultVars() {
     configValues["group:groupbar:font"].strValue             = "Sans";
     configValues["group:groupbar:height"].intValue           = 20;
     configValues["group:groupbar:mode"].intValue             = 1;
-    configValues["group:groupbar:internal_border"].intValue  = 1;
+    configValues["group:groupbar:internal_bar"].intValue     = 1;
     configValues["group:groupbar:render_titles"].intValue    = 1;
     configValues["group:groupbar:scrolling"].intValue        = 1;
     configValues["group:groupbar:text_color"].intValue       = 0xffffffff;

@@ -345,7 +345,7 @@ void CHyprGroupBarDecoration::refreshGradients() {
 void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
     static auto* const PMODE           = &g_pConfigManager->getConfigValuePtr("group:groupbar:mode")->intValue;
     static auto* const PHEIGHT         = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
-    static auto* const PINTERNALBORDER = &g_pConfigManager->getConfigValuePtr("group:groupbar:internal_border")->intValue;
+    static auto* const PINTERNALBORDER = &g_pConfigManager->getConfigValuePtr("group:groupbar:internal_bar")->intValue;
 
     m_iBarInternalHeight = *PHEIGHT + (*PMODE == 1 ? BAR_INDICATOR_HEIGHT + BAR_INTERNAL_PADDING : 0);
     m_iBarFullHeight     = m_iBarInternalHeight + BAR_INTERNAL_PADDING + BAR_EXTERNAL_PADDING;

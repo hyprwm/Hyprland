@@ -5,6 +5,7 @@
 #include <wlr/util/box.h>
 #include "Vector2D.hpp"
 #include <vector>
+#include <format>
 
 struct SCallstackFrameInfo {
     void*       adr = nullptr;
@@ -13,7 +14,6 @@ struct SCallstackFrameInfo {
 
 std::string                      absolutePath(const std::string&, const std::string&);
 void                             addWLSignal(wl_signal*, wl_listener*, void* pOwner, const std::string& ownerString);
-std::string                      getFormat(const char* fmt, ...); // Basically Debug::log to a string
 std::string                      escapeJSONStrings(const std::string& str);
 void                             scaleBox(wlr_box*, float);
 std::string                      removeBeginEndSpacesTabs(std::string);
@@ -31,3 +31,27 @@ double                           normalizeAngleRad(double ang);
 std::string                      replaceInString(std::string subject, const std::string& search, const std::string& replace);
 std::vector<SCallstackFrameInfo> getBacktrace();
 void                             throwError(const std::string& err);
+
+// why, C++.
+std::string sendToLog(uint8_t, const std::string&);
+template <typename... Args>
+std::string getFormat(const std::string& fmt, Args&&... args) {
+    std::string fmtdMsg;
+
+    try {
+        fmtdMsg += std::vformat(fmt, std::make_format_args(args...));
+    } catch (std::exception& e) {
+        std::string exceptionMsg = e.what();
+        sendToLog(2, std::format("caught exception in getFormat: {}", exceptionMsg));
+
+        const auto CALLSTACK = getBacktrace();
+
+        sendToLog(0, "stacktrace:");
+
+        for (size_t i = 0; i < CALLSTACK.size(); ++i) {
+            sendToLog(1, std::format("\t #{} | {}", i, CALLSTACK[i].desc));
+        }
+    }
+
+    return fmtdMsg;
+}

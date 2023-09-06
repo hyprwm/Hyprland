@@ -18,10 +18,10 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_szExtensions = EXTENSIONS;
 
     Debug::log(LOG, "Creating the Hypr OpenGL Renderer!");
-    Debug::log(LOG, "Using: %s", glGetString(GL_VERSION));
-    Debug::log(LOG, "Vendor: %s", glGetString(GL_VENDOR));
-    Debug::log(LOG, "Renderer: %s", glGetString(GL_RENDERER));
-    Debug::log(LOG, "Supported extensions size: %d", std::count(m_szExtensions.begin(), m_szExtensions.end(), ' '));
+    Debug::log(LOG, "Using: {}", (char*)glGetString(GL_VERSION));
+    Debug::log(LOG, "Vendor: {}", (char*)glGetString(GL_VENDOR));
+    Debug::log(LOG, "Renderer: {}", (char*)glGetString(GL_RENDERER));
+    Debug::log(LOG, "Supported extensions size: {}", std::count(m_szExtensions.begin(), m_szExtensions.end(), ' '));
 
 #ifdef USE_TRACY_GPU
 
@@ -50,7 +50,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
         if (vertCompiled == 0)
             return 0;
     } else {
-        RASSERT(vertCompiled, "Compiling shader failed. VERTEX NULL! Shader source:\n\n%s", vert.c_str());
+        RASSERT(vertCompiled, "Compiling shader failed. VERTEX NULL! Shader source:\n\n{}", vert.c_str());
     }
 
     auto fragCompiled = compileShader(GL_FRAGMENT_SHADER, frag, dynamic);
@@ -58,7 +58,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
         if (fragCompiled == 0)
             return 0;
     } else {
-        RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT NULL! Shader source:\n\n%s", frag.c_str());
+        RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT NULL! Shader source:\n\n{}", frag.c_str());
     }
 
     auto prog = glCreateProgram();
@@ -1868,7 +1868,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     cairo_surface_destroy(CAIROSURFACE);
     cairo_destroy(CAIRO);
 
-    Debug::log(LOG, "Background created for monitor %s", pMonitor->szName.c_str());
+    Debug::log(LOG, "Background created for monitor {}", pMonitor->szName.c_str());
 }
 
 void CHyprOpenGLImpl::clearWithTex() {
@@ -1900,7 +1900,7 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprOpenGL->m_mMonitorRenderResources.erase(pMonitor);
     g_pHyprOpenGL->m_mMonitorBGTextures.erase(pMonitor);
 
-    Debug::log(LOG, "Monitor %s -> destroyed all render data", pMonitor->szName.c_str());
+    Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName.c_str());
 
     wlr_output_rollback(pMonitor->output);
 }

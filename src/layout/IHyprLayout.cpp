@@ -89,7 +89,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Window %lx (%s) has an invalid monitor in onWindowCreatedFloating!!!", pWindow, pWindow->m_szTitle.c_str());
+        Debug::log(ERR, "Window {:x} ({}) has an invalid monitor in onWindowCreatedFloating!!!", (uintptr_t)pWindow, pWindow->m_szTitle.c_str());
         return;
     }
 
@@ -402,7 +402,7 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     const auto TILED = isWindowTiled(pWindow);
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("%lx,%d", pWindow, (int)TILED)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("{:x},{}", (uintptr_t)pWindow, (int)TILED)});
     EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {

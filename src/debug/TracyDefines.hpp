@@ -16,7 +16,7 @@ inline PFNGLGETQUERYOBJECTUI64VEXTPROC glGetQueryObjectui64v;
 inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
     if (proc == NULL) {
-        Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress(%s) failed", name);
+        Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
         abort();
     }
     *(void**)pProc = proc;

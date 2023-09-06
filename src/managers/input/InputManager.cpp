@@ -689,7 +689,7 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
 
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
 
-    Debug::log(LOG, "New keyboard created, pointers Hypr: %lx and WLR: %lx", PNEWKEYBOARD, keyboard);
+    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD, (uintptr_t)keyboard);
 }
 
 void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
@@ -728,7 +728,7 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
 
     wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
 
-    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: %lx and WLR: %lx", PNEWKEYBOARD, keyboard);
+    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD, (uintptr_t)keyboard);
 }
 
 void CInputManager::setKeyboardLayout() {
@@ -743,7 +743,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
-    Debug::log(LOG, "ApplyConfigToKeyboard for \"%s\", hasconfig: %i", pKeyboard->name.c_str(), (int)HASCONFIG);
+    Debug::log(LOG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", pKeyboard->name.c_str(), (int)HASCONFIG);
 
     ASSERT(pKeyboard);
 
@@ -800,7 +800,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         return;
     }
 
-    Debug::log(LOG, "Attempting to create a keymap for layout %s with variant %s (rules: %s, model: %s, options: %s)", rules.layout, rules.variant, rules.rules, rules.model,
+    Debug::log(LOG, "Attempting to create a keymap for layout {} with variant {} (rules: {}, model: {}, options: {})", rules.layout, rules.variant, rules.rules, rules.model,
                rules.options);
 
     xkb_keymap* KEYMAP = NULL;
@@ -823,7 +823,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
                                         ", layout: " + LAYOUT + " )");
 
-        Debug::log(ERR, "Keyboard layout %s with variant %s (rules: %s, model: %s, options: %s) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model,
+        Debug::log(ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model,
                    rules.options);
         memset(&rules, 0, sizeof(rules));
 
@@ -859,7 +859,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUTSTR});
     EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUTSTR}));
 
-    Debug::log(LOG, "Set the keyboard layout to %s and variant to %s for keyboard \"%s\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
+    Debug::log(LOG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
 }
 
 void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
@@ -877,9 +877,9 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
     if (wlr_input_device_is_libinput(mouse)) {
         const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(mouse);
 
-        Debug::log(LOG, "New mouse has libinput sens %.2f (%.2f) with accel profile %i (%i)", libinput_device_config_accel_get_speed(LIBINPUTDEV),
-                   libinput_device_config_accel_get_default_speed(LIBINPUTDEV), libinput_device_config_accel_get_profile(LIBINPUTDEV),
-                   libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
+        Debug::log(LOG, "New mouse has libinput sens {:.2f} ({:.2f}) with accel profile {} ({})", libinput_device_config_accel_get_speed(LIBINPUTDEV),
+                   libinput_device_config_accel_get_default_speed(LIBINPUTDEV), (int)libinput_device_config_accel_get_profile(LIBINPUTDEV),
+                   (int)libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
     }
 
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
@@ -894,7 +894,7 @@ void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
 
     m_tmrLastCursorMovement.reset();
 
-    Debug::log(LOG, "New mouse created, pointer WLR: %lx", mouse);
+    Debug::log(LOG, "New mouse created, pointer WLR: {:x}", (uintptr_t)mouse);
 }
 
 void CInputManager::setPointerConfigs() {
@@ -1030,7 +1030,7 @@ void CInputManager::setPointerConfigs() {
 
             libinput_device_config_scroll_set_button(LIBINPUTDEV, SCROLLBUTTON == 0 ? libinput_device_config_scroll_get_default_button(LIBINPUTDEV) : SCROLLBUTTON);
 
-            Debug::log(LOG, "Applied config to mouse %s, sens %.2f", m.name.c_str(), LIBINPUTSENS);
+            Debug::log(LOG, "Applied config to mouse {}, sens {:.2f}", m.name.c_str(), LIBINPUTSENS);
         }
     }
 }
@@ -1223,7 +1223,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
 
     pMouse->hyprListener_commitConstraint.initCallback(&pMouse->currentConstraint->surface->events.commit, &Events::listener_commitConstraint, pMouse, "Mouse constraint commit");
 
-    Debug::log(LOG, "Constrained mouse to %lx", pMouse->currentConstraint);
+    Debug::log(LOG, "Constrained mouse to {:x}", (uintptr_t)pMouse->currentConstraint);
 }
 
 void CInputManager::warpMouseToConstraintMiddle(SConstraint* pConstraint) {
@@ -1373,7 +1373,7 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     setTouchDeviceConfigs(PNEWDEV);
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
 
-    Debug::log(LOG, "New touch device added at %lx", PNEWDEV);
+    Debug::log(LOG, "New touch device added at {:x}", (uintptr_t)PNEWDEV);
 
     PNEWDEV->hyprListener_destroy.initCallback(
         &pDevice->events.destroy, [&](void* owner, void* data) { destroyTouchDevice((STouchDevice*)data); }, PNEWDEV, "TouchDevice");
@@ -1420,7 +1420,7 @@ void CInputManager::setTabletConfigs() {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
             const int  ROTATION = std::clamp(HASCONFIG ? g_pConfigManager->getDeviceInt(t.name, "transform") : g_pConfigManager->getInt("input:tablet:transform"), 0, 7);
-            Debug::log(LOG, "Setting calibration matrix for device %s", t.name.c_str());
+            Debug::log(LOG, "Setting calibration matrix for device {}", t.name.c_str());
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
             const auto OUTPUT   = HASCONFIG ? g_pConfigManager->getDeviceString(t.name, "output") : g_pConfigManager->getString("input:tablet:output");
@@ -1434,7 +1434,7 @@ void CInputManager::setTabletConfigs() {
 }
 
 void CInputManager::destroyTouchDevice(STouchDevice* pDevice) {
-    Debug::log(LOG, "Touch device at %lx removed", pDevice);
+    Debug::log(LOG, "Touch device at {:x} removed", (uintptr_t)pDevice);
 
     m_lTouchDevices.remove(*pDevice);
 }
@@ -1443,7 +1443,7 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
     const auto PNEWDEV  = &m_lSwitches.emplace_back();
     PNEWDEV->pWlrDevice = pDevice;
 
-    Debug::log(LOG, "New switch with name \"%s\" added", pDevice->name);
+    Debug::log(LOG, "New switch with name \"{}\" added", pDevice->name);
 
     PNEWDEV->hyprListener_destroy.initCallback(
         &pDevice->events.destroy, [&](void* owner, void* data) { destroySwitch((SSwitchDevice*)owner); }, PNEWDEV, "SwitchDevice");
@@ -1460,17 +1460,17 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
             if (PDEVICE->status != -1 && PDEVICE->status == E->switch_state)
                 return;
 
-            Debug::log(LOG, "Switch %s fired, triggering binds.", NAME.c_str());
+            Debug::log(LOG, "Switch {} fired, triggering binds.", NAME.c_str());
 
             g_pKeybindManager->onSwitchEvent(NAME);
 
             switch (E->switch_state) {
                 case WLR_SWITCH_STATE_ON:
-                    Debug::log(LOG, "Switch %s turn on, triggering binds.", NAME.c_str());
+                    Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME.c_str());
                     g_pKeybindManager->onSwitchOnEvent(NAME);
                     break;
                 case WLR_SWITCH_STATE_OFF:
-                    Debug::log(LOG, "Switch %s turn off, triggering binds.", NAME.c_str());
+                    Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME.c_str());
                     g_pKeybindManager->onSwitchOffEvent(NAME);
                     break;
             }

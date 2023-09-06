@@ -153,7 +153,7 @@ void CKeybindManager::updateXKBTranslationState() {
                                       ", layout: " + LAYOUT + " )",
                                   CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 
-        Debug::log(ERR, "[XKBTranslationState] Keyboard layout %s with variant %s (rules: %s, model: %s, options: %s) couldn't have been loaded.", rules.layout, rules.variant,
+        Debug::log(ERR, "[XKBTranslationState] Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant,
                    rules.rules, rules.model, rules.options);
         memset(&rules, 0, sizeof(rules));
 
@@ -428,10 +428,10 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
-            Debug::log(ERR, "Invalid handler in a keybind! (handler %s does not exist)", k.handler.c_str());
+            Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k.handler.c_str());
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher (%d, %s, %d)", modmask, key.c_str(), keysym);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key.c_str(), keysym);
 
             m_iPassPressed = (int)pressed;
 
@@ -533,7 +533,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         if (ttynum == TTY)
             return true;
 
-        Debug::log(LOG, "Switching from VT %i to VT %i", ttynum, TTY);
+        Debug::log(LOG, "Switching from VT {} to VT {}", ttynum, TTY);
 
         if (!wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY))
             return true; // probably same session
@@ -545,7 +545,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
             m->framesToSkip    = 1;
         }
 
-        Debug::log(LOG, "Switched to VT %i, destroyed all render data, frames to skip for each: 2", TTY);
+        Debug::log(LOG, "Switched to VT {}, destroyed all render data, frames to skip for each: 2", TTY);
 
         return true;
     }
@@ -598,12 +598,12 @@ void CKeybindManager::spawn(std::string args) {
             g_pConfigManager->addExecRule({r, (unsigned long)PROC});
         }
 
-        Debug::log(LOG, "Applied %i rule arguments for exec.", RULESLIST.size());
+        Debug::log(LOG, "Applied {} rule arguments for exec.", RULESLIST.size());
     }
 }
 
 uint64_t CKeybindManager::spawnRaw(std::string args) {
-    Debug::log(LOG, "Executing %s", args.c_str());
+    Debug::log(LOG, "Executing {}", args.c_str());
 
     int socket[2];
     if (pipe(socket) != 0) {
@@ -651,7 +651,7 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
         return 0;
     }
 
-    Debug::log(LOG, "Process Created with pid %d", grandchild);
+    Debug::log(LOG, "Process Created with pid {}", grandchild);
 
     return grandchild;
 }
@@ -976,7 +976,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
     char arg = args[0];
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move focus in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        Debug::log(ERR, "Cannot move focus in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return;
     }
 
@@ -1028,7 +1028,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
         return;
     }
 
-    Debug::log(LOG, "No window found in direction %c, looking for a monitor", arg);
+    Debug::log(LOG, "No window found in direction {}, looking for a monitor", arg);
 
     if (tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg)))
         return;
@@ -1037,7 +1037,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
     if (*PNOFALLBACK)
         return;
 
-    Debug::log(LOG, "No monitor found in direction %c, falling back to next window on current workspace", arg);
+    Debug::log(LOG, "No monitor found in direction {}, falling back to next window on current workspace", arg);
 
     const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
     if (PWINDOWNEXT)
@@ -1119,11 +1119,11 @@ void CKeybindManager::swapActive(std::string args) {
     char arg = args[0];
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move window in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        Debug::log(ERR, "Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return;
     }
 
-    Debug::log(LOG, "Swapping active window in direction %c", arg);
+    Debug::log(LOG, "Swapping active window in direction {}", arg);
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
     if (!PLASTWINDOW || PLASTWINDOW->m_bIsFullscreen)
         return;
@@ -1149,7 +1149,7 @@ void CKeybindManager::moveActiveTo(std::string args) {
     }
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move window in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        Debug::log(ERR, "Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return;
     }
 
@@ -1415,7 +1415,7 @@ void CKeybindManager::workspaceOpt(std::string args) {
             }
         }
     } else {
-        Debug::log(ERR, "Invalid arg in workspaceOpt, opt \"%s\" doesn't exist.", args.c_str());
+        Debug::log(ERR, "Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args.c_str());
         return;
     }
 
@@ -1434,7 +1434,7 @@ void CKeybindManager::renameWorkspace(std::string args) {
             g_pCompositor->renameWorkspace(std::stoi(args), "");
         }
     } catch (std::exception& e) {
-        Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"%s\": \"%s\"", args.c_str(), e.what());
+        Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"{}\": \"{}\"", args.c_str(), e.what());
     }
 }
 
@@ -1514,10 +1514,10 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor
-        Debug::log(LOG, "Toggling special workspace %d to closed", workspaceID);
+        Debug::log(LOG, "Toggling special workspace {} to closed", workspaceID);
         PMONITOR->setSpecialWorkspace(nullptr);
     } else {
-        Debug::log(LOG, "Toggling special workspace %d to open", workspaceID);
+        Debug::log(LOG, "Toggling special workspace {} to open", workspaceID);
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
         if (!PSPECIALWORKSPACE)
@@ -1661,7 +1661,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
     if (!PWINDOW)
         return;
 
-    Debug::log(LOG, "Focusing to window name: %s", PWINDOW->m_szTitle.c_str());
+    Debug::log(LOG, "Focusing to window name: {}", PWINDOW->m_szTitle.c_str());
 
     if (g_pCompositor->m_pLastMonitor->activeWorkspace != PWINDOW->m_iWorkspaceID) {
         Debug::log(LOG, "Fake executing workspace to move focus");
@@ -1692,14 +1692,14 @@ void CKeybindManager::setSubmap(std::string submap) {
     for (auto& k : g_pKeybindManager->m_lKeybinds) {
         if (k.submap == submap) {
             m_szCurrentSelectedSubmap = submap;
-            Debug::log(LOG, "Changed keybind submap to %s", submap.c_str());
+            Debug::log(LOG, "Changed keybind submap to {}", submap.c_str());
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
             EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
             return;
         }
     }
 
-    Debug::log(ERR, "Cannot set submap %s, submap doesn't exist (wasn't registered!)", submap.c_str());
+    Debug::log(ERR, "Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap.c_str());
 }
 
 void CKeybindManager::pass(std::string regexp) {
@@ -1816,7 +1816,7 @@ void CKeybindManager::dpms(std::string arg) {
         m->dpmsStatus = enable;
 
         if (!wlr_output_commit(m->output)) {
-            Debug::log(ERR, "Couldn't commit output %s", m->szName.c_str());
+            Debug::log(ERR, "Couldn't commit output {}", m->szName.c_str());
         }
 
         if (enable)
@@ -2014,7 +2014,7 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     static auto* const GROUPLOCKCHECK = &g_pConfigManager->getConfigValuePtr("misc:moveintogroup_lock_check")->intValue;
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        Debug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return;
     }
 

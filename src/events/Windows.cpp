@@ -577,8 +577,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         auto       workspaceRule = pWorkspace ? g_pConfigManager->getWorkspaceRuleFor(pWorkspace) : SWorkspaceRule{};
         const auto PMONITOR      = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-        int        maxSize = workspaceRule.maxSize;
-        if (maxSize != 0 && maxSize < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
+        int        maxClients = workspaceRule.maxClients;
+        if (maxClients != 0 && maxClients < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
             if (pWorkspace->m_bIsSpecialWorkspace) {
                 g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace));
                 PMONITOR->setSpecialWorkspace(nullptr);
@@ -586,8 +586,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
             pWorkspace    = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
             workspaceRule = pWorkspace ? g_pConfigManager->getWorkspaceRuleFor(pWorkspace) : SWorkspaceRule{};
-            maxSize       = workspaceRule.maxSize;
-            if (maxSize != 0 && maxSize < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
+            maxClients       = workspaceRule.maxClients;
+            if (maxClients != 0 && maxClients < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
                 std::string requestedWorkspaceName;
                 const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString("empty", requestedWorkspaceName);
                 // doesn't exist since it's empty

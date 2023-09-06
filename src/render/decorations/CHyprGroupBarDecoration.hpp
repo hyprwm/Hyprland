@@ -47,7 +47,12 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     std::deque<CWindow*>     m_dwGroupMembers;
 
-    int                      getBarHeight();
+    int                      m_iBarInternalHeight;
+    int                      m_iBarFullHeight;
+    bool                     m_bOnTop;
+    bool                     m_bInternalBorder;
+    int                      m_iBarHeight;
+    int                      m_iGradientHeight;
 
     CTitleTex*               textureFromTitle(const std::string&);
     void                     invalidateTextures();

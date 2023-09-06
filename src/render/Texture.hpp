@@ -2,8 +2,7 @@
 
 #include "../defines.hpp"
 
-enum TEXTURETYPE
-{
+enum TEXTURETYPE {
     TEXTURE_INVALID,  // Invalid
     TEXTURE_RGBA,     // 4 channels
     TEXTURE_RGBX,     // discard A

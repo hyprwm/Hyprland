@@ -13,6 +13,7 @@ enum eDecorationType {
 struct SWindowDecorationExtents {
     Vector2D topLeft;
     Vector2D bottomRight;
+    bool     isInternalDecoration = false;
 };
 
 class CWindow;

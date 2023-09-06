@@ -28,6 +28,7 @@ CConfigManager::CConfigManager() {
     configValues["group:groupbar:col.inactive"].data        = std::make_shared<CGradientValueData>(0x66777700);
     configValues["group:groupbar:col.locked_active"].data   = std::make_shared<CGradientValueData>(0x66ff5500);
     configValues["group:groupbar:col.locked_inactive"].data = std::make_shared<CGradientValueData>(0x66775500);
+    configValues["group:groupbar:col.background"].data      = std::make_shared<CGradientValueData>(0x66202000);
 
     setDefaultVars();
     setDefaultAnimationVars();
@@ -129,6 +130,7 @@ void CConfigManager::setDefaultVars() {
     configValues["group:groupbar:font"].strValue             = "Sans";
     configValues["group:groupbar:height"].intValue           = 20;
     configValues["group:groupbar:mode"].intValue             = 1;
+    configValues["group:groupbar:internal_border"].intValue  = 1;
     configValues["group:groupbar:render_titles"].intValue    = 1;
     configValues["group:groupbar:scrolling"].intValue        = 1;
     configValues["group:groupbar:text_color"].intValue       = 0xffffffff;
@@ -1651,6 +1653,10 @@ void CConfigManager::loadConfigLoadVars() {
         for (auto& wd : w->m_dWindowDecorations)
             wd->forceReload(w.get());
     }
+
+    // TODO: hack needed for decorations, fix later
+    for (auto& m : g_pCompositor->m_vMonitors)
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     // Update window border colors
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();

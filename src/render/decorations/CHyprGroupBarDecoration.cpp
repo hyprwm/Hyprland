@@ -11,6 +11,7 @@ static CTexture m_tGradientLockedInactive;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
+    forceReload(m_pWindow);
 }
 
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
@@ -24,8 +25,8 @@ eDecorationType CHyprGroupBarDecoration::getDecorationType() {
 }
 
 constexpr int BAR_INDICATOR_HEIGHT = 3;
-constexpr int BAR_INTERNAL_PADDING = 2;
-constexpr int BAR_EXTERNAL_PADDING = 2;
+constexpr int BAR_INTERNAL_PADDING = 3;
+constexpr int BAR_EXTERNAL_PADDING = 3;
 constexpr int BAR_TEXT_PAD         = 3;
 
 //
@@ -33,16 +34,10 @@ constexpr int BAR_TEXT_PAD         = 3;
 void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
     damageEntire();
 
-    const auto         PWORKSPACE      = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    const auto         WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
-
-    static auto* const PLOCATIONTOP = &g_pConfigManager->getConfigValuePtr("group:groupbar:top")->intValue;
+    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
     if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
-        const int BORDERSIZE = pWindow->getRealBorderSize();
-        m_seExtents          = {{0, *PLOCATIONTOP ? BORDERSIZE + BAR_INTERNAL_PADDING + BAR_EXTERNAL_PADDING + getBarHeight() : 0},
-                                {0, *PLOCATIONTOP ? 0 : BORDERSIZE + BAR_INTERNAL_PADDING + BAR_EXTERNAL_PADDING + getBarHeight()}};
-
         m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
         m_vLastWindowSize = pWindow->m_vRealSize.vec();
 
@@ -55,48 +50,39 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
     }
 
     m_dwGroupMembers.clear();
-    CWindow* head = pWindow->getGroupHead();
-    m_dwGroupMembers.push_back(head);
 
-    CWindow* curr = head->m_sGroupData.pNextWindow;
-    while (curr != head) {
+    CWindow* HEAD = pWindow->getGroupHead();
+    CWindow* curr = HEAD;
+    do {
         m_dwGroupMembers.push_back(curr);
         curr = curr->m_sGroupData.pNextWindow;
-    }
+    } while (curr != HEAD);
 
     damageEntire();
-
-    if (m_dwGroupMembers.size() == 0) {
-        m_pWindow->m_vDecosToRemove.push_back(this);
-        return;
-    }
 }
 
 void CHyprGroupBarDecoration::damageEntire() {
-    wlr_box dm = {m_vLastWindowPos.x, m_vLastWindowPos.y + (m_seExtents.topLeft.y != 0 ? -m_seExtents.topLeft.y : m_vLastWindowSize.y), m_vLastWindowSize.x,
-                  m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
+    // TODO: do this properly
+    const int BORDERSIZE = m_pWindow->getRealBorderSize();
+    auto      RESERVED   = getWindowDecorationExtents();
+    wlr_box dm = {m_vLastWindowPos.x, m_vLastWindowPos.y + (RESERVED.topLeft.y != 0 ? -BORDERSIZE - RESERVED.topLeft.y : m_vLastWindowSize.y), m_vLastWindowSize.x + 2 * BORDERSIZE,
+                  RESERVED.topLeft.y + RESERVED.bottomRight.y + BORDERSIZE};
     g_pHyprRenderer->damageBox(&dm);
 }
 
 void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
-    // get how many bars we will draw
-    int                barsToDraw = m_dwGroupMembers.size();
-
-    static auto* const PMODE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:mode")->intValue;
-    static auto* const PRENDERTITLES = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
-    static auto* const PLOCATIONTOP  = &g_pConfigManager->getConfigValuePtr("group:groupbar:top")->intValue;
-
-    const int          BARHEIGHT      = *PMODE != 1 ? g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue : BAR_INDICATOR_HEIGHT;
-    const int          GRADIENTHEIGHT = *PMODE == 1 ? g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue : 0;
-    const int          BORDERSIZE     = m_pWindow->getRealBorderSize();
-
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
+
+    int                barsToDraw = m_dwGroupMembers.size();
+
+    static auto* const PRENDERTITLES = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
 
     static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
     static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
     static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
     static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
+    static auto* const PGROUPCOLBACKGROUND     = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.background")->data;
 
     const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
     const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
@@ -104,30 +90,76 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     // TODO: fix mouse event with rounding
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    const int  ROUNDING =
-        (m_pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!m_pWindow->m_sSpecialRenderData.rounding) ? 0 : m_pWindow->rounding();
+    const int  ROUNDING   = !m_pWindow->m_sSpecialRenderData.rounding ? 0 : m_pWindow->rounding();
+    const int  BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    const int PAD  = 2; //2px
-    const int BARW = (m_vLastWindowSize.x - 2 * ROUNDING - PAD * (barsToDraw - 1)) / barsToDraw;
+    const int  PAD  = 2; //2px
+    const int  BARW = (m_vLastWindowSize.x - 2 * ROUNDING - PAD * (barsToDraw - 1)) / barsToDraw;
 
     //  TODO: check for invalid config
     if (BARW <= 0)
         return;
 
     // Bottom left of groupbar
-    Vector2D pos = Vector2D(m_vLastWindowPos.x - pMonitor->vecPosition.x + offset.x + ROUNDING,
-                            m_vLastWindowPos.y - pMonitor->vecPosition.y + offset.y +
-                                (*PLOCATIONTOP ? -BORDERSIZE : m_vLastWindowSize.y + BORDERSIZE + getBarHeight() + BAR_INTERNAL_PADDING));
+    Vector2D pos = Vector2D(std::round(m_vLastWindowPos.x - pMonitor->vecPosition.x + offset.x + ROUNDING),
+                            std::round(m_vLastWindowPos.y - pMonitor->vecPosition.y + offset.y) +
+                                (m_bOnTop ? (m_bInternalBorder ? 0 : -BORDERSIZE) :
+                                            std::round(m_vLastWindowSize.y) + m_iBarInternalHeight + BAR_INTERNAL_PADDING + (m_bInternalBorder ? 0 : BORDERSIZE)));
 
-    wlr_box  barBox  = {pos.x, pos.y - BARHEIGHT + (*PLOCATIONTOP ? -BAR_INTERNAL_PADDING : 0), BARW, BARHEIGHT};
-    wlr_box  gradBox = {pos.x, pos.y - BARHEIGHT + (*PLOCATIONTOP ? -2 * BAR_INTERNAL_PADDING : -BAR_INTERNAL_PADDING) - GRADIENTHEIGHT, BARW, GRADIENTHEIGHT};
-    wlr_box  textBox = *PMODE == 1 ? gradBox : barBox;
+    wlr_box  barBox  = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -BAR_INTERNAL_PADDING : 0), BARW, m_iBarHeight};
+    wlr_box  gradBox = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -2 * BAR_INTERNAL_PADDING : -BAR_INTERNAL_PADDING) - m_iGradientHeight, BARW, m_iGradientHeight};
+    wlr_box  textBox = m_iGradientHeight != 0 ? gradBox : barBox;
     textBox.y += BAR_TEXT_PAD;
     textBox.height -= 2 * BAR_TEXT_PAD;
 
     scaleBox(&barBox, pMonitor->scale);
     scaleBox(&textBox, pMonitor->scale);
     scaleBox(&gradBox, pMonitor->scale);
+
+    if (m_bInternalBorder) {
+        float alpha     = m_pWindow->m_fAlpha.fl() * (m_pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.fl()) * m_pWindow->m_fActiveInactiveAlpha.fl();
+        auto  color     = ((CGradientValueData*)PGROUPCOLBACKGROUND->get())->m_vColors[0];
+        color           = CColor(color.r, color.g, color.b, alpha);
+        wlr_box backBox = {pos.x - ROUNDING, pos.y - m_iBarFullHeight + (m_bOnTop ? 0 : -2 * ROUNDING + BAR_EXTERNAL_PADDING), m_vLastWindowSize.x,
+                           m_iBarFullHeight + 2 * ROUNDING};
+        scaleBox(&backBox, pMonitor->scale);
+
+        if (ROUNDING != 0) {
+            wlr_box backStencilBox = {pos.x - ROUNDING, pos.y + (m_bOnTop ? 0 : -2 * ROUNDING - m_iBarInternalHeight - BAR_INTERNAL_PADDING), m_vLastWindowSize.x, 2 * ROUNDING};
+
+            scaleBox(&backStencilBox, pMonitor->scale);
+
+            g_pHyprOpenGL->scissor(&backBox);
+
+            glClearStencil(0);
+            glClear(GL_STENCIL_BUFFER_BIT);
+
+            glEnable(GL_STENCIL_TEST);
+
+            glStencilFunc(GL_ALWAYS, 1, -1);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+            g_pHyprOpenGL->renderRect(&backStencilBox, CColor(0, 0, 0, 0), ROUNDING * pMonitor->scale);
+
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+            glStencilFunc(GL_NOTEQUAL, 1, -1);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+            g_pHyprOpenGL->renderRect(&backBox, color, ROUNDING * pMonitor->scale);
+
+            // cleanup stencil
+            glClearStencil(0);
+            glClear(GL_STENCIL_BUFFER_BIT);
+            glDisable(GL_STENCIL_TEST);
+            glStencilMask(-1);
+            glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        } else {
+            g_pHyprOpenGL->renderRect(&backBox, color, ROUNDING * pMonitor->scale);
+        }
+    }
 
     for (int i = 0; i < barsToDraw; ++i) {
 
@@ -144,8 +176,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
             g_pHyprOpenGL->renderTexture(pTitleTex->tex, &textBox, 1.f);
         }
 
-        if (*PMODE == 1) {
-            refreshGradients();
+        if (m_iGradientHeight != 0) {
+            if (m_tGradientActive.m_iTexID == 0) // no idea why it doesn't work
+                refreshGradients();
+
             g_pHyprOpenGL->renderTexture((m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
                                                                                                 (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive)),
                                          &gradBox, 1.0);
@@ -161,9 +195,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 }
 
 SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationReservedArea() {
-    static auto* const PLOCATIONTOP = &g_pConfigManager->getConfigValuePtr("group:groupbar:top")->intValue;
-    return {{0, *PLOCATIONTOP ? +BAR_INTERNAL_PADDING + BAR_EXTERNAL_PADDING + getBarHeight() : 0},
-            {0, *PLOCATIONTOP ? 0 : BAR_INTERNAL_PADDING + BAR_EXTERNAL_PADDING + getBarHeight()}};
+    return {{0, m_bOnTop ? m_iBarFullHeight : 0}, {0, m_bOnTop ? 0 : m_iBarFullHeight}};
 }
 
 CTitleTex* CHyprGroupBarDecoration::textureFromTitle(const std::string& title) {
@@ -292,8 +324,12 @@ void renderGradientTo(CTexture& tex, const CColor& grad) {
 }
 
 void CHyprGroupBarDecoration::refreshGradients() {
-    if (m_tGradientActive.m_iTexID > 0)
-        return;
+    if (m_tGradientActive.m_iTexID > 0) {
+        m_tGradientActive.destroyTexture();
+        m_tGradientInactive.destroyTexture();
+        m_tGradientLockedActive.destroyTexture();
+        m_tGradientLockedInactive.destroyTexture();
+    }
 
     static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
     static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
@@ -306,18 +342,25 @@ void CHyprGroupBarDecoration::refreshGradients() {
     renderGradientTo(m_tGradientLockedInactive, ((CGradientValueData*)PGROUPCOLINACTIVELOCKED->get())->m_vColors[0]);
 }
 
-int CHyprGroupBarDecoration::getBarHeight() {
-    static auto* const PMODE   = &g_pConfigManager->getConfigValuePtr("group:groupbar:mode")->intValue;
-    static auto* const PHEIGHT = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
-    return *PHEIGHT + (*PMODE == 1 ? BAR_INDICATOR_HEIGHT + BAR_INTERNAL_PADDING : 0);
-}
-
 void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
-    m_tGradientActive.destroyTexture();
-    m_tGradientInactive.destroyTexture();
-    m_tGradientLockedActive.destroyTexture();
-    m_tGradientLockedInactive.destroyTexture();
-    updateWindow(pWindow);
+    static auto* const PMODE           = &g_pConfigManager->getConfigValuePtr("group:groupbar:mode")->intValue;
+    static auto* const PHEIGHT         = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
+    static auto* const PINTERNALBORDER = &g_pConfigManager->getConfigValuePtr("group:groupbar:internal_border")->intValue;
+
+    m_iBarInternalHeight = *PHEIGHT + (*PMODE == 1 ? BAR_INDICATOR_HEIGHT + BAR_INTERNAL_PADDING : 0);
+    m_iBarFullHeight     = m_iBarInternalHeight + BAR_INTERNAL_PADDING + BAR_EXTERNAL_PADDING;
+
+    m_bOnTop          = g_pConfigManager->getConfigValuePtr("group:groupbar:top")->intValue;
+    m_bInternalBorder = *PINTERNALBORDER;
+
+    m_seExtents.topLeft              = Vector2D(0, m_bOnTop ? m_iBarFullHeight : 0);
+    m_seExtents.bottomRight          = Vector2D(0, m_bOnTop ? 0 : m_iBarFullHeight);
+    m_seExtents.isInternalDecoration = *PINTERNALBORDER;
+
+    m_iBarHeight      = *PMODE != 1 ? *PHEIGHT : BAR_INDICATOR_HEIGHT;
+    m_iGradientHeight = *PMODE == 1 ? *PHEIGHT : 0;
+
+    refreshGradients();
 }
 
 bool CHyprGroupBarDecoration::allowsInput() {

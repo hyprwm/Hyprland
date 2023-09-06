@@ -384,11 +384,20 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         renderdata.y += offset.y;
     }
 
+    SWindowDecorationExtents borderExtents;
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
         if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
-            for (auto& wd : pWindow->m_dWindowDecorations)
+            for (auto& wd : pWindow->m_dWindowDecorations) {
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
+                const auto EXTENTS = wd->getWindowDecorationExtents();
+                if (EXTENTS.isInternalDecoration) {
+                    borderExtents.topLeft.x += EXTENTS.topLeft.x;
+                    borderExtents.topLeft.y += EXTENTS.topLeft.y;
+                    borderExtents.bottomRight.x += EXTENTS.bottomRight.x;
+                    borderExtents.bottomRight.y += EXTENTS.bottomRight.y;
+                }
+            }
 
         static auto* const PXWLUSENN = &g_pConfigManager->getConfigValuePtr("xwayland:use_nearest_neighbor")->intValue;
         if (pWindow->m_bIsX11 && *PXWLUSENN)
@@ -409,18 +418,21 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             }
 
             wlr_box windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
+            wlr_box borderBox = {renderdata.x - pMonitor->vecPosition.x - borderExtents.topLeft.x, renderdata.y - pMonitor->vecPosition.y - borderExtents.topLeft.y,
+                                 renderdata.w + borderExtents.topLeft.x + borderExtents.bottomRight.x, renderdata.h + borderExtents.topLeft.y + borderExtents.bottomRight.y};
 
             scaleBox(&windowBox, pMonitor->scale);
+            scaleBox(&borderBox, pMonitor->scale);
 
             int borderSize = pWindow->m_sSpecialRenderData.borderSize.toUnderlying() == -1 ? *PBORDERSIZE : pWindow->m_sSpecialRenderData.borderSize.toUnderlying();
             if (pWindow->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
                 borderSize = pWindow->m_sAdditionalConfigData.borderSize.toUnderlying();
 
-            g_pHyprOpenGL->renderBorder(&windowBox, grad, renderdata.rounding, borderSize, a1);
+            g_pHyprOpenGL->renderBorder(&borderBox, grad, renderdata.rounding, borderSize, a1);
 
             if (ANIMATED) {
                 float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl());
-                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, renderdata.rounding, borderSize, a2);
+                g_pHyprOpenGL->renderBorder(&borderBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, renderdata.rounding, borderSize, a2);
             }
         }
     }

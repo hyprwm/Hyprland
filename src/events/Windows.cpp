@@ -581,7 +581,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         if (maxClients != 0 && maxClients < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
             if (pWorkspace->m_bIsSpecialWorkspace) {
                 g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace));
-                PMONITOR->setSpecialWorkspace(nullptr);
+                if (!workspaceRule.maxClientsSilent)
+                    PMONITOR->setSpecialWorkspace(nullptr);
             }
 
             pWorkspace    = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
@@ -593,6 +594,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 // doesn't exist since it's empty
                 pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->m_iMonitorID, requestedWorkspaceName);
                 g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
+                if (!workspaceRule.maxClientsSilent)
                 g_pKeybindManager->m_mDispatchers["workspace"](pWorkspace->m_szName);
             }
         }

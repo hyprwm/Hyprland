@@ -386,7 +386,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed)
+        std::string currentSubmapName = m_szCurrentSelectedSubmap == nullptr ? "" : m_szCurrentSelectedSubmap->name;
+        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != currentSubmapName || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -445,6 +446,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             if (k.handler == "submap") {
                 found = true; // don't process keybinds on submap change.
                 break;
+            } else if (m_szCurrentSelectedSubmap != nullptr && !m_szCurrentSelectedSubmap->persist) {
+                setSubmap("reset");
             }
         }
 
@@ -460,6 +463,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         if (!k.nonConsuming)
             found = true;
     }
+
+    if (m_szCurrentSelectedSubmap != nullptr && m_szCurrentSelectedSubmap->consume)
+        found = true;
 
     return found;
 }
@@ -1680,7 +1686,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
 void CKeybindManager::setSubmap(std::string submap) {
     if (submap == "reset" || submap == "") {
-        m_szCurrentSelectedSubmap = "";
+        m_szCurrentSelectedSubmap = nullptr;
         Debug::log(LOG, "Reset active submap to the default one.");
         g_pEventManager->postEvent(SHyprIPCEvent{"submap", ""});
         EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
@@ -1689,7 +1695,10 @@ void CKeybindManager::setSubmap(std::string submap) {
 
     for (auto& k : g_pKeybindManager->m_lKeybinds) {
         if (k.submap == submap) {
-            m_szCurrentSelectedSubmap = submap;
+            auto it = std::find_if(g_pSubmaps->begin(), g_pSubmaps->end(), [&submap](const SubmapOptions& search) { return search.name == submap; });
+            if (it != g_pSubmaps->end())
+                m_szCurrentSelectedSubmap = &(*it);
+
             Debug::log(LOG, "Changed keybind submap to {}", submap);
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
             EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);

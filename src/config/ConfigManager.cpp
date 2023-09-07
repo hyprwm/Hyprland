@@ -1187,6 +1187,8 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
     if (submap == "reset") {
+        g_pSubmaps->push_back(m_szCurrentSubmap.getOptions());
+
         runDelayedSubmapBindings();
         m_szCurrentSubmap = SubmapBuilder("");
     } else
@@ -1507,13 +1509,6 @@ void CConfigManager::runDelayedSubmapBindings() {
             hasAtLeastOneResetBind = true;
         } else {
             this->parseKeyword(parse.command, parse.value);
-
-            if (!m_szCurrentSubmap.getPersist() && parse.command.find("bind") == 0) {
-                CVarList p(parse.value);
-
-                // We create a new reset binding for each "bind", when persist is false
-                this->parseKeyword("bind", p[0] + "," + p[1] + ",submap,reset");
-            }
         }
     }
 
@@ -1533,6 +1528,7 @@ void CConfigManager::loadConfigLoadVars() {
     m_dWindowRules.clear();
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
+    g_pSubmaps->clear();
     m_mAdditionalReservedAreas.clear();
     configDynamicVars.clear();
     deviceConfigs.clear();

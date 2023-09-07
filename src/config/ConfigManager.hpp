@@ -18,7 +18,7 @@
 
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
-#include "SubmapBuilder.hpp"
+#include "SubmapManager.hpp"
 
 #define STRVAL_EMPTY "[[EMPTY]]"
 

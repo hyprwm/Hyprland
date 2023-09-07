@@ -77,7 +77,9 @@
     });
 
     devShells = eachSystem (system: {
-      default = pkgsFor.${system}.mkShell {
+      default = pkgsFor.${system}.mkShell.override {
+        stdenv = pkgsFor.${system}.gcc13Stdenv;
+      } {
         name = "hyprland-shell";
         nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
         buildInputs = [self.packages.${system}.wlroots-hyprland];

@@ -298,7 +298,7 @@ static const struct wlr_gles2_pixel_format formats[] = {
 #endif
 };
 
-static const struct wlr_gles2_pixel_format* get_gles2_format_from_drm(uint32_t fmt) {
+inline const struct wlr_gles2_pixel_format* gles2FromDRM(uint32_t fmt) {
     for (size_t i = 0; i < sizeof(formats) / sizeof(*formats); ++i) {
         if (formats[i].drm_format == fmt) {
             return &formats[i];

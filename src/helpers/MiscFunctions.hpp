@@ -33,7 +33,7 @@ std::vector<SCallstackFrameInfo> getBacktrace();
 void                             throwError(const std::string& err);
 
 // why, C++.
-std::string sendToLog(uint8_t, const std::string&);
+void sendToLog(uint8_t, const std::string&);
 template <typename... Args>
 std::string getFormat(const std::string& fmt, Args&&... args) {
     std::string fmtdMsg;

@@ -1193,7 +1193,6 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     if (pMouse->currentConstraint == constraint)
         return;
 
-    const auto PWINDOW     = g_pCompositor->getWindowFromSurface(constraint->surface);
     const auto MOUSECOORDS = getMouseCoordsInternal();
 
     pMouse->hyprListener_commitConstraint.removeCallback();

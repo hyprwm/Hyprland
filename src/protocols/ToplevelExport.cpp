@@ -404,7 +404,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     }
 
     // copy pixels
-    const auto PFORMAT = get_gles2_format_from_drm(format);
+    const auto PFORMAT = gles2FromDRM(format);
     if (!PFORMAT) {
         Debug::log(ERR, "[toplevel_export] Cannot read pixels, unsupported format {:x}", (uintptr_t)PFORMAT);
         g_pHyprOpenGL->end();

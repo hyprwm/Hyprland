@@ -7,12 +7,11 @@
 class SubmapOptions {
 
   public:
-
     SubmapOptions(std::string name) {
-        this->name = name;
+        this->name    = name;
         this->persist = true;
         this->consume = false;
-        
+
         this->hasAtLeastOneResetBinding = false;
     }
 
@@ -35,7 +34,7 @@ class SubmapOptions {
     void setConsume(bool consume) {
         this->consume = consume;
     }
-    
+
     void setPersist(bool persist) {
         this->persist = persist;
     }
@@ -44,13 +43,12 @@ class SubmapOptions {
         this->hasAtLeastOneResetBinding = true;
     }
 
-
   private:
-    bool                hasAtLeastOneResetBinding;
+    bool        hasAtLeastOneResetBinding;
 
-    std::string         name;
-    bool                persist;
-    bool                consume;
+    std::string name;
+    bool        persist;
+    bool        consume;
 };
 
 inline std::unique_ptr<std::vector<SubmapOptions>> g_pSubmaps;

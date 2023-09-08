@@ -1190,7 +1190,7 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
         // currentCategory.starts_with("submap") is here to support the old format, otherwise we should only have the first part of the condition
         if (!m_szCurrentSubmap.getHasAtLeastOneResetBinding() && currentCategory.starts_with("submap"))
             parseError = "The reset variable is required in a submap";
-        else 
+        else
             g_pSubmaps->push_back(m_szCurrentSubmap);
 
         m_szCurrentSubmap = SubmapOptions("");

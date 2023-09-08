@@ -1187,7 +1187,8 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
     if (submap == "reset") {
-        // currentCategory.starts_with("submap") is here to support the old format, otherwise we should only have the first part of the condition
+        // currentCategory.starts_with("submap") is here to support the old format, otherwise we should only need the first part of the condition
+        // currentCategory will be empty when we reach this code from the old submap syntax
         if (!m_szCurrentSubmap.getHasAtLeastOneResetBinding() && currentCategory.starts_with("submap"))
             parseError = "The reset variable is required in a submap";
         else

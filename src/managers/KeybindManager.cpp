@@ -1696,13 +1696,14 @@ void CKeybindManager::setSubmap(std::string submap) {
     for (auto& k : g_pKeybindManager->m_lKeybinds) {
         if (k.submap == submap) {
             auto it = std::find_if(g_pSubmaps->begin(), g_pSubmaps->end(), [&submap](const SubmapOptions& search) { return search.getName() == submap; });
-            if (it != g_pSubmaps->end())
+            if (it != g_pSubmaps->end()) {
                 m_szCurrentSelectedSubmap = &(*it);
+                Debug::log(LOG, "Changed keybind submap to {}", submap);
+                g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
+                EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
 
-            Debug::log(LOG, "Changed keybind submap to {}", submap);
-            g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
-            EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
-            return;
+                return;
+            }
         }
     }
 

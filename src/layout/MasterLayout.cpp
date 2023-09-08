@@ -736,7 +736,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         if (*PSMARTRESIZING && RESIZEDELTA != 0 && nodesToResize > 1) {
             const auto NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
             const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
-            float SIZE = isStackVertical ?
+            const auto SIZE = isStackVertical ?
                 (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / nodesToResize:
                 (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / nodesToResize;
 
@@ -766,28 +766,27 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                 resizeDiff = RESIZEDELTA;
             }
 
-            float nodeSize        = isStackVertical ? PNODE->size.y : PNODE->size.x;
-            float maxSizeIncrease = sizeLeft - nodesLeft * minSize;
-            float maxSizeDecrease = minSize - nodeSize;
+            const float nodeSize        = isStackVertical ? PNODE->size.y : PNODE->size.x;
+            const float maxSizeIncrease = sizeLeft - nodesLeft * minSize;
+            const float maxSizeDecrease = minSize - nodeSize;
 
             // leaves enough room for the other nodes
             resizeDiff = std::clamp(resizeDiff, maxSizeDecrease, maxSizeIncrease);
-            PNODE->percSize = PNODE->percSize + resizeDiff / SIZE;
+            PNODE->percSize += resizeDiff / SIZE;
 
             // resize the other nodes
             nodeCount = 0;
-            auto resizeNodesLeft = [maxSizeIncrease, resizeDiff, minSize, orientation, isStackVertical, SIZE, &nodeCount, PNODE](auto &it) {
+            auto resizeNodesLeft = [maxSizeIncrease, resizeDiff, minSize, orientation, isStackVertical, SIZE, &nodeCount, nodesLeft, PNODE](auto &it) {
                 if (it.isMaster != PNODE->isMaster || it.workspaceID != PNODE->workspaceID)
                     return;
                 nodeCount++;
                 // if center orientation, only resize when on the same side
                 if (!it.isMaster && orientation == ORIENTATION_CENTER && nodeCount % 2 == 1)
                     return;
-                if (maxSizeIncrease != 0) {
-                    float size = isStackVertical ? it.size.y : it.size.x;
-                    float resizeDeltaForEach = resizeDiff * (size - minSize) / maxSizeIncrease;
-                    it.percSize = it.percSize - resizeDeltaForEach / SIZE;
-                }
+                const float size = isStackVertical ? it.size.y : it.size.x;
+                const float resizeDeltaForEach = maxSizeIncrease != 0 ?
+                            resizeDiff * (size - minSize) / maxSizeIncrease : resizeDiff / nodesLeft;
+                it.percSize -= resizeDeltaForEach / SIZE;
             };
             if (resizePrevNodes) {
                 std::for_each(std::next(REVNODEIT), m_lMasterNodesData.rend(), resizeNodesLeft);

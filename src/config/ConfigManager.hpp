@@ -250,8 +250,6 @@ class CConfigManager {
     void         setDeviceDefaultVars(const std::string&);
     void         populateEnvironment();
 
-    void         runDelayedSubmapBindings();
-
     void         setAnimForChildren(SAnimationPropertyConfig* const);
     void         updateBlurredLS(const std::string&, const bool);
 
@@ -274,6 +272,7 @@ class CConfigManager {
     void         handleAnimation(const std::string&, const std::string&);
     void         handleSource(const std::string&, const std::string&);
     void         handleSubmap(const std::string&, const std::string&);
+    void         handleSubmapOptions(const std::string& command, const std::string& value);
     void         handleBlurLS(const std::string&, const std::string&);
     void         handleBindWS(const std::string&, const std::string&);
     void         handleEnv(const std::string&, const std::string&);

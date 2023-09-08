@@ -18,39 +18,40 @@ struct SubmapOptions {
 class SubmapBuilder {
 
   public:
+
     SubmapBuilder(std::string name) {
         this->options = SubmapOptions{.name=name, .persist=true,.consume=false};
+        this->hasAtLeastOneResetBinding = false;
     }
 
     std::string getName() {
         return this->options.name;
     }
 
-    bool isParsingSubmap() {
-        return this->options.name != "";
-    }
-
     const SubmapOptions getOptions() {
         return this->options;
     }
 
-    void addToDelayList(const std::string COMMAND, const std::string VALUE) {
-        if (COMMAND == "persist")
-            this->options.persist = VALUE == "true";
-        else if (COMMAND == "consume")
-            this->options.consume = VALUE == "true";
-        else
-            this->toParseList.push_back(ParseObject{.command = COMMAND, .value = VALUE});
+    void setConsume(bool consume) {
+        this->options.consume = consume;
+    }
+    
+    void setPersist(bool persist) {
+        this->options.persist = persist;
     }
 
-    const std::vector<ParseObject>& getDelayList() {
-        return this->toParseList;
+    void addedOneReset() {
+        this->hasAtLeastOneResetBinding = true;
+    }
+
+    bool getHasAtLeastOneResetBinding() {
+        return this->hasAtLeastOneResetBinding;
     }
 
   private:
-    SubmapOptions            options;
+    bool                     hasAtLeastOneResetBinding;
 
-    std::vector<ParseObject> toParseList;
+    SubmapOptions            options;
 };
 
 inline std::unique_ptr<std::vector<SubmapOptions>> g_pSubmaps;

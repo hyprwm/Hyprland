@@ -1187,12 +1187,26 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
 
 void CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
     if (submap == "reset") {
-        g_pSubmaps->push_back(m_szCurrentSubmap.getOptions());
+        // currentCategory.starts_with("submap") is here to support the old format, otherwise we should only have the first part of the condition
+        if (!m_szCurrentSubmap.getHasAtLeastOneResetBinding() && currentCategory.starts_with("submap"))
+            parseError = "The reset variable is required in a submap";
+        else 
+            g_pSubmaps->push_back(m_szCurrentSubmap.getOptions());
 
-        runDelayedSubmapBindings();
         m_szCurrentSubmap = SubmapBuilder("");
     } else
         m_szCurrentSubmap = SubmapBuilder(submap);
+}
+
+void CConfigManager::handleSubmapOptions(const std::string& command, const std::string& value) {
+    if (command == "persist")
+        this->m_szCurrentSubmap.setPersist(value == "true");
+    else if (command == "consume")
+        this->m_szCurrentSubmap.setConsume(value == "true");
+    else if (command == "reset") {
+        this->handleBind("bind", value + ",submap,reset");
+        this->m_szCurrentSubmap.addedOneReset();
+    }
 }
 
 void CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
@@ -1328,6 +1342,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleSource(COMMAND, VALUE);
     else if (COMMAND == "submap")
         handleSubmap(COMMAND, VALUE);
+    else if ((COMMAND == "persist" || COMMAND == "reset" || COMMAND == "consume") && m_szCurrentSubmap.getOptions().name != "")
+        handleSubmapOptions(COMMAND, VALUE);
     else if (COMMAND == "blurls")
         handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
@@ -1472,13 +1488,7 @@ void CConfigManager::parseLine(std::string& line) {
     const auto VALUE   = removeBeginEndSpacesTabs(line.substr(EQUALSPLACE + 1));
     //
 
-    // COMMAND != "submap" is to support the old format. Otherwise, it should not be needed
-    // To allow the persist option, we wait to parse the full submap before
-    // adding the bindings (see onCloseCategory)
-    if (m_szCurrentSubmap.isParsingSubmap() && COMMAND != "submap")
-        m_szCurrentSubmap.addToDelayList(COMMAND, VALUE);
-    else
-        parseKeyword(COMMAND, VALUE);
+    parseKeyword(COMMAND, VALUE);
 }
 
 void CConfigManager::onOpenCategory() {
@@ -1496,24 +1506,6 @@ void CConfigManager::onOpenCategory() {
 void CConfigManager::onCloseCategory() {
     if (currentCategory.starts_with("submap")) {
         handleSubmap("submap", "reset");
-    }
-}
-
-void CConfigManager::runDelayedSubmapBindings() {
-    // This is here to support the old format, otherwise this should be false
-    bool hasAtLeastOneResetBind = !currentCategory.starts_with("submap");
-
-    for (auto parse : m_szCurrentSubmap.getDelayList()) {
-        if (parse.command.find("reset") == 0) {
-            this->parseKeyword("bind", parse.value + ",submap,reset");
-            hasAtLeastOneResetBind = true;
-        } else {
-            this->parseKeyword(parse.command, parse.value);
-        }
-    }
-
-    if (!hasAtLeastOneResetBind) {
-        parseError = "The reset variable is required in a submap";
     }
 }
 

@@ -1245,14 +1245,27 @@ bool CCompositor::isWindowActive(CWindow* pWindow) {
 }
 
 void CCompositor::moveWindowToTop(CWindow* pWindow) {
+    changeWindowZOrder(pWindow, true);
+}
+
+void CCompositor::changeWindowZOrder(CWindow* pWindow, bool top) {
     if (!windowValidMapped(pWindow))
         return;
 
-    auto moveToTop = [&](CWindow* pw) -> void {
-        for (auto it = m_vWindows.begin(); it != m_vWindows.end(); ++it) {
-            if (it->get() == pw) {
-                std::rotate(it, it + 1, m_vWindows.end());
-                break;
+    auto moveToZ = [&](CWindow* pw, bool top) -> void {
+        if (top) {
+            for (auto it = m_vWindows.begin(); it != m_vWindows.end(); ++it) {
+                if (it->get() == pw) {
+                    std::rotate(it, it + 1, m_vWindows.end());
+                    break;
+                }
+            }
+        } else {
+            for (auto it = m_vWindows.rbegin(); it != m_vWindows.rend(); ++it) {
+                if (it->get() == pw) {
+                    std::rotate(it, it + 1, m_vWindows.rend());
+                    break;
+                }
             }
         }
 
@@ -1260,9 +1273,10 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
             g_pHyprRenderer->damageMonitor(getMonitorFromID(pw->m_iMonitorID));
     };
 
-    moveToTop(pWindow);
+    moveToZ(pWindow, top);
 
-    pWindow->m_bCreatedOverFullscreen = true;
+    if (top)
+        pWindow->m_bCreatedOverFullscreen = true;
 
     if (!pWindow->m_bIsX11)
         return;
@@ -1278,9 +1292,9 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
     }
 
     for (auto& pw : toMove) {
-        moveToTop(pw);
+        moveToZ(pw, top);
 
-        moveWindowToTop(pw);
+        changeWindowZOrder(pw, top);
     }
 }
 

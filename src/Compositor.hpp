@@ -28,8 +28,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -161,6 +160,7 @@ class CCompositor {
     bool           doesSeatAcceptInput(wlr_surface*);
     bool           isWindowActive(CWindow*);
     void           moveWindowToTop(CWindow*);
+    void           changeWindowZOrder(CWindow*, bool);
     void           cleanupFadingOut(const int& monid);
     CWindow*       getWindowInDirection(CWindow*, char);
     CWindow*       getNextWindowOnWorkspace(CWindow*, bool focusableOnly = false);

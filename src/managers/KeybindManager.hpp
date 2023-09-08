@@ -28,8 +28,7 @@ struct SKeybind {
     bool shadowed = false;
 };
 
-enum eFocusWindowMode
-{
+enum eFocusWindowMode {
     MODE_CLASS_REGEX = 0,
     MODE_TITLE_REGEX,
     MODE_ADDRESS,
@@ -140,6 +139,7 @@ class CKeybindManager {
     static void     pinActive(std::string);
     static void     mouse(std::string);
     static void     bringActiveToTop(std::string);
+    static void     pushActiveToBottom(std::string);
     static void     lockGroups(std::string);
     static void     lockActiveGroup(std::string);
     static void     moveIntoGroup(std::string);

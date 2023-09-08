@@ -730,18 +730,20 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         const auto STACKWINDOWS = WINDOWS - MASTERS;
         const auto WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
 
-        const bool isStackVertical = orientation % 2 == 0;
-        const auto nodesToResize   = PNODE->isMaster ? MASTERS : STACKWINDOWS;
+        const bool isStackVertical   = orientation % 2 == 0;
+        auto       nodesInSameColumn = PNODE->isMaster ? MASTERS : STACKWINDOWS;
+        if (orientation == ORIENTATION_CENTER && !PNODE->isMaster)
+            nodesInSameColumn /= 2;
 
-        if (*PSMARTRESIZING && RESIZEDELTA != 0 && nodesToResize > 1) {
+        if (*PSMARTRESIZING && RESIZEDELTA != 0 && nodesInSameColumn > 1) {
             const auto NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
             const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
             const auto SIZE = isStackVertical ?
-                (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / nodesToResize:
-                (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / nodesToResize;
+                (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / nodesInSameColumn:
+                (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / nodesInSameColumn;
 
             const float totalSize       = isStackVertical ? WSSIZE.y : WSSIZE.x;
-            const float minSize         = totalSize / nodesToResize * 0.2;
+            const float minSize         = totalSize / nodesInSameColumn * 0.2;
             const bool  resizePrevNodes = isStackVertical ? (TOP || DISPLAYBOTTOM) && !DISPLAYTOP : (LEFT || DISPLAYRIGHT) && !DISPLAYLEFT;
 
             int   nodesLeft = 0;

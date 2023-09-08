@@ -749,7 +749,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             int   nodeCount = 0;
             // check the sizes of all the nodes to be resized for later calculation
             auto checkNodesLeft = [&sizeLeft, &nodesLeft, orientation, isStackVertical, &nodeCount, PNODE](auto it) {
-                if (it.isMaster != PNODE->isMaster)
+                if (it.isMaster != PNODE->isMaster || it.workspaceID != PNODE->workspaceID)
                     return;
                 nodeCount++;
                 if (!it.isMaster && orientation == ORIENTATION_CENTER && nodeCount % 2 == 1)
@@ -777,7 +777,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             // resize the other nodes
             nodeCount = 0;
             auto resizeNodesLeft = [maxSizeIncrease, resizeDiff, minSize, orientation, isStackVertical, SIZE, &nodeCount, PNODE](auto &it) {
-                if (it.isMaster != PNODE->isMaster)
+                if (it.isMaster != PNODE->isMaster || it.workspaceID != PNODE->workspaceID)
                     return;
                 nodeCount++;
                 // if center orientation, only resize when on the same side

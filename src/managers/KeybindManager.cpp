@@ -386,7 +386,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        std::string currentSubmapName = m_szCurrentSelectedSubmap == nullptr ? "" : m_szCurrentSelectedSubmap->name;
+        std::string currentSubmapName = m_szCurrentSelectedSubmap == nullptr ? "" : m_szCurrentSelectedSubmap->getName();
         if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != currentSubmapName || k.shadowed)
             continue;
 
@@ -446,7 +446,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             if (k.handler == "submap") {
                 found = true; // don't process keybinds on submap change.
                 break;
-            } else if (m_szCurrentSelectedSubmap != nullptr && !m_szCurrentSelectedSubmap->persist) {
+            } else if (m_szCurrentSelectedSubmap != nullptr && !m_szCurrentSelectedSubmap->getPersist()) {
                 setSubmap("reset");
             }
         }
@@ -464,7 +464,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             found = true;
     }
 
-    if (m_szCurrentSelectedSubmap != nullptr && m_szCurrentSelectedSubmap->consume)
+    if (m_szCurrentSelectedSubmap != nullptr && m_szCurrentSelectedSubmap->getConsume())
         found = true;
 
     return found;
@@ -1695,7 +1695,7 @@ void CKeybindManager::setSubmap(std::string submap) {
 
     for (auto& k : g_pKeybindManager->m_lKeybinds) {
         if (k.submap == submap) {
-            auto it = std::find_if(g_pSubmaps->begin(), g_pSubmaps->end(), [&submap](const SubmapOptions& search) { return search.name == submap; });
+            auto it = std::find_if(g_pSubmaps->begin(), g_pSubmaps->end(), [&submap](const SubmapOptions& search) { return search.getName() == submap; });
             if (it != g_pSubmaps->end())
                 m_szCurrentSelectedSubmap = &(*it);
 

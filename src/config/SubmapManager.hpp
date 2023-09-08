@@ -4,54 +4,53 @@
 #include <vector>
 #include <memory>
 
-struct ParseObject {
-    const std::string command;
-    const std::string value;
-};
-
-struct SubmapOptions {
-    std::string name;
-    bool        persist;
-    bool        consume;
-};
-
-class SubmapBuilder {
+class SubmapOptions {
 
   public:
 
-    SubmapBuilder(std::string name) {
-        this->options = SubmapOptions{.name=name, .persist=true,.consume=false};
+    SubmapOptions(std::string name) {
+        this->name = name;
+        this->persist = true;
+        this->consume = false;
+        
         this->hasAtLeastOneResetBinding = false;
     }
 
-    std::string getName() {
-        return this->options.name;
+    std::string getName() const {
+        return this->name;
     }
 
-    const SubmapOptions getOptions() {
-        return this->options;
+    bool getPersist() const {
+        return this->persist;
+    }
+
+    bool getConsume() const {
+        return this->consume;
+    }
+
+    bool getHasAtLeastOneResetBinding() const {
+        return this->hasAtLeastOneResetBinding;
     }
 
     void setConsume(bool consume) {
-        this->options.consume = consume;
+        this->consume = consume;
     }
     
     void setPersist(bool persist) {
-        this->options.persist = persist;
+        this->persist = persist;
     }
 
     void addedOneReset() {
         this->hasAtLeastOneResetBinding = true;
     }
 
-    bool getHasAtLeastOneResetBinding() {
-        return this->hasAtLeastOneResetBinding;
-    }
 
   private:
-    bool                     hasAtLeastOneResetBinding;
+    bool                hasAtLeastOneResetBinding;
 
-    SubmapOptions            options;
+    std::string         name;
+    bool                persist;
+    bool                consume;
 };
 
 inline std::unique_ptr<std::vector<SubmapOptions>> g_pSubmaps;

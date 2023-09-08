@@ -221,7 +221,7 @@ class CConfigManager {
 
     std::string                                                                                parseError = ""; // For storing a parse error to display later
 
-    SubmapBuilder                                                                              m_szCurrentSubmap = SubmapBuilder(""); // For storing the current keybind submap
+    SubmapOptions                                                                              m_szCurrentSubmap = SubmapOptions(""); // For storing the current keybind submap
 
     std::vector<SExecRequestedRule>                                                            execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 

@@ -1191,11 +1191,11 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
         if (!m_szCurrentSubmap.getHasAtLeastOneResetBinding() && currentCategory.starts_with("submap"))
             parseError = "The reset variable is required in a submap";
         else 
-            g_pSubmaps->push_back(m_szCurrentSubmap.getOptions());
+            g_pSubmaps->push_back(m_szCurrentSubmap);
 
-        m_szCurrentSubmap = SubmapBuilder("");
+        m_szCurrentSubmap = SubmapOptions("");
     } else
-        m_szCurrentSubmap = SubmapBuilder(submap);
+        m_szCurrentSubmap = SubmapOptions(submap);
 }
 
 void CConfigManager::handleSubmapOptions(const std::string& command, const std::string& value) {
@@ -1342,7 +1342,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleSource(COMMAND, VALUE);
     else if (COMMAND == "submap")
         handleSubmap(COMMAND, VALUE);
-    else if ((COMMAND == "persist" || COMMAND == "reset" || COMMAND == "consume") && m_szCurrentSubmap.getOptions().name != "")
+    else if ((COMMAND == "persist" || COMMAND == "reset" || COMMAND == "consume") && m_szCurrentSubmap.getName() != "")
         handleSubmapOptions(COMMAND, VALUE);
     else if (COMMAND == "blurls")
         handleBlurLS(COMMAND, VALUE);

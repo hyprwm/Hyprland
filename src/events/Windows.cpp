@@ -577,8 +577,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         auto       workspaceRule = pWorkspace ? g_pConfigManager->getWorkspaceRuleFor(pWorkspace) : SWorkspaceRule{};
         const auto PMONITOR      = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-        int        maxClients = workspaceRule.maxClients;
-        bool       maxClientsSilent     = workspaceRule.maxClientsSilent;
+        int        maxClients       = workspaceRule.maxClients;
+        bool       maxClientsSilent = workspaceRule.maxClientsSilent;
         if (maxClients != 0 && maxClients < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
             if (pWorkspace->m_bIsSpecialWorkspace) {
                 g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace));
@@ -588,7 +588,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
             pWorkspace    = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
             workspaceRule = pWorkspace ? g_pConfigManager->getWorkspaceRuleFor(pWorkspace) : SWorkspaceRule{};
-            maxClients       = workspaceRule.maxClients;
+            maxClients    = workspaceRule.maxClients;
             if (maxClients != 0 && maxClients < g_pCompositor->getVisibleWindowsOnWorkspace(pWorkspace->m_iID)) {
                 std::string requestedWorkspaceName;
                 const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString("empty", requestedWorkspaceName);
@@ -596,15 +596,15 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->m_iMonitorID, requestedWorkspaceName);
                 g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
                 if (!maxClientsSilent)
-                g_pKeybindManager->m_mDispatchers["workspace"](pWorkspace->m_szName);
+                    g_pKeybindManager->m_mDispatchers["workspace"](pWorkspace->m_szName);
             }
 
             if (maxClientsSilent) {
                 if (g_pCompositor->windowValidMapped(PFOCUSEDWINDOWPREV)) {
-                g_pCompositor->focusWindow(PFOCUSEDWINDOWPREV);
-                PFOCUSEDWINDOWPREV->updateWindowDecos();
+                    g_pCompositor->focusWindow(PFOCUSEDWINDOWPREV);
+                    PFOCUSEDWINDOWPREV->updateWindowDecos();
                 } else if (!PFOCUSEDWINDOWPREV)
-                g_pCompositor->focusWindow(nullptr);
+                    g_pCompositor->focusWindow(nullptr);
             }
         }
     }

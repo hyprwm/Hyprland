@@ -494,7 +494,7 @@ float CMonitor::getDefaultScale() {
     return 1;
 }
 
-void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
+void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool noMouseMove) {
     if (!pWorkspace)
         return;
 
@@ -543,8 +543,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
 
             g_pCompositor->focusWindow(pWindow);
         }
-
-        g_pInputManager->simulateMouseMovement();
+        if (!noMouseMove)
+            g_pInputManager->simulateMouseMovement();
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 

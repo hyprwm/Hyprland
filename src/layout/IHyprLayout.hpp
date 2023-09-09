@@ -171,7 +171,6 @@ class IHyprLayout {
 
     CWindow*    m_pLastTiledWindow = nullptr;
 
-    bool        snapToBoundingHorizontal(const Vector2D& size, Vector2D& newPosition, const Vector2D& boundingPosition, const Vector2D& boundTo);
-    bool        snapToBoundingVertical(const Vector2D& size, Vector2D& newPosition, const Vector2D& boundingPosition, const Vector2D& boundTo);
+    bool        updateNewPositionSnapping(const double size, double &newPosition, const double boundingPosition, const double boundSize);
     bool        isInRangeForSnapping(double snapSide, double boundingSide, int snapStrength);
 };

@@ -306,9 +306,27 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             // const auto monitorSize = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID)->vecSize;
             // snapToBounding(DRAGGINGWINDOW->m_vSize, newPosition, Vector2D(0,0), monitorSize);
 
+			bool snappedHorizontal = false;
+			bool snappedVertical   = false;
+            auto currentBox        = DRAGGINGWINDOW->getFullWindowBoundingBox();
+
             for (auto& w : g_pCompositor->m_vWindows) {
                 if (w->m_iWorkspaceID == DRAGGINGWINDOW->m_iWorkspaceID && DRAGGINGWINDOW->getPID() != w->getPID()) {
-                    snapToBounding(DRAGGINGWINDOW->m_vRealSize.vec(), newPosition, w->m_vRealPosition.vec(), w->m_vRealSize.vec());
+                    wlr_box check;
+                    auto loopBox = w->getFullWindowBoundingBox();
+
+                    wlr_box_intersection(&check, &loopBox, &currentBox);
+                    if (wlr_box_empty(&check))
+                        continue;
+
+                    if (!snappedHorizontal)
+                        snappedHorizontal = snapToBoundingHorizontal(DRAGGINGWINDOW->m_vRealSize.vec(), newPosition, w->m_vRealPosition.vec(), w->m_vRealSize.vec());
+
+                    if (!snappedVertical)
+                        snappedVertical = snapToBoundingVertical(DRAGGINGWINDOW->m_vRealSize.vec(), newPosition, w->m_vRealPosition.vec(), w->m_vRealSize.vec());
+
+                    if (snappedHorizontal && snappedVertical)
+                        break;
                 }
             }
         }
@@ -406,37 +424,45 @@ bool IHyprLayout::isInRangeForSnapping(double snapSide, double boundingSide, int
     return snapSide <= boundingSide + snapStrength && snapSide >= boundingSide - snapStrength;
 }
 
-bool IHyprLayout::snapToBounding(const Vector2D& size, Vector2D& newPosition, const Vector2D& boundingPosition, const Vector2D& boundTo) {
+bool IHyprLayout::snapToBoundingVertical(const Vector2D& size, Vector2D& newPosition, const Vector2D& boundingPosition, const Vector2D& boundTo) {
     bool snapped = false;
     int  snap    = 60;
 
-    double leftSide = newPosition.x;
     double topSide = newPosition.y;
-    double rightSide = newPosition.x + size.x;
     double bottomSide = newPosition.y +size.y;
 
-    double boundingLeftSide = boundingPosition.x;
     double boundingTopSide = boundingPosition.y;
-    double boundingRightSide = boundingPosition.x + boundTo.x;
     double boundingBottomSide = boundingPosition.y + boundTo.y;
 
-
-    // Horizontal Snapping
-    if (isInRangeForSnapping(leftSide, boundingLeftSide, snap)) {
-        newPosition.x = boundingLeftSide;
-        snapped       = true;
-    } else if (isInRangeForSnapping(rightSide, boundingRightSide, snap)) {
-        newPosition.x = boundingRightSide - size.x;
-        snapped       = true;
-    }
-
-    // Vertical Snapping
     if (isInRangeForSnapping(topSide, boundingTopSide, snap)) {
         newPosition.y = boundingTopSide;
         snapped       = true;
     } else if (isInRangeForSnapping(bottomSide, boundingBottomSide, snap)) {
         newPosition.y = boundingBottomSide - size.y;
         snapped       = true;
+    }
+
+    return snapped;
+}
+
+bool IHyprLayout::snapToBoundingHorizontal(const Vector2D& size, Vector2D& newPosition, const Vector2D& boundingPosition, const Vector2D& boundTo) {
+    bool snapped = true;
+    int  snap    = 60;
+
+    double leftSide = newPosition.x;
+    double rightSide = newPosition.x + size.x;
+
+    double boundingLeftSide = boundingPosition.x;
+    double boundingRightSide = boundingPosition.x + boundTo.x;
+
+    // Horizontal Snapping
+    if (isInRangeForSnapping(leftSide, boundingLeftSide, snap)) {
+        newPosition.x = boundingLeftSide;
+    } else if (isInRangeForSnapping(rightSide, boundingRightSide, snap)) {
+        newPosition.x = boundingRightSide - size.x;
+    }
+    else {
+        snapped = false;
     }
 
     return snapped;

@@ -1039,8 +1039,8 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
         return "no such option";
 
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL)
-        return getFormat("option {}\n\tint: {}\n\tfloat: {:.5f}\n\tstr: \"{}\"\n\tdata: {:x}", curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue,
-                         (uintptr_t)PCFGOPT->data.get());
+        return getFormat("option {}\n\tint: {}\n\tfloat: {:.5f}\n\tstr: \"{}\"\n\tdata: {:x}\n\tset: {}", curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue,
+                         (uintptr_t)PCFGOPT->data.get(), PCFGOPT->set);
     else {
         return getFormat(
             R"#(
@@ -1049,10 +1049,11 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
     "int": {},
     "float": {:.5f},
     "str": "{}",
-    "data": "0x{:x}"
+    "data": "0x{:x}",
+    "set": {}
 }}
 )#",
-            curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue, (uintptr_t)PCFGOPT->data.get());
+            curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue, (uintptr_t)PCFGOPT->data.get(), PCFGOPT->set);
     }
 }
 

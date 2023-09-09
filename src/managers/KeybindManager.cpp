@@ -2095,8 +2095,10 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
     }
 
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
-    if (!PWINDOW)
+
+    if (!PWINDOW || PWINDOW->m_bIsFullscreen)
         return;
+
     const auto ISWINDOWGROUP       = PWINDOW->m_sGroupData.pNextWindow;
     const auto ISWINDOWGROUPLOCKED = ISWINDOWGROUP && PWINDOW->getGroupHead()->m_sGroupData.locked;
 
@@ -2107,13 +2109,13 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_bIsFloating
     if (ISWINDOWINDIRGROUP && !ISWINDOWINDIRGROUPLOCKED) {
         if (ISWINDOWGROUPLOCKED && !*BIGNOREGROUPLOCK) {
-            g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
+            g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (ISWINDOWINDIRGROUPLOCKED) {
         if (!*BIGNOREGROUPLOCK) {
-            g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
+            g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
@@ -2121,7 +2123,7 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
         if (ISWINDOWGROUP && (*BIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED))
             moveWindowOutOfGroup(PWINDOW);
         else {
-            g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
+            g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         }
     } else if (ISWINDOWGROUP && (*BIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED)) {

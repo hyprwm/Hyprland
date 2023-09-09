@@ -590,8 +590,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string dir = "/proc/" + std::to_string(pid) + "/status";
-    FILE*       infile;
+    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
+    FILE*             infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)
@@ -706,6 +706,6 @@ void throwError(const std::string& err) {
     throw std::runtime_error(err);
 }
 
-std::string sendToLog(uint8_t level, const std::string& s) {
+void sendToLog(uint8_t level, const std::string& s) {
     Debug::log((LogLevel)level, s);
 }

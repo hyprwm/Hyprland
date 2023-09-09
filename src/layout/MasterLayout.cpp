@@ -295,24 +295,21 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         }
     }
 
-    const float masterAverageWidth  = WSSIZE.x / MASTERS;
-    const float masterAverageHeight = WSSIZE.y / MASTERS;
-    const float slaveAverageWidth   = WSSIZE.x / STACKWINDOWS;
-    const float slaveAverageHeight  = WSSIZE.y / STACKWINDOWS;
-    float       masterTotalWidth    = 0;
-    float       masterTotalHeight   = 0;
-    float       slaveTotalWidth     = 0;
-    float       slaveTotalHeight    = 0;
+    const float totalSize = (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) ? WSSIZE.x : WSSIZE.y;
+    const float masterAverageSize = totalSize / MASTERS;
+    const float slaveAverageSize  = totalSize / STACKWINDOWS;
+    float masterAccumulatedSize = 0;
+    float slaveAccumulatedSize  = 0;
+
     if (*PSMARTRESIZING) {
         // check the total width and height so that later
         // if larger/smaller than screen size them down/up
         for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID == PWORKSPACE->m_iID && nd.isMaster) {
-                masterTotalWidth  += masterAverageWidth * nd.percSize;
-                masterTotalHeight += masterAverageHeight * nd.percSize;
-            } else if (nd.workspaceID == PWORKSPACE->m_iID && !nd.isMaster) {
-                slaveTotalWidth += slaveAverageWidth * nd.percSize;
-                slaveTotalHeight += slaveAverageHeight * nd.percSize;
+            if (nd.workspaceID == PWORKSPACE->m_iID) {
+                if (nd.isMaster)
+                    masterAccumulatedSize += totalSize / MASTERS * nd.percSize;
+                else
+                    slaveAccumulatedSize += totalSize / STACKWINDOWS * nd.percSize;
             }
         }
     }
@@ -343,8 +340,8 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
                 WIDTH = widthLeft * 0.9f;
 
             if (*PSMARTRESIZING) {
-                nd.percSize *= WSSIZE.x / masterTotalWidth;
-                WIDTH = masterAverageWidth * nd.percSize;
+                nd.percSize *= WSSIZE.x / masterAccumulatedSize;
+                WIDTH = masterAverageSize * nd.percSize;
             }
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
@@ -380,8 +377,8 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
                 HEIGHT = heightLeft * 0.9f;
 
             if (*PSMARTRESIZING) {
-                nd.percSize *= WSSIZE.y / masterTotalHeight;
-                HEIGHT = masterAverageHeight * nd.percSize;
+                nd.percSize *= WSSIZE.y / masterAccumulatedSize;
+                HEIGHT = masterAverageSize * nd.percSize;
             }
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
@@ -417,8 +414,8 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
                 WIDTH = widthLeft * 0.9f;
 
             if (*PSMARTRESIZING) {
-                nd.percSize *= WSSIZE.x / slaveTotalWidth;
-                WIDTH = slaveAverageWidth * nd.percSize;
+                nd.percSize *= WSSIZE.x / slaveAccumulatedSize;
+                WIDTH = slaveAverageSize * nd.percSize;
             }
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
@@ -447,8 +444,8 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
                 HEIGHT = heightLeft * 0.9f;
 
             if (*PSMARTRESIZING) {
-                nd.percSize *= WSSIZE.y / slaveTotalHeight;
-                HEIGHT = slaveAverageHeight * nd.percSize;
+                nd.percSize *= WSSIZE.y / slaveAccumulatedSize;
+                HEIGHT = slaveAverageSize * nd.percSize;
             }
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
@@ -473,19 +470,19 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         int         slavesLeftR = 1 + (slavesLeft - 1) / 2;
         int         slavesLeftL = slavesLeft - slavesLeftR;
 
-        const float averageHeightL     = WSSIZE.y / slavesLeftL;
-        const float averageHeightR     = WSSIZE.y / slavesLeftR;
-        float       heightAccumulatedL = 0;
-        float       heightAccumulatedR = 0;
+        const float slaveAverageHeightL     = WSSIZE.y / slavesLeftL;
+        const float slaveAverageHeightR     = WSSIZE.y / slavesLeftR;
+        float       slaveAccumulatedHeightL = 0;
+        float       slaveAccumulatedHeightR = 0;
         if (*PSMARTRESIZING) {
             for (auto& nd : m_lMasterNodesData) {
                 if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
                     continue;
 
                 if (onRight) {
-                    heightAccumulatedR += averageHeightR * nd.percSize;
+                    slaveAccumulatedHeightR += slaveAverageHeightR * nd.percSize;
                 } else {
-                    heightAccumulatedL += averageHeightL * nd.percSize;
+                    slaveAccumulatedHeightL += slaveAverageHeightL * nd.percSize;
                 }
                 onRight = !onRight;
             }
@@ -514,11 +511,11 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
 
             if (*PSMARTRESIZING) {
                 if (onRight) {
-                    nd.percSize *= WSSIZE.y / heightAccumulatedR;
-                    HEIGHT = averageHeightR * nd.percSize;
+                    nd.percSize *= WSSIZE.y / slaveAccumulatedHeightR;
+                    HEIGHT = slaveAverageHeightR * nd.percSize;
                 } else {
-                    nd.percSize *= WSSIZE.y / heightAccumulatedL;
-                    HEIGHT = averageHeightL * nd.percSize;
+                    nd.percSize *= WSSIZE.y / slaveAccumulatedHeightL;
+                    HEIGHT = slaveAverageHeightL * nd.percSize;
                 }
             }
 

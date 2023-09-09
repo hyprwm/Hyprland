@@ -2138,6 +2138,8 @@ void CKeybindManager::setIgnoreGroupLock(std::string args) {
         *BIGNOREGROUPLOCK = !*BIGNOREGROUPLOCK;
     else
         *BIGNOREGROUPLOCK = args == "on";
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"ignoregrouplock", std::to_string(*BIGNOREGROUPLOCK)});
 }
 
 void CKeybindManager::global(std::string args) {

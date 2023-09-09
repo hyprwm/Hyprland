@@ -287,6 +287,9 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     static auto* const PANIMATEMOUSE = &g_pConfigManager->getConfigValuePtr("misc:animate_mouse_windowdragging")->intValue;
     static auto* const PANIMATE      = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
 
+    static auto* const SNAPFLOATING         = &g_pConfigManager->getConfigValuePtr("misc:snap_floating")->strValue;
+    static auto* const SNAPFLOATINGSTRENGTH = &g_pConfigManager->getConfigValuePtr("misc:snap_floating_strength")->intValue;
+
     if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
         (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count() <
              1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate &&
@@ -302,32 +305,11 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (g_pInputManager->dragMode == MBIND_MOVE) {
         auto newPosition = m_vBeginDragPositionXY + DELTA;
 
-        if (DRAGGINGWINDOW->m_bIsFloating) {
-            // const auto monitorSize = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID)->vecSize;
-            // snapToBounding(DRAGGINGWINDOW->m_vSize, newPosition, Vector2D(0,0), monitorSize);
-
-			bool snappedHorizontal = false;
-			bool snappedVertical   = false;
-            auto currentBox        = DRAGGINGWINDOW->getFullWindowBoundingBox();
-
-            for (auto& w : g_pCompositor->m_vWindows) {
-                if (w->m_iWorkspaceID == DRAGGINGWINDOW->m_iWorkspaceID && DRAGGINGWINDOW->getPID() != w->getPID()) {
-                    auto loopBox = w->getFullWindowBoundingBox();
-
-                    wlr_box check;
-                    wlr_box_intersection(&check, &loopBox, &currentBox);
-                    if (wlr_box_empty(&check))
-                        continue;
-
-                    if (!snappedHorizontal)
-                        snappedHorizontal = updateNewPositionSnapping(DRAGGINGWINDOW->m_vRealSize.vec().x, newPosition.x, w->m_vRealPosition.vec().x, w->m_vRealSize.vec().x);
-
-                    if (!snappedVertical)
-                        snappedVertical = updateNewPositionSnapping(DRAGGINGWINDOW->m_vRealSize.vec().y, newPosition.y, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().y);
-
-                    if (snappedHorizontal && snappedVertical)
-                        break;
-                }
+        if (DRAGGINGWINDOW->m_bIsFloating && *SNAPFLOATING != "") {
+            if (*SNAPFLOATING == "monitor") {
+                snapToMonitor(newPosition, DRAGGINGWINDOW, *SNAPFLOATINGSTRENGTH);
+            } else if (*SNAPFLOATING == "windows") {
+                snapToWindows(newPosition, DRAGGINGWINDOW, *SNAPFLOATINGSTRENGTH);
             }
         }
 
@@ -420,26 +402,57 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }
 
+void IHyprLayout::snapToMonitor(Vector2D& newPosition, CWindow* window, int snapStrength) {
+    if (window != nullptr) {
+        const auto monitorSize = g_pCompositor->getMonitorFromID(window->m_iMonitorID)->vecSize;
+        updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, 0, monitorSize.x, snapStrength);
+        updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, 0, monitorSize.y, snapStrength);
+    }
+}
+
+void IHyprLayout::snapToWindows(Vector2D& newPosition, CWindow* window, int snapStrength) {
+    bool snappedHorizontal = false;
+    bool snappedVertical   = false;
+    auto currentBox        = window->getFullWindowBoundingBox();
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID == window->m_iWorkspaceID && window->getPID() != w->getPID()) {
+            auto    loopBox = w->getFullWindowBoundingBox();
+
+            wlr_box check;
+            wlr_box_intersection(&check, &loopBox, &currentBox);
+            if (wlr_box_empty(&check))
+                continue;
+
+            if (!snappedHorizontal)
+                snappedHorizontal = updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, w->m_vRealPosition.vec().x, w->m_vRealSize.vec().x, snapStrength);
+
+            if (!snappedVertical)
+                snappedVertical = updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().y, snapStrength);
+
+            if (snappedHorizontal && snappedVertical)
+                break;
+        }
+    }
+}
+
 bool IHyprLayout::isInRangeForSnapping(double snapSide, double boundingSide, int snapStrength) {
     return snapSide <= boundingSide + snapStrength && snapSide >= boundingSide - snapStrength;
 }
 
-bool IHyprLayout::updateNewPositionSnapping(const double size, double &newPosition, const double boundingPosition, const double boundSize) {
-    bool snapped = true;
-    int  snap    = 60;
-
-    double minSide = newPosition; // left or top
+bool IHyprLayout::updateNewPositionSnapping(const double size, double& newPosition, const double boundingPosition, const double boundSize, int snapStrength) {
+    bool   snapped = true;
+    double minSide = newPosition;        // left or top
     double maxSide = newPosition + size; // right of bottom
 
     double boundingMinSide = boundingPosition;
     double boundingMaxSide = boundingPosition + boundSize;
 
-    if (isInRangeForSnapping(minSide, boundingMinSide, snap)) {
+    if (isInRangeForSnapping(minSide, boundingMinSide, snapStrength)) {
         newPosition = boundingMinSide;
-    } else if (isInRangeForSnapping(maxSide, boundingMaxSide, snap)) {
+    } else if (isInRangeForSnapping(maxSide, boundingMaxSide, snapStrength)) {
         newPosition = boundingMaxSide - size;
-    }
-    else {
+    } else {
         snapped = false;
     }
 

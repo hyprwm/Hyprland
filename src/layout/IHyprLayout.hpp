@@ -15,8 +15,7 @@ struct SLayoutMessageHeader {
 
 enum eFullscreenMode : uint8_t;
 
-enum eRectCorner
-{
+enum eRectCorner {
     CORNER_NONE = 0,
     CORNER_TOPLEFT,
     CORNER_TOPRIGHT,
@@ -171,4 +170,6 @@ class IHyprLayout {
     eRectCorner m_eGrabbedCorner = CORNER_TOPLEFT;
 
     CWindow*    m_pLastTiledWindow = nullptr;
+
+    bool        snapToBounding(const Vector2D& size, Vector2D& newPosition, const Vector2D& boundingPosition, const Vector2D& boundTo);
 };

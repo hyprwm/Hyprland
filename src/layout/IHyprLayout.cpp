@@ -300,11 +300,24 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     if (g_pInputManager->dragMode == MBIND_MOVE) {
+        auto newPosition = m_vBeginDragPositionXY + DELTA;
+
+        if (DRAGGINGWINDOW->m_bIsFloating) {
+            // const auto monitorSize = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID)->vecSize;
+            // snapToBounding(DRAGGINGWINDOW->m_vSize, newPosition, Vector2D(0,0), monitorSize);
+
+            for (auto& w : g_pCompositor->m_vWindows) {
+                if (w->m_iWorkspaceID == DRAGGINGWINDOW->m_iWorkspaceID && DRAGGINGWINDOW->getPID() != w->getPID()) {
+                    if (snapToBounding(DRAGGINGWINDOW->m_vRealSize.vec(), newPosition, w->m_vRealPosition.vec(), w->m_vRealSize.vec()))
+                        break;
+                }
+            }
+        }
 
         if (*PANIMATEMOUSE) {
-            DRAGGINGWINDOW->m_vRealPosition = m_vBeginDragPositionXY + DELTA;
+            DRAGGINGWINDOW->m_vRealPosition = newPosition;
         } else {
-            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
+            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(newPosition);
         }
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
@@ -388,6 +401,29 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     DRAGGINGWINDOW->updateWindowDecos();
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
+}
+
+bool IHyprLayout::snapToBounding(const Vector2D& size, Vector2D& newPosition, const Vector2D& boundingPosition, const Vector2D& boundTo) {
+    bool snapped = false;
+    int  snap    = 60;
+
+    if (newPosition.x <= boundingPosition.x + snap && newPosition.x >= boundingPosition.x - snap) {
+        newPosition.x = boundingPosition.x;
+        snapped       = true;
+    } else if (size.x + newPosition.x >= boundingPosition.x + boundTo.x - snap && size.x + newPosition.x <= boundingPosition.x + boundTo.x + snap) {
+        newPosition.x = boundingPosition.x + boundTo.x - size.x;
+        snapped       = true;
+    }
+
+    if (newPosition.y <= boundingPosition.y + snap && newPosition.y >= boundingPosition.y - snap) {
+        newPosition.y = boundingPosition.y;
+        snapped       = true;
+    } else if (size.y + newPosition.y >= boundingPosition.y + boundTo.y - snap && size.y + newPosition.y <= boundingPosition.y + boundTo.y + snap) {
+        newPosition.y = boundingPosition.y + boundTo.y - size.y;
+        snapped       = true;
+    }
+
+    return snapped;
 }
 
 void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {

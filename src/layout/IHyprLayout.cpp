@@ -308,8 +308,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             for (auto& w : g_pCompositor->m_vWindows) {
                 if (w->m_iWorkspaceID == DRAGGINGWINDOW->m_iWorkspaceID && DRAGGINGWINDOW->getPID() != w->getPID()) {
-                    if (snapToBounding(DRAGGINGWINDOW->m_vRealSize.vec(), newPosition, w->m_vRealPosition.vec(), w->m_vRealSize.vec()))
-                        break;
+                    snapToBounding(DRAGGINGWINDOW->m_vRealSize.vec(), newPosition, w->m_vRealPosition.vec(), w->m_vRealSize.vec());
                 }
             }
         }
@@ -420,6 +419,7 @@ bool IHyprLayout::snapToBounding(const Vector2D& size, Vector2D& newPosition, co
     double boundingTopSide = boundingPosition.y;
     double boundingRightSide = boundingPosition.x + boundTo.x;
     double boundingBottomSide = boundingPosition.y + boundTo.y;
+
 
     // Horizontal Snapping
     if (isInRangeForSnapping(leftSide, boundingLeftSide, snap)) {

@@ -289,6 +289,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     static auto* const SNAPFLOATING         = &g_pConfigManager->getConfigValuePtr("misc:snap_floating")->strValue;
     static auto* const SNAPFLOATINGSTRENGTH = &g_pConfigManager->getConfigValuePtr("misc:snap_floating_strength")->intValue;
+    static auto* const SNAPFLOATINGOUTSIDE  = &g_pConfigManager->getConfigValuePtr("misc:snap_floating_outside")->intValue;
 
     if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
         (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count() <
@@ -307,9 +308,9 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
         if (DRAGGINGWINDOW->m_bIsFloating && *SNAPFLOATING != "") {
             if (*SNAPFLOATING == "monitor") {
-                snapToMonitor(newPosition, DRAGGINGWINDOW, *SNAPFLOATINGSTRENGTH);
+                snapToMonitor(newPosition, DRAGGINGWINDOW, *SNAPFLOATINGSTRENGTH, *SNAPFLOATINGOUTSIDE);
             } else if (*SNAPFLOATING == "windows") {
-                snapToWindows(newPosition, DRAGGINGWINDOW, *SNAPFLOATINGSTRENGTH);
+                snapToWindows(newPosition, DRAGGINGWINDOW, *SNAPFLOATINGSTRENGTH, *SNAPFLOATINGOUTSIDE);
             }
         }
 
@@ -402,15 +403,15 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }
 
-void IHyprLayout::snapToMonitor(Vector2D& newPosition, CWindow* window, int snapStrength) {
+void IHyprLayout::snapToMonitor(Vector2D& newPosition, CWindow* window, int snapStrength, bool allowOutsideSnap) {
     if (window != nullptr) {
         const auto monitorSize = g_pCompositor->getMonitorFromID(window->m_iMonitorID)->vecSize;
-        updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, 0, monitorSize.x, snapStrength);
-        updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, 0, monitorSize.y, snapStrength);
+        updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, 0, monitorSize.x, snapStrength, allowOutsideSnap);
+        updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, 0, monitorSize.y, snapStrength, allowOutsideSnap);
     }
 }
 
-void IHyprLayout::snapToWindows(Vector2D& newPosition, CWindow* window, int snapStrength) {
+void IHyprLayout::snapToWindows(Vector2D& newPosition, CWindow* window, int snapStrength, bool allowOutsideSnap) {
     bool snappedHorizontal = false;
     bool snappedVertical   = false;
     auto currentBox        = window->getFullWindowBoundingBox();
@@ -425,10 +426,10 @@ void IHyprLayout::snapToWindows(Vector2D& newPosition, CWindow* window, int snap
                 continue;
 
             if (!snappedHorizontal)
-                snappedHorizontal = updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, w->m_vRealPosition.vec().x, w->m_vRealSize.vec().x, snapStrength);
+                snappedHorizontal = updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, w->m_vRealPosition.vec().x, w->m_vRealSize.vec().x, snapStrength, allowOutsideSnap);
 
             if (!snappedVertical)
-                snappedVertical = updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().y, snapStrength);
+                snappedVertical = updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().y, snapStrength, allowOutsideSnap);
 
             if (snappedHorizontal && snappedVertical)
                 break;
@@ -440,7 +441,7 @@ bool IHyprLayout::isInRangeForSnapping(double snapSide, double boundingSide, int
     return snapSide <= boundingSide + snapStrength && snapSide >= boundingSide - snapStrength;
 }
 
-bool IHyprLayout::updateNewPositionSnapping(const double size, double& newPosition, const double boundingPosition, const double boundSize, int snapStrength) {
+bool IHyprLayout::updateNewPositionSnapping(const double size, double& newPosition, const double boundingPosition, const double boundSize, int snapStrength, bool allowOutsideSnap) {
     bool   snapped = true;
     double minSide = newPosition;        // left or top
     double maxSide = newPosition + size; // right of bottom
@@ -452,6 +453,10 @@ bool IHyprLayout::updateNewPositionSnapping(const double size, double& newPositi
         newPosition = boundingMinSide;
     } else if (isInRangeForSnapping(maxSide, boundingMaxSide, snapStrength)) {
         newPosition = boundingMaxSide - size;
+    } else if (allowOutsideSnap && isInRangeForSnapping(maxSide, boundingMinSide, snapStrength)) {
+      newPosition = boundingMinSide - size;
+    } else if (allowOutsideSnap && isInRangeForSnapping(minSide, boundingMaxSide, snapStrength)) {
+      newPosition = boundingMaxSide;
     } else {
         snapped = false;
     }

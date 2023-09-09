@@ -171,8 +171,8 @@ class IHyprLayout {
 
     CWindow*    m_pLastTiledWindow = nullptr;
 
-    void        snapToWindows(Vector2D& newPosition, CWindow* window, int snapStrength);
-    void        snapToMonitor(Vector2D& newPosition, CWindow* window, int snapStrength);
-    bool        updateNewPositionSnapping(const double size, double& newPosition, const double boundingPosition, const double boundSize, int snapStrength);
+    void        snapToWindows(Vector2D& newPosition, CWindow* window, int snapStrength, bool allowOutsideSnap);
+    void        snapToMonitor(Vector2D& newPosition, CWindow* window, int snapStrength, bool allowOutsideSnap);
+    bool        updateNewPositionSnapping(const double size, double& newPosition, const double boundingPosition, const double boundSize, int snapStrength, bool allowOutsideSnap);
     bool        isInRangeForSnapping(double snapSide, double boundingSide, int snapStrength);
 };

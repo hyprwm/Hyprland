@@ -138,7 +138,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:blur:noise"].floatValue           = 0.0117;
     configValues["decoration:blur:contrast"].floatValue        = 0.8916;
     configValues["decoration:blur:brightness"].floatValue      = 0.8172;
-    configValues["decoration:blur:special"].intValue           = 1;
+    configValues["decoration:blur:special"].intValue           = 0;
     configValues["decoration:active_opacity"].floatValue       = 1;
     configValues["decoration:inactive_opacity"].floatValue     = 1;
     configValues["decoration:fullscreen_opacity"].floatValue   = 1;
@@ -2059,19 +2059,35 @@ SConfigValue* CConfigManager::getConfigValuePtr(const std::string& val) {
 }
 
 SConfigValue* CConfigManager::getConfigValuePtrSafe(const std::string& val) {
-    const auto IT = configValues.find(val);
+    if (val.starts_with("device:")) {
+        const auto DEVICE    = val.substr(7, val.find_last_of(':') - 7);
+        const auto CONFIGVAR = val.substr(val.find_last_of(':') + 1);
 
-    if (IT == configValues.end()) {
-        // maybe plugin
+        const auto DEVICECONF = deviceConfigs.find(DEVICE);
+        if (DEVICECONF == deviceConfigs.end())
+            return nullptr;
+
+        const auto IT = DEVICECONF->second.find(CONFIGVAR);
+
+        if (IT == DEVICECONF->second.end())
+            return nullptr;
+
+        return &IT->second;
+    } else if (val.starts_with("plugin:")) {
         for (auto& [pl, pMap] : pluginConfigs) {
-            const auto PLIT = pMap->find(val);
+            const auto IT = pMap->find(val);
 
-            if (PLIT != pMap->end())
-                return &PLIT->second;
+            if (IT != pMap->end())
+                return &IT->second;
         }
 
         return nullptr;
     }
+
+    const auto IT = configValues.find(val);
+
+    if (IT == configValues.end())
+        return nullptr;
 
     return &(IT->second);
 }

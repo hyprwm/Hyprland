@@ -409,7 +409,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
                 continue;
         }
 
-        if (pressed && k.release && k.handler != "global") {
+        if (pressed && k.release && k.handler != "global" && k.handler != "pass" && k.handler != "mouse") {
             if (k.nonConsuming)
                 continue;
 
@@ -417,7 +417,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             continue;
         }
 
-        if (!pressed && !k.release && k.handler != "global") {
+        if (!pressed && !k.release && k.handler != "global" && k.handler != "pass" && k.handler != "mouse") {
             if (k.nonConsuming)
                 continue;
 

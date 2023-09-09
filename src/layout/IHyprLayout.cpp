@@ -407,19 +407,33 @@ bool IHyprLayout::snapToBounding(const Vector2D& size, Vector2D& newPosition, co
     bool snapped = false;
     int  snap    = 60;
 
-    if (newPosition.x <= boundingPosition.x + snap && newPosition.x >= boundingPosition.x - snap) {
-        newPosition.x = boundingPosition.x;
+    double leftSide = newPosition.x;
+    double topSide = newPosition.y;
+    double rightSide = newPosition.x + size.x;
+    double bottomSide = newPosition.y +size.y;
+
+    double boundingLeftSide = boundingPosition.x;
+    double boundingTopSide = boundingPosition.y;
+    double boundingRightSide = boundingPosition.x + boundTo.x;
+    double boundingBottomSide = boundingPosition.y + boundTo.y;
+
+    if (leftSide <= boundingLeftSide + snap && 
+        leftSide >= boundingLeftSide - snap) {
+        newPosition.x = boundingLeftSide;
         snapped       = true;
-    } else if (size.x + newPosition.x >= boundingPosition.x + boundTo.x - snap && size.x + newPosition.x <= boundingPosition.x + boundTo.x + snap) {
-        newPosition.x = boundingPosition.x + boundTo.x - size.x;
+    } else if (rightSide >= boundingRightSide - snap && 
+               rightSide <= boundingRightSide + snap) {
+        newPosition.x = boundingRightSide - size.x;
         snapped       = true;
     }
 
-    if (newPosition.y <= boundingPosition.y + snap && newPosition.y >= boundingPosition.y - snap) {
-        newPosition.y = boundingPosition.y;
+    if (topSide <= boundingTopSide + snap && 
+        topSide >= boundingTopSide - snap) {
+        newPosition.y = boundingTopSide;
         snapped       = true;
-    } else if (size.y + newPosition.y >= boundingPosition.y + boundTo.y - snap && size.y + newPosition.y <= boundingPosition.y + boundTo.y + snap) {
-        newPosition.y = boundingPosition.y + boundTo.y - size.y;
+    } else if (bottomSide >= boundingBottomSide - snap && 
+               bottomSide <= boundingBottomSide + snap) {
+        newPosition.y = boundingBottomSide - size.y;
         snapped       = true;
     }
 

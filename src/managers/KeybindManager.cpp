@@ -69,7 +69,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
     m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
     m_mDispatchers["movewindoworgroup"]             = moveWindowOrGroup;
-    m_mDispatchers["setgrouplockchecking"]          = setGroupLockChecking;
+    m_mDispatchers["setignoregrouplock"]            = setIgnoreGroupLock;
     m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
@@ -2051,7 +2051,7 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow) {
 void CKeybindManager::moveIntoGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const BCHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:check_group_lock")->intValue;
+    static auto* const BIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2068,8 +2068,8 @@ void CKeybindManager::moveIntoGroup(std::string args) {
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_sGroupData.pNextWindow)
         return;
 
-    // Do not move window into locked group if binds:check_group_lock is true
-    if (*BCHECKGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->getGroupHead()->m_sGroupData.locked)))
+    // Do not move window into locked group if binds:ignore_group_lock is false
+    if (!*BIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->getGroupHead()->m_sGroupData.locked)))
         return;
 
     moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
@@ -2087,7 +2087,7 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
 void CKeybindManager::moveWindowOrGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const BCHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:check_group_lock")->intValue;
+    static auto* const BIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2106,36 +2106,36 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_bIsFloating
     if (ISWINDOWINDIRGROUP && !ISWINDOWINDIRGROUPLOCKED) {
-        if (ISWINDOWGROUPLOCKED && *BCHECKGROUPLOCK) {
+        if (ISWINDOWGROUPLOCKED && !*BIGNOREGROUPLOCK) {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (ISWINDOWINDIRGROUPLOCKED) {
-        if (*BCHECKGROUPLOCK) {
+        if (!*BIGNOREGROUPLOCK) {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (PWINDOWINDIR) {
-        if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED))
+        if (ISWINDOWGROUP && (*BIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED))
             moveWindowOutOfGroup(PWINDOW);
         else {
             g_pLayoutManager->getCurrentLayout()->switchWindows(PWINDOW, PWINDOWINDIR);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         }
-    } else if (ISWINDOWGROUP && (!*BCHECKGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
+    } else if (ISWINDOWGROUP && (*BIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
         moveWindowOutOfGroup(PWINDOW);
     }
 }
 
-void CKeybindManager::setGroupLockChecking(std::string args) {
-    static auto* const BCHECKGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:check_group_lock")->intValue;
+void CKeybindManager::setIgnoreGroupLock(std::string args) {
+    static auto* const BIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
 
     if (args == "toggle")
-        *BCHECKGROUPLOCK = !*BCHECKGROUPLOCK;
+        *BIGNOREGROUPLOCK = !*BIGNOREGROUPLOCK;
     else
-        *BCHECKGROUPLOCK = args == "on";
+        *BIGNOREGROUPLOCK = args == "on";
 }
 
 void CKeybindManager::global(std::string args) {

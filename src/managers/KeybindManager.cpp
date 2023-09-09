@@ -2008,7 +2008,7 @@ void CKeybindManager::lockActiveGroup(std::string args) {
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 }
 
-void moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection) {
+void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection) {
     if (!pWindow->m_sGroupData.pNextWindow)
         pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
@@ -2025,7 +2025,7 @@ void moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection) {
     g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
-void moveWindowOutOfGroup(CWindow* pWindow) {
+void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow) {
     static auto* const BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("misc:group_focus_removed_window")->intValue;
     const auto         PWINDOWPREV         = pWindow->getGroupPrevious();
 

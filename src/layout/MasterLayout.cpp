@@ -120,7 +120,6 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
             pWindow->updateWindowDecos();
             recalculateWindow(pWindow);
 
-            g_pCompositor->focusWindow(pWindow);
             return;
         }
     }

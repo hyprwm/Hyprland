@@ -4,8 +4,6 @@
 #include <vector>
 #include <memory>
 
-#include "../debug/Log.hpp"
-
 class SubmapOptions {
 
   public:

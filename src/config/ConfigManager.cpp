@@ -179,6 +179,7 @@ void CConfigManager::setDefaultVars() {
     configValues["master:orientation"].strValue            = "left";
     configValues["master:inherit_fullscreen"].intValue     = 1;
     configValues["master:allow_small_split"].intValue      = 0;
+    configValues["master:smart_resizing"].intValue         = 1;
 
     configValues["animations:enabled"].intValue = 1;
 
@@ -581,12 +582,12 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
                 return;
             }
 
-            wl_output_transform transform = (wl_output_transform)std::stoi(ARGS[2]);
+            const auto TRANSFORM = (wl_output_transform)TSF;
 
             // overwrite if exists
             for (auto& r : m_dMonitorRules) {
                 if (r.name == newrule.name) {
-                    r.transform = transform;
+                    r.transform = TRANSFORM;
                     return;
                 }
             }

@@ -74,6 +74,7 @@ class CKeybindManager {
     uint32_t                  m_uLastMouseCode = 0;
 
     bool                      m_bIsMouseBindActive = false;
+    std::vector<SKeybind*>    m_vPressedSpecialBinds;
 
     int                       m_iPassPressed = -1; // used for pass
 
@@ -92,6 +93,7 @@ class CKeybindManager {
     static bool               tryMoveFocusToMonitor(CMonitor* monitor);
     static void               moveWindowOutOfGroup(CWindow* pWindow);
     static void               moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
+    static void               switchToWindow(CWindow* PWINDOWTOCHANGETO);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);

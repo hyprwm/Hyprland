@@ -377,10 +377,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     }
 
                     if (ONSCREEN) {
-                        static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-                        int borderSize = PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() == -1 ? *PBORDERSIZE : PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying();
-                        if (PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
-                            borderSize = PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying();
+                        int borderSize = PWINDOW->getRealBorderSize();
 
                         // left
                         if (posX < PMONITOR->vecReservedTopLeft.x + borderSize)

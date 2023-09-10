@@ -733,9 +733,8 @@ void CWindow::insertWindowToGroup(CWindow* pWindow) {
     const auto BEGINAT = this;
     const auto ENDAT   = m_sGroupData.pNextWindow;
 
-    if (!pWindow->getDecorationByType(DECORATION_GROUPBAR)) {
+    if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
         pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-    }
 
     if (!pWindow->m_sGroupData.pNextWindow) {
         BEGINAT->m_sGroupData.pNextWindow = pWindow;

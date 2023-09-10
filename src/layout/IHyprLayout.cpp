@@ -404,14 +404,18 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 }
 
 void IHyprLayout::snapToMonitor(Vector2D& newPosition, CWindow* window, int snapStrength, bool allowOutsideSnap) {
-    if (window != nullptr) {
-        const auto monitorSize = g_pCompositor->getMonitorFromID(window->m_iMonitorID)->vecSize;
-        updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, 0, monitorSize.x, snapStrength, allowOutsideSnap);
-        updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, 0, monitorSize.y, snapStrength, allowOutsideSnap);
-    }
+    if (window == nullptr)
+        return;
+
+    const auto monitorSize = g_pCompositor->getMonitorFromID(window->m_iMonitorID)->vecSize;
+    updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, 0, monitorSize.x, snapStrength, allowOutsideSnap);
+    updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, 0, monitorSize.y, snapStrength, allowOutsideSnap);
 }
 
 void IHyprLayout::snapToWindows(Vector2D& newPosition, CWindow* window, int snapStrength, bool allowOutsideSnap) {
+    if (window == nullptr)
+        return;
+
     bool snappedHorizontal = false;
     bool snappedVertical   = false;
     auto currentBox        = window->getFullWindowBoundingBox();

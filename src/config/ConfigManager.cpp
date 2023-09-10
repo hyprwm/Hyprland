@@ -179,6 +179,7 @@ void CConfigManager::setDefaultVars() {
     configValues["master:orientation"].strValue            = "left";
     configValues["master:inherit_fullscreen"].intValue     = 1;
     configValues["master:allow_small_split"].intValue      = 0;
+    configValues["master:smart_resizing"].intValue         = 1;
 
     configValues["animations:enabled"].intValue = 1;
 

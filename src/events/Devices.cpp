@@ -122,7 +122,7 @@ void Events::listener_destroyConstraint(void* owner, void* data) {
 
         const auto PWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
 
-        if (PWINDOW && PCONSTRAINT->active)
+        if (PWINDOW && PCONSTRAINT->active && PCONSTRAINT->constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED)
             g_pInputManager->warpMouseToConstraintMiddle(PCONSTRAINT);
 
         PCONSTRAINT->pMouse->currentConstraint = nullptr;

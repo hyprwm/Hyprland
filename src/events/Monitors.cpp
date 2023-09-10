@@ -38,8 +38,18 @@ void Events::listener_change(wl_listener* listener, void* data) {
 
         CONFIGHEAD->state.enabled = m->output->enabled;
         CONFIGHEAD->state.mode    = m->output->current_mode;
-        CONFIGHEAD->state.x       = m->vecPosition.x;
-        CONFIGHEAD->state.y       = m->vecPosition.y;
+        if (!m->output->current_mode) {
+            CONFIGHEAD->state.custom_mode = {
+                m->output->width,
+                m->output->height,
+                m->output->refresh,
+            };
+        }
+        CONFIGHEAD->state.x                     = m->vecPosition.x;
+        CONFIGHEAD->state.y                     = m->vecPosition.y;
+        CONFIGHEAD->state.transform             = m->transform;
+        CONFIGHEAD->state.scale                 = m->scale;
+        CONFIGHEAD->state.adaptive_sync_enabled = m->vrrActive;
     }
 
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);

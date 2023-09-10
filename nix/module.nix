@@ -10,9 +10,7 @@ with lib; let
   inherit (pkgs.stdenv.hostPlatform) system;
 
   finalPortalPackage = cfg.portalPackage.override {
-    hyprland-share-picker = inputs.xdph.packages.${system}.hyprland-share-picker.override {
-      hyprland = cfg.finalPackage;
-    };
+    hyprland = cfg.finalPackage;
   };
 in {
   # disables Nixpkgs Hyprland module to avoid conflicts

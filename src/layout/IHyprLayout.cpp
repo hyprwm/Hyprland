@@ -451,7 +451,7 @@ bool IHyprLayout::updateNewPositionSnapping(const double size, double& newPositi
                                             bool allowOutsideSnap) {
     bool   snapped = true;
     double minSide = newPosition;        // left or top
-    double maxSide = newPosition + size; // right of bottom
+    double maxSide = newPosition + size; // right or bottom
 
     double boundingMinSide = boundingPosition;
     double boundingMaxSide = boundingPosition + boundSize;

@@ -484,9 +484,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             if (k.handler == "submap") {
                 found = true; // don't process keybinds on submap change.
                 break;
-            } else if (m_pCurrentSelectedSubmap != nullptr && !m_pCurrentSelectedSubmap->getPersist()) {
+            } else if (m_pCurrentSelectedSubmap != nullptr && !m_pCurrentSelectedSubmap->getPersist())
                 setSubmap("reset");
-            }
         }
 
         if (k.repeat) {

@@ -2291,22 +2291,29 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     if (!args.contains(' '))
         return relativeTo;
 
+    const auto  PMONITOR = m_pLastMonitor;
+
+    bool        xIsPercent = false;
+    bool        yIsPercent = false;
+    bool        isExact    = false;
+
     std::string x = args.substr(0, args.find_first_of(' '));
     std::string y = args.substr(args.find_first_of(' ') + 1);
 
     if (x == "exact") {
-        std::string newX = y.substr(0, y.find_first_of(' '));
-        std::string newY = y.substr(y.find_first_of(' ') + 1);
+        x       = y.substr(0, y.find_first_of(' '));
+        y       = y.substr(y.find_first_of(' ') + 1);
+        isExact = true;
+    }
 
-        if (!isNumber(newX) || !isNumber(newY)) {
-            Debug::log(ERR, "parseWindowVectorArgsRelative: exact args not numbers");
-            return relativeTo;
-        }
+    if (x.contains('%')) {
+        xIsPercent = true;
+        x          = x.substr(0, x.length() - 1);
+    }
 
-        const int X = std::stoi(newX);
-        const int Y = std::stoi(newY);
-
-        return Vector2D(X, Y);
+    if (y.contains('%')) {
+        yIsPercent = true;
+        y          = y.substr(0, y.length() - 1);
     }
 
     if (!isNumber(x) || !isNumber(y)) {
@@ -2314,10 +2321,18 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
         return relativeTo;
     }
 
-    const int X = std::stoi(x);
-    const int Y = std::stoi(y);
+    int X = 0;
+    int Y = 0;
 
-    return Vector2D(X + relativeTo.x, Y + relativeTo.y);
+    if (isExact) {
+        X = xIsPercent ? std::stof(x) * 0.01 * PMONITOR->vecSize.x : std::stoi(x);
+        Y = yIsPercent ? std::stof(y) * 0.01 * PMONITOR->vecSize.y : std::stoi(y);
+    } else {
+        X = xIsPercent ? std::stof(x) * 0.01 * relativeTo.x + relativeTo.x : std::stoi(x) + relativeTo.x;
+        Y = yIsPercent ? std::stof(y) * 0.01 * relativeTo.y + relativeTo.y : std::stoi(y) + relativeTo.y;
+    }
+
+    return Vector2D(X, Y);
 }
 
 void CCompositor::forceReportSizesToWindowsOnWorkspace(const int& wid) {

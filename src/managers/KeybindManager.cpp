@@ -1979,7 +1979,8 @@ void CKeybindManager::alterZOrder(std::string args) {
 
     if (!PWINDOW && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
         PWINDOW = g_pCompositor->m_pLastWindow;
-    else {
+
+    if (!PWINDOW) {
         Debug::log(ERR, "alterZOrder: no window");
         return;
     }
@@ -1993,7 +1994,6 @@ void CKeybindManager::alterZOrder(std::string args) {
         return;
     }
 
-    // if follow_mouse && mouse_refocus ?
     g_pInputManager->simulateMouseMovement();
 }
 

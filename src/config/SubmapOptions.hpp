@@ -11,10 +11,10 @@ class SubmapOptions {
   public:
     SubmapOptions(std::string name) {
         this->name = name;
-        this->persist = true;
-        this->consume = false;
+        persist = true;
+        consume = false;
 
-        this->hasAtLeastOneResetBinding = false;
+        hasAtLeastOneResetBinding = false;
     }
 
     std::string getName() const {

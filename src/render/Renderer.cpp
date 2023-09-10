@@ -1135,7 +1135,7 @@ void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
 
 void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {
     wlr_output_configuration_head_v1* head;
-    bool                              noError = true;
+    bool                              ok = true;
 
     wl_list_for_each(head, &config->heads, link) {
 
@@ -1160,29 +1160,24 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
             commandForCfg += std::to_string(head->state.custom_mode.width) + "x" + std::to_string(head->state.custom_mode.height) + "@" +
                 std::to_string(head->state.custom_mode.refresh / 1000.f) + ",";
 
-        commandForCfg += std::to_string(head->state.x) + "x" + std::to_string(head->state.y) + "," + std::to_string(head->state.scale);
+        commandForCfg += std::to_string(head->state.x) + "x" + std::to_string(head->state.y) + "," + std::to_string(head->state.scale) + ",transform," +
+            std::to_string((int)head->state.transform);
 
         if (!test) {
             g_pConfigManager->parseKeyword("monitor", commandForCfg, true);
-
-            std::string transformStr = std::string(OUTPUT->name) + ",transform," + std::to_string((int)OUTPUT->transform);
-
-            const auto  PMONITOR = g_pCompositor->getMonitorFromName(OUTPUT->name);
-
-            if (!PMONITOR || OUTPUT->transform != PMONITOR->transform)
-                g_pConfigManager->parseKeyword("monitor", transformStr);
+            wlr_output_state_set_adaptive_sync_enabled(&OUTPUT->pending, head->state.adaptive_sync_enabled);
         }
 
-        noError = wlr_output_test(OUTPUT);
+        ok = wlr_output_test(OUTPUT);
 
-        if (!noError)
+        if (!ok)
             break;
     }
 
     if (!test)
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
 
-    if (noError)
+    if (ok)
         wlr_output_configuration_v1_send_succeeded(config);
     else
         wlr_output_configuration_v1_send_failed(config);
@@ -1858,6 +1853,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                (int)pMonitor->enabled10bit);
 
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
+
+    Events::listener_change(nullptr, nullptr);
 
     return true;
 }

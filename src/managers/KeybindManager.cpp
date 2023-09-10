@@ -71,6 +71,12 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
+
+    g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, std::any param) {
+        // clear cuz realloc'd
+        m_pActiveKeybind = nullptr;
+        m_vPressedSpecialBinds.clear();
+    });
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
@@ -423,9 +429,12 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
     std::string currentSubmapName = m_pCurrentSelectedSubmap == nullptr ? "" : m_pCurrentSelectedSubmap->getName();
     for (auto& k : m_lKeybinds) {
         const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "mouse";
-        const bool IGNOREMODS        = SPECIALDISPATCHER && !pressed; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
+        const bool SPECIALTRIGGERED =
+            std::find_if(m_vPressedSpecialBinds.begin(), m_vPressedSpecialBinds.end(), [&](const auto& other) { return other == &k; }) != m_vPressedSpecialBinds.end();
+        const bool IGNORECONDITIONS =
+            SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
-        if ((modmask != k.modmask && !IGNOREMODS) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != currentSubmapName || k.shadowed)
+        if (!IGNORECONDITIONS && (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != currentSubmapName || k.shadowed))
             continue;
 
         if (!key.empty()) {
@@ -464,6 +473,11 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
+
+        if (SPECIALTRIGGERED && !pressed)
+            std::erase_if(m_vPressedSpecialBinds, [&](const auto& other) { return other == &k; });
+        else if (SPECIALDISPATCHER && pressed)
+            m_vPressedSpecialBinds.push_back(&k);
 
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {

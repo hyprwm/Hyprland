@@ -28,8 +28,7 @@ struct SKeybind {
     bool shadowed = false;
 };
 
-enum eFocusWindowMode
-{
+enum eFocusWindowMode {
     MODE_CLASS_REGEX = 0,
     MODE_TITLE_REGEX,
     MODE_ADDRESS,
@@ -92,6 +91,8 @@ class CKeybindManager {
     bool                      ensureMouseBindState();
 
     static bool               tryMoveFocusToMonitor(CMonitor* monitor);
+    static void               moveWindowOutOfGroup(CWindow* pWindow);
+    static void               moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
     static void               switchToWindow(CWindow* PWINDOWTOCHANGETO);
 
     // -------------- Dispatchers -------------- //
@@ -147,6 +148,8 @@ class CKeybindManager {
     static void     moveIntoGroup(std::string);
     static void     moveOutOfGroup(std::string);
     static void     moveGroupWindow(std::string);
+    static void     moveWindowOrGroup(std::string);
+    static void     setIgnoreGroupLock(std::string);
     static void     global(std::string);
 
     friend class CCompositor;

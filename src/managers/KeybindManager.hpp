@@ -75,6 +75,7 @@ class CKeybindManager {
     uint32_t                  m_uLastMouseCode = 0;
 
     bool                      m_bIsMouseBindActive = false;
+    std::vector<SKeybind*>    m_vPressedSpecialBinds;
 
     int                       m_iPassPressed = -1; // used for pass
 

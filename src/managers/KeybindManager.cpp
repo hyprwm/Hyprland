@@ -422,8 +422,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
     for (auto& k : m_lKeybinds) {
         std::string currentSubmapName = m_szCurrentSelectedSubmap == nullptr ? "" : m_szCurrentSelectedSubmap->getName();
-        const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "mouse";
-        const bool IGNOREMODS        = SPECIALDISPATCHER && !pressed; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
+        const bool  SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "mouse";
+        const bool  IGNOREMODS        = SPECIALDISPATCHER && !pressed; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
         if ((modmask != k.modmask && !IGNOREMODS) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != currentSubmapName || k.shadowed)
             continue;
@@ -1639,8 +1639,9 @@ void CKeybindManager::setSubmap(std::string submap) {
 
     for (auto& k : g_pKeybindManager->m_lKeybinds) {
         if (k.submap == submap) {
-            auto it = std::find_if(g_pSubmaps->begin(), g_pSubmaps->end(), [&submap](const SubmapOptions& search) { return search.getName() == submap; });
-            if (it != g_pSubmaps->end()) {
+            auto& submapOptionsVector = g_pConfigManager->getAllSubmapOptions();
+            auto  it = std::find_if(submapOptionsVector.begin(), submapOptionsVector.end(), [&submap](const SubmapOptions& search) { return search.getName() == submap; });
+            if (it != submapOptionsVector.end()) {
                 m_szCurrentSelectedSubmap = &(*it);
                 Debug::log(LOG, "Changed keybind submap to {}", submap);
                 g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});

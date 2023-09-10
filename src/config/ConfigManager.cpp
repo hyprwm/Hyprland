@@ -1192,7 +1192,7 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
         if (!m_szCurrentSubmap.getHasAtLeastOneResetBinding() && currentCategory.starts_with("submap"))
             parseError = "The reset variable is required in a submap";
         else
-            g_pSubmaps->push_back(m_szCurrentSubmap);
+            m_vSubmaps.push_back(m_szCurrentSubmap);
 
         m_szCurrentSubmap = SubmapOptions("");
     } else
@@ -1521,7 +1521,8 @@ void CConfigManager::loadConfigLoadVars() {
     m_dWindowRules.clear();
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
-    g_pSubmaps->clear();
+    m_vSubmaps.clear();
+    m_szCurrentSubmap = SubmapOptions("");
     m_mAdditionalReservedAreas.clear();
     configDynamicVars.clear();
     deviceConfigs.clear();
@@ -2227,6 +2228,10 @@ std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname
     }
 
     return "";
+}
+
+std::vector<SubmapOptions>& CConfigManager::getAllSubmapOptions() {
+    return m_vSubmaps;
 }
 
 const std::deque<SWorkspaceRule>& CConfigManager::getAllWorkspaceRules() {

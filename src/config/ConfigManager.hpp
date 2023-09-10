@@ -18,7 +18,7 @@
 
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
-#include "SubmapManager.hpp"
+#include "SubmapOptions.hpp"
 
 #define STRVAL_EMPTY "[[EMPTY]]"
 
@@ -175,6 +175,7 @@ class CConfigManager {
     CMonitor*                                                       getBoundMonitorForWS(const std::string&);
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
     const std::deque<SWorkspaceRule>&                               getAllWorkspaceRules();
+    std::vector<SubmapOptions>&                                     getAllSubmapOptions();
 
     std::vector<SWindowRule>                                        getMatchingRules(CWindow*);
     std::vector<SLayerRule>                                         getMatchingRules(SLayerSurface*);
@@ -222,6 +223,7 @@ class CConfigManager {
     std::string                                                                                parseError = ""; // For storing a parse error to display later
 
     SubmapOptions                                                                              m_szCurrentSubmap = SubmapOptions(""); // For storing the current keybind submap
+    std::vector<SubmapOptions>                                                                 m_vSubmaps;
 
     std::vector<SExecRequestedRule>                                                            execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 

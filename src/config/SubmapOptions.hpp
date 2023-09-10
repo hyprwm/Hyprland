@@ -4,11 +4,13 @@
 #include <vector>
 #include <memory>
 
+#include "../debug/Log.hpp"
+
 class SubmapOptions {
 
   public:
     SubmapOptions(std::string name) {
-        this->name    = name;
+        this->name = name;
         this->persist = true;
         this->consume = false;
 
@@ -16,31 +18,31 @@ class SubmapOptions {
     }
 
     std::string getName() const {
-        return this->name;
+        return name;
     }
 
     bool getPersist() const {
-        return this->persist;
+        return persist;
     }
 
     bool getConsume() const {
-        return this->consume;
+        return consume;
     }
 
     bool getHasAtLeastOneResetBinding() const {
-        return this->hasAtLeastOneResetBinding;
+        return hasAtLeastOneResetBinding;
     }
 
     void setConsume(bool consume) {
-        this->consume = consume;
+        consume = consume;
     }
 
     void setPersist(bool persist) {
-        this->persist = persist;
+        persist = persist;
     }
 
     void addedOneReset() {
-        this->hasAtLeastOneResetBinding = true;
+        hasAtLeastOneResetBinding = true;
     }
 
   private:
@@ -50,5 +52,3 @@ class SubmapOptions {
     bool        persist;
     bool        consume;
 };
-
-inline std::unique_ptr<std::vector<SubmapOptions>> g_pSubmaps;

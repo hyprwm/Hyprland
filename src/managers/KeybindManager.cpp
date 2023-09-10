@@ -421,7 +421,10 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
     for (auto& k : m_lKeybinds) {
-        if (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed)
+        const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "mouse";
+        const bool IGNOREMODS        = SPECIALDISPATCHER && !pressed; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
+
+        if ((modmask != k.modmask && !IGNOREMODS) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed)
             continue;
 
         if (!key.empty()) {
@@ -443,7 +446,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
                 continue;
         }
 
-        if (pressed && k.release && k.handler != "global" && k.handler != "pass" && k.handler != "mouse") {
+        if (pressed && k.release && !SPECIALDISPATCHER) {
             if (k.nonConsuming)
                 continue;
 
@@ -451,7 +454,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             continue;
         }
 
-        if (!pressed && !k.release && k.handler != "global" && k.handler != "pass" && k.handler != "mouse") {
+        if (!pressed && !k.release && !SPECIALDISPATCHER) {
             if (k.nonConsuming)
                 continue;
 

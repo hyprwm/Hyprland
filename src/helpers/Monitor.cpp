@@ -86,8 +86,6 @@ void CMonitor::onConnect(bool noRule) {
         if (!wlr_output_commit(output))
             Debug::log(ERR, "Couldn't commit disabled state on output {}", output->name);
 
-        Events::listener_change(nullptr, nullptr);
-
         m_bEnabled = false;
 
         hyprListener_monitorFrame.removeCallback();

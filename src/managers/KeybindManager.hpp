@@ -90,6 +90,7 @@ class CKeybindManager {
     bool                         ensureMouseBindState();
 
     static bool                  tryMoveFocusToMonitor(CMonitor* monitor);
+    static void                  switchToWindow(CWindow* PWINDOWTOCHANGETO);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);

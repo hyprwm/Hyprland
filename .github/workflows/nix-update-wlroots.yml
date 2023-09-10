@@ -1,26 +1,34 @@
-name: Build Hyprland (Nix)
+name: Nix
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  workflow_call:
+    secrets:
+      PAT:
+        required: true
+
 jobs:
-  nix:
-    name: "Build Hyprland (Nix)"
+  update:
+    name: wlroots
     runs-on: ubuntu-latest
     steps:
     - name: Clone repository
       uses: actions/checkout@v3
       with:
-        submodules: recursive
+        token: ${{ secrets.PAT }}
+
     - name: Install nix
-      uses: cachix/install-nix-action@v20
+      uses: cachix/install-nix-action@v22
       with:
         install_url: https://nixos.org/nix/install
         extra_nix_config: |
           auto-optimise-store = true
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
           experimental-features = nix-command flakes
-    - uses: cachix/cachix-action@v12
+
+    - name: Update lockfile
+      run: nix/update-wlroots.sh
+
+    - name: Commit
+      uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        name: hyprland
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-    - name: Build packages
-      run: nix flake check --print-build-logs --accept-flake-config
+        commit_message: "[gha] Nix: update wlroots"

@@ -1,0 +1,13 @@
+name: Nix
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  wlroots:
+    uses: ./.github/workflows/nix-update-wlroots.yml
+    secrets: inherit
+
+  build:
+    needs: wlroots
+    uses: ./.github/workflows/nix-build.yml
+    secrets: inherit

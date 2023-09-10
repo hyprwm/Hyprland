@@ -1159,23 +1159,20 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     if (PLASTWINDOW->m_bIsFloating) {
-        auto               wPos        = PLASTWINDOW->m_vRealPosition.goalv();
-        auto               PMONITOR    = g_pCompositor->m_pLastMonitor;
-        static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-        int borderSize = PLASTWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() == -1 ? *PBORDERSIZE : PLASTWINDOW->m_sSpecialRenderData.borderSize.toUnderlying();
-        if (PLASTWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
-            borderSize = PLASTWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying();
+        auto vPos       = PLASTWINDOW->m_vRealPosition.goalv();
+        auto PMONITOR   = g_pCompositor->getMonitorFromID(PLASTWINDOW->m_iMonitorID);
+        int  borderSize = PLASTWINDOW->getRealBorderSize();
 
         switch (arg) {
-            case 'l': wPos.x = PMONITOR->vecReservedTopLeft.x + borderSize; break;
-            case 'r': wPos.x = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goalv().x - borderSize; break;
+            case 'l': vPos.x = PMONITOR->vecReservedTopLeft.x + borderSize; break;
+            case 'r': vPos.x = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goalv().x - borderSize; break;
             case 't':
-            case 'u': wPos.y = PMONITOR->vecReservedTopLeft.y + borderSize; break;
+            case 'u': vPos.y = PMONITOR->vecReservedTopLeft.y + borderSize; break;
             case 'b':
-            case 'd': wPos.y = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goalv().y - borderSize; break;
+            case 'd': vPos.y = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goalv().y - borderSize; break;
         }
 
-        PLASTWINDOW->m_vRealPosition = wPos + PMONITOR->vecPosition;
+        PLASTWINDOW->m_vRealPosition = vPos + PMONITOR->vecPosition;
         return;
     }
 

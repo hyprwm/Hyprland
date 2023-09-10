@@ -322,6 +322,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 try {
                     auto       value = r.szRule.substr(r.szRule.find(' ') + 1);
 
+                    const bool ONSCREEN = value.find("onscreen") == 0;
+
+                    if (ONSCREEN)
+                        value = value.substr(value.find_first_of(' ') + 1);
+
                     const bool CURSOR = value.find("cursor") == 0;
 
                     if (CURSOR)
@@ -334,8 +339,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     int        posY = 0;
 
                     if (POSXSTR.find("100%-") == 0) {
-                        const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-                        const auto POSXRAW  = POSXSTR.substr(5);
+                        const auto POSXRAW = POSXSTR.substr(5);
                         posX =
                             PMONITOR->vecSize.x - (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stof(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
 
@@ -354,8 +358,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     }
 
                     if (POSYSTR.find("100%-") == 0) {
-                        const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-                        const auto POSYRAW  = POSYSTR.substr(5);
+                        const auto POSYRAW = POSYSTR.substr(5);
                         posY =
                             PMONITOR->vecSize.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
 
@@ -371,6 +374,27 @@ void Events::listener_mapWindow(void* owner, void* data) {
                             posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y +
                                 (!POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goalv().y);
                         }
+                    }
+
+                    if (ONSCREEN) {
+                        static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+                        int borderSize = PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying() == -1 ? *PBORDERSIZE : PWINDOW->m_sSpecialRenderData.borderSize.toUnderlying();
+                        if (PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
+                            borderSize = PWINDOW->m_sAdditionalConfigData.borderSize.toUnderlying();
+
+                        // left
+                        if (posX < PMONITOR->vecReservedTopLeft.x + borderSize)
+                            posX = PMONITOR->vecReservedTopLeft.x + borderSize;
+                        // right
+                        if (posX > PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PWINDOW->m_vRealSize.goalv().x - borderSize)
+                            posX = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PWINDOW->m_vRealSize.goalv().x - borderSize;
+
+                        // top
+                        if (posY < PMONITOR->vecReservedTopLeft.y + borderSize)
+                            posY = PMONITOR->vecReservedTopLeft.y + borderSize;
+                        // bottom
+                        if (posY > PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize.goalv().y - borderSize)
+                            posY = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize.goalv().y - borderSize;
                     }
 
                     Debug::log(LOG, "Rule move, applying to window {:x}", (uintptr_t)PWINDOW);

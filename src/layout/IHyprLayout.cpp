@@ -407,9 +407,10 @@ void IHyprLayout::snapToMonitor(Vector2D& newPosition, CWindow* window, int snap
     if (window == nullptr)
         return;
 
-    const auto monitorSize = g_pCompositor->getMonitorFromID(window->m_iMonitorID)->vecSize;
-    updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, 0, monitorSize.x, snapStrength, allowOutsideSnap);
-    updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, 0, monitorSize.y, snapStrength, allowOutsideSnap);
+
+    const auto monitor = g_pCompositor->getMonitorFromID(window->m_iMonitorID);
+    updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, monitor->vecPosition.x, monitor->vecSize.x, snapStrength, allowOutsideSnap);
+    updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, monitor->vecPosition.y, monitor->vecSize.y, snapStrength, allowOutsideSnap);
 }
 
 void IHyprLayout::snapToWindows(Vector2D& newPosition, CWindow* window, int snapStrength, bool allowOutsideSnap) {

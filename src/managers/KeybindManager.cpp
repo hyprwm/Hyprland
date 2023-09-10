@@ -422,8 +422,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
 
     std::string currentSubmapName = m_pCurrentSelectedSubmap == nullptr ? "" : m_pCurrentSelectedSubmap->getName();
     for (auto& k : m_lKeybinds) {
-        const bool  SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "mouse";
-        const bool  IGNOREMODS        = SPECIALDISPATCHER && !pressed; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
+        const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "mouse";
+        const bool IGNOREMODS        = SPECIALDISPATCHER && !pressed; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
         if ((modmask != k.modmask && !IGNOREMODS) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != currentSubmapName || k.shadowed)
             continue;

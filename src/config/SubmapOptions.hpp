@@ -11,8 +11,8 @@ class SubmapOptions {
   public:
     SubmapOptions(std::string name) {
         this->name = name;
-        persist = true;
-        consume = false;
+        persist    = true;
+        consume    = false;
 
         hasAtLeastOneResetBinding = false;
     }

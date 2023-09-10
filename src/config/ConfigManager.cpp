@@ -1201,12 +1201,12 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
 
 void CConfigManager::handleSubmapOptions(const std::string& command, const std::string& value) {
     if (command == "persist")
-        this->m_szCurrentSubmap.setPersist(value == "true");
+        m_szCurrentSubmap.setPersist(value == "true");
     else if (command == "consume")
-        this->m_szCurrentSubmap.setConsume(value == "true");
+        m_szCurrentSubmap.setConsume(value == "true");
     else if (command == "reset") {
-        this->handleBind("bind", value + ",submap,reset");
-        this->m_szCurrentSubmap.addedOneReset();
+        handleBind("bind", value + ",submap,reset");
+        m_szCurrentSubmap.addedOneReset();
     }
 }
 
@@ -1498,16 +1498,15 @@ void CConfigManager::onOpenCategory() {
         if (index == std::string::npos)
             parseError = "submap does not have a name";
         else {
-            const std::string submapName = currentCategory.substr(index + 1);
-            handleSubmap("submap", submapName);
+            const std::string SUBMAPNAME = currentCategory.substr(index + 1);
+            handleSubmap("submap", SUBMAPNAME);
         }
     }
 }
 
 void CConfigManager::onCloseCategory() {
-    if (currentCategory.starts_with("submap")) {
+    if (currentCategory.starts_with("submap"))
         handleSubmap("submap", "reset");
-    }
 }
 
 void CConfigManager::loadConfigLoadVars() {

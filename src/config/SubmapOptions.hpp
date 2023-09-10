@@ -34,11 +34,11 @@ class SubmapOptions {
     }
 
     void setConsume(bool consume) {
-        consume = consume;
+        this->consume = consume;
     }
 
     void setPersist(bool persist) {
-        persist = persist;
+        this->persist = persist;
     }
 
     void addedOneReset() {

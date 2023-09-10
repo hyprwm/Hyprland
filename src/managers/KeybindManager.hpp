@@ -65,7 +65,7 @@ class CKeybindManager {
     std::deque<xkb_keysym_t>     m_dPressedKeysyms;
     std::deque<int>              m_dPressedKeycodes;
 
-    inline static SubmapOptions* m_szCurrentSelectedSubmap = nullptr;
+    inline static SubmapOptions* m_pCurrentSelectedSubmap = nullptr;
 
     SKeybind*                    m_pActiveKeybind = nullptr;
 

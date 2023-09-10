@@ -875,12 +875,12 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
             g_pKeybindManager->addKeybind(
-                SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
+                SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_soCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
         else if (KEY.find("code:") == 0 && isNumber(KEY.substr(5)))
             g_pKeybindManager->addKeybind(
-                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
+                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_soCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_soCurrentSubmap.getName(), release, repeat, mouse, nonConsuming, transparent});
     }
 }
 
@@ -1189,24 +1189,24 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
     if (submap == "reset") {
         // currentCategory.starts_with("submap") is here to support the old format, otherwise we should only need the first part of the condition
         // currentCategory will be empty when we reach this code from the old submap syntax
-        if (!m_szCurrentSubmap.getHasAtLeastOneResetBinding() && currentCategory.starts_with("submap"))
+        if (!m_soCurrentSubmap.getHasAtLeastOneResetBinding() && currentCategory.starts_with("submap"))
             parseError = "The reset variable is required in a submap";
         else
-            m_vSubmaps.push_back(m_szCurrentSubmap);
+            m_vSubmaps.push_back(m_soCurrentSubmap);
 
-        m_szCurrentSubmap = SubmapOptions("");
+        m_soCurrentSubmap = SubmapOptions("");
     } else
-        m_szCurrentSubmap = SubmapOptions(submap);
+        m_soCurrentSubmap = SubmapOptions(submap);
 }
 
 void CConfigManager::handleSubmapOptions(const std::string& command, const std::string& value) {
     if (command == "persist")
-        m_szCurrentSubmap.setPersist(value == "true");
+        m_soCurrentSubmap.setPersist(value == "true");
     else if (command == "consume")
-        m_szCurrentSubmap.setConsume(value == "true");
+        m_soCurrentSubmap.setConsume(value == "true");
     else if (command == "reset") {
         handleBind("bind", value + ",submap,reset");
-        m_szCurrentSubmap.addedOneReset();
+        m_soCurrentSubmap.addedOneReset();
     }
 }
 
@@ -1343,7 +1343,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleSource(COMMAND, VALUE);
     else if (COMMAND == "submap")
         handleSubmap(COMMAND, VALUE);
-    else if ((COMMAND == "persist" || COMMAND == "reset" || COMMAND == "consume") && m_szCurrentSubmap.getName() != "")
+    else if ((COMMAND == "persist" || COMMAND == "reset" || COMMAND == "consume") && m_soCurrentSubmap.getName() != "")
         handleSubmapOptions(COMMAND, VALUE);
     else if (COMMAND == "blurls")
         handleBlurLS(COMMAND, VALUE);
@@ -1521,7 +1521,7 @@ void CConfigManager::loadConfigLoadVars() {
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
     m_vSubmaps.clear();
-    m_szCurrentSubmap = SubmapOptions("");
+    m_soCurrentSubmap = SubmapOptions("");
     m_mAdditionalReservedAreas.clear();
     configDynamicVars.clear();
     deviceConfigs.clear();

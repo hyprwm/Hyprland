@@ -430,9 +430,10 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "mouse";
         const bool SPECIALTRIGGERED =
             std::find_if(m_vPressedSpecialBinds.begin(), m_vPressedSpecialBinds.end(), [&](const auto& other) { return other == &k; }) != m_vPressedSpecialBinds.end();
-        const bool IGNOREMODS = SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
+        const bool IGNORECONDITIONS =
+            SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
-        if ((modmask != k.modmask && !IGNOREMODS) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed)
+        if (!IGNORECONDITIONS && (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
         if (!key.empty()) {

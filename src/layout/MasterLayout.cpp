@@ -732,7 +732,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         if (orientation == ORIENTATION_CENTER && !PNODE->isMaster)
             nodesInSameColumn /= 2;
 
-        if (*PSMARTRESIZING && RESIZEDELTA != 0 && nodesInSameColumn > 1) {
+        if (RESIZEDELTA != 0 && nodesInSameColumn > 1) {
             const auto NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
             const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
             const auto SIZE = isStackVertical ?

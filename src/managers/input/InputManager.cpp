@@ -71,7 +71,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     CWindow*       pFoundWindow       = nullptr;
     SLayerSurface* pFoundLayerSurface = nullptr;
 
-    if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown)
+    if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;
 
     if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS) {
@@ -1569,7 +1569,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

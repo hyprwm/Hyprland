@@ -175,7 +175,7 @@ class CConfigManager {
     CMonitor*                                                       getBoundMonitorForWS(const std::string&);
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
     const std::deque<SWorkspaceRule>&                               getAllWorkspaceRules();
-    CSubmapOptions*                                                 getSubmapFromName(const std::string& submap);
+    const CSubmapOptions*                                           getSubmapFromName(const std::string& submap);
 
     std::vector<SWindowRule>                                        getMatchingRules(CWindow*);
     std::vector<SLayerRule>                                         getMatchingRules(SLayerSurface*);

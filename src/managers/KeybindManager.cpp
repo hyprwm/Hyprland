@@ -421,8 +421,8 @@ int repeatKeyHandler(void* data) {
 }
 
 bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string& key, const xkb_keysym_t& keysym, const int& keycode, bool pressed, uint32_t time) {
-    bool            found         = false;
-    CSubmapOptions* currentSubmap = g_pConfigManager->getSubmapFromName(m_szCurrentSelectedSubmap);
+    bool                  found         = false;
+    const CSubmapOptions* currentSubmap = g_pConfigManager->getSubmapFromName(m_szCurrentSelectedSubmap);
 
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");

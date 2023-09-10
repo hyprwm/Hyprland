@@ -2229,7 +2229,7 @@ std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname
     return "";
 }
 
-CSubmapOptions* CConfigManager::getSubmapFromName(const std::string& submap) {
+const CSubmapOptions* CConfigManager::getSubmapFromName(const std::string& submap) {
     CSubmapOptions* found = nullptr;
     if (submap != "") {
         auto it = std::find_if(m_vSubmaps.begin(), m_vSubmaps.end(), [&submap](const CSubmapOptions& search) { return search.getName() == submap; });

@@ -4,13 +4,13 @@
 #include <vector>
 #include <memory>
 
-class SubmapOptions {
+class CSubmapOptions {
 
   public:
-    SubmapOptions(std::string name) {
-        this->name = name;
-        persist    = true;
-        consume    = false;
+    CSubmapOptions(std::string submapName) {
+        name    = submapName;
+        persist = true;
+        consume = false;
 
         hasAtLeastOneResetBinding = false;
     }
@@ -31,12 +31,12 @@ class SubmapOptions {
         return hasAtLeastOneResetBinding;
     }
 
-    void setConsume(bool consume) {
-        this->consume = consume;
+    void setConsume(bool val) {
+        consume = val;
     }
 
-    void setPersist(bool persist) {
-        this->persist = persist;
+    void setPersist(bool val) {
+        persist = val;
     }
 
     void addedOneReset() {

@@ -175,7 +175,7 @@ class CConfigManager {
     CMonitor*                                                       getBoundMonitorForWS(const std::string&);
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
     const std::deque<SWorkspaceRule>&                               getAllWorkspaceRules();
-    std::vector<SubmapOptions>&                                     getAllSubmapOptions();
+    CSubmapOptions*                                                 getSubmapFromName(const std::string& submap);
 
     std::vector<SWindowRule>                                        getMatchingRules(CWindow*);
     std::vector<SLayerRule>                                         getMatchingRules(SLayerSurface*);
@@ -222,8 +222,8 @@ class CConfigManager {
 
     std::string                                                                                parseError = ""; // For storing a parse error to display later
 
-    SubmapOptions                                                                              m_soCurrentSubmap = SubmapOptions(""); // For storing the current keybind submap
-    std::vector<SubmapOptions>                                                                 m_vSubmaps;
+    CSubmapOptions                                                                             m_soCurrentSubmap = CSubmapOptions(""); // For storing the current keybind submap
+    std::vector<CSubmapOptions>                                                                m_vSubmaps;
 
     std::vector<SExecRequestedRule>                                                            execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 

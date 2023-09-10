@@ -1194,9 +1194,9 @@ void CConfigManager::handleSubmap(const std::string& command, const std::string&
         else
             m_vSubmaps.push_back(m_soCurrentSubmap);
 
-        m_soCurrentSubmap = SubmapOptions("");
+        m_soCurrentSubmap = CSubmapOptions("");
     } else
-        m_soCurrentSubmap = SubmapOptions(submap);
+        m_soCurrentSubmap = CSubmapOptions(submap);
 }
 
 void CConfigManager::handleSubmapOptions(const std::string& command, const std::string& value) {
@@ -1521,7 +1521,7 @@ void CConfigManager::loadConfigLoadVars() {
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
     m_vSubmaps.clear();
-    m_soCurrentSubmap = SubmapOptions("");
+    m_soCurrentSubmap = CSubmapOptions("");
     m_mAdditionalReservedAreas.clear();
     configDynamicVars.clear();
     deviceConfigs.clear();
@@ -2229,8 +2229,15 @@ std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname
     return "";
 }
 
-std::vector<SubmapOptions>& CConfigManager::getAllSubmapOptions() {
-    return m_vSubmaps;
+CSubmapOptions* CConfigManager::getSubmapFromName(const std::string& submap) {
+    CSubmapOptions* found = nullptr;
+    if (submap != "") {
+        auto it = std::find_if(m_vSubmaps.begin(), m_vSubmaps.end(), [&submap](const CSubmapOptions& search) { return search.getName() == submap; });
+        if (it != m_vSubmaps.end())
+            found = &(*it);
+    }
+
+    return found;
 }
 
 const std::deque<SWorkspaceRule>& CConfigManager::getAllWorkspaceRules() {

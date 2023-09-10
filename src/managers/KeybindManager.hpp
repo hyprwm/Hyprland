@@ -62,36 +62,36 @@ class CKeybindManager {
     std::list<SKeybind>                                               m_lKeybinds;
 
   private:
-    std::deque<xkb_keysym_t>     m_dPressedKeysyms;
-    std::deque<int>              m_dPressedKeycodes;
+    std::deque<xkb_keysym_t>  m_dPressedKeysyms;
+    std::deque<int>           m_dPressedKeycodes;
 
-    inline static SubmapOptions* m_pCurrentSelectedSubmap = nullptr;
+    inline static std::string m_szCurrentSelectedSubmap = "";
 
-    SKeybind*                    m_pActiveKeybind = nullptr;
+    SKeybind*                 m_pActiveKeybind = nullptr;
 
-    uint32_t                     m_uTimeLastMs    = 0;
-    uint32_t                     m_uLastCode      = 0;
-    uint32_t                     m_uLastMouseCode = 0;
+    uint32_t                  m_uTimeLastMs    = 0;
+    uint32_t                  m_uLastCode      = 0;
+    uint32_t                  m_uLastMouseCode = 0;
 
-    bool                         m_bIsMouseBindActive = false;
-    std::vector<SKeybind*>       m_vPressedSpecialBinds;
+    bool                      m_bIsMouseBindActive = false;
+    std::vector<SKeybind*>    m_vPressedSpecialBinds;
 
-    int                          m_iPassPressed = -1; // used for pass
+    int                       m_iPassPressed = -1; // used for pass
 
-    CTimer                       m_tScrollTimer;
+    CTimer                    m_tScrollTimer;
 
-    bool                         handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&, bool, uint32_t);
+    bool                      handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&, bool, uint32_t);
 
-    bool                         handleInternalKeybinds(xkb_keysym_t);
-    bool                         handleVT(xkb_keysym_t);
+    bool                      handleInternalKeybinds(xkb_keysym_t);
+    bool                      handleVT(xkb_keysym_t);
 
-    xkb_state*                   m_pXKBTranslationState = nullptr;
+    xkb_state*                m_pXKBTranslationState = nullptr;
 
-    void                         updateXKBTranslationState();
-    bool                         ensureMouseBindState();
+    void                      updateXKBTranslationState();
+    bool                      ensureMouseBindState();
 
-    static bool                  tryMoveFocusToMonitor(CMonitor* monitor);
-    static void                  switchToWindow(CWindow* PWINDOWTOCHANGETO);
+    static bool               tryMoveFocusToMonitor(CMonitor* monitor);
+    static void               switchToWindow(CWindow* PWINDOWTOCHANGETO);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);

@@ -117,9 +117,8 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:groupbar_text_color"].intValue          = 0xffffffff;
     configValues["misc:background_color"].intValue             = 0xff111111;
     configValues["misc:snap_floating"].strValue                = STRVAL_EMPTY;
-    configValues["misc:snap_floating_strength"].intValue         = 50;
-    configValues["misc:snap_floating_outside"].intValue          = 0;
-
+    configValues["misc:snap_floating_strength"].intValue       = 50;
+    configValues["misc:snap_floating_outside"].intValue        = 0;
 
     configValues["debug:int"].intValue                = 0;
     configValues["debug:log_damage"].intValue         = 0;

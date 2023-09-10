@@ -426,10 +426,12 @@ void IHyprLayout::snapToWindows(Vector2D& newPosition, CWindow* window, int snap
                 continue;
 
             if (!snappedHorizontal)
-                snappedHorizontal = updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, w->m_vRealPosition.vec().x, w->m_vRealSize.vec().x, snapStrength, allowOutsideSnap);
+                snappedHorizontal =
+                    updateNewPositionSnapping(window->m_vRealSize.vec().x, newPosition.x, w->m_vRealPosition.vec().x, w->m_vRealSize.vec().x, snapStrength, allowOutsideSnap);
 
             if (!snappedVertical)
-                snappedVertical = updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().y, snapStrength, allowOutsideSnap);
+                snappedVertical =
+                    updateNewPositionSnapping(window->m_vRealSize.vec().y, newPosition.y, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().y, snapStrength, allowOutsideSnap);
 
             if (snappedHorizontal && snappedVertical)
                 break;
@@ -441,7 +443,8 @@ bool IHyprLayout::isInRangeForSnapping(double snapSide, double boundingSide, int
     return snapSide <= boundingSide + snapStrength && snapSide >= boundingSide - snapStrength;
 }
 
-bool IHyprLayout::updateNewPositionSnapping(const double size, double& newPosition, const double boundingPosition, const double boundSize, int snapStrength, bool allowOutsideSnap) {
+bool IHyprLayout::updateNewPositionSnapping(const double size, double& newPosition, const double boundingPosition, const double boundSize, int snapStrength,
+                                            bool allowOutsideSnap) {
     bool   snapped = true;
     double minSide = newPosition;        // left or top
     double maxSide = newPosition + size; // right of bottom
@@ -454,9 +457,9 @@ bool IHyprLayout::updateNewPositionSnapping(const double size, double& newPositi
     } else if (isInRangeForSnapping(maxSide, boundingMaxSide, snapStrength)) {
         newPosition = boundingMaxSide - size;
     } else if (allowOutsideSnap && isInRangeForSnapping(maxSide, boundingMinSide, snapStrength)) {
-      newPosition = boundingMinSide - size;
+        newPosition = boundingMinSide - size;
     } else if (allowOutsideSnap && isInRangeForSnapping(minSide, boundingMaxSide, snapStrength)) {
-      newPosition = boundingMaxSide;
+        newPosition = boundingMaxSide;
     } else {
         snapped = false;
     }

@@ -100,7 +100,6 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:swallow_exception_regex"].strValue      = STRVAL_EMPTY;
     configValues["misc:focus_on_activate"].intValue            = 0;
     configValues["misc:no_direct_scanout"].intValue            = 1;
-    configValues["misc:moveintogroup_lock_check"].intValue     = 0;
     configValues["misc:hide_cursor_on_touch"].intValue         = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue   = 1;
     configValues["misc:render_ahead_of_time"].intValue         = 0;
@@ -110,6 +109,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:allow_session_lock_restore"].intValue   = 0;
     configValues["misc:groupbar_scrolling"].intValue           = 1;
     configValues["misc:group_insert_after_current"].intValue   = 1;
+    configValues["misc:group_focus_removed_window"].intValue   = 1;
     configValues["misc:render_titles_in_groupbar"].intValue    = 1;
     configValues["misc:groupbar_titles_font_size"].intValue    = 8;
     configValues["misc:groupbar_gradients"].intValue           = 1;
@@ -222,6 +222,7 @@ void CConfigManager::setDefaultVars() {
     configValues["binds:workspace_back_and_forth"].intValue = 0;
     configValues["binds:allow_workspace_cycles"].intValue   = 0;
     configValues["binds:focus_preferred_method"].intValue   = 0;
+    configValues["binds:ignore_group_lock"].intValue        = 0;
 
     configValues["gestures:workspace_swipe"].intValue                          = 0;
     configValues["gestures:workspace_swipe_fingers"].intValue                  = 3;

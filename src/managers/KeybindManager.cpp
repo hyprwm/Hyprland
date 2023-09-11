@@ -865,11 +865,11 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     if (BISWORKSPACECURRENT) {
         if (*PALLOWWORKSPACECYCLES)
-            pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
+            pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
         else if (!EXPLICITPREVIOUS)
-            pWorkspaceToChangeTo->m_sPrevWorkspace = {-1, ""};
+            pWorkspaceToChangeTo->rememberPrevWorkspace(nullptr);
     } else
-        pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
+        pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
 
     if (auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW && *PFOLLOWMOUSE == 1)
         g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
@@ -942,7 +942,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     g_pCompositor->warpCursorTo(PWINDOW->middle());
 
     if (*PALLOWWORKSPACECYCLES)
-        pWorkspace->m_sPrevWorkspace = {POLDWS->m_iID, POLDWS->m_szName};
+        pWorkspace->rememberPrevWorkspace(POLDWS);
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {

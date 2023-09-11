@@ -862,15 +862,8 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo);
 
-    if (PMONITOR != PMONITORWORKSPACEOWNER) {
+    if (PMONITOR != PMONITORWORKSPACEOWNER)
         g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->vecPosition + PMONITORWORKSPACEOWNER->vecSize / 2.f);
-        if (const auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW)
-            g_pCompositor->focusWindow(PLASTWINDOW);
-        else if (const auto PFIRSTWINDOW = g_pCompositor->getFirstWindowOnWorkspace(pWorkspaceToChangeTo->m_iID); PFIRSTWINDOW)
-            g_pCompositor->focusWindow(PFIRSTWINDOW);
-        else
-            g_pCompositor->focusWindow(nullptr);
-    }
 
     if (BISWORKSPACECURRENT) {
         if (*PALLOWWORKSPACECYCLES)

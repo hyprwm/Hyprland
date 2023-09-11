@@ -804,6 +804,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     // the current workspace will instead switch to the previous.
     static auto* const PBACKANDFORTH         = &g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth")->intValue;
     static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
+    static auto* const PFOLLOWMOUSE          = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
 
     const auto         PMONITOR          = g_pCompositor->m_pLastMonitor;
     const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
@@ -860,7 +861,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
 
-    PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo);
+    PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo, false, true);
 
     if (PMONITOR != PMONITORWORKSPACEOWNER)
         g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->vecPosition + PMONITORWORKSPACEOWNER->vecSize / 2.f);
@@ -870,9 +871,11 @@ void CKeybindManager::changeworkspace(std::string args) {
             pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
         else if (!EXPLICITPREVIOUS)
             pWorkspaceToChangeTo->m_sPrevWorkspace = {-1, ""};
-        return;
-    }
-    pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
+    } else
+        pWorkspaceToChangeTo->m_sPrevWorkspace = {PCURRENTWORKSPACE->m_iID, PCURRENTWORKSPACE->m_szName};
+
+    if (auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW && *PFOLLOWMOUSE == 1)
+        g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
 
     g_pInputManager->simulateMouseMovement();
 }

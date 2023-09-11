@@ -211,12 +211,10 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     const auto PNEWWINDOW = PNEWWORKSPACE->getLastFocusedWindow();
     if (PNEWWINDOW) {
         g_pCompositor->focusWindow(PNEWWINDOW);
-        Vector2D middle = PNEWWINDOW->m_vRealPosition.goalv() + PNEWWINDOW->m_vRealSize.goalv() / 2.f;
-        g_pCompositor->warpCursorTo(middle);
+        g_pCompositor->warpCursorTo(PNEWWINDOW->middle());
     } else {
         g_pCompositor->focusWindow(nullptr);
-        Vector2D middle = monitor->vecPosition + monitor->vecSize / 2.f;
-        g_pCompositor->warpCursorTo(middle);
+        g_pCompositor->warpCursorTo(monitor->middle());
     }
 
     return true;
@@ -241,8 +239,7 @@ void CKeybindManager::switchToWindow(CWindow* PWINDOWTOCHANGETO) {
             g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
     } else {
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        Vector2D middle = PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f;
-        g_pCompositor->warpCursorTo(middle);
+        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
 
         g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
         g_pInputManager->simulateMouseMovement();
@@ -780,7 +777,7 @@ void CKeybindManager::centerWindow(std::string args) {
     if (args == "1")
         RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
-    PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f + RESERVEDOFFSET;
+    PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goalv() / 2.f + RESERVEDOFFSET;
     PWINDOW->m_vPosition     = PWINDOW->m_vRealPosition.goalv();
 }
 
@@ -857,7 +854,7 @@ void CKeybindManager::changeworkspace(std::string args) {
             PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo);
 
             if (PMONITOR != PMONITORWORKSPACEOWNER) {
-                g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->vecPosition + PMONITORWORKSPACEOWNER->vecSize / 2.f);
+                g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->middle());
                 g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
                 if (const auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW)
                     g_pCompositor->focusWindow(PLASTWINDOW);
@@ -898,7 +895,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo);
 
     if (PMONITOR != PMONITORWORKSPACEOWNER) {
-        g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->vecPosition + PMONITORWORKSPACEOWNER->vecSize / 2.f);
+        g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->middle());
 
         if (const auto PLASTWINDOW = pWorkspaceToChangeTo->getLastFocusedWindow(); PLASTWINDOW)
             g_pCompositor->focusWindow(PLASTWINDOW);
@@ -1633,9 +1630,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
     g_pCompositor->focusWindow(PWINDOW);
 
-    const auto MIDPOINT = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
-
-    g_pCompositor->warpCursorTo(MIDPOINT);
+    g_pCompositor->warpCursorTo(PWINDOW->middle());
 }
 
 void CKeybindManager::setSubmap(std::string submap) {

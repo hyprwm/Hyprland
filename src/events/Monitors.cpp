@@ -98,7 +98,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
             g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
 
-            const auto POS = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+            const auto POS = PNEWMONITOR->middle();
             if (g_pCompositor->m_sSeat.mouse)
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
         }
@@ -112,7 +112,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     if (firstLaunch) {
         firstLaunch    = false;
-        const auto POS = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+        const auto POS = PNEWMONITOR->middle();
         if (g_pCompositor->m_sSeat.mouse)
             wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
     } else {

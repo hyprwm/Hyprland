@@ -165,6 +165,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
         pSwitchedTo = PWORKSPACER;
     }
+    m_sActiveSwipe.pWorkspaceBegin->rememberPrevWorkspace(pSwitchedTo);
 
     g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
 

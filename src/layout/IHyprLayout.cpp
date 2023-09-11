@@ -511,8 +511,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
             return m_pLastTiledWindow;
 
         // if we don't, let's try to find any window that is in the middle
-        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
-            PWINDOWCANDIDATE && PWINDOWCANDIDATE != pWindow)
+        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->middle()); PWINDOWCANDIDATE && PWINDOWCANDIDATE != pWindow)
             return PWINDOWCANDIDATE;
 
         // if not, floating window
@@ -527,7 +526,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     }
 
     // if it was a tiled window, we first try to find the window that will replace it.
-    const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
+    const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->middle());
 
     if (!PWINDOWCANDIDATE || pWindow == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus ||
         PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)

@@ -999,7 +999,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return;
 
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f);
+        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
     };
 
     CVarList vars(message, 0, ' ');

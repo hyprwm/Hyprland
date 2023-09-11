@@ -379,11 +379,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     if (ONSCREEN) {
                         int borderSize = PWINDOW->getRealBorderSize();
 
-                        posX = std::clamp(posX, int(PMONITOR->vecReservedTopLeft.x + borderSize),
-                                          int(PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PWINDOW->m_vRealSize.goalv().x - borderSize));
+                        posX = std::clamp(posX, (int)(PMONITOR->vecReservedTopLeft.x + borderSize),
+                                          (int)(PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PWINDOW->m_vRealSize.goalv().x - borderSize));
 
-                        posY = std::clamp(posY, int(PMONITOR->vecReservedTopLeft.y + borderSize),
-                                          int(PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize.goalv().y - borderSize));
+                        posY = std::clamp(posY, (int)(PMONITOR->vecReservedTopLeft.y + borderSize),
+                                          (int)(PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize.goalv().y - borderSize));
                     }
 
                     Debug::log(LOG, "Rule move, applying to window {:x}", (uintptr_t)PWINDOW);

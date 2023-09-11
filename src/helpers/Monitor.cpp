@@ -629,3 +629,7 @@ void CMonitor::moveTo(const Vector2D& pos) {
     if (!isMirror())
         wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, output, (int)vecPosition.x, (int)vecPosition.y);
 }
+
+Vector2D CMonitor::middle() {
+    return vecPosition + vecSize / 2.f;
+}

@@ -107,6 +107,7 @@ class CMonitor {
     void                       setSpecialWorkspace(CWorkspace* const pWorkspace);
     void                       setSpecialWorkspace(const int& id);
     void                       moveTo(const Vector2D& pos);
+    Vector2D                   middle();
 
     std::shared_ptr<CMonitor>* m_pThisWrap            = nullptr;
     bool                       m_bEnabled             = false;

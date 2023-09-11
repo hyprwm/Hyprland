@@ -385,7 +385,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (ARGS[1] == "1")
                     RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
-                PWINDOW->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.f - PWINDOW->m_vRealSize.goalv() / 2.f + RESERVEDOFFSET;
+                PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goalv() / 2.f + RESERVEDOFFSET;
             }
         }
 
@@ -893,8 +893,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
         g_pCompositor->moveWindowToTop(PWINDOW);
 
     g_pCompositor->focusWindow(PWINDOW);
-    Vector2D middle = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
-    g_pCompositor->warpCursorTo(middle);
+    g_pCompositor->warpCursorTo(PWINDOW->middle());
 }
 
 void Events::listener_activateX11(void* owner, void* data) {
@@ -928,8 +927,7 @@ void Events::listener_activateX11(void* owner, void* data) {
         g_pCompositor->moveWindowToTop(PWINDOW);
 
     g_pCompositor->focusWindow(PWINDOW);
-    Vector2D middle = PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.f;
-    g_pCompositor->warpCursorTo(middle);
+    g_pCompositor->warpCursorTo(PWINDOW->middle());
 }
 
 void Events::listener_configureX11(void* owner, void* data) {

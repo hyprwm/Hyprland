@@ -2234,7 +2234,7 @@ const CSubmapOptions* CConfigManager::getSubmapFromName(const std::string& subma
         return nullptr;
 
     CSubmapOptions* found = nullptr;
-    auto it = std::find_if(m_vSubmaps.begin(), m_vSubmaps.end(), [&submap](const CSubmapOptions& search) { return search.getName() == submap; });
+    auto            it    = std::find_if(m_vSubmaps.begin(), m_vSubmaps.end(), [&submap](const CSubmapOptions& search) { return search.getName() == submap; });
     if (it != m_vSubmaps.end())
         found = &(*it);
 

@@ -32,3 +32,10 @@ void IHyprWindowDecoration::forceReload(CWindow* pWindow) {
 bool IHyprWindowDecoration::allowsInput() {
     return false;
 }
+
+void addExtentsToBox(wlr_box* box, SWindowDecorationExtents* extents) {
+    box->x -= extents->topLeft.x;
+    box->y -= extents->topLeft.y;
+    box->width += extents->topLeft.x + extents->bottomRight.x;
+    box->height += extents->topLeft.y + extents->bottomRight.y;
+}

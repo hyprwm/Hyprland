@@ -16,6 +16,8 @@ struct SWindowDecorationExtents {
     bool     isInternalDecoration = false;
 };
 
+void addExtentsToBox(wlr_box*, SWindowDecorationExtents*);
+
 class CWindow;
 class CMonitor;
 

@@ -152,7 +152,7 @@ void CWorkspace::rememberPrevWorkspace(const CWorkspace* prev) {
         return;
     }
 
-    if (prev->m_sPrevWorkspace.iID == m_sPrevWorkspace.iID) {
+    if (prev->m_iID == m_iID) {
         Debug::log(LOG, "Tried to set prev workspace to the same as current one");
         return;
     }

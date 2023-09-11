@@ -1967,9 +1967,8 @@ void CKeybindManager::mouse(std::string args) {
 }
 
 void CKeybindManager::bringActiveToTop(std::string args) {
-    if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating) {
+    if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
         g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
-    }
 }
 
 void CKeybindManager::alterZOrder(std::string args) {

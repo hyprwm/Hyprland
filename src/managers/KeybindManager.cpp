@@ -1103,11 +1103,29 @@ void CKeybindManager::moveActiveTo(std::string args) {
     if (!PLASTWINDOW || PLASTWINDOW->m_bIsFullscreen)
         return;
 
+    if (PLASTWINDOW->m_bIsFloating) {
+        auto       vPos       = PLASTWINDOW->m_vRealPosition.goalv();
+        const auto PMONITOR   = g_pCompositor->getMonitorFromID(PLASTWINDOW->m_iMonitorID);
+        const auto BORDERSIZE = PLASTWINDOW->getRealBorderSize();
+
+        switch (arg) {
+            case 'l': vPos.x = PMONITOR->vecReservedTopLeft.x + BORDERSIZE; break;
+            case 'r': vPos.x = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goalv().x - BORDERSIZE; break;
+            case 't':
+            case 'u': vPos.y = PMONITOR->vecReservedTopLeft.y + BORDERSIZE; break;
+            case 'b':
+            case 'd': vPos.y = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goalv().y - BORDERSIZE; break;
+        }
+
+        PLASTWINDOW->m_vRealPosition = vPos + PMONITOR->vecPosition;
+        return;
+    }
+
     // If the window to change to is on the same workspace, switch them
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
     if (PWINDOWTOCHANGETO) {
         g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args);
-        g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.goalv() + PLASTWINDOW->m_vRealSize.goalv() / 2.0);
+        g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
         return;
     }
 

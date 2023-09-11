@@ -1650,13 +1650,11 @@ void CConfigManager::loadConfigLoadVars() {
 
         w->updateDynamicRules();
         w->updateSpecialRenderData();
+
         for (auto& wd : w->m_dWindowDecorations)
             wd->forceReload(w.get());
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(w.get());
     }
-
-    // TODO: hack needed for decorations, fix later
-    for (auto& m : g_pCompositor->m_vMonitors)
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     // Update window border colors
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();

@@ -285,6 +285,10 @@ class CWindow {
     std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
     std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
 
+    // Window decorations internal and external reserved area
+    SWindowDecorationExtents m_seReservedInternal;
+    SWindowDecorationExtents m_seReservedExternal;
+
     // Special render data, rules, etc
     SWindowSpecialRenderData    m_sSpecialRenderData;
     SWindowAdditionalConfigData m_sAdditionalConfigData;

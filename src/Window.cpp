@@ -204,6 +204,27 @@ void CWindow::updateWindowDecos() {
         }
     }
 
+    // reset extents
+    m_seReservedInternal.topLeft     = Vector2D();
+    m_seReservedInternal.bottomRight = Vector2D();
+    m_seReservedExternal.topLeft     = Vector2D();
+    m_seReservedExternal.bottomRight = Vector2D();
+
+    for (auto& wd : m_dWindowDecorations) {
+        const auto RESERVED = wd->getWindowDecorationReservedArea();
+        if (RESERVED.isInternalDecoration) {
+            m_seReservedInternal.topLeft.x     = std::max(m_seReservedInternal.topLeft.x, RESERVED.topLeft.x);
+            m_seReservedInternal.topLeft.y     = std::max(m_seReservedInternal.topLeft.y, RESERVED.topLeft.y);
+            m_seReservedInternal.bottomRight.x = std::max(m_seReservedInternal.bottomRight.x, RESERVED.bottomRight.x);
+            m_seReservedInternal.bottomRight.y = std::max(m_seReservedInternal.bottomRight.y, RESERVED.bottomRight.y);
+        } else {
+            m_seReservedExternal.topLeft.x     = std::max(m_seReservedExternal.topLeft.x, RESERVED.topLeft.x);
+            m_seReservedExternal.topLeft.y     = std::max(m_seReservedExternal.topLeft.y, RESERVED.topLeft.y);
+            m_seReservedExternal.bottomRight.x = std::max(m_seReservedExternal.bottomRight.x, RESERVED.bottomRight.x);
+            m_seReservedExternal.bottomRight.y = std::max(m_seReservedExternal.bottomRight.y, RESERVED.bottomRight.y);
+        }
+    }
+
     if (recalc)
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 

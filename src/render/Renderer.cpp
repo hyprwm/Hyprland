@@ -384,20 +384,11 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         renderdata.y += offset.y;
     }
 
-    SWindowDecorationExtents borderExtents;
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
         if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
-            for (auto& wd : pWindow->m_dWindowDecorations) {
+            for (auto& wd : pWindow->m_dWindowDecorations)
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
-                const auto EXTENTS = wd->getWindowDecorationExtents();
-                if (EXTENTS.isInternalDecoration) {
-                    borderExtents.topLeft.x += EXTENTS.topLeft.x;
-                    borderExtents.topLeft.y += EXTENTS.topLeft.y;
-                    borderExtents.bottomRight.x += EXTENTS.bottomRight.x;
-                    borderExtents.bottomRight.y += EXTENTS.bottomRight.y;
-                }
-            }
 
         static auto* const PXWLUSENN = &g_pConfigManager->getConfigValuePtr("xwayland:use_nearest_neighbor")->intValue;
         if (pWindow->m_bIsX11 && *PXWLUSENN)
@@ -418,8 +409,15 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             }
 
             wlr_box windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
-            wlr_box borderBox = {renderdata.x - pMonitor->vecPosition.x - borderExtents.topLeft.x, renderdata.y - pMonitor->vecPosition.y - borderExtents.topLeft.y,
-                                 renderdata.w + borderExtents.topLeft.x + borderExtents.bottomRight.x, renderdata.h + borderExtents.topLeft.y + borderExtents.bottomRight.y};
+            wlr_box borderBox;
+
+            if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
+                borderBox = {renderdata.x - pMonitor->vecPosition.x - pWindow->m_seReservedInternal.topLeft.x,
+                             renderdata.y - pMonitor->vecPosition.y - pWindow->m_seReservedInternal.topLeft.y,
+                             renderdata.w + pWindow->m_seReservedInternal.topLeft.x + pWindow->m_seReservedInternal.bottomRight.x,
+                             renderdata.h + pWindow->m_seReservedInternal.topLeft.y + pWindow->m_seReservedInternal.bottomRight.y};
+            else
+                borderBox = windowBox;
 
             scaleBox(&windowBox, pMonitor->scale);
             scaleBox(&borderBox, pMonitor->scale);

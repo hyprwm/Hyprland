@@ -91,7 +91,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     // TODO: fix mouse event with rounding
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    const int  ROUNDING   = !m_pWindow->m_sSpecialRenderData.rounding ? 0 : m_pWindow->rounding();
+    const int  ROUNDING   = m_pWindow->getRealRounding();
     const int  BORDERSIZE = m_pWindow->getRealBorderSize();
 
     const int  BARW = (m_vLastWindowSize.x - 2 * ROUNDING - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
@@ -364,7 +364,7 @@ void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
 }
 
 CRegion CHyprGroupBarDecoration::getWindowDecorationRegion() {
-    const int ROUNDING   = !m_pWindow->m_sSpecialRenderData.rounding ? 0 : m_pWindow->rounding();
+    const int ROUNDING   = m_pWindow->getRealRounding();
     const int BORDERSIZE = m_pWindow->getRealBorderSize();
     return CRegion(m_vLastWindowPos.x + ROUNDING,
                    m_vLastWindowPos.y +

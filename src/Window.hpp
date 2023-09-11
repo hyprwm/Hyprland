@@ -356,10 +356,10 @@ class CWindow {
     SWindowDecorationExtents getFullWindowReservedArea();
     Vector2D                 middle();
     bool                     opaque();
-    float                    rounding();
     bool                     canBeTorn();
 
     int                      getRealBorderSize();
+    int                      getRealRounding();
     void                     updateSpecialRenderData();
 
     void                     onBorderAngleAnimEnd(void* ptr);

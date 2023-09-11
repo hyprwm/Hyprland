@@ -622,7 +622,7 @@ void CWindow::updateDynamicRules() {
 // it is assumed that the point is within the real window box (m_vRealPosition, m_vRealSize)
 // otherwise behaviour is undefined
 bool CWindow::isInCurvedCorner(double x, double y) {
-    const int ROUNDING = rounding();
+    const int ROUNDING = getRealRounding();
     if (getRealBorderSize() >= ROUNDING)
         return false;
 
@@ -919,14 +919,6 @@ bool CWindow::opaque() {
     return false;
 }
 
-float CWindow::rounding() {
-    static auto* const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-
-    float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
-
-    return rounding;
-}
-
 void CWindow::updateSpecialRenderData() {
     const auto PWORKSPACE    = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
     const auto WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
@@ -940,6 +932,17 @@ void CWindow::updateSpecialRenderData() {
     m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
     m_sSpecialRenderData.rounding   = WORKSPACERULE.rounding.value_or(true);
     m_sSpecialRenderData.shadow     = WORKSPACERULE.shadow.value_or(true);
+}
+
+int CWindow::getRealRounding() {
+
+    if (!m_sSpecialRenderData.rounding)
+        return 0;
+
+    if (m_sAdditionalConfigData.rounding.toUnderlying() != -1)
+        return m_sAdditionalConfigData.rounding.toUnderlying();
+
+    return g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
 }
 
 int CWindow::getRealBorderSize() {

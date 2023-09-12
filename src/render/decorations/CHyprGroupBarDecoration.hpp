@@ -51,7 +51,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     int                      m_iBarInternalHeight;
     int                      m_iBarFullHeight;
     bool                     m_bOnTop;
-    bool                     m_bInternalBorder;
+    bool                     m_bInternalBar;
     int                      m_iBarHeight;
     int                      m_iGradientHeight;
 

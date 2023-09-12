@@ -81,6 +81,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:resize_on_border"].intValue        = 0;
     configValues["general:extend_border_grab_area"].intValue = 15;
     configValues["general:hover_icon_on_border"].intValue    = 1;
+    configValues["general:group_new_window"].intValue        = 0;
     configValues["general:layout"].strValue                  = "dwindle";
 
     configValues["misc:disable_hyprland_logo"].intValue        = 0;

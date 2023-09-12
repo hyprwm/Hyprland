@@ -640,6 +640,20 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     return resultSurf;
 }
 
+void CWindow::Group() {
+    if (!m_sGroupData.pNextWindow) {
+        m_sGroupData.pNextWindow = this;
+        m_sGroupData.head        = true;
+        m_sGroupData.locked      = false;
+
+        m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(this));
+        updateWindowDecos();
+
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
+        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    }
+}
+
 CWindow* CWindow::getGroupHead() {
     CWindow* curr = this;
     while (!curr->m_sGroupData.head)

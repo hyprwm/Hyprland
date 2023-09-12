@@ -1148,14 +1148,7 @@ void CKeybindManager::toggleGroup(std::string args) {
     g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
     if (!PWINDOW->m_sGroupData.pNextWindow) {
-        PWINDOW->m_sGroupData.pNextWindow = PWINDOW;
-        PWINDOW->m_sGroupData.head        = true;
-        PWINDOW->m_sGroupData.locked      = false;
-
-        PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
-
-        PWINDOW->updateWindowDecos();
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
+        PWINDOW->Group();
     } else {
         if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW) {
             PWINDOW->m_sGroupData.pNextWindow = nullptr;

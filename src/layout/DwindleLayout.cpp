@@ -237,6 +237,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     static auto* const PUSEACTIVE    = &g_pConfigManager->getConfigValuePtr("dwindle:use_active_for_splits")->intValue;
     static auto* const PDEFAULTSPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:default_split_ratio")->floatValue;
+    static auto* const PASGROUP      = &g_pConfigManager->getConfigValuePtr("general:group_new_window")->intValue;
 
     // Populate the node with our window's data
     PNODE->workspaceID = pWindow->m_iWorkspaceID;
@@ -310,6 +311,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         PNODE->size     = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
 
         applyNodeDataToWindow(PNODE);
+
+        if (*PASGROUP && pWindow->m_bFirstMap)
+            pWindow->Group();
 
         return;
     }
@@ -472,6 +476,10 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
+
+    // if general:group_new_window = true, make this window a group
+    if (*PASGROUP && pWindow->m_bFirstMap)
+        pWindow->Group();
 }
 
 void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {

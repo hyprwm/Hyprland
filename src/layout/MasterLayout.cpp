@@ -72,7 +72,8 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
     if (pWindow->m_bIsFloating)
         return;
 
-    static auto* const PNEWTOP = &g_pConfigManager->getConfigValuePtr("master:new_on_top")->intValue;
+    static auto* const PNEWTOP  = &g_pConfigManager->getConfigValuePtr("master:new_on_top")->intValue;
+    static auto* const PASGROUP = &g_pConfigManager->getConfigValuePtr("general:group_new_window")->intValue;
 
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
@@ -123,6 +124,9 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow) {
             return;
         }
     }
+
+    if (*PASGROUP && pWindow->m_bFirstMap)
+        pWindow->Group();
 
     if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster)) {
         for (auto& nd : m_lMasterNodesData) {
@@ -294,11 +298,11 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         }
     }
 
-    const float totalSize = (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) ? WSSIZE.x : WSSIZE.y;
-    const float masterAverageSize = totalSize / MASTERS;
-    const float slaveAverageSize  = totalSize / STACKWINDOWS;
-    float masterAccumulatedSize = 0;
-    float slaveAccumulatedSize  = 0;
+    const float totalSize             = (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) ? WSSIZE.x : WSSIZE.y;
+    const float masterAverageSize     = totalSize / MASTERS;
+    const float slaveAverageSize      = totalSize / STACKWINDOWS;
+    float       masterAccumulatedSize = 0;
+    float       slaveAccumulatedSize  = 0;
 
     if (*PSMARTRESIZING) {
         // check the total width and height so that later
@@ -674,13 +678,13 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     bool               centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
     double             delta       = 0;
 
-    const bool DISPLAYBOTTOM = STICKS(PWINDOW->m_vPosition.y + PWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
-    const bool DISPLAYRIGHT  = STICKS(PWINDOW->m_vPosition.x + PWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
-    const bool DISPLAYTOP    = STICKS(PWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
-    const bool DISPLAYLEFT   = STICKS(PWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
+    const bool         DISPLAYBOTTOM = STICKS(PWINDOW->m_vPosition.y + PWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
+    const bool         DISPLAYRIGHT  = STICKS(PWINDOW->m_vPosition.x + PWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
+    const bool         DISPLAYTOP    = STICKS(PWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
+    const bool         DISPLAYLEFT   = STICKS(PWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
 
-    const bool LEFT          = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
-    const bool TOP           = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const bool         LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
+    const bool         TOP  = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
 
     if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 && !centered)
         return;
@@ -732,19 +736,18 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             nodesInSameColumn /= 2;
 
         if (RESIZEDELTA != 0 && nodesInSameColumn > 1) {
-            const auto NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
-            const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
-            const auto SIZE = isStackVertical ?
-                (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / nodesInSameColumn:
-                (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / nodesInSameColumn;
+            const auto  NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
+            const auto  REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
+            const auto  SIZE      = isStackVertical ? (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / nodesInSameColumn :
+                                                      (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / nodesInSameColumn;
 
             const float totalSize       = isStackVertical ? WSSIZE.y : WSSIZE.x;
             const float minSize         = totalSize / nodesInSameColumn * 0.2;
             const bool  resizePrevNodes = isStackVertical ? (TOP || DISPLAYBOTTOM) && !DISPLAYTOP : (LEFT || DISPLAYRIGHT) && !DISPLAYLEFT;
 
-            int   nodesLeft = 0;
-            float sizeLeft  = 0;
-            int   nodeCount = 0;
+            int         nodesLeft = 0;
+            float       sizeLeft  = 0;
+            int         nodeCount = 0;
             // check the sizes of all the nodes to be resized for later calculation
             auto checkNodesLeft = [&sizeLeft, &nodesLeft, orientation, isStackVertical, &nodeCount, PNODE](auto it) {
                 if (it.isMaster != PNODE->isMaster || it.workspaceID != PNODE->workspaceID)
@@ -773,17 +776,16 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             PNODE->percSize += resizeDiff / SIZE;
 
             // resize the other nodes
-            nodeCount = 0;
-            auto resizeNodesLeft = [maxSizeIncrease, resizeDiff, minSize, orientation, isStackVertical, SIZE, &nodeCount, nodesLeft, PNODE](auto &it) {
+            nodeCount            = 0;
+            auto resizeNodesLeft = [maxSizeIncrease, resizeDiff, minSize, orientation, isStackVertical, SIZE, &nodeCount, nodesLeft, PNODE](auto& it) {
                 if (it.isMaster != PNODE->isMaster || it.workspaceID != PNODE->workspaceID)
                     return;
                 nodeCount++;
                 // if center orientation, only resize when on the same side
                 if (!it.isMaster && orientation == ORIENTATION_CENTER && nodeCount % 2 == 1)
                     return;
-                const float size = isStackVertical ? it.size.y : it.size.x;
-                const float resizeDeltaForEach = maxSizeIncrease != 0 ?
-                            resizeDiff * (size - minSize) / maxSizeIncrease : resizeDiff / nodesLeft;
+                const float size               = isStackVertical ? it.size.y : it.size.x;
+                const float resizeDeltaForEach = maxSizeIncrease != 0 ? resizeDiff * (size - minSize) / maxSizeIncrease : resizeDiff / nodesLeft;
                 it.percSize -= resizeDeltaForEach / SIZE;
             };
             if (resizePrevNodes) {

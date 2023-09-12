@@ -341,6 +341,7 @@ class CWindow {
     bool                     isInCurvedCorner(double x, double y);
     bool                     hasPopupAt(const Vector2D& pos);
 
+    void                     Group();
     CWindow*                 getGroupHead();
     CWindow*                 getGroupTail();
     CWindow*                 getGroupCurrent();

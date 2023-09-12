@@ -10,15 +10,6 @@
 class CHyprDwindleLayout;
 enum eFullscreenMode : uint8_t;
 
-enum OneTimeFocus
-{
-    UP = 0,
-    RIGHT,
-    DOWN,
-    LEFT,
-    NOFOCUS,
-};
-
 struct SDwindleNodeData {
     SDwindleNodeData*                pParent = nullptr;
     bool                             isNode  = false;
@@ -51,7 +42,7 @@ struct SDwindleNodeData {
 
 class CHyprDwindleLayout : public IHyprLayout {
   public:
-    virtual void                     onWindowCreatedTiling(CWindow*);
+    virtual void                     onWindowCreatedTiling(CWindow*, eDirection direction = NONE);
     virtual void                     onWindowRemovedTiling(CWindow*);
     virtual bool                     isWindowTiled(CWindow*);
     virtual void                     recalculateMonitor(const int&);
@@ -90,7 +81,7 @@ class CHyprDwindleLayout : public IHyprLayout {
 
     void                    toggleSplit(CWindow*);
 
-    OneTimeFocus            overrideDirection = OneTimeFocus::NOFOCUS;
+    eDirection              overrideDirection = eDirection::DEFAULT;
 
     friend struct SDwindleNodeData;
 };

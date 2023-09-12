@@ -1963,9 +1963,20 @@ void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDi
     g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
-void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow) {
-    static auto* const BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("misc:group_focus_removed_window")->intValue;
-    const auto         PWINDOWPREV         = pWindow->getGroupPrevious();
+void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir) {
+    static auto* const      BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("misc:group_focus_removed_window")->intValue;
+    const auto              PWINDOWPREV         = pWindow->getGroupPrevious();
+    IHyprLayout::eDirection direction;
+
+    switch (dir[0]) {
+        case 't':
+        case 'u': direction = IHyprLayout::eDirection::UP; break;
+        case 'd':
+        case 'b': direction = IHyprLayout::eDirection::DOWN; break;
+        case 'l': direction = IHyprLayout::eDirection::LEFT; break;
+        case 'r': direction = IHyprLayout::eDirection::RIGHT; break;
+        default: direction = IHyprLayout::NONE;
+    }
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
 
@@ -1973,7 +1984,7 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow) {
 
     g_pKeybindManager->m_bGroupsLocked = true;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow, direction);
 
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
 
@@ -2059,13 +2070,13 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (PWINDOWINDIR) {
         if (ISWINDOWGROUP && (*BIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED))
-            moveWindowOutOfGroup(PWINDOW);
+            moveWindowOutOfGroup(PWINDOW, args);
         else {
             g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         }
     } else if (ISWINDOWGROUP && (*BIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
-        moveWindowOutOfGroup(PWINDOW);
+        moveWindowOutOfGroup(PWINDOW, args);
     }
 }
 

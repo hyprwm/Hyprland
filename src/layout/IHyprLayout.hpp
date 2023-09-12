@@ -15,8 +15,7 @@ struct SLayoutMessageHeader {
 
 enum eFullscreenMode : uint8_t;
 
-enum eRectCorner
-{
+enum eRectCorner {
     CORNER_NONE = 0,
     CORNER_TOPLEFT,
     CORNER_TOPRIGHT,
@@ -30,13 +29,21 @@ class IHyprLayout {
     virtual void onEnable()  = 0;
     virtual void onDisable() = 0;
 
+    enum eDirection {
+        UP = 0,
+        RIGHT,
+        DOWN,
+        LEFT,
+        DEFAULT,
+        NONE
+    };
     /*
         Called when a window is created (mapped)
         The layout HAS TO set the goal pos and size (anim mgr will use it)
         If !animationinprogress, then the anim mgr will not apply an anim.
     */
-    virtual void onWindowCreated(CWindow*);
-    virtual void onWindowCreatedTiling(CWindow*) = 0;
+    virtual void onWindowCreated(CWindow*, eDirection direction = NONE);
+    virtual void onWindowCreatedTiling(CWindow*, eDirection direction = NONE) = 0;
     virtual void onWindowCreatedFloating(CWindow*);
 
     /*

@@ -2,7 +2,7 @@
 #include "../defines.hpp"
 #include "../Compositor.hpp"
 
-void IHyprLayout::onWindowCreated(CWindow* pWindow) {
+void IHyprLayout::onWindowCreated(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
         onWindowCreatedFloating(pWindow);
     } else {
@@ -18,7 +18,7 @@ void IHyprLayout::onWindowCreated(CWindow* pWindow) {
 
         pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
 
-        onWindowCreatedTiling(pWindow);
+        onWindowCreatedTiling(pWindow, direction);
     }
 }
 

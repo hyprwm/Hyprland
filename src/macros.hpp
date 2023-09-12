@@ -37,6 +37,8 @@
 
 #define PI 3.14159265358979
 
+#define STRVAL_EMPTY "[[EMPTY]]"
+
 #define LISTENER(name)                                                                                                                                                             \
     void               listener_##name(wl_listener*, void*);                                                                                                                       \
     inline wl_listener listen_##name = {.notify = listener_##name}

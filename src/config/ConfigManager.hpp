@@ -15,11 +15,10 @@
 #include "../Window.hpp"
 #include "../helpers/WLClasses.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../helpers/VarList.hpp"
 
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
-
-#define STRVAL_EMPTY "[[EMPTY]]"
 
 #define INITANIMCFG(name)           animationConfig[name] = {}
 #define CREATEANIMCFG(name, parent) animationConfig[name] = {false, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
@@ -75,73 +74,6 @@ struct SAnimationPropertyConfig {
 struct SExecRequestedRule {
     std::string szRule = "";
     uint64_t    iPid   = 0;
-};
-
-class CVarList {
-  public:
-    /* passing 's' as a separator will use std::isspace */
-    CVarList(const std::string& in, long unsigned int lastArgNo = 0, const char separator = ',') {
-        std::string curitem  = "";
-        std::string argZ     = in;
-        const bool  SPACESEP = separator == 's';
-
-        auto        nextItem = [&]() {
-            auto idx = lastArgNo != 0 && m_vArgs.size() >= lastArgNo - 1 ? std::string::npos : ([&]() -> size_t {
-                if (!SPACESEP)
-                    return argZ.find_first_of(separator);
-
-                uint64_t pos = -1;
-                while (!std::isspace(argZ[++pos]) && pos < argZ.length())
-                    ;
-
-                return pos < argZ.length() ? pos : std::string::npos;
-            }());
-
-            if (idx != std::string::npos) {
-                curitem = argZ.substr(0, idx);
-                argZ    = argZ.substr(idx + 1);
-            } else {
-                curitem = argZ;
-                argZ    = STRVAL_EMPTY;
-            }
-        };
-
-        nextItem();
-
-        while (curitem != STRVAL_EMPTY) {
-            m_vArgs.push_back(removeBeginEndSpacesTabs(curitem));
-            nextItem();
-        }
-    };
-
-    ~CVarList() = default;
-
-    size_t size() const {
-        return m_vArgs.size();
-    }
-
-    std::string operator[](const long unsigned int& idx) const {
-        if (idx >= m_vArgs.size())
-            return "";
-        return m_vArgs[idx];
-    }
-
-    // for range-based loops
-    std::vector<std::string>::iterator begin() {
-        return m_vArgs.begin();
-    }
-    std::vector<std::string>::const_iterator begin() const {
-        return m_vArgs.begin();
-    }
-    std::vector<std::string>::iterator end() {
-        return m_vArgs.end();
-    }
-    std::vector<std::string>::const_iterator end() const {
-        return m_vArgs.end();
-    }
-
-  private:
-    std::vector<std::string> m_vArgs;
 };
 
 class CConfigManager {

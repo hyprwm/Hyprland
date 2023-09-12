@@ -535,12 +535,22 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     return PWINDOWCANDIDATE;
 }
 
-void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
+bool IHyprLayout::isWindowReachable(CWindow* pWindow) {
+    return pWindow && (!pWindow->isHidden() || pWindow->m_sGroupData.pNextWindow);
+}
+
+void IHyprLayout::bringWindowToTop(CWindow* pWindow) {
+    if (pWindow == nullptr)
+        return;
+
     if (pWindow->isHidden() && pWindow->m_sGroupData.pNextWindow) {
         // grouped, change the current to this window
         pWindow->setGroupCurrent(pWindow);
     }
+}
 
+void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
+    bringWindowToTop(pWindow);
     g_pCompositor->focusWindow(pWindow);
 }
 

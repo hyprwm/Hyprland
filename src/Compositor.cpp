@@ -829,10 +829,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (pWindow && pWindow->isHidden() && pWindow->m_sGroupData.pNextWindow) {
-        // grouped, change the current to us
-        pWindow->setGroupCurrent(pWindow);
-    }
+    g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
 
     if (!pWindow || !windowValidMapped(pWindow)) {
         const auto PLASTWINDOW = m_pLastWindow;
@@ -2181,7 +2178,7 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
     }
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || (w->isHidden() && !w->m_sGroupData.pNextWindow))
+        if (!w->m_bIsMapped || (w->isHidden() && !g_pLayoutManager->getCurrentLayout()->isWindowReachable(w.get())))
             continue;
 
         switch (mode) {

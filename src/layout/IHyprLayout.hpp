@@ -163,7 +163,6 @@ class IHyprLayout {
     /*
         Called before an attempt is made to focus a window.
         Brings the window to the top of any groups and ensures it is not hidden.
-
         If the window is unmapped following this call, the focus attempt will fail.
 	  */
     virtual void bringWindowToTop(CWindow*);
@@ -171,7 +170,6 @@ class IHyprLayout {
     /*
         Called via the foreign toplevel activation protocol.
         Focuses a window, bringing it to the top of its group if applicable.
-
 				May be ignored.
     */
     virtual void requestFocusForWindow(CWindow*);

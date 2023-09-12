@@ -37,11 +37,13 @@ struct SConfigValue {
 };
 
 struct SWorkspaceRule {
-    std::string            monitor         = "";
-    std::string            workspaceString = "";
-    std::string            workspaceName   = "";
-    int                    workspaceId     = -1;
-    bool                   isDefault       = false;
+    std::string            monitor          = "";
+    std::string            workspaceString  = "";
+    std::string            workspaceName    = "";
+    int                    workspaceId      = -1;
+    bool                   isDefault        = false;
+    int                    maxClients       = 0;
+    bool                   maxClientsSilent = false;
     std::optional<int64_t> gapsIn;
     std::optional<int64_t> gapsOut;
     std::optional<int64_t> borderSize;

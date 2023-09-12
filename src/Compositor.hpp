@@ -28,8 +28,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -153,6 +152,7 @@ class CCompositor {
     void           sanityCheckWorkspaces();
     void           updateWorkspaceWindowDecos(const int&);
     int            getWindowsOnWorkspace(const int&);
+    int            getVisibleWindowsOnWorkspace(const int&);
     CWindow*       getUrgentWindow();
     bool           hasUrgentWindowOnWorkspace(const int&);
     CWindow*       getFirstWindowOnWorkspace(const int&);

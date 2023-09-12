@@ -23,27 +23,28 @@ enum eRectCorner {
     CORNER_BOTTOMLEFT
 };
 
+enum eDirection {
+    DIRECTION_NONE = -1,
+    DIRECTION_UP,
+    DIRECTION_RIGHT,
+    DIRECTION_DOWN,
+    DIRECTION_LEFT,
+    DIRECTION_DEFAULT,
+};
+
 class IHyprLayout {
   public:
     virtual ~IHyprLayout()   = 0;
     virtual void onEnable()  = 0;
     virtual void onDisable() = 0;
 
-    enum eDirection {
-        UP = 0,
-        RIGHT,
-        DOWN,
-        LEFT,
-        DEFAULT,
-        NONE
-    };
     /*
         Called when a window is created (mapped)
         The layout HAS TO set the goal pos and size (anim mgr will use it)
         If !animationinprogress, then the anim mgr will not apply an anim.
     */
-    virtual void onWindowCreated(CWindow*, eDirection direction = NONE);
-    virtual void onWindowCreatedTiling(CWindow*, eDirection direction = NONE) = 0;
+    virtual void onWindowCreated(CWindow*, eDirection direction = DIRECTION_NONE);
+    virtual void onWindowCreatedTiling(CWindow*, eDirection direction = DIRECTION_NONE) = 0;
     virtual void onWindowCreatedFloating(CWindow*);
 
     /*

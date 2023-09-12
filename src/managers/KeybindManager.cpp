@@ -1966,16 +1966,16 @@ void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDi
 void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir) {
     static auto* const      BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("misc:group_focus_removed_window")->intValue;
     const auto              PWINDOWPREV         = pWindow->getGroupPrevious();
-    IHyprLayout::eDirection direction;
+    eDirection              direction;
 
     switch (dir[0]) {
         case 't':
-        case 'u': direction = IHyprLayout::eDirection::UP; break;
+        case 'u': direction = eDirection::DIRECTION_UP; break;
         case 'd':
-        case 'b': direction = IHyprLayout::eDirection::DOWN; break;
-        case 'l': direction = IHyprLayout::eDirection::LEFT; break;
-        case 'r': direction = IHyprLayout::eDirection::RIGHT; break;
-        default: direction = IHyprLayout::NONE;
+        case 'b': direction = eDirection::DIRECTION_DOWN; break;
+        case 'l': direction = eDirection::DIRECTION_LEFT; break;
+        case 'r': direction = eDirection::DIRECTION_RIGHT; break;
+        default: direction = eDirection::DIRECTION_NONE;
     }
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);

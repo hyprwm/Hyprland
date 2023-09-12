@@ -1288,9 +1288,9 @@ void CCompositor::changeWindowZOrder(CWindow* pWindow, bool top) {
     }
 
     for (auto& pw : toMove) {
-        moveToZ(pw, top);
+        moveToZ(pw, true);
 
-        changeWindowZOrder(pw, top);
+        changeWindowZOrder(pw, true);
     }
 }
 

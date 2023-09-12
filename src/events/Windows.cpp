@@ -229,17 +229,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_bPinned && !PWINDOW->m_bIsFloating)
         PWINDOW->m_bPinned = false;
 
-    const CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 2, ' ');
+    const CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 0, ' ');
 
     if (!WORKSPACEARGS[0].empty()) {
-        std::string requestedWorkspaceName;
-        const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString(WORKSPACEARGS[0], requestedWorkspaceName);
+        if (WORKSPACEARGS[WORKSPACEARGS.size() - 1].find("silent") == 0)
+            workspaceSilent = true;
+
+        std::string requestedWorkspaceName = WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0);
+        const int   REQUESTEDWORKSPACEID   = getWorkspaceIDFromString(requestedWorkspaceName, requestedWorkspaceName);
 
         if (REQUESTEDWORKSPACEID != INT_MAX) {
-
-            if (WORKSPACEARGS[1].find("silent") == 0)
-                workspaceSilent = true;
-
             auto pWorkspace = g_pCompositor->getWorkspaceByID(REQUESTEDWORKSPACEID);
 
             if (!pWorkspace)
@@ -259,7 +258,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 PMONITOR = g_pCompositor->m_pLastMonitor;
             }
-        }
+        } else
+            workspaceSilent = false;
     }
 
     if (PWINDOW->m_bIsFloating) {

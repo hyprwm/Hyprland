@@ -101,10 +101,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         return;
 
     // Bottom left of groupbar
-    Vector2D pos = Vector2D(std::round(m_vLastWindowPos.x - pMonitor->vecPosition.x + offset.x + ROUNDING),
-                            std::round(m_vLastWindowPos.y - pMonitor->vecPosition.y + offset.y) +
+    Vector2D pos = Vector2D(m_vLastWindowPos.x - pMonitor->vecPosition.x + offset.x + ROUNDING,
+                            std::floor(m_vLastWindowPos.y) - pMonitor->vecPosition.y + offset.y +
                                 (m_bOnTop ? (m_bInternalBorder ? 0 : -BORDERSIZE) :
-                                            std::round(m_vLastWindowSize.y) + m_iBarInternalHeight + BAR_INTERNAL_PADDING + (m_bInternalBorder ? 0 : BORDERSIZE)));
+                                            std::floor(m_vLastWindowSize.y) + m_iBarInternalHeight + BAR_INTERNAL_PADDING + (m_bInternalBorder ? 0 : BORDERSIZE)));
 
     wlr_box  barBox  = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -BAR_INTERNAL_PADDING : 0), BARW, m_iBarHeight};
     wlr_box  gradBox = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -2 * BAR_INTERNAL_PADDING : -BAR_INTERNAL_PADDING) - m_iGradientHeight, BARW, m_iGradientHeight};

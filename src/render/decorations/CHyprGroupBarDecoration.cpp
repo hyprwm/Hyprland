@@ -72,7 +72,7 @@ void CHyprGroupBarDecoration::damageEntire() {
 }
 
 void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
-    if (!m_pWindow->m_sSpecialRenderData.decorate)
+    if (!m_pWindow->m_sSpecialRenderData.decorate || !m_bEnabled)
         return;
 
     int                barsToDraw = m_dwGroupMembers.size();
@@ -339,19 +339,26 @@ void CHyprGroupBarDecoration::refreshGradients() {
 }
 
 void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
+    static auto* const PENABLED        = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
     static auto* const PMODE           = &g_pConfigManager->getConfigValuePtr("group:groupbar:mode")->intValue;
     static auto* const PHEIGHT         = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
     static auto* const PINTERNALBORDER = &g_pConfigManager->getConfigValuePtr("group:groupbar:internal_bar")->intValue;
 
+    m_bEnabled           = *PENABLED;
     m_iBarInternalHeight = *PHEIGHT + (*PMODE == 1 ? BAR_INDICATOR_HEIGHT + BAR_INTERNAL_PADDING : 0);
     m_iBarFullHeight     = m_iBarInternalHeight + BAR_INTERNAL_PADDING + BAR_EXTERNAL_PADDING;
 
     m_bOnTop          = g_pConfigManager->getConfigValuePtr("group:groupbar:top")->intValue;
     m_bInternalBorder = *PINTERNALBORDER;
 
-    m_seExtents.topLeft              = Vector2D(0, m_bOnTop ? m_iBarFullHeight : 0);
-    m_seExtents.bottomRight          = Vector2D(0, m_bOnTop ? 0 : m_iBarFullHeight);
-    m_seExtents.isInternalDecoration = *PINTERNALBORDER;
+    if (m_bEnabled) {
+        m_seExtents.topLeft              = Vector2D(0, m_bOnTop ? m_iBarFullHeight : 0);
+        m_seExtents.bottomRight          = Vector2D(0, m_bOnTop ? 0 : m_iBarFullHeight);
+        m_seExtents.isInternalDecoration = *PINTERNALBORDER;
+    } else {
+        m_seExtents.topLeft     = Vector2D(0, 0);
+        m_seExtents.bottomRight = Vector2D(0, 0);
+    }
 
     m_iBarHeight      = *PMODE != 1 ? *PHEIGHT : BAR_INDICATOR_HEIGHT;
     m_iGradientHeight = *PMODE == 1 ? *PHEIGHT : 0;

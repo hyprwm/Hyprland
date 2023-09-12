@@ -47,6 +47,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     std::deque<CWindow*>     m_dwGroupMembers;
 
+    bool                     m_bEnabled;
     int                      m_iBarInternalHeight;
     int                      m_iBarFullHeight;
     bool                     m_bOnTop;

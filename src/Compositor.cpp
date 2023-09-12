@@ -1244,10 +1244,6 @@ bool CCompositor::isWindowActive(CWindow* pWindow) {
     return PSURFACE == m_pLastFocus || pWindow == m_pLastWindow;
 }
 
-void CCompositor::moveWindowToTop(CWindow* pWindow) {
-    changeWindowZOrder(pWindow, true);
-}
-
 void CCompositor::changeWindowZOrder(CWindow* pWindow, bool top) {
     if (!windowValidMapped(pWindow))
         return;

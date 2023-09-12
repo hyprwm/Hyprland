@@ -587,7 +587,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
             // if clicked on a floating window make it top
             if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
-                g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
+                g_pCompositor->changeWindowZOrder(g_pCompositor->m_pLastWindow, true);
 
             break;
         case WLR_BUTTON_RELEASED: break;

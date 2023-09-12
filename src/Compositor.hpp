@@ -159,7 +159,6 @@ class CCompositor {
     CWindow*       getFullscreenWindowOnWorkspace(const int&);
     bool           doesSeatAcceptInput(wlr_surface*);
     bool           isWindowActive(CWindow*);
-    void           moveWindowToTop(CWindow*);
     void           changeWindowZOrder(CWindow*, bool);
     void           cleanupFadingOut(const int& monid);
     CWindow*       getWindowInDirection(CWindow*, char);

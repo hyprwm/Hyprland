@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <glob.h>
 
 #include <algorithm>
 #include <fstream>
@@ -1199,51 +1200,60 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
         parseError = "source path " + rawpath + " bogus!";
         return;
     }
+    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{new glob_t, [](glob_t* g) { globfree(g); }};
+    memset(glob_buf.get(), 0, sizeof(glob_t));
 
-    auto value = absolutePath(rawpath, configCurrentPath);
-
-    if (!std::filesystem::exists(value)) {
-        Debug::log(ERR, "source= file doesnt exist");
-        parseError = "source file " + value + " doesn't exist!";
+    if (glob(rawpath.c_str(), GLOB_TILDE, nullptr, glob_buf.get()) != 0) {
+        Debug::log(ERR, "source= globbing error");
         return;
     }
 
-    configPaths.push_back(value);
+    for (size_t i = 0; i < glob_buf->gl_pathc; i++) {
+        auto value = absolutePath(glob_buf->gl_pathv[i], configCurrentPath);
 
-    struct stat fileStat;
-    int         err = stat(value.c_str(), &fileStat);
-    if (err != 0) {
-        Debug::log(WARN, "Error at ticking config at {}, error {}: {}", value, err, strerror(err));
-        return;
-    }
+        if (!std::filesystem::exists(value)) {
+            Debug::log(ERR, "source= file doesnt exist");
+            parseError = "source file " + value + " doesn't exist!";
+            return;
+        }
+        configPaths.push_back(value);
 
-    configModifyTimes[value] = fileStat.st_mtime;
-
-    std::ifstream ifs;
-    ifs.open(value);
-    std::string line    = "";
-    int         linenum = 1;
-    if (ifs.is_open()) {
-        while (std::getline(ifs, line)) {
-            // Read line by line.
-            try {
-                configCurrentPath = value;
-                parseLine(line);
-            } catch (...) {
-                Debug::log(ERR, "Error reading line from config. Line:");
-                Debug::log(NONE, "{}", line.c_str());
-
-                parseError += "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): Line parsing error.";
-            }
-
-            if (parseError != "" && parseError.find("Config error at line") != 0) {
-                parseError = "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): " + parseError;
-            }
-
-            ++linenum;
+        struct stat fileStat;
+        int         err = stat(value.c_str(), &fileStat);
+        if (err != 0) {
+            Debug::log(WARN, "Error at ticking config at {}, error {}: {}", value, err, strerror(err));
+            return;
         }
 
-        ifs.close();
+        configModifyTimes[value] = fileStat.st_mtime;
+
+        std::ifstream ifs;
+        ifs.open(value);
+
+        std::string line    = "";
+        int         linenum = 1;
+        if (ifs.is_open()) {
+            while (std::getline(ifs, line)) {
+                // Read line by line.
+                try {
+                    configCurrentPath = value;
+                    parseLine(line);
+                } catch (...) {
+                    Debug::log(ERR, "Error reading line from config. Line:");
+                    Debug::log(NONE, "{}", line.c_str());
+
+                    parseError += "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): Line parsing error.";
+                }
+
+                if (parseError != "" && parseError.find("Config error at line") != 0) {
+                    parseError = "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): " + parseError;
+                }
+
+                ++linenum;
+            }
+
+            ifs.close();
+        }
     }
 }
 

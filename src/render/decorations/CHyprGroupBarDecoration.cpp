@@ -90,11 +90,13 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     const auto* const  PCOLINACTIVE = GROUPLOCKED ? PGROUPCOLINACTIVELOCKED : PGROUPCOLINACTIVE;
 
     // TODO: fix mouse event with rounding
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    const int  ROUNDING   = m_pWindow->getRealRounding();
-    const int  BORDERSIZE = m_pWindow->getRealBorderSize();
+    const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const int   ROUNDING   = m_pWindow->getRealRounding();
+    const int   BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    const int  BARW = (m_vLastWindowSize.x - 2 * ROUNDING - BAR_HORIZONTAL_PADDING * (barsToDraw + (m_bInternalBar ? 1 : -1))) / barsToDraw;
+    const float BARW = (m_vLastWindowSize.x - 2 * ROUNDING - BAR_HORIZONTAL_PADDING * (barsToDraw + (m_bInternalBar ? 1 : -1))) / barsToDraw;
+
+    float       currentOffset = m_bInternalBar ? BAR_HORIZONTAL_PADDING : 0;
 
     //  TODO: check for invalid config
     if (BARW <= 0)
@@ -106,9 +108,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         std::floor(m_vLastWindowPos.y) - pMonitor->vecPosition.y + offset.y +
             (m_bOnTop ? (m_bInternalBar ? 0 : -BORDERSIZE) : std::floor(m_vLastWindowSize.y) + m_iBarInternalHeight + BAR_INTERNAL_PADDING + (m_bInternalBar ? 0 : BORDERSIZE)));
 
-    wlr_box barBox  = {pos.x + (m_bInternalBar ? BAR_HORIZONTAL_PADDING : 0), pos.y - m_iBarHeight + (m_bOnTop ? -BAR_INTERNAL_PADDING : 0), BARW, m_iBarHeight};
-    wlr_box gradBox = {pos.x + (m_bInternalBar ? BAR_HORIZONTAL_PADDING : 0),
-                       pos.y - m_iBarHeight + (m_bOnTop ? -2 * BAR_INTERNAL_PADDING : -BAR_INTERNAL_PADDING) - m_iGradientHeight, BARW, m_iGradientHeight};
+    wlr_box barBox  = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -BAR_INTERNAL_PADDING : 0), BARW, m_iBarHeight};
+    wlr_box gradBox = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -2 * BAR_INTERNAL_PADDING : -BAR_INTERNAL_PADDING) - m_iGradientHeight, BARW, m_iGradientHeight};
     wlr_box textBox = m_iGradientHeight != 0 ? gradBox : barBox;
     textBox.y += BAR_TEXT_PAD;
     textBox.height -= 2 * BAR_TEXT_PAD;
@@ -164,6 +165,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     for (int i = 0; i < barsToDraw; ++i) {
 
+        barBox.x  = pos.x + currentOffset;
+        gradBox.x = pos.x + currentOffset;
+        textBox.x = pos.x + currentOffset;
+
         CColor color =
             m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0] : ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0];
         color.a *= a;
@@ -186,9 +191,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
                                          &gradBox, 1.0);
         }
 
-        barBox.x += (BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
-        gradBox.x += (BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
-        textBox.x += (BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
+        currentOffset += (float) (BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
     }
 
     if (*PRENDERTITLES)

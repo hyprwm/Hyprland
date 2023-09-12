@@ -14,6 +14,7 @@ struct SWindowDecorationExtents {
     Vector2D topLeft;
     Vector2D bottomRight;
     bool     isInternalDecoration = false;
+    bool     isReservedArea       = true; // External Decorations Only
 };
 
 void addExtentsToBox(wlr_box*, SWindowDecorationExtents*);
@@ -37,8 +38,6 @@ class IHyprWindowDecoration {
     virtual void                     damageEntire() = 0;
 
     virtual void                     forceReload(CWindow*);
-
-    virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
     virtual CRegion                  getWindowDecorationRegion();
 

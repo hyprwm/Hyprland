@@ -194,10 +194,6 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         invalidateTextures();
 }
 
-SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationReservedArea() {
-    return m_seExtents;
-}
-
 CTitleTex* CHyprGroupBarDecoration::textureFromTitle(const std::string& title) {
     for (auto& tex : m_sTitleTexs.titleTexs) {
         if (tex->szContent == title)

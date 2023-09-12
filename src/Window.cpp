@@ -35,24 +35,23 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
                 {PMONITOR->vecSize.x - (m_vRealPosition.vec().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.vec().y - PMONITOR->vecPosition.y)}};
     }
 
-    SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
+    SWindowDecorationExtents maxOutterExtents = {{}, {}};
 
     for (auto& wd : m_dWindowDecorations) {
 
         const auto EXTENTS = wd->getWindowDecorationExtents();
 
-        if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
-            maxExtents.topLeft.x = EXTENTS.topLeft.x;
+        if (EXTENTS.isInternalDecoration)
+            continue;
 
-        if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
-            maxExtents.topLeft.y = EXTENTS.topLeft.y;
-
-        if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-
-        if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
+        maxOutterExtents.topLeft.x     = std::max(maxOutterExtents.topLeft.x, EXTENTS.topLeft.x);
+        maxOutterExtents.topLeft.y     = std::max(maxOutterExtents.topLeft.y, EXTENTS.topLeft.y);
+        maxOutterExtents.bottomRight.x = std::max(maxOutterExtents.bottomRight.x, EXTENTS.bottomRight.x);
+        maxOutterExtents.bottomRight.y = std::max(maxOutterExtents.bottomRight.y, EXTENTS.bottomRight.y);
     }
+
+    SWindowDecorationExtents maxExtents = {m_seReservedInternal.topLeft + Vector2D{BORDERSIZE + 2, BORDERSIZE + 2} + maxOutterExtents.topLeft,
+                                           m_seReservedInternal.bottomRight + Vector2D{BORDERSIZE + 2, BORDERSIZE + 2} + maxOutterExtents.bottomRight};
 
     if (m_pWLSurface.exists() && !m_bIsX11) {
         wlr_box surfaceExtents = {0, 0, 0, 0};
@@ -142,27 +141,8 @@ wlr_box CWindow::getWindowInputBox() {
         return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
-    SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
-
-    for (auto& wd : m_dWindowDecorations) {
-
-        if (!wd->allowsInput())
-            continue;
-
-        const auto EXTENTS = wd->getWindowDecorationExtents();
-
-        if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
-            maxExtents.topLeft.x = EXTENTS.topLeft.x;
-
-        if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
-            maxExtents.topLeft.y = EXTENTS.topLeft.y;
-
-        if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-
-        if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
-    }
+    SWindowDecorationExtents maxExtents = {m_seReservedInternal.topLeft + Vector2D{BORDERSIZE + 2, BORDERSIZE + 2} + m_seReservedExternal.topLeft,
+                                           m_seReservedInternal.bottomRight + Vector2D{BORDERSIZE + 2, BORDERSIZE + 2} + m_seReservedExternal.bottomRight};
 
     // Add extents to the real base BB and return
     wlr_box finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
@@ -172,19 +152,15 @@ wlr_box CWindow::getWindowInputBox() {
 }
 
 SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
-    SWindowDecorationExtents extents;
+    const int BORDERSIZE = getRealBorderSize();
+    return {m_seReservedInternal.topLeft + m_seReservedExternal.topLeft + Vector2D(BORDERSIZE, BORDERSIZE),
+            m_seReservedInternal.bottomRight + m_seReservedExternal.bottomRight + Vector2D(BORDERSIZE, BORDERSIZE)};
+}
 
-    for (auto& wd : m_dWindowDecorations) {
-        const auto RESERVED = wd->getWindowDecorationReservedArea();
-
-        if (RESERVED.bottomRight == Vector2D{} && RESERVED.topLeft == Vector2D{})
-            continue;
-
-        extents.topLeft     = extents.topLeft + RESERVED.topLeft;
-        extents.bottomRight = extents.bottomRight + RESERVED.bottomRight;
-    }
-
-    return extents;
+wlr_box CWindow::getWindowInternalBox() {
+    wlr_box internalBox = {m_vRealPosition.vec().x, m_vRealPosition.vec().y, m_vRealSize.vec().x, m_vRealSize.vec().y};
+    addExtentsToBox(&internalBox, &m_seReservedInternal);
+    return internalBox;
 }
 
 void CWindow::updateWindowDecos() {
@@ -204,6 +180,12 @@ void CWindow::updateWindowDecos() {
         }
     }
 
+    // handle this better later
+    auto i1 = m_seReservedInternal.topLeft;
+    auto i2 = m_seReservedInternal.bottomRight;
+    auto e1 = m_seReservedExternal.topLeft;
+    auto e2 = m_seReservedExternal.bottomRight;
+
     // reset extents
     m_seReservedInternal.topLeft     = Vector2D();
     m_seReservedInternal.bottomRight = Vector2D();
@@ -211,19 +193,22 @@ void CWindow::updateWindowDecos() {
     m_seReservedExternal.bottomRight = Vector2D();
 
     for (auto& wd : m_dWindowDecorations) {
-        const auto RESERVED = wd->getWindowDecorationReservedArea();
-        if (RESERVED.isInternalDecoration) {
-            m_seReservedInternal.topLeft.x     = std::max(m_seReservedInternal.topLeft.x, RESERVED.topLeft.x);
-            m_seReservedInternal.topLeft.y     = std::max(m_seReservedInternal.topLeft.y, RESERVED.topLeft.y);
-            m_seReservedInternal.bottomRight.x = std::max(m_seReservedInternal.bottomRight.x, RESERVED.bottomRight.x);
-            m_seReservedInternal.bottomRight.y = std::max(m_seReservedInternal.bottomRight.y, RESERVED.bottomRight.y);
-        } else {
-            m_seReservedExternal.topLeft.x     = std::max(m_seReservedExternal.topLeft.x, RESERVED.topLeft.x);
-            m_seReservedExternal.topLeft.y     = std::max(m_seReservedExternal.topLeft.y, RESERVED.topLeft.y);
-            m_seReservedExternal.bottomRight.x = std::max(m_seReservedExternal.bottomRight.x, RESERVED.bottomRight.x);
-            m_seReservedExternal.bottomRight.y = std::max(m_seReservedExternal.bottomRight.y, RESERVED.bottomRight.y);
+        const auto EXTENTS = wd->getWindowDecorationExtents();
+        if (EXTENTS.isInternalDecoration) {
+            m_seReservedInternal.topLeft.x     = std::max(m_seReservedInternal.topLeft.x, EXTENTS.topLeft.x);
+            m_seReservedInternal.topLeft.y     = std::max(m_seReservedInternal.topLeft.y, EXTENTS.topLeft.y);
+            m_seReservedInternal.bottomRight.x = std::max(m_seReservedInternal.bottomRight.x, EXTENTS.bottomRight.x);
+            m_seReservedInternal.bottomRight.y = std::max(m_seReservedInternal.bottomRight.y, EXTENTS.bottomRight.y);
+        } else if (EXTENTS.isReservedArea) {
+            m_seReservedExternal.topLeft.x     = std::max(m_seReservedExternal.topLeft.x, EXTENTS.topLeft.x);
+            m_seReservedExternal.topLeft.y     = std::max(m_seReservedExternal.topLeft.y, EXTENTS.topLeft.y);
+            m_seReservedExternal.bottomRight.x = std::max(m_seReservedExternal.bottomRight.x, EXTENTS.bottomRight.x);
+            m_seReservedExternal.bottomRight.y = std::max(m_seReservedExternal.bottomRight.y, EXTENTS.bottomRight.y);
         }
     }
+
+    if (i1 != m_seReservedInternal.topLeft || i2 != m_seReservedInternal.bottomRight || e1 != m_seReservedExternal.topLeft || e2 != m_seReservedExternal.bottomRight)
+        recalc = true;
 
     if (recalc)
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);

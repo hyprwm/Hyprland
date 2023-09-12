@@ -247,11 +247,9 @@ void CAnimationManager::tick() {
                 const auto         PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
 
                 if (PDECO) {
-                    const auto EXTENTS = PDECO->getWindowDecorationExtents();
-
-                    wlr_box    dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
-                                   PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
-                                   PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
+                    auto    EXTENTS = PDECO->getWindowDecorationExtents();
+                    wlr_box dmg     = PWINDOW->getWindowInternalBox();
+                    addExtentsToBox(&dmg, &EXTENTS);
 
                     if (!*PSHADOWIGNOREWINDOW) {
                         // easy, damage the entire box

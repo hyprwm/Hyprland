@@ -31,8 +31,6 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual void                     damageEntire();
 
-    virtual SWindowDecorationExtents getWindowDecorationReservedArea();
-
     virtual CRegion                  getWindowDecorationRegion();
 
     virtual void                     forceReload(CWindow*);

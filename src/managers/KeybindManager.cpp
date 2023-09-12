@@ -1970,12 +1970,12 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& 
 
     switch (dir[0]) {
         case 't':
-        case 'u': direction = eDirection::DIRECTION_UP; break;
+        case 'u': direction = DIRECTION_UP; break;
         case 'd':
-        case 'b': direction = eDirection::DIRECTION_DOWN; break;
-        case 'l': direction = eDirection::DIRECTION_LEFT; break;
-        case 'r': direction = eDirection::DIRECTION_RIGHT; break;
-        default: direction = eDirection::DIRECTION_NONE;
+        case 'b': direction = DIRECTION_DOWN; break;
+        case 'l': direction = DIRECTION_LEFT; break;
+        case 'r': direction = DIRECTION_RIGHT; break;
+        default: direction = DIRECTION_DEFAULT;
     }
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);

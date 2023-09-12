@@ -238,7 +238,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
     static auto* const PUSEACTIVE    = &g_pConfigManager->getConfigValuePtr("dwindle:use_active_for_splits")->intValue;
     static auto* const PDEFAULTSPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:default_split_ratio")->floatValue;
 
-    if (direction != eDirection::DIRECTION_NONE)
+    if (direction != DIRECTION_DEFAULT && overrideDirection == DIRECTION_DEFAULT)
         overrideDirection = direction;
 
     // Populate the node with our window's data
@@ -375,7 +375,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
     bool               verticalOverride   = false;
 
     // let user select position -> top, right, bottom, left
-    if (overrideDirection != eDirection::DIRECTION_DEFAULT) {
+    if (overrideDirection != DIRECTION_DEFAULT) {
 
         // this is horizontal
         if (overrideDirection % 2 == 0)
@@ -394,7 +394,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
-            overrideDirection = eDirection::DIRECTION_DEFAULT;
+            overrideDirection = DIRECTION_DEFAULT;
     } else if (*PSMARTSPLIT == 1) {
         const auto tl = NEWPARENT->position;
         const auto tr = NEWPARENT->position + Vector2D(NEWPARENT->size.x, 0);
@@ -997,26 +997,26 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         switch (direction.front()) {
             case 'u':
             case 't': {
-                overrideDirection = eDirection::DIRECTION_UP;
+                overrideDirection = DIRECTION_UP;
                 break;
             }
             case 'd':
             case 'b': {
-                overrideDirection = eDirection::DIRECTION_DOWN;
+                overrideDirection = DIRECTION_DOWN;
                 break;
             }
             case 'r': {
-                overrideDirection = eDirection::DIRECTION_RIGHT;
+                overrideDirection = DIRECTION_RIGHT;
                 break;
             }
             case 'l': {
-                overrideDirection = eDirection::DIRECTION_LEFT;
+                overrideDirection = DIRECTION_LEFT;
                 break;
             }
             default: {
                 // any other character resets the focus direction
                 // needed for the persistent mode
-                overrideDirection = eDirection::DIRECTION_DEFAULT;
+                overrideDirection = DIRECTION_DEFAULT;
                 break;
             }
         }

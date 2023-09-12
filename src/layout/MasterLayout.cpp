@@ -715,7 +715,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     }
 
     // check the up/down resize
-    const bool isStackVertical = orientation % 2 == 0;
+    const bool isStackVertical = orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || orientation == ORIENTATION_CENTER;
 
     const auto RESIZEDELTA  = isStackVertical ? pixResize.y : pixResize.x;
     const auto WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;

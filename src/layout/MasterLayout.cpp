@@ -94,34 +94,34 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     // if it's a group, add the window
-    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && !g_pKeybindManager->m_bGroupsLocked &&
-        OPENINGON != PNODE) { // target is an unlocked group
+    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow &&      // target is group
+        !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&                             // target unlocked
+        !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked) && // source unlocked or isn't group
+        !g_pKeybindManager->m_bGroupsLocked                                                     // global group lock disengaged
+    ) {
+        if (!pWindow->m_sGroupData.pNextWindow)
+            pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
-        if (!pWindow->m_sGroupData.pNextWindow || !pWindow->getGroupHead()->m_sGroupData.locked) { // source is not a group or an unlocked group
-            if (!pWindow->m_sGroupData.pNextWindow)
-                pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+        m_lMasterNodesData.remove(*PNODE);
 
-            m_lMasterNodesData.remove(*PNODE);
-
-            const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-            if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
-                const int SIZE               = OPENINGON->pWindow->getGroupSize();
-                const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
-                CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
-                pWindowInsertAfter->insertWindowToGroup(pWindow);
-                if (INDEX == -1)
-                    std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
-            } else {
-                static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
-                (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
-            }
-
-            OPENINGON->pWindow->setGroupCurrent(pWindow);
-            pWindow->updateWindowDecos();
-            recalculateWindow(pWindow);
-
-            return;
+        const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+        if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
+            const int SIZE               = OPENINGON->pWindow->getGroupSize();
+            const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
+            CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
+            pWindowInsertAfter->insertWindowToGroup(pWindow);
+            if (INDEX == -1)
+                std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
+        } else {
+            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+            (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
         }
+
+        OPENINGON->pWindow->setGroupCurrent(pWindow);
+        pWindow->updateWindowDecos();
+        recalculateWindow(pWindow);
+
+        return;
     }
 
     if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster)) {
@@ -679,13 +679,13 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     const bool         DISPLAYTOP    = STICKS(PWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
     const bool         DISPLAYLEFT   = STICKS(PWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
 
-    const bool LEFT          = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
-    const bool TOP           = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
-    const bool NONE          = corner == CORNER_NONE;
+    const bool         LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
+    const bool         TOP  = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const bool         NONE = corner == CORNER_NONE;
 
-    const auto MASTERS      = getMastersOnWorkspace(PNODE->workspaceID);
-    const auto WINDOWS      = getNodesOnWorkspace(PNODE->workspaceID);
-    const auto STACKWINDOWS = WINDOWS - MASTERS;
+    const auto         MASTERS      = getMastersOnWorkspace(PNODE->workspaceID);
+    const auto         WINDOWS      = getNodesOnWorkspace(PNODE->workspaceID);
+    const auto         STACKWINDOWS = WINDOWS - MASTERS;
 
     if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 && !centered)
         return;
@@ -717,8 +717,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     // check the up/down resize
     const bool isStackVertical = orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || orientation == ORIENTATION_CENTER;
 
-    const auto RESIZEDELTA  = isStackVertical ? pixResize.y : pixResize.x;
-    const auto WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+    const auto RESIZEDELTA = isStackVertical ? pixResize.y : pixResize.x;
+    const auto WSSIZE      = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
 
     auto       nodesInSameColumn = PNODE->isMaster ? MASTERS : STACKWINDOWS;
     if (orientation == ORIENTATION_CENTER && !PNODE->isMaster)
@@ -730,8 +730,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         if (!*PSMARTRESIZING) {
             PNODE->percSize = std::clamp(PNODE->percSize + RESIZEDELTA / SIZE, 0.05, 1.95);
         } else {
-            const auto NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
-            const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
+            const auto  NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
+            const auto  REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
 
             const float totalSize       = isStackVertical ? WSSIZE.y : WSSIZE.x;
             const float minSize         = totalSize / nodesInSameColumn * 0.2;

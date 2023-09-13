@@ -14,15 +14,7 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
 
-      - name: Install nix
-        uses: cachix/install-nix-action@v22
-        with:
-          install_url: https://nixos.org/nix/install
-          extra_nix_config: |
-            auto-optimise-store = true
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            experimental-features = nix-command flakes
-
+      - uses: DeterminateSystems/nix-installer-action@main
       - name: Update inputs
         run: nix/update-inputs.sh
 

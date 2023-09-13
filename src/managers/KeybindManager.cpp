@@ -1977,15 +1977,19 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& 
         default: direction = DIRECTION_DEFAULT;
     }
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    if (pWindow->m_sGroupData.pNextWindow == pWindow) {
+        pWindow->m_sGroupData.pNextWindow = nullptr;
+        pWindow->updateWindowDecos();
+    } else {
+        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
 
-    const auto GROUPSLOCKEDPREV = g_pKeybindManager->m_bGroupsLocked;
+        const auto GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+        g_pKeybindManager->m_bGroupsLocked = true;
 
-    g_pKeybindManager->m_bGroupsLocked = true;
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow, direction);
 
-    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow, direction);
-
-    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    }
 
     if (*BFOCUSREMOVEDWINDOW) {
         g_pCompositor->focusWindow(pWindow);

@@ -1996,7 +1996,7 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& 
         g_pCompositor->warpCursorTo(pWindow->middle());
     } else {
         g_pCompositor->focusWindow(PWINDOWPREV);
-        g_pCompositor->warpCursorTo(pWindow->middle());
+        g_pCompositor->warpCursorTo(PWINDOWPREV->middle());
     }
 }
 

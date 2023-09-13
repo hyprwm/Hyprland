@@ -148,7 +148,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
             return; // prevent assert failed
         }
 
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), (ROUNDING + BORDERSIZE) * pMonitor->scale);
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), ROUNDING == 0 ? 0 : (ROUNDING + BORDERSIZE) * pMonitor->scale);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);

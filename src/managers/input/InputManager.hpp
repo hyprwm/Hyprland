@@ -88,6 +88,7 @@ class CInputManager {
     Vector2D           getMouseCoordsInternal();
     void               refocus();
     void               simulateMouseMovement();
+    void               sendMotionEventsToFocused();
 
     void               setKeyboardLayout();
     void               setPointerConfigs();

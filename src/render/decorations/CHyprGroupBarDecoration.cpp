@@ -89,16 +89,14 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
     const auto* const  PCOLINACTIVE = GROUPLOCKED ? PGROUPCOLINACTIVELOCKED : PGROUPCOLINACTIVE;
 
-    // TODO: fix mouse event with rounding
-    const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    const int   ROUNDING   = m_pWindow->getRealRounding();
-    const int   BORDERSIZE = m_pWindow->getRealBorderSize();
+    const auto         PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const int          ROUNDING   = m_pWindow->getRealRounding();
+    const int          BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    const float BARW = (m_vLastWindowSize.x - 2 * ROUNDING - BAR_HORIZONTAL_PADDING * (barsToDraw + (m_bInternalBar ? 1 : -1))) / barsToDraw;
+    const float        BARW = (m_vLastWindowSize.x - 2 * ROUNDING - BAR_HORIZONTAL_PADDING * (barsToDraw + (m_bInternalBar ? 1 : -1))) / barsToDraw;
 
-    float       currentOffset = m_bInternalBar ? BAR_HORIZONTAL_PADDING : 0;
+    float              currentOffset = m_bInternalBar ? BAR_HORIZONTAL_PADDING : 0;
 
-    //  TODO: check for invalid config
     if (BARW <= 0)
         return;
 
@@ -172,17 +170,20 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         CColor color =
             m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0] : ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0];
         color.a *= a;
-        g_pHyprOpenGL->renderRect(&barBox, color, std::sqrt(m_iBarHeight) / 2);
+        if (barBox.width > 0 && barBox.height > 0)
+            g_pHyprOpenGL->renderRect(&barBox, color, std::sqrt(m_iBarHeight) / 2);
 
         // render title if necessary
         if (*PRENDERTITLES) {
             CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[i]->m_szTitle);
             if (!pTitleTex)
                 pTitleTex = m_sTitleTexs.titleTexs.emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i], Vector2D(textBox.width, textBox.height))).get();
-            g_pHyprOpenGL->renderTexture(pTitleTex->tex, &textBox, 1.f);
+
+            if (textBox.width > 0 && textBox.height > 0)
+                g_pHyprOpenGL->renderTexture(pTitleTex->tex, &textBox, 1.f);
         }
 
-        if (m_iGradientHeight != 0) {
+        if (gradBox.width > 0 && gradBox.height > 0) {
             if (m_tGradientActive.m_iTexID == 0) // no idea why it doesn't work
                 refreshGradients();
 
@@ -191,7 +192,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
                                          &gradBox, 1.0);
         }
 
-        currentOffset += (float) (BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
+        currentOffset += (float)(BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
     }
 
     if (*PRENDERTITLES)
@@ -349,7 +350,7 @@ void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
     static auto* const PINTERNALBAR = &g_pConfigManager->getConfigValuePtr("group:groupbar:internal_bar")->intValue;
 
     m_bEnabled           = *PENABLED;
-    m_iBarInternalHeight = *PHEIGHT + (*PMODE == 1 ? BAR_INDICATOR_HEIGHT + BAR_INTERNAL_PADDING : 0);
+    m_iBarInternalHeight = std::max((long int)0, *PHEIGHT) + (*PMODE == 1 ? BAR_INDICATOR_HEIGHT + BAR_INTERNAL_PADDING : 0);
     m_iBarFullHeight     = m_iBarInternalHeight + BAR_INTERNAL_PADDING + BAR_EXTERNAL_PADDING;
 
     m_bOnTop       = g_pConfigManager->getConfigValuePtr("group:groupbar:top")->intValue;

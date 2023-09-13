@@ -48,7 +48,7 @@ struct SMasterWorkspaceData {
 
 class CHyprMasterLayout : public IHyprLayout {
   public:
-    virtual void                     onWindowCreatedTiling(CWindow*);
+    virtual void                     onWindowCreatedTiling(CWindow*, eDirection direction = DIRECTION_DEFAULT);
     virtual void                     onWindowRemovedTiling(CWindow*);
     virtual bool                     isWindowTiled(CWindow*);
     virtual void                     recalculateMonitor(const int&);

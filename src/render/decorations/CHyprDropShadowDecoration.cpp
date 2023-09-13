@@ -114,12 +114,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         fullBox.y += ((windowBox.height + 2.0 * *PSHADOWSIZE) - NEWSIZE.y) / 2.0;
     }
 
-    //m_seExtents = {{m_vLastWindowPos.x - fullBox.x - pMonitor->vecPosition.x + 2, m_vLastWindowPos.y - fullBox.y - pMonitor->vecPosition.y + 2},
-    //               {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
-    //                fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_vLastWindowPos.y - m_vLastWindowSize.y + 2}};
-
-    m_seExtents.topLeft        = {*PSHADOWSIZE, *PSHADOWSIZE};
-    m_seExtents.bottomRight    = {*PSHADOWSIZE, *PSHADOWSIZE};
+    m_seExtents.topLeft        = {std::max(0, windowBox.x - fullBox.x), std::max(0, windowBox.y - fullBox.y)};
+    m_seExtents.bottomRight    = {std::max(0, (fullBox.x + fullBox.width) - (windowBox.x + windowBox.width)),
+                                  std::max(0, (fullBox.y + fullBox.height) - (windowBox.y + windowBox.height))};
     m_seExtents.isReservedArea = false;
 
     fullBox.x += offset.x;

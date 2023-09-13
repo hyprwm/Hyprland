@@ -148,7 +148,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
             glStencilFunc(GL_NOTEQUAL, 1, -1);
             glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-            g_pHyprOpenGL->renderRect(&backBox, color, ROUNDING * pMonitor->scale);
+            if (backBox.width > 0 && backBox.height > 0)
+                g_pHyprOpenGL->renderRect(&backBox, color, ROUNDING * pMonitor->scale);
 
             // cleanup stencil
             glClearStencil(0);
@@ -156,9 +157,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
             glDisable(GL_STENCIL_TEST);
             glStencilMask(-1);
             glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        } else {
+        } else if (backBox.width > 0 && backBox.height > 0)
             g_pHyprOpenGL->renderRect(&backBox, color, ROUNDING * pMonitor->scale);
-        }
     }
 
     for (int i = 0; i < barsToDraw; ++i) {

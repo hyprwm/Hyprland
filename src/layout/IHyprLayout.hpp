@@ -24,11 +24,11 @@ enum eRectCorner {
 };
 
 enum eDirection {
+    DIRECTION_DEFAULT = -1,
     DIRECTION_UP = 0,
     DIRECTION_RIGHT,
     DIRECTION_DOWN,
-    DIRECTION_LEFT,
-    DIRECTION_DEFAULT,
+    DIRECTION_LEFT
 };
 
 class IHyprLayout {

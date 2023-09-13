@@ -91,7 +91,7 @@ class CKeybindManager {
     bool                      ensureMouseBindState();
 
     static bool               tryMoveFocusToMonitor(CMonitor* monitor);
-    static void               moveWindowOutOfGroup(CWindow* pWindow);
+    static void               moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir = "");
     static void               moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
     static void               switchToWindow(CWindow* PWINDOWTOCHANGETO);
 

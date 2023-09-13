@@ -870,10 +870,12 @@ void CKeybindManager::changeworkspace(std::string args) {
     } else
         pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
 
-    if (!g_pCompositor->m_pLastFocus)
+    if (!g_pCompositor->m_pLastFocus && PMONITORWORKSPACEOWNER == g_pCompositor->getMonitorFromCursor()) {
         g_pInputManager->simulateMouseMovement();
-    else
+    } else {
+        g_pCompositor->focusWindow(pWorkspaceToChangeTo->getLastFocusedWindow());
         g_pInputManager->sendMotionEventsToFocused();
+    }
 }
 
 void CKeybindManager::fullscreenActive(std::string args) {

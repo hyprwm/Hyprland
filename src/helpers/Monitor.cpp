@@ -530,7 +530,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
         else {
             CWindow* pWindow = nullptr;
 
-            if (*PFOLLOWMOUSE == 1)
+            if (*PFOLLOWMOUSE == 1 && this == g_pCompositor->getMonitorFromCursor())
                 pWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
 
             if (!pWindow)

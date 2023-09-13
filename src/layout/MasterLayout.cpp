@@ -327,12 +327,12 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         float       nextX       = 0;
         float       nextY       = 0;
 
+        if (orientation == ORIENTATION_BOTTOM)
+            nextY = WSSIZE.y - HEIGHT;
+
         for (auto& nd : m_lMasterNodesData) {
             if (nd.workspaceID != PWORKSPACE->m_iID || !nd.isMaster)
                 continue;
-
-            if (orientation == ORIENTATION_BOTTOM)
-                nextY = WSSIZE.y - HEIGHT;
 
             float WIDTH = mastersLeft > 1 ? widthLeft / mastersLeft * nd.percSize : widthLeft;
             if (WIDTH > widthLeft * 0.9f && mastersLeft > 1)

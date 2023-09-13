@@ -1967,15 +1967,19 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow) {
     static auto* const BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("misc:group_focus_removed_window")->intValue;
     const auto         PWINDOWPREV         = pWindow->getGroupPrevious();
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    if (pWindow->m_sGroupData.pNextWindow == pWindow) {
+        pWindow->m_sGroupData.pNextWindow = nullptr;
+        pWindow->updateWindowDecos();
+    } else {
+        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
 
-    const auto GROUPSLOCKEDPREV = g_pKeybindManager->m_bGroupsLocked;
+        const auto GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+        g_pKeybindManager->m_bGroupsLocked = true;
 
-    g_pKeybindManager->m_bGroupsLocked = true;
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
 
-    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-
-    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    }
 
     if (*BFOCUSREMOVEDWINDOW) {
         g_pCompositor->focusWindow(pWindow);

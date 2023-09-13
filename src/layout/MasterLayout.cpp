@@ -1234,6 +1234,13 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         runOrientationCycle(header, nullptr, -1);
     } else if (command == "orientationcycle") {
         runOrientationCycle(header, &vars, 1);
+    } else if (command == "mfact") {
+        if (vars.size() >= 2) {
+            for (auto& nd : m_lMasterNodesData) {
+                if (nd.isMaster)
+                    nd.percMaster = std::clamp(std::stof(vars[1]), 0.f, 1.f);
+            }
+        }
     }
 
     return 0;

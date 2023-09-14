@@ -912,8 +912,10 @@ void CHyprDwindleLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) 
 
     const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(focalPoint);
 
-    pWindow->moveToWorkspace(PMONITORFOCAL->activeWorkspace);
-    pWindow->m_iMonitorID = PMONITORFOCAL->ID;
+    if (PMONITORFOCAL->ID != pWindow->m_iMonitorID) {
+        pWindow->moveToWorkspace(PMONITORFOCAL->activeWorkspace);
+        pWindow->m_iMonitorID = PMONITORFOCAL->ID;
+    }
 
     onWindowCreatedTiling(pWindow);
 

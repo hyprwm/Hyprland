@@ -1240,7 +1240,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             try {
                 newMfact = std::stof(vars[1]);
             } catch (std::exception& e) {
-                Debug::log(LOG, "Argument is invalid: {}", e.what());
+                Debug::log(ERR, "Argument is invalid: {}", e.what());
                 return 0;
             }
             for (auto& nd : m_lMasterNodesData) {

@@ -1238,7 +1238,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (vars.size() >= 2) {
             for (auto& nd : m_lMasterNodesData) {
                 if (nd.isMaster)
-                    nd.percMaster = std::clamp(std::stof(vars[1]), 0.f, 1.f);
+                    nd.percMaster = std::clamp(std::stof(vars[1]), 0.05f, 0.95f);
             }
         }
     }

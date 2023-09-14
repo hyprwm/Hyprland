@@ -46,34 +46,23 @@ float CBezierCurve::getXForT(float t) {
     return 3 * t * pow(1 - t, 2) * m_dPoints[1].x + 3 * pow(t, 2) * (1 - t) * m_dPoints[2].x + pow(t, 3);
 }
 
-// Todo: this probably can be done better and faster
 float CBezierCurve::getYForPoint(float x) {
     if (x >= 1.0)
         return 1.0;
 
-    // binary search for the range UPDOWN X
-    int upperT = BAKEDPOINTS - 1;
-    int lowerT = 0;
-    int mid    = upperT / 2;
-
-    while (std::abs(upperT - lowerT) > 1) {
-        if (m_aPointsBaked[mid].x > x) {
-            upperT = mid;
-        } else {
-            lowerT = mid;
-        }
-
-        mid = (upperT + lowerT) / 2;
+    auto actual = &m_aPointsBaked[0];
+    while(actual->x < x) {
+	actual++;
     }
 
     // in the name of performance i shall make a hack
-    const auto LOWERPOINT = &m_aPointsBaked[std::clamp(lowerT, 0, BAKEDPOINTS - 1)];
-    const auto UPPERPOINT = &m_aPointsBaked[std::clamp(upperT, 0, BAKEDPOINTS - 1)];
+    const auto LOWERPOINT = actual - 1;
+    const auto UPPERPOINT = actual;
 
     const auto PERCINDELTA = (x - LOWERPOINT->x) / (UPPERPOINT->x - LOWERPOINT->x);
 
     if (std::isnan(PERCINDELTA) || std::isinf(PERCINDELTA)) // can sometimes happen for VERY small x
-        return 0.f;
+	return 0.f;
 
     return LOWERPOINT->y + (UPPERPOINT->y - LOWERPOINT->y) * PERCINDELTA;
 }

@@ -51,24 +51,22 @@ float CBezierCurve::getYForPoint(float x) {
     if (x >= 1.0)
         return 1.0;
 
-    // binary search for the range UPDOWN X
-    int upperT = BAKEDPOINTS - 1;
-    int lowerT = 0;
-    int mid    = upperT / 2;
-
-    while (std::abs(upperT - lowerT) > 1) {
-        if (m_aPointsBaked[mid].x > x) {
-            upperT = mid;
+    int  index = 0;
+    int  step  = BAKEDPOINTS - 1;
+    bool above = m_aPointsBaked[index].x > x;
+    do {
+        step = (step + 1) / 2;
+        if (above) {
+            index -= step;
         } else {
-            lowerT = mid;
+            index += step;
         }
-
-        mid = (upperT + lowerT) / 2;
-    }
+        above = m_aPointsBaked[index].x > x;
+    } while (step > 1);
 
     // in the name of performance i shall make a hack
-    const auto LOWERPOINT = &m_aPointsBaked[std::clamp(lowerT, 0, BAKEDPOINTS - 1)];
-    const auto UPPERPOINT = &m_aPointsBaked[std::clamp(upperT, 0, BAKEDPOINTS - 1)];
+    const auto LOWERPOINT = &m_aPointsBaked[index - above];
+    const auto UPPERPOINT = &m_aPointsBaked[index + !above];
 
     const auto PERCINDELTA = (x - LOWERPOINT->x) / (UPPERPOINT->x - LOWERPOINT->x);
 

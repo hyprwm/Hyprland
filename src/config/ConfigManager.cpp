@@ -1203,8 +1203,9 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
     std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{new glob_t, [](glob_t* g) { globfree(g); }};
     memset(glob_buf.get(), 0, sizeof(glob_t));
 
-    if (glob(rawpath.c_str(), GLOB_TILDE, nullptr, glob_buf.get()) != 0) {
-        Debug::log(ERR, "source= globbing error");
+    if (auto r = glob(absolutePath(rawpath, configCurrentPath).c_str(), GLOB_TILDE, nullptr, glob_buf.get()); r != 0) {
+        parseError = std::format("source= globbing error: {}", r == GLOB_NOMATCH ? "found no match" : GLOB_ABORTED ? "read error" : "out of memory");
+        Debug::log(ERR, parseError);
         return;
     }
 

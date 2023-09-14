@@ -70,8 +70,6 @@ class CHyprMasterLayout : public IHyprLayout {
     std::list<SMasterNodeData>        m_lMasterNodesData;
     std::vector<SMasterWorkspaceData> m_lMasterWorkspacesData;
 
-    bool                              m_bForceWarps = false;
-
     void                              buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, CVarList& vars);
     void                              buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle);
     void                              runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);

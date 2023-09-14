@@ -321,8 +321,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
     if (OPENINGON->pWindow->m_sGroupData.pNextWindow &&                                         // target is group
         !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&                             // target unlocked
         !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked) && // source unlocked or isn't group
-        !g_pKeybindManager->m_bGroupsLocked                                                     // global group lock disengaged
-    ) {
+        !g_pKeybindManager->m_bGroupsLocked && !m_vOverrideFocalPoint) {
         if (!pWindow->m_sGroupData.pNextWindow)
             pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 

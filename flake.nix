@@ -68,7 +68,6 @@
         hyprland-nvidia
         # hyprland-extras
         xdg-desktop-portal-hyprland
-        hyprland-share-picker
         # dependencies
         hyprland-protocols
         wlroots-hyprland

@@ -572,6 +572,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     static auto* const PGAPSIN         = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
     static auto* const PGAPSOUT        = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
     static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("master:no_gaps_when_only")->intValue;
+    static auto* const PANIMATE        = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
 
     auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
@@ -635,7 +636,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
     }
 
-    if (m_bForceWarps) {
+    if (!*PANIMATE) {
         g_pHyprRenderer->damageWindow(PWINDOW);
 
         PWINDOW->m_vRealPosition.warp();
@@ -689,8 +690,6 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
 
     if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 && !centered)
         return;
-
-    m_bForceWarps = true;
 
     switch (orientation) {
         case ORIENTATION_LEFT: delta = pixResize.x / PMONITOR->vecSize.x; break;
@@ -789,8 +788,6 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     }
 
     recalculateMonitor(PMONITOR->ID);
-
-    m_bForceWarps = false;
 }
 
 void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode, bool on) {

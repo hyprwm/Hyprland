@@ -1269,28 +1269,40 @@ void CCompositor::changeWindowZOrder(CWindow* pWindow, bool top) {
             g_pHyprRenderer->damageMonitor(getMonitorFromID(pw->m_iMonitorID));
     };
 
-    moveToZ(pWindow, top);
-
     if (top)
         pWindow->m_bCreatedOverFullscreen = true;
 
-    if (!pWindow->m_bIsX11)
+    if (!pWindow->m_bIsX11) {
+        moveToZ(pWindow, top);
         return;
+    } else {
 
-    // move all children
+        // move X11 window stack
 
-    std::deque<CWindow*> toMove;
+        std::deque<CWindow*> toMove;
 
-    for (auto& w : m_vWindows) {
-        if (w->m_bIsMapped && w->m_bMappedX11 && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pWindow) {
-            toMove.emplace_back(w.get());
+        for (auto& w : m_vWindows) {
+            if (w->m_bIsMapped && w->m_bMappedX11 && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pWindow) {
+                if (top)
+                    toMove.emplace_back(w.get());
+                else
+                    toMove.emplace_front(w.get());
+            }
         }
-    }
 
-    for (auto& pw : toMove) {
-        moveToZ(pw, true);
+        if (top)
+            moveToZ(pWindow, top);
+        for (auto& pw : toMove) {
+            if (top)
+                moveToZ(pw, top);
 
-        changeWindowZOrder(pw, true);
+            changeWindowZOrder(pw, top);
+
+            if (!top)
+                moveToZ(pw, top);
+        }
+        if (!top)
+            moveToZ(pWindow, top);
     }
 }
 

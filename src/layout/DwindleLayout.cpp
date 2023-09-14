@@ -149,7 +149,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         PWINDOW->m_sSpecialRenderData.shadow   = false;
 
         PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + PWINDOW->m_seReservedInternal.topLeft + PWINDOW->m_seReservedExternal.topLeft;
-        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - (PWINDOW->m_seReservedInternal.topLeft + PWINDOW->m_seReservedInternal.bottomRight) - (PWINDOW->m_seReservedExternal.topLeft + PWINDOW->m_seReservedExternal.bottomRight);
+        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - (PWINDOW->m_seReservedInternal.topLeft + PWINDOW->m_seReservedInternal.bottomRight) -
+            (PWINDOW->m_seReservedExternal.topLeft + PWINDOW->m_seReservedExternal.bottomRight);
 
         PWINDOW->updateWindowDecos();
 
@@ -322,16 +323,21 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
         m_lDwindleNodesData.remove(*PNODE);
 
-        const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-        if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
-            const int SIZE               = OPENINGON->pWindow->getGroupSize();
-            const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
-            CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
-            pWindowInsertAfter->insertWindowToGroup(pWindow);
-            if (INDEX == -1)
-                std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
-        } else {
-            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+        bool handled = true;
+
+        for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
+            if (!wd->allowsInput())
+                continue;
+
+            if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
+                wd->dragWindowToDecoration(pWindow, MOUSECOORDS);
+                handled = false;
+                break;
+            }
+        }
+
+        if (handled) {
+            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
             (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
         }
 
@@ -340,6 +346,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 
+        g_pCompositor->focusWindow(pWindow);
         return;
     }
 

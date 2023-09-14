@@ -93,11 +93,11 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     const int          ROUNDING   = m_pWindow->getRealRounding();
     const int          BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    const float        BARW = (m_vLastWindowSize.x - 2 * ROUNDING - BAR_HORIZONTAL_PADDING * (barsToDraw + (m_bInternalBar ? 1 : -1))) / barsToDraw;
+    m_fBarWidth = (m_vLastWindowSize.x - 2 * ROUNDING - BAR_HORIZONTAL_PADDING * (barsToDraw + 1)) / barsToDraw;
 
-    float              currentOffset = m_bInternalBar ? BAR_HORIZONTAL_PADDING : 0;
+    float currentOffset = BAR_HORIZONTAL_PADDING;
 
-    if (BARW <= 0)
+    if (m_fBarWidth <= 0)
         return;
 
     // Bottom left of groupbar
@@ -106,8 +106,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         std::floor(m_vLastWindowPos.y) - pMonitor->vecPosition.y + offset.y +
             (m_bOnTop ? (m_bInternalBar ? 0 : -BORDERSIZE) : std::floor(m_vLastWindowSize.y) + m_iBarInternalHeight + BAR_INTERNAL_PADDING + (m_bInternalBar ? 0 : BORDERSIZE)));
 
-    wlr_box barBox  = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -BAR_INTERNAL_PADDING : 0), BARW, m_iBarHeight};
-    wlr_box gradBox = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -2 * BAR_INTERNAL_PADDING : -BAR_INTERNAL_PADDING) - m_iGradientHeight, BARW, m_iGradientHeight};
+    wlr_box barBox  = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -BAR_INTERNAL_PADDING : 0), m_fBarWidth, m_iBarHeight};
+    wlr_box gradBox = {pos.x, pos.y - m_iBarHeight + (m_bOnTop ? -2 * BAR_INTERNAL_PADDING : -BAR_INTERNAL_PADDING) - m_iGradientHeight, m_fBarWidth, m_iGradientHeight};
     wlr_box textBox = m_iGradientHeight != 0 ? gradBox : barBox;
     textBox.y += BAR_TEXT_PAD;
     textBox.height -= 2 * BAR_TEXT_PAD;
@@ -192,7 +192,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
                                          &gradBox, 1.0);
         }
 
-        currentOffset += (float)(BAR_HORIZONTAL_PADDING + BARW) * pMonitor->scale;
+        currentOffset += (float)(BAR_HORIZONTAL_PADDING + m_fBarWidth) * pMonitor->scale;
     }
 
     if (*PRENDERTITLES)
@@ -372,15 +372,72 @@ void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
 }
 
 CRegion CHyprGroupBarDecoration::getWindowDecorationRegion() {
-    const int ROUNDING   = m_pWindow->getRealRounding();
     const int BORDERSIZE = m_pWindow->getRealBorderSize();
-    return CRegion(m_vLastWindowPos.x + ROUNDING,
+    return CRegion(m_vLastWindowPos.x,
                    m_vLastWindowPos.y +
                        (m_bOnTop ? -BAR_INTERNAL_PADDING - m_iBarInternalHeight - (m_bInternalBar ? 0 : BORDERSIZE) :
                                    m_vLastWindowSize.y + BAR_INTERNAL_PADDING + (m_bInternalBar ? 0 : BORDERSIZE)),
-                   m_vLastWindowSize.x - 2 * ROUNDING, m_iBarInternalHeight);
+                   m_vLastWindowSize.x, m_iBarInternalHeight);
 }
 
 bool CHyprGroupBarDecoration::allowsInput() {
     return true;
+}
+
+void CHyprGroupBarDecoration::dragWindowToDecoration(CWindow* m_pDraggedWindow, const Vector2D& pos) {
+    const int   ROUNDING     = m_pWindow->getRealRounding();
+    const float BARRELATIVEX = pos.x - (m_vLastWindowPos.x + ROUNDING) - (m_fBarWidth / 2 + BAR_HORIZONTAL_PADDING);
+    const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    CWindow*    pWindowInsertAfter = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    pWindowInsertAfter->insertWindowToGroup(m_pDraggedWindow);
+
+    if (WINDOWINDEX == -1)
+        std::swap(m_pDraggedWindow->m_sGroupData.head, m_pDraggedWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
+}
+
+void CHyprGroupBarDecoration::clickDecoration(const Vector2D& pos) {
+    const int   ROUNDING     = m_pWindow->getRealRounding();
+    const float BARRELATIVEX = pos.x - (m_vLastWindowPos.x + ROUNDING);
+    const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX < BAR_HORIZONTAL_PADDING) {
+        if (!g_pCompositor->isWindowActive(m_pWindow))
+            g_pCompositor->focusWindow(m_pWindow);
+        return;
+    }
+
+    CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    if (pWindow != m_pWindow)
+        pWindow->setGroupCurrent(pWindow);
+
+    if (!g_pCompositor->isWindowActive(pWindow))
+        g_pCompositor->focusWindow(pWindow);
+}
+
+void CHyprGroupBarDecoration::dragFromDecoration(const Vector2D& pos) {
+    const int   ROUNDING     = m_pWindow->getRealRounding();
+    const float BARRELATIVEX = pos.x - (m_vLastWindowPos.x + ROUNDING);
+    const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX < BAR_HORIZONTAL_PADDING)
+        return;
+
+    CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    // hack
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    if (!pWindow->m_bIsFloating) {
+        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+        g_pKeybindManager->m_bGroupsLocked = true;
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    }
+
+    g_pInputManager->currentlyDraggedWindow = pWindow;
+
+    if (!g_pCompositor->isWindowActive(pWindow))
+        g_pCompositor->focusWindow(pWindow);
 }

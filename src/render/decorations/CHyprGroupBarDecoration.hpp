@@ -37,6 +37,12 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual bool                     allowsInput();
 
+    virtual void                     dragWindowToDecoration(CWindow*, const Vector2D&);
+
+    virtual void                     clickDecoration(const Vector2D&);
+
+    virtual void                     dragFromDecoration(const Vector2D&);
+
   private:
     SWindowDecorationExtents m_seExtents;
 
@@ -54,6 +60,8 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     bool                     m_bInternalBar;
     int                      m_iBarHeight;
     int                      m_iGradientHeight;
+
+    float                    m_fBarWidth;
 
     CTitleTex*               textureFromTitle(const std::string&);
     void                     invalidateTextures();

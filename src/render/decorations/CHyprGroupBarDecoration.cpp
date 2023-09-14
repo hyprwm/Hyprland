@@ -63,11 +63,13 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 }
 
 void CHyprGroupBarDecoration::damageEntire() {
-    // TODO: do this properly
-    const int BORDERSIZE = m_pWindow->getRealBorderSize();
-    auto      RESERVED   = getWindowDecorationExtents();
-    wlr_box dm = {m_vLastWindowPos.x, m_vLastWindowPos.y + (RESERVED.topLeft.y != 0 ? -BORDERSIZE - RESERVED.topLeft.y : m_vLastWindowSize.y), m_vLastWindowSize.x + 2 * BORDERSIZE,
-                  RESERVED.topLeft.y + RESERVED.bottomRight.y + BORDERSIZE};
+    const int  BORDERSIZE = m_pWindow->getRealBorderSize();
+    const auto RESERVED   = getWindowDecorationExtents();
+    wlr_box    dm         = {m_vLastWindowPos.x,
+                             m_vLastWindowPos.y +
+                                 (m_bOnTop ? -BAR_INTERNAL_PADDING - m_iBarInternalHeight - (m_bInternalBar ? 0 : BORDERSIZE) :
+                                             m_vLastWindowSize.y + BAR_INTERNAL_PADDING + (m_bInternalBar ? 0 : BORDERSIZE)),
+                             m_vLastWindowSize.x, m_iBarInternalHeight};
     g_pHyprRenderer->damageBox(&dm);
 }
 

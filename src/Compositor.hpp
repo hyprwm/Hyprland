@@ -29,8 +29,7 @@
 #include "plugins/PluginSystem.hpp"
 #include "helpers/Watchdog.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -145,6 +144,7 @@ class CCompositor {
     Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
     CWindow*       windowFromCursor();
     CWindow*       windowFloatingFromCursor();
+    CWindow*       windowFloatingFromCursorIgnore(CWindow*);
     CMonitor*      getMonitorFromOutput(wlr_output*);
     CWindow*       getWindowForPopup(wlr_xdg_popup*);
     CWindow*       getWindowFromSurface(wlr_surface*);

@@ -813,6 +813,24 @@ CWindow* CCompositor::windowFloatingFromCursor() {
     return nullptr;
 }
 
+CWindow* CCompositor::windowFloatingFromCursorIgnore(CWindow* pWindow) {
+    for (auto& w : m_vWindows | std::views::reverse) {
+        wlr_box box = w->getWindowInputBox();
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w->m_bIsMapped && w->m_bIsFloating && !w->isHidden() && w->m_bPinned && !w->m_bNoFocus &&
+            w.get() != pWindow)
+            return w.get();
+    }
+
+    for (auto& w : m_vWindows | std::views::reverse) {
+        wlr_box box = w->getWindowInputBox();
+        if (wlr_box_contains_point(&box, m_sWLRCursor->x, m_sWLRCursor->y) && w->m_bIsMapped && w->m_bIsFloating && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() &&
+            !w->m_bPinned && !w->m_bNoFocus && w.get() != pWindow)
+            return w.get();
+    }
+
+    return nullptr;
+}
+
 wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pWindow, Vector2D& sl) {
 
     if (!windowValidMapped(pWindow))

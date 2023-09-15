@@ -260,10 +260,44 @@ void IHyprLayout::onEndDragWindow() {
         g_pInputManager->refocus();
         changeWindowFloatingMode(DRAGGINGWINDOW);
         DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
+    } else if (g_pInputManager->dragMode == MBIND_MOVE) {
+        CWindow* pWindow = g_pCompositor->windowFloatingFromCursorIgnore(DRAGGINGWINDOW);
+        g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
+
+        if (pWindow && pWindow->m_sGroupData.pNextWindow &&                                                       // target is group
+            !pWindow->getGroupHead()->m_sGroupData.locked &&                                                      // target unlocked
+            !(DRAGGINGWINDOW->m_sGroupData.pNextWindow && DRAGGINGWINDOW->getGroupHead()->m_sGroupData.locked) && // source unlocked or isn't group
+            !g_pKeybindManager->m_bGroupsLocked) {
+
+            const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+            bool       handled     = true;
+
+            for (auto& wd : pWindow->m_dWindowDecorations) {
+                if (!wd->allowsInput())
+                    continue;
+
+                if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
+                    wd->dragWindowToDecoration(DRAGGINGWINDOW, MOUSECOORDS);
+                    handled = false;
+                    break;
+                }
+            }
+
+            if (handled) {
+                static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
+                (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
+            }
+
+            pWindow->setGroupCurrent(DRAGGINGWINDOW);
+            DRAGGINGWINDOW->updateWindowDecos();
+            recalculateWindow(DRAGGINGWINDOW);
+
+            g_pCompositor->focusWindow(DRAGGINGWINDOW);
+            return;
+        }
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-
     g_pCompositor->focusWindow(DRAGGINGWINDOW);
 }
 

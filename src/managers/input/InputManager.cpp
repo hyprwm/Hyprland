@@ -1215,8 +1215,16 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     pMouse->hyprListener_commitConstraint.removeCallback();
 
     if (pMouse->currentConstraint) {
-        if (constraint && constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT)
-            warpMouseToConstraintMiddle(constraintFromWlr(constraint));
+        if (constraint) {
+            const auto PCONSTRAINT = constraintFromWlr(constraint);
+            if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
+                PCONSTRAINT->hintSet      = true;
+                PCONSTRAINT->positionHint = {constraint->current.cursor_hint.x, constraint->current.cursor_hint.y};
+            }
+
+            if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT && constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED)
+                warpMouseToConstraintMiddle(PCONSTRAINT);
+        }
 
         wlr_pointer_constraint_v1_send_deactivated(pMouse->currentConstraint);
     }
@@ -1586,7 +1594,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

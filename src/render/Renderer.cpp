@@ -412,10 +412,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             wlr_box borderBox;
 
             if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
-                borderBox = {renderdata.x - pMonitor->vecPosition.x - pWindow->m_seReservedInternal.topLeft.x,
-                             renderdata.y - pMonitor->vecPosition.y - pWindow->m_seReservedInternal.topLeft.y,
-                             renderdata.w + pWindow->m_seReservedInternal.topLeft.x + pWindow->m_seReservedInternal.bottomRight.x,
-                             renderdata.h + pWindow->m_seReservedInternal.topLeft.y + pWindow->m_seReservedInternal.bottomRight.y};
+                borderBox = {renderdata.x - pMonitor->vecPosition.x - pWindow->m_vReservedInternalTopLeft.goalv().x,
+                             renderdata.y - pMonitor->vecPosition.y - pWindow->m_vReservedInternalTopLeft.goalv().y,
+                             renderdata.w + pWindow->m_vReservedInternalTopLeft.goalv().x + pWindow->m_vReservedInternalBottomRight.goalv().x,
+                             renderdata.h + pWindow->m_vReservedInternalTopLeft.goalv().y + pWindow->m_vReservedInternalBottomRight.goalv().y};
             else
                 borderBox = windowBox;
 

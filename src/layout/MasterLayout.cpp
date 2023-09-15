@@ -630,9 +630,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         PWINDOW->m_sSpecialRenderData.rounding = false;
         PWINDOW->m_sSpecialRenderData.shadow   = false;
 
-        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + PWINDOW->m_seReservedInternal.topLeft + PWINDOW->m_seReservedExternal.topLeft;
-        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - (PWINDOW->m_seReservedInternal.topLeft + PWINDOW->m_seReservedInternal.bottomRight) -
-            (PWINDOW->m_seReservedExternal.topLeft + PWINDOW->m_seReservedExternal.bottomRight);
+        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + PWINDOW->m_vReservedInternalTopLeft.goalv() + PWINDOW->m_vReservedExternalTopLeft.goalv();
+        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - (PWINDOW->m_vReservedInternalTopLeft.goalv() + PWINDOW->m_vReservedInternalBottomRight.goalv()) -
+            (PWINDOW->m_vReservedExternalTopLeft.goalv() + PWINDOW->m_vReservedExternalBottomRight.goalv());
 
         PWINDOW->updateWindowDecos();
 

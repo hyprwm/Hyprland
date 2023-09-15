@@ -286,8 +286,10 @@ class CWindow {
     std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
 
     // Window decorations internal and external reserved area
-    SWindowDecorationExtents m_seReservedInternal;
-    SWindowDecorationExtents m_seReservedExternal;
+    CAnimatedVariable m_vReservedInternalTopLeft;
+    CAnimatedVariable m_vReservedInternalBottomRight;
+    CAnimatedVariable m_vReservedExternalTopLeft;
+    CAnimatedVariable m_vReservedExternalBottomRight;
 
     // Special render data, rules, etc
     SWindowSpecialRenderData    m_sSpecialRenderData;

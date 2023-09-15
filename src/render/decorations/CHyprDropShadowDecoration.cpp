@@ -77,11 +77,12 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto ROUNDING   = m_pWindow->getRealRounding();
-    const auto BORDERSIZE = m_pWindow->getRealBorderSize();
+    const auto               ROUNDING   = m_pWindow->getRealRounding();
+    const auto               BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    wlr_box    windowBox = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
-    addExtentsToBox(&windowBox, &m_pWindow->m_seReservedInternal);
+    wlr_box                  windowBox            = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
+    SWindowDecorationExtents m_seReservedInternal = {m_pWindow->m_vReservedInternalTopLeft.goalv(), m_pWindow->m_vReservedInternalBottomRight.goalv()};
+    addExtentsToBox(&windowBox, &m_seReservedInternal);
 
     windowBox.x -= pMonitor->vecPosition.x + BORDERSIZE;
     windowBox.y -= pMonitor->vecPosition.y + BORDERSIZE;

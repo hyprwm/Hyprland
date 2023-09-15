@@ -1925,6 +1925,8 @@ void CKeybindManager::lockGroups(std::string args) {
         g_pKeybindManager->m_bGroupsLocked = !g_pKeybindManager->m_bGroupsLocked;
     else
         g_pKeybindManager->m_bGroupsLocked = false;
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"lockgroups", g_pKeybindManager->m_bGroupsLocked ? "1" : "0"});
 }
 
 void CKeybindManager::lockActiveGroup(std::string args) {

@@ -260,7 +260,12 @@ void IHyprLayout::onEndDragWindow() {
         g_pInputManager->refocus();
         changeWindowFloatingMode(DRAGGINGWINDOW);
         DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
-    } else if (g_pInputManager->dragMode == MBIND_MOVE) {
+    }
+
+    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
+    g_pCompositor->focusWindow(DRAGGINGWINDOW);
+
+    if (g_pInputManager->dragMode == MBIND_MOVE && DRAGGINGWINDOW->m_bIsFloating) {
         CWindow* pWindow = g_pCompositor->windowFloatingFromCursorIgnore(DRAGGINGWINDOW);
         g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
@@ -293,12 +298,8 @@ void IHyprLayout::onEndDragWindow() {
             recalculateWindow(DRAGGINGWINDOW);
 
             g_pCompositor->focusWindow(DRAGGINGWINDOW);
-            return;
         }
     }
-
-    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-    g_pCompositor->focusWindow(DRAGGINGWINDOW);
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {

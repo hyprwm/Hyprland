@@ -1227,6 +1227,20 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         runOrientationCycle(header, nullptr, -1);
     } else if (command == "orientationcycle") {
         runOrientationCycle(header, &vars, 1);
+    } else if (command == "mfact") {
+        if (vars.size() >= 2) {
+            float newMfact = 0;
+            try {
+                newMfact = std::stof(vars[1]);
+            } catch (std::exception& e) {
+                Debug::log(ERR, "Argument is invalid: {}", e.what());
+                return 0;
+            }
+            for (auto& nd : m_lMasterNodesData) {
+                if (nd.isMaster)
+                    nd.percMaster = std::clamp(newMfact, 0.05f, 0.95f);
+            }
+        }
     }
 
     return 0;

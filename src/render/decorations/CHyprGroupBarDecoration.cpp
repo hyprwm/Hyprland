@@ -12,6 +12,8 @@ static CTexture m_tGradientLockedInactive;
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
     loadConfig();
+    if (m_tGradientActive.m_iTexID == 0)
+        refreshGradients();
 }
 
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}

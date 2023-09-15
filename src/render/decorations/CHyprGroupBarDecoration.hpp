@@ -33,7 +33,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual CRegion                  getWindowDecorationRegion();
 
-    virtual void                     forceReload(CWindow*);
+    virtual void                     forceReload();
 
     virtual bool                     allowsInput();
 
@@ -67,6 +67,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     void                     invalidateTextures();
 
     void                     refreshGradients();
+    void                     loadConfig();
 
     struct STitleTexs {
         // STitleTexs*                            overriden = nullptr; // TODO: make shit shared in-group to decrease VRAM usage.

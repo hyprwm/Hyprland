@@ -11,7 +11,7 @@ static CTexture m_tGradientLockedInactive;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
-    forceReload(m_pWindow);
+    loadConfig();
 }
 
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
@@ -345,7 +345,7 @@ void CHyprGroupBarDecoration::refreshGradients() {
     renderGradientTo(m_tGradientLockedInactive, ((CGradientValueData*)PGROUPCOLINACTIVELOCKED->get())->m_vColors[0]);
 }
 
-void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
+void CHyprGroupBarDecoration::loadConfig() {
     static auto* const PENABLED     = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
     static auto* const PMODE        = &g_pConfigManager->getConfigValuePtr("group:groupbar:mode")->intValue;
     static auto* const PHEIGHT      = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
@@ -369,7 +369,10 @@ void CHyprGroupBarDecoration::forceReload(CWindow* pWindow) {
 
     m_iBarHeight      = *PMODE != 1 ? *PHEIGHT : BAR_INDICATOR_HEIGHT;
     m_iGradientHeight = *PMODE == 1 ? *PHEIGHT : 0;
+}
 
+void CHyprGroupBarDecoration::forceReload() {
+    loadConfig();
     refreshGradients();
 }
 

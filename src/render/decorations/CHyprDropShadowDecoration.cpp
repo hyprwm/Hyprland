@@ -97,7 +97,6 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     fullBox.width          = NEWSIZE.x;
     fullBox.height         = NEWSIZE.y;
 
-    // either was broken or it is now
     if (PSHADOWOFFSET->x < 0) {
         fullBox.x += PSHADOWOFFSET->x;
     } else if (PSHADOWOFFSET->x > 0) {

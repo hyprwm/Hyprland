@@ -124,8 +124,8 @@ void CConfigManager::setDefaultVars() {
     ((CGradientValueData*)configValues["group:col.border_inactive"].data.get())->reset(0x66777700);
     ((CGradientValueData*)configValues["group:col.border_locked_active"].data.get())->reset(0x66ff5500);
     ((CGradientValueData*)configValues["group:col.border_locked_inactive"].data.get())->reset(0x66775500);
-    configValues["group:insert_after_current"].intValue     = 1;
-    configValues["group:focus_removed_window"].intValue     = 1;
+    configValues["group:insert_after_current"].intValue = 1;
+    configValues["group:focus_removed_window"].intValue = 1;
 
     configValues["group:groupbar:enabled"].intValue          = 1;
     configValues["group:groupbar:font"].strValue             = "Sans";
@@ -1653,7 +1653,7 @@ void CConfigManager::loadConfigLoadVars() {
         w->updateSpecialRenderData();
 
         for (auto& wd : w->m_dWindowDecorations)
-            wd->forceReload(w.get());
+            wd->forceReload();
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(w.get());
     }
 

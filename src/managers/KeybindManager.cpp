@@ -1172,6 +1172,18 @@ void CKeybindManager::changeGroupActive(std::string args) {
     if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW)
         return;
 
+    if (isNumber(args, false)) {
+        // index starts from '1'; '0' means last window
+        const int INDEX = std::stoi(args);
+        if (INDEX > PWINDOW->getGroupSize())
+            return;
+        if (INDEX == 0)
+            PWINDOW->setGroupCurrent(PWINDOW->getGroupTail());
+        else
+            PWINDOW->setGroupCurrent(PWINDOW->getGroupWindowByIndex(INDEX - 1));
+        return;
+    }
+
     if (args != "b" && args != "prev") {
         PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
     } else {

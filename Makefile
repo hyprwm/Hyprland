@@ -84,7 +84,7 @@ fixwlr:
 config:
 	$(MAKE) fixwlr
 
-	meson setup subprojects/wlroots/build subprojects/wlroots --prefix=${PREFIX} --buildtype=release -Dwerror=false -Dexamples=false
+	meson setup subprojects/wlroots/build subprojects/wlroots --prefix=${PREFIX} --buildtype=release -Dwerror=false -Dexamples=false -Drenderers="gles2"
 	ninja -C subprojects/wlroots/build/
 
 	ninja -C subprojects/wlroots/build/ install
@@ -116,7 +116,7 @@ pluginenv:
 configdebug:
 	$(MAKE) fixwlr
 
-	meson setup subprojects/wlroots/build subprojects/wlroots --prefix=${PREFIX} --buildtype=debug -Dwerror=false -Dexamples=false -Db_sanitize=address
+	meson setup subprojects/wlroots/build subprojects/wlroots --prefix=${PREFIX} --buildtype=debug -Dwerror=false -Dexamples=false -Drenderers="gles2" -Db_sanitize=address
 	ninja -C subprojects/wlroots/build/
 
 	ninja -C subprojects/wlroots/build/ install

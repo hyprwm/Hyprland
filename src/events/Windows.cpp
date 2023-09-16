@@ -577,6 +577,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         g_pLayoutManager->getCurrentLayout()->onWindowRemoved(finalFound);
 
                         finalFound->setHidden(true);
+
+                        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
                     }
                 }
             }

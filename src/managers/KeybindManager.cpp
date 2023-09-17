@@ -1376,6 +1376,8 @@ void CKeybindManager::workspaceOpt(std::string args) {
                 }
             }
         }
+    } else if (args == "persistent") {
+        PWORKSPACE->m_bIndestructible = !PWORKSPACE->m_bIndestructible;
     } else {
         Debug::log(ERR, "Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args);
         return;

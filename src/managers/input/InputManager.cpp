@@ -1290,7 +1290,8 @@ void CInputManager::unconstrainMouse() {
     wlr_pointer_constraint_v1_send_deactivated(g_pCompositor->m_sSeat.mouse->currentConstraint);
 
     const auto PCONSTRAINT = constraintFromWlr(g_pCompositor->m_sSeat.mouse->currentConstraint);
-    PCONSTRAINT->active    = false;
+    if (PCONSTRAINT)
+        PCONSTRAINT->active = false;
 
     g_pCompositor->m_sSeat.mouse->constraintActive = false;
 

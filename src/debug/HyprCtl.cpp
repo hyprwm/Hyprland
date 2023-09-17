@@ -221,8 +221,8 @@ static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat
     "persistent": "{}"
 }})#",
                          w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
-                         ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), (uintptr_t)PLASTW, PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : ""),
-               w->m_bDefaultFloating ? "true" : "false", w->m_bDefaultPseudo ? "true" : "false", w->m_bIndestructible ? "true" : "false";
+                         ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), (uintptr_t)PLASTW, PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "",
+                         (w->m_bDefaultFloating ? "true" : "false"), (w->m_bDefaultPseudo ? "true" : "false"), (w->m_bIndestructible ? "true" : "false"));
     } else {
         return getFormat("workspace ID {} ({}) on monitor {}:\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\n", w->m_iID, w->m_szName,
                          PMONITOR ? PMONITOR->szName : "?", g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow, (uintptr_t)PLASTW,

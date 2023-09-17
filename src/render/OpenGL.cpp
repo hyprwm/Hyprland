@@ -1775,8 +1775,9 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
 void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
 
-    static auto* const              PNOSPLASH      = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
-    static auto* const              PFORCEHYPRCHAN = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
+    static auto* const              PNOSPLASH        = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
+    static auto* const              PDISABLEHYPRCHAN = &g_pConfigManager->getConfigValuePtr("misc:disable_hypr_chan")->intValue;
+    static auto* const              PFORCEHYPRCHAN   = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
 
     std::random_device              dev;
     std::mt19937                    engine(dev());
@@ -1797,7 +1798,10 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     // or configure the paths at build time
 
     // get the adequate tex
-    std::string texPath = "/usr/share/hyprland/wall_" + std::string(USEANIME ? (distribution2(engine) == 0 ? "anime_" : "anime2_") : "");
+    std::string texPath = "/usr/share/hyprland/wall_";
+    if (!*PDISABLEHYPRCHAN)
+        texPath += std::string(USEANIME ? (distribution2(engine) == 0 ? "anime_" : "anime2_") : "");
+
     // check if wallpapers exist
 
     Vector2D textureSize;

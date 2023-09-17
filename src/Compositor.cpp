@@ -1125,8 +1125,10 @@ void CCompositor::sanityCheckWorkspaces() {
     auto it = m_vWorkspaces.begin();
     while (it != m_vWorkspaces.end()) {
 
-        if ((*it)->m_bIndestructible)
+        if ((*it)->m_bIndestructible) {
+            ++it;
             continue;
+        }
 
         const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace((*it)->m_iID);
 

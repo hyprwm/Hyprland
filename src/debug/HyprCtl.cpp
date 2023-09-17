@@ -209,16 +209,16 @@ static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat
     const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
     if (format == HyprCtl::FORMAT_JSON) {
         return getFormat(R"#({{
-    "id": {},
-    "name": "{}",
-    "monitor": "{}",
-    "windows": {},
-    "hasfullscreen": {},
-    "lastwindow": "0x{:x}",
+    "id":               {},
+    "name":            "{}",
+    "monitor":         "{}",
+    "windows":          {},
+    "hasfullscreen":    {},
+    "lastwindow":      "0x{:x}",
     "lastwindowtitle": "{}",
-    "allfloating": "{}",
-    "allpseudo": "{}",
-    "persistent": "{}"
+    "allfloating":      {},
+    "allpseudo":        {},
+    "persistent":       {}
 }})#",
                          w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
                          ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), (uintptr_t)PLASTW, PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "",

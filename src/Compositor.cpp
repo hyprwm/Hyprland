@@ -875,7 +875,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         const auto PWORKSPACE            = getWorkspaceByID(pWindow->m_iWorkspaceID);
         PWORKSPACE->m_pLastFocusedWindow = pWindow;
         PWORKSPACE->rememberPrevWorkspace(getWorkspaceByID(m_pLastMonitor->activeWorkspace));
-        const auto PMONITOR              = getMonitorFromID(PWORKSPACE->m_iMonitorID);
+        const auto PMONITOR = getMonitorFromID(PWORKSPACE->m_iMonitorID);
         PMONITOR->changeWorkspace(PWORKSPACE, false, true);
         // changeworkspace already calls focusWindow
         return;
@@ -1659,6 +1659,8 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     // optimization
     static auto* const ACTIVECOL              = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.active_border")->data.get();
     static auto* const INACTIVECOL            = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.inactive_border")->data.get();
+    static auto* const NOGROUPACTIVECOL       = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.nogroup_border_active")->data.get();
+    static auto* const NOGROUPINACTIVECOL     = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.nogroup_border")->data.get();
     static auto* const GROUPACTIVECOL         = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data.get();
     static auto* const GROUPINACTIVECOL       = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border")->data.get();
     static auto* const GROUPACTIVELOCKEDCOL   = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.group_border_locked_active")->data.get();
@@ -1688,12 +1690,14 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     else {
         const bool GROUPLOCKED = pWindow->m_sGroupData.pNextWindow ? pWindow->getGroupHead()->m_sGroupData.locked : false;
         if (pWindow == m_pLastWindow) {
-            const auto* const ACTIVECOLOR = !pWindow->m_sGroupData.pNextWindow ? ACTIVECOL : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
+            const auto* const ACTIVECOLOR =
+                !pWindow->m_sGroupData.pNextWindow ? (!pWindow->m_sGroupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
             setBorderColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying() >= 0 ?
                                CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying())) :
                                *ACTIVECOLOR);
         } else {
-            const auto* const INACTIVECOLOR = !pWindow->m_sGroupData.pNextWindow ? INACTIVECOL : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
+            const auto* const INACTIVECOLOR =
+                !pWindow->m_sGroupData.pNextWindow ? (!pWindow->m_sGroupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
             setBorderColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying() >= 0 ?
                                CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying())) :
                                *INACTIVECOLOR);

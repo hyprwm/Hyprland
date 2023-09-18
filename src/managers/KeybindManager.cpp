@@ -70,6 +70,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
     m_mDispatchers["movewindoworgroup"]             = moveWindowOrGroup;
     m_mDispatchers["setignoregrouplock"]            = setIgnoreGroupLock;
+    m_mDispatchers["denywindowfromgroup"]           = denyWindowFromGroup;
     m_mDispatchers["global"]                        = global;
 
     m_tScrollTimer.reset();
@@ -1149,46 +1150,10 @@ void CKeybindManager::toggleGroup(std::string args) {
 
     g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
-    if (!PWINDOW->m_sGroupData.pNextWindow) {
-        PWINDOW->m_sGroupData.pNextWindow = PWINDOW;
-        PWINDOW->m_sGroupData.head        = true;
-        PWINDOW->m_sGroupData.locked      = false;
-
-        PWINDOW->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(PWINDOW));
-
-        PWINDOW->updateWindowDecos();
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
-    } else {
-        if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW) {
-            PWINDOW->m_sGroupData.pNextWindow = nullptr;
-            PWINDOW->updateWindowDecos();
-        } else {
-            // enum all windows, remove their group state, readd to layout.
-            CWindow*              curr = PWINDOW;
-            std::vector<CWindow*> members;
-            do {
-                const auto PLASTWIN                = curr;
-                curr                               = curr->m_sGroupData.pNextWindow;
-                PLASTWIN->m_sGroupData.pNextWindow = nullptr;
-                curr->setHidden(false);
-                members.push_back(curr);
-            } while (curr != PWINDOW);
-
-            for (auto& w : members) {
-                if (w->m_sGroupData.head)
-                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
-                w->m_sGroupData.head = false;
-            }
-
-            const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
-            g_pKeybindManager->m_bGroupsLocked = true;
-            for (auto& w : members) {
-                g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
-                w->updateWindowDecos();
-            }
-            g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
-        }
-    }
+    if (!PWINDOW->m_sGroupData.pNextWindow)
+        PWINDOW->createGroup();
+    else
+        PWINDOW->destroyGroup();
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 }
@@ -1951,6 +1916,9 @@ void CKeybindManager::lockActiveGroup(std::string args) {
 }
 
 void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection) {
+    if (pWindow->m_sGroupData.deny)
+        return;
+
     if (!pWindow->m_sGroupData.pNextWindow)
         pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
@@ -1968,6 +1936,7 @@ void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDi
 }
 
 void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir) {
+
     static auto* const BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("misc:group_focus_removed_window")->intValue;
     const auto         PWINDOWPREV         = pWindow->getGroupPrevious();
     eDirection         direction;
@@ -1983,8 +1952,7 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& 
     }
 
     if (pWindow->m_sGroupData.pNextWindow == pWindow) {
-        pWindow->m_sGroupData.pNextWindow = nullptr;
-        pWindow->updateWindowDecos();
+        pWindow->destroyGroup();
     } else {
         g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
 
@@ -2017,7 +1985,7 @@ void CKeybindManager::moveIntoGroup(std::string args) {
 
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
-    if (!PWINDOW || PWINDOW->m_bIsFloating)
+    if (!PWINDOW || PWINDOW->m_bIsFloating || PWINDOW->m_sGroupData.deny)
         return;
 
     auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
@@ -2044,7 +2012,7 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
 void CKeybindManager::moveWindowOrGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const BIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
+    static auto* const PIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction %c, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2052,40 +2020,31 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
     }
 
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
-
     if (!PWINDOW || PWINDOW->m_bIsFullscreen)
         return;
+    const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
 
-    const auto ISWINDOWGROUP       = PWINDOW->m_sGroupData.pNextWindow;
-    const auto ISWINDOWGROUPLOCKED = ISWINDOWGROUP && PWINDOW->getGroupHead()->m_sGroupData.locked;
-
-    const auto PWINDOWINDIR             = g_pCompositor->getWindowInDirection(PWINDOW, arg);
-    const auto ISWINDOWINDIRGROUP       = PWINDOWINDIR && PWINDOWINDIR->m_sGroupData.pNextWindow;
-    const auto ISWINDOWINDIRGROUPLOCKED = ISWINDOWINDIRGROUP && PWINDOWINDIR->getGroupHead()->m_sGroupData.locked;
+    const bool ISWINDOWGROUP       = PWINDOW->m_sGroupData.pNextWindow;
+    const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && PWINDOW->getGroupHead()->m_sGroupData.locked;
+    const bool ISWINDOWGROUPSINGLE = ISWINDOWGROUP && PWINDOW->m_sGroupData.pNextWindow == PWINDOW;
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_bIsFloating
-    if (ISWINDOWINDIRGROUP && !ISWINDOWINDIRGROUPLOCKED) {
-        if (ISWINDOWGROUPLOCKED && !*BIGNOREGROUPLOCK) {
+    if (PWINDOWINDIR && PWINDOWINDIR->m_sGroupData.pNextWindow) { // target is group
+        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || ISWINDOWGROUPLOCKED || PWINDOW->m_sGroupData.deny)) {
             g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
-    } else if (ISWINDOWINDIRGROUPLOCKED) {
-        if (!*BIGNOREGROUPLOCK) {
+    } else if (PWINDOWINDIR) { // target is regular window
+        if ((!*PIGNOREGROUPLOCK && ISWINDOWGROUPLOCKED) || !ISWINDOWGROUP || (ISWINDOWGROUPSINGLE && PWINDOW->m_eGroupRules & GROUP_SET_ALWAYS)) {
             g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
-            moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
-    } else if (PWINDOWINDIR) {
-        if (ISWINDOWGROUP && (*BIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED))
             moveWindowOutOfGroup(PWINDOW, args);
-        else {
-            g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
-            g_pCompositor->warpCursorTo(PWINDOW->middle());
-        }
-    } else if (ISWINDOWGROUP && (*BIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED)) {
+    } else if ((*PIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED) && ISWINDOWGROUP) // no target window
         moveWindowOutOfGroup(PWINDOW, args);
-    }
+
+    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 }
 
 void CKeybindManager::setIgnoreGroupLock(std::string args) {
@@ -2097,6 +2056,19 @@ void CKeybindManager::setIgnoreGroupLock(std::string args) {
         *BIGNOREGROUPLOCK = args == "on";
 
     g_pEventManager->postEvent(SHyprIPCEvent{"ignoregrouplock", std::to_string(*BIGNOREGROUPLOCK)});
+}
+
+void CKeybindManager::denyWindowFromGroup(std::string args) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+    if (!PWINDOW || (PWINDOW && PWINDOW->m_sGroupData.pNextWindow))
+        return;
+
+    if (args == "toggle")
+        PWINDOW->m_sGroupData.deny = !PWINDOW->m_sGroupData.deny;
+    else
+        PWINDOW->m_sGroupData.deny = args == "on";
+
+    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 }
 
 void CKeybindManager::global(std::string args) {

@@ -94,11 +94,12 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     // if it's a group, add the window
-    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow &&      // target is group
-        !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&                             // target unlocked
-        !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked) && // source unlocked or isn't group
-        !g_pKeybindManager->m_bGroupsLocked                                                     // global group lock disengaged
-    ) {
+    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow         // target is group
+        && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked                             // target unlocked
+        && !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked) // source unlocked or isn't group
+        && !pWindow->m_sGroupData.deny                                                          // source is not denied entry
+        && !(pWindow->m_eGroupRules & GROUP_BARRED)                                             // group rule doesn't prevent adding window
+        && !g_pKeybindManager->m_bGroupsLocked) {
         if (!pWindow->m_sGroupData.pNextWindow)
             pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
@@ -118,11 +119,14 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
         }
 
         OPENINGON->pWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 
         return;
     }
+
+    pWindow->applyGroupRules();
 
     if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster)) {
         for (auto& nd : m_lMasterNodesData) {

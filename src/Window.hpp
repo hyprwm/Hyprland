@@ -17,6 +17,17 @@ enum eIdleInhibitMode {
     IDLEINHIBIT_FOCUS
 };
 
+enum eGroupRules {
+    // effective only during first map, except for _ALWAYS variant
+    GROUP_NONE        = 0,
+    GROUP_SET         = 1 << 0, // Open as new group or add to focused group
+    GROUP_SET_ALWAYS  = 1 << 1,
+    GROUP_BARRED      = 1 << 2, // Don't insert to focused group.
+    GROUP_LOCK        = 1 << 3, // Lock m_sGroupData.lock
+    GROUP_LOCK_ALWAYS = 1 << 4,
+    GROUP_OVERRIDE    = 1 << 5, // Override other rules
+};
+
 template <typename T>
 class CWindowOverridableVar {
   public:
@@ -299,8 +310,10 @@ class CWindow {
     struct SGroupData {
         CWindow* pNextWindow = nullptr; // nullptr means no grouping. Self means single group.
         bool     head        = false;
-        bool     locked      = false;
+        bool     locked      = false; // per group lock
+        bool     deny        = false; // deny window from enter a group or made a group
     } m_sGroupData;
+    uint8_t m_eGroupRules = GROUP_NONE;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
@@ -341,6 +354,9 @@ class CWindow {
     bool                     isInCurvedCorner(double x, double y);
     bool                     hasPopupAt(const Vector2D& pos);
 
+    void                     applyGroupRules();
+    void                     createGroup();
+    void                     destroyGroup();
     CWindow*                 getGroupHead();
     CWindow*                 getGroupTail();
     CWindow*                 getGroupCurrent();

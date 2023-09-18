@@ -24,7 +24,7 @@ appearance, gender, identity, nationality, sexuality, etc.
 
 Examples of breaking each rule respectively include:
  - Harassment, bullying or inappropriate jokes about another person.
- - Posting distasteful imagery, trolling, or political discussions.
+ - Posting distasteful imagery, trolling, or posting things unrelated to the topic at hand.
  - Treating someone as worse because of their lack of understanding of an issue.
 
 ## Enforcement

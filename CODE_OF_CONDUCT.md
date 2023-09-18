@@ -1,7 +1,7 @@
 ## Goal
 
 Our goal is to provide a space where it is safe for everyone to contribute to
-open-source software in a respectful and peaceful manner.
+open-source software in a respectful and cooperative manner.
 
 We value all contributions and want to make this organization and its surrounding community
 a place for everyone.
@@ -11,15 +11,16 @@ to keep the entire experience civil.
 
 ## Standards
 
-Our community is made for everyone to contribute to the codebase together.
+Our community standards exist in order to make sure everyone feels comfortable contributing
+to the project(s) together.
 
 Our standards are:
  - Do not harass, attack, or in any other way discriminate against anyone, including for their protected traits, including, but not limited to, sex, religion, race, appearance, gender, identity, nationality, sexuality, etc.
  - Do not go off-topic, do not post spam.
- - You are not required to like everybody, but you are required to treat everyone with respect.
+ - Treat everyone with respect.
 
 Examples of breaking each rule respectively include:
- - Harassment, bullying or joking about someone's protected trait.
+ - Harassment, bullying or inappropriate jokes about another person.
  - Posting distasteful imagery, trolling, or political discussions.
  - Treating someone as worse because of their lack of understanding of an issue.
 
@@ -48,6 +49,8 @@ with such incidents in multiple ways:
  - `@vaxry:matrix.vaxry.net`
  - `@fufexan:matrix.org`
  
+We, as members, guarantee your privacy and will not share those reports with anyone.
+
 ## Enforcement Strategy
 
 Depending on the severity of the infraction, any action from the list below may be applied.

@@ -7,7 +7,7 @@ manner.
 We value all contributions and want to make this organization and its
 surrounding community a place for everyone.
 
-As members, contributors and everyone else who may participate in the
+As members, contributors, and everyone else who may participate in the
 development, we strive to keep the entire experience civil.
 
 ## Standards
@@ -80,7 +80,7 @@ and/or delete your message.
 ### Mute
 
 If your message is disruptive, or you have been repeatedly violating the standards,
-a member might mute (or temporairly ban) you.
+a member might mute (or temporarily ban) you.
 
 ### Ban
 

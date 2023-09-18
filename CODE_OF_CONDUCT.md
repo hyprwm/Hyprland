@@ -1,18 +1,19 @@
 ## Goal
 
-Our goal is to provide a space where it is safe for everyone to contribute to
-open-source software in a respectful and cooperative manner.
+Our goal is to provide a space where it is safe for everyone to contribute to,
+and get support for, open-source software in a respectful and cooperative
+manner.
 
-We value all contributions and want to make this organization and its surrounding community
-a place for everyone.
+We value all contributions and want to make this organization and its
+surrounding community a place for everyone.
 
-As members, contributors and everyone else who may participate in the development, we strive
-to keep the entire experience civil.
+As members, contributors and everyone else who may participate in the
+development, we strive to keep the entire experience civil.
 
 ## Standards
 
-Our community standards exist in order to make sure everyone feels comfortable contributing
-to the project(s) together.
+Our community standards exist in order to make sure everyone feels comfortable
+contributing to the project(s) together.
 
 Our standards are:
  - Do not harass, attack, or in any other way discriminate against anyone, including for their protected traits, including, but not limited to, sex, religion, race, appearance, gender, identity, nationality, sexuality, etc.

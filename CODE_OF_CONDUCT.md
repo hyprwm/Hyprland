@@ -46,6 +46,7 @@ with such incidents in multiple ways:
 
 ***Matrix***
  - `@vaxry:matrix.vaxry.net`
+ - `@fufexan:matrix.org`
  
 ## Enforcement Strategy
 

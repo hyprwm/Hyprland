@@ -16,7 +16,9 @@ Our community standards exist in order to make sure everyone feels comfortable
 contributing to the project(s) together.
 
 Our standards are:
- - Do not harass, attack, or in any other way discriminate against anyone, including for their protected traits, including, but not limited to, sex, religion, race, appearance, gender, identity, nationality, sexuality, etc.
+ - Do not harass, attack, or in any other way discriminate against anyone, including
+for their protected traits, including, but not limited to, sex, religion, race,
+appearance, gender, identity, nationality, sexuality, etc.
  - Do not go off-topic, do not post spam.
  - Treat everyone with respect.
 

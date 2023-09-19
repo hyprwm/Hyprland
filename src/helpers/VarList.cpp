@@ -1,36 +1,26 @@
 #include "VarList.hpp"
+#include <ranges>
+#include <algorithm>
 
-CVarList::CVarList(const std::string& in, long unsigned int lastArgNo, const char separator) {
-    std::string curitem  = "";
-    std::string argZ     = in;
-    const bool  SPACESEP = separator == 's';
+CVarList::CVarList(const std::string& in, const size_t lastArgNo, const char delim, const bool removeEmpty) {
+    if (in.empty())
+        m_vArgs.emplace_back("");
 
-    auto        nextItem = [&]() {
-        auto idx = lastArgNo != 0 && m_vArgs.size() >= lastArgNo - 1 ? std::string::npos : ([&]() -> size_t {
-            if (!SPACESEP)
-                return argZ.find_first_of(separator);
+    std::string args{in};
+    size_t      idx = 0;
+    size_t      pos = 0;
+    std::ranges::replace_if(
+        args, [&](const char& c) { return delim == 's' ? std::isspace(c) : c == delim; }, 0);
 
-            uint64_t pos = -1;
-            while (!std::isspace(argZ[++pos]) && pos < argZ.length())
-                ;
-
-            return pos < argZ.length() ? pos : std::string::npos;
-        }());
-
-        if (idx != std::string::npos) {
-            curitem = argZ.substr(0, idx);
-            argZ    = argZ.substr(idx + 1);
-        } else {
-            curitem = argZ;
-            argZ    = STRVAL_EMPTY;
+    for (const auto& s : args | std::views::split(0)) {
+        if (removeEmpty && s.empty())
+            continue;
+        if (++idx == lastArgNo) {
+            m_vArgs.emplace_back(removeBeginEndSpacesTabs(in.substr(pos)));
+            break;
         }
-    };
-
-    nextItem();
-
-    while (curitem != STRVAL_EMPTY) {
-        m_vArgs.push_back(removeBeginEndSpacesTabs(curitem));
-        nextItem();
+        pos += s.size() + 1;
+        m_vArgs.emplace_back(removeBeginEndSpacesTabs(std::string_view{s}.data()));
     }
 }
 

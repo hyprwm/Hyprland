@@ -9,6 +9,10 @@
 
 CHyprXWaylandManager::CHyprXWaylandManager() {
 #ifndef NO_XWAYLAND
+    static auto* const XWAYLANDENABLED = &g_pConfigManager->getConfigValuePtr("xwayland:enabled")->intValue;
+    if (!*XWAYLANDENABLED)
+        return;
+
     m_sWLRXWayland = wlr_xwayland_create(g_pCompositor->m_sWLDisplay, g_pCompositor->m_sWLRCompositor, 1);
 
     if (!m_sWLRXWayland) {

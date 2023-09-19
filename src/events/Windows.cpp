@@ -222,6 +222,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->m_eGroupRules |= (GROUP_SET | GROUP_BARRED);
                 } else if (v == "lock") {
                     PWINDOW->m_eGroupRules |= GROUP_LOCK;
+                } else if (v == "invade") {
+                    PWINDOW->m_eGroupRules |= GROUP_INVADE;
                 } else if (v == "barred") {
                     PWINDOW->m_eGroupRules |= GROUP_BARRED;
                 } else if (v == "deny") {

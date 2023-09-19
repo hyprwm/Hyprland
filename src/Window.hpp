@@ -25,7 +25,8 @@ enum eGroupRules {
     GROUP_BARRED      = 1 << 2, // Don't insert to focused group.
     GROUP_LOCK        = 1 << 3, // Lock m_sGroupData.lock
     GROUP_LOCK_ALWAYS = 1 << 4,
-    GROUP_OVERRIDE    = 1 << 5, // Override other rules
+    GROUP_INVADE      = 1 << 5, // Force enter a group, event if lock is engaged
+    GROUP_OVERRIDE    = 1 << 6, // Override other rules
 };
 
 template <typename T>
@@ -313,7 +314,7 @@ class CWindow {
         bool     locked      = false; // per group lock
         bool     deny        = false; // deny window from enter a group or made a group
     } m_sGroupData;
-    uint8_t m_eGroupRules = GROUP_NONE;
+    uint16_t m_eGroupRules = GROUP_NONE;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

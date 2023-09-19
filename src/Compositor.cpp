@@ -917,13 +917,11 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
 
     // TODO: implement this better
-    if (!PLASTWINDOW && pWindow->m_sGroupData.pNextWindow && pWindow->m_sGroupData.pNextWindow != pWindow) {
-        auto curr = pWindow;
-        do {
-            curr = curr->m_sGroupData.pNextWindow;
+    if (!PLASTWINDOW && pWindow->m_sGroupData.pNextWindow) {
+        for (auto curr = pWindow->m_sGroupData.pNextWindow; curr != pWindow; curr = curr->m_sGroupData.pNextWindow) {
             if (curr->m_phForeignToplevel)
                 wlr_foreign_toplevel_handle_v1_set_activated(curr->m_phForeignToplevel, false);
-        } while (curr->m_sGroupData.pNextWindow != pWindow);
+        }
     }
 
     if (pWindow->m_phForeignToplevel)

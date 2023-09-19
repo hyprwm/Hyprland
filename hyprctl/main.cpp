@@ -303,7 +303,6 @@ bool isNumber(const std::string& str, bool allowfloat) {
 }
 
 int main(int argc, char** argv) {
-    int  bflag = 0, sflag = 0, index, c;
     bool parseArgs = true;
 
     if (argc < 2) {

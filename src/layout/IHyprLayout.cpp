@@ -402,7 +402,7 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     const auto TILED = isWindowTiled(pWindow);
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("{:x},{}", (uintptr_t)pWindow, (int)TILED)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", std::format("{:x},{}", (uintptr_t)pWindow, (int)TILED)});
     EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {

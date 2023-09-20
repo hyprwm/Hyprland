@@ -9,8 +9,7 @@
 
 #define LOGMESSAGESIZE 1024
 
-enum LogLevel
-{
+enum LogLevel {
     NONE = -1,
     LOG  = 0,
     WARN,
@@ -29,7 +28,7 @@ namespace Debug {
 
     void               init(const std::string& IS);
     template <typename... Args>
-    void log(LogLevel level, const std::string& fmt, Args&&... args) {
+    void log(LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
         if (disableLogs && *disableLogs)
             return;
 
@@ -63,20 +62,12 @@ namespace Debug {
 #endif
         }
 
-        try {
-            logMsg += std::vformat(fmt, std::make_format_args(args...));
-        } catch (std::exception& e) {
-            std::string exceptionMsg = e.what();
-            Debug::log(ERR, "caught exception in Debug::log: {}", exceptionMsg);
-
-            const auto CALLSTACK = getBacktrace();
-
-            Debug::log(LOG, "stacktrace:");
-
-            for (size_t i = 0; i < CALLSTACK.size(); ++i) {
-                Debug::log(NONE, "\t #{} | {}", i, CALLSTACK[i].desc);
-            }
-        }
+        // no need for try {} catch {} because std::format_string<Args...> ensures that vformat never throw std::format_error
+        // because
+        // 1. any faulty format specifier that sucks will cause a compilation error.
+        // 2. and `std::bad_alloc` is catastrophic, (Almost any operation in stdlib could throw this.)
+        // 3. this is actually what std::format in stdlib does
+        logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
 
         ofs << logMsg << "\n";
 

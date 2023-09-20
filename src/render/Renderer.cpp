@@ -1611,7 +1611,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                     const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
 
                     if (!PREFERREDMODE) {
-                        Debug::log(ERR, "Monitor {} has NO PREFERRED MODE, and an INVALID one was requested: {}x{}@{:2f}", (int)pMonitorRule->resolution.x,
+                        Debug::log(ERR, "Monitor {} has NO PREFERRED MODE, and an INVALID one was requested: {}x{}@{:2f}", pMonitor->ID, (int)pMonitorRule->resolution.x,
                                    (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
                         return true;
                     }
@@ -1724,7 +1724,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 const auto PREFERREDMODE = wlr_output_preferred_mode(pMonitor->output);
 
                 if (!PREFERREDMODE) {
-                    Debug::log(ERR, "Monitor {} has NO PREFERRED MODE, and an INVALID one was requested: {}x{}@{:2f}", (int)pMonitorRule->resolution.x,
+                    Debug::log(ERR, "Monitor {} has NO PREFERRED MODE, and an INVALID one was requested: {}x{}@{:2f}", pMonitor->ID, (int)pMonitorRule->resolution.x,
                                (int)pMonitorRule->resolution.y, (float)pMonitorRule->refreshRate);
                     return true;
                 }

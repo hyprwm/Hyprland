@@ -2,6 +2,8 @@
 
 #include "../defines.hpp"
 #include "../Window.hpp"
+#include "Necromancy.hpp"
+
 #include <any>
 
 struct SWindowRenderLayoutHints {
@@ -25,7 +27,7 @@ enum eRectCorner {
 
 enum eDirection {
     DIRECTION_DEFAULT = -1,
-    DIRECTION_UP = 0,
+    DIRECTION_UP      = 0,
     DIRECTION_RIGHT,
     DIRECTION_DOWN,
     DIRECTION_LEFT
@@ -181,7 +183,48 @@ class IHyprLayout {
     */
     virtual void requestFocusForWindow(CWindow*);
 
+    /**
+        Save layout.
+    */
+    virtual void save(std::ostream& os);
+
+    /**
+        Restore layout.
+    */
+    virtual void restore(std::istream& is);
+
+  protected:
+    // readd stray windows back to layout
+    void recoverStrays();
+    // List orphaned windows that do not have an associated SWindowState
+    std::list<CWindow*> m_lStrayWindows;
+    // Map of recovered (and invalid) CWindow* to SWindowState
+    std::unique_ptr<window_state_map_t> m_mWindowStates = nullptr;
+    /**
+        get next SWindowState in a group
+        @param pWindowState if ws is not a group, return pWindowState unchanged
+    */
+    inline SWindowState* groupNext(SWindowState* pWindowState) {
+        return pWindowState->groupData.next != 0 ? &(*m_mWindowStates)[pWindowState->groupData.next] : pWindowState;
+    }
+    /**
+        get next valid SWindowState in a group
+        @param pWindowState if it is not a group, return pWindowState unchanged
+    */
+    inline SWindowState* groupNextValid(SWindowState* pWindowState) {
+        SWindowState* curr = pWindowState;
+        while (!curr->isValid() && curr->groupData.next != 0) {
+            curr = groupNext(curr);
+            if (curr == pWindowState)
+                break;
+        }
+        return curr;
+    }
+
   private:
+    void        saveWorkspaces(std::ostream& os);
+    void        restoreWorkspaces(std::istream& is);
+
     Vector2D    m_vBeginDragXY;
     Vector2D    m_vLastDragXY;
     Vector2D    m_vBeginDragPositionXY;

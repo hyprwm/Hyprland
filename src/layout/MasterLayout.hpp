@@ -61,6 +61,8 @@ class CHyprMasterLayout : public IHyprLayout {
     virtual void                     alterSplitRatio(CWindow*, float, bool);
     virtual std::string              getLayoutName();
     virtual void                     replaceWindowDataWith(CWindow* from, CWindow* to);
+    virtual void                     save(std::ostream& os);
+    virtual void                     restore(std::istream& is);
 
     virtual void                     onEnable();
     virtual void                     onDisable();

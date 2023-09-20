@@ -10,6 +10,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <errno.h>
+#include <ranges>
+#include <numeric>
 
 #include <sstream>
 #include <string>
@@ -1222,6 +1224,99 @@ std::string dispatchNotify(std::string request) {
     return "ok";
 }
 
+std::string dispatchNecromancy(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
+    /*  
+    syntax (EBNF):
+    request = "save ", [ path, [" --cwd ", cwd] ]    ; save layout
+            | "restore ", [ path, [" --cwd ", cwd] ] ; restore layout
+            | "inspect ", [ path, [" --cwd ", cwd] ] ; inspect layout save file
+    cwd: the base directory used for resolving relative paths, if left empty,
+         the main data directory will be used.
+    path: if omitted, use the default location.
+    */
+    static const auto* PDEFAULT_PATH = &g_pConfigManager->getConfigValuePtr("misc:layout_save_file")->strValue;
+    using namespace Necromancy;
+
+    // Parse args
+    CVarList    argv{request, 0, 's', true};
+    const auto& cmd  = argv[1];
+    auto        path = *PDEFAULT_PATH;
+    auto        cwd  = CConfigManager::getDataDir();
+    size_t      argc = 0;
+    if (cmd == "--cwd" || cmd.empty())
+        return "missing command";
+    for (auto it = argv.begin() + 2; it != argv.end(); it++) {
+        if (*it == "--cwd") {
+            if (it + 1 == argv.end())
+                return "--cwd requires an argument";
+            cwd = *(++it) + "/"; // because absolutePath sucks;
+            continue;
+        } else if (argc == 0) {
+            path = *it;
+        }
+        argc++;
+    }
+
+    // Save and restore layouts
+    try {
+        if (cmd == "save") {
+            saveLayout(absolutePath(path, cwd));
+            return std::format("layout file saved to: \"{}\"", path);
+        }
+        if (cmd == "restore") {
+            restoreLayout(absolutePath(path, cwd));
+            return std::format("layout restored using: \"{}\"", path);
+        }
+    } catch (necromancy_error& e) { return e.what(); }
+
+    // Inspect layout file
+    if (cmd == "inspect") {
+        std::ostringstream out;
+        std::ifstream      ifs{path, std::ios::binary};
+        if (!ifs.is_open())
+            return std::format("cannot open layout file: \"{}\"", path);
+
+        if (!validateHeader(ifs))
+            return std::format("layout file head is invalid");
+
+        // layout name
+        std::string layoutName;
+        load(ifs, layoutName);
+        // windows
+        auto windows = SWindowState::loadAll(ifs);
+        // workspace
+        size_t                       workspaceCount = 0;
+        std::vector<SWorkspaceState> workspaces{workspaceCount}; // vector because std::views sucks
+        load(ifs, workspaceCount);
+        for (size_t i = 0; i < workspaceCount; i++) {
+            workspaces.emplace_back().unmarshal(ifs);
+        }
+
+        // TODO: maybe layout nodes?
+        if (format == HyprCtl::FORMAT_JSON) {
+            out << std::format("{{\n  \"layout\": \"{}\",\n", layoutName);
+            out << std::format("  \"windows\": {:j},\n", *windows);
+            out << "  \"workspaces\": [\n";
+            for (const auto& ws : workspaces | std::views::take(workspaces.size() - 1)) {
+                out << std::format("{:j},\n", ws);
+            }
+            if (workspaces.size() > 1)
+                out << std::format("{:j}\n", workspaces.back());
+            out << "  ]\n}";
+        } else {
+            out << std::format("Layout: {}\n\n\n", layoutName);
+            out << std::format("{}\n", *windows);
+            for (const auto& ws : workspaces) {
+                out << std::format("{}\n\n", ws);
+            }
+        }
+
+        return out.str();
+    }
+
+    return std::format("unknown command {}", cmd);
+}
+
 std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
@@ -1293,6 +1388,8 @@ std::string getReply(std::string request) {
         return dispatchSetCursor(request);
     else if (request.find("getoption") == 0)
         return dispatchGetOption(request, format);
+    else if (request.find("necromancy") == 0)
+        return dispatchNecromancy(request, format);
     else if (request.find("[[BATCH]]") == 0)
         return dispatchBatch(request);
 

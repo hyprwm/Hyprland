@@ -1,7 +1,11 @@
 #include "KeybindManager.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../layout/Necromancy.hpp"
+#include <source_location>
 
+#include <cassert>
 #include <regex>
+#include <ranges>
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -74,6 +78,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["setignoregrouplock"]            = setIgnoreGroupLock;
     m_mDispatchers["denywindowfromgroup"]           = denyWindowFromGroup;
     m_mDispatchers["global"]                        = global;
+    m_mDispatchers["necromancy"]                    = necromancy;
 
     m_tScrollTimer.reset();
 
@@ -748,7 +753,7 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
         return;
 
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
-
+        // we are in a group with multiple members
         const auto PCURRENT     = PWINDOW->getGroupCurrent();
         PCURRENT->m_bIsFloating = !PCURRENT->m_bIsFloating;
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
@@ -2124,4 +2129,14 @@ void CKeybindManager::moveGroupWindow(std::string args) {
         g_pCompositor->m_pLastWindow->switchWithWindowInGroup(BACK ? g_pCompositor->m_pLastWindow->getGroupPrevious() : g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow);
 
     g_pCompositor->m_pLastWindow->updateWindowDecos();
+}
+
+void CKeybindManager::necromancy(std::string args) {
+    CVarList argv{args, 0, 's', true};
+    try {
+        if (argv[0] == "save")
+            Necromancy::saveLayout(argv[1]);
+        else
+            Necromancy::restoreLayout(argv[1]);
+    } catch (necromancy_error& e) { e.notify(); }
 }

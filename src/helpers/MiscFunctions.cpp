@@ -707,3 +707,12 @@ void throwError(const std::string& err) {
     Debug::log(CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
 }
+std::string getCmdline(pid_t pid) {
+    std::ifstream cmdlineIfs{"/proc/" + std::to_string(pid) + "/cmdline", std::ios::binary};
+    std::string   cmdline{std::istreambuf_iterator<char>{cmdlineIfs}, {}};
+
+    std::replace(cmdline.begin(), cmdline.end(), '\0', ' ');
+    if (!cmdline.empty() && cmdline.back() == ' ')
+        cmdline.pop_back();
+    return cmdline;
+}

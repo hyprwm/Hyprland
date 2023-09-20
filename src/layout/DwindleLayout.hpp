@@ -30,15 +30,36 @@ struct SDwindleNodeData {
 
     bool                             valid = true;
 
+    CHyprDwindleLayout*              layout = nullptr;
+
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) const {
         return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && position == rhs.position && size == rhs.size && pParent == rhs.pParent &&
             children[0] == rhs.children[0] && children[1] == rhs.children[1];
     }
 
-    void                recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
-    void                getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
-    CHyprDwindleLayout* layout = nullptr;
+    void recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
+    void getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
+
+    /**
+        Serialize window state into binary stream
+    */
+    void marshal(std::ostream& os);
+    /**
+        Fetch window state from binary stream
+    */
+    uintptr_t unmarshal(std::istream& is);
+
+  private:
+    void apply(const auto&& callback);
+};
+
+template <>
+struct std::formatter<SDwindleNodeData> : std::formatter<std::string> {
+    template <typename FormatContext>
+    auto format(SDwindleNodeData const& node, FormatContext& ctx) const {
+        return formatter<string>::format(std::format("[Node: {:x}, window:{:x} pos:{} size:{}]", (uintptr_t)&node, (uintptr_t)node.pWindow, node.position, node.size), ctx);
+    }
 };
 
 class CHyprDwindleLayout : public IHyprLayout {
@@ -58,6 +79,8 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     alterSplitRatio(CWindow*, float, bool);
     virtual std::string              getLayoutName();
     virtual void                     replaceWindowDataWith(CWindow* from, CWindow* to);
+    virtual void                     save(std::ostream& os);
+    virtual void                     restore(std::istream& is);
 
     virtual void                     onEnable();
     virtual void                     onDisable();
@@ -79,6 +102,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     SDwindleNodeData*       getNodeFromWindow(CWindow*);
     SDwindleNodeData*       getFirstNodeOnWorkspace(const int&);
     SDwindleNodeData*       getMasterNodeOnWorkspace(const int&);
+    void                    removeNode(SDwindleNodeData* PNODE);
 
     void                    toggleSplit(CWindow*);
 

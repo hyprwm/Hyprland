@@ -1,6 +1,11 @@
 #include "IHyprLayout.hpp"
 #include "../defines.hpp"
 #include "../Compositor.hpp"
+#include "Necromancy.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include <ranges>
+
+IHyprLayout::~IHyprLayout() {}
 
 void IHyprLayout::onWindowCreated(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
@@ -554,4 +559,199 @@ void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
     g_pCompositor->focusWindow(pWindow);
 }
 
-IHyprLayout::~IHyprLayout() {}
+void IHyprLayout::recoverStrays() {
+    if (!m_lStrayWindows.empty()) {
+        CWindow* HEAD = m_lStrayWindows.front();
+        if (const auto WS = g_pCompositor->getWorkspaceByID(STRAYS_WORKSPACE_ID); !WS)
+            g_pCompositor->createNewWorkspace(STRAYS_WORKSPACE_ID, HEAD->m_iMonitorID, STRAYS_WORKSPACE_NAME);
+        for (auto* w : m_lStrayWindows) {
+            w->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(w));
+            w->moveToWorkspace(STRAYS_WORKSPACE_ID);
+            w->updateToplevel();
+        }
+        HEAD->updateDynamicRules();
+        onWindowCreatedTiling(HEAD);
+        Debug::log(LOG, "necromancy: recovered strays to [Workspace: name:{}, id: {}]", STRAYS_WORKSPACE_NAME, STRAYS_WORKSPACE_ID);
+    }
+    m_lStrayWindows.clear();
+}
+
+void IHyprLayout::saveWorkspaces(std::ostream& os) {
+    Necromancy::dump(os, g_pCompositor->m_vWorkspaces.size());
+    for (auto& w : g_pCompositor->m_vWorkspaces) {
+        SWorkspaceState(w.get()).marshal(os);
+    }
+}
+
+void IHyprLayout::restoreWorkspaces(std::istream& is) {
+    size_t count = 0;
+    Necromancy::load(is, count);
+    for (size_t i = 0; i < count; i++) {
+        SWorkspaceState ws;
+        ws.unmarshal(is);
+        ws.applyToWorkspace();
+    }
+}
+
+void IHyprLayout::save(std::ostream& os) {
+    // NOTE: strays are not collected
+    SWindowState::dumpAll(os);
+    saveWorkspaces(os);
+}
+
+void IHyprLayout::restore(std::istream& is) {
+    if (g_pCompositor->m_vWindows.size() == 0)
+        throw necromancy_error("necromancy: Session has no windows, Restoration aborted").log();
+
+    m_mWindowStates = SWindowState::loadAll(is);
+    if (!m_mWindowStates || m_mWindowStates->size() == 0)
+        throw necromancy_error("necromancy: No window state loaded. Restoration aborted").log();
+
+    /*
+        Reset and remove all windows from layout.
+        NOTE: we resets everyone, including the strays
+    */
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped || w->m_iWorkspaceID == -1)
+            continue;
+        w->m_sGroupData.pNextWindow = nullptr;
+        w->m_sGroupData.head        = false;
+        w->m_sGroupData.locked      = false;
+        w->m_bIsFloating            = false;
+        w->m_bIsPseudotiled         = false;
+        w->setHidden(false);
+        w->updateWindowDecos();
+    }
+    for (auto& w : g_pCompositor->m_vWindows) {
+        // NOTE: this loop is separated from above to prevent updateWindowAnimatedDecorationValues
+        // there's also floating, fullscreen, fake fullscreen, hidden, but let's do it lazily
+        onWindowRemoved(w.get());
+    }
+
+    /*
+        Pair window states to currently valid windows.
+
+        Matching is based on window title and class, there are two passes to find the best match.
+          - match with current app class and title of window
+          - match with initial app class and title of window
+        The result with most matches will be used
+    */
+    using wswmap_t = std::unordered_map<SWindowState*, CWindow*>;
+    // Window state lookup table indexed by class and title
+    std::unordered_multimap<strpair_t, SWindowState*> wsLookupMap;
+    for (auto& ws : *m_mWindowStates | std::views::values) {
+        wsLookupMap.insert({{ws.class_, ws.title}, &ws});
+    }
+
+    // link CWindow* with one of the available SWindowStates using classAndTitle, result is stored in wswmap
+    auto pairWithState = [&](CWindow* pWindow, wswmap_t& wswmap, const strpair_t& classAndTitle) -> bool {
+        bool paired = false;
+        for (auto [it, end] = wsLookupMap.equal_range(classAndTitle); it != end; it++) {
+            SWindowState* ws = it->second;
+            if (wswmap.count(ws) == 0) {
+                wswmap[ws] = pWindow;
+                paired     = true;
+                break;
+            }
+        }
+        return paired;
+    };
+
+    wswmap_t            withCurrent; // using current app class and title
+    wswmap_t            withInitial; // using initial app class and initial title
+    std::list<CWindow*> withCurrentStrays;
+    std::list<CWindow*> withInitialStrays;
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (!pairWithState(w.get(), withCurrent, {g_pXWaylandManager->getAppIDClass(w.get()), w->m_szTitle}))
+            withCurrentStrays.push_back(w.get());
+        if (!pairWithState(w.get(), withInitial, {w->m_szInitialClass, w->m_szInitialTitle}))
+            withInitialStrays.push_back(w.get());
+    }
+
+    // Get the best result
+    auto& wswmap = withCurrent.size() >= withInitial.size() ? withCurrent : withInitial;
+    auto& strays = std::addressof(wswmap) == std::addressof(withCurrent) ? withCurrentStrays : withInitialStrays;
+
+    // Populate window states with CWindow*
+    for (auto& [k, v] : wswmap) {
+        k->self = v;
+    }
+
+    /*
+        Stray windows.
+        The stray window will be compared with all the unpaired window states for a possible recovery.
+    */
+    auto unpairedStates = *m_mWindowStates | std::views::values | std::views::filter([](SWindowState& ws) { return !ws.self; });
+    for (auto* w : strays) {
+        if (!g_pCompositor->windowExists(w) || !w->m_bIsMapped)
+            continue;
+        // Last stand to eliminate strays
+        bool orphaned = true;
+        for (auto& ws : unpairedStates) {
+            if (!ws.self && ws.matchWindow(w)) {
+                ws.self  = w;
+                orphaned = false;
+                break;
+            }
+        }
+        if (!orphaned)
+            continue;
+        // Add all strays to a group
+        if (m_lStrayWindows.empty()) {
+            w->m_sGroupData.head = true;
+            w->setHidden(false);
+        } else {
+            m_lStrayWindows.back()->m_sGroupData.pNextWindow = w;
+            w->setHidden(true);
+        }
+        Debug::log(LOG, "necromancy: {} is a stray", w);
+        m_lStrayWindows.push_back(w);
+    }
+    if (!m_lStrayWindows.empty())
+        m_lStrayWindows.back()->m_sGroupData.pNextWindow = m_lStrayWindows.front();
+
+    /* 
+        Restore workspaces
+    */
+    restoreWorkspaces(is);
+
+    /*
+        Restore groups
+    */
+    for (auto& ws : *m_mWindowStates | std::views::values) {
+        if (ws.groupData.next == 0 || !ws.groupData.head)
+            continue;
+
+        // find a valid state with CWindow* for group head
+        auto* curr = groupNextValid(&ws);
+        if (curr == &ws && !curr->isValid()) {
+            Debug::log(ERR, "necromancy: Group {} is dead, nothing to restore", ws.class_);
+            break; // head will aways be valid from now on
+        }
+        std::swap(ws.self, curr->self); // steal CWindow* from valid SWindowState.
+        ws.self->m_sGroupData.head   = true;
+        ws.self->m_sGroupData.locked = ws.groupData.locked;
+
+        // restore group members
+        curr = &ws;
+        do {
+            // find next valid group member
+            bool          isCurrentInvalid = false;
+            SWindowState* next             = groupNext(curr);
+            while (!next->isValid()) {
+                if (!isCurrentInvalid)
+                    isCurrentInvalid = !next->isHidden; // current group member will have isHidden to false
+                next = groupNext(next);
+            }
+
+            // restore group member
+            if (isCurrentInvalid) // visible group member is a lost cause, so make next one visible instead
+                next->isHidden = false;
+            curr->self->m_sGroupData.pNextWindow = next->self;
+            curr->self->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(curr->self));
+
+            curr = next;
+        } while (curr != &ws);
+    }
+}

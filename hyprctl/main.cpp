@@ -416,7 +416,9 @@ int main(int argc, char** argv) {
         request(fullRequest, 2);
     else if (fullRequest.contains("/hyprpaper"))
         requestHyprpaper(fullRequest);
-    else if (fullRequest.contains("/--help"))
+    else if (fullRequest.contains("/necromancy")) {
+        request(fullRequest + " --cwd " + std::filesystem::current_path().string(), 1);
+    } else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {
         printf("%s\n", USAGE.c_str());

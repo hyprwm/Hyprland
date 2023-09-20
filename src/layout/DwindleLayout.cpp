@@ -1,6 +1,8 @@
 #include "DwindleLayout.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../Compositor.hpp"
+#include "Necromancy.hpp"
+#include <ranges>
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
@@ -86,9 +88,38 @@ SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const int& id) {
     return nullptr;
 }
 
+void SDwindleNodeData::marshal(std::ostream& os) {
+    Necromancy::dump(os, this);
+    apply([&]<typename T>(T& data) { Necromancy::dump(os, data); });
+}
+
+uintptr_t SDwindleNodeData::unmarshal(std::istream& is) {
+    uintptr_t key;
+    Necromancy::load(is, key);
+    apply([&]<typename T>(T& data) { Necromancy::load(is, data); });
+    return key;
+}
+
+void SDwindleNodeData::apply(const auto&& callback) {
+    // clang-format off
+    std::apply([&](auto&& ...data) {(callback(data), ...);}, std::tie(
+        pParent,
+        isNode,
+        pWindow,
+        children[0],
+        children[1],
+        splitTop,
+        position,
+        size,
+        workspaceID,
+        splitRatio
+    ));
+    // clang-format on
+}
+
 void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool force) {
     // Don't set nodes, only windows.
-    if (pNode->isNode)
+    if (pNode->isNode || !pNode->pWindow)
         return;
 
     CMonitor* PMONITOR = nullptr;
@@ -486,22 +517,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
     pWindow->applyGroupRules();
 }
 
-void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
-
-    const auto PNODE = getNodeFromWindow(pWindow);
-
-    if (!PNODE) {
-        Debug::log(ERR, "onWindowRemovedTiling node null?");
-        return;
-    }
-
-    pWindow->updateSpecialRenderData();
-
-    if (pWindow->m_bIsFullscreen)
-        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
-
+void CHyprDwindleLayout::removeNode(SDwindleNodeData* PNODE) {
     const auto PPARENT = PNODE->pParent;
-
     if (!PPARENT) {
         Debug::log(LOG, "Removing last node (dwindle)");
         m_lDwindleNodesData.remove(*PNODE);
@@ -532,6 +549,22 @@ void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
     m_lDwindleNodesData.remove(*PPARENT);
     m_lDwindleNodesData.remove(*PNODE);
+}
+
+void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE) {
+        Debug::log(ERR, "onWindowRemovedTiling node null?");
+        return;
+    }
+
+    pWindow->updateSpecialRenderData();
+
+    if (pWindow->m_bIsFullscreen)
+        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
+
+    removeNode(PNODE);
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
@@ -1076,4 +1109,102 @@ void CHyprDwindleLayout::onEnable() {
 
 void CHyprDwindleLayout::onDisable() {
     m_lDwindleNodesData.clear();
+}
+
+void CHyprDwindleLayout::save(std::ostream& os) {
+    IHyprLayout::save(os);
+
+    std::list<SDwindleNodeData*> validNodes;
+    for (auto& node : m_lDwindleNodesData) {
+        if (!node.valid || node.workspaceID == STRAYS_WORKSPACE_ID)
+            continue;
+        validNodes.push_back(&node);
+    }
+    Necromancy::dump(os, validNodes.size());
+    for (auto* node : validNodes) {
+        node->marshal(os);
+    }
+}
+
+void CHyprDwindleLayout::restore(std::istream& is) {
+    IHyprLayout::restore(is);
+
+    size_t NODECOUNT = 0;
+    Necromancy::load(is, NODECOUNT);
+
+    std::unordered_map<uintptr_t, SDwindleNodeData*> refMap; // uintptr_t to remind you that they are not valid pointers.
+    auto                                             dref = [&](SDwindleNodeData*& node) {
+        if (node)
+            node = refMap.at((uintptr_t)node);
+    };
+
+    /*
+        Restore nodes
+
+        All current nodes are dropped and replaced with the recovered node, 
+        a uintptr_t -> SDwindleNodeData* map is for fixing up the pointers 
+        in each node latter.
+    */
+    m_lDwindleNodesData.clear();
+    for (size_t i = 0; i < NODECOUNT; i++) {
+        const auto PNODE             = &m_lDwindleNodesData.emplace_back();
+        refMap[PNODE->unmarshal(is)] = PNODE;
+        PNODE->layout                = this;
+        try {
+            if (PNODE->pWindow)
+                // Without groupNextValid, the node will be knocked off from the layout
+                //if pWindow is a non-existent member of a group.
+                PNODE->pWindow = groupNextValid(&(*m_mWindowStates).at((uintptr_t)PNODE->pWindow))->self;
+        } catch (std::out_of_range& e) { PNODE->pWindow = nullptr; }
+    }
+
+    /**
+        Restore layout and window states
+    */
+    // no nodes to recover
+    // NOTE: early return
+    if (m_lDwindleNodesData.empty()) {
+        for (auto& ws : *m_mWindowStates | std::views::values) {
+            if (ws.isValid() && !ws.isFloating)
+                onWindowCreatedTiling(ws.self);
+            ws.applyToWindow();
+        }
+        recoverStrays();
+
+        m_mWindowStates.reset();
+        return;
+    }
+
+    // Apply node to window, so size and position are restored
+    std::list<SDwindleNodeData*> invalidNodes;
+    for (auto& node : m_lDwindleNodesData) {
+        // Fix up pointers
+        dref(node.pParent);
+        dref(node.children[0]);
+        dref(node.children[1]);
+        if (!node.isNode) {
+            if (node.pWindow && g_pCompositor->windowExists(node.pWindow) && node.pWindow->m_bIsMapped)
+                // applyNodeDataToWindow will mutate m_lDwindleNodesData if the window is invalid, we must prvent that
+                applyNodeDataToWindow(&node);
+            else
+                invalidNodes.push_back(&node);
+        }
+    } // After this point, all node.pWindow pointers should be valid
+
+    // Remove invalid nodes (isNode == false but pWindow is nullptr) from layout
+    for (auto& node : invalidNodes) {
+        Debug::log(LOG, "necormancy: removed this soulless dwindle node {}", node);
+        removeNode(node);
+    }
+
+    // Apply window states, such as workspace, fullscreen, floating, etc.
+    for (auto& ws : *m_mWindowStates | std::views::values) {
+        ws.applyToWindow();
+    }
+
+    // Recover strays
+    recoverStrays();
+
+    // Cleanup
+    m_mWindowStates.reset();
 }

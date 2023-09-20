@@ -1338,3 +1338,7 @@ void CHyprMasterLayout::onEnable() {
 void CHyprMasterLayout::onDisable() {
     m_lMasterNodesData.clear();
 }
+
+void CHyprMasterLayout::save(std::ostream& os) {}
+
+void CHyprMasterLayout::restore(std::istream& is) {}

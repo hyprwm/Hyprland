@@ -45,6 +45,14 @@ std::string CConfigManager::getConfigDir() {
     return configPath;
 }
 
+std::string CConfigManager::getDataDir() {
+    static const char* xdgDataHome = getenv("XDG_DATA_HOME");
+    if (!xdgDataHome)
+        return std::filesystem::path(getenv("HOME")) / ".local" / "share" / "hypr/";
+    else
+        return std::filesystem::path(xdgDataHome) / "hypr/";
+}
+
 std::string CConfigManager::getMainConfigPath() {
     if (!g_pCompositor->explicitConfigPath.empty())
         return g_pCompositor->explicitConfigPath;
@@ -122,6 +130,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:close_special_on_empty"].intValue       = 1;
     configValues["misc:groupbar_text_color"].intValue          = 0xffffffff;
     configValues["misc:background_color"].intValue             = 0xff111111;
+    configValues["misc:layout_save_file"].strValue             = std::filesystem::path(getDataDir()) / (ISDEBUG ? "layoutd.bin" : "layout.bin");
 
     configValues["debug:int"].intValue                = 0;
     configValues["debug:log_damage"].intValue         = 0;
@@ -1512,6 +1521,7 @@ void CConfigManager::loadConfigLoadVars() {
     Debug::log(LOG, "Using config: {}", mainConfigPath);
     configPaths.push_back(mainConfigPath);
     std::string configPath = mainConfigPath.substr(0, mainConfigPath.find_last_of('/'));
+    std::string dataPath   = getDataDir();
     // find_last_of never returns npos since main_config at least has /hypr/
 
     if (!std::filesystem::is_directory(configPath)) {
@@ -1520,6 +1530,16 @@ void CConfigManager::loadConfigLoadVars() {
             std::filesystem::create_directories(configPath);
         } catch (...) {
             parseError = "Broken config file! (Could not create config directory)";
+            return;
+        }
+    }
+
+    if (!std::filesystem::is_directory(dataPath)) {
+        Debug::log(WARN, "Creating data directory: {}", dataPath);
+        try {
+            std::filesystem::create_directories(dataPath);
+        } catch (...) {
+            parseError = "Could not create data directory";
             return;
         }
     }

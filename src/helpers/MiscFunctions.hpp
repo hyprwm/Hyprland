@@ -31,6 +31,7 @@ double                           normalizeAngleRad(double ang);
 std::string                      replaceInString(std::string subject, const std::string& search, const std::string& replace);
 std::vector<SCallstackFrameInfo> getBacktrace();
 void                             throwError(const std::string& err);
+std::string                      getCmdline(pid_t pid);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {
@@ -39,3 +40,14 @@ template <typename... Args>
     // this is actually what std::format in stdlib does
     return std::vformat(fmt.get(), std::make_format_args(args...));
 }
+
+using strpair_t = std::pair<const std::string, const std::string>;
+
+template <>
+struct std::hash<strpair_t> {
+    std::size_t operator()(strpair_t const& sp) const noexcept {
+        std::size_t r = std::hash<std::string>{}(sp.first);
+        std::size_t l = std::hash<std::string>{}(sp.second);
+        return r + 0x9e3779b97f4a7a97 + (l << 6) + (l >> 2);
+    }
+};

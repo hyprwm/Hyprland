@@ -1,5 +1,6 @@
 #include "Region.hpp"
 #include <wlr/util/box.h>
+#include <wlr/util/region.h>
 
 CRegion::CRegion() {
     pixman_region32_init(&m_rRegion);
@@ -81,6 +82,11 @@ CRegion& CRegion::translate(const Vector2D& vec) {
     return *this;
 }
 
+CRegion& CRegion::scale(float scale) {
+    wlr_region_scale(&m_rRegion, &m_rRegion, scale);
+    return *this;
+}
+
 std::vector<pixman_box32_t> CRegion::getRects() const {
     std::vector<pixman_box32_t> result;
 
@@ -97,15 +103,15 @@ wlr_box CRegion::getExtents() {
     return {box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1};
 }
 
-bool CRegion::containsPoint(const Vector2D& vec) {
+bool CRegion::containsPoint(const Vector2D& vec) const {
     return pixman_region32_contains_point(&m_rRegion, vec.x, vec.y, nullptr);
 }
 
-bool CRegion::empty() {
+bool CRegion::empty() const {
     return !pixman_region32_not_empty(&m_rRegion);
 }
 
-Vector2D CRegion::closestPoint(const Vector2D& vec) {
+Vector2D CRegion::closestPoint(const Vector2D& vec) const {
     double   bestDist = __FLT_MAX__;
     Vector2D leader   = vec;
 

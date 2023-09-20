@@ -875,7 +875,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         const auto PWORKSPACE            = getWorkspaceByID(pWindow->m_iWorkspaceID);
         PWORKSPACE->m_pLastFocusedWindow = pWindow;
         PWORKSPACE->rememberPrevWorkspace(getWorkspaceByID(m_pLastMonitor->activeWorkspace));
-        const auto PMONITOR              = getMonitorFromID(PWORKSPACE->m_iMonitorID);
+        const auto PMONITOR = getMonitorFromID(PWORKSPACE->m_iMonitorID);
         PMONITOR->changeWorkspace(PWORKSPACE, false, true);
         // changeworkspace already calls focusWindow
         return;
@@ -2530,5 +2530,10 @@ void CCompositor::arrangeMonitors() {
         Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {:.2f}]", m->szName, maxOffset, 0.f);
         m->vecXWaylandPosition = {maxOffset, 0};
         maxOffset += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
+
+        if (*PXWLFORCESCALEZERO)
+            m->xwaylandScale = m->scale;
+        else
+            m->xwaylandScale = 1.f;
     }
 }

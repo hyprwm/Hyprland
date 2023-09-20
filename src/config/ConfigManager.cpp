@@ -1904,7 +1904,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         }
 
         // applies. Read the rule and behave accordingly
-        Debug::log(LOG, "Window rule {} -> {} matched {:x} [{}]", rule.szRule, rule.szValue, (uintptr_t)pWindow, pWindow->m_szTitle);
+        Debug::log(LOG, "Window rule {} -> {} matched {}", rule.szRule, rule.szValue, pWindow);
 
         returns.push_back(rule);
 

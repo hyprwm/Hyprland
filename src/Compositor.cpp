@@ -939,7 +939,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     // move to front of the window history
     const auto HISTORYPIVOT = std::find_if(m_vWindowFocusHistory.begin(), m_vWindowFocusHistory.end(), [&](const auto& other) { return other == pWindow; });
     if (HISTORYPIVOT == m_vWindowFocusHistory.end()) {
-        Debug::log(ERR, "BUG THIS: Window {:x} has no pivot in history", (uintptr_t)pWindow);
+        Debug::log(ERR, "BUG THIS: {} has no pivot in history", pWindow);
     } else {
         std::rotate(m_vWindowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
     }
@@ -984,7 +984,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     wl_signal_emit_mutable(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
 
     if (pWindowOwner)
-        Debug::log(LOG, "Set keyboard focus to surface {:x}, with window name: {}", (uintptr_t)pSurface, pWindowOwner->m_szTitle);
+        Debug::log(LOG, "Set keyboard focus to surface {:x}, with {}", (uintptr_t)pSurface, pWindowOwner);
     else
         Debug::log(LOG, "Set keyboard focus to surface {:x}", (uintptr_t)pSurface);
 
@@ -2479,7 +2479,6 @@ void CCompositor::setIdleActivityInhibit(bool enabled) {
     wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, enabled);
     wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, !enabled);
 }
-
 void CCompositor::arrangeMonitors() {
     static auto* const     PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
@@ -2496,7 +2495,7 @@ void CCompositor::arrangeMonitors() {
 
         if (m->activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
             // explicit.
-            Debug::log(LOG, "arrangeMonitors: {} explicit [{:.2f}, {:.2f}]", m->szName, m->activeMonitorRule.offset.x, m->activeMonitorRule.offset.y);
+            Debug::log(LOG, "arrangeMonitors: {} explicit {:j2}", m->szName, m->activeMonitorRule.offset);
 
             m->moveTo(m->activeMonitorRule.offset);
             arranged.push_back(m);

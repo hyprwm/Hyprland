@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cmath>
+#include <format>
+#include "macros.hpp"
 
 class Vector2D {
   public:
@@ -58,4 +60,37 @@ class Vector2D {
     Vector2D floor() const;
 
     bool     inTriangle(const Vector2D& p1, const Vector2D& p2, const Vector2D& p3) const;
+};
+
+/**
+    format specification
+    - 'j', as json array
+    - 'X', same as std::format("{}x{}", vec.x, vec.y)
+    - number, floating point precision, use `0` to format as integer
+*/
+template <typename CharT>
+struct std::formatter<Vector2D, CharT> : std::formatter<CharT> {
+    bool        formatJson = false;
+    bool        formatX    = false;
+    std::string precision  = "";
+    FORMAT_PARSE(FORMAT_FLAG('j', formatJson) //
+                 FORMAT_FLAG('X', formatX)    //
+                 FORMAT_NUMBER(precision),
+                 Vector2D)
+
+    template <typename FormatContext>
+    auto format(const Vector2D& vec, FormatContext& ctx) const {
+        std::string formatString = precision.empty() ? "{}" : std::format("{{:.{}f}}", precision);
+
+        if (formatJson)
+            formatString = std::format("[{0}, {0}]", formatString);
+        else if (formatX)
+            formatString = std::format("{0}x{0}", formatString);
+        else
+            formatString = std::format("[Vector2D: x: {0}, y: {0}]", formatString);
+        try {
+            string buf = std::vformat(formatString, std::make_format_args(vec.x, vec.y));
+            return std::format_to(ctx.out(), "{}", buf);
+        } catch (std::format_error& e) { return std::format_to(ctx.out(), "[{}, {}]", vec.x, vec.y); }
+    }
 };

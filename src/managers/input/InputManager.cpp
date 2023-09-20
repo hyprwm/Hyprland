@@ -204,10 +204,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             foundSurface = g_pCompositor->m_pLastFocus;
             pFoundWindow = g_pCompositor->m_pLastWindow;
 
-            if (!g_pCompositor->m_pLastWindow->m_bIsX11)
-                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, g_pCompositor->m_pLastWindow, surfaceCoords);
-            else
-                surfacePos = g_pCompositor->m_pLastWindow->m_vRealPosition.vec();
+            surfacePos = g_pCompositor->m_pLastWindow->m_vRealPosition.vec();
 
             m_bFocusHeldByButtons   = true;
             m_bRefocusHeldByButtons = refocus;

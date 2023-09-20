@@ -592,7 +592,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
     g_pEventManager->postEvent(
-        SHyprIPCEvent{"openwindow", getFormat("{:x},{},{},{}", (uintptr_t)PWINDOW, workspaceID, g_pXWaylandManager->getAppIDClass(PWINDOW), PWINDOW->m_szTitle)});
+        SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", (uintptr_t)PWINDOW, workspaceID, g_pXWaylandManager->getAppIDClass(PWINDOW), PWINDOW->m_szTitle)});
     EMIT_HOOK_EVENT("openWindow", PWINDOW);
 
     // recalc the values for this window
@@ -612,7 +612,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         return;
     }
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", getFormat("{:x}", (uintptr_t)PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
     g_pProtocolManager->m_pToplevelExportProtocolManager->onWindowUnmap(PWINDOW);
@@ -806,12 +806,12 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
         return;
 
     PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
-    g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", getFormat("{:x}", (uintptr_t)PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", std::format("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("windowTitle", PWINDOW);
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(PWINDOW) + "," + PWINDOW->m_szTitle});
-        g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("{:x}", (uintptr_t)PWINDOW)});
+        g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)PWINDOW)});
         EMIT_HOOK_EVENT("activeWindow", PWINDOW);
     }
 
@@ -896,7 +896,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
     if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow)
         return;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("{:x}", (uintptr_t)PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("urgent", PWINDOW);
 
     PWINDOW->m_bIsUrgent = true;
@@ -932,7 +932,7 @@ void Events::listener_activateX11(void* owner, void* data) {
     if (PWINDOW == g_pCompositor->m_pLastWindow)
         return;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", getFormat("{:x}", (uintptr_t)PWINDOW)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("urgent", PWINDOW);
 
     if (!*PFOCUSONACTIVATE)
@@ -1146,13 +1146,13 @@ void Events::listener_requestMinimize(void* owner, void* data) {
 
         const auto E = (wlr_xwayland_minimize_event*)data;
 
-        g_pEventManager->postEvent({"minimize", getFormat("{:x},{}", (uintptr_t)PWINDOW, (int)E->minimize)});
+        g_pEventManager->postEvent({"minimize", std::format("{:x},{}", (uintptr_t)PWINDOW, (int)E->minimize)});
         EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)E->minimize}));
 
         wlr_xwayland_surface_set_minimized(PWINDOW->m_uSurface.xwayland, E->minimize && g_pCompositor->m_pLastWindow != PWINDOW); // fucking DXVK
     } else {
         const auto E = (wlr_foreign_toplevel_handle_v1_minimized_event*)data;
-        g_pEventManager->postEvent({"minimize", getFormat("{:x},{}", (uintptr_t)PWINDOW, E ? (int)E->minimized : 1)});
+        g_pEventManager->postEvent({"minimize", std::format("{:x},{}", (uintptr_t)PWINDOW, E ? (int)E->minimized : 1)});
         EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)(E ? (uint64_t)E->minimized : 1)}));
     }
 }

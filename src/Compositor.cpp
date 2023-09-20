@@ -910,20 +910,18 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
-    g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("{:x}", (uintptr_t)pWindow)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)pWindow)});
 
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
     g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
 
     // TODO: implement this better
-    if (!PLASTWINDOW && pWindow->m_sGroupData.pNextWindow && pWindow->m_sGroupData.pNextWindow != pWindow) {
-        auto curr = pWindow;
-        do {
-            curr = curr->m_sGroupData.pNextWindow;
+    if (!PLASTWINDOW && pWindow->m_sGroupData.pNextWindow) {
+        for (auto curr = pWindow->m_sGroupData.pNextWindow; curr != pWindow; curr = curr->m_sGroupData.pNextWindow) {
             if (curr->m_phForeignToplevel)
                 wlr_foreign_toplevel_handle_v1_set_activated(curr->m_phForeignToplevel, false);
-        } while (curr->m_sGroupData.pNextWindow != pWindow);
+        }
     }
 
     if (pWindow->m_phForeignToplevel)
@@ -2187,13 +2185,13 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
                 break;
             }
             case MODE_ADDRESS: {
-                std::string addr = getFormat("0x{:x}", (uintptr_t)w.get());
+                std::string addr = std::format("0x{:x}", (uintptr_t)w.get());
                 if (matchCheck != addr)
                     continue;
                 break;
             }
             case MODE_PID: {
-                std::string pid = getFormat("{}", w->getPID());
+                std::string pid = std::format("{}", w->getPID());
                 if (matchCheck != pid)
                     continue;
                 break;

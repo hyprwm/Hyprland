@@ -1276,33 +1276,28 @@ void CCompositor::changeWindowZOrder(CWindow* pWindow, bool top) {
         moveToZ(pWindow, top);
         return;
     } else {
-
         // move X11 window stack
 
         std::deque<CWindow*> toMove;
 
-        for (auto& w : m_vWindows) {
-            if (w->m_bIsMapped && w->m_bMappedX11 && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pWindow) {
-                if (top)
-                    toMove.emplace_back(w.get());
-                else
-                    toMove.emplace_front(w.get());
-            }
-        }
-
-        if (top)
-            moveToZ(pWindow, top);
-        for (auto& pw : toMove) {
+        auto                 x11Stack = [&](CWindow* pw, bool top, auto&& x11Stack) -> void {
             if (top)
-                moveToZ(pw, top);
+                toMove.emplace_back(pw);
+            else
+                toMove.emplace_front(pw);
 
-            changeWindowZOrder(pw, top);
+            for (auto& w : m_vWindows) {
+                if (w->m_bIsMapped && w->m_bMappedX11 && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pw) {
+                    x11Stack(w.get(), top, x11Stack);
+                }
+            }
+        };
 
-            if (!top)
-                moveToZ(pw, top);
+        x11Stack(pWindow, top, x11Stack);
+
+        for (auto it : toMove) {
+            moveToZ(it, top);
         }
-        if (!top)
-            moveToZ(pWindow, top);
     }
 }
 

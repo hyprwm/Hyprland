@@ -89,7 +89,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Window {:x} ({}) has an invalid monitor in onWindowCreatedFloating!!!", (uintptr_t)pWindow, pWindow->m_szTitle);
+        Debug::log(ERR, "{:m} has an invalid monitor in onWindowCreatedFloating!!!", pWindow);
         return;
     }
 

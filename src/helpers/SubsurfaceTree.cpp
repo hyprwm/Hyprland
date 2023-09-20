@@ -55,7 +55,7 @@ SSurfaceTreeNode* createSubsurfaceNode(SSurfaceTreeNode* pParent, SSubsurface* p
     PNODE->pParent     = pParent;
     PNODE->pSubsurface = pSubsurface;
 
-    Debug::log(LOG, "Creating a subsurface Node! (pWindow: {:x})", (uintptr_t)pWindow);
+    Debug::log(LOG, "Creating a subsurface Node! {}", pWindow);
 
     return PNODE;
 }
@@ -63,7 +63,7 @@ SSurfaceTreeNode* createSubsurfaceNode(SSurfaceTreeNode* pParent, SSubsurface* p
 SSurfaceTreeNode* SubsurfaceTree::createTreeRoot(wlr_surface* pSurface, applyGlobalOffsetFn fn, void* data, CWindow* pWindow) {
     const auto PNODE = createTree(pSurface, pWindow);
 
-    Debug::log(LOG, "Creating a surfaceTree Root! (pWindow: {:x})", (uintptr_t)pWindow);
+    Debug::log(LOG, "Creating a surfaceTree Root! {}", pWindow);
 
     PNODE->offsetfn         = fn;
     PNODE->globalOffsetData = data;
@@ -221,7 +221,7 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
     if (!g_pHyprRenderer->shouldRenderWindow(pNode->pWindowOwner)) {
         static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
         if (*PLOGDAMAGE)
-            Debug::log(LOG, "Refusing to commit damage from {:x} because it's invisible.", (uintptr_t)pNode->pWindowOwner);
+            Debug::log(LOG, "Refusing to commit damage from {} because it's invisible.", pNode->pWindowOwner);
         return;
     }
 

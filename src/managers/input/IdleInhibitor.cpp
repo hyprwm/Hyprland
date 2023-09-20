@@ -33,7 +33,7 @@ void CInputManager::newIdleInhibitor(wlr_idle_inhibitor_v1* pInhibitor) {
     PINHIBIT->pWindow = g_pCompositor->getWindowFromSurface(pInhibitor->surface);
 
     if (PINHIBIT->pWindow)
-        Debug::log(LOG, "IdleInhibitor got window {:x} ({})", (uintptr_t)PINHIBIT->pWindow, PINHIBIT->pWindow->m_szTitle);
+        Debug::log(LOG, "IdleInhibitor got window {}", PINHIBIT->pWindow);
 
     recheckIdleInhibitorStatus();
 }

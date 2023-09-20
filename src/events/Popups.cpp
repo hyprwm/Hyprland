@@ -70,8 +70,7 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
 
     pHyprPopup->monitor = PMONITOR;
 
-    Debug::log(LOG, "Popup: Unconstrained from lx ly: {:.5f} {:.5f}, pHyprPopup lx ly: {:.5f} {:.5f}", (float)PMONITOR->vecPosition.x, (float)PMONITOR->vecPosition.y,
-               (float)pHyprPopup->lx, (float)pHyprPopup->ly);
+    Debug::log(LOG, "Popup: Unconstrained from lx ly: {:j5}, pHyprPopup lx ly: {:.5f} {:.5f}", PMONITOR->vecPosition, (float)pHyprPopup->lx, (float)pHyprPopup->ly);
 }
 
 void Events::listener_newPopup(void* owner, void* data) {
@@ -103,7 +102,7 @@ void Events::listener_newPopupXDG(void* owner, void* data) {
     if (!PWINDOW->m_bIsMapped)
         return;
 
-    Debug::log(LOG, "New layer popup created from XDG window {:x} -> {}", (uintptr_t)PWINDOW, PWINDOW->m_szTitle);
+    Debug::log(LOG, "New layer popup created from XDG window {}", PWINDOW);
 
     const auto WLRPOPUP = (wlr_xdg_popup*)data;
 
@@ -125,7 +124,7 @@ void Events::listener_newPopupFromPopupXDG(void* owner, void* data) {
     ASSERT(PPOPUP);
 
     if (PPOPUP->parentWindow)
-        Debug::log(LOG, "New popup created from XDG Window popup {:x} -> {}", (uintptr_t)PPOPUP, PPOPUP->parentWindow->m_szTitle);
+        Debug::log(LOG, "New popup created from XDG Window popup {:x} -> {}", (uintptr_t)PPOPUP, PPOPUP->parentWindow);
     else
         Debug::log(LOG, "New popup created from Non-Window popup {:x}", (uintptr_t)PPOPUP);
 

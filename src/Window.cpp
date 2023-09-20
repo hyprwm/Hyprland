@@ -1,6 +1,7 @@
 #include "Window.hpp"
 #include "Compositor.hpp"
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
+#include "render/decorations/CHyprGroupBarDecoration.hpp"
 
 CWindow::CWindow() {
     m_vRealPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);

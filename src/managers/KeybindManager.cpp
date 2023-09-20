@@ -1,4 +1,5 @@
 #include "KeybindManager.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 
 #include <regex>
 

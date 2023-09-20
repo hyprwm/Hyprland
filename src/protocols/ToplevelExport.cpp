@@ -149,14 +149,14 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     PFRAME->pWindow       = pWindow;
 
     if (!PFRAME->pWindow) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which does not exist!", (uintptr_t)PFRAME->pWindow);
+        Debug::log(ERR, "Client requested sharing of window handle {:x} which does not exist!", PFRAME->pWindow);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;
     }
 
     if (!PFRAME->pWindow->m_bIsMapped || PFRAME->pWindow->isHidden()) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which is not shareable!", (uintptr_t)PFRAME->pWindow);
+        Debug::log(ERR, "Client requested sharing of window handle {:x} which is not shareable!", PFRAME->pWindow);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;
@@ -223,7 +223,7 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
     }
 
     if (!PFRAME->pWindow->m_bIsMapped || PFRAME->pWindow->isHidden()) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", (uintptr_t)PFRAME->pWindow);
+        Debug::log(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", PFRAME->pWindow);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;

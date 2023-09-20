@@ -132,7 +132,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
     yOffset += 17;
     cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
-    text = getFormat("{} FPS", (int)FPS);
+    text = std::format("{} FPS", (int)FPS);
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
     if (cairoExtents.width > maxX)
@@ -143,7 +143,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
     yOffset += 11;
     cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
-    text = getFormat("Avg Frametime: {:.2f}ms (var {:.2f}ms)", avgFrametime, varFrametime);
+    text = std::format("Avg Frametime: {:.2f}ms (var {:.2f}ms)", avgFrametime, varFrametime);
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
     if (cairoExtents.width > maxX)
@@ -151,7 +151,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
     yOffset += 11;
     cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
-    text = getFormat("Avg Rendertime: {:.2f}ms (var {:.2f}ms)", avgRenderTime, varRenderTime);
+    text = std::format("Avg Rendertime: {:.2f}ms (var {:.2f}ms)", avgRenderTime, varRenderTime);
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
     if (cairoExtents.width > maxX)
@@ -159,7 +159,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
     yOffset += 11;
     cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
-    text = getFormat("Avg Rendertime (No Overlay): {:.2f}ms (var {:.2f}ms)", avgRenderTimeNoOverlay, varRenderTimeNoOverlay);
+    text = std::format("Avg Rendertime (No Overlay): {:.2f}ms (var {:.2f}ms)", avgRenderTimeNoOverlay, varRenderTimeNoOverlay);
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
     if (cairoExtents.width > maxX)
@@ -167,7 +167,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
     yOffset += 11;
     cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
-    text = getFormat("Avg Anim Tick: {:.2f}ms (var {:.2f}ms) ({:.2f} TPS)", avgAnimMgrTick, varAnimMgrTick, 1.0 / (avgAnimMgrTick / 1000.0));
+    text = std::format("Avg Anim Tick: {:.2f}ms (var {:.2f}ms) ({:.2f} TPS)", avgAnimMgrTick, varAnimMgrTick, 1.0 / (avgAnimMgrTick / 1000.0));
     cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
     cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
     if (cairoExtents.width > maxX)

@@ -910,7 +910,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
-    g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", getFormat("{:x}", (uintptr_t)pWindow)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)pWindow)});
 
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
@@ -2183,13 +2183,13 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
                 break;
             }
             case MODE_ADDRESS: {
-                std::string addr = getFormat("0x{:x}", (uintptr_t)w.get());
+                std::string addr = std::format("0x{:x}", (uintptr_t)w.get());
                 if (matchCheck != addr)
                     continue;
                 break;
             }
             case MODE_PID: {
-                std::string pid = getFormat("{}", w->getPID());
+                std::string pid = std::format("{}", w->getPID());
                 if (matchCheck != pid)
                     continue;
                 break;

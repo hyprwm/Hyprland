@@ -45,15 +45,15 @@ void CrashReporter::createAndSaveCrash(int sig) {
     finalCrashReport += "--------------------------------------------\n   Hyprland Crash Report\n--------------------------------------------\n";
     finalCrashReport += getRandomMessage() + "\n\n";
 
-    finalCrashReport += getFormat("Hyprland received signal {} ({})\n\n", sig, (const char*)strsignal(sig));
+    finalCrashReport += std::format("Hyprland received signal {} ({})\n\n", sig, (const char*)strsignal(sig));
 
-    finalCrashReport += getFormat("Version: {}\nTag: {}\n\n", GIT_COMMIT_HASH, GIT_TAG);
+    finalCrashReport += std::format("Version: {}\nTag: {}\n\n", GIT_COMMIT_HASH, GIT_TAG);
 
     if (g_pPluginSystem && !g_pPluginSystem->getAllPlugins().empty()) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
         for (auto& p : g_pPluginSystem->getAllPlugins()) {
-            finalCrashReport += getFormat("\t{} ({}) {}\n", p->name, p->author, p->version);
+            finalCrashReport += std::format("\t{} ({}) {}\n", p->name, p->author, p->version);
         }
 
         finalCrashReport += "\n\n";
@@ -65,7 +65,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
     uname(&unameInfo);
 
     finalCrashReport +=
-        getFormat("\tSystem name: {}\n\tNode name: {}\n\tRelease: {}\n\tVersion: {}\n\n", unameInfo.sysname, unameInfo.nodename, unameInfo.release, unameInfo.version);
+        std::format("\tSystem name: {}\n\tNode name: {}\n\tRelease: {}\n\tVersion: {}\n\n", unameInfo.sysname, unameInfo.nodename, unameInfo.release, unameInfo.version);
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
@@ -75,7 +75,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "GPU:\n\t" + GPUINFO;
 
-    finalCrashReport += getFormat("\n\nos-release:\n\t{}\n\n\n", replaceInString(execAndGet("cat /etc/os-release"), "\n", "\n\t"));
+    finalCrashReport += std::format("\n\nos-release:\n\t{}\n\n\n", replaceInString(execAndGet("cat /etc/os-release"), "\n", "\n\t"));
 
     finalCrashReport += "Backtrace:\n";
 
@@ -107,12 +107,12 @@ void CrashReporter::createAndSaveCrash(int sig) {
 #endif
 
     for (size_t i = 0; i < CALLSTACK.size(); ++i) {
-        finalCrashReport += getFormat("\t#{} | {}\n", i, CALLSTACK[i].desc);
+        finalCrashReport += std::format("\t#{} | {}\n", i, CALLSTACK[i].desc);
 
 #ifdef __clang__
-        const auto CMD = getFormat("llvm-addr2line -e {} -f 0x{:x}", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
+        const auto CMD = std::format("llvm-addr2line -e {} -f 0x{:x}", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
 #else
-        const auto CMD = getFormat("addr2line -e {} -f 0x{:x}", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
+        const auto CMD = std::format("addr2line -e {} -f 0x{:x}", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
 #endif
         const auto ADDR2LINE = replaceInString(execAndGet(CMD.c_str()), "\n", "\n\t\t");
         finalCrashReport += "\t\t" + ADDR2LINE.substr(0, ADDR2LINE.length() - 2);

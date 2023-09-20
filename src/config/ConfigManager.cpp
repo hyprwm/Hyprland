@@ -1097,7 +1097,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
         for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
                 if (BYADDRESS) {
-                    if (getFormat("0x{:x}", (uintptr_t)ls.get()) == matchName)
+                    if (std::format("0x{:x}", (uintptr_t)ls.get()) == matchName)
                         ls->forceBlur = forceBlur;
                 } else if (ls->szNamespace == matchName)
                     ls->forceBlur = forceBlur;
@@ -1942,7 +1942,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
 
     for (auto& lr : m_dLayerRules) {
         if (lr.targetNamespace.find("address:0x") == 0) {
-            if (getFormat("address:0x{:x}", (uintptr_t)pLS) != lr.targetNamespace)
+            if (std::format("address:0x{:x}", (uintptr_t)pLS) != lr.targetNamespace)
                 continue;
         } else {
             std::regex NSCHECK(lr.targetNamespace);

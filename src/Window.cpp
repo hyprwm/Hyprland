@@ -340,7 +340,7 @@ void CWindow::moveToWorkspace(int workspaceID) {
     updateSpecialRenderData();
 
     if (PWORKSPACE) {
-        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("{:x},{}", (uintptr_t)this, PWORKSPACE->m_szName)});
+        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", std::format("{:x},{}", (uintptr_t)this, PWORKSPACE->m_szName)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
     }
 

@@ -32,26 +32,10 @@ std::string                      replaceInString(std::string subject, const std:
 std::vector<SCallstackFrameInfo> getBacktrace();
 void                             throwError(const std::string& err);
 
-// why, C++.
-void sendToLog(uint8_t, const std::string&);
 template <typename... Args>
-std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {
-    std::string fmtdMsg;
-
-    try {
-        fmtdMsg += std::vformat(fmt.get(), std::make_format_args(args...));
-    } catch (std::exception& e) {
-        std::string exceptionMsg = e.what();
-        sendToLog(2, std::format("caught exception in getFormat: {}", exceptionMsg));
-
-        const auto CALLSTACK = getBacktrace();
-
-        sendToLog(0, "stacktrace:");
-
-        for (size_t i = 0; i < CALLSTACK.size(); ++i) {
-            sendToLog(1, std::format("\t #{} | {}", i, CALLSTACK[i].desc));
-        }
-    }
-
-    return fmtdMsg;
+[[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {
+    // no need for try {} catch {} because std::format_string<Args...> ensures that vformat never throw std::format_error
+    // because any suck format specifier will cause a compilation error
+    // this is actually what std::format in stdlib does
+    return std::vformat(fmt.get(), std::make_format_args(args...));
 }

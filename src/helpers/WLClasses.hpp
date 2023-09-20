@@ -174,8 +174,11 @@ struct SConstraint {
     DYNLISTENER(setConstraintRegion);
     DYNLISTENER(destroyConstraint);
 
-    bool operator==(const SConstraint& b) const {
-        return constraint == b.constraint;
+    CRegion getLogicCoordsRegion();
+    Vector2D getLogicConstraintPos();
+
+    bool    operator==(const SConstraint& b) const {
+           return constraint == b.constraint;
     }
 };
 

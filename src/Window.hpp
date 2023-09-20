@@ -1,7 +1,6 @@
 #pragma once
 
 #include "defines.hpp"
-#include "events/Events.hpp"
 #include "helpers/SubsurfaceTree.hpp"
 #include "helpers/AnimatedVariable.hpp"
 #include "render/decorations/IHyprWindowDecoration.hpp"
@@ -9,6 +8,8 @@
 #include "config/ConfigDataValues.hpp"
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
+#include "macros.hpp"
+#include "managers/XWaylandManager.hpp"
 
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
@@ -355,4 +356,45 @@ class CWindow {
   private:
     // For hidden windows and stuff
     bool m_bHidden = false;
+};
+
+/**
+    format specification
+    - 'x', only address, equivalent of (uintpr_t)CWindow*
+    - 'm', with monitor id
+    - 'w', with workspace id
+    - 'c', with application class
+*/
+
+template <typename CharT>
+struct std::formatter<CWindow*, CharT> : std::formatter<CharT> {
+    bool formatAddressOnly = false;
+    bool formatWorkspace   = false;
+    bool formatMonitor     = false;
+    bool formatClass       = false;
+    FORMAT_PARSE(                           //
+        FORMAT_FLAG('x', formatAddressOnly) //
+        FORMAT_FLAG('m', formatMonitor)     //
+        FORMAT_FLAG('w', formatWorkspace)   //
+        FORMAT_FLAG('c', formatClass),
+        CWindow*)
+
+    template <typename FormatContext>
+    auto format(CWindow* const& w, FormatContext& ctx) const {
+        auto&& out = ctx.out();
+        if (formatAddressOnly)
+            return std::format_to(out, "{:x}", (uintptr_t)w);
+        if (!w)
+            return std::format_to(out, "[Window nullptr]");
+
+        std::format_to(out, "[");
+        std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w, w->m_szTitle);
+        if (formatWorkspace)
+            std::format_to(out, ", workspace: {}", w->m_iWorkspaceID);
+        if (formatMonitor)
+            std::format_to(out, ", monitor: {}", w->m_iMonitorID);
+        if (formatClass)
+            std::format_to(out, ", class: {}", g_pXWaylandManager->getAppIDClass(w));
+        return std::format_to(out, "]");
+    }
 };

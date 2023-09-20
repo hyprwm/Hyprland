@@ -134,8 +134,7 @@ void CMonitor::onConnect(bool noRule) {
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
-    Debug::log(LOG, "Added new monitor with name {} at {},{} with size {}x{}, pointer {:x}", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x,
-               (int)vecPixelSize.y, (uintptr_t)output);
+    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output);
 
     setupDefaultWS(monitorRule);
 

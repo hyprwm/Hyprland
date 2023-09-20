@@ -1,4 +1,5 @@
 #include "DwindleLayout.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../Compositor.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
@@ -104,7 +105,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node {:x} (workspace ID: {})!!", (uintptr_t)pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node {}!!", pNode);
         return;
     }
 
@@ -129,7 +130,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
-        Debug::log(ERR, "Node {:x} holding invalid window {:x}!!", (uintptr_t)pNode, (uintptr_t)PWINDOW);
+        Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
         onWindowRemovedTiling(PWINDOW);
         return;
     }
@@ -273,7 +274,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
     } else
         OPENINGON = getFirstNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
-    Debug::log(LOG, "OPENINGON: {:x}, Workspace: {}, Monitor: {}", (uintptr_t)OPENINGON, PNODE->workspaceID, PMONITOR->ID);
+    Debug::log(LOG, "OPENINGON: {}, Monitor: {}", OPENINGON, PMONITOR->ID);
 
     if (OPENINGON && OPENINGON->workspaceID != PNODE->workspaceID) {
         // special workspace handling

@@ -1,5 +1,6 @@
 #include "MasterLayout.hpp"
 #include "../Compositor.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include <ranges>
 
 SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(CWindow* pWindow) {
@@ -552,7 +553,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node {:x} (workspace ID: {})!!", (uintptr_t)pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node {}!!", pNode);
         return;
     }
 
@@ -578,7 +579,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
-        Debug::log(ERR, "Node {:x} holding invalid window {:x}!!", (uintptr_t)pNode, (uintptr_t)PWINDOW);
+        Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
         return;
     }
 

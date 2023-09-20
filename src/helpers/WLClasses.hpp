@@ -176,6 +176,7 @@ struct SConstraint {
 
     CRegion getLogicCoordsRegion();
     Vector2D getLogicConstraintPos();
+    Vector2D getLogicConstraintSize();
 
     bool    operator==(const SConstraint& b) const {
            return constraint == b.constraint;

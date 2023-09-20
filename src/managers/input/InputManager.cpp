@@ -145,8 +145,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             // Native Wayland apps know how 2 constrain themselves.
             // XWayland, we just have to accept them. Might cause issues, but thats XWayland for ya.
             const auto CONSTRAINTPOS  = PCONSTRAINT->getLogicConstraintPos();
-            const auto CONSTRAINTSIZE = CONSTRAINTWINDOW->m_bIsX11 ? Vector2D(CONSTRAINTWINDOW->m_uSurface.xwayland->width, CONSTRAINTWINDOW->m_uSurface.xwayland->height) :
-                                                                     CONSTRAINTWINDOW->m_vRealSize.vec();
+            const auto CONSTRAINTSIZE = PCONSTRAINT->getLogicConstraintSize();
 
             if (g_pCompositor->m_sSeat.mouse->currentConstraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
                 // we just snap the cursor to where it should be.

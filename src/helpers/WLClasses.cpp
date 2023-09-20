@@ -90,3 +90,28 @@ Vector2D SConstraint::getLogicConstraintPos() {
 
     return COORDS;
 }
+
+Vector2D SConstraint::getLogicConstraintSize() {
+    if (!constraint)
+        return {};
+
+    const auto PWINDOWOWNER = g_pCompositor->getWindowFromSurface(constraint->surface);
+
+    if (!PWINDOWOWNER)
+        return {};
+
+    if (!PWINDOWOWNER->m_bIsX11)
+        return PWINDOWOWNER->m_vRealSize.goalv();
+
+    const auto PMONITOR = PWINDOWOWNER->m_bIsMapped ?
+        g_pCompositor->getMonitorFromID(PWINDOWOWNER->m_iMonitorID) :
+        g_pCompositor->getMonitorFromVector(g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOWOWNER->m_uSurface.xwayland->x, PWINDOWOWNER->m_uSurface.xwayland->y}));
+
+    if (!PMONITOR)
+        return {};
+
+    const auto SIZE = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealSize.goalv() :
+                                                  Vector2D{PWINDOWOWNER->m_uSurface.xwayland->width, PWINDOWOWNER->m_uSurface.xwayland->height} * PMONITOR->xwaylandScale;
+
+    return SIZE;
+}

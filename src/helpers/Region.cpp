@@ -83,7 +83,7 @@ CRegion& CRegion::translate(const Vector2D& vec) {
 }
 
 CRegion& CRegion::scale(float scale) {
-    wlr_region_scale(&m_rRegion, scale);
+    wlr_region_scale(&m_rRegion, &m_rRegion, scale);
     return *this;
 }
 

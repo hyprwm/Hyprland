@@ -35,11 +35,11 @@ void                             throwError(const std::string& err);
 // why, C++.
 void sendToLog(uint8_t, const std::string&);
 template <typename... Args>
-std::string getFormat(const std::string& fmt, Args&&... args) {
+std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {
     std::string fmtdMsg;
 
     try {
-        fmtdMsg += std::vformat(fmt, std::make_format_args(args...));
+        fmtdMsg += std::vformat(fmt.get(), std::make_format_args(args...));
     } catch (std::exception& e) {
         std::string exceptionMsg = e.what();
         sendToLog(2, std::format("caught exception in getFormat: {}", exceptionMsg));

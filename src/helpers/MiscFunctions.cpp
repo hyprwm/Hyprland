@@ -709,5 +709,5 @@ void throwError(const std::string& err) {
 }
 
 void sendToLog(uint8_t level, const std::string& s) {
-    Debug::log((LogLevel)level, s);
+    Debug::log((LogLevel)level, "{}", s);
 }

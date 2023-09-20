@@ -1206,7 +1206,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
 
     if (auto r = glob(absolutePath(rawpath, configCurrentPath).c_str(), GLOB_TILDE, nullptr, glob_buf.get()); r != 0) {
         parseError = std::format("source= globbing error: {}", r == GLOB_NOMATCH ? "found no match" : GLOB_ABORTED ? "read error" : "out of memory");
-        Debug::log(ERR, parseError);
+        Debug::log(ERR, "{}", parseError);
         return;
     }
 

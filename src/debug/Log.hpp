@@ -29,7 +29,7 @@ namespace Debug {
 
     void               init(const std::string& IS);
     template <typename... Args>
-    void log(LogLevel level, const std::string& fmt, Args&&... args) {
+    void log(LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
         if (disableLogs && *disableLogs)
             return;
 
@@ -64,7 +64,7 @@ namespace Debug {
         }
 
         try {
-            logMsg += std::vformat(fmt, std::make_format_args(args...));
+            logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
         } catch (std::exception& e) {
             std::string exceptionMsg = e.what();
             Debug::log(ERR, "caught exception in Debug::log: {}", exceptionMsg);

@@ -112,7 +112,6 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
     } while (curr != w);
 
     const auto         comma = isJson ? ", " : ",";
-    const auto         fmt   = isJson ? "\"0x{:x}\"" : "{:x}";
     std::ostringstream result;
 
     bool               first = true;
@@ -121,8 +120,10 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
             first = false;
         else
             result << comma;
-
-        result << getFormat(fmt, (uintptr_t)gw);
+        if (isJson)
+            result << getFormat("\"0x{:x}\"", (uintptr_t)gw);
+        else
+            result << getFormat("{:x}", (uintptr_t)gw);
     }
 
     return result.str();
@@ -177,8 +178,8 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             (w->m_iWorkspaceID == -1                                ? "" :
                  g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName :
                                                                       std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID))),
-            (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w), g_pXWaylandManager->getTitle(w), w->m_szInitialClass, w->m_szInitialTitle, w->getPID(),
-            (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
+            (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w), g_pXWaylandManager->getTitle(w), w->m_szInitialClass, w->m_szInitialTitle,
+            w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
             (int)w->m_bFakeFullscreenState, getGroupedData(w, format), (uintptr_t)w->m_pSwallowed);
     }
@@ -416,7 +417,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         "type": "tabletTool",
         "belongsTo": "0x{:x}"
     }},)#",
-                (uintptr_t)&d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
+                (uintptr_t)&d, d.wlrTabletTool ? (uintptr_t)d.wlrTabletTool->data : 0);
         }
 
         trimTrailingComma(result);
@@ -481,7 +482,7 @@ std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
         }
 
         for (auto& d : g_pInputManager->m_lTabletTools) {
-            result += getFormat("\tTablet Tool at {:x} (belongs to {:x})\n", (uintptr_t)&d, d.wlrTabletTool ? d.wlrTabletTool->data : 0);
+            result += getFormat("\tTablet Tool at {:x} (belongs to {:x})\n", (uintptr_t)&d, d.wlrTabletTool ? (uintptr_t)d.wlrTabletTool->data : 0);
         }
 
         result += "\n\nTouch:\n";

@@ -406,7 +406,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         // because the windows are animated on RealSize
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goalv();
 
-        g_pCompositor->moveWindowToTop(PWINDOW);
+        g_pCompositor->changeWindowZOrder(PWINDOW, true);
     } else {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
@@ -903,7 +903,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
         return;
 
     if (PWINDOW->m_bIsFloating)
-        g_pCompositor->moveWindowToTop(PWINDOW);
+        g_pCompositor->changeWindowZOrder(PWINDOW, true);
 
     g_pCompositor->focusWindow(PWINDOW);
     g_pCompositor->warpCursorTo(PWINDOW->middle());
@@ -937,7 +937,7 @@ void Events::listener_activateX11(void* owner, void* data) {
         return;
 
     if (PWINDOW->m_bIsFloating)
-        g_pCompositor->moveWindowToTop(PWINDOW);
+        g_pCompositor->changeWindowZOrder(PWINDOW, true);
 
     g_pCompositor->focusWindow(PWINDOW);
     g_pCompositor->warpCursorTo(PWINDOW->middle());
@@ -985,7 +985,7 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
 
-    g_pCompositor->moveWindowToTop(PWINDOW);
+    g_pCompositor->changeWindowZOrder(PWINDOW, true);
 
     PWINDOW->m_bCreatedOverFullscreen = true;
 
@@ -1042,7 +1042,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
         PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
 
-        g_pCompositor->moveWindowToTop(PWINDOW);
+        g_pCompositor->changeWindowZOrder(PWINDOW, true);
         PWINDOW->updateWindowDecos();
         g_pHyprRenderer->damageWindow(PWINDOW);
     }

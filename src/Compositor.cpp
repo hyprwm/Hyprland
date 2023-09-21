@@ -1240,15 +1240,24 @@ bool CCompositor::isWindowActive(CWindow* pWindow) {
     return PSURFACE == m_pLastFocus || pWindow == m_pLastWindow;
 }
 
-void CCompositor::moveWindowToTop(CWindow* pWindow) {
+void CCompositor::changeWindowZOrder(CWindow* pWindow, bool top) {
     if (!windowValidMapped(pWindow))
         return;
 
-    auto moveToTop = [&](CWindow* pw) -> void {
-        for (auto it = m_vWindows.begin(); it != m_vWindows.end(); ++it) {
-            if (it->get() == pw) {
-                std::rotate(it, it + 1, m_vWindows.end());
-                break;
+    auto moveToZ = [&](CWindow* pw, bool top) -> void {
+        if (top) {
+            for (auto it = m_vWindows.begin(); it != m_vWindows.end(); ++it) {
+                if (it->get() == pw) {
+                    std::rotate(it, it + 1, m_vWindows.end());
+                    break;
+                }
+            }
+        } else {
+            for (auto it = m_vWindows.rbegin(); it != m_vWindows.rend(); ++it) {
+                if (it->get() == pw) {
+                    std::rotate(it, it + 1, m_vWindows.rend());
+                    break;
+                }
             }
         }
 
@@ -1256,27 +1265,35 @@ void CCompositor::moveWindowToTop(CWindow* pWindow) {
             g_pHyprRenderer->damageMonitor(getMonitorFromID(pw->m_iMonitorID));
     };
 
-    moveToTop(pWindow);
+    if (top)
+        pWindow->m_bCreatedOverFullscreen = true;
 
-    pWindow->m_bCreatedOverFullscreen = true;
-
-    if (!pWindow->m_bIsX11)
+    if (!pWindow->m_bIsX11) {
+        moveToZ(pWindow, top);
         return;
+    } else {
+        // move X11 window stack
 
-    // move all children
+        std::deque<CWindow*> toMove;
 
-    std::deque<CWindow*> toMove;
+        auto                 x11Stack = [&](CWindow* pw, bool top, auto&& x11Stack) -> void {
+            if (top)
+                toMove.emplace_back(pw);
+            else
+                toMove.emplace_front(pw);
 
-    for (auto& w : m_vWindows) {
-        if (w->m_bIsMapped && w->m_bMappedX11 && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pWindow) {
-            toMove.emplace_back(w.get());
+            for (auto& w : m_vWindows) {
+                if (w->m_bIsMapped && w->m_bMappedX11 && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pw) {
+                    x11Stack(w.get(), top, x11Stack);
+                }
+            }
+        };
+
+        x11Stack(pWindow, top, x11Stack);
+
+        for (auto it : toMove) {
+            moveToZ(it, top);
         }
-    }
-
-    for (auto& pw : toMove) {
-        moveToTop(pw);
-
-        moveWindowToTop(pw);
     }
 }
 

@@ -63,6 +63,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pin"]                           = pinActive;
     m_mDispatchers["mouse"]                         = mouse;
     m_mDispatchers["bringactivetotop"]              = bringActiveToTop;
+    m_mDispatchers["alterzorder"]                   = alterZOrder;
     m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
     m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
     m_mDispatchers["lockgroups"]                    = lockGroups;
@@ -1910,7 +1911,32 @@ void CKeybindManager::mouse(std::string args) {
 
 void CKeybindManager::bringActiveToTop(std::string args) {
     if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
-        g_pCompositor->moveWindowToTop(g_pCompositor->m_pLastWindow);
+        g_pCompositor->changeWindowZOrder(g_pCompositor->m_pLastWindow, true);
+}
+
+void CKeybindManager::alterZOrder(std::string args) {
+    const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
+    const auto POSITION    = args.substr(0, args.find_first_of(','));
+    auto       PWINDOW     = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+
+    if (!PWINDOW && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
+        PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "alterZOrder: no window");
+        return;
+    }
+
+    if (POSITION == "top")
+        g_pCompositor->changeWindowZOrder(PWINDOW, 1);
+    else if (POSITION == "bottom")
+        g_pCompositor->changeWindowZOrder(PWINDOW, 0);
+    else {
+        Debug::log(ERR, "alterZOrder: bad position: %s", POSITION);
+        return;
+    }
+
+    g_pInputManager->simulateMouseMovement();
 }
 
 void CKeybindManager::fakeFullscreenActive(std::string args) {

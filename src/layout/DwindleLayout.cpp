@@ -851,7 +851,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
-    g_pCompositor->moveWindowToTop(pWindow);
+    g_pCompositor->changeWindowZOrder(pWindow, true);
 
     recalculateMonitor(PMONITOR->ID);
 }

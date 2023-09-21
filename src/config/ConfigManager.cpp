@@ -17,6 +17,8 @@ extern "C" char** environ;
 CConfigManager::CConfigManager() {
     configValues["general:col.active_border"].data              = std::make_shared<CGradientValueData>(0xffffffff);
     configValues["general:col.inactive_border"].data            = std::make_shared<CGradientValueData>(0xff444444);
+    configValues["general:col.nogroup_border"].data             = std::make_shared<CGradientValueData>(0xffffaaff);
+    configValues["general:col.nogroup_border_active"].data      = std::make_shared<CGradientValueData>(0xffff00ff);
     configValues["general:col.group_border"].data               = std::make_shared<CGradientValueData>(0x66777700);
     configValues["general:col.group_border_active"].data        = std::make_shared<CGradientValueData>(0x66ffff00);
     configValues["general:col.group_border_locked"].data        = std::make_shared<CGradientValueData>(0x66775500);
@@ -72,6 +74,8 @@ void CConfigManager::setDefaultVars() {
     configValues["general:gaps_out"].intValue              = 20;
     ((CGradientValueData*)configValues["general:col.active_border"].data.get())->reset(0xffffffff);
     ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
+    ((CGradientValueData*)configValues["general:col.nogroup_border"].data.get())->reset(0xff444444);
+    ((CGradientValueData*)configValues["general:col.nogroup_border_active"].data.get())->reset(0xffff00ff);
     ((CGradientValueData*)configValues["general:col.group_border"].data.get())->reset(0x66777700);
     ((CGradientValueData*)configValues["general:col.group_border_active"].data.get())->reset(0x66ffff00);
     ((CGradientValueData*)configValues["general:col.group_border_locked"].data.get())->reset(0x66775500);
@@ -904,7 +908,7 @@ bool windowRuleValid(const std::string& RULE) {
              RULE != "nomaximizerequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" && RULE != "windowdance" &&
              RULE != "maximize" && RULE != "keepaspectratio" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 && RULE.find("workspace") != 0 &&
              RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" && RULE.find("bordersize") != 0 && RULE.find("xray") != 0 &&
-             RULE.find("center") != 0);
+             RULE.find("center") != 0 && RULE.find("group") != 0);
 }
 
 bool layerRuleValid(const std::string& RULE) {

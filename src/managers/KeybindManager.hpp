@@ -143,6 +143,7 @@ class CKeybindManager {
     static void     pinActive(std::string);
     static void     mouse(std::string);
     static void     bringActiveToTop(std::string);
+    static void     alterZOrder(std::string);
     static void     lockGroups(std::string);
     static void     lockActiveGroup(std::string);
     static void     moveIntoGroup(std::string);

@@ -423,6 +423,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
         return false;
 
     if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer)) {
+        Debug::log(ERR, "[sc] shm: Client requested a copy to a buffer that failed to pass wlr_renderer_begin_with_buffer");
         wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;
     }
@@ -445,6 +446,7 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
     wlr_matrix_scale(glMatrix, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
 
     if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, frame->buffer)) {
+        Debug::log(ERR, "[sc] dmabuf: Client requested a copy to a buffer that failed to pass wlr_renderer_begin_with_buffer");
         wlr_texture_destroy(sourceTex);
         return false;
     }

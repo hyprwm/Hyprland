@@ -244,17 +244,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             return;
         }
 
-        // only check floating because tiled cant be over fullscreen
-        for (auto& w : g_pCompositor->m_vWindows | std::views::reverse) {
-            wlr_box box = {w->m_vRealPosition.vec().x - BORDER_GRAB_AREA, w->m_vRealPosition.vec().y - BORDER_GRAB_AREA, w->m_vRealSize.vec().x + 2 * BORDER_GRAB_AREA,
-                           w->m_vRealSize.vec().y + 2 * BORDER_GRAB_AREA};
-            if (((w->m_bIsFloating && w->m_bIsMapped && (w->m_bCreatedOverFullscreen || w->m_bPinned)) ||
-                 (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID) && PMONITOR->specialWorkspaceID)) &&
-                wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y) && g_pCompositor->isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden()) {
-                pFoundWindow = w.get();
-                break;
-            }
-        }
+        const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+
+        if (PWINDOWIDEAL &&
+            ((PWINDOWIDEAL->m_bIsFloating && PWINDOWIDEAL->m_bCreatedOverFullscreen) /* floating over fullscreen */
+             || (PMONITOR->specialWorkspaceID == PWINDOWIDEAL->m_iWorkspaceID) /* on an open special workspace */))
+            pFoundWindow = PWINDOWIDEAL;
 
         if (!pFoundWindow->m_bIsX11) {
             foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
@@ -1591,7 +1586,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

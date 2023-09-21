@@ -641,6 +641,69 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     return resultSurf;
 }
 
+void CWindow::applyGroupRules() {
+    if ((m_eGroupRules & GROUP_SET && m_bFirstMap) || m_eGroupRules & GROUP_SET_ALWAYS)
+        createGroup();
+
+    if (m_sGroupData.pNextWindow && ((m_eGroupRules & GROUP_LOCK && m_bFirstMap) || m_eGroupRules & GROUP_LOCK_ALWAYS))
+        getGroupHead()->m_sGroupData.locked = true;
+}
+
+void CWindow::createGroup() {
+    if (m_sGroupData.deny) {
+        Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_szTitle);
+        return;
+    }
+    if (!m_sGroupData.pNextWindow) {
+        m_sGroupData.pNextWindow = this;
+        m_sGroupData.head        = true;
+        m_sGroupData.locked      = false;
+        m_sGroupData.deny        = false;
+
+        m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(this));
+        updateWindowDecos();
+
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
+        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    }
+}
+
+void CWindow::destroyGroup() {
+    if (m_sGroupData.pNextWindow == this) {
+        if (m_eGroupRules & GROUP_SET_ALWAYS) {
+            Debug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", (uintptr_t)this, this->m_szTitle);
+            return;
+        }
+        m_sGroupData.pNextWindow = nullptr;
+        updateWindowDecos();
+        return;
+    }
+
+    CWindow*              curr = this;
+    std::vector<CWindow*> members;
+    do {
+        const auto PLASTWIN                = curr;
+        curr                               = curr->m_sGroupData.pNextWindow;
+        PLASTWIN->m_sGroupData.pNextWindow = nullptr;
+        curr->setHidden(false);
+        members.push_back(curr);
+    } while (curr != this);
+
+    for (auto& w : members) {
+        if (w->m_sGroupData.head)
+            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
+        w->m_sGroupData.head = false;
+    }
+
+    const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+    g_pKeybindManager->m_bGroupsLocked = true;
+    for (auto& w : members) {
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
+        w->updateWindowDecos();
+    }
+    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+}
+
 CWindow* CWindow::getGroupHead() {
     CWindow* curr = this;
     while (!curr->m_sGroupData.head)

@@ -315,14 +315,21 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
         applyNodeDataToWindow(PNODE);
 
+        pWindow->applyGroupRules();
+
         return;
     }
 
     // if it's a group, add the window
-    if (OPENINGON->pWindow->m_sGroupData.pNextWindow &&                                         // target is group
-        !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&                             // target unlocked
-        !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked) && // source unlocked or isn't group
-        !g_pKeybindManager->m_bGroupsLocked && !m_vOverrideFocalPoint) {
+    if (OPENINGON->pWindow->m_sGroupData.pNextWindow                                                      // target is group
+        && !g_pKeybindManager->m_bGroupsLocked                                                            // global group lock disengaged
+        && ((pWindow->m_eGroupRules & GROUP_INVADE && pWindow->m_bFirstMap)                               // window ignore local group locks, or
+            || (!OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked                                  //    target unlocked
+                && !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
+        && !pWindow->m_sGroupData.deny                                                                    // source is not denied entry
+        && !(pWindow->m_eGroupRules & GROUP_BARRED && pWindow->m_bFirstMap)                               // group rule doesn't prevent adding window
+        && !m_vOverrideFocalPoint                                                                         // we are not moving window
+    ) {
         if (!pWindow->m_sGroupData.pNextWindow)
             pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
@@ -342,6 +349,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         }
 
         OPENINGON->pWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 
@@ -475,6 +483,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
+    pWindow->applyGroupRules();
 }
 
 void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {

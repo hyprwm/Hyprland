@@ -1,7 +1,55 @@
 #include "Renderer.hpp"
+
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cmath>
+#include <csignal>
+#include <cstdint>
+#include <cstring>
+#include <ctime>
+#include <deque>
+#include <list>
+#include <unordered_map>
+#include <utility>
+
+#include <wayland-server-core.h>
+#include <wayland-util.h>
+
 #include "../Compositor.hpp"
-#include "linux-dmabuf-unstable-v1-protocol.h"
+#include "../SharedDefs.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigDataValues.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/HyprDebugOverlay.hpp"
+#include "../debug/HyprNotificationOverlay.hpp"
+#include "../debug/Log.hpp"
+#include "../debug/TracyDefines.hpp"
+#include "../events/Events.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/BezierCurve.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
 #include "../helpers/Region.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../helpers/WLSurface.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../hyprerror/HyprError.hpp"
+#include "../layout/IHyprLayout.hpp"
+#include "../macros.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/SessionLockManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/input/InputMethodRelay.hpp"
+#include "OpenGL.hpp"
+#include "decorations/IHyprWindowDecoration.hpp"
+#include "pixman.h"
+#include "wlr-layer-shell-unstable-v1-protocol.h"
 
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE = wlr_surface_get_texture(surface);

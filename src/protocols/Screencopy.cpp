@@ -1,8 +1,25 @@
 #include "Screencopy.hpp"
-#include "../Compositor.hpp"
 
 #include <algorithm>
+#include <any>
+#include <ctime>
+#include <functional>
+#include <memory>
+#include <string>
 
+#include "../Compositor.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Region.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../macros.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/ProtocolManager.hpp"
+#include "../render/Renderer.hpp"
+#include "ToplevelExport.hpp"
 #include "ToplevelExportWlrFuncs.hpp"
 
 #define SCREENCOPY_VERSION 3

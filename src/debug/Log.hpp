@@ -1,13 +1,17 @@
 #pragma once
-#include <string>
-#include <wlr/util/log.h>
-#include <format>
-#include <iostream>
-#include <fstream>
-#include <chrono>
-#include "../helpers/MiscFunctions.hpp"
 
-#define LOGMESSAGESIZE 1024
+#include <chrono>
+#include <cstdarg>
+#include <cstdint>
+#include <format>
+#include <fstream>
+#include <ios>
+#include <iostream>
+#include <ostream>
+#include <streambuf>
+#include <string>
+
+#include "../common.hpp"
 
 enum LogLevel {
     NONE = -1,

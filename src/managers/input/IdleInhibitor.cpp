@@ -1,5 +1,15 @@
-#include "InputManager.hpp"
+#include <list>
+#include <memory>
+#include <vector>
+
 #include "../../Compositor.hpp"
+#include "../../Window.hpp"
+#include "../../debug/Log.hpp"
+#include "../../events/Events.hpp"
+#include "../../helpers/WLClasses.hpp"
+#include "../../helpers/WLListener.hpp"
+#include "../../render/Renderer.hpp"
+#include "InputManager.hpp"
 
 void Events::listener_newIdleInhibitor(wl_listener* listener, void* data) {
     const auto WLRIDLEINHIBITOR = (wlr_idle_inhibitor_v1*)data;

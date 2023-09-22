@@ -1,6 +1,16 @@
 #include "TextInputV1.hpp"
 
+#include <algorithm>
+
 #include "../Compositor.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../helpers/WLListener.hpp"
+#include "../macros.hpp"
+#include "../managers/ProtocolManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/input/InputMethodRelay.hpp"
+#include "text-input-unstable-v1-protocol.h"
 
 #define TEXT_INPUT_VERSION 1
 

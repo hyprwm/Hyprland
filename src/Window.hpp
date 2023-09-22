@@ -1,15 +1,27 @@
 #pragma once
 
-#include "defines.hpp"
-#include "helpers/SubsurfaceTree.hpp"
-#include "helpers/AnimatedVariable.hpp"
-#include "render/decorations/IHyprWindowDecoration.hpp"
+#include <sys/types.h>
+
+#include <cstdint>
 #include <deque>
+#include <format>
+#include <list>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "common.hpp"
+
 #include "config/ConfigDataValues.hpp"
+#include "helpers/AnimatedVariable.hpp"
+#include "helpers/Color.hpp"
+#include "helpers/SubsurfaceTree.hpp"
 #include "helpers/Vector2D.hpp"
+#include "helpers/WLListener.hpp"
 #include "helpers/WLSurface.hpp"
 #include "macros.hpp"
 #include "managers/XWaylandManager.hpp"
+#include "render/decorations/IHyprWindowDecoration.hpp"
 
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,

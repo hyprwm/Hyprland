@@ -1,15 +1,16 @@
-#include "defines.hpp"
-#include "debug/Log.hpp"
-#include "Compositor.hpp"
-#include "config/ConfigManager.hpp"
-#include "init/initHelpers.hpp"
-
+#include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <iterator>
-#include <vector>
-#include <stdexcept>
+#include <memory>
+#include <ostream>
 #include <string>
-#include <filesystem>
+#include <vector>
+
+#include "Compositor.hpp"
+#include "debug/Log.hpp"
+#include "helpers/MiscFunctions.hpp"
+#include "init/initHelpers.hpp"
 
 void help() {
     std::cout << "usage: Hyprland [arg [...]].\n";

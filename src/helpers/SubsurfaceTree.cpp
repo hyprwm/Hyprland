@@ -1,6 +1,23 @@
 #include "SubsurfaceTree.hpp"
-#include "../events/Events.hpp"
+
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+
+#include <wayland-util.h>
+
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../events/Events.hpp"
+#include "../macros.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../render/Renderer.hpp"
+#include "Vector2D.hpp"
+#include "WLListener.hpp"
+#include "WLSurface.hpp"
+
 
 void addSurfaceGlobalOffset(SSurfaceTreeNode* node, int* lx, int* ly) {
     if (!node->pSurface || !node->pSurface->exists())

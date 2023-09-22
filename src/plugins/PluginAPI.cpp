@@ -1,13 +1,34 @@
 #include "PluginAPI.hpp"
-#include "../Compositor.hpp"
-#include "../debug/HyprCtl.hpp"
-#include <dlfcn.h>
 
+#include <dlfcn.h>
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/sysctl.h>
 #endif
 
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <exception>
+#include <filesystem>
+#include <memory>
 #include <sstream>
+#include <utility>
+
+#include "../Compositor.hpp"
+#include "../SharedDefs.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/HyprCtl.hpp"
+#include "../debug/HyprNotificationOverlay.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../layout/IHyprLayout.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/KeybindManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "HookSystem.hpp"
+#include "PluginSystem.hpp"
 
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);

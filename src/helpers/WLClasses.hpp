@@ -1,13 +1,23 @@
 #pragma once
 
-#include "../events/Events.hpp"
-#include "../defines.hpp"
+#include <list>
+#include <string>
+
+#include <wayland-util.h>
+#include <xkbcommon/xkbcommon.h>
+
+#include "../common.hpp"
 #include "wlr-layer-shell-unstable-v1-protocol.h"
+
+#include "../macros.hpp"
 #include "../Window.hpp"
-#include "SubsurfaceTree.hpp"
 #include "AnimatedVariable.hpp"
-#include "WLSurface.hpp"
+#include "Vector2D.hpp"
 #include "Region.hpp"
+#include "SubsurfaceTree.hpp"
+#include "WLSurface.hpp"
+
+class CWorkspace;
 
 struct SLayerRule {
     std::string targetNamespace = "";

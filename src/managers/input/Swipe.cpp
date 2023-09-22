@@ -1,5 +1,23 @@
-#include "InputManager.hpp"
+#include <algorithm>
+#include <array>
+#include <climits>
+#include <cstdlib>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "../../Compositor.hpp"
+#include "../../config/ConfigManager.hpp"
+#include "../../debug/Log.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/MiscFunctions.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/WLClasses.hpp"
+#include "../../helpers/Workspace.hpp"
+#include "../../managers/SessionLockManager.hpp"
+#include "../../render/Renderer.hpp"
+#include "InputManager.hpp"
 
 void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
     static auto* const PSWIPE        = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe")->intValue;

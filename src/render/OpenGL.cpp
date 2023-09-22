@@ -1,9 +1,47 @@
-#include "Shaders.hpp"
 #include "OpenGL.hpp"
-#include "../Compositor.hpp"
-#include "../helpers/MiscFunctions.hpp"
-#include "Shaders.hpp"
+
+#include <algorithm>
+#include <any>
+#include <array>
+#include <cmath>
+#include <cstring>
+#include <ctime>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <random>
+#include <streambuf>
+#include <utility>
+#include <vector>
+
+#include <wayland-server-protocol.h>
+
+#include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigDataValues.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../debug/TracyDefines.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Region.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../helpers/WLSurface.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../macros.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "Framebuffer.hpp"
+#include "Renderer.hpp"
+#include "Shader.hpp"
+#include "Texture.hpp"
+#include "shaders/Border.hpp"
+#include "shaders/Shadow.hpp"
+#include "shaders/Textures.hpp"
 
 CHyprOpenGLImpl::CHyprOpenGLImpl() {
     RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL)),

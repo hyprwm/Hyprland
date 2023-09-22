@@ -1,5 +1,12 @@
 #include "LayoutManager.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+
+#include "../debug/Log.hpp"
+#include "../layout/IHyprLayout.hpp"
+
 CLayoutManager::CLayoutManager() {
     m_vLayouts.emplace_back(std::make_pair<>("dwindle", &m_cDwindleLayout));
     m_vLayouts.emplace_back(std::make_pair<>("master", &m_cMasterLayout));

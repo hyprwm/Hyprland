@@ -1,12 +1,15 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "wlr-foreign-toplevel-management-unstable-v1-protocol.h"
-#include "hyprland-toplevel-export-v1-protocol.h"
-#include "Screencopy.hpp"
-
+#include <cstdint>
 #include <list>
 #include <vector>
+
+#include "../common.hpp"
+#include <wayland-server-core.h>
+#include "hyprland-toplevel-export-v1-protocol.h"
+#include "wlr-foreign-toplevel-management-unstable-v1-protocol.h"
+
+#include "Screencopy.hpp"
 
 class CMonitor;
 class CWindow;

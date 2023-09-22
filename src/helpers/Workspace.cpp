@@ -1,5 +1,17 @@
 #include "Workspace.hpp"
+
+#include <exception>
+#include <memory>
+
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "AnimatedVariable.hpp"
+#include "Monitor.hpp"
+#include "Vector2D.hpp"
 
 CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);

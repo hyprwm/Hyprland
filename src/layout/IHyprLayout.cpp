@@ -1,6 +1,28 @@
 #include "IHyprLayout.hpp"
-#include "../defines.hpp"
+
+#include <chrono>
+#include <cstdlib>
+#include <format>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLSurface.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../macros.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/KeybindManager.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../render/Renderer.hpp"
 
 void IHyprLayout::onWindowCreated(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {

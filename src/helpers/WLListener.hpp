@@ -1,7 +1,9 @@
 #pragma once
 
-#include <string>
 #include <functional>
+#include <string>
+
+#include <wayland-server-core.h>
 #include <wayland-server.h>
 
 class CHyprWLListener {

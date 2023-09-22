@@ -1,7 +1,13 @@
 #pragma once
 
-#include "../defines.hpp"
+#include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
+
+#include "../common.hpp"
+
+#include "../helpers/Vector2D.hpp"
 
 class CWindow; // because clangd
 

@@ -1,5 +1,19 @@
-#include "InputManager.hpp"
+#include <cmath>
+#include <cstdint>
+#include <exception>
+#include <list>
+#include <memory>
+#include <string>
+
 #include "../../Compositor.hpp"
+#include "../../debug/Log.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/Timer.hpp"
+#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/WLClasses.hpp"
+#include "../../helpers/WLListener.hpp"
+#include "../../Window.hpp"
+#include "InputManager.hpp"
 
 void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     const auto PNEWTABLET = &m_lTablets.emplace_back();

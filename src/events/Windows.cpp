@@ -1,9 +1,47 @@
-#include "Events.hpp"
+#include <algorithm>
+#include <climits>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <exception>
+#include <format>
+#include <functional>
+#include <memory>
+#include <regex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/SubsurfaceTree.hpp"
+#include "../helpers/VarList.hpp"
+#include "../helpers/Vector2D.hpp"
 #include "../helpers/WLClasses.hpp"
+#include "../helpers/WLListener.hpp"
+#include "../helpers/WLSurface.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../layout/IHyprLayout.hpp"
+#include "../macros.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/KeybindManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/ProtocolManager.hpp"
+#include "../managers/XWaylandManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../protocols/FractionalScale.hpp"
+#include "../protocols/ToplevelExport.hpp"
+#include "../render/OpenGL.hpp"
 #include "../render/Renderer.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
+#include "Events.hpp"
 
 // ------------------------------------------------------------ //
 //  __          _______ _   _ _____   ______          _______   //

@@ -5,7 +5,12 @@
 #undef register
 #include <sys/mman.h>
 #include <unistd.h>
+
+#include <cstdint>
+#include <cstdlib>
 #include <cstring>
+
+#include "PluginAPI.hpp"
 
 CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) {
     m_pSource      = source;

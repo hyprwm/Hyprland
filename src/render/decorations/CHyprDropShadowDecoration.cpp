@@ -1,6 +1,19 @@
 #include "CHyprDropShadowDecoration.hpp"
 
+#include <algorithm>
+#include <memory>
+
 #include "../../Compositor.hpp"
+#include "../../Window.hpp"
+#include "../../config/ConfigManager.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/Color.hpp"
+#include "../../helpers/MiscFunctions.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../helpers/Workspace.hpp"
+#include "../../render/OpenGL.hpp"
+#include "../../render/decorations/IHyprWindowDecoration.hpp"
+#include "../Renderer.hpp"
 
 CHyprDropShadowDecoration::CHyprDropShadowDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;

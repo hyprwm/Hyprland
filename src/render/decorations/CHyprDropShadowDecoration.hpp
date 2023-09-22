@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../../common.hpp"
+
+#include "../../helpers/Vector2D.hpp"
 #include "IHyprWindowDecoration.hpp"
 
 class CHyprDropShadowDecoration : public IHyprWindowDecoration {

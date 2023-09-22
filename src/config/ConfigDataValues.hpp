@@ -1,6 +1,7 @@
 #pragma once
-#include "../defines.hpp"
 #include <vector>
+
+#include "../helpers/Color.hpp"
 
 enum eConfigValueDataTypes {
     CVD_TYPE_INVALID  = -1,

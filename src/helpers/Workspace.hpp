@@ -1,8 +1,12 @@
 #pragma once
 
-#include "AnimatedVariable.hpp"
+#include <cstdint>
 #include <string>
-#include "../defines.hpp"
+
+#include "../common.hpp"
+#include <wayland-util.h>
+
+#include "AnimatedVariable.hpp"
 
 enum eFullscreenMode : uint8_t
 {

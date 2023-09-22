@@ -1,12 +1,34 @@
 #include "MiscFunctions.hpp"
-#include "../defines.hpp"
-#include <algorithm>
-#include "../Compositor.hpp"
-#include <set>
-#include <sys/utsname.h>
-#include <iomanip>
-#include <sstream>
+
 #include <execinfo.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
+
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <climits>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <exception>
+#include <iomanip>
+#include <ios>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <stdexcept>
+
+#include <wayland-server-core.h>
+
+#include "../Compositor.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../macros.hpp"
+#include "Vector2D.hpp"
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -15,7 +37,6 @@
 #elif defined(__FreeBSD__)
 #include <sys/user.h> // struct kinfo_proc
 #endif
-
 #if defined(__NetBSD__)
 #undef KERN_PROC
 #define KERN_PROC  KERN_PROC2

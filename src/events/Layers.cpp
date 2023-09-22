@@ -1,6 +1,27 @@
+
+#include <array>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "../Compositor.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
 #include "../helpers/WLClasses.hpp"
+#include "../helpers/WLListener.hpp"
+#include "../helpers/WLSurface.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/ProtocolManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../protocols/FractionalScale.hpp"
+#include "../render/OpenGL.hpp"
 #include "../render/Renderer.hpp"
 #include "Events.hpp"
 

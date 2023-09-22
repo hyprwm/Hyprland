@@ -1,7 +1,49 @@
 #include "InputManager.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <cmath>
+#include <csignal>
+#include <cstdio>
+#include <cstring>
+#include <ctime>
+#include <exception>
+#include <vector>
+
+#include <libinput.h>
+#include <wayland-server-core.h>
+#include <wayland-server-protocol.h>
+#include <xkbcommon/xkbcommon-names.h>
+#include <xkbcommon/xkbcommon.h>
+
 #include "../../Compositor.hpp"
-#include "wlr/types/wlr_switch.h"
-#include <ranges>
+#include "../../Window.hpp"
+#include "../../config/ConfigManager.hpp"
+#include "../../debug/Log.hpp"
+#include "../../events/Events.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/MiscFunctions.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../helpers/Region.hpp"
+#include "../../helpers/Timer.hpp"
+#include "../../helpers/VarList.hpp"
+#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/WLClasses.hpp"
+#include "../../helpers/WLListener.hpp"
+#include "../../helpers/WLSurface.hpp"
+#include "../../helpers/Workspace.hpp"
+#include "../../layout/IHyprLayout.hpp"
+#include "../../macros.hpp"
+#include "../../managers/EventManager.hpp"
+#include "../../managers/HookSystemManager.hpp"
+#include "../../managers/KeybindManager.hpp"
+#include "../../managers/LayoutManager.hpp"
+#include "../../managers/SessionLockManager.hpp"
+#include "../../managers/XWaylandManager.hpp"
+#include "../../render/Renderer.hpp"
+#include "../../render/decorations/IHyprWindowDecoration.hpp"
+#include "InputMethodRelay.hpp"
 
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     static auto* const PSENS      = &g_pConfigManager->getConfigValuePtr("general:sensitivity")->floatValue;

@@ -1,15 +1,18 @@
 #pragma once
 
-#include "IHyprLayout.hpp"
-
-#include <list>
-#include <deque>
+#include <any>
 #include <array>
-#include <optional>
+#include <cstdint>
+#include <deque>
 #include <format>
+#include <list>
+#include <optional>
+#include <string>
+
+#include "IHyprLayout.hpp"
+#include "../helpers/Vector2D.hpp"
 
 class CHyprDwindleLayout;
-enum eFullscreenMode : uint8_t;
 
 struct SDwindleNodeData {
     SDwindleNodeData*                pParent = nullptr;

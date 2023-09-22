@@ -1,8 +1,19 @@
 #include "PluginSystem.hpp"
 
 #include <dlfcn.h>
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
 #include <ranges>
-#include "../Compositor.hpp"
+
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "HookSystem.hpp"
+#include "PluginAPI.hpp"
 
 CPluginSystem::CPluginSystem() {
     g_pFunctionHookSystem = std::make_unique<CHookSystem>();

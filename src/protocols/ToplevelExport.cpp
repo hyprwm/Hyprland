@@ -1,8 +1,25 @@
 #include "ToplevelExport.hpp"
+
+#include <ctime>
+#include <memory>
+
+#include <wayland-util.h>
+
 #include "../Compositor.hpp"
-
-#include <algorithm>
-
+#include "../Window.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Region.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../macros.hpp"
+#include "../managers/ProtocolManager.hpp"
+#include "../render/Framebuffer.hpp"
+#include "../render/OpenGL.hpp"
+#include "../render/Renderer.hpp"
+#include "Screencopy.hpp"
 #include "ToplevelExportWlrFuncs.hpp"
 
 #define TOPLEVEL_EXPORT_VERSION 2

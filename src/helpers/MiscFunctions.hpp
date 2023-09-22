@@ -1,11 +1,15 @@
 #pragma once
 
-#include <string>
-#include <wayland-server.h>
-#include <wlr/util/box.h>
-#include "Vector2D.hpp"
-#include <vector>
+#include <cstdint>
 #include <format>
+#include <string>
+#include <vector>
+
+#include "../common.hpp"
+#include <wayland-server-protocol.h>
+#include <wayland-server.h>
+
+#include "Vector2D.hpp"
 
 struct SCallstackFrameInfo {
     void*       adr = nullptr;

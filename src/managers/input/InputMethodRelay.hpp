@@ -1,7 +1,12 @@
 #pragma once
 
-#include "../../defines.hpp"
+#include <list>
+#include <memory>
+
+#include "../../common.hpp"
+
 #include "../../helpers/WLClasses.hpp"
+#include "../../macros.hpp"
 
 class CInputManager;
 struct STextInputV1;

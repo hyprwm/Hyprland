@@ -1,9 +1,15 @@
-#include "Events.hpp"
+#include <cstdint>
+
+#include <list>
+#include <memory>
 
 #include "../Compositor.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/Vector2D.hpp"
 #include "../helpers/WLClasses.hpp"
+#include "../helpers/WLListener.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../render/Renderer.hpp"
+#include "Events.hpp"
 
 // ---------------------------------------------------- //
 //   _____  ________      _______ _____ ______  _____   //

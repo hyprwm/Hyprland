@@ -20,13 +20,15 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 
 #define HYPRLAND_API_VERSION "0.1"
 
-#include "../helpers/Color.hpp"
-#include "HookSystem.hpp"
-#include "../SharedDefs.hpp"
-
 #include <any>
 #include <functional>
 #include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "../SharedDefs.hpp"
+#include "../helpers/Color.hpp"
+#include "HookSystem.hpp"
 
 typedef std::function<void(void*, std::any)> HOOK_CALLBACK_FN;
 typedef struct {
@@ -48,8 +50,8 @@ struct SFunctionMatch {
 #define OPTIONAL
 #define HANDLE void*
 
-class IHyprLayout;
 class CWindow;
+class IHyprLayout;
 class IHyprWindowDecoration;
 struct SConfigValue;
 

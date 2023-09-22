@@ -1,5 +1,22 @@
 #include "HyprError.hpp"
+
+#include <cmath>
+#include <algorithm>
+#include <any>
+#include <vector>
+
+#include <cairo/cairo.h>
+
 #include "../Compositor.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../render/OpenGL.hpp"
+#include "../render/Renderer.hpp"
+#include "../render/Texture.hpp"
 
 CHyprError::CHyprError() {
     m_fFadeOpacity.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), nullptr, AVARDAMAGE_NONE);

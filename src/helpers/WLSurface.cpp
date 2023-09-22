@@ -1,5 +1,12 @@
 #include "WLSurface.hpp"
+
+#include <cstdint>
+#include <memory>
+
 #include "../Compositor.hpp"
+#include "../debug/Log.hpp"
+#include "../macros.hpp"
+#include "WLListener.hpp"
 
 CWLSurface::CWLSurface(wlr_surface* pSurface) {
     m_pWLRSurface = pSurface;

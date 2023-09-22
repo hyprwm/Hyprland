@@ -1,3 +1,7 @@
+#include <cstdint>
+
+extern "C" {
+
 #include <GLES2/gl2ext.h>
 
 #ifndef DRM_WLR_FUNCS
@@ -297,6 +301,7 @@ static const struct wlr_gles2_pixel_format formats[] = {
     },
 #endif
 };
+}
 
 inline const struct wlr_gles2_pixel_format* gles2FromDRM(uint32_t fmt) {
     for (size_t i = 0; i < sizeof(formats) / sizeof(*formats); ++i) {

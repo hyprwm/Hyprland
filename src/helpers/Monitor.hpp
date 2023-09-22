@@ -1,15 +1,25 @@
 #pragma once
 
-#include "../defines.hpp"
-#include <deque>
-#include "WLClasses.hpp"
-#include <vector>
 #include <array>
+#include <cstdint>
+#include <deque>
 #include <memory>
-#include <xf86drmMode.h>
-#include "Timer.hpp"
-#include "Region.hpp"
 #include <optional>
+#include <string>
+#include <vector>
+
+#include "../common.hpp"
+#include <wayland-server-protocol.h>
+#include <xf86drmMode.h>
+
+#include "../helpers/Vector2D.hpp"
+#include "../macros.hpp"
+#include "Region.hpp"
+#include "Timer.hpp"
+#include "WLClasses.hpp"
+
+class CWorkspace;
+struct SLayerSurface;
 
 struct SMonitorRule {
     std::string         name        = "";

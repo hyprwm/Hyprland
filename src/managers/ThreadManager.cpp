@@ -1,6 +1,10 @@
 #include "ThreadManager.hpp"
-#include "../debug/HyprCtl.hpp"
+
+#include <wayland-server-core.h>
+
 #include "../Compositor.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/HyprCtl.hpp"
 
 int slowUpdate = 0;
 

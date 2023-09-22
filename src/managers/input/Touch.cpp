@@ -1,5 +1,16 @@
-#include "InputManager.hpp"
+#include <algorithm>
+#include <list>
+#include <memory>
+#include <string>
+
 #include "../../Compositor.hpp"
+#include "InputManager.hpp"
+#include "../../Window.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/WLClasses.hpp"
+
 
 void CInputManager::onTouchDown(wlr_touch_down_event* e) {
     auto       PMONITOR = g_pCompositor->getMonitorFromName(e->touch->output_name ? e->touch->output_name : "");

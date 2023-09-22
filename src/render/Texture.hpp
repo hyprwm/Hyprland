@@ -1,6 +1,8 @@
 #pragma once
 
-#include "../defines.hpp"
+#include "../common.hpp"
+
+#include "../helpers/Vector2D.hpp"
 
 enum TEXTURETYPE
 {

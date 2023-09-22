@@ -1,9 +1,11 @@
 #include "Log.hpp"
-#include "../defines.hpp"
-#include "../Compositor.hpp"
 
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
+
+#include "../macros.hpp"
 
 void Debug::init(const std::string& IS) {
     logFile = "/tmp/hypr/" + IS + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log");

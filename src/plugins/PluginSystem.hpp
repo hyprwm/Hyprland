@@ -1,10 +1,12 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "PluginAPI.hpp"
 #include <csetjmp>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
-class IHyprWindowDecoration;
+#include "PluginAPI.hpp"
 
 class CPlugin {
   public:

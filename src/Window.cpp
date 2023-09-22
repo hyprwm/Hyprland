@@ -1,5 +1,32 @@
 #include "Window.hpp"
+
+#include <cstdint>
+#include <exception>
+#include <optional>
+#include <stdexcept>
+#include <utility>
+
+#include <wayland-server-core.h>
+
 #include "Compositor.hpp"
+#include "config/ConfigManager.hpp"
+#include "debug/Log.hpp"
+#include "events/Events.hpp"
+#include "helpers/MiscFunctions.hpp"
+#include "helpers/Monitor.hpp"
+#include "helpers/VarList.hpp"
+#include "helpers/WLClasses.hpp"
+#include "helpers/WLListener.hpp"
+#include "helpers/Workspace.hpp"
+#include "layout/IHyprLayout.hpp"
+#include "managers/EventManager.hpp"
+#include "managers/HookSystemManager.hpp"
+#include "managers/KeybindManager.hpp"
+#include "managers/LayoutManager.hpp"
+#include "managers/ProtocolManager.hpp"
+#include "managers/XWaylandManager.hpp"
+#include "protocols/FractionalScale.hpp"
+#include "render/Renderer.hpp"
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
 #include "render/decorations/CHyprGroupBarDecoration.hpp"
 

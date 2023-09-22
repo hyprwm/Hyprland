@@ -1,5 +1,8 @@
 #include "Shader.hpp"
 
+#include <string>
+#include <utility>
+
 GLint CShader::getUniformLocation(const std::string& unif) {
     const auto itpos = m_muUniforms.find(unif);
 

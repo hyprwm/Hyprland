@@ -1,6 +1,27 @@
 #include "InputMethodRelay.hpp"
-#include "InputManager.hpp"
+
+#include <any>
+#include <string>
+
+#include <wayland-server-core.h>
+
 #include "../../Compositor.hpp"
+#include "../../Window.hpp"
+#include "../../debug/Log.hpp"
+#include "../../events/Events.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/WLClasses.hpp"
+#include "../../helpers/WLListener.hpp"
+#include "../../managers/HookSystemManager.hpp"
+#include "../../protocols/TextInputV1.hpp"
+#include "../../render/Renderer.hpp"
+#include "InputManager.hpp"
+#include "text-input-unstable-v1-protocol.h"
+
+
+struct wl_client;
 
 CInputMethodRelay::CInputMethodRelay() {
     g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, std::any param) { onKeyboardFocus(std::any_cast<wlr_surface*>(param)); });

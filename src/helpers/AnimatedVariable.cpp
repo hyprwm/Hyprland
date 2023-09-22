@@ -1,6 +1,17 @@
 #include "AnimatedVariable.hpp"
-#include "../managers/AnimationManager.hpp"
+
+#include <algorithm>
+#include <exception>
+#include <memory>
+#include <vector>
+
 #include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../macros.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "BezierCurve.hpp"
+#include "Color.hpp"
+#include "Vector2D.hpp"
 
 CAnimatedVariable::CAnimatedVariable() {
     ; // dummy var

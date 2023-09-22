@@ -1,7 +1,14 @@
 #pragma once
 
-#include "WaylandProtocol.hpp"
+#include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
+#include <vector>
+
+#include "../helpers/Vector2D.hpp"
+#include "WaylandProtocol.hpp"
+#include "xdg-output-unstable-v1-protocol.h"
 
 class CMonitor;
 
@@ -18,6 +25,7 @@ struct SXDGOutput {
 class CXDGOutputProtocol : public IWaylandProtocol {
   public:
     CXDGOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    virtual ~CXDGOutputProtocol() = default;
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 

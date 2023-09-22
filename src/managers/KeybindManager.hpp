@@ -1,14 +1,19 @@
 #pragma once
 
-#include "../defines.hpp"
+#include <cstdint>
 #include <deque>
-#include "../Compositor.hpp"
-#include <unordered_map>
 #include <functional>
+#include <list>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-class CInputManager;
-class CConfigManager;
-class CPluginSystem;
+#include "../common.hpp"
+#include <xkbcommon/xkbcommon.h>
+
+#include "../Compositor.hpp"
+#include "../helpers/Timer.hpp"
 
 struct SKeybind {
     std::string key          = "";

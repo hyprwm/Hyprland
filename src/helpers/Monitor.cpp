@@ -1,6 +1,35 @@
 #include "Monitor.hpp"
 
+#include <algorithm>
+#include <climits>
+#include <cmath>
+#include <cstddef>
+#include <deque>
+#include <functional>
+#include <unordered_map>
+
+#include <wayland-server-core.h>
+#include <wayland-util.h>
+
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../events/Events.hpp"
+#include "../layout/IHyprLayout.hpp"
+#include "../macros.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/KeybindManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../render/Renderer.hpp"
+#include "MiscFunctions.hpp"
+#include "Region.hpp"
+#include "Vector2D.hpp"
+#include "WLClasses.hpp"
+#include "WLListener.hpp"
+#include "Workspace.hpp"
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);

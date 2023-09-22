@@ -1,5 +1,11 @@
 #include "WaylandProtocol.hpp"
+
+#include <memory>
+#include <wayland-util.h>
+
 #include "../Compositor.hpp"
+#include "../debug/Log.hpp"
+#include "../macros.hpp"
 
 static void resourceDestroyNotify(wl_listener* listener, void* data) {
     CWaylandResource* pResource = wl_container_of(listener, pResource, m_liResourceDestroy);

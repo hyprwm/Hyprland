@@ -1,14 +1,18 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "../helpers/Timer.hpp"
-#include "../helpers/Monitor.hpp"
-#include "../render/Texture.hpp"
-#include "../SharedDefs.hpp"
-
+#include <array>
 #include <deque>
+#include <memory>
+#include <string>
 
+#include "../common.hpp"
 #include <cairo/cairo.h>
+
+#include "../SharedDefs.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Timer.hpp"
+#include "../render/Texture.hpp"
 
 enum eIconBackend
 {

@@ -1,6 +1,8 @@
 #include "Region.hpp"
-#include <wlr/util/box.h>
-#include <wlr/util/region.h>
+
+#include <cmath>
+
+#include "../helpers/Vector2D.hpp"
 
 CRegion::CRegion() {
     pixman_region32_init(&m_rRegion);

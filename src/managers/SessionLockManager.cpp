@@ -1,5 +1,18 @@
 #include "SessionLockManager.hpp"
+
+#include <cstdint>
+
+#include <wayland-server-core.h>
+
 #include "../Compositor.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../helpers/WLListener.hpp"
+#include "../render/Renderer.hpp"
+#include "input/InputManager.hpp"
 
 static void handleSurfaceMap(void* owner, void* data) {
     const auto PSURFACE = (SSessionLockSurface*)owner;

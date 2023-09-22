@@ -1,9 +1,25 @@
-#include "Events.hpp"
+
+#include <cstdint>
+#include <list>
+#include <memory>
+#include <vector>
 
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/SubsurfaceTree.hpp"
+#include "../helpers/Vector2D.hpp"
 #include "../helpers/WLClasses.hpp"
+#include "../helpers/WLListener.hpp"
+#include "../helpers/WLSurface.hpp"
+#include "../macros.hpp"
+#include "../managers/ProtocolManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../protocols/FractionalScale.hpp"
 #include "../render/Renderer.hpp"
+#include "Events.hpp"
 
 // --------------------------------------------- //
 //   _____   ____  _____  _    _ _____   _____   //

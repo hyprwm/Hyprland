@@ -1,9 +1,10 @@
 #include "BezierCurve.hpp"
+#include <chrono>
+#include <cmath>
+
 #include "../debug/Log.hpp"
 #include "../macros.hpp"
-
-#include <chrono>
-#include <algorithm>
+#include "Vector2D.hpp"
 
 void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
     m_dPoints.clear();

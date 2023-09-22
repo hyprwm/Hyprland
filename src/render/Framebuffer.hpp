@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../defines.hpp"
+#include "../helpers/Vector2D.hpp"
 #include "Texture.hpp"
 
 class CFramebuffer {

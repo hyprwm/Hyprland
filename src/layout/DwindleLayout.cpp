@@ -1,6 +1,32 @@
 #include "DwindleLayout.hpp"
-#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+
+#include <algorithm>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Region.hpp"
+#include "../helpers/VarList.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../macros.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/KeybindManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
+#include "IHyprLayout.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {

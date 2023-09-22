@@ -1,11 +1,13 @@
 #pragma once
 
-#include <functional>
 #include <any>
 #include <chrono>
-#include "Vector2D.hpp"
-#include "Color.hpp"
+#include <functional>
+
 #include "../macros.hpp"
+#include "../src/debug/Log.hpp"
+#include "Color.hpp"
+#include "Vector2D.hpp"
 
 enum ANIMATEDVARTYPE
 {
@@ -24,10 +26,10 @@ enum AVARDAMAGEPOLICY
 };
 
 class CAnimationManager;
-class CWorkspace;
-struct SLayerSurface;
-struct SAnimationPropertyConfig;
 class CHyprRenderer;
+class CWorkspace;
+struct SAnimationPropertyConfig;
+struct SLayerSurface;
 
 class CAnimatedVariable {
   public:

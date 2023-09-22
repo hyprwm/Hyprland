@@ -1,6 +1,12 @@
 #include "VarList.hpp"
-#include <ranges>
+
 #include <algorithm>
+#include <cctype>
+#include <functional>
+#include <ranges>
+#include <string_view>
+
+#include "MiscFunctions.hpp"
 
 CVarList::CVarList(const std::string& in, const size_t lastArgNo, const char delim, const bool removeEmpty) {
     if (in.empty())

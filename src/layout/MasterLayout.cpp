@@ -1,7 +1,39 @@
 #include "MasterLayout.hpp"
-#include "../Compositor.hpp"
-#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <deque>
+#include <exception>
+#include <functional>
+#include <iterator>
+#include <memory>
+#include <optional>
 #include <ranges>
+#include <unordered_map>
+#include <utility>
+
+#include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Region.hpp"
+#include "../helpers/VarList.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../macros.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/KeybindManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
+#include "IHyprLayout.hpp"
 
 SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(CWindow* pWindow) {
     for (auto& nd : m_lMasterNodesData) {

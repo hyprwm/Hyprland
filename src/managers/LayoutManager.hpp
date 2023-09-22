@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "../layout/DwindleLayout.hpp"
 #include "../layout/MasterLayout.hpp"
 

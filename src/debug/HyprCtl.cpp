@@ -1,18 +1,59 @@
 #include "HyprCtl.hpp"
 
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <errno.h>
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
+#include <format>
+#include <functional>
+#include <list>
+#include <memory>
+#include <ostream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include <libinput.h>
+#include <wayland-server-core.h>
+#include <xkbcommon/xkbcommon.h>
+
+#include "../Compositor.hpp"
+#include "../SharedDefs.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/BezierCurve.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/VarList.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../hyprerror/HyprError.hpp"
+#include "../layout/IHyprLayout.hpp"
+#include "../macros.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../managers/KeybindManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/ProtocolManager.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../plugins/PluginSystem.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
+#include "../render/OpenGL.hpp"
+#include "../render/Renderer.hpp"
+#include "HyprNotificationOverlay.hpp"
+#include "Log.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')

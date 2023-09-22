@@ -1,7 +1,21 @@
 #include "XWaylandManager.hpp"
+
+#include <cstdlib>
+#include <exception>
+#include <map>
+#include <stdexcept>
+#include <vector>
+
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
 #include "../events/Events.hpp"
-#include "xdg-output-unstable-v1-protocol.h"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/Workspace.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3
 #define OUTPUT_DONE_DEPRECATED_SINCE_VERSION     3

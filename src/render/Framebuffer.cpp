@@ -1,5 +1,14 @@
 #include "Framebuffer.hpp"
+
+#include <cstdint>
+#include <memory>
+
+#include "../debug/Log.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../macros.hpp"
 #include "OpenGL.hpp"
+#include "Texture.hpp"
 
 bool CFramebuffer::alloc(int w, int h) {
     bool firstAlloc = false;

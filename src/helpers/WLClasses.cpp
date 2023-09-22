@@ -1,6 +1,19 @@
 #include "WLClasses.hpp"
-#include "../config/ConfigManager.hpp"
+
+#include <memory>
+#include <vector>
+
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "AnimatedVariable.hpp"
+#include "MiscFunctions.hpp"
+#include "Monitor.hpp"
+#include "Region.hpp"
+#include "VarList.hpp"
+#include "Vector2D.hpp"
 
 SLayerSurface::SLayerSurface() {
     alpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), nullptr, AVARDAMAGE_ENTIRE);

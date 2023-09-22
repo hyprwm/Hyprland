@@ -1780,30 +1780,33 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     pMonitor->vecPixelSize = pMonitor->vecSize;
 
-    if (pMonitorRule->enable10bit) {
-        // try 10b RGB
-        wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XRGB2101010);
-        pMonitor->enabled10bit = true;
+    // clang-format off
+    static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
+        std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
+            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
+        },
+        std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
+            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
+        }
+    };
+    // clang-format on
+
+    bool set10bit = false;
+
+    for (auto& fmt : formats[(int)!pMonitorRule->enable10bit]) {
+        wlr_output_set_render_format(pMonitor->output, fmt.second);
 
         if (!wlr_output_test(pMonitor->output)) {
-            Debug::log(ERR, "Output {} -> 10 bit enabled, but failed format DRM_FORMAT_XRGB2101010. Trying BGR.", pMonitor->output->name);
-
-            wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XBGR2101010);
-
-            if (!wlr_output_test(pMonitor->output)) {
-                Debug::log(ERR, "Output {} -> 10 bit enabled, but failed format DRM_FORMAT_XBGR2101010. Falling back to 8 bit.", pMonitor->output->name);
-
-                wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XRGB8888);
-            } else {
-                Debug::log(LOG, "10bit format DRM_FORMAT_XBGR2101010 succeeded for output {}", pMonitor->output->name);
-            }
+            Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);
         } else {
-            Debug::log(LOG, "10bit format DRM_FORMAT_XRGB2101010 succeeded for output {}", pMonitor->output->name);
+            Debug::log(LOG, "output {} succeeded basic test on format {}", pMonitor->szName, fmt.first);
+            if (pMonitorRule->enable10bit && fmt.first.contains("101010"))
+                set10bit = true;
+            break;
         }
-    } else {
-        wlr_output_set_render_format(pMonitor->output, DRM_FORMAT_XRGB8888);
-        pMonitor->enabled10bit = false;
     }
+
+    pMonitor->enabled10bit = set10bit;
 
     if (!wlr_output_commit(pMonitor->output)) {
         Debug::log(ERR, "Couldn't commit output named {}", pMonitor->output->name);

@@ -106,6 +106,7 @@ int main(int argc, char** argv) {
 
     // If we are here it means we got yote.
     Debug::log(LOG, "Hyprland reached the end.");
+    g_pCompositor.reset();
 
     return EXIT_SUCCESS;
 }

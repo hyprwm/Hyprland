@@ -616,6 +616,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         g_pInputManager->refocus();
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
+
+    g_pHyprRenderer->damageMonitor(this);
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {

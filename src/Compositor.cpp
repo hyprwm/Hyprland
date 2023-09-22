@@ -74,6 +74,24 @@ CCompositor::CCompositor() {
 
 CCompositor::~CCompositor() {
     cleanup();
+    g_pPluginSystem.reset();
+    g_pHyprNotificationOverlay.reset();
+    g_pDebugOverlay.reset();
+    g_pEventManager.reset();
+    g_pSessionLockManager.reset();
+    g_pProtocolManager.reset();
+    g_pXWaylandManager.reset();
+    g_pHyprRenderer.reset();
+    g_pHyprOpenGL.reset();
+    g_pInputManager.reset();
+    g_pThreadManager.reset();
+    g_pConfigManager.reset();
+    g_pLayoutManager.reset();
+    g_pHyprError.reset();
+    g_pConfigManager.reset();
+    g_pAnimationManager.reset();
+    g_pKeybindManager.reset();
+    g_pHookSystem.reset();
 }
 
 void CCompositor::setRandomSplash() {

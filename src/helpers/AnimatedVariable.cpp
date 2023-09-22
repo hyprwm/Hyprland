@@ -51,6 +51,8 @@ CAnimatedVariable::~CAnimatedVariable() {
 }
 
 void CAnimatedVariable::unregister() {
+    if (!g_pAnimationManager)
+        return;
     std::erase_if(g_pAnimationManager->m_vAnimatedVariables, [&](const auto& other) { return other == this; });
     m_bIsRegistered = false;
     disconnectFromActive();

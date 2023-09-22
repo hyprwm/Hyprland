@@ -42,6 +42,9 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
     rounding -= 1; // to fix a border issue
 
+    if (RDATA->dontRound)
+        rounding = 0;
+
     const bool CANDISABLEBLEND = RDATA->alpha >= 1.f && rounding == 0 && surface->opaque;
 
     if (CANDISABLEBLEND)

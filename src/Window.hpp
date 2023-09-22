@@ -360,6 +360,7 @@ class CWindow {
 
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);
+    bool                     isNearEdge(const Vector2D& pos, double threshold = 1.f);
     bool                     hasPopupAt(const Vector2D& pos);
 
     void                     applyGroupRules();

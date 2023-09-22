@@ -2290,10 +2290,27 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
     // warpCursorTo should only be used for warps that
     // should be disabled with no_cursor_warps
 
-    static auto* const PNOWARPS = &g_pConfigManager->getConfigValuePtr("general:no_cursor_warps")->intValue;
+    static auto* const PNOWARPS        = &g_pConfigManager->getConfigValuePtr("general:no_cursor_warps")->intValue;
+    static auto* const PNOWARPSFOCUSED = &g_pConfigManager->getConfigValuePtr("general:no_cursor_warps_if_focused")->intValue;
+    static auto* const PGAPSIN         = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
 
-    if (*PNOWARPS && !force)
-        return;
+    if (!force) {
+        if (*PNOWARPS)
+            return;
+
+        auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
+        if (*PNOWARPSFOCUSED) {
+            auto pWindowFocused     = m_pLastWindow;
+            auto pWindowUnderCursor = vectorToWindowIdeal(mouseCoords);
+            if (pWindowFocused && pWindowUnderCursor && pWindowFocused == pWindowUnderCursor && !pWindowFocused->isNearEdge(mouseCoords, *PGAPSIN + 1))
+                return;
+        }
+
+        Vector2D       surfaceCoords;
+        SLayerSurface* pFoundLayerSurface = nullptr;
+        if (vectorToLayerSurface(mouseCoords, &m_pLastMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface))
+            return;
+    }
 
     if (!m_sSeat.mouse)
         return;

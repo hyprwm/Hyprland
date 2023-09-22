@@ -627,6 +627,16 @@ bool CWindow::isInCurvedCorner(double x, double y) {
     return false;
 }
 
+bool CWindow::isNearEdge(const Vector2D& pos, double threshold) {
+    const auto wbox = getWindowIdealBoundingBoxIgnoreReserved();
+    const auto ibox = wlr_box{wbox.x + threshold, wbox.y + threshold, wbox.width - 2 * threshold, wbox.height - 2 * threshold};
+
+    if (wlr_box_contains_point(&wbox, pos.x, pos.y) && !wlr_box_contains_point(&ibox, pos.x, pos.y))
+        return true;
+
+    return false;
+}
+
 void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
     const auto DATA = (SExtensionFindingData*)data;
 

@@ -835,7 +835,8 @@ std::string dispatchSetCursor(std::string request) {
     std::string theme   = "";
     for (size_t i = 1; i < vars.size() - 1; ++i)
         theme += vars[i] + " ";
-    theme.pop_back();
+    if (!theme.empty())
+        theme.pop_back();
 
     int size = 0;
     try {

@@ -119,7 +119,8 @@ class CCompositor {
     bool                                      m_bReadyToProcess = false;
     bool                                      m_bSessionActive  = true;
     bool                                      m_bDPMSStateON    = true;
-    bool                                      m_bUnsafeState    = false; // unsafe state is when there is no monitors.
+    bool                                      m_bUnsafeState    = false;   // unsafe state is when there is no monitors.
+    wlr_output*                               m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
     bool                                      m_bIsShuttingDown = false;
 
     // ------------------------------------------------- //
@@ -202,6 +203,8 @@ class CCompositor {
     void           notifyIdleActivity();
     void           setIdleActivityInhibit(bool inhibit);
     void           arrangeMonitors();
+    void           enterUnsafeState();
+    void           leaveUnsafeState();
 
     std::string    explicitConfigPath;
 

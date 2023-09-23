@@ -2021,7 +2021,7 @@ void CConfigManager::performMonitorReload() {
         performMonitorReload();
 
     if (!g_pCompositor->m_vMonitors.empty()) // reset unsafe state if we have monitors
-        g_pCompositor->m_bUnsafeState = false;
+        g_pCompositor->leaveUnsafeState();
 
     m_bWantsMonitorReload = false;
 

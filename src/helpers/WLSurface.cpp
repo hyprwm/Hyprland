@@ -36,6 +36,8 @@ void CWLSurface::destroy() {
 
     if (g_pCompositor->m_pLastFocus == m_pWLRSurface)
         g_pCompositor->m_pLastFocus = nullptr;
+    if (g_pInputManager->m_pLastMouseSurface == m_pWLRSurface)
+        g_pInputManager->m_pLastMouseSurface = nullptr;
 
     m_pWLRSurface = nullptr;
 

@@ -201,10 +201,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 pFoundLayerSurface = nullptr;
             }
         } else if (g_pCompositor->m_pLastWindow) {
-            foundSurface = g_pCompositor->m_pLastFocus;
+            foundSurface = m_pLastMouseSurface;
             pFoundWindow = g_pCompositor->m_pLastWindow;
 
-            surfacePos = g_pCompositor->m_pLastWindow->m_vRealPosition.vec();
+            surfaceCoords = g_pCompositor->vectorToSurfaceLocal(mouseCoords, pFoundWindow, foundSurface);
 
             m_bFocusHeldByButtons   = true;
             m_bRefocusHeldByButtons = refocus;
@@ -389,14 +389,17 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 // enter if change floating style
                 if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+                m_pLastMouseSurface = foundSurface;
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             } else if (FOLLOWMOUSE == 2 || FOLLOWMOUSE == 3) {
+                m_pLastMouseSurface = foundSurface;
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
             if (pFoundWindow == g_pCompositor->m_pLastWindow) {
                 if (foundSurface != g_pCompositor->m_pLastFocus || m_bLastFocusOnLS) {
                     //      ^^^ changed the subsurface                  ^^^ came back from a LS
+                    m_pLastMouseSurface = foundSurface;
                     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
                 }
             }
@@ -430,6 +433,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             m_bLastFocusOnLS = true;
     }
 
+    m_pLastMouseSurface = foundSurface;
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
 }
@@ -581,7 +585,8 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
                 break;
 
-            if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) {
+            if ((!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) /* No constraints */
+                && (!g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow != w) /* window should change */) {
                 // a bit hacky
                 // if we only pressed one button, allow us to refocus. m_lCurrentlyHeldButtons.size() > 0 will stick the focus
                 if (m_lCurrentlyHeldButtons.size() == 1) {

@@ -28,7 +28,8 @@
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
 
-enum eManagersInitStage {
+enum eManagersInitStage
+{
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -138,6 +139,7 @@ class CCompositor {
     CWindow*       vectorToWindowTiled(const Vector2D&);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
     wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
+    Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
     CWindow*       windowFromCursor();
     CWindow*       windowFloatingFromCursor();
     CMonitor*      getMonitorFromOutput(wlr_output*);

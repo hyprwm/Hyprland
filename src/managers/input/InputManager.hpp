@@ -7,12 +7,14 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode {
+enum eClickBehaviorMode
+{
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode {
+enum eMouseBindMode
+{
     MBIND_INVALID            = -1,
     MBIND_MOVE               = 0,
     MBIND_RESIZE             = 1,
@@ -20,7 +22,8 @@ enum eMouseBindMode {
     MBIND_RESIZE_FORCE_RATIO = 3
 };
 
-enum eBorderIconDirection {
+enum eBorderIconDirection
+{
     BORDERICON_NONE,
     BORDERICON_UP,
     BORDERICON_DOWN,
@@ -181,7 +184,8 @@ class CInputManager {
     bool m_bLastInputTouch = false;
 
     // for tracking mouse refocus
-    CWindow* m_pLastMouseFocus = nullptr;
+    CWindow*     m_pLastMouseFocus   = nullptr;
+    wlr_surface* m_pLastMouseSurface = nullptr;
 
   private:
     bool                 m_bCursorImageOverridden = false;

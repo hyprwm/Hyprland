@@ -1,6 +1,8 @@
 #include "Region.hpp"
+extern "C" {
 #include <wlr/util/box.h>
 #include <wlr/util/region.h>
+}
 
 CRegion::CRegion() {
     pixman_region32_init(&m_rRegion);

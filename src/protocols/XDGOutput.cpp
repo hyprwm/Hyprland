@@ -1,11 +1,5 @@
 #include "XDGOutput.hpp"
 
-#include <any>
-
-#include <wayland-client-protocol.h>
-#include <wayland-server-core.h>
-#include <wayland-server-protocol.h>
-
 #include "../Compositor.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../debug/Log.hpp"

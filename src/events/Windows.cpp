@@ -1,17 +1,3 @@
-#include <algorithm>
-#include <climits>
-#include <cmath>
-#include <cstdint>
-#include <cstdlib>
-#include <exception>
-#include <format>
-#include <functional>
-#include <memory>
-#include <regex>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

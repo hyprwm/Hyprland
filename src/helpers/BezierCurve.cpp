@@ -1,6 +1,4 @@
 #include "BezierCurve.hpp"
-#include <chrono>
-#include <cmath>
 
 #include "../debug/Log.hpp"
 #include "../macros.hpp"

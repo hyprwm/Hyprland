@@ -1,16 +1,5 @@
 #include "Monitor.hpp"
 
-#include <algorithm>
-#include <climits>
-#include <cmath>
-#include <cstddef>
-#include <deque>
-#include <functional>
-#include <unordered_map>
-
-#include <wayland-server-core.h>
-#include <wayland-util.h>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

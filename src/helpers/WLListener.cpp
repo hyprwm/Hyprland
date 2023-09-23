@@ -1,9 +1,6 @@
 #include "WLListener.hpp"
 
 #include <cstdint>
-#include <string>
-
-#include <wayland-util.h>
 
 #include "../debug/Log.hpp"
 #include "MiscFunctions.hpp"

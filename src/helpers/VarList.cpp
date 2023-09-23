@@ -1,10 +1,7 @@
 #include "VarList.hpp"
 
 #include <algorithm>
-#include <cctype>
-#include <functional>
 #include <ranges>
-#include <string_view>
 
 #include "MiscFunctions.hpp"
 

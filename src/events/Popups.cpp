@@ -1,9 +1,3 @@
-
-#include <cstdint>
-#include <list>
-#include <memory>
-#include <vector>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../debug/Log.hpp"

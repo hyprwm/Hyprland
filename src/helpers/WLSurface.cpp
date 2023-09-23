@@ -1,8 +1,5 @@
 #include "WLSurface.hpp"
 
-#include <cstdint>
-#include <memory>
-
 #include "../Compositor.hpp"
 #include "../debug/Log.hpp"
 #include "../macros.hpp"

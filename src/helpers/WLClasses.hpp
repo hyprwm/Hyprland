@@ -3,11 +3,9 @@
 #include <list>
 #include <string>
 
+#include "../common.hpp"
 #include <wayland-util.h>
 #include <xkbcommon/xkbcommon.h>
-
-#include "../common.hpp"
-#include "wlr-layer-shell-unstable-v1-protocol.h"
 
 #include "../macros.hpp"
 #include "../Window.hpp"
@@ -16,6 +14,7 @@
 #include "Region.hpp"
 #include "SubsurfaceTree.hpp"
 #include "WLSurface.hpp"
+#include "wlr-layer-shell-unstable-v1-protocol.h"
 
 class CWorkspace;
 

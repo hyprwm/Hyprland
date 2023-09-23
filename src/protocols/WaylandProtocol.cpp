@@ -1,8 +1,5 @@
 #include "WaylandProtocol.hpp"
 
-#include <memory>
-#include <wayland-util.h>
-
 #include "../Compositor.hpp"
 #include "../debug/Log.hpp"
 #include "../macros.hpp"

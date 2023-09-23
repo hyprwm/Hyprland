@@ -1,7 +1,5 @@
 #include "GlobalShortcuts.hpp"
 
-#include <ctime>
-
 #include "../Compositor.hpp"
 #include "../debug/Log.hpp"
 #include "../managers/ProtocolManager.hpp"

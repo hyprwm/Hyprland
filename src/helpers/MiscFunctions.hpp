@@ -6,8 +6,6 @@
 #include <vector>
 
 #include "../common.hpp"
-#include <wayland-server-protocol.h>
-#include <wayland-server.h>
 
 #include "Vector2D.hpp"
 

@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>

@@ -1,8 +1,5 @@
 #include "Framebuffer.hpp"
 
-#include <cstdint>
-#include <memory>
-
 #include "../debug/Log.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Vector2D.hpp"

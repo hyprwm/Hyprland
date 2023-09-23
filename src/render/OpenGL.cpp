@@ -1,20 +1,7 @@
 #include "OpenGL.hpp"
 
-#include <algorithm>
-#include <any>
-#include <array>
-#include <cmath>
-#include <cstring>
-#include <ctime>
-#include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <random>
-#include <streambuf>
-#include <utility>
-#include <vector>
-
-#include <wayland-server-protocol.h>
+#include <filesystem>
 
 #include "../Compositor.hpp"
 #include "../Window.hpp"

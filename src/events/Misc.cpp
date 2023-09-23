@@ -1,11 +1,4 @@
 
-#include <cstddef>
-#include <cstdint>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "../Compositor.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../debug/Log.hpp"

@@ -1,11 +1,8 @@
 #include "HyprError.hpp"
 
-#include <cmath>
 #include <algorithm>
 #include <any>
 #include <vector>
-
-#include <cairo/cairo.h>
 
 #include "../Compositor.hpp"
 #include "../config/ConfigManager.hpp"

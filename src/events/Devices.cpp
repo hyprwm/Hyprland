@@ -1,7 +1,3 @@
-#include <cstdint>
-
-#include <list>
-#include <memory>
 
 #include "../Compositor.hpp"
 #include "../debug/Log.hpp"

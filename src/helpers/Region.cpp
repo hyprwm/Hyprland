@@ -2,8 +2,6 @@
 
 #include <cmath>
 
-#include "../helpers/Vector2D.hpp"
-
 CRegion::CRegion() {
     pixman_region32_init(&m_rRegion);
 }

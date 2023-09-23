@@ -1,21 +1,5 @@
 #include "Renderer.hpp"
 
-#include <algorithm>
-#include <array>
-#include <chrono>
-#include <cmath>
-#include <csignal>
-#include <cstdint>
-#include <cstring>
-#include <ctime>
-#include <deque>
-#include <list>
-#include <unordered_map>
-#include <utility>
-
-#include <wayland-server-core.h>
-#include <wayland-util.h>
-
 #include "../Compositor.hpp"
 #include "../SharedDefs.hpp"
 #include "../Window.hpp"
@@ -48,7 +32,6 @@
 #include "../managers/input/InputMethodRelay.hpp"
 #include "OpenGL.hpp"
 #include "decorations/IHyprWindowDecoration.hpp"
-#include "pixman.h"
 #include "wlr-layer-shell-unstable-v1-protocol.h"
 
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {

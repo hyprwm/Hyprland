@@ -1,22 +1,5 @@
 #include "InputManager.hpp"
 
-#include <algorithm>
-#include <array>
-#include <cctype>
-#include <cmath>
-#include <csignal>
-#include <cstdio>
-#include <cstring>
-#include <ctime>
-#include <exception>
-#include <vector>
-
-#include <libinput.h>
-#include <wayland-server-core.h>
-#include <wayland-server-protocol.h>
-#include <xkbcommon/xkbcommon-names.h>
-#include <xkbcommon/xkbcommon.h>
-
 #include "../../Compositor.hpp"
 #include "../../Window.hpp"
 #include "../../config/ConfigManager.hpp"

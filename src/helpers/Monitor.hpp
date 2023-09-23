@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "../common.hpp"
-#include <wayland-server-protocol.h>
 #include <xf86drmMode.h>
 
 #include "../helpers/Vector2D.hpp"

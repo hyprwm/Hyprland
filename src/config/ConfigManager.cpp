@@ -6,29 +6,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <algorithm>
 #include <array>
-#include <cctype>
-#include <climits>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <exception>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <functional>
-#include <ios>
 #include <istream>
 #include <mutex>
-#include <ostream>
-#include <regex>
 #include <sstream>
-#include <stdexcept>
-#include <streambuf>
-
-#include <wayland-server-protocol.h>
-#include <xf86drmMode.h>
 
 #include "../Compositor.hpp"
 #include "../SharedDefs.hpp"
@@ -47,10 +32,9 @@
 #include "../macros.hpp"
 #include "../managers/AnimationManager.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "../managers/KeybindManager.hpp"
 #include "../managers/LayoutManager.hpp"
-#include "../managers/XWaylandManager.hpp"
-#include "../managers/input/InputManager.hpp"
 #include "../plugins/PluginAPI.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../render/OpenGL.hpp"

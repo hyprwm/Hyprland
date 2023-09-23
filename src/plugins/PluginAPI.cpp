@@ -5,14 +5,7 @@
 #include <sys/sysctl.h>
 #endif
 
-#include <cstddef>
-#include <cstdint>
-#include <deque>
-#include <exception>
 #include <filesystem>
-#include <memory>
-#include <sstream>
-#include <utility>
 
 #include "../Compositor.hpp"
 #include "../SharedDefs.hpp"

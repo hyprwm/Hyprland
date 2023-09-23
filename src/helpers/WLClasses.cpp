@@ -1,8 +1,5 @@
 #include "WLClasses.hpp"
 
-#include <memory>
-#include <vector>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

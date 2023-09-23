@@ -1,12 +1,5 @@
 #include "HyprNotificationOverlay.hpp"
 
-#include <algorithm>
-#include <any>
-#include <cctype>
-#include <cmath>
-#include <cstddef>
-
-#include <cairo/cairo.h>
 #include <pango/pangocairo.h>
 
 #include "../Compositor.hpp"

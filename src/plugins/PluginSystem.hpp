@@ -1,5 +1,7 @@
 #pragma once
 
+#include <dlfcn.h>
+
 #include <csetjmp>
 #include <memory>
 #include <string>

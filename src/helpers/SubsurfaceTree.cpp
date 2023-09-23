@@ -1,11 +1,5 @@
 #include "SubsurfaceTree.hpp"
 
-#include <algorithm>
-#include <cstdint>
-#include <memory>
-
-#include <wayland-util.h>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

@@ -1,8 +1,3 @@
-#include <algorithm>
-#include <list>
-#include <memory>
-#include <string>
-
 #include "../../Compositor.hpp"
 #include "InputManager.hpp"
 #include "../../Window.hpp"

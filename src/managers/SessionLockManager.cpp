@@ -1,9 +1,5 @@
 #include "SessionLockManager.hpp"
 
-#include <cstdint>
-
-#include <wayland-server-core.h>
-
 #include "../Compositor.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../debug/Log.hpp"

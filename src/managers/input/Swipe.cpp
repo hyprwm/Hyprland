@@ -1,11 +1,3 @@
-#include <algorithm>
-#include <array>
-#include <climits>
-#include <cstdlib>
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "../../Compositor.hpp"
 #include "../../config/ConfigManager.hpp"
 #include "../../debug/Log.hpp"

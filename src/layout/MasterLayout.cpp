@@ -1,16 +1,6 @@
 #include "MasterLayout.hpp"
 
-#include <algorithm>
-#include <cstddef>
-#include <deque>
-#include <exception>
-#include <functional>
-#include <iterator>
-#include <memory>
-#include <optional>
 #include <ranges>
-#include <unordered_map>
-#include <utility>
 
 #include "../Compositor.hpp"
 #include "../Window.hpp"

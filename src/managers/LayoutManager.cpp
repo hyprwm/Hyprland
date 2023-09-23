@@ -1,9 +1,5 @@
 #include "LayoutManager.hpp"
 
-#include <algorithm>
-#include <cstddef>
-#include <cstdint>
-
 #include "../debug/Log.hpp"
 #include "../layout/IHyprLayout.hpp"
 

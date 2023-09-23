@@ -5,20 +5,13 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
-#include <algorithm>
-#include <any>
-#include <cctype>
-#include <climits>
-#include <csignal>
-#include <cstdio>
-#include <cstring>
-#include <exception>
-#include <utility>
-
-#include <wayland-server-core.h>
-#include <wayland-server-protocol.h>
-#include <xkbcommon/xkbcommon-keysyms.h>
+#if defined(__linux__)
+#include <linux/vt.h>
+#elif defined(__NetBSD__) || defined(__OpenBSD__)
+#include <dev/wscons/wsdisplay_usl_io.h>
+#elif defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sys/consio.h>
+#endif
 
 #include "../Compositor.hpp"
 #include "../Window.hpp"
@@ -47,14 +40,6 @@
 #include "ProtocolManager.hpp"
 #include "XWaylandManager.hpp"
 #include "input/InputManager.hpp"
-
-#if defined(__linux__)
-#include <linux/vt.h>
-#elif defined(__NetBSD__) || defined(__OpenBSD__)
-#include <dev/wscons/wsdisplay_usl_io.h>
-#elif defined(__DragonFly__) || defined(__FreeBSD__)
-#include <sys/consio.h>
-#endif
 
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers

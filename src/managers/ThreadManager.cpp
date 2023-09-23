@@ -1,7 +1,5 @@
 #include "ThreadManager.hpp"
 
-#include <wayland-server-core.h>
-
 #include "../Compositor.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../debug/HyprCtl.hpp"

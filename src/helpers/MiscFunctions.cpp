@@ -1,28 +1,9 @@
 #include "MiscFunctions.hpp"
 
 #include <execinfo.h>
-#include <sys/types.h>
 #include <sys/utsname.h>
 
-#include <algorithm>
-#include <array>
-#include <cctype>
-#include <climits>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <deque>
-#include <exception>
-#include <iomanip>
-#include <ios>
-#include <memory>
-#include <ostream>
 #include <set>
-#include <sstream>
-#include <stdexcept>
-
-#include <wayland-server-core.h>
 
 #include "../Compositor.hpp"
 #include "../config/ConfigManager.hpp"

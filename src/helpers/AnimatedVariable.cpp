@@ -1,10 +1,5 @@
 #include "AnimatedVariable.hpp"
 
-#include <algorithm>
-#include <exception>
-#include <memory>
-#include <vector>
-
 #include "../config/ConfigManager.hpp"
 #include "../debug/Log.hpp"
 #include "../macros.hpp"

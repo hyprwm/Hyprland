@@ -7,12 +7,6 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include <cstdint>
-#include <cstring>
-#include <string>
-
-#include <wayland-server-core.h>
-
 #include "../Compositor.hpp"
 #include "../debug/Log.hpp"
 

@@ -1,9 +1,3 @@
-#include <cmath>
-#include <memory>
-#include <vector>
-
-#include <wayland-server-core.h>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

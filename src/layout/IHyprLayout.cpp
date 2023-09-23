@@ -1,12 +1,5 @@
 #include "IHyprLayout.hpp"
 
-#include <chrono>
-#include <cstdlib>
-#include <format>
-#include <memory>
-#include <utility>
-#include <vector>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

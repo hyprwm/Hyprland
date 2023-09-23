@@ -1,8 +1,5 @@
 #include "CHyprDropShadowDecoration.hpp"
 
-#include <algorithm>
-#include <memory>
-
 #include "../../Compositor.hpp"
 #include "../../Window.hpp"
 #include "../../config/ConfigManager.hpp"

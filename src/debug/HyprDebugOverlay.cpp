@@ -1,11 +1,5 @@
 #include "HyprDebugOverlay.hpp"
 
-#include <format>
-#include <string>
-#include <vector>
-
-#include <cairo/cairo.h>
-
 #include "../Compositor.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Vector2D.hpp"

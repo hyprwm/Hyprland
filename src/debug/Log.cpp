@@ -1,7 +1,5 @@
 #include "Log.hpp"
 
-#include <cstdio>
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
 

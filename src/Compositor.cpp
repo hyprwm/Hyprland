@@ -1,32 +1,9 @@
 #include "Compositor.hpp"
 
-#include <unistd.h>
-
-#include <algorithm>
-#include <array>
-#include <climits>
-#include <csetjmp>
-#include <csignal>
-#include <cstdlib>
-#include <ctime>
-#include <deque>
-#include <exception>
 #include <filesystem>
-#include <format>
-#include <fstream>
-#include <ios>
-#include <ostream>
 #include <random>
 #include <ranges>
-#include <regex>
-#include <streambuf>
-#include <thread>
 #include <unordered_set>
-#include <utility>
-
-#include <wayland-server-core.h>
-#include <wayland-server.h>
-#include <wayland-util.h>
 
 #include "Window.hpp"
 #include "config/ConfigDataValues.hpp"

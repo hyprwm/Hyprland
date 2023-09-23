@@ -1,7 +1,5 @@
 #include "TextInputV1.hpp"
 
-#include <algorithm>
-
 #include "../Compositor.hpp"
 #include "../debug/Log.hpp"
 #include "../helpers/WLClasses.hpp"

@@ -1,10 +1,5 @@
 #include "InputMethodRelay.hpp"
 
-#include <any>
-#include <string>
-
-#include <wayland-server-core.h>
-
 #include "../../Compositor.hpp"
 #include "../../Window.hpp"
 #include "../../debug/Log.hpp"

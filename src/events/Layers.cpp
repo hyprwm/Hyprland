@@ -1,11 +1,4 @@
 
-#include <array>
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "../Compositor.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../debug/Log.hpp"

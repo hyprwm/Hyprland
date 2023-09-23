@@ -1,15 +1,5 @@
 #include "AnimationManager.hpp"
 
-#include <algorithm>
-#include <cctype>
-#include <chrono>
-#include <cmath>
-#include <cstdlib>
-#include <exception>
-#include <functional>
-#include <utility>
-#include <wayland-server-core.h>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

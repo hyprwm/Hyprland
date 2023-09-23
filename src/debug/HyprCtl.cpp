@@ -5,27 +5,6 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <exception>
-#include <format>
-#include <functional>
-#include <list>
-#include <memory>
-#include <ostream>
-#include <sstream>
-#include <string>
-#include <unordered_map>
-#include <utility>
-#include <vector>
-
-#include <libinput.h>
-#include <wayland-server-core.h>
-#include <xkbcommon/xkbcommon.h>
-
 #include "../Compositor.hpp"
 #include "../SharedDefs.hpp"
 #include "../Window.hpp"

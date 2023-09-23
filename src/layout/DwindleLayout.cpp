@@ -1,10 +1,5 @@
 #include "DwindleLayout.hpp"
 
-#include <algorithm>
-#include <memory>
-#include <utility>
-#include <vector>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

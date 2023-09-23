@@ -1,8 +1,5 @@
 #include "FractionalScale.hpp"
 
-#include <algorithm>
-#include <cmath>
-
 #include "../Compositor.hpp"
 #include "../debug/Log.hpp"
 #include "../macros.hpp"

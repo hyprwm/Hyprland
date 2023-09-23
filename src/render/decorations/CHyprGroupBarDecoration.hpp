@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include <pango/pangocairo.h>
+
 #include "../../helpers/Vector2D.hpp"
 #include "../Texture.hpp"
 #include "IHyprWindowDecoration.hpp"

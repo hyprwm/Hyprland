@@ -1,10 +1,3 @@
-#include <cmath>
-#include <cstdint>
-#include <exception>
-#include <list>
-#include <memory>
-#include <string>
-
 #include "../../Compositor.hpp"
 #include "../../debug/Log.hpp"
 #include "../../helpers/AnimatedVariable.hpp"

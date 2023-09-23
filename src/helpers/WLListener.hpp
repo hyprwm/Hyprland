@@ -5,6 +5,7 @@
 
 #include <wayland-server-core.h>
 #include <wayland-server.h>
+#include <wayland-util.h>
 
 class CHyprWLListener {
   public:

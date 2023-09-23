@@ -1,7 +1,6 @@
 #pragma once
 
 #include <any>
-#include <chrono>
 #include <functional>
 
 #include "../macros.hpp"

@@ -1,11 +1,5 @@
 #include "XWaylandManager.hpp"
 
-#include <cstdlib>
-#include <exception>
-#include <map>
-#include <stdexcept>
-#include <vector>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../config/ConfigManager.hpp"

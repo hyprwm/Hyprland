@@ -5,9 +5,6 @@
 #undef register
 #include <sys/mman.h>
 #include <unistd.h>
-
-#include <cstdint>
-#include <cstdlib>
 #include <cstring>
 
 #include "PluginAPI.hpp"

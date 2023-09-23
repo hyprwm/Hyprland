@@ -1,11 +1,5 @@
 #include "CHyprGroupBarDecoration.hpp"
 
-#include <cmath>
-#include <vector>
-
-#include <cairo/cairo.h>
-#include <pango/pangocairo.h>
-
 #include "../../Compositor.hpp"
 #include "../../Window.hpp"
 #include "../../config/ConfigDataValues.hpp"

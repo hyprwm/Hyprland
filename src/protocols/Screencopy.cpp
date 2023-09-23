@@ -1,12 +1,5 @@
 #include "Screencopy.hpp"
 
-#include <algorithm>
-#include <any>
-#include <ctime>
-#include <functional>
-#include <memory>
-#include <string>
-
 #include "../Compositor.hpp"
 #include "../debug/Log.hpp"
 #include "../helpers/MiscFunctions.hpp"

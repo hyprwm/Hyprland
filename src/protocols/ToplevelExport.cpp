@@ -1,10 +1,5 @@
 #include "ToplevelExport.hpp"
 
-#include <ctime>
-#include <memory>
-
-#include <wayland-util.h>
-
 #include "../Compositor.hpp"
 #include "../Window.hpp"
 #include "../debug/Log.hpp"

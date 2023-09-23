@@ -1,12 +1,6 @@
 #include "Window.hpp"
 
-#include <cstdint>
 #include <exception>
-#include <optional>
-#include <stdexcept>
-#include <utility>
-
-#include <wayland-server-core.h>
 
 #include "Compositor.hpp"
 #include "config/ConfigManager.hpp"

@@ -189,7 +189,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (!m_sDrag.drag && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus) {
         if (m_bLastFocusOnLS) {
-            foundSurface       = g_pCompositor->m_pLastFocus;
+            foundSurface       = m_pLastMouseSurface;
             pFoundLayerSurface = g_pCompositor->getLayerSurfaceFromSurface(foundSurface);
             if (pFoundLayerSurface) {
                 surfacePos              = g_pCompositor->getLayerSurfaceFromSurface(foundSurface)->position;

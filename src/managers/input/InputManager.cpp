@@ -586,7 +586,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
                 break;
 
             if ((!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) /* No constraints */
-                && (!g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow != w) /* window should change */) {
+                && (w && g_pCompositor->m_pLastWindow != w) /* window should change */) {
                 // a bit hacky
                 // if we only pressed one button, allow us to refocus. m_lCurrentlyHeldButtons.size() > 0 will stick the focus
                 if (m_lCurrentlyHeldButtons.size() == 1) {

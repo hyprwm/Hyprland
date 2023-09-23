@@ -830,6 +830,34 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     return PSURFACE->surface;
 }
 
+Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, CWindow* pWindow, wlr_surface* pSurface) {
+    if (!windowValidMapped(pWindow))
+        return {};
+
+    if (pWindow->m_bIsX11)
+        return vec - pWindow->m_vRealPosition.goalv();
+
+    const auto                         PSURFACE = pWindow->m_uSurface.xdg;
+
+    std::tuple<wlr_surface*, int, int> iterData = {pSurface, -1337, -1337};
+
+    wlr_xdg_surface_for_each_surface(
+        PSURFACE,
+        [](wlr_surface* surf, int x, int y, void* data) {
+            const auto PDATA = (std::tuple<wlr_surface*, int, int>*)data;
+            if (surf == std::get<0>(*PDATA)) {
+                std::get<1>(*PDATA) = x;
+                std::get<2>(*PDATA) = y;
+            }
+        },
+        &iterData);
+
+    if (std::get<1>(iterData) == -1337 && std::get<2>(iterData) == -1337)
+        return vec - pWindow->m_vRealPosition.goalv();
+
+    return vec - pWindow->m_vRealPosition.goalv() - Vector2D{std::get<1>(iterData), std::get<2>(iterData)};
+}
+
 CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
     for (auto& m : m_vMonitors) {
         if (m->output == out) {

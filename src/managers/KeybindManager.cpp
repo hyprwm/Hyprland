@@ -1,4 +1,5 @@
 #include "KeybindManager.hpp"
+#include "./directions/GroupActiveDirection.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 
 #include <regex>
@@ -28,6 +29,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["movetoworkspace"]               = moveActiveToWorkspace;
     m_mDispatchers["movetoworkspacesilent"]         = moveActiveToWorkspaceSilent;
     m_mDispatchers["pseudo"]                        = toggleActivePseudo;
+    m_mDispatchers["movegroupfocus"]                = moveGroupFocusTo;
     m_mDispatchers["movefocus"]                     = moveFocusTo;
     m_mDispatchers["movewindow"]                    = moveActiveTo;
     m_mDispatchers["swapwindow"]                    = swapActive;
@@ -256,6 +258,37 @@ void CKeybindManager::switchToWindow(CWindow* PWINDOWTOCHANGETO) {
         }
     }
 };
+
+CWindow *CKeybindManager::groupActiveInDirection(std::string args) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    if (!PWINDOW)
+        return nullptr;
+
+    if (!PWINDOW->m_sGroupData.pNextWindow)
+        return nullptr;
+
+    if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW)
+        return nullptr;
+    
+    if (isNumber(args, false)) {
+        // index starts from '1'; '0' means last window
+        const int INDEX = std::stoi(args);
+        if (INDEX > PWINDOW->getGroupSize())
+            return nullptr;
+        if (INDEX == 0)
+            return PWINDOW->getGroupTail();
+        
+        return PWINDOW->getGroupWindowByIndex(INDEX - 1);
+    }
+
+    GroupActiveDirection direction(std::move(args));
+    if (direction.isBackwards()) {
+        return PWINDOW->getGroupPrevious();
+    }
+
+    return PWINDOW->m_sGroupData.pNextWindow;
+}
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
     if (!g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
@@ -995,6 +1028,25 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
         g_pInputManager->refocus();
 }
 
+void CKeybindManager::moveGroupFocusTo(std::string args) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+
+    GroupActiveDirection direction = GroupActiveDirection::fromFocusDirection(args);
+    CWindow *pNextWindow = groupActiveInDirection(direction.asString());
+    
+    if(
+        pNextWindow == nullptr
+        || pNextWindow == PWINDOW
+        || (direction.isForward() && pNextWindow == PWINDOW->getGroupHead())
+        || (direction.isBackwards() && pNextWindow == PWINDOW->getGroupTail())
+        ) {
+        moveFocusTo(args);
+        return;
+    }
+
+    PWINDOW->setGroupCurrent(pNextWindow);
+}
+
 void CKeybindManager::moveFocusTo(std::string args) {
     char arg = args[0];
 
@@ -1163,7 +1215,8 @@ void CKeybindManager::toggleGroup(std::string args) {
 void CKeybindManager::changeGroupActive(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
-    if (!PWINDOW)
+    CWindow *pNextWindow = groupActiveInDirection(std::move(args));
+    if(!pNextWindow)
         return;
 
     if (!PWINDOW->m_sGroupData.pNextWindow)
@@ -1172,23 +1225,7 @@ void CKeybindManager::changeGroupActive(std::string args) {
     if (PWINDOW->m_sGroupData.pNextWindow == PWINDOW)
         return;
 
-    if (isNumber(args, false)) {
-        // index starts from '1'; '0' means last window
-        const int INDEX = std::stoi(args);
-        if (INDEX > PWINDOW->getGroupSize())
-            return;
-        if (INDEX == 0)
-            PWINDOW->setGroupCurrent(PWINDOW->getGroupTail());
-        else
-            PWINDOW->setGroupCurrent(PWINDOW->getGroupWindowByIndex(INDEX - 1));
-        return;
-    }
-
-    if (args != "b" && args != "prev") {
-        PWINDOW->setGroupCurrent(PWINDOW->m_sGroupData.pNextWindow);
-    } else {
-        PWINDOW->setGroupCurrent(PWINDOW->getGroupPrevious());
-    }
+    PWINDOW->setGroupCurrent(pNextWindow);
 }
 
 void CKeybindManager::toggleSplit(std::string args) {

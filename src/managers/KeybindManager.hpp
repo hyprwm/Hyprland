@@ -94,6 +94,7 @@ class CKeybindManager {
     static void               moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir = "");
     static void               moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
     static void               switchToWindow(CWindow* PWINDOWTOCHANGETO);
+    static CWindow*           groupActiveInDirection(std::string args);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);
@@ -107,6 +108,7 @@ class CKeybindManager {
     static void     fakeFullscreenActive(std::string);
     static void     moveActiveToWorkspace(std::string);
     static void     moveActiveToWorkspaceSilent(std::string);
+    static void     moveGroupFocusTo(std::string);
     static void     moveFocusTo(std::string);
     static void     focusUrgentOrLast(std::string);
     static void     focusCurrentOrLast(std::string);

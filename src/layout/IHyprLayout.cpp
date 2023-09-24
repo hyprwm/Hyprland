@@ -408,7 +408,7 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     if (!TILED) {
         const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
         pWindow->m_iMonitorID = PNEWMON->ID;
-        pWindow->moveToWorkspace(PNEWMON->activeWorkspace);
+        pWindow->moveToWorkspace(PNEWMON->specialWorkspaceID != 0 ? PNEWMON->specialWorkspaceID : PNEWMON->activeWorkspace);
         pWindow->updateGroupOutputs();
 
         // save real pos cuz the func applies the default 5,5 mid

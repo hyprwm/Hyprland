@@ -970,7 +970,7 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
 }
 
 void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto RULE  = value.substr(0, value.find_first_of(','));
+    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
     const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
     if (!windowRuleValid(RULE) && RULE != "unset") {

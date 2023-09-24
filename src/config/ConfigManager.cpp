@@ -1239,6 +1239,8 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
         std::string line    = "";
         int         linenum = 1;
         if (ifs.is_open()) {
+            auto configCurrentPathBackup = configCurrentPath;
+            
             while (std::getline(ifs, line)) {
                 // Read line by line.
                 try {
@@ -1259,6 +1261,8 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
             }
 
             ifs.close();
+            
+            configCurrentPath = configCurrentPathBackup;
         }
     }
 }

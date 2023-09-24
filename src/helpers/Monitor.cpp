@@ -243,7 +243,7 @@ void CMonitor::onDisconnect() {
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
-        g_pCompositor->m_bUnsafeState = true;
+        g_pCompositor->enterUnsafeState();
     }
 
     if (BACKUPMON) {

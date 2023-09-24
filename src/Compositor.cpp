@@ -2604,3 +2604,43 @@ void CCompositor::arrangeMonitors() {
             m->xwaylandScale = 1.f;
     }
 }
+
+void CCompositor::enterUnsafeState() {
+    if (m_bUnsafeState)
+        return;
+
+    Debug::log(LOG, "Entering unsafe state");
+
+    m_bUnsafeState = true;
+
+    // create a backup monitor
+    wlr_backend* headless = nullptr;
+    wlr_multi_for_each_backend(
+        m_sWLRBackend,
+        [](wlr_backend* b, void* data) {
+            if (wlr_backend_is_headless(b))
+                *((wlr_backend**)data) = b;
+        },
+        &headless);
+
+    if (!headless) {
+        Debug::log(WARN, "Entering an unsafe state without a headless backend");
+        return;
+    }
+
+    m_pUnsafeOutput = wlr_headless_add_output(headless, 1920, 1080);
+}
+
+void CCompositor::leaveUnsafeState() {
+    if (!m_bUnsafeState)
+        return;
+
+    Debug::log(LOG, "Leaving unsafe state");
+
+    m_bUnsafeState = false;
+
+    if (m_pUnsafeOutput)
+        wlr_output_destroy(m_pUnsafeOutput);
+
+    m_pUnsafeOutput = nullptr;
+}

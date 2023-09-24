@@ -87,13 +87,21 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->refreshRate > g_pHyprRenderer->m_pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
         g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
 
-    // ready to process cuz we have a monitor
-    if (PNEWMONITOR->m_bEnabled) {
+    // wlroots will instantly call this handler before we get a return to the wlr_output* in CCompositor::enterUnsafeState
+    const bool PROBABLYFALLBACK = (g_pCompositor->m_bUnsafeState && !g_pCompositor->m_pUnsafeOutput) || OUTPUT == g_pCompositor->m_pUnsafeOutput;
 
+    // ready to process if we have a real monitor
+    if (PNEWMONITOR->m_bEnabled && !PROBABLYFALLBACK) {
+        // leave unsafe state
         if (g_pCompositor->m_bUnsafeState) {
             // recover workspaces
+            std::vector<CWorkspace*> wsp;
             for (auto& ws : g_pCompositor->m_vWorkspaces) {
-                g_pCompositor->moveWorkspaceToMonitor(ws.get(), PNEWMONITOR);
+                wsp.push_back(ws.get());
+            }
+            for (auto& ws : wsp) {
+                // because this can realloc the vec
+                g_pCompositor->moveWorkspaceToMonitor(ws, PNEWMONITOR);
             }
 
             g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
@@ -104,7 +112,6 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         }
 
         g_pCompositor->m_bReadyToProcess = true;
-        g_pCompositor->m_bUnsafeState    = false;
     }
 
     g_pConfigManager->m_bWantsMonitorReload = true;
@@ -131,8 +138,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Attempted to render frame on inactive session!");
 
-        if (g_pCompositor->m_bUnsafeState)
-            g_pConfigManager->performMonitorReload();
+        if (g_pCompositor->m_bUnsafeState && PMONITOR->output != g_pCompositor->m_pUnsafeOutput) {
+            // restore from unsafe state
+            g_pCompositor->leaveUnsafeState();
+        }
 
         return; // cannot draw on session inactive (different tty)
     }
@@ -195,6 +204,9 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     pMonitor->output                 = nullptr;
     pMonitor->m_bRenderingInitPassed = false;
+
+    if (g_pCompositor->m_pUnsafeOutput == OUTPUT)
+        g_pCompositor->m_pUnsafeOutput = nullptr;
 
     Debug::log(LOG, "Removing monitor {} from realMonitors", pMonitor->szName);
 

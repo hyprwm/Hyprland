@@ -2020,9 +2020,6 @@ void CConfigManager::performMonitorReload() {
     if (overAgain)
         performMonitorReload();
 
-    if (!g_pCompositor->m_vMonitors.empty()) // reset unsafe state if we have monitors
-        g_pCompositor->leaveUnsafeState();
-
     m_bWantsMonitorReload = false;
 
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);

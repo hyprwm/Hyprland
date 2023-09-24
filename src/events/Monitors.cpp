@@ -112,7 +112,6 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         }
 
         g_pCompositor->m_bReadyToProcess = true;
-        g_pCompositor->leaveUnsafeState();
     }
 
     g_pConfigManager->m_bWantsMonitorReload = true;
@@ -138,6 +137,11 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Attempted to render frame on inactive session!");
+
+        if (g_pCompositor->m_bUnsafeState && PMONITOR->output != g_pCompositor->m_pUnsafeOutput) {
+            // restore from unsafe state
+            g_pCompositor->leaveUnsafeState();
+        }
 
         return; // cannot draw on session inactive (different tty)
     }

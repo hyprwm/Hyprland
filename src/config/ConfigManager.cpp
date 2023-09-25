@@ -1002,7 +1002,7 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
 }
 
 void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto RULE  = value.substr(0, value.find_first_of(','));
+    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
     const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
     if (!windowRuleValid(RULE) && RULE != "unset") {
@@ -1271,6 +1271,8 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
         std::string line    = "";
         int         linenum = 1;
         if (ifs.is_open()) {
+            auto configCurrentPathBackup = configCurrentPath;
+            
             while (std::getline(ifs, line)) {
                 // Read line by line.
                 try {
@@ -1291,6 +1293,8 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
             }
 
             ifs.close();
+            
+            configCurrentPath = configCurrentPathBackup;
         }
     }
 }
@@ -2051,9 +2055,6 @@ void CConfigManager::performMonitorReload() {
 
     if (overAgain)
         performMonitorReload();
-
-    if (!g_pCompositor->m_vMonitors.empty()) // reset unsafe state if we have monitors
-        g_pCompositor->m_bUnsafeState = false;
 
     m_bWantsMonitorReload = false;
 

@@ -228,8 +228,15 @@ static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat
 }
 
 std::string activeWorkspaceRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    if (!g_pCompositor->m_pLastMonitor)
+        return "unsafe state";
+
     std::string result = "";
     auto        w      = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+    if (!w)
+        return "internal error";
+
     return getWorkspaceData(w, format);
 }
 

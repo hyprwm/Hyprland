@@ -83,13 +83,16 @@ class CConfigManager {
 
     int                                                             getInt(const std::string&);
     float                                                           getFloat(const std::string&);
+    Vector2D                                                        getVec(const std::string&);
     std::string                                                     getString(const std::string&);
     void                                                            setFloat(const std::string&, float);
     void                                                            setInt(const std::string&, int);
+    void                                                            setVec(const std::string&, Vector2D);
     void                                                            setString(const std::string&, const std::string&);
 
     int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
     float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
+    Vector2D                                                        getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
     std::string                                                     getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
     bool                                                            deviceConfigExists(const std::string&);
     bool                                                            shouldBlurLS(const std::string&);

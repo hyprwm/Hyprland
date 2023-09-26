@@ -134,8 +134,7 @@ void CMonitor::onConnect(bool noRule) {
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
-    Debug::log(LOG, "Added new monitor with name {} at {},{} with size {}x{}, pointer {:x}", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x,
-               (int)vecPixelSize.y, (uintptr_t)output);
+    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output);
 
     setupDefaultWS(monitorRule);
 
@@ -244,7 +243,7 @@ void CMonitor::onDisconnect() {
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
-        g_pCompositor->m_bUnsafeState = true;
+        g_pCompositor->enterUnsafeState();
     }
 
     if (BACKUPMON) {
@@ -617,6 +616,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         g_pInputManager->refocus();
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
+
+    g_pHyprRenderer->damageMonitor(this);
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {

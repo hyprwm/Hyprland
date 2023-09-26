@@ -1,4 +1,5 @@
 #include "DwindleLayout.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../Compositor.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
@@ -104,7 +105,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node {:x} (workspace ID: {})!!", (uintptr_t)pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node {}!!", pNode);
         return;
     }
 
@@ -129,7 +130,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
-        Debug::log(ERR, "Node {:x} holding invalid window {:x}!!", (uintptr_t)pNode, (uintptr_t)PWINDOW);
+        Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
         onWindowRemovedTiling(PWINDOW);
         return;
     }
@@ -273,7 +274,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
     } else
         OPENINGON = getFirstNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
-    Debug::log(LOG, "OPENINGON: {:x}, Workspace: {}, Monitor: {}", (uintptr_t)OPENINGON, PNODE->workspaceID, PMONITOR->ID);
+    Debug::log(LOG, "OPENINGON: {}, Monitor: {}", OPENINGON, PMONITOR->ID);
 
     if (OPENINGON && OPENINGON->workspaceID != PNODE->workspaceID) {
         // special workspace handling
@@ -314,14 +315,21 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
         applyNodeDataToWindow(PNODE);
 
+        pWindow->applyGroupRules();
+
         return;
     }
 
     // if it's a group, add the window
-    if (OPENINGON->pWindow->m_sGroupData.pNextWindow &&                                         // target is group
-        !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&                             // target unlocked
-        !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked) && // source unlocked or isn't group
-        !g_pKeybindManager->m_bGroupsLocked && !m_vOverrideFocalPoint) {
+    if (OPENINGON->pWindow->m_sGroupData.pNextWindow                                                      // target is group
+        && !g_pKeybindManager->m_bGroupsLocked                                                            // global group lock disengaged
+        && ((pWindow->m_eGroupRules & GROUP_INVADE && pWindow->m_bFirstMap)                               // window ignore local group locks, or
+            || (!OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked                                  //    target unlocked
+                && !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
+        && !pWindow->m_sGroupData.deny                                                                    // source is not denied entry
+        && !(pWindow->m_eGroupRules & GROUP_BARRED && pWindow->m_bFirstMap)                               // group rule doesn't prevent adding window
+        && !m_vOverrideFocalPoint                                                                         // we are not moving window
+    ) {
         if (!pWindow->m_sGroupData.pNextWindow)
             pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
@@ -341,6 +349,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         }
 
         OPENINGON->pWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 
@@ -474,6 +483,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
     applyNodeDataToWindow(PNODE);
     applyNodeDataToWindow(OPENINGON);
+    pWindow->applyGroupRules();
 }
 
 void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
@@ -850,7 +860,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
-    g_pCompositor->moveWindowToTop(pWindow);
+    g_pCompositor->changeWindowZOrder(pWindow, true);
 
     recalculateMonitor(PMONITOR->ID);
 }

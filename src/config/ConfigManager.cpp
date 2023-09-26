@@ -17,6 +17,8 @@ extern "C" char** environ;
 CConfigManager::CConfigManager() {
     configValues["general:col.active_border"].data              = std::make_shared<CGradientValueData>(0xffffffff);
     configValues["general:col.inactive_border"].data            = std::make_shared<CGradientValueData>(0xff444444);
+    configValues["general:col.nogroup_border"].data             = std::make_shared<CGradientValueData>(0xffffaaff);
+    configValues["general:col.nogroup_border_active"].data      = std::make_shared<CGradientValueData>(0xffff00ff);
     configValues["general:col.group_border"].data               = std::make_shared<CGradientValueData>(0x66777700);
     configValues["general:col.group_border_active"].data        = std::make_shared<CGradientValueData>(0x66ffff00);
     configValues["general:col.group_border_locked"].data        = std::make_shared<CGradientValueData>(0x66775500);
@@ -72,6 +74,8 @@ void CConfigManager::setDefaultVars() {
     configValues["general:gaps_out"].intValue              = 20;
     ((CGradientValueData*)configValues["general:col.active_border"].data.get())->reset(0xffffffff);
     ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
+    ((CGradientValueData*)configValues["general:col.nogroup_border"].data.get())->reset(0xff444444);
+    ((CGradientValueData*)configValues["general:col.nogroup_border_active"].data.get())->reset(0xffff00ff);
     ((CGradientValueData*)configValues["general:col.group_border"].data.get())->reset(0x66777700);
     ((CGradientValueData*)configValues["general:col.group_border_active"].data.get())->reset(0x66ffff00);
     ((CGradientValueData*)configValues["general:col.group_border_locked"].data.get())->reset(0x66775500);
@@ -904,7 +908,7 @@ bool windowRuleValid(const std::string& RULE) {
              RULE != "nomaximizerequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" && RULE != "windowdance" &&
              RULE != "maximize" && RULE != "keepaspectratio" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 && RULE.find("workspace") != 0 &&
              RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" && RULE.find("bordersize") != 0 && RULE.find("xray") != 0 &&
-             RULE.find("center") != 0);
+             RULE.find("center") != 0 && RULE.find("group") != 0);
 }
 
 bool layerRuleValid(const std::string& RULE) {
@@ -966,7 +970,7 @@ void CConfigManager::handleLayerRule(const std::string& command, const std::stri
 }
 
 void CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto RULE  = value.substr(0, value.find_first_of(','));
+    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
     const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
     if (!windowRuleValid(RULE) && RULE != "unset") {
@@ -1235,6 +1239,8 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
         std::string line    = "";
         int         linenum = 1;
         if (ifs.is_open()) {
+            auto configCurrentPathBackup = configCurrentPath;
+            
             while (std::getline(ifs, line)) {
                 // Read line by line.
                 try {
@@ -1255,6 +1261,8 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
             }
 
             ifs.close();
+            
+            configCurrentPath = configCurrentPathBackup;
         }
     }
 }
@@ -1904,7 +1912,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         }
 
         // applies. Read the rule and behave accordingly
-        Debug::log(LOG, "Window rule {} -> {} matched {:x} [{}]", rule.szRule, rule.szValue, (uintptr_t)pWindow, pWindow->m_szTitle);
+        Debug::log(LOG, "Window rule {} -> {} matched {}", rule.szRule, rule.szValue, pWindow);
 
         returns.push_back(rule);
 
@@ -2015,9 +2023,6 @@ void CConfigManager::performMonitorReload() {
 
     if (overAgain)
         performMonitorReload();
-
-    if (!g_pCompositor->m_vMonitors.empty()) // reset unsafe state if we have monitors
-        g_pCompositor->m_bUnsafeState = false;
 
     m_bWantsMonitorReload = false;
 

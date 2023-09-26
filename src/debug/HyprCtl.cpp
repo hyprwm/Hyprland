@@ -230,8 +230,15 @@ static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat
 }
 
 std::string activeWorkspaceRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    if (!g_pCompositor->m_pLastMonitor)
+        return "unsafe state";
+
     std::string result = "";
     auto        w      = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+    if (!w)
+        return "internal error";
+
     return getWorkspaceData(w, format);
 }
 
@@ -837,7 +844,8 @@ std::string dispatchSetCursor(std::string request) {
     std::string theme   = "";
     for (size_t i = 1; i < vars.size() - 1; ++i)
         theme += vars[i] + " ";
-    theme.pop_back();
+    if (!theme.empty())
+        theme.pop_back();
 
     int size = 0;
     try {

@@ -1,5 +1,6 @@
 #include "MasterLayout.hpp"
 #include "../Compositor.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include <ranges>
 
 SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(CWindow* pWindow) {
@@ -94,11 +95,15 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     // if it's a group, add the window
-    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow &&      // target is group
-        !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&                             // target unlocked
-        !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked) && // source unlocked or isn't group
-        !g_pKeybindManager->m_bGroupsLocked                                                     // global group lock disengaged
+    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow                   // target is group
+        && !g_pKeybindManager->m_bGroupsLocked                                                            // global group lock disengaged
+        && ((pWindow->m_eGroupRules & GROUP_INVADE && pWindow->m_bFirstMap)                               // window ignore local group locks, or
+            || (!OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked                                  //    target unlocked
+                && !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
+        && !pWindow->m_sGroupData.deny                                                                    // source is not denied entry
+        && !(pWindow->m_eGroupRules & GROUP_BARRED)                                                       // group rule doesn't prevent adding window
     ) {
+
         if (!pWindow->m_sGroupData.pNextWindow)
             pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
@@ -118,11 +123,14 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
         }
 
         OPENINGON->pWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 
         return;
     }
+
+    pWindow->applyGroupRules();
 
     if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster)) {
         for (auto& nd : m_lMasterNodesData) {
@@ -552,7 +560,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node {:x} (workspace ID: {})!!", (uintptr_t)pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node {}!!", pNode);
         return;
     }
 
@@ -578,7 +586,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
-        Debug::log(ERR, "Node {:x} holding invalid window {:x}!!", (uintptr_t)pNode, (uintptr_t)PWINDOW);
+        Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
         return;
     }
 
@@ -867,7 +875,7 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
-    g_pCompositor->moveWindowToTop(pWindow);
+    g_pCompositor->changeWindowZOrder(pWindow, true);
 
     recalculateMonitor(PMONITOR->ID);
 }

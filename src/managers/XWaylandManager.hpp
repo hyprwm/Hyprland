@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "../Window.hpp"
 #include <optional>
+
+class CWindow; // because clangd
 
 class CHyprXWaylandManager {
   public:

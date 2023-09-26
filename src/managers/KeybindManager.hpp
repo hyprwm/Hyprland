@@ -143,6 +143,7 @@ class CKeybindManager {
     static void     pinActive(std::string);
     static void     mouse(std::string);
     static void     bringActiveToTop(std::string);
+    static void     alterZOrder(std::string);
     static void     lockGroups(std::string);
     static void     lockActiveGroup(std::string);
     static void     moveIntoGroup(std::string);
@@ -150,6 +151,7 @@ class CKeybindManager {
     static void     moveGroupWindow(std::string);
     static void     moveWindowOrGroup(std::string);
     static void     setIgnoreGroupLock(std::string);
+    static void     denyWindowFromGroup(std::string);
     static void     global(std::string);
 
     friend class CCompositor;

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "IHyprLayout.hpp"
+
 #include <list>
 #include <deque>
-#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include <array>
 #include <optional>
+#include <format>
 
 class CHyprDwindleLayout;
 enum eFullscreenMode : uint8_t;
@@ -84,4 +85,18 @@ class CHyprDwindleLayout : public IHyprLayout {
     eDirection              overrideDirection = DIRECTION_DEFAULT;
 
     friend struct SDwindleNodeData;
+};
+
+template <typename CharT>
+struct std::formatter<SDwindleNodeData*, CharT> : std::formatter<CharT> {
+    template <typename FormatContext>
+    auto format(const SDwindleNodeData* const& node, FormatContext& ctx) const {
+        auto out = ctx.out();
+        if (!node)
+            return std::format_to(out, "[Node nullptr]");
+        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", (uintptr_t)node, node->workspaceID, node->position, node->size);
+        if (!node->isNode && node->pWindow)
+            std::format_to(out, ", window: {:x}", node->pWindow);
+        return std::format_to(out, "]");
+    }
 };

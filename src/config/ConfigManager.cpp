@@ -222,6 +222,8 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchdevice:output"].strValue               = STRVAL_EMPTY;
     configValues["input:tablet:transform"].intValue                 = 0;
     configValues["input:tablet:output"].strValue                    = STRVAL_EMPTY;
+    configValues["input:tablet:region_position"].vecValue           = Vector2D();
+    configValues["input:tablet:region_size"].vecValue               = Vector2D();
 
     configValues["binds:pass_mouse_when_bound"].intValue    = 0;
     configValues["binds:scroll_event_delay"].intValue       = 300;
@@ -278,6 +280,8 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["transform"].intValue               = 0;
     cfgValues["output"].strValue                  = STRVAL_EMPTY;
     cfgValues["enabled"].intValue                 = 1; // only for mice / touchpads
+    cfgValues["region_position"].vecValue         = Vector2D(); // only for tablets
+    cfgValues["region_size"].vecValue             = Vector2D(); // only for tablets
 }
 
 void CConfigManager::setDefaultAnimationVars() {
@@ -1737,6 +1741,10 @@ float CConfigManager::getFloat(const std::string& v) {
     return getConfigValueSafe(v).floatValue;
 }
 
+Vector2D CConfigManager::getVec(const std::string& v) {
+    return getConfigValueSafe(v).vecValue;
+}
+
 std::string CConfigManager::getString(const std::string& v) {
     auto VAL = getConfigValueSafe(v).strValue;
 
@@ -1754,6 +1762,10 @@ float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& 
     return getConfigValueSafeDevice(dev, v, fallback).floatValue;
 }
 
+Vector2D CConfigManager::getDeviceVec(const std::string& dev, const std::string& v, const std::string& fallback) {
+    return getConfigValueSafeDevice(dev, v, fallback).vecValue;
+}
+
 std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v, const std::string& fallback) {
     auto VAL = getConfigValueSafeDevice(dev, v, fallback).strValue;
 
@@ -1769,6 +1781,10 @@ void CConfigManager::setInt(const std::string& v, int val) {
 
 void CConfigManager::setFloat(const std::string& v, float val) {
     configValues[v].floatValue = val;
+}
+
+void CConfigManager::setVec(const std::string& v, Vector2D val) {
+    configValues[v].vecValue = val;
 }
 
 void CConfigManager::setString(const std::string& v, const std::string& val) {

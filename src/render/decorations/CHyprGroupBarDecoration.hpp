@@ -1,10 +1,14 @@
 #pragma once
 
-#include "IHyprWindowDecoration.hpp"
 #include <deque>
-#include "../Texture.hpp"
-#include <string>
 #include <memory>
+#include <string>
+
+#include <pango/pangocairo.h>
+
+#include "../../helpers/Vector2D.hpp"
+#include "../Texture.hpp"
+#include "IHyprWindowDecoration.hpp"
 
 class CTitleTex {
   public:

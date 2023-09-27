@@ -1,5 +1,12 @@
 #include "ProtocolManager.hpp"
 
+#include "../protocols/FractionalScale.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../protocols/TextInputV1.hpp"
+#include "../protocols/ToplevelExport.hpp"
+#include "../protocols/XDGOutput.hpp"
+
 #include "xdg-output-unstable-v1-protocol.h"
 
 CProtocolManager::CProtocolManager() {

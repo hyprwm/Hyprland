@@ -1,5 +1,8 @@
 #pragma once
-#include "../defines.hpp"
+
+#include "../macros.hpp"
+
+#include "../common.hpp"
 
 //
 // LISTEN_NAME -> the wl_listener

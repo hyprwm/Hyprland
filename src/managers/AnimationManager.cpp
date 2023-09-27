@@ -1,6 +1,23 @@
 #include "AnimationManager.hpp"
+
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/BezierCurve.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Region.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../macros.hpp"
+#include "../render/OpenGL.hpp"
+#include "../render/Renderer.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
 #include "HookSystemManager.hpp"
+#include "XWaylandManager.hpp"
 
 int wlTick(void* data) {
     if (g_pAnimationManager)

@@ -1,10 +1,14 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "PluginAPI.hpp"
-#include <csetjmp>
+#include <dlfcn.h>
 
-class IHyprWindowDecoration;
+#include <csetjmp>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "PluginAPI.hpp"
 
 class CPlugin {
   public:

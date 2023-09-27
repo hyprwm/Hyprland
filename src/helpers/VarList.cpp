@@ -1,7 +1,10 @@
 #include "MiscFunctions.hpp"
 #include "VarList.hpp"
-#include <ranges>
+
 #include <algorithm>
+#include <ranges>
+
+#include "MiscFunctions.hpp"
 
 CVarList::CVarList(const std::string& in, const size_t lastArgNo, const char delim, const bool removeEmpty) {
     if (in.empty())

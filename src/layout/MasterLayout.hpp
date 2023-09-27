@@ -1,11 +1,16 @@
 #pragma once
 
-#include "IHyprLayout.hpp"
-#include "../config/ConfigManager.hpp"
-#include <vector>
-#include <list>
-#include <deque>
 #include <any>
+#include <cstdint>
+#include <deque>
+#include <format>
+#include <list>
+#include <string>
+#include <vector>
+
+#include "../helpers/VarList.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "IHyprLayout.hpp"
 
 enum eFullscreenMode : uint8_t;
 

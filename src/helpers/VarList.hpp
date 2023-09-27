@@ -1,7 +1,7 @@
 #pragma once
-#include <vector>
+#include <cstddef>
 #include <string>
-#include "../macros.hpp"
+#include <vector>
 
 class CVarList {
   public:

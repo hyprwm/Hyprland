@@ -1,9 +1,16 @@
 #include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Vector2D.hpp"
 #include "../helpers/WLClasses.hpp"
-#include "../managers/input/InputManager.hpp"
+#include "../managers/ProtocolManager.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../protocols/ToplevelExport.hpp"
 #include "../render/Renderer.hpp"
 #include "Events.hpp"
-#include "../debug/HyprCtl.hpp"
 
 // --------------------------------------------------------- //
 //   __  __  ____  _   _ _____ _______ ____  _____   _____   //

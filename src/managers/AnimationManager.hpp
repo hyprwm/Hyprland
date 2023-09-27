@@ -1,12 +1,18 @@
 #pragma once
 
-#include "../defines.hpp"
 #include <list>
+#include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
+
+#include "../common.hpp"
+
+#include "../Window.hpp"
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/BezierCurve.hpp"
-#include "../Window.hpp"
-#include "../helpers/Timer.hpp"
+#include "../helpers/Color.hpp"
+
 
 class CAnimationManager {
   public:

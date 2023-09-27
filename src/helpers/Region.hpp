@@ -1,9 +1,10 @@
 #pragma once
-#include <pixman.h>
-#include <vector>
 #include "Vector2D.hpp"
 
-struct wlr_box;
+#include <vector>
+
+#include "../common.hpp"
+#include <pixman.h>
 
 class CRegion {
   public:

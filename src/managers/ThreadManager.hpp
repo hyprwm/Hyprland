@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../defines.hpp"
+#include <memory>
 #include <thread>
-#include "../Compositor.hpp"
+
+#include "../common.hpp"
+
 
 class CThreadManager {
   public:

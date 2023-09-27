@@ -1,9 +1,17 @@
-#include "Events.hpp"
 
 #include "../Compositor.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
 #include "../helpers/WLClasses.hpp"
+#include "../helpers/WLListener.hpp"
+#include "../managers/SessionLockManager.hpp"
+#include "../managers/XWaylandManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/input/InputMethodRelay.hpp"
 #include "../render/Renderer.hpp"
+#include "Events.hpp"
 
 // ------------------------------ //
 //   __  __ _____  _____  _____   //

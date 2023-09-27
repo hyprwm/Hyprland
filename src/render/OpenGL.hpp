@@ -1,20 +1,22 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "../helpers/Monitor.hpp"
-#include "../helpers/Color.hpp"
-#include "../helpers/Timer.hpp"
-#include "../helpers/Region.hpp"
+#include <cstdint>
 #include <list>
+#include <memory>
+#include <string>
 #include <unordered_map>
 
+#include "../common.hpp"
 #include <cairo/cairo.h>
 
+#include "../helpers/Color.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Region.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "Framebuffer.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
-#include "Framebuffer.hpp"
-
-#include "../debug/TracyDefines.hpp"
 
 class CHyprRenderer;
 

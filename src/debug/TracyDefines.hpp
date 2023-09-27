@@ -2,10 +2,10 @@
 
 #ifdef USE_TRACY_GPU
 
-#include "Log.hpp"
-
 #include <GL/gl.h>
 #include <GLES2/gl2ext.h>
+
+#include "Log.hpp"
 
 inline PFNGLQUERYCOUNTEREXTPROC        glQueryCounter;
 inline PFNGLGETQUERYOBJECTIVEXTPROC    glGetQueryObjectiv;

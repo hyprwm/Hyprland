@@ -1,10 +1,14 @@
 #pragma once
+
 #include <deque>
 #include <fstream>
+#include <memory>
 #include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
 
-#include "../defines.hpp"
-#include "../helpers/MiscFunctions.hpp"
+#include "../common.hpp"
 
 struct SHyprIPCEvent {
     std::string event;

@@ -1,13 +1,46 @@
 #include "Compositor.hpp"
-#include "helpers/Splashes.hpp"
+
+#include <filesystem>
 #include <random>
+#include <ranges>
 #include <unordered_set>
-#include "debug/HyprCtl.hpp"
+
+#include "Window.hpp"
+#include "config/ConfigDataValues.hpp"
+#include "config/ConfigManager.hpp"
 #include "debug/CrashReporter.hpp"
+#include "debug/HyprDebugOverlay.hpp"
+#include "debug/HyprNotificationOverlay.hpp"
+#include "debug/Log.hpp"
+#include "events/Events.hpp"
+#include "helpers/AnimatedVariable.hpp"
+#include "helpers/Color.hpp"
+#include "helpers/MiscFunctions.hpp"
+#include "helpers/Monitor.hpp"
+#include "helpers/Splashes.hpp"
+#include "helpers/WLSurface.hpp"
+#include "helpers/Workspace.hpp"
+#include "hyprerror/HyprError.hpp"
+#include "layout/IHyprLayout.hpp"
+#include "managers/AnimationManager.hpp"
+#include "managers/EventManager.hpp"
+#include "managers/HookSystemManager.hpp"
+#include "managers/KeybindManager.hpp"
+#include "managers/LayoutManager.hpp"
+#include "managers/ProtocolManager.hpp"
+#include "managers/SessionLockManager.hpp"
+#include "managers/ThreadManager.hpp"
+#include "managers/XWaylandManager.hpp"
+#include "managers/input/InputManager.hpp"
+#include "pixman.h"
+#include "plugins/PluginSystem.hpp"
+#include "render/Framebuffer.hpp"
+#include "render/OpenGL.hpp"
+#include "render/Renderer.hpp"
+
 #ifdef USES_SYSTEMD
 #include <systemd/sd-daemon.h> // for sd_notify
 #endif
-#include <ranges>
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -108,7 +141,7 @@ void CCompositor::initServer() {
 
     m_sWLEventLoop = wl_display_get_event_loop(m_sWLDisplay);
 
-    // register crit signal handler
+    // register crit csignalandler
     wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
     signal(SIGSEGV, handleUnrecoverableSignal);
     signal(SIGABRT, handleUnrecoverableSignal);

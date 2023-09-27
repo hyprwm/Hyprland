@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <cstring>
 
+#include "PluginAPI.hpp"
+
 CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) {
     m_pSource      = source;
     m_pDestination = destination;

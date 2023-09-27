@@ -1,6 +1,8 @@
 #pragma once
 
-#include "../defines.hpp"
+#include <cstdint>
+#include <string>
+#include <wayland-server-core.h>
 
 #define RESOURCE_OR_BAIL(resname)                                                                                                                                                  \
     const auto resname = (CWaylandResource*)wl_resource_get_user_data(resource);                                                                                                   \

@@ -1,16 +1,48 @@
 #include "ConfigManager.hpp"
-#include "../managers/KeybindManager.hpp"
 
-#include <string.h>
+#include <errno.h>
+#include <glob.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <glob.h>
 
-#include <algorithm>
+#include <array>
+#include <filesystem>
+#include <format>
 #include <fstream>
-#include <iostream>
+#include <functional>
+#include <istream>
+#include <mutex>
 #include <sstream>
+
+#include "../Compositor.hpp"
+#include "../SharedDefs.hpp"
+#include "../Window.hpp"
+#include "../debug/HyprNotificationOverlay.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/VarList.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../hyprerror/HyprError.hpp"
+#include "../layout/IHyprLayout.hpp"
+#include "../macros.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/KeybindManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../plugins/PluginAPI.hpp"
+#include "../plugins/PluginSystem.hpp"
+#include "../render/OpenGL.hpp"
+#include "../render/Renderer.hpp"
+#include "ConfigDataValues.hpp"
+#include "defaultConfig.hpp"
+
+
 
 extern "C" char** environ;
 

@@ -1,8 +1,10 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #define HANDLE void*
 

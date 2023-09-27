@@ -1,5 +1,9 @@
 #include "GlobalShortcuts.hpp"
+
 #include "../Compositor.hpp"
+#include "../debug/Log.hpp"
+#include "../managers/ProtocolManager.hpp"
+#include "hyprland-global-shortcuts-v1-protocol.h"
 
 #define GLOBAL_SHORTCUTS_VERSION 1
 

@@ -1,6 +1,11 @@
 #include "FractionalScale.hpp"
 
 #include "../Compositor.hpp"
+#include "../debug/Log.hpp"
+#include "../macros.hpp"
+#include "../managers/ProtocolManager.hpp"
+#include "../protocols/FractionalScale.hpp"
+#include "fractional-scale-v1-protocol.h"
 
 #define FRACTIONAL_SCALE_VERSION 1
 

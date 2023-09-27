@@ -1,11 +1,15 @@
 #pragma once
 
-#include "../defines.hpp"
+#include <chrono>
+#include <deque>
+#include <memory>
+#include <unordered_map>
+
+#include "../common.hpp"
+#include <cairo/cairo.h>
+
 #include "../helpers/Monitor.hpp"
 #include "../render/Texture.hpp"
-#include <deque>
-#include <cairo/cairo.h>
-#include <unordered_map>
 
 class CHyprRenderer;
 

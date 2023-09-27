@@ -1,6 +1,8 @@
 #include "IHyprWindowDecoration.hpp"
 
 #include "../../Window.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/Region.hpp"
 
 IHyprWindowDecoration::IHyprWindowDecoration(CWindow* pWindow) {
     m_pWindow = pWindow;

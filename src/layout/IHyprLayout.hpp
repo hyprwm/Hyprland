@@ -1,8 +1,13 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "../Window.hpp"
 #include <any>
+#include <cstdint>
+#include <string>
+
+#include "../common.hpp"
+
+#include "../Window.hpp"
+#include "../helpers/Vector2D.hpp"
 
 struct SWindowRenderLayoutHints {
     bool                isBorderGradient = false;

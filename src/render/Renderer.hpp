@@ -1,13 +1,19 @@
 #pragma once
 
-#include "../defines.hpp"
 #include <list>
-#include "../helpers/Monitor.hpp"
-#include "../helpers/Workspace.hpp"
+#include <memory>
+#include <string>
+#include <tuple>
+#include <vector>
+
+#include "../common.hpp"
+
 #include "../Window.hpp"
-#include "OpenGL.hpp"
-#include "../helpers/Timer.hpp"
+#include "../helpers/Monitor.hpp"
 #include "../helpers/Region.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Workspace.hpp"
+#include "OpenGL.hpp"
 
 struct SMonitorRule;
 
@@ -27,8 +33,8 @@ enum eRenderPassMode
     RENDER_PASS_POPUP
 };
 
-class CToplevelExportProtocolManager;
 class CInputManager;
+class CToplevelExportProtocolManager;
 struct SSessionLockSurface;
 
 class CHyprRenderer {

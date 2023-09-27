@@ -1,7 +1,9 @@
 #include "WLListener.hpp"
-#include "MiscFunctions.hpp"
-#include <string>
+
+#include <cstdint>
+
 #include "../debug/Log.hpp"
+#include "MiscFunctions.hpp"
 
 void handleWrapped(wl_listener* listener, void* data) {
     CHyprWLListener::SWrapper* pWrap = wl_container_of(listener, pWrap, m_sListener);

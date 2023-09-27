@@ -1,10 +1,14 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "fractional-scale-v1-protocol.h"
-
-#include <vector>
 #include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "../common.hpp"
+#include <wayland-server-core.h>
+
+#include "fractional-scale-v1-protocol.h"
 
 struct SFractionalScaleAddon {
     wlr_surface* pSurface       = nullptr;

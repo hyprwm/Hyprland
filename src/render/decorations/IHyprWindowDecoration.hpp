@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../defines.hpp"
 #include "../../helpers/Region.hpp"
+#include "../../helpers/Vector2D.hpp"
 
 enum eDecorationType {
     DECORATION_NONE = -1,
@@ -15,8 +15,8 @@ struct SWindowDecorationExtents {
     Vector2D bottomRight;
 };
 
-class CWindow;
 class CMonitor;
+class CWindow;
 
 class IHyprWindowDecoration {
   public:

@@ -1,10 +1,10 @@
+
 #include "KeybindManager.hpp"
-#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 
-#include <regex>
-
-#include <sys/ioctl.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #if defined(__linux__)
 #include <linux/vt.h>
 #elif defined(__NetBSD__) || defined(__OpenBSD__)
@@ -12,6 +12,34 @@
 #elif defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/consio.h>
 #endif
+
+#include "../Compositor.hpp"
+#include "../Window.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../helpers/Color.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Region.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/VarList.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLClasses.hpp"
+#include "../helpers/WLSurface.hpp"
+#include "../helpers/Workspace.hpp"
+#include "../hyprerror/HyprError.hpp"
+#include "../layout/IHyprLayout.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
+#include "../render/Renderer.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
+#include "EventManager.hpp"
+#include "HookSystemManager.hpp"
+#include "LayoutManager.hpp"
+#include "ProtocolManager.hpp"
+#include "XWaylandManager.hpp"
+#include "input/InputManager.hpp"
 
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers

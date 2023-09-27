@@ -1,6 +1,10 @@
 #pragma once
 
-#include "../defines.hpp"
+#include "../common.hpp"
+
+#include "../macros.hpp"
+#include "WLListener.hpp"
+
 class CWLSurface {
   public:
     CWLSurface() = default;

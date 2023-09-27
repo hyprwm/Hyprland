@@ -1,14 +1,18 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "wlr-screencopy-unstable-v1-protocol.h"
-
+#include <cstdint>
 #include <list>
 #include <vector>
-#include "../managers/HookSystemManager.hpp"
+
+#include "../common.hpp"
+#include <wayland-server-core.h>
+
 #include "../helpers/Timer.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "wlr-screencopy-unstable-v1-protocol.h"
 
 class CMonitor;
+class CWindow;
 
 enum eClientOwners
 {

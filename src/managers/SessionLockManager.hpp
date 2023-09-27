@@ -1,6 +1,13 @@
 #pragma once
 
-#include "../defines.hpp"
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "../common.hpp"
+
+#include "../helpers/WLListener.hpp"
+#include "../macros.hpp"
 
 struct SSessionLockSurface {
     wlr_session_lock_surface_v1* pWlrLockSurface = nullptr;

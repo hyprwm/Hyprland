@@ -1,6 +1,19 @@
 #include "HyprNotificationOverlay.hpp"
-#include "../Compositor.hpp"
+
 #include <pango/pangocairo.h>
+
+#include "../Compositor.hpp"
+#include "../SharedDefs.hpp"
+#include "../helpers/BezierCurve.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Timer.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../render/OpenGL.hpp"
+#include "../render/Renderer.hpp"
+#include "../render/Texture.hpp"
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     g_pHookSystem->hookDynamic("focusedMon", [&](void* self, std::any param) {

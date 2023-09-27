@@ -1,14 +1,19 @@
 #pragma once
 
-#include "../../defines.hpp"
+#include <cstdint>
 #include <list>
-#include "../../helpers/WLClasses.hpp"
+#include <memory>
+#include <string>
+
+#include "../../common.hpp"
+
 #include "../../Window.hpp"
 #include "../../helpers/Timer.hpp"
+#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/WLClasses.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode
-{
+enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };

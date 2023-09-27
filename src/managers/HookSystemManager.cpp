@@ -1,5 +1,7 @@
 #include "HookSystemManager.hpp"
 
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
 #include "../plugins/PluginSystem.hpp"
 
 CHookSystemManager::CHookSystemManager() {

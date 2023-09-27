@@ -1,7 +1,13 @@
 #include "XDGOutput.hpp"
-#include "../Compositor.hpp"
 
-#include "xdg-output-unstable-v1-protocol.h"
+#include "../Compositor.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/Log.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "WaylandProtocol.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3
 #define OUTPUT_DONE_DEPRECATED_SINCE_VERSION     3

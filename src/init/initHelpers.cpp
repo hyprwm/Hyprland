@@ -1,5 +1,10 @@
 #include "initHelpers.hpp"
 
+#include <pthread.h>
+#include <unistd.h>
+
+#include "../debug/Log.hpp"
+
 bool Init::isSudo() {
     return getuid() != geteuid() || !geteuid();
 }

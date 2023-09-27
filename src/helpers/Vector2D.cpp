@@ -1,4 +1,5 @@
 #include "Vector2D.hpp"
+
 #include <algorithm>
 #include <cmath>
 

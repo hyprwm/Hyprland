@@ -1,7 +1,18 @@
 #include "CHyprGroupBarDecoration.hpp"
+
 #include "../../Compositor.hpp"
-#include <ranges>
-#include <pango/pangocairo.h>
+#include "../../Window.hpp"
+#include "../../config/ConfigDataValues.hpp"
+#include "../../config/ConfigManager.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/Color.hpp"
+#include "../../helpers/MiscFunctions.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../helpers/Workspace.hpp"
+#include "../../render/OpenGL.hpp"
+#include "../../render/Texture.hpp"
+#include "../../render/decorations/IHyprWindowDecoration.hpp"
+#include "../Renderer.hpp"
 
 // shared things to conserve VRAM
 static CTexture m_tGradientActive;

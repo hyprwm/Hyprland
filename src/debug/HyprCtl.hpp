@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../Compositor.hpp"
 #include <fstream>
-#include "../helpers/MiscFunctions.hpp"
+#include <string>
+
+#include "../common.hpp"
 
 namespace HyprCtl {
     void        startHyprCtlSocket();

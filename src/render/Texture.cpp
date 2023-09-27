@@ -1,5 +1,9 @@
 #include "Texture.hpp"
 
+#include "../debug/Log.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../macros.hpp"
+
 CTexture::CTexture() {
     // naffin'
 }

@@ -1,7 +1,9 @@
 #pragma once
 
-#include "../defines.hpp"
+#include <string>
 #include <unordered_map>
+
+#include "../common.hpp"
 
 class CShader {
   public:

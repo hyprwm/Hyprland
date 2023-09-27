@@ -2,6 +2,8 @@
 
 #include <cmath>
 #include <format>
+#include <string>
+
 #include "../macros.hpp"
 
 class Vector2D {

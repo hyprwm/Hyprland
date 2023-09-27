@@ -1,9 +1,14 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "text-input-unstable-v1-protocol.h"
-
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <vector>
+
+#include <wayland-server-core.h>
+
+#include "../common.hpp"
+#include "text-input-unstable-v1-protocol.h"
 
 struct STextInput;
 

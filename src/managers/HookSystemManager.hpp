@@ -1,13 +1,17 @@
 #pragma once
 
-#include "../defines.hpp"
-
-#include <unordered_map>
 #include <any>
 #include <array>
-#include <list>
-
 #include <csetjmp>
+#include <functional>
+#include <list>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "../common.hpp"
 
 #include "../plugins/PluginAPI.hpp"
 

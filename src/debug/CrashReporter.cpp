@@ -1,15 +1,18 @@
 #include "CrashReporter.hpp"
-#include <random>
+
 #include <sys/utsname.h>
-#include <execinfo.h>
-#include <fstream>
-#include <signal.h>
-
-#include "../plugins/PluginSystem.hpp"
-
+#include <unistd.h>
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/sysctl.h>
 #endif
+
+#include <random>
+#include <filesystem>
+
+#include "../helpers/MiscFunctions.hpp"
+#include "../macros.hpp"
+#include "../plugins/PluginSystem.hpp"
+#include "Log.hpp"
 
 std::string getRandomMessage() {
 

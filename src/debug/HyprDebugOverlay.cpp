@@ -1,5 +1,12 @@
 #include "HyprDebugOverlay.hpp"
+
 #include "../Compositor.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../render/OpenGL.hpp"
+#include "../render/Renderer.hpp"
+#include "../render/Texture.hpp"
 
 void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
     m_dLastRenderTimes.push_back(µs / 1000.f);

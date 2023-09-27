@@ -1,23 +1,25 @@
 #pragma once
 
-#define CONFIG_MANAGER_H
-
-#include <map>
-#include "../debug/Log.hpp"
-#include <unordered_map>
-#include "../defines.hpp"
-#include <vector>
-#include <deque>
 #include <algorithm>
-#include <regex>
+#include <cstdint>
+#include <ctime>
+#include <deque>
+#include <map>
+#include <memory>
 #include <optional>
-#include <xf86drmMode.h>
-#include "../Window.hpp"
-#include "../helpers/WLClasses.hpp"
-#include "../helpers/Monitor.hpp"
-#include "../helpers/VarList.hpp"
+#include <regex>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
-#include "defaultConfig.hpp"
+#include "../common.hpp"
+#include <xf86drmMode.h>
+
+#include "../Window.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/WLClasses.hpp"
 #include "ConfigDataValues.hpp"
 
 #define INITANIMCFG(name)           animationConfig[name] = {}

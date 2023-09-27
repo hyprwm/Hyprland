@@ -1,11 +1,14 @@
 #pragma once
 
-#include "../defines.hpp"
 #include <list>
+
+#include "../common.hpp"
+
+#include "../macros.hpp"
 #include "WLSurface.hpp"
 
-struct SSubsurface;
 class CWindow;
+struct SSubsurface;
 
 typedef void (*applyGlobalOffsetFn)(void*, int*, int*);
 

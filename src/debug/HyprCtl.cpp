@@ -232,7 +232,14 @@ std::string activeWorkspaceRequest(HyprCtl::eHyprCtlOutputFormat format) {
         return "unsafe state";
 
     std::string result = "";
-    auto        w      = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+    int id = g_pCompositor->m_pLastMonitor->specialWorkspaceID;
+
+    if(!id) {
+        id = g_pCompositor->m_pLastMonitor->activeWorkspace;
+    }
+
+    auto        w      = g_pCompositor->getWorkspaceByID(id);
 
     if (!w)
         return "internal error";

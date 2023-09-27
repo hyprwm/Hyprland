@@ -1447,10 +1447,9 @@ void CInputManager::setTabletConfigs() {
 
             const auto REGION_POS  = g_pConfigManager->getDeviceVec(t.name, "region_position", "input:tablet:region_position");
             const auto REGION_SIZE = g_pConfigManager->getDeviceVec(t.name, "region_size", "input:tablet:region_size");
-            const auto REGION      = (struct wlr_box){REGION_POS.x, REGION_POS.y, REGION_SIZE.x, REGION_SIZE.y};
-            if (!wlr_box_empty(&REGION)) {
+            const auto REGION      = wlr_box{REGION_POS.x, REGION_POS.y, REGION_SIZE.x, REGION_SIZE.y};
+            if (!wlr_box_empty(&REGION))
                 wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, &REGION);
-            }
         }
     }
 }

@@ -716,6 +716,9 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
+    if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
+        return;
+
     // finally, we should be GTG.
     wlr_output_attach_buffer(pMonitor->output, &PSURFACE->buffer->base);
 
@@ -2025,12 +2028,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     }
 
     if (surfaceCount != 1)
-        return;
-
-    const auto PSURFACE = PCANDIDATE->m_pWLSurface.wlr();
-
-    if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
-        return;
+        Debug::log(LOG, "fuf: >1 surf");
 
     // found one!
     pMonitor->solitaryClient = PCANDIDATE;

@@ -43,7 +43,7 @@ install:
 	chmod -R 777 subprojects/wlroots
 	$(MAKE) release
 	$(MAKE) -C hyprctl all
-	chmod 711 ./build/hyprctl/hyprctl
+	chmod 711 ./hyprctl/hyprctl
 
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	mkdir -p ${PREFIX}/bin

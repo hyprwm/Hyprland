@@ -187,7 +187,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         else
             wl_event_source_timer_update(PMONITOR->renderTimer, TIMETOSLEEP);
     } else {
-        Debug::log(LOG, "monitor_frame");
         g_pHyprRenderer->renderMonitor(PMONITOR);
     }
 

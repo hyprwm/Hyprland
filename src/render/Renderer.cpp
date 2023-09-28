@@ -836,7 +836,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     // tearing and DS first
     bool shouldTear = false;
-    bool canTear    = *PTEARINGENABLED && g_pHyprOpenGL->m_RenderData.mouseZoomFactor == 1.0 && !pMonitor->tearingFailedOnLast;
+    bool canTear    = *PTEARINGENABLED && g_pHyprOpenGL->m_RenderData.mouseZoomFactor == 1.0;
     recheckSolitaryForMonitor(pMonitor);
     if (pMonitor->nextRenderTorn) {
         pMonitor->nextRenderTorn = false;
@@ -851,11 +851,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             return;
         }
 
-        if (pMonitor->tearingFailedOnLast) {
-            Debug::log(WARN, "Tearing failed on last commit, rejecting another tearing flip");
-            return;
-        }
-
         if (!pMonitor->canTear) {
             Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
             return;
@@ -866,16 +861,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     } else {
         // if this is a non-tearing commit, and we are in a state where we should tear
         // then this is a vblank commit that we should ignore
-        if (canTear && pMonitor->solitaryClient && pMonitor->canTear && pMonitor->solitaryClient->canBeTorn() && pMonitor->renderingFromVblankEvent) {
-            Debug::log(WARN, "Ignoring vblank event while tearing");
+        if (canTear && pMonitor->solitaryClient && pMonitor->canTear && pMonitor->solitaryClient->canBeTorn() && pMonitor->renderingFromVblankEvent)
             return;
-        }
-
-        // reset tearing flag
-        pMonitor->tearingFailedOnLast = false;
     }
-
-    Debug::log(LOG, "flip requested, tearing {}", shouldTear);
 
     if (!*PNODIRECTSCANOUT && !shouldTear) {
         if (attemptDirectScanout(pMonitor)) {
@@ -1067,18 +1055,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         if (UNLOCK_SC)
             wlr_output_lock_software_cursors(pMonitor->output, false);
 
-        if (shouldTear) {
-            Debug::log(WARN, "backend rejected a tearing flip :(");
-            // pMonitor->tearingFailedOnLast = true;
-        }
-
         return;
     }
 
-    if (shouldTear) {
-        Debug::log(LOG, "backend accepted a tearing flip!");
+    if (shouldTear)
         pMonitor->ignoreNextFlipEvent = true;
-    }
 
     wlr_damage_ring_rotate(&pMonitor->damage);
 

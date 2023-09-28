@@ -85,7 +85,6 @@ class CMonitor {
     CWindow* solitaryClient           = nullptr;
     bool     canTear                  = false;
     bool     nextRenderTorn           = false;
-    bool     tearingFailedOnLast      = false;
     bool     ignoreNextFlipEvent      = false;
     bool     renderingFromVblankEvent = false;
 

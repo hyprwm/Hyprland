@@ -49,6 +49,8 @@ install:
 	mkdir -p ${PREFIX}/bin
 	cp -f ./build/Hyprland ${PREFIX}/bin
 	cp -f ./hyprctl/hyprctl ${PREFIX}/bin
+	chmod 711 ${PREFIX}/bin/Hyprland
+	chmod 711 ${PREFIX}/bin/hyprctl
 	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
 	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall_* ${PREFIX}/share/hyprland

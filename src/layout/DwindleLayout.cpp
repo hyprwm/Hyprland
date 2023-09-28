@@ -291,13 +291,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         return;
     }
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
-    }
-
     // last fail-safe to avoid duplicate fullscreens
     if ((!OPENINGON || OPENINGON->pWindow == pWindow) && getNodesOnWorkspace(PNODE->workspaceID) > 1) {
         for (auto& node : m_lDwindleNodesData) {
@@ -481,8 +474,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
     NEWPARENT->recalcSizePosRecursive(false, horizontalOverride, verticalOverride);
 
-    applyNodeDataToWindow(PNODE);
-    applyNodeDataToWindow(OPENINGON);
+    recalculateMonitor(pWindow->m_iMonitorID);
+
     pWindow->applyGroupRules();
 }
 

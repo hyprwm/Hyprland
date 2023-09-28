@@ -263,13 +263,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->applyDynamicRule(r);
     }
 
-    CWindow* pFullscreenWindow = nullptr;
-    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        pFullscreenWindow      = PFULLWINDOW;
-        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
-    }
-
     PWINDOW->updateSpecialRenderData();
 
     // disallow tiled pinned
@@ -541,10 +534,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_vRealSize.warp();
             g_pCompositor->setWindowFullscreen(PWINDOW, true, requestsFullscreen ? FULLSCREEN_FULL : FULLSCREEN_MAXIMIZED);
         }
-    }
-
-    if (pFullscreenWindow && workspaceSilent) {
-        g_pCompositor->setWindowFullscreen(pFullscreenWindow, true, PWORKSPACE->m_efFullscreenMode);
     }
 
     // recheck idle inhibitors

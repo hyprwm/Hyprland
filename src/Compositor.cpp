@@ -2148,14 +2148,16 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
 
     const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
 
+    const auto MODE = mode == FULLSCREEN_INVALID ? PWORKSPACE->m_efFullscreenMode : mode;
+
     if (PWORKSPACE->m_bHasFullscreenWindow && on) {
         Debug::log(LOG, "Rejecting fullscreen ON on a fullscreen workspace");
         return;
     }
 
-    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
+    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, MODE, on);
 
-    g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
+    g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && MODE == FULLSCREEN_FULL);
 
     pWindow->updateDynamicRules();
     updateWindowAnimatedDecorationValues(pWindow);

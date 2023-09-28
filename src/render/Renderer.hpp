@@ -33,6 +33,8 @@ struct SSessionLockSurface;
 
 class CHyprRenderer {
   public:
+    CHyprRenderer();
+
     void                            renderMonitor(CMonitor* pMonitor);
     void                            outputMgrApplyTest(wlr_output_configuration_v1*, bool);
     void                            arrangeLayersForMonitor(const int&);
@@ -62,6 +64,7 @@ class CHyprRenderer {
     CMonitor*                       m_pMostHzMonitor             = nullptr;
     bool                            m_bDirectScanoutBlocked      = false;
     bool                            m_bSoftwareCursorsLocked     = false;
+    bool                            m_bTearingEnvSatisfied       = false;
 
     DAMAGETRACKINGMODES
     damageTrackingModeFromStr(const std::string&);

@@ -3,6 +3,13 @@
 #include "linux-dmabuf-unstable-v1-protocol.h"
 #include "../helpers/Region.hpp"
 
+CHyprRenderer::CHyprRenderer() {
+    const auto ENV = getenv("WLR_DRM_NO_ATOMIC");
+
+    if (ENV && std::string(ENV) == "1")
+        m_bTearingEnvSatisfied = true;
+}
+
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE = wlr_surface_get_texture(surface);
     const auto RDATA   = (SRenderData*)data;

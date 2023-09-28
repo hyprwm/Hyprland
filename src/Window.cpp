@@ -935,5 +935,5 @@ int CWindow::getRealBorderSize() {
 }
 
 bool CWindow::canBeTorn() {
-    return m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint;
+    return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint) && g_pHyprRenderer->m_bTearingEnvSatisfied;
 }

@@ -81,6 +81,14 @@ class CMonitor {
 
     CRegion                lastFrameDamage; // stores last frame damage
 
+    // for tearing
+    CWindow* solitaryClient           = nullptr;
+    bool     canTear                  = false;
+    bool     nextRenderTorn           = false;
+    bool     tearingFailedOnLast      = false;
+    bool     ignoreNextFlipEvent      = false;
+    bool     renderingFromVblankEvent = false;
+
     // for the special workspace. 0 means not open.
     int                                                        specialWorkspaceID = 0;
 

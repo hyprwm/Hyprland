@@ -53,6 +53,7 @@ class CHyprRenderer {
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now);
     void                            setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace);
     bool                            canSkipBackBufferClear(CMonitor* pMonitor);
+    void                            recheckSolitaryForMonitor(CMonitor* pMonitor);
 
     bool                            m_bWindowRequestedCursorHide = false;
     bool                            m_bBlockSurfaceFeedback      = false;
@@ -65,15 +66,17 @@ class CHyprRenderer {
     DAMAGETRACKINGMODES
     damageTrackingModeFromStr(const std::string&);
 
-    bool             attemptDirectScanout(CMonitor*);
-    void             setWindowScanoutMode(CWindow*);
-    void             initiateManualCrash();
+    bool                                             attemptDirectScanout(CMonitor*);
+    void                                             setWindowScanoutMode(CWindow*);
+    void                                             initiateManualCrash();
 
-    bool             m_bCrashingInProgress = false;
-    float            m_fCrashingDistort    = 0.5f;
-    wl_event_source* m_pCrashingLoop       = nullptr;
+    bool                                             m_bCrashingInProgress = false;
+    float                                            m_fCrashingDistort    = 0.5f;
+    wl_event_source*                                 m_pCrashingLoop       = nullptr;
 
-    CTimer           m_tRenderTimer;
+    std::vector<std::unique_ptr<STearingController>> m_vTearingControllers;
+
+    CTimer                                           m_tRenderTimer;
 
   private:
     void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);

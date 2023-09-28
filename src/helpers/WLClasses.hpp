@@ -180,7 +180,7 @@ struct SConstraint {
     Vector2D getLogicConstraintSize();
 
     bool     operator==(const SConstraint& b) const {
-            return constraint == b.constraint;
+        return constraint == b.constraint;
     }
 };
 
@@ -391,5 +391,16 @@ struct SSwitchDevice {
 
     bool operator==(const SSwitchDevice& other) const {
         return pWlrDevice == other.pWlrDevice;
+    }
+};
+
+struct STearingController {
+    wlr_tearing_control_v1* pWlrHint = nullptr;
+
+    DYNLISTENER(set);
+    DYNLISTENER(destroy);
+
+    bool operator==(const STearingController& other) {
+        return pWlrHint == other.pWlrHint;
     }
 };

@@ -149,6 +149,14 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (!PMONITOR->m_bEnabled)
         return;
 
+    if (PMONITOR->ignoreNextFlipEvent) {
+        Debug::log(LOG, "Ignore next flip event for {}", PMONITOR->szName);
+        PMONITOR->ignoreNextFlipEvent = false;
+        return;
+    }
+
+    PMONITOR->renderingFromVblankEvent = true;
+
     static auto* const PENABLERAT = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_of_time")->intValue;
     static auto* const PRATSAFE   = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_safezone")->intValue;
 
@@ -181,6 +189,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     } else {
         g_pHyprRenderer->renderMonitor(PMONITOR);
     }
+
+    PMONITOR->renderingFromVblankEvent = false;
 }
 
 void Events::listener_monitorDestroy(void* owner, void* data) {

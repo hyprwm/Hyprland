@@ -87,6 +87,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:extend_border_grab_area"].intValue = 15;
     configValues["general:hover_icon_on_border"].intValue    = 1;
     configValues["general:layout"].strValue                  = "dwindle";
+    configValues["general:allow_tearing"].intValue           = 0;
 
     configValues["misc:disable_hyprland_logo"].intValue        = 0;
     configValues["misc:disable_splash_rendering"].intValue     = 0;
@@ -279,7 +280,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["scroll_button_lock"].intValue      = 0;
     cfgValues["transform"].intValue               = 0;
     cfgValues["output"].strValue                  = STRVAL_EMPTY;
-    cfgValues["enabled"].intValue                 = 1; // only for mice / touchpads
+    cfgValues["enabled"].intValue                 = 1;          // only for mice / touchpads
     cfgValues["region_position"].vecValue         = Vector2D(); // only for tablets
     cfgValues["region_size"].vecValue             = Vector2D(); // only for tablets
 }
@@ -912,7 +913,7 @@ bool windowRuleValid(const std::string& RULE) {
              RULE != "nomaximizerequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" && RULE != "windowdance" &&
              RULE != "maximize" && RULE != "keepaspectratio" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 && RULE.find("workspace") != 0 &&
              RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" && RULE.find("bordersize") != 0 && RULE.find("xray") != 0 &&
-             RULE.find("center") != 0 && RULE.find("group") != 0);
+             RULE.find("center") != 0 && RULE.find("group") != 0 && RULE != "immediate");
 }
 
 bool layerRuleValid(const std::string& RULE) {
@@ -1244,7 +1245,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
         int         linenum = 1;
         if (ifs.is_open()) {
             auto configCurrentPathBackup = configCurrentPath;
-            
+
             while (std::getline(ifs, line)) {
                 // Read line by line.
                 try {
@@ -1265,7 +1266,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
             }
 
             ifs.close();
-            
+
             configCurrentPath = configCurrentPathBackup;
         }
     }

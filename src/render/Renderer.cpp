@@ -717,7 +717,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
     if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
-        return;
+        return false;
 
     // finally, we should be GTG.
     wlr_output_attach_buffer(pMonitor->output, &PSURFACE->buffer->base);

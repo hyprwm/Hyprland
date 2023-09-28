@@ -168,18 +168,19 @@ struct SConstraint {
 
     bool                       active = false;
 
-    bool                       hintSet      = false;
-    Vector2D                   positionHint = {-1, -1}; // the position hint, but will be set to the current cursor pos if not set.
+    bool                       hintSet             = false;
+    Vector2D                   positionHint        = {-1, -1}; // the position hint, but will use cursorPosOnActivate if unset
+    Vector2D                   cursorPosOnActivate = {-1, -1};
 
     DYNLISTENER(setConstraintRegion);
     DYNLISTENER(destroyConstraint);
 
-    CRegion getLogicCoordsRegion();
+    CRegion  getLogicCoordsRegion();
     Vector2D getLogicConstraintPos();
     Vector2D getLogicConstraintSize();
 
-    bool    operator==(const SConstraint& b) const {
-           return constraint == b.constraint;
+    bool     operator==(const SConstraint& b) const {
+            return constraint == b.constraint;
     }
 };
 

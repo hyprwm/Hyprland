@@ -1009,6 +1009,8 @@ std::string dispatchSetProp(std::string request) {
             PWINDOW->m_sSpecialRenderData.borderSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "keepaspectratio") {
             PWINDOW->m_sAdditionalConfigData.keepAspectRatio.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "immediate") {
+            PWINDOW->m_sAdditionalConfigData.forceTearing.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else {
             return "prop not found";
         }

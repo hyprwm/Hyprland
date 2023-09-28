@@ -174,4 +174,7 @@ namespace Events {
 
     // Cursor shape
     LISTENER(setCursorShape);
+
+    // Tearing hints
+    LISTENER(newTearingHint);
 };

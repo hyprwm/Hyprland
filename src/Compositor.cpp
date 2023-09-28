@@ -257,6 +257,8 @@ void CCompositor::initServer() {
 
     m_sWLRCursorShapeMgr = wlr_cursor_shape_manager_v1_create(m_sWLDisplay, 1);
 
+    m_sWLRTearingControlMgr = wlr_tearing_control_manager_v1_create(m_sWLDisplay, 1);
+
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throwError("wlr_headless_backend_create() failed!");
@@ -315,6 +317,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
     addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
     addWLSignal(&m_sWLRCursorShapeMgr->events.request_set_shape, &Events::listen_setCursorShape, m_sWLRCursorShapeMgr, "CursorShapeMgr");
+    addWLSignal(&m_sWLRTearingControlMgr->events.new_object, &Events::listen_newTearingHint, m_sWLRTearingControlMgr, "TearingControlMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
@@ -2475,7 +2478,13 @@ int CCompositor::getNewSpecialID() {
 }
 
 void CCompositor::performUserChecks() {
-    // empty
+    const auto atomicEnv    = getenv("WLR_DRM_NO_ATOMIC");
+    const auto atomicEnvStr = std::string(atomicEnv ? atomicEnv : "");
+    if (g_pConfigManager->getInt("general:allow_tearing") == 1 && atomicEnvStr != "1") {
+        g_pHyprNotificationOverlay->addNotification("You have enabled tearing, but immediate presentations are not available on your configuration. Try adding "
+                                                    "env = WLR_DRM_NO_ATOMIC,1 to your config.",
+                                                    CColor(0), 15000, ICON_WARNING);
+    }
 }
 
 void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace) {

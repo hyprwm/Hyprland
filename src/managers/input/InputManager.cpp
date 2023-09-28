@@ -118,7 +118,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+    if (!PMONITOR->solitaryClient) // if there is a solitary client we can't schedule a frame here, this will completely fuck up drm
+        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     CWindow* forcedFocus = m_pForcedFocus;
 

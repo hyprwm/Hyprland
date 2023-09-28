@@ -105,6 +105,7 @@ extern "C" {
 #include <wlr/types/wlr_single_pixel_buffer_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
 #include <wlr/types/wlr_cursor_shape_v1.h>
+#include <wlr/types/wlr_tearing_control_v1.h>
 
 #include <libdrm/drm_fourcc.h>
 

@@ -58,6 +58,9 @@ general {
     col.inactive_border = rgba(595959aa)
 
     layout = dwindle
+
+    # Please see https://wiki.hyprland.org/Configuring/Tearing/ before you turn this on
+    allow_tearing = false
 }
 
 decoration {

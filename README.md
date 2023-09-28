@@ -41,6 +41,7 @@ easy IPC, much more QoL stuff than other wlr-based compositors and more...
 - Much more QoL stuff than other wlr-based compositors
 - Custom bezier curves for the best animations
 - Powerful plugin support
+- Tearing support for better gaming performance
 - Easily expandable and readable codebase
 - Fast and active development
 - Not scared to provide bleeding-edge features

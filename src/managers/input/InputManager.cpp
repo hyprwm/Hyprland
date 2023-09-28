@@ -1207,23 +1207,29 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
         return;
 
     const auto MOUSECOORDS = getMouseCoordsInternal();
+    const auto PCONSTRAINT = constraintFromWlr(constraint);
 
     pMouse->hyprListener_commitConstraint.removeCallback();
 
-    if (pMouse->currentConstraint) {
-        if (constraint) {
-            const auto PCONSTRAINT = constraintFromWlr(constraint);
-            if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
-                PCONSTRAINT->hintSet      = true;
-                PCONSTRAINT->positionHint = {constraint->current.cursor_hint.x, constraint->current.cursor_hint.y};
-            }
-
-            if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT && constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED)
-                warpMouseToConstraintMiddle(PCONSTRAINT);
-        }
-
+    if (pMouse->currentConstraint)
         wlr_pointer_constraint_v1_send_deactivated(pMouse->currentConstraint);
+
+    if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(constraint->surface); PWINDOW) {
+        const auto RELATIVETO = PWINDOW->m_bIsX11 ?
+            (PWINDOW->m_bIsMapped ? PWINDOW->m_vRealPosition.goalv() :
+                                    g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y})) :
+            PWINDOW->m_vRealPosition.goalv();
+
+        PCONSTRAINT->cursorPosOnActivate = MOUSECOORDS - RELATIVETO;
     }
+
+    if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
+        PCONSTRAINT->hintSet      = true;
+        PCONSTRAINT->positionHint = {constraint->current.cursor_hint.x, constraint->current.cursor_hint.y};
+    }
+
+    if (constraint->current.committed & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT && constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED)
+        warpMouseToConstraintMiddle(PCONSTRAINT);
 
     pMouse->currentConstraint = constraint;
     pMouse->constraintActive  = true;
@@ -1236,7 +1242,7 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
     // warp to the constraint
     recheckConstraint(pMouse);
 
-    constraintFromWlr(constraint)->active = true;
+    PCONSTRAINT->active = true;
 
     wlr_pointer_constraint_v1_send_activated(pMouse->currentConstraint);
 
@@ -1253,23 +1259,17 @@ void CInputManager::warpMouseToConstraintMiddle(SConstraint* pConstraint) {
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(pConstraint->constraint->surface);
 
     if (PWINDOW) {
-        const auto RELATIVETO = PWINDOW->m_bIsX11 ?
-            (PWINDOW->m_bIsMapped ? PWINDOW->m_vRealPosition.goalv() :
-                                    g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y})) :
-            PWINDOW->m_vRealPosition.goalv();
+        const auto RELATIVETO = pConstraint->getLogicConstraintPos();
         const auto HINTSCALE  = PWINDOW->m_fX11SurfaceScaledBy;
 
-        if (pConstraint->hintSet) {
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, RELATIVETO.x + pConstraint->positionHint.x / HINTSCALE, RELATIVETO.y + pConstraint->positionHint.y / HINTSCALE);
-            wlr_seat_pointer_warp(pConstraint->constraint->seat, pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
-        } else {
-            const auto RELATIVESIZE = PWINDOW->m_bIsX11 ?
-                (PWINDOW->m_bIsMapped ? PWINDOW->m_vRealSize.goalv() :
-                                        g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height})) :
-                PWINDOW->m_vRealSize.goalv();
+        auto       HINT = pConstraint->hintSet ? pConstraint->positionHint : pConstraint->cursorPosOnActivate;
 
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, RELATIVETO.x + RELATIVESIZE.x / 2.f, RELATIVETO.y + RELATIVESIZE.y / 2.f);
-            wlr_seat_pointer_warp(pConstraint->constraint->seat, RELATIVESIZE.x / 2.f, RELATIVESIZE.y / 2.f);
+        if (HINT == Vector2D{-1, -1})
+            HINT = pConstraint->getLogicConstraintSize() / 2.f;
+
+        if (HINT != Vector2D{-1, -1}) {
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, RELATIVETO.x + HINT.x / HINTSCALE, RELATIVETO.y + HINT.y / HINTSCALE);
+            wlr_seat_pointer_warp(pConstraint->constraint->seat, pConstraint->constraint->current.cursor_hint.x, pConstraint->constraint->current.cursor_hint.y);
         }
     }
 }
@@ -1597,7 +1597,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

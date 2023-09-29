@@ -56,6 +56,8 @@ class CHyprRenderer {
     void                            setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace);
     bool                            canSkipBackBufferClear(CMonitor* pMonitor);
     void                            recheckSolitaryForMonitor(CMonitor* pMonitor);
+    void                            setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY);
+    void                            setCursorFromName(const std::string& name);
 
     bool                            m_bWindowRequestedCursorHide = false;
     bool                            m_bBlockSurfaceFeedback      = false;
@@ -94,6 +96,7 @@ class CHyprRenderer {
     void renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
     bool m_bHasARenderedCursor = true;
+    bool m_bCursorHasSurface   = false;
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportProtocolManager;

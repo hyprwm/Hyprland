@@ -150,7 +150,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         return;
 
     if (PMONITOR->ignoreNextFlipEvent) {
-        Debug::log(LOG, "Ignore next flip event for {}", PMONITOR->szName);
         PMONITOR->ignoreNextFlipEvent = false;
         return;
     }

@@ -307,9 +307,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (g_pHyprRenderer->m_bHasARenderedCursor) {
                 // TODO: maybe wrap?
                 if (m_ecbClickBehavior == CLICKMODE_KILL)
-                    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "crosshair");
+                    g_pHyprRenderer->setCursorFromName("crosshair");
                 else
-                    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "left_ptr");
+                    g_pHyprRenderer->setCursorFromName("left_ptr");
             }
 
             m_bEmptyFocusCursorSet = true;
@@ -371,18 +371,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 unsetCursorImage();
             }
         }
-
-        // if we're on an input deco, reset cursor. Don't on overridden
-        // if (!m_bCursorImageOverridden) {
-        //     if (!VECINRECT(m_vLastCursorPosFloored, pFoundWindow->m_vRealPosition.vec().x, pFoundWindow->m_vRealPosition.vec().y,
-        //                    pFoundWindow->m_vRealPosition.vec().x + pFoundWindow->m_vRealSize.vec().x, pFoundWindow->m_vRealPosition.vec().y + pFoundWindow->m_vRealSize.vec().y)) {
-        //         wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "left_ptr");
-        //         cursorSurfaceInfo.bUsed = false;
-        //     } else if (!cursorSurfaceInfo.bUsed) {
-        //         cursorSurfaceInfo.bUsed = true;
-        //         wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, cursorSurfaceInfo.pSurface, cursorSurfaceInfo.vHotspot.x, cursorSurfaceInfo.vHotspot.y);
-        //     }
-        // }
 
         if (FOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow &&
@@ -478,7 +466,7 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
     else
         g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
 
-    if (!cursorImageUnlocked() || !g_pHyprRenderer->shouldRenderCursor())
+    if (!cursorImageUnlocked() || !g_pHyprRenderer->m_bHasARenderedCursor)
         return;
 
     // cursorSurfaceInfo.pSurface = e->surface;
@@ -491,19 +479,19 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
     // }
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
-        wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, e->surface, e->hotspot_x, e->hotspot_y);
+        g_pHyprRenderer->setCursorSurface(e->surface, e->hotspot_x, e->hotspot_y);
 }
 
 void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
-    if (!g_pHyprRenderer->shouldRenderCursor() || !cursorImageUnlocked())
+    if (!g_pHyprRenderer->m_bHasARenderedCursor || !cursorImageUnlocked())
         return;
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
-        wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, wlr_cursor_shape_v1_name(e->shape));
+        g_pHyprRenderer->setCursorFromName(wlr_cursor_shape_v1_name(e->shape));
 }
 
 bool CInputManager::cursorImageUnlocked() {
-    if (!g_pHyprRenderer->shouldRenderCursor())
+    if (!g_pHyprRenderer->m_bHasARenderedCursor)
         return false;
 
     if (m_ecbClickBehavior == CLICKMODE_KILL)
@@ -524,7 +512,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
         case CLICKMODE_DEFAULT:
             Debug::log(LOG, "SetClickMode: DEFAULT");
             m_ecbClickBehavior = CLICKMODE_DEFAULT;
-            wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "left_ptr");
+            g_pHyprRenderer->setCursorFromName("left_ptr");
             break;
 
         case CLICKMODE_KILL:
@@ -536,7 +524,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
             refocus();
 
             // set cursor
-            wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "crosshair");
+            g_pHyprRenderer->setCursorFromName("crosshair");
             break;
         default: break;
     }
@@ -1507,7 +1495,7 @@ void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
 }
 
 void CInputManager::setCursorImageUntilUnset(std::string name) {
-    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
+    g_pHyprRenderer->setCursorFromName(name.c_str());
     m_bCursorImageOverridden = true;
 }
 
@@ -1517,7 +1505,7 @@ void CInputManager::unsetCursorImage() {
 
     m_bCursorImageOverridden = false;
     if (!g_pHyprRenderer->m_bWindowRequestedCursorHide)
-        wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, "left_ptr");
+        g_pHyprRenderer->setCursorFromName("left_ptr");
 }
 
 std::string CInputManager::deviceNameToInternalString(std::string in) {
@@ -1598,7 +1586,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

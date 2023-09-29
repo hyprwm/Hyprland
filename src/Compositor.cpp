@@ -34,6 +34,13 @@ void handleUnrecoverableSignal(int sig) {
     abort();
 }
 
+void handleUserSignal(int sig) {
+    if (sig == SIGUSR1) {
+        // means we have to unwind a timed out event
+        throw std::exception();
+    }
+}
+
 CCompositor::CCompositor() {
     m_iHyprlandPID = getpid();
 
@@ -70,6 +77,8 @@ CCompositor::CCompositor() {
     setRandomSplash();
 
     Debug::log(LOG, "\nCurrent splash: {}\n\n", m_szCurrentSplash);
+
+    g_pWatchdog = std::make_unique<CWatchdog>();
 }
 
 CCompositor::~CCompositor() {
@@ -92,6 +101,7 @@ CCompositor::~CCompositor() {
     g_pAnimationManager.reset();
     g_pKeybindManager.reset();
     g_pHookSystem.reset();
+    g_pWatchdog.reset();
 }
 
 void CCompositor::setRandomSplash() {
@@ -112,6 +122,7 @@ void CCompositor::initServer() {
     wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
     signal(SIGSEGV, handleUnrecoverableSignal);
     signal(SIGABRT, handleUnrecoverableSignal);
+    signal(SIGUSR1, handleUserSignal);
     //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
     initManagers(STAGE_PRIORITY);

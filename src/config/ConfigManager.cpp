@@ -134,6 +134,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:damage_tracking"].intValue    = DAMAGE_TRACKING_FULL;
     configValues["debug:manual_crash"].intValue       = 0;
     configValues["debug:suppress_errors"].intValue    = 0;
+    configValues["debug:watchdog_timeout"].intValue   = 5;
 
     configValues["decoration:rounding"].intValue               = 0;
     configValues["decoration:blur:enabled"].intValue           = 1;

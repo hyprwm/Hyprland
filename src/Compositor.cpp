@@ -77,8 +77,6 @@ CCompositor::CCompositor() {
     setRandomSplash();
 
     Debug::log(LOG, "\nCurrent splash: {}\n\n", m_szCurrentSplash);
-
-    g_pWatchdog = std::make_unique<CWatchdog>();
 }
 
 CCompositor::~CCompositor() {
@@ -406,6 +404,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pLayoutManager = std::make_unique<CLayoutManager>();
 
             g_pConfigManager->init();
+            g_pWatchdog = std::make_unique<CWatchdog>(); // requires config
         } break;
         case STAGE_LATE: {
             Debug::log(LOG, "Creating the ThreadManager!");

@@ -24,7 +24,8 @@ class CWatchdog {
 
     std::unique_ptr<std::thread>                   m_pWatchdog;
     std::mutex                                     m_mWatchdogMutex;
-    bool                                           m_bNotified = false;
+    bool                                           m_bNotified   = false;
+    bool                                           m_bExitThread = false;
     std::condition_variable                        m_cvWatchdogCondition;
 };
 

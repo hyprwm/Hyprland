@@ -75,7 +75,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
     static auto* const PRESIZECURSORICON = &g_pConfigManager->getConfigValuePtr("general:hover_icon_on_border")->intValue;
     static auto* const PZOOMFACTOR       = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
-    const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     const auto         FOLLOWMOUSE = *PFOLLOWONDND && m_sDrag.drag ? 1 : *PFOLLOWMOUSE;
 

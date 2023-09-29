@@ -514,7 +514,7 @@ void CCompositor::startCompositor() {
         throwError("The backend could not start!");
     }
 
-    wlr_cursor_set_xcursor(m_sWLRCursor, m_sWLRXCursorMgr, "left_ptr");
+    g_pHyprRenderer->setCursorFromName("left_ptr");
 
 #ifdef USES_SYSTEMD
     if (sd_booted() > 0)

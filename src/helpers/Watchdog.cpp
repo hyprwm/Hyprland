@@ -2,6 +2,10 @@
 #include <signal.h>
 #include "config/ConfigManager.hpp"
 
+CWatchdog::~CWatchdog() {
+    m_pWatchdog.reset();
+}
+
 CWatchdog::CWatchdog() {
     m_iMainThreadPID = pthread_self();
 

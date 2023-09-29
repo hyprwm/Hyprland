@@ -9,6 +9,7 @@ class CWatchdog {
   public:
     // must be called from the main thread
     CWatchdog();
+    ~CWatchdog();
 
     void startWatching();
     void endWatching();

@@ -40,7 +40,7 @@ void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorCommit.initCallback(&output->events.commit, &Events::listener_monitorCommit, this);
     hyprListener_monitorBind.initCallback(&output->events.bind, &Events::listener_monitorBind, this);
 
-    canTear = wlr_backend_is_drm(output->backend); // tearing only works on drm
+    tearingState.canTear = wlr_backend_is_drm(output->backend); // tearing only works on drm
 
     if (m_bEnabled) {
         wlr_output_enable(output, 1);

@@ -13,7 +13,6 @@ uniform vec2 fullSize;
 uniform vec2 fullSizeUntransformed;
 uniform float radius;
 uniform float thick;
-uniform int primitiveMultisample;
 
 uniform vec4 gradient[10];
 uniform int gradientLength;

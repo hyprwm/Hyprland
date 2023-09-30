@@ -10,6 +10,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
     pixCoord -= topLeft + fullSize * 0.5;
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoord -= fullSize * 0.5 - radius;
+    pixCoord += vec2(1.0, 1.0) / fullSize; // center the pix dont make it top-left
 
     if (pixCoord.x + pixCoord.y > radius) {
 
@@ -18,20 +19,13 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 	    if (dist > radius)
 	        discard;
 
-	    if (primitiveMultisample == 1 && dist > radius - 1.0) {
-	        float distances = 0.0;
-	        distances += float(length(pixCoord + vec2(0.25, 0.25)) < radius);
-	        distances += float(length(pixCoord + vec2(0.75, 0.25)) < radius);
-	        distances += float(length(pixCoord + vec2(0.25, 0.75)) < radius);
-	        distances += float(length(pixCoord + vec2(0.75, 0.75)) < radius);
+	    if (dist > radius - 1.0) {
+	        float dist = length(pixCoord);
 
-	        if (distances == 0.0)
-		        discard;
-
-	        distances /= 4.0;
+            float normalized = 1.0 - clamp(smoothstep(0.0, 1.0, dist - radius + 0.5), 0.0, 1.0);
 
 	        )#" +
-        colorVarName + R"#( = )#" + colorVarName + R"#( * distances;
+        colorVarName + R"#( = )#" + colorVarName + R"#( * normalized;
         }
 
     }
@@ -59,8 +53,6 @@ varying vec4 v_color;
 uniform vec2 topLeft;
 uniform vec2 fullSize;
 uniform float radius;
-
-uniform int primitiveMultisample;
 
 void main() {
 
@@ -101,8 +93,6 @@ uniform float discardAlphaValue;
 
 uniform int applyTint;
 uniform vec3 tint;
-
-uniform int primitiveMultisample;
 
 void main() {
 
@@ -153,8 +143,6 @@ uniform int discardAlphaValue;
 
 uniform int applyTint;
 uniform vec3 tint;
-
-uniform int primitiveMultisample;
 
 void main() {
 
@@ -273,8 +261,6 @@ uniform int discardAlphaValue;
 
 uniform int applyTint;
 uniform vec3 tint;
-
-uniform int primitiveMultisample;
 
 void main() {
 

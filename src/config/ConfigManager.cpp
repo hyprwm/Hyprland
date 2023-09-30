@@ -150,7 +150,6 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:active_opacity"].floatValue       = 1;
     configValues["decoration:inactive_opacity"].floatValue     = 1;
     configValues["decoration:fullscreen_opacity"].floatValue   = 1;
-    configValues["decoration:multisample_edges"].intValue      = 1;
     configValues["decoration:no_blur_on_oversized"].intValue   = 0;
     configValues["decoration:drop_shadow"].intValue            = 1;
     configValues["decoration:shadow_range"].intValue           = 4;

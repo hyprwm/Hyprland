@@ -63,14 +63,16 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "transform": {},
     "focused": {},
     "dpmsStatus": {},
-    "vrr": {}
+    "vrr": {},
+    "activelyTearing": {}
 }},)#",
                 m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""),
                 (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate,
                 (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName),
                 m->specialWorkspaceID, escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
-                (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"));
+                (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
+                m->activelyTearing ? "true" : "false");
         }
 
         trimTrailingComma(result);
@@ -85,13 +87,13 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
                             "workspace: {} ({})\n\treserved: {} "
                             "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
-                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\n",
+                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\n",
                             m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
                             (m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
                             (m->output->serial ? m->output->serial : ""), m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName, m->specialWorkspaceID,
                             getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
                             (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
-                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED));
+                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->activelyTearing);
         }
     }
 

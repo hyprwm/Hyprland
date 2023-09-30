@@ -22,7 +22,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 	    if (dist > radius - 1.0) {
 	        float dist = length(pixCoord);
 
-            float normalized = 1.0 - clamp(smoothstep(0.0, 1.0, dist - radius + 0.5), 0.0, 1.0);
+            float normalized = 1.0 - smoothstep(0.0, 1.0, dist - radius + 0.5);
 
 	        )#" +
         colorVarName + R"#( = )#" + colorVarName + R"#( * normalized;
@@ -100,7 +100,7 @@ void main() {
 
     if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
 	    discard;
-    
+
     if (discardAlpha == 1 && pixColor[3] <= discardAlphaValue)
         discard;
 

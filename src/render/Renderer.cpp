@@ -884,6 +884,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         }
     }
 
+    pMonitor->activelyTearing = shouldTear;
+
     EMIT_HOOK_EVENT("preRender", pMonitor);
 
     timespec now;
@@ -1023,6 +1025,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         TRACY_GPU_ZONE("RenderCursor");
 
         bool lockSoftware = pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f;
+        lockSoftware      = lockSoftware || std::ranges::any_of(g_pCompositor->m_vMonitors, [](const auto& m) { return m->activelyTearing; });
 
         if (lockSoftware) {
             wlr_output_lock_software_cursors(pMonitor->output, true);

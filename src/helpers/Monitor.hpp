@@ -87,6 +87,7 @@ class CMonitor {
     bool     nextRenderTorn           = false;
     bool     ignoreNextFlipEvent      = false;
     bool     renderingFromVblankEvent = false;
+    bool     activelyTearing          = false;
 
     // for the special workspace. 0 means not open.
     int                                                        specialWorkspaceID = 0;

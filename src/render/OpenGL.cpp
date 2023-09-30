@@ -1763,33 +1763,30 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
 
     static auto* const              PNOSPLASH        = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
-    static auto* const              PDISABLEHYPRCHAN = &g_pConfigManager->getConfigValuePtr("misc:disable_hypr_chan")->intValue;
     static auto* const              PFORCEHYPRCHAN   = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
-
-    std::random_device              dev;
-    std::mt19937                    engine(dev());
-    std::uniform_int_distribution<> distribution(0, 2);
-    std::uniform_int_distribution<> distribution2(0, 1);
-
-    const bool                      USEANIME = *PFORCEHYPRCHAN || distribution(engine) == 0; // 66% for anime
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];
     PTEX->destroyTexture();
 
     PTEX->allocate();
-
     Debug::log(LOG, "Allocated texture for BGTex");
 
     // TODO: use relative paths to the installation
     // or configure the paths at build time
+    std::string texPath = "/usr/share/hyprland/wall_";
+    std::string prefixes[] = {"", "anime_", "anime2_"};
 
     // get the adequate tex
-    std::string texPath = "/usr/share/hyprland/wall_";
-    if (!*PDISABLEHYPRCHAN)
-        texPath += std::string(USEANIME ? (distribution2(engine) == 0 ? "anime_" : "anime2_") : "");
+    if (*PFORCEHYPRCHAN == -1) {
+        std::random_device              dev;
+        std::mt19937                    engine(dev());
+        std::uniform_int_distribution<> distribution(0, 2);
 
-    // check if wallpapers exist
+        texPath += prefixes[distribution(engine)];
+    } else {
+        texPath += prefixes[*PFORCEHYPRCHAN];
+    }
 
     Vector2D textureSize;
     if (pMonitor->vecTransformedSize.x > 3850) {
@@ -1803,6 +1800,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         texPath += "2K.png";
     }
 
+    // check if wallpapers exist
     if (!std::filesystem::exists(texPath)) {
         // try local
         texPath = texPath.substr(0, 5) + "local/" + texPath.substr(5);

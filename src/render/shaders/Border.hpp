@@ -71,11 +71,11 @@ void main() {
 
 	    if (dist < radius - h) {
             // lower
-            float normalized = clamp(smoothstep(0.0, 1.0, dist - radius + thick + 0.5), 0.0, 1.0);
+            float normalized = smoothstep(0.0, 1.0, dist - radius + thick + 0.5);
             additionalAlpha *= normalized;
         } else {
             // higher
-            float normalized = 1.0 - clamp(smoothstep(0.0, 1.0, dist - radius + 0.5), 0.0, 1.0);
+            float normalized = 1.0 - smoothstep(0.0, 1.0, dist - radius + 0.5);
             additionalAlpha *= normalized;
         }
 

@@ -1762,9 +1762,9 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
 void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
 
-    static auto* const              PNOSPLASH        = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
-    static auto* const              PFORCEHYPRCHAN   = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
-    static auto* const              PFORCEWALLPAPER  = &g_pConfigManager->getConfigValuePtr("misc:force_default_wallpaper")->intValue;
+    static auto* const PNOSPLASH       = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
+    static auto* const PFORCEHYPRCHAN  = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
+    static auto* const PFORCEWALLPAPER = &g_pConfigManager->getConfigValuePtr("misc:force_default_wallpaper")->intValue;
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];
@@ -1775,7 +1775,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     // TODO: use relative paths to the installation
     // or configure the paths at build time
-    std::string texPath = "/usr/share/hyprland/wall_";
+    std::string texPath    = "/usr/share/hyprland/wall_";
     std::string prefixes[] = {"", "anime_", "anime2_"};
 
     // get the adequate tex
@@ -1785,8 +1785,11 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         std::uniform_int_distribution<> distribution(0, 2);
         std::uniform_int_distribution<> distribution_anime(1, 2);
 
-        if (PFORCEHYPRCHAN) {texPath += prefixes[distribution_anime(engine)];}
-        else {texPath += prefixes[distribution(engine)];}
+        if (PFORCEHYPRCHAN) {
+            texPath += prefixes[distribution_anime(engine)];
+        } else {
+            texPath += prefixes[distribution(engine)];
+        }
     } else {
         texPath += prefixes[*PFORCEWALLPAPER];
     }

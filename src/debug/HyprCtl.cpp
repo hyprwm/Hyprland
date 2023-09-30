@@ -72,7 +72,7 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                 m->specialWorkspaceID, escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
                 (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
-                m->activelyTearing ? "true" : "false");
+                m->tearingState.activelyTearing ? "true" : "false");
         }
 
         trimTrailingComma(result);
@@ -93,7 +93,7 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                             (m->output->serial ? m->output->serial : ""), m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName, m->specialWorkspaceID,
                             getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
                             (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
-                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->activelyTearing);
+                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing);
         }
     }
 

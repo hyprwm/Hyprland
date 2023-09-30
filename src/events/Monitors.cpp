@@ -149,19 +149,22 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (!PMONITOR->m_bEnabled)
         return;
 
-    if (PMONITOR->ignoreNextFlipEvent) {
-        PMONITOR->ignoreNextFlipEvent = false;
-        return;
-    }
+    PMONITOR->tearingState.busy = false;
 
-    PMONITOR->renderingFromVblankEvent = true;
+    if (PMONITOR->tearingState.activelyTearing) {
+
+        if (!PMONITOR->tearingState.frameScheduledWhileBusy)
+            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
+
+        PMONITOR->tearingState.nextRenderTorn = true;
+    }
 
     static auto* const PENABLERAT = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_of_time")->intValue;
     static auto* const PRATSAFE   = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_safezone")->intValue;
 
     PMONITOR->lastPresentationTimer.reset();
 
-    if (*PENABLERAT) {
+    if (*PENABLERAT && !PMONITOR->tearingState.nextRenderTorn) {
         if (!PMONITOR->RATScheduled) {
             // render
             g_pHyprRenderer->renderMonitor(PMONITOR);
@@ -188,8 +191,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     } else {
         g_pHyprRenderer->renderMonitor(PMONITOR);
     }
-
-    PMONITOR->renderingFromVblankEvent = false;
 }
 
 void Events::listener_monitorDestroy(void* owner, void* data) {

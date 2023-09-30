@@ -6,6 +6,7 @@
 #include "Vector2D.hpp"
 #include "Color.hpp"
 #include "../macros.hpp"
+#include "../debug/Log.hpp"
 
 enum ANIMATEDVARTYPE
 {

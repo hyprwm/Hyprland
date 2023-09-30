@@ -1764,6 +1764,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     static auto* const              PNOSPLASH        = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
     static auto* const              PFORCEHYPRCHAN   = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
+    static auto* const              PFORCEWALLPAPER  = &g_pConfigManager->getConfigValuePtr("misc:force_default_wallpaper")->intValue;
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];
@@ -1778,14 +1779,16 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     std::string prefixes[] = {"", "anime_", "anime2_"};
 
     // get the adequate tex
-    if (*PFORCEHYPRCHAN == -1) {
+    if (*PFORCEWALLPAPER == -1) {
         std::random_device              dev;
         std::mt19937                    engine(dev());
         std::uniform_int_distribution<> distribution(0, 2);
+        std::uniform_int_distribution<> distribution_anime(1, 2);
 
-        texPath += prefixes[distribution(engine)];
+        if (PFORCEHYPRCHAN) {texPath += prefixes[distribution_anime(engine)];}
+        else {texPath += prefixes[distribution(engine)];}
     } else {
-        texPath += prefixes[*PFORCEHYPRCHAN];
+        texPath += prefixes[*PFORCEWALLPAPER];
     }
 
     Vector2D textureSize;

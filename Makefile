@@ -3,22 +3,22 @@ PREFIX = /usr/local
 legacyrenderer:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
 	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
-	chmod 711 ./build/Hyprland
+	chmod 755 ./build/Hyprland
 
 legacyrendererdebug:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
 	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
-	chmod 711 ./build/Hyprland
+	chmod 755 ./build/Hyprland
 
 release:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja
 	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
-	chmod 711 ./build/Hyprland
+	chmod 755 ./build/Hyprland
 
 debug:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -S . -B ./build -G Ninja
 	cmake --build ./build --config Debug --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
-	chmod 711 ./build/Hyprland
+	chmod 755 ./build/Hyprland
 
 clear:
 	rm -rf build
@@ -43,14 +43,14 @@ install:
 	chmod -R 777 subprojects/wlroots
 	$(MAKE) release
 	$(MAKE) -C hyprctl all
-	chmod 711 ./hyprctl/hyprctl
+	chmod 755 ./hyprctl/hyprctl
 
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	mkdir -p ${PREFIX}/bin
 	cp -f ./build/Hyprland ${PREFIX}/bin
 	cp -f ./hyprctl/hyprctl ${PREFIX}/bin
-	chmod 711 ${PREFIX}/bin/Hyprland
-	chmod 711 ${PREFIX}/bin/hyprctl
+	chmod 755 ${PREFIX}/bin/Hyprland
+	chmod 755 ${PREFIX}/bin/hyprctl
 	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
 	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall_* ${PREFIX}/share/hyprland

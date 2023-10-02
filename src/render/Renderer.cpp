@@ -2054,6 +2054,9 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
         wlr_xdg_surface_for_each_popup_surface(PCANDIDATE->m_uSurface.xdg, countSubsurfacesIter, &surfaceCount);
     }
 
+    if (surfaceCount > 1)
+        return;
+
     // found one!
     pMonitor->solitaryClient = PCANDIDATE;
 }

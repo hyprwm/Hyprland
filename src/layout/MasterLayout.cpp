@@ -139,7 +139,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     if (*PDROPATCURSOR && g_pInputManager->dragMode == MBIND_MOVE) {
         // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
         for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
-            const wlr_box box = it->pWindow->getFullWindowBoundingBox();
+            const wlr_box box = it->pWindow->getWindowIdealBoundingBoxIgnoreReserved();
             if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
                 switch (orientation) {
                     case ORIENTATION_LEFT:

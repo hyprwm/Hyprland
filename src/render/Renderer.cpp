@@ -1017,7 +1017,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             }
         }
     } else {
-        g_pHyprRenderer->renderWindow(pMonitor->solitaryClient, pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
+        g_pHyprRenderer->renderWindow(pMonitor->solitaryClient, pMonitor, &now, false, RENDER_PASS_ALL);
     }
 
     renderCursor = renderCursor && shouldRenderCursor();

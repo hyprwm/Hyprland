@@ -633,6 +633,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+    // avoid this window being visible
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFullscreen && !PWINDOW->m_bIsFloating)
+        PWINDOW->m_fAlpha.setValueAndWarp(0.f);
 
     g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
 }

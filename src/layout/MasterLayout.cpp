@@ -132,6 +132,35 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 
     pWindow->applyGroupRules();
 
+    static auto* const PDROPATCURSOR  = &g_pConfigManager->getConfigValuePtr("master:drop_at_cursor")->intValue;
+    const auto         PWORKSPACEDATA = getMasterWorkspaceData(pWindow->m_iWorkspaceID);
+    eOrientation       orientation    = PWORKSPACEDATA->orientation;
+    const auto         NODEIT         = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
+    if (*PDROPATCURSOR && g_pInputManager->dragMode == MBIND_MOVE) {
+        // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
+        for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
+            const wlr_box box = it->pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+            if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
+                switch (orientation) {
+                    case ORIENTATION_LEFT:
+                    case ORIENTATION_RIGHT:
+                        if (MOUSECOORDS.y > it->pWindow->middle().y)
+                            ++it;
+                        break;
+                    case ORIENTATION_TOP:
+                    case ORIENTATION_BOTTOM:
+                        if (MOUSECOORDS.x > it->pWindow->middle().x)
+                            ++it;
+                        break;
+                    case ORIENTATION_CENTER: break;
+                    default: UNREACHABLE();
+                }
+                m_lMasterNodesData.splice(it, m_lMasterNodesData, NODEIT);
+                break;
+            }
+        }
+    }
+
     if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster)) {
         for (auto& nd : m_lMasterNodesData) {
             if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {

@@ -1785,9 +1785,12 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         std::uniform_int_distribution<> distribution(0, 2);
         std::uniform_int_distribution<> distribution_anime(1, 2);
 
-        if (PFORCEHYPRCHAN) texPath += prefixes[distribution_anime(engine)];
-        else texPath += prefixes[distribution(engine)];
-    } else texPath += prefixes[*PFORCEWALLPAPER];
+        if (PFORCEHYPRCHAN)
+            texPath += prefixes[distribution_anime(engine)];
+        else
+            texPath += prefixes[distribution(engine)];
+    } else
+        texPath += prefixes[*PFORCEWALLPAPER];
 
     Vector2D textureSize;
     if (pMonitor->vecTransformedSize.x > 3850) {

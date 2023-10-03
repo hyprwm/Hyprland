@@ -846,10 +846,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     // tearing and DS first
     bool shouldTear = false;
-    bool canTear    = *PTEARINGENABLED && g_pHyprOpenGL->m_RenderData.mouseZoomFactor == 1.0;
     recheckSolitaryForMonitor(pMonitor);
-    if (pMonitor->nextRenderTorn) {
-        pMonitor->nextRenderTorn = false;
+    if (pMonitor->tearingState.nextRenderTorn) {
+        pMonitor->tearingState.nextRenderTorn = false;
 
         if (!*PTEARINGENABLED) {
             Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
@@ -861,18 +860,13 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             return;
         }
 
-        if (!pMonitor->canTear) {
+        if (!pMonitor->tearingState.canTear) {
             Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
             return;
         }
 
         if (pMonitor->solitaryClient)
             shouldTear = true;
-    } else {
-        // if this is a non-tearing commit, and we are in a state where we should tear
-        // then this is a vblank commit that we should ignore
-        if (canTear && pMonitor->solitaryClient && pMonitor->canTear && pMonitor->solitaryClient->canBeTorn() && pMonitor->renderingFromVblankEvent)
-            return;
     }
 
     if (!*PNODIRECTSCANOUT && !shouldTear) {
@@ -881,6 +875,15 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         } else if (m_pLastScanout) {
             Debug::log(LOG, "Left a direct scanout.");
             m_pLastScanout = nullptr;
+        }
+    }
+
+    if (pMonitor->tearingState.activelyTearing != shouldTear) {
+        // change of state
+        pMonitor->tearingState.activelyTearing = shouldTear;
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            wlr_output_lock_software_cursors(m->output, pMonitor->tearingState.activelyTearing);
         }
     }
 
@@ -1081,7 +1084,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 
     if (shouldTear)
-        pMonitor->ignoreNextFlipEvent = true;
+        pMonitor->tearingState.busy = true;
 
     wlr_damage_ring_rotate(&pMonitor->damage);
 
@@ -2051,8 +2054,8 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
         wlr_xdg_surface_for_each_popup_surface(PCANDIDATE->m_uSurface.xdg, countSubsurfacesIter, &surfaceCount);
     }
 
-    if (surfaceCount != 1)
-        Debug::log(LOG, "fuf: >1 surf");
+    if (surfaceCount > 1)
+        return;
 
     // found one!
     pMonitor->solitaryClient = PCANDIDATE;

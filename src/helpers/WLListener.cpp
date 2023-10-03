@@ -2,6 +2,7 @@
 #include "MiscFunctions.hpp"
 #include <string>
 #include "../debug/Log.hpp"
+#include "Watchdog.hpp"
 
 void handleWrapped(wl_listener* listener, void* data) {
     CHyprWLListener::SWrapper* pWrap = wl_container_of(listener, pWrap, m_sListener);

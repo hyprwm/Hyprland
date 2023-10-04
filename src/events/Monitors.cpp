@@ -156,7 +156,8 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         if (!PMONITOR->tearingState.frameScheduledWhileBusy)
             return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
 
-        PMONITOR->tearingState.nextRenderTorn = true;
+        PMONITOR->tearingState.nextRenderTorn          = true;
+        PMONITOR->tearingState.frameScheduledWhileBusy = false;
     }
 
     static auto* const PENABLERAT = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_of_time")->intValue;

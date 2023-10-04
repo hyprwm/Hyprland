@@ -2045,6 +2045,14 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
             return;
     }
 
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_iWorkspaceID == PCANDIDATE->m_iWorkspaceID && w->m_bIsFloating && w->m_bCreatedOverFullscreen && !w->isHidden())
+            return;
+    }
+
+    if (pMonitor->specialWorkspaceID != 0)
+        return;
+
     // check if it did not open any subsurfaces or shit
     int surfaceCount = 0;
     if (PCANDIDATE->m_bIsX11) {

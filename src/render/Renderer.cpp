@@ -846,7 +846,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     // tearing and DS first
     bool shouldTear = false;
-    recheckSolitaryForMonitor(pMonitor);
     if (pMonitor->tearingState.nextRenderTorn) {
         pMonitor->tearingState.nextRenderTorn = false;
 

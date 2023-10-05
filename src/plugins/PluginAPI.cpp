@@ -301,7 +301,7 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
             count++;
         }
 
-        return SYMBOLSDEMANGLED.substr(pos, SYMBOLSDEMANGLED.find('\n', pos + 1) - pos);
+        return SYMBOLSDEMANGLED.substr(pos + 1, SYMBOLSDEMANGLED.find('\n', pos + 1) - pos - 1);
     };
 
     if (SYMBOLS.empty()) {

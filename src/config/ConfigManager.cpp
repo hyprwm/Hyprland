@@ -111,7 +111,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:mouse_move_focuses_monitor"].intValue       = 1;
     configValues["misc:render_ahead_of_time"].intValue             = 0;
     configValues["misc:render_ahead_safezone"].intValue            = 1;
-    configValues["misc:cursor_zoom_factor"].floatValue              = 1.f;
+    configValues["misc:cursor_zoom_factor"].floatValue             = 1.f;
     configValues["misc:cursor_zoom_rigid"].intValue                = 0;
     configValues["misc:allow_session_lock_restore"].intValue       = 0;
     configValues["misc:groupbar_scrolling"].intValue               = 1;

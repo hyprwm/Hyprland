@@ -302,9 +302,8 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
         }
 
         // Skip the newline char itself
-        if (pos != 0) {
+        if (pos != 0)
             pos++;
-        }
 
         return SYMBOLSDEMANGLED.substr(pos, SYMBOLSDEMANGLED.find('\n', pos) - pos);
     };

@@ -737,8 +737,14 @@ void Events::listener_unmapWindow(void* owner, void* data) {
                 g_pInputManager->simulateMouseMovement();
             else
                 g_pCompositor->focusWindow(PWINDOWCANDIDATE);
-        } else {
+        } else
             g_pInputManager->simulateMouseMovement();
+
+        // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
+        if (PWINDOW == g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow) {
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
+            EMIT_HOOK_EVENT("activeWindow", (CWindow*)nullptr);
         }
     } else {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");

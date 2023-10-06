@@ -1274,18 +1274,18 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
 
         const auto PLAYER = ls->layerSurface;
         const auto PSTATE = &PLAYER->current;
-        if (exclusiveZone != (PSTATE->exclusive_zone > 0)) {
+        if (exclusiveZone != (PSTATE->exclusive_zone > 0))
             continue;
-        }
 
         wlr_box bounds;
-        if (PSTATE->exclusive_zone == -1) {
+        if (PSTATE->exclusive_zone == -1)
             bounds = full_area;
-        } else {
+        else
             bounds = *usableArea;
-        }
 
-        wlr_box box = {.width = PSTATE->desired_width, .height = PSTATE->desired_height};
+        const Vector2D OLDSIZE = {ls->geometry.width, ls->geometry.height};
+
+        wlr_box        box = {.width = PSTATE->desired_width, .height = PSTATE->desired_height};
         // Horizontal axis
         const uint32_t both_horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
         if (box.width == 0) {
@@ -1342,7 +1342,8 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
 
         apply_exclusive(usableArea, PSTATE->anchor, PSTATE->exclusive_zone, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
-        wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
+        if (Vector2D{box.width, box.height} != OLDSIZE)
+            wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
 
         Debug::log(LOG, "LayerSurface {:x} arranged: x: {} y: {} w: {} h: {} with margins: t: {} l: {} r: {} b: {}", (uintptr_t)&ls, box.x, box.y, box.width, box.height,
                    PSTATE->margin.top, PSTATE->margin.left, PSTATE->margin.right, PSTATE->margin.bottom);

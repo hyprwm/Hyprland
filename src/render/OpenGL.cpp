@@ -1764,7 +1764,9 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     static auto* const PNOSPLASH       = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
     static auto* const PFORCEHYPRCHAN  = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
-    static auto* const PFORCEWALLPAPER = &std::clamp(*&g_pConfigManager->getConfigValuePtr("misc:force_default_wallpaper")->intValue, (int64_t)-1, (int64_t)2);
+    static auto* const PFORCEWALLPAPER = &g_pConfigManager->getConfigValuePtr("misc:force_default_wallpaper")->intValue;
+
+    const auto         FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, -1L, 2L);
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];
@@ -1779,7 +1781,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     std::string prefixes[] = {"", "anime_", "anime2_"};
 
     // get the adequate tex
-    if (*PFORCEWALLPAPER == -1) {
+    if (FORCEWALLPAPER == -1) {
         std::random_device              dev;
         std::mt19937                    engine(dev());
         std::uniform_int_distribution<> distribution(0, 2);
@@ -1790,7 +1792,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         else
             texPath += prefixes[distribution(engine)];
     } else
-        texPath += prefixes[*PFORCEWALLPAPER];
+        texPath += prefixes[FORCEWALLPAPER];
 
     Vector2D textureSize;
     if (pMonitor->vecTransformedSize.x > 3850) {

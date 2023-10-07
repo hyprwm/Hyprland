@@ -111,6 +111,11 @@ gestures {
     workspace_swipe = off
 }
 
+misc {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+    force_default_wallpaper = -1 # Set to 0 to disable the anime mascot wallpapers
+}
+
 # Example per-device config
 # See https://wiki.hyprland.org/Configuring/Keywords/#executing for more
 device:epic-mouse-v1 {

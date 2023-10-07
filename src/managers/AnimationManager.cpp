@@ -93,6 +93,12 @@ void CAnimationManager::tick() {
             if (!PMONITOR)
                 continue;
             WLRBOXPREV = {(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y};
+
+            // TODO: just make this into a damn callback already vax...
+            for (auto& w : g_pCompositor->m_vWindows) {
+                if (!w->isHidden() && w->m_bIsMapped && w->m_bIsFloating)
+                    g_pHyprRenderer->damageWindow(w.get());
+            }
         } else if (PLAYER) {
             WLRBOXPREV = PLAYER->geometry;
             PMONITOR   = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);

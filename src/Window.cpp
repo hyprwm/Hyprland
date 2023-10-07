@@ -930,10 +930,14 @@ int CWindow::getRealRounding() {
     if (!m_sSpecialRenderData.rounding)
         return 0;
 
-    if (m_sAdditionalConfigData.rounding.toUnderlying() != -1)
-        return m_sAdditionalConfigData.rounding.toUnderlying();
+    int rounding;
 
-    return g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+    if (m_sAdditionalConfigData.rounding.toUnderlying() != -1)
+        rounding = m_sAdditionalConfigData.rounding.toUnderlying();
+    else
+        rounding = g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+
+    return std::min(rounding, (int)std::min(m_vRealSize.vec().x, m_vRealSize.vec().y) / 2);
 }
 
 int CWindow::getRealBorderSize() {

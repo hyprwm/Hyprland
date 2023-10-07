@@ -107,9 +107,6 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     float currentOffset = BAR_HORIZONTAL_PADDING;
 
-    if (m_fBarWidth <= 0)
-        return;
-
     // Bottom left of groupbar
     Vector2D pos = Vector2D(
         m_vLastWindowPos.x - pMonitor->vecPosition.x + offset.x + ROUNDING,
@@ -184,13 +181,12 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
             g_pHyprOpenGL->renderRect(&barBox, color, std::sqrt(m_iBarHeight) / 2);
 
         // render title if necessary
-        if (*PRENDERTITLES) {
+        if (*PRENDERTITLES && textBox.width > 0 && textBox.height > 0) {
             CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[i]->m_szTitle);
             if (!pTitleTex)
                 pTitleTex = m_sTitleTexs.titleTexs.emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i], Vector2D(textBox.width, textBox.height))).get();
 
-            if (textBox.width > 0 && textBox.height > 0)
-                g_pHyprOpenGL->renderTexture(pTitleTex->tex, &textBox, 1.f);
+            g_pHyprOpenGL->renderTexture(pTitleTex->tex, &textBox, 1.f);
         }
 
         if (gradBox.width > 0 && gradBox.height > 0) {

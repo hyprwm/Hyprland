@@ -4,9 +4,6 @@
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
-
-        const auto         REVERSESPLITRATIO = 2.f - splitRatio;
-
         static auto* const PSMARTSPLIT    = &g_pConfigManager->getConfigValuePtr("dwindle:smart_split")->intValue;
         static auto* const PPRESERVESPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:preserve_split")->intValue;
         static auto* const PFLMULT        = &g_pConfigManager->getConfigValuePtr("dwindle:split_width_multiplier")->floatValue;
@@ -24,16 +21,20 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
 
         if (SPLITSIDE) {
             // split left/right
+            int space_0 = size.x / 2 * splitRatio;
+            int space_1 = size.x - space_0;
             children[0]->position = position;
-            children[0]->size     = Vector2D(size.x / 2.f * splitRatio, size.y);
-            children[1]->position = Vector2D(position.x + size.x / 2.f * splitRatio, position.y);
-            children[1]->size     = Vector2D(size.x / 2.f * REVERSESPLITRATIO, size.y);
+            children[0]->size     = Vector2D(space_0, size.y);
+            children[1]->position = Vector2D(position.x + space_0, position.y);
+            children[1]->size     = Vector2D(space_1, size.y);
         } else {
             // split top/bottom
+            int space_0 = size.y / 2 * splitRatio;
+            int space_1 = size.y - space_0;
             children[0]->position = position;
-            children[0]->size     = Vector2D(size.x, size.y / 2.f * splitRatio);
-            children[1]->position = Vector2D(position.x, position.y + size.y / 2.f * splitRatio);
-            children[1]->size     = Vector2D(size.x, size.y / 2.f * REVERSESPLITRATIO);
+            children[0]->size     = Vector2D(size.x, space_0);
+            children[1]->position = Vector2D(position.x, position.y + space_0);
+            children[1]->size     = Vector2D(size.x, space_1);
         }
 
         children[0]->recalcSizePosRecursive(force);

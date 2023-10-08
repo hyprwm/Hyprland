@@ -1741,10 +1741,10 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     static auto* const INACTIVECOL            = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.inactive_border")->data.get();
     static auto* const NOGROUPACTIVECOL       = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.nogroup_border_active")->data.get();
     static auto* const NOGROUPINACTIVECOL     = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.nogroup_border")->data.get();
-    static auto* const GROUPINACTIVECOL       = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:col.border")->data.get();
     static auto* const GROUPACTIVECOL         = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:col.border_active")->data.get();
-    static auto* const GROUPINACTIVELOCKEDCOL = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:col.border_locked")->data.get();
+    static auto* const GROUPINACTIVECOL       = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:col.border_inactive")->data.get();
     static auto* const GROUPACTIVELOCKEDCOL   = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:col.border_locked_active")->data.get();
+    static auto* const GROUPINACTIVELOCKEDCOL = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:col.border_locked_inactive")->data.get();
     static auto* const PINACTIVEALPHA         = &g_pConfigManager->getConfigValuePtr("decoration:inactive_opacity")->floatValue;
     static auto* const PACTIVEALPHA           = &g_pConfigManager->getConfigValuePtr("decoration:active_opacity")->floatValue;
     static auto* const PFULLSCREENALPHA       = &g_pConfigManager->getConfigValuePtr("decoration:fullscreen_opacity")->floatValue;

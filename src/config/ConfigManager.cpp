@@ -19,10 +19,15 @@ CConfigManager::CConfigManager() {
     configValues["general:col.inactive_border"].data       = std::make_shared<CGradientValueData>(0xff444444);
     configValues["general:col.nogroup_border"].data        = std::make_shared<CGradientValueData>(0xffffaaff);
     configValues["general:col.nogroup_border_active"].data = std::make_shared<CGradientValueData>(0xffff00ff);
-    configValues["group:col.border"].data                  = std::make_shared<CGradientValueData>(0x66777700);
     configValues["group:col.border_active"].data           = std::make_shared<CGradientValueData>(0x66ffff00);
-    configValues["group:col.border_locked"].data           = std::make_shared<CGradientValueData>(0x66775500);
+    configValues["group:col.border_inactive"].data         = std::make_shared<CGradientValueData>(0x66777700);
     configValues["group:col.border_locked_active"].data    = std::make_shared<CGradientValueData>(0x66ff5500);
+    configValues["group:col.border_locked_inactive"].data  = std::make_shared<CGradientValueData>(0x66775500);
+
+    configValues["group:groupbar:col.active"].data          = std::make_shared<CGradientValueData>(0x66ffff00);
+    configValues["group:groupbar:col.inactive"].data        = std::make_shared<CGradientValueData>(0x66777700);
+    configValues["group:groupbar:col.locked_active"].data   = std::make_shared<CGradientValueData>(0x66ff5500);
+    configValues["group:groupbar:col.locked_inactive"].data = std::make_shared<CGradientValueData>(0x66775500);
 
     setDefaultVars();
     setDefaultAnimationVars();
@@ -114,10 +119,10 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:background_color"].intValue                 = 0xff111111;
     configValues["misc:new_window_takes_over_fullscreen"].intValue = 0;
 
-    ((CGradientValueData*)configValues["group:col.border"].data.get())->reset(0x66777700);
     ((CGradientValueData*)configValues["group:col.border_active"].data.get())->reset(0x66ffff00);
-    ((CGradientValueData*)configValues["group:col.border_locked"].data.get())->reset(0x66775500);
+    ((CGradientValueData*)configValues["group:col.border_inactive"].data.get())->reset(0x66777700);
     ((CGradientValueData*)configValues["group:col.border_locked_active"].data.get())->reset(0x66ff5500);
+    ((CGradientValueData*)configValues["group:col.border_locked_inactive"].data.get())->reset(0x66775500);
 
     configValues["group:insert_after_current"].intValue = 1;
     configValues["group:focus_removed_window"].intValue = 1;
@@ -127,6 +132,11 @@ void CConfigManager::setDefaultVars() {
     configValues["group:groupbar:render_titles"].intValue = 1;
     configValues["group:groupbar:scrolling"].intValue     = 1;
     configValues["group:groupbar:text_color"].intValue    = 0xffffffff;
+
+    ((CGradientValueData*)configValues["group:groupbar:col.active"].data.get())->reset(0x66ffff00);
+    ((CGradientValueData*)configValues["group:groupbar:col.inactive"].data.get())->reset(0x66777700);
+    ((CGradientValueData*)configValues["group:groupbar:col.locked_active"].data.get())->reset(0x66ff5500);
+    ((CGradientValueData*)configValues["group:groupbar:col.locked_inactive"].data.get())->reset(0x66775500);
 
     configValues["debug:int"].intValue                = 0;
     configValues["debug:log_damage"].intValue         = 0;

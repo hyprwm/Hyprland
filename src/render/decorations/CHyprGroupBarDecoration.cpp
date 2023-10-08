@@ -108,10 +108,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
         scaleBox(&rect, pMonitor->scale);
 
-        static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:col.border")->data;
-        static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:col.border_active")->data;
-        static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:col.border_locked")->data;
-        static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:col.border_locked_active")->data;
+        static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
+        static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
+        static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
+        static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
 
         const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
         const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
@@ -289,10 +289,10 @@ void CHyprGroupBarDecoration::refreshGradients() {
     if (m_tGradientActive.m_iTexID > 0)
         return;
 
-    static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:col.border")->data;
-    static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:col.border_active")->data;
-    static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:col.border_locked")->data;
-    static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:col.border_locked_active")->data;
+    static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
+    static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
+    static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
+    static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
 
     const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
     const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;

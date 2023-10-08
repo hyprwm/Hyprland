@@ -804,6 +804,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     // the current workspace will instead switch to the previous.
     static auto* const PBACKANDFORTH         = &g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth")->intValue;
     static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
+    static auto* const PCENTERONWORKSPACE    = &g_pConfigManager->getConfigValuePtr("misc:center_on_workspace")->intValue;
 
     const auto         PMONITOR          = g_pCompositor->m_pLastMonitor;
     const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
@@ -863,9 +864,13 @@ void CKeybindManager::changeworkspace(std::string args) {
     PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo, false, true);
 
     if (PMONITOR != PMONITORWORKSPACEOWNER) {
-        g_pCompositor->warpCursorTo(PMONITORWORKSPACEOWNER->middle());
-        if (const auto PLAST = pWorkspaceToChangeTo->getLastFocusedWindow(); PLAST)
+        Vector2D middle = PMONITORWORKSPACEOWNER->middle();
+        if (const auto PLAST = pWorkspaceToChangeTo->getLastFocusedWindow(); PLAST) {
             g_pCompositor->focusWindow(PLAST);
+            if (!*PCENTERONWORKSPACE)
+                middle = PLAST->middle();
+        }
+        g_pCompositor->warpCursorTo(middle);
     }
 
     if (BISWORKSPACECURRENT) {
@@ -1083,7 +1088,7 @@ void CKeybindManager::swapActive(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
-    g_pCompositor->warpCursorTo(PLASTWINDOW->m_vRealPosition.vec() + PLASTWINDOW->m_vRealSize.vec() / 2.0);
+    g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
 }
 
 void CKeybindManager::moveActiveTo(std::string args) {

@@ -109,6 +109,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:no_direct_scanout"].intValue                = 1;
     configValues["misc:hide_cursor_on_touch"].intValue             = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue       = 1;
+    configValues["misc:center_on_workspace"].intValue              = 1;
     configValues["misc:render_ahead_of_time"].intValue             = 0;
     configValues["misc:render_ahead_safezone"].intValue            = 1;
     configValues["misc:cursor_zoom_factor"].floatValue             = 1.f;

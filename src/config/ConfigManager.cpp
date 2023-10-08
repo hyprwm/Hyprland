@@ -1177,6 +1177,8 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
             wsRule.monitor = rule.substr(delim + 8);
         else if ((delim = rule.find("default:")) != std::string::npos)
             wsRule.isDefault = configStringToInt(rule.substr(delim + 8));
+        else if ((delim = rule.find("persistent:")) != std::string::npos)
+            wsRule.isPersistent = configStringToInt(rule.substr(delim + 11));
     };
 
     size_t      pos = 0;

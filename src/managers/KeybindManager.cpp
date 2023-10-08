@@ -1109,20 +1109,20 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     if (PLASTWINDOW->m_bIsFloating) {
-        auto       vPos       = PLASTWINDOW->m_vRealPosition.goalv();
+        Vector2D   vPos;
         const auto PMONITOR   = g_pCompositor->getMonitorFromID(PLASTWINDOW->m_iMonitorID);
         const auto BORDERSIZE = PLASTWINDOW->getRealBorderSize();
 
         switch (arg) {
-            case 'l': vPos.x = PMONITOR->vecReservedTopLeft.x + BORDERSIZE; break;
-            case 'r': vPos.x = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goalv().x - BORDERSIZE; break;
+            case 'l': vPos.x = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x; break;
+            case 'r': vPos.x = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goalv().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
             case 't':
-            case 'u': vPos.y = PMONITOR->vecReservedTopLeft.y + BORDERSIZE; break;
+            case 'u': vPos.y = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y; break;
             case 'b':
-            case 'd': vPos.y = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goalv().y - BORDERSIZE; break;
+            case 'd': vPos.y = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goalv().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
         }
 
-        PLASTWINDOW->m_vRealPosition = vPos + PMONITOR->vecPosition;
+        PLASTWINDOW->m_vRealPosition = Vector2D(vPos.x != 0 ? vPos.x : PLASTWINDOW->m_vRealPosition.goalv().x, vPos.y != 0 ? vPos.y : PLASTWINDOW->m_vRealPosition.goalv().y);
         return;
     }
 

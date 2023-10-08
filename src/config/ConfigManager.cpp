@@ -19,10 +19,11 @@ CConfigManager::CConfigManager() {
     configValues["general:col.inactive_border"].data       = std::make_shared<CGradientValueData>(0xff444444);
     configValues["general:col.nogroup_border"].data        = std::make_shared<CGradientValueData>(0xffffaaff);
     configValues["general:col.nogroup_border_active"].data = std::make_shared<CGradientValueData>(0xffff00ff);
-    configValues["group:col.border_active"].data           = std::make_shared<CGradientValueData>(0x66ffff00);
-    configValues["group:col.border_inactive"].data         = std::make_shared<CGradientValueData>(0x66777700);
-    configValues["group:col.border_locked_active"].data    = std::make_shared<CGradientValueData>(0x66ff5500);
-    configValues["group:col.border_locked_inactive"].data  = std::make_shared<CGradientValueData>(0x66775500);
+
+    configValues["group:col.border_active"].data          = std::make_shared<CGradientValueData>(0x66ffff00);
+    configValues["group:col.border_inactive"].data        = std::make_shared<CGradientValueData>(0x66777700);
+    configValues["group:col.border_locked_active"].data   = std::make_shared<CGradientValueData>(0x66ff5500);
+    configValues["group:col.border_locked_inactive"].data = std::make_shared<CGradientValueData>(0x66775500);
 
     configValues["group:groupbar:col.active"].data          = std::make_shared<CGradientValueData>(0x66ffff00);
     configValues["group:groupbar:col.inactive"].data        = std::make_shared<CGradientValueData>(0x66777700);

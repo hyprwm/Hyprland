@@ -621,7 +621,7 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
 
 void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
     static auto* const PSCROLLFACTOR      = &g_pConfigManager->getConfigValuePtr("input:touchpad:scroll_factor")->floatValue;
-    static auto* const PGROUPBARSCROLLING = &g_pConfigManager->getConfigValuePtr("misc:groupbar_scrolling")->intValue;
+    static auto* const PGROUPBARSCROLLING = &g_pConfigManager->getConfigValuePtr("group:groupbar:scrolling")->intValue;
 
     auto               factor = (*PSCROLLFACTOR <= 0.f || e->source != WLR_AXIS_SOURCE_FINGER ? 1.f : *PSCROLLFACTOR);
 

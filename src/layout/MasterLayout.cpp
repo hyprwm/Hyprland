@@ -118,7 +118,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
             if (INDEX == -1)
                 std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
         } else {
-            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
+            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
             (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
         }
 

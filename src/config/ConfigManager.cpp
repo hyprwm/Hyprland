@@ -15,14 +15,14 @@
 extern "C" char** environ;
 
 CConfigManager::CConfigManager() {
-    configValues["general:col.active_border"].data              = std::make_shared<CGradientValueData>(0xffffffff);
-    configValues["general:col.inactive_border"].data            = std::make_shared<CGradientValueData>(0xff444444);
-    configValues["general:col.nogroup_border"].data             = std::make_shared<CGradientValueData>(0xffffaaff);
-    configValues["general:col.nogroup_border_active"].data      = std::make_shared<CGradientValueData>(0xffff00ff);
-    configValues["general:col.group_border"].data               = std::make_shared<CGradientValueData>(0x66777700);
-    configValues["general:col.group_border_active"].data        = std::make_shared<CGradientValueData>(0x66ffff00);
-    configValues["general:col.group_border_locked"].data        = std::make_shared<CGradientValueData>(0x66775500);
-    configValues["general:col.group_border_locked_active"].data = std::make_shared<CGradientValueData>(0x66ff5500);
+    configValues["general:col.active_border"].data         = std::make_shared<CGradientValueData>(0xffffffff);
+    configValues["general:col.inactive_border"].data       = std::make_shared<CGradientValueData>(0xff444444);
+    configValues["general:col.nogroup_border"].data        = std::make_shared<CGradientValueData>(0xffffaaff);
+    configValues["general:col.nogroup_border_active"].data = std::make_shared<CGradientValueData>(0xffff00ff);
+    configValues["group:col.border"].data                  = std::make_shared<CGradientValueData>(0x66777700);
+    configValues["group:col.border_active"].data           = std::make_shared<CGradientValueData>(0x66ffff00);
+    configValues["group:col.border_locked"].data           = std::make_shared<CGradientValueData>(0x66775500);
+    configValues["group:col.border_locked_active"].data    = std::make_shared<CGradientValueData>(0x66ff5500);
 
     setDefaultVars();
     setDefaultAnimationVars();
@@ -76,10 +76,6 @@ void CConfigManager::setDefaultVars() {
     ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
     ((CGradientValueData*)configValues["general:col.nogroup_border"].data.get())->reset(0xff444444);
     ((CGradientValueData*)configValues["general:col.nogroup_border_active"].data.get())->reset(0xffff00ff);
-    ((CGradientValueData*)configValues["general:col.group_border"].data.get())->reset(0x66777700);
-    ((CGradientValueData*)configValues["general:col.group_border_active"].data.get())->reset(0x66ffff00);
-    ((CGradientValueData*)configValues["general:col.group_border_locked"].data.get())->reset(0x66775500);
-    ((CGradientValueData*)configValues["general:col.group_border_locked_active"].data.get())->reset(0x66ff5500);
     configValues["general:cursor_inactive_timeout"].intValue = 0;
     configValues["general:no_cursor_warps"].intValue         = 0;
     configValues["general:no_focus_fallback"].intValue       = 0;
@@ -114,16 +110,23 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:cursor_zoom_factor"].floatValue             = 1.f;
     configValues["misc:cursor_zoom_rigid"].intValue                = 0;
     configValues["misc:allow_session_lock_restore"].intValue       = 0;
-    configValues["misc:groupbar_scrolling"].intValue               = 1;
-    configValues["misc:group_insert_after_current"].intValue       = 1;
-    configValues["misc:group_focus_removed_window"].intValue       = 1;
-    configValues["misc:render_titles_in_groupbar"].intValue        = 1;
-    configValues["misc:groupbar_titles_font_size"].intValue        = 8;
-    configValues["misc:groupbar_gradients"].intValue               = 1;
     configValues["misc:close_special_on_empty"].intValue           = 1;
-    configValues["misc:groupbar_text_color"].intValue              = 0xffffffff;
     configValues["misc:background_color"].intValue                 = 0xff111111;
     configValues["misc:new_window_takes_over_fullscreen"].intValue = 0;
+
+    ((CGradientValueData*)configValues["group:col.border"].data.get())->reset(0x66777700);
+    ((CGradientValueData*)configValues["group:col.border_active"].data.get())->reset(0x66ffff00);
+    ((CGradientValueData*)configValues["group:col.border_locked"].data.get())->reset(0x66775500);
+    ((CGradientValueData*)configValues["group:col.border_locked_active"].data.get())->reset(0x66ff5500);
+
+    configValues["group:insert_after_current"].intValue = 1;
+    configValues["group:focus_removed_window"].intValue = 1;
+
+    configValues["group:groupbar:font_size"].intValue     = 8;
+    configValues["group:groupbar:gradients"].intValue     = 1;
+    configValues["group:groupbar:render_titles"].intValue = 1;
+    configValues["group:groupbar:scrolling"].intValue     = 1;
+    configValues["group:groupbar:text_color"].intValue    = 0xffffffff;
 
     configValues["debug:int"].intValue                = 0;
     configValues["debug:log_damage"].intValue         = 0;

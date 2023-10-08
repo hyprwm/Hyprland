@@ -34,6 +34,13 @@ void handleUnrecoverableSignal(int sig) {
     abort();
 }
 
+void handleUserSignal(int sig) {
+    if (sig == SIGUSR1) {
+        // means we have to unwind a timed out event
+        throw std::exception();
+    }
+}
+
 CCompositor::CCompositor() {
     m_iHyprlandPID = getpid();
 
@@ -92,6 +99,7 @@ CCompositor::~CCompositor() {
     g_pAnimationManager.reset();
     g_pKeybindManager.reset();
     g_pHookSystem.reset();
+    g_pWatchdog.reset();
 }
 
 void CCompositor::setRandomSplash() {
@@ -112,6 +120,7 @@ void CCompositor::initServer() {
     wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
     signal(SIGSEGV, handleUnrecoverableSignal);
     signal(SIGABRT, handleUnrecoverableSignal);
+    signal(SIGUSR1, handleUserSignal);
     //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
     initManagers(STAGE_PRIORITY);
@@ -124,6 +133,8 @@ void CCompositor::initServer() {
     const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");
     if (LOGWLR && std::string(LOGWLR) == "1")
         wlr_log_init(WLR_DEBUG, Debug::wlrLog);
+    else
+        wlr_log_init(WLR_ERROR, Debug::wlrLog);
 
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);
 
@@ -257,6 +268,8 @@ void CCompositor::initServer() {
 
     m_sWLRCursorShapeMgr = wlr_cursor_shape_manager_v1_create(m_sWLDisplay, 1);
 
+    m_sWLRTearingControlMgr = wlr_tearing_control_manager_v1_create(m_sWLDisplay, 1);
+
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throwError("wlr_headless_backend_create() failed!");
@@ -315,6 +328,7 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
     addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
     addWLSignal(&m_sWLRCursorShapeMgr->events.request_set_shape, &Events::listen_setCursorShape, m_sWLRCursorShapeMgr, "CursorShapeMgr");
+    addWLSignal(&m_sWLRTearingControlMgr->events.new_object, &Events::listen_newTearingHint, m_sWLRTearingControlMgr, "TearingControlMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
@@ -392,6 +406,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pLayoutManager = std::make_unique<CLayoutManager>();
 
             g_pConfigManager->init();
+            g_pWatchdog = std::make_unique<CWatchdog>(); // requires config
         } break;
         case STAGE_LATE: {
             Debug::log(LOG, "Creating the ThreadManager!");
@@ -501,7 +516,7 @@ void CCompositor::startCompositor() {
         throwError("The backend could not start!");
     }
 
-    wlr_cursor_set_xcursor(m_sWLRCursor, m_sWLRXCursorMgr, "left_ptr");
+    g_pHyprRenderer->setCursorFromName("left_ptr");
 
 #ifdef USES_SYSTEMD
     if (sd_booted() > 0)
@@ -878,6 +893,10 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
 
     if (!pWindow || !windowValidMapped(pWindow)) {
+
+        if (!m_pLastWindow && !pWindow)
+            return;
+
         const auto PLASTWINDOW = m_pLastWindow;
         m_pLastWindow          = nullptr;
 
@@ -2150,14 +2169,16 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
 
     const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
 
+    const auto MODE = mode == FULLSCREEN_INVALID ? PWORKSPACE->m_efFullscreenMode : mode;
+
     if (PWORKSPACE->m_bHasFullscreenWindow && on) {
         Debug::log(LOG, "Rejecting fullscreen ON on a fullscreen workspace");
         return;
     }
 
-    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, mode, on);
+    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, MODE, on);
 
-    g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && mode == FULLSCREEN_FULL);
+    g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->m_bIsFullscreen && MODE == FULLSCREEN_FULL);
 
     pWindow->updateDynamicRules();
     updateWindowAnimatedDecorationValues(pWindow);
@@ -2475,7 +2496,13 @@ int CCompositor::getNewSpecialID() {
 }
 
 void CCompositor::performUserChecks() {
-    // empty
+    const auto atomicEnv    = getenv("WLR_DRM_NO_ATOMIC");
+    const auto atomicEnvStr = std::string(atomicEnv ? atomicEnv : "");
+    if (g_pConfigManager->getInt("general:allow_tearing") == 1 && atomicEnvStr != "1") {
+        g_pHyprNotificationOverlay->addNotification("You have enabled tearing, but immediate presentations are not available on your configuration. Try adding "
+                                                    "env = WLR_DRM_NO_ATOMIC,1 to your config.",
+                                                    CColor(0), 15000, ICON_WARNING);
+    }
 }
 
 void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace) {

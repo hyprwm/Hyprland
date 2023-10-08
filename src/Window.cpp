@@ -414,6 +414,11 @@ void CWindow::onUnmap() {
         if (PMONITOR && PMONITOR->specialWorkspaceID == m_iWorkspaceID)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+
+    if (PMONITOR && PMONITOR->solitaryClient == this)
+        PMONITOR->solitaryClient = nullptr;
 }
 
 void CWindow::onMap() {
@@ -492,6 +497,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
     } else if (r.szRule == "opaque") {
         if (!m_sAdditionalConfigData.forceOpaqueOverridden)
             m_sAdditionalConfigData.forceOpaque = true;
+    } else if (r.szRule == "immediate") {
+        m_sAdditionalConfigData.forceTearing = true;
     } else if (r.szRule.find("rounding") == 0) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -580,6 +587,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.borderSize      = -1;
     m_sAdditionalConfigData.keepAspectRatio = false;
     m_sAdditionalConfigData.xray            = -1;
+    m_sAdditionalConfigData.forceTearing    = false;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {
@@ -924,4 +932,8 @@ int CWindow::getRealBorderSize() {
         return m_sSpecialRenderData.borderSize.toUnderlying();
 
     return g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+}
+
+bool CWindow::canBeTorn() {
+    return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint) && g_pHyprRenderer->m_bTearingEnvSatisfied;
 }

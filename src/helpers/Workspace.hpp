@@ -4,9 +4,10 @@
 #include <string>
 #include "../defines.hpp"
 
-enum eFullscreenMode : uint8_t
+enum eFullscreenMode : int8_t
 {
-    FULLSCREEN_FULL = 0,
+    FULLSCREEN_INVALID = -1,
+    FULLSCREEN_FULL    = 0,
     FULLSCREEN_MAXIMIZED
 };
 

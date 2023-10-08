@@ -46,6 +46,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto* const PSWALLOW        = &g_pConfigManager->getConfigValuePtr("misc:enable_swallow")->intValue;
     static auto* const PSWALLOWREGEX   = &g_pConfigManager->getConfigValuePtr("misc:swallow_regex")->strValue;
     static auto* const PSWALLOWEXREGEX = &g_pConfigManager->getConfigValuePtr("misc:swallow_exception_regex")->strValue;
+    static auto* const PNEWTAKESOVERFS = &g_pConfigManager->getConfigValuePtr("misc:new_window_takes_over_fullscreen")->intValue;
 
     auto               PMONITOR = g_pCompositor->m_pLastMonitor;
     const auto         PWORKSPACE =
@@ -263,13 +264,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->applyDynamicRule(r);
     }
 
-    CWindow* pFullscreenWindow = nullptr;
-    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        pFullscreenWindow      = PFULLWINDOW;
-        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
-    }
-
     PWINDOW->updateSpecialRenderData();
 
     // disallow tiled pinned
@@ -474,6 +468,14 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
     if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.keyboard_interactive)
         PWINDOW->m_bNoInitialFocus = true;
+    if (PWORKSPACE->m_bHasFullscreenWindow && !requestsFullscreen) {
+        if (*PNEWTAKESOVERFS == 0)
+            PWINDOW->m_bNoInitialFocus = true;
+        else if (*PNEWTAKESOVERFS == 2)
+            g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_INVALID);
+        else
+            requestsFullscreen = true;
+    }
 
     if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus &&
         (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland))) && !workspaceSilent &&
@@ -541,10 +543,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_vRealSize.warp();
             g_pCompositor->setWindowFullscreen(PWINDOW, true, requestsFullscreen ? FULLSCREEN_FULL : FULLSCREEN_MAXIMIZED);
         }
-    }
-
-    if (pFullscreenWindow && workspaceSilent) {
-        g_pCompositor->setWindowFullscreen(pFullscreenWindow, true, PWORKSPACE->m_efFullscreenMode);
     }
 
     // recheck idle inhibitors
@@ -642,6 +640,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+    // avoid this window being visible
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFullscreen && !PWINDOW->m_bIsFloating)
+        PWINDOW->m_fAlpha.setValueAndWarp(0.f);
 
     g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
 }
@@ -736,8 +737,14 @@ void Events::listener_unmapWindow(void* owner, void* data) {
                 g_pInputManager->simulateMouseMovement();
             else
                 g_pCompositor->focusWindow(PWINDOWCANDIDATE);
-        } else {
+        } else
             g_pInputManager->simulateMouseMovement();
+
+        // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
+        if (PWINDOW == g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow) {
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
+            EMIT_HOOK_EVENT("activeWindow", (CWindow*)nullptr);
         }
     } else {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");

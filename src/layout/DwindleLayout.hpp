@@ -9,7 +9,7 @@
 #include <format>
 
 class CHyprDwindleLayout;
-enum eFullscreenMode : uint8_t;
+enum eFullscreenMode : int8_t;
 
 struct SDwindleNodeData {
     SDwindleNodeData*                pParent = nullptr;

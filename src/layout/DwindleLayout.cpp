@@ -21,20 +21,18 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
 
         if (SPLITSIDE) {
             // split left/right
-            int space_0 = size.x / 2 * splitRatio;
-            int space_1 = size.x - space_0;
+            int const FIRSTSIZE = size.x / 2 * splitRatio;
             children[0]->position = position;
-            children[0]->size     = Vector2D(space_0, size.y);
-            children[1]->position = Vector2D(position.x + space_0, position.y);
-            children[1]->size     = Vector2D(space_1, size.y);
+            children[0]->size     = Vector2D(FIRSTSIZE, size.y);
+            children[1]->position = Vector2D(position.x + FIRSTSIZE, position.y);
+            children[1]->size     = Vector2D(size.x - FIRSTSIZE, size.y);
         } else {
             // split top/bottom
-            int space_0 = size.y / 2 * splitRatio;
-            int space_1 = size.y - space_0;
+            int const FIRSTSIZE = size.y / 2 * splitRatio;
             children[0]->position = position;
-            children[0]->size     = Vector2D(size.x, space_0);
-            children[1]->position = Vector2D(position.x, position.y + space_0);
-            children[1]->size     = Vector2D(size.x, space_1);
+            children[0]->size     = Vector2D(size.x, FIRSTSIZE);
+            children[1]->position = Vector2D(position.x, position.y + FIRSTSIZE);
+            children[1]->size     = Vector2D(size.x, size.y - FIRSTSIZE);
         }
 
         children[0]->recalcSizePosRecursive(force);

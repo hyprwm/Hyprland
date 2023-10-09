@@ -50,9 +50,6 @@ class CWorkspace {
     bool m_bDefaultFloating = false;
     bool m_bDefaultPseudo   = false;
 
-    // don't destroy in sanity check
-    bool m_bIndestructible = false;
-
     // last monitor (used on reconnect)
     std::string m_szLastMonitor = "";
 

@@ -109,7 +109,6 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:no_direct_scanout"].intValue                = 1;
     configValues["misc:hide_cursor_on_touch"].intValue             = 1;
     configValues["misc:mouse_move_focuses_monitor"].intValue       = 1;
-    configValues["misc:center_on_workspace"].intValue              = 1;
     configValues["misc:render_ahead_of_time"].intValue             = 0;
     configValues["misc:render_ahead_safezone"].intValue            = 1;
     configValues["misc:cursor_zoom_factor"].floatValue             = 1.f;
@@ -233,6 +232,7 @@ void CConfigManager::setDefaultVars() {
     configValues["binds:scroll_event_delay"].intValue       = 300;
     configValues["binds:workspace_back_and_forth"].intValue = 0;
     configValues["binds:allow_workspace_cycles"].intValue   = 0;
+    configValues["binds:workspace_center_on"].intValue      = 1;
     configValues["binds:focus_preferred_method"].intValue   = 0;
     configValues["binds:ignore_group_lock"].intValue        = 0;
 

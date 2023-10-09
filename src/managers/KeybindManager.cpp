@@ -2015,7 +2015,10 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& 
 void CKeybindManager::moveIntoGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const BIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
+    static auto* const PIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
+
+    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
+        return;
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2033,13 +2036,18 @@ void CKeybindManager::moveIntoGroup(std::string args) {
         return;
 
     // Do not move window into locked group if binds:ignore_group_lock is false
-    if (!*BIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->getGroupHead()->m_sGroupData.locked)))
+    if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->getGroupHead()->m_sGroupData.locked)))
         return;
 
     moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
 }
 
 void CKeybindManager::moveOutOfGroup(std::string args) {
+    static auto* const PIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
+
+    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
+        return;
+
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!PWINDOW || !PWINDOW->m_sGroupData.pNextWindow)
@@ -2061,6 +2069,12 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow;
     if (!PWINDOW || PWINDOW->m_bIsFullscreen)
         return;
+
+    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked) {
+        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+        return;
+    }
+
     const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
 
     const bool ISWINDOWGROUP       = PWINDOW->m_sGroupData.pNextWindow;

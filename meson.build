@@ -87,6 +87,7 @@ subdir('hyprctl')
 subdir('assets')
 subdir('example')
 subdir('docs')
+subdir('completions')
 
 pkg_install_dir = join_paths(get_option('datadir'), 'pkgconfig')
 

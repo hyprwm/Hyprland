@@ -1,0 +1,6 @@
+zsh_install_dir  = join_paths(get_option('datadir'), 'zsh', 'site-functions')
+fish_install_dir = join_paths(get_option('datadir'), 'fish', 'vendor_completions.d')
+bash_install_dir = join_paths(get_option('datadir'), 'bash-completion', 'completions')
+install_data('generated/hyprctl.zsh',  rename: '_hyprctl', install_dir: zsh_install_dir,  install_tag: 'runtime')
+install_data('generated/hyprctl.fish',                     install_dir: fish_install_dir, install_tag: 'runtime')
+install_data('generated/hyprctl.bash', rename: 'hyprctl',  install_dir: bash_install_dir, install_tag: 'runtime')

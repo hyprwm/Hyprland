@@ -55,6 +55,10 @@ install:
 	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall_* ${PREFIX}/share/hyprland
 
+	install -m644 -D ./completions/generated/hyprctl.bash ${PREFIX}/share/bash-completion/completions/hyprctl
+	install -m644 -D ./completions/generated/hyprctl.fish ${PREFIX}/share/fish/vendor_completions.d/
+	install -m644 -D ./completions/generated/hyprctl.zsh  ${PREFIX}/share/zsh/site-functions/_hyprctl
+
 	mkdir -p ${PREFIX}/share/man/man1
 	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1
 
@@ -84,6 +88,9 @@ uninstall:
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/man/man1/Hyprland.1
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1
+	rm -f ${PREFIX}/share/bash-completion/completions/hyprctl
+	rm -f ${PREFIX}/share/fish/vendor_completions.d/hyprctl.fish
+	rm -f ${PREFIX}/share/zsh/site-functions/_hyprctl
 
 fixwlr:
 	sed -E -i -e 's/(soversion = 12)([^032]|$$)/soversion = 12032/g' subprojects/wlroots/meson.build

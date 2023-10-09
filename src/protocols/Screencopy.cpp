@@ -325,7 +325,7 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
 }
 
 void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
-    m_pLastMonitorBackBuffer = e->buffer;
+    m_pLastMonitorBackBuffer = e->state->buffer;
     shareAllFrames(pMonitor);
     m_pLastMonitorBackBuffer = nullptr;
 }

@@ -265,18 +265,21 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
 
     const auto PBUFFER = wlr_buffer_from_resource(buffer);
     if (!PBUFFER) {
+        Debug::log(ERR, "[sc] invalid buffer in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
         removeFrame(PFRAME);
         return;
     }
 
     if (PBUFFER->width != PFRAME->box.width || PBUFFER->height != PFRAME->box.height) {
+        Debug::log(ERR, "[sc] invalid dimensions in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         removeFrame(PFRAME);
         return;
     }
 
     if (PFRAME->buffer) {
+        Debug::log(ERR, "[sc] buffer used in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_ALREADY_USED, "frame already used");
         removeFrame(PFRAME);
         return;
@@ -290,6 +293,7 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         PFRAME->bufferCap = WLR_BUFFER_CAP_DMABUF;
 
         if (dmabufAttrs.format != PFRAME->dmabufFormat) {
+            Debug::log(ERR, "[sc] invalid buffer dma format in {:x}", (uintptr_t)PFRAME);
             wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             removeFrame(PFRAME);
             return;
@@ -298,15 +302,18 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         wlr_buffer_end_data_ptr_access(PBUFFER);
 
         if (wlrBufferAccessFormat != PFRAME->shmFormat) {
+            Debug::log(ERR, "[sc] invalid buffer shm format in {:x}", (uintptr_t)PFRAME);
             wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             removeFrame(PFRAME);
             return;
         } else if ((int)wlrBufferAccessStride != PFRAME->shmStride) {
+            Debug::log(ERR, "[sc] invalid buffer shm stride in {:x}", (uintptr_t)PFRAME);
             wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
             removeFrame(PFRAME);
             return;
         }
     } else {
+        Debug::log(ERR, "[sc] invalid buffer type in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer type");
         removeFrame(PFRAME);
         return;
@@ -382,11 +389,13 @@ void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
     uint32_t flags = 0;
     if (frame->bufferCap == WLR_BUFFER_CAP_DMABUF) {
         if (!copyFrameDmabuf(frame)) {
+            Debug::log(ERR, "[sc] dmabuf copy failed in {:x}", (uintptr_t)frame);
             zwlr_screencopy_frame_v1_send_failed(frame->resource);
             return;
         }
     } else {
         if (!copyFrameShm(frame, &now)) {
+            Debug::log(ERR, "[sc] shm copy failed in {:x}", (uintptr_t)frame);
             zwlr_screencopy_frame_v1_send_failed(frame->resource);
             return;
         }

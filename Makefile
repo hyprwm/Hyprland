@@ -115,6 +115,9 @@ pluginenv:
 	meson setup subprojects/wlroots/build subprojects/wlroots --prefix=${PREFIX} --buildtype=release -Dwerror=false -Dexamples=false
 	ninja -C subprojects/wlroots/build/
 
+	chmod -R 777 subprojects/udis86
+	chmod -R 777 subprojects/wlroots
+
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja
 
 	mkdir -p ${PREFIX}/include/hyprland

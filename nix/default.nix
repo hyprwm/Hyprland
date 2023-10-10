@@ -105,9 +105,15 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     postPatch = ''
       # Fix hardcoded paths to /usr installation
       sed -i "s#/usr#$out#" src/render/OpenGL.cpp
-      substituteInPlace meson.build \
-        --replace "@GIT_COMMIT_HASH@" '${commit}' \
-        --replace "@GIT_DIRTY@" '${
+
+      # Generate version.h
+      cp src/version.h.in src/version.h
+      substituteInPlace src/version.h \
+        --replace "@HASH@" '${commit}' \
+        --replace "@BRANCH@" "" \
+        --replace "@MESSAGE@" "" \
+        --replace "@TAG@" "" \
+        --replace "@DIRTY@" '${
         if commit == ""
         then "dirty"
         else ""

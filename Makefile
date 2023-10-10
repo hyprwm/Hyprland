@@ -72,6 +72,9 @@ install:
 	cp ./assets/hyprland-portals.conf ${PREFIX}/share/xdg-desktop-portal/
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
+	chmod -R 755 ${PREFIX}/include/hyprland
+	chmod 755 ${PREFIX}/share/pkgconfig
+
 cleaninstall:
 	echo -en "$(MAKE) cleaninstall has been DEPRECATED, you should avoid using it in the future.\nRunning $(MAKE) install instead...\n"
 	$(MAKE) install
@@ -125,6 +128,9 @@ pluginenv:
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
+
+	chmod -R 755 ${PREFIX}/include/hyprland
+	chmod 755 ${PREFIX}/share/pkgconfig
 
 configdebug:
 	$(MAKE) fixwlr

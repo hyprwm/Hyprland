@@ -277,7 +277,7 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     const auto FPATH = std::filesystem::canonical(exe);
 #elif defined(__OpenBSD__)
     // Neither KERN_PROC_PATHNAME nor /proc are supported
-    const auto FPATH = std::filesystem::canonical("/usr/local/bin/Hyprland");
+    const auto        FPATH            = std::filesystem::canonical("/usr/local/bin/Hyprland");
 #else
     const auto FPATH = std::filesystem::canonical("/proc/self/exe");
 #endif
@@ -337,4 +337,13 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     }
 
     return matches;
+}
+
+APICALL SVersionInfo HyprlandAPI::getHyprlandVersion(HANDLE handle) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return {};
+
+    return {GIT_COMMIT_HASH, GIT_TAG, GIT_DIRTY != std::string(""), GIT_BRANCH, GIT_COMMIT_MESSAGE};
 }

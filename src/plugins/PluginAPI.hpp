@@ -42,6 +42,14 @@ struct SFunctionMatch {
     std::string demangled;
 };
 
+struct SVersionInfo {
+    std::string hash;
+    std::string tag;
+    bool        dirty = false;
+    std::string branch;
+    std::string message;
+};
+
 #define APICALL extern "C"
 #define EXPORT  __attribute__((visibility("default")))
 #define REQUIRED
@@ -250,4 +258,10 @@ namespace HyprlandAPI {
         Empty means either none found or handle was invalid
     */
     APICALL std::vector<SFunctionMatch> findFunctionsByName(HANDLE handle, const std::string& name);
+
+    /*
+        Returns the hyprland version data. It's highly advised to not run plugins compiled
+        for a different hash.
+    */
+    APICALL SVersionInfo getHyprlandVersion(HANDLE handle);
 };

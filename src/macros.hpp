@@ -14,22 +14,7 @@
 #define ISDEBUG false
 #endif
 
-// git stuff
-#ifndef GIT_COMMIT_HASH
-#define GIT_COMMIT_HASH "?"
-#endif
-#ifndef GIT_BRANCH
-#define GIT_BRANCH "?"
-#endif
-#ifndef GIT_COMMIT_MESSAGE
-#define GIT_COMMIT_MESSAGE "?"
-#endif
-#ifndef GIT_DIRTY
-#define GIT_DIRTY "?"
-#endif
-#ifndef GIT_TAG
-#define GIT_TAG "?"
-#endif
+#include "version.h"
 
 #define SPECIAL_WORKSPACE_START (-99)
 
@@ -57,7 +42,7 @@
     if (!(expr)) {                                                                                                                                                                 \
         Debug::log(CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",            \
                    std::format(reason, ##__VA_ARGS__), __LINE__,                                                                                                                   \
-                   ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })());                                       \
+                   ([]() constexpr->std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })());                                         \
         printf("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");                                                                                          \
         raise(SIGABRT);                                                                                                                                                            \
     }
@@ -76,7 +61,9 @@
     }
 
 #define FORMAT_FLAG(spec__, flag__)                                                                                                                                                \
-    case spec__: (flag__) = true; break;
+    case spec__:                                                                                                                                                                   \
+        (flag__) = true;                                                                                                                                                           \
+        break;
 
 #define FORMAT_NUMBER(buf__)                                                                                                                                                       \
     case '0':                                                                                                                                                                      \
@@ -88,7 +75,9 @@
     case '6':                                                                                                                                                                      \
     case '7':                                                                                                                                                                      \
     case '8':                                                                                                                                                                      \
-    case '9': (buf__).push_back(*it); break;
+    case '9':                                                                                                                                                                      \
+        (buf__).push_back(*it);                                                                                                                                                    \
+        break;
 
 #if ISDEBUG
 #define UNREACHABLE()                                                                                                                                                              \

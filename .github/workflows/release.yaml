@@ -15,10 +15,15 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Generate version
+        id: genversion
+        run: |
+          bash -c scripts/generateVersion.sh
+          mv scripts/generateVersion.sh scripts/generateVersion.sh.bak
+
       - name: Create tarball with submodules
         id: tar
         run: |
-          sed -i "1s/^/#define GIT_COMMIT_HASH \"$(git rev-parse HEAD)\"\n#define GIT_TAG \"$(git describe --tags)\"\n/" ./src/macros.hpp
           mkdir hyprland-source; mv ./* ./hyprland-source || tar -czv --owner=0 --group=0 --no-same-owner --no-same-permissions -f source.tar.gz *
 
       - id: whatrelease

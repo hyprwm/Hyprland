@@ -34,8 +34,8 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 
     const auto         WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
-    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("misc:render_titles_in_groupbar")->intValue;
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
+    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
+    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
 
     if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
         // we draw 3px above the window's border with 3px
@@ -84,9 +84,9 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     // get how many bars we will draw
     int                barsToDraw = m_dwGroupMembers.size();
 
-    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("misc:render_titles_in_groupbar")->intValue;
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
-    static auto* const PGRADIENTS     = &g_pConfigManager->getConfigValuePtr("misc:groupbar_gradients")->intValue;
+    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
+    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
+    static auto* const PGRADIENTS     = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
 
     const int          BORDERSIZE = m_pWindow->getRealBorderSize();
 
@@ -108,10 +108,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
         scaleBox(&rect, pMonitor->scale);
 
-        static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data;
-        static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("general:col.group_border")->data;
-        static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked_active")->data;
-        static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked")->data;
+        static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
+        static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
+        static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
+        static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
 
         const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
         const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
@@ -156,8 +156,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 }
 
 SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationReservedArea() {
-    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("misc:render_titles_in_groupbar")->intValue;
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
+    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
+    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
     return SWindowDecorationExtents{{0, BAR_INDICATOR_HEIGHT + BAR_PADDING_OUTER_VERT * 2 + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0)}, {}};
 }
 
@@ -180,8 +180,8 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
-    static auto* const PTEXTCOLOR     = &g_pConfigManager->getConfigValuePtr("misc:groupbar_text_color")->intValue;
+    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
+    static auto* const PTEXTCOLOR     = &g_pConfigManager->getConfigValuePtr("group:groupbar:text_color")->intValue;
 
     const CColor       COLOR = CColor(*PTEXTCOLOR);
 
@@ -289,10 +289,10 @@ void CHyprGroupBarDecoration::refreshGradients() {
     if (m_tGradientActive.m_iTexID > 0)
         return;
 
-    static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data;
-    static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("general:col.group_border")->data;
-    static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked_active")->data;
-    static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked")->data;
+    static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
+    static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
+    static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
+    static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
 
     const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
     const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;

@@ -1,5 +1,5 @@
 #!/bin/sh
-cp ./src/version.h.in ./src/version.h -fr
+cp -fr ./src/version.h.in ./src/version.h
 
 HASH=$(git rev-parse HEAD)
 BRANCH=$(git rev-parse --abbrev-ref HEAD)

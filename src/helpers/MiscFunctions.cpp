@@ -6,7 +6,9 @@
 #include <sys/utsname.h>
 #include <iomanip>
 #include <sstream>
+#ifdef HAS_EXECINFO
 #include <execinfo.h>
+#endif
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -689,9 +691,10 @@ std::string replaceInString(std::string subject, const std::string& search, cons
 std::vector<SCallstackFrameInfo> getBacktrace() {
     std::vector<SCallstackFrameInfo> callstack;
 
-    void*                            bt[1024];
-    size_t                           btSize;
-    char**                           btSymbols;
+#ifdef HAS_EXECINFO
+    void*  bt[1024];
+    size_t btSize;
+    char** btSymbols;
 
     btSize    = backtrace(bt, 1024);
     btSymbols = backtrace_symbols(bt, btSize);
@@ -699,6 +702,9 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
     for (size_t i = 0; i < btSize; ++i) {
         callstack.emplace_back(SCallstackFrameInfo{bt[i], std::string{btSymbols[i]}});
     }
+#else
+    callstack.emplace_back(SCallstackFrameInfo{nullptr, "configuration does not support execinfo.h"});
+#endif
 
     return callstack;
 }

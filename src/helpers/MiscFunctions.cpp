@@ -6,7 +6,7 @@
 #include <sys/utsname.h>
 #include <iomanip>
 #include <sstream>
-#ifdef HAS_LIBEXECINFO
+#ifdef HAS_EXECINFO
 #include <execinfo.h>
 #endif
 
@@ -691,7 +691,7 @@ std::string replaceInString(std::string subject, const std::string& search, cons
 std::vector<SCallstackFrameInfo> getBacktrace() {
     std::vector<SCallstackFrameInfo> callstack;
 
-#ifdef HAS_LIBEXECINFO
+#ifdef HAS_EXECINFO
     void*  bt[1024];
     size_t btSize;
     char** btSymbols;

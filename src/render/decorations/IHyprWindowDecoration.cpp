@@ -28,3 +28,9 @@ CRegion IHyprWindowDecoration::getWindowDecorationRegion() {
 bool IHyprWindowDecoration::allowsInput() {
     return false;
 }
+
+void IHyprWindowDecoration::dragWindowToDecoration(CWindow*, const Vector2D&) {}
+
+void IHyprWindowDecoration::clickDecoration(const Vector2D&) {}
+
+void IHyprWindowDecoration::dragFromDecoration(const Vector2D&) {}

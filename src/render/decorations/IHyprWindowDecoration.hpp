@@ -39,6 +39,12 @@ class IHyprWindowDecoration {
 
     virtual bool                     allowsInput();
 
+    virtual void                     dragWindowToDecoration(CWindow*, const Vector2D&);
+
+    virtual void                     clickDecoration(const Vector2D&);
+
+    virtual void                     dragFromDecoration(const Vector2D&);
+
   private:
     CWindow* m_pWindow = nullptr;
 };

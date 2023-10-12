@@ -1836,25 +1836,22 @@ void CKeybindManager::mouse(std::string args) {
             const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
             CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
-            if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords) && pWindow->m_sGroupData.pNextWindow) {
-                const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-                if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-                    const int SIZE = pWindow->getGroupSize();
-                    pWindow        = pWindow->getGroupWindowByIndex((mouseCoords.x - box.x) * SIZE / box.width);
+            if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords)) {
+                for (auto& wd : pWindow->m_dWindowDecorations) {
+                    if (!wd->allowsInput())
+                        continue;
 
-                    // hack
-                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
-                    if (!pWindow->m_bIsFloating) {
-                        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
-                        g_pKeybindManager->m_bGroupsLocked = true;
-                        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-                        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+                    if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+                        wd->dragFromDecoration(mouseCoords);
+                        break;
                     }
                 }
             }
 
-            g_pInputManager->currentlyDraggedWindow = pWindow;
-            g_pInputManager->dragMode               = MBIND_MOVE;
+            if (g_pInputManager->currentlyDraggedWindow == nullptr)
+                g_pInputManager->currentlyDraggedWindow = pWindow;
+
+            g_pInputManager->dragMode = MBIND_MOVE;
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;

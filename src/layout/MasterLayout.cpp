@@ -109,15 +109,20 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 
         m_lMasterNodesData.remove(*PNODE);
 
-        const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-        if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
-            const int SIZE               = OPENINGON->pWindow->getGroupSize();
-            const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
-            CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
-            pWindowInsertAfter->insertWindowToGroup(pWindow);
-            if (INDEX == -1)
-                std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
-        } else {
+        bool handled = true;
+
+        for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
+            if (!wd->allowsInput())
+                continue;
+
+            if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) { // TODO: Deny when not using mouse
+                wd->dragWindowToDecoration(pWindow, MOUSECOORDS);
+                handled = false;
+                break;
+            }
+        }
+
+        if (handled) {
             static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
             (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
         }

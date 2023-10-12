@@ -1231,6 +1231,10 @@ std::string dispatchNotify(std::string request) {
 
     g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon);
 
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        wlr_output_schedule_frame(m.get()->output);
+    }
+
     return "ok";
 }
 

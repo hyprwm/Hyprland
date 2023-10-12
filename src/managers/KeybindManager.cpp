@@ -1,5 +1,7 @@
 #include "KeybindManager.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "debug/Log.hpp"
+#include "helpers/VarList.hpp"
 
 #include <regex>
 
@@ -799,6 +801,7 @@ void CKeybindManager::toggleActivePseudo(std::string args) {
 void CKeybindManager::changeworkspace(std::string args) {
     int         workspaceToChangeTo = 0;
     std::string workspaceName       = "";
+    std::string defaultCmd          = "";
 
     // Workspace_back_and_forth being enabled means that an attempt to switch to
     // the current workspace will instead switch to the previous.
@@ -810,7 +813,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     const bool         EXPLICITPREVIOUS  = args.find("previous") == 0;
 
-    if (args.find("previous") == 0) {
+    if (EXPLICITPREVIOUS) {
         // Do nothing if there's no previous workspace, otherwise switch to it.
         if (PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1) {
             Debug::log(LOG, "No previous workspace to change to");
@@ -825,7 +828,7 @@ void CKeybindManager::changeworkspace(std::string args) {
                     PCURRENTWORKSPACE->m_sPrevWorkspace.name.empty() ? std::to_string(PCURRENTWORKSPACE->m_sPrevWorkspace.iID) : PCURRENTWORKSPACE->m_sPrevWorkspace.name;
         }
     } else {
-        workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
+        workspaceToChangeTo = parseWorkspaceAndDefaultCmd(args, workspaceName, defaultCmd);
     }
 
     if (workspaceToChangeTo == INT_MAX) {
@@ -842,9 +845,14 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pInputManager->m_bEmptyFocusCursorSet = false;
 
     auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.iID : workspaceToChangeTo);
-    if (!pWorkspaceToChangeTo)
+    if (!pWorkspaceToChangeTo) {
         pWorkspaceToChangeTo = g_pCompositor->createNewWorkspace(BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.iID : workspaceToChangeTo, PMONITOR->ID,
                                                                  BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.name : workspaceName);
+
+        if (!defaultCmd.empty()) {
+            spawn(defaultCmd);
+        }
+    }
 
     if (!BISWORKSPACECURRENT && pWorkspaceToChangeTo->m_bIsSpecialWorkspace) {
         PMONITOR->setSpecialWorkspace(pWorkspaceToChangeTo);
@@ -1440,8 +1448,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
 
-    std::string        workspaceName = "";
-    int                workspaceID   = getWorkspaceIDFromString("special:" + args, workspaceName);
+    std::string        workspaceName, defaultCmd;
+    int                workspaceID = parseWorkspaceAndDefaultCmd("special:" + args, workspaceName, defaultCmd);
 
     if (workspaceID == INT_MAX || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
         Debug::log(ERR, "Invalid workspace passed to special");
@@ -1467,8 +1475,12 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         Debug::log(LOG, "Toggling special workspace {} to open", workspaceID);
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
-        if (!PSPECIALWORKSPACE)
+        if (!PSPECIALWORKSPACE) {
             PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
+            if (!defaultCmd.empty()) {
+                spawn(defaultCmd);
+            }
+        }
 
         PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);
     }

@@ -503,6 +503,60 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     return result;
 }
 
+static inline void ltrim(std::string& s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
+}
+
+int parseWorkspaceAndDefaultCmd(std::string inArgs, std::string& outWorkspaceName, std::string& outDefaultCmd) {
+
+    std::string workspaceToToggle;
+    if (inArgs.contains(',')) {
+        const int commaIdx = inArgs.find_first_of(',');
+        workspaceToToggle  = inArgs.substr(0, commaIdx);
+        outDefaultCmd      = inArgs.substr(commaIdx + 1);
+    } else {
+        workspaceToToggle = inArgs;
+    }
+
+    int workspaceID = getWorkspaceIDFromString(workspaceToToggle, outWorkspaceName);
+
+    ltrim(outDefaultCmd);
+
+    if (!outDefaultCmd.empty()) {
+        std::string       rules;
+        const std::string workspaceRule = "workspace " + outWorkspaceName;
+        std::string       cmd           = outDefaultCmd;
+
+        if (outDefaultCmd[0] == '[') {
+            const int closingBracketIdx = outDefaultCmd.find_last_of(']');
+            auto      tmpRules          = outDefaultCmd.substr(1, closingBracketIdx - 1);
+            cmd                         = outDefaultCmd.substr(closingBracketIdx + 1);
+
+            auto rulesList = CVarList(tmpRules, 0, ';');
+
+            bool hadWorkspaceRule = false;
+            rulesList.map([&](std::string& rule) {
+                if (rule.find("workspace") == 0) {
+                    rule             = workspaceRule;
+                    hadWorkspaceRule = true;
+                }
+            });
+
+            if (!hadWorkspaceRule) {
+                rulesList.append(workspaceRule);
+            }
+
+            rules = "[" + rulesList.join(";") + "]";
+        } else {
+            rules = "[" + workspaceRule + "]";
+        }
+
+        outDefaultCmd = rules + " " + cmd;
+    }
+
+    return workspaceID;
+}
+
 float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2) {
     const float DX = std::max({0.0, p1.x - vec.x, vec.x - p2.x});
     const float DY = std::max({0.0, p1.y - vec.y, vec.y - p2.y});

@@ -44,6 +44,10 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CC
     PNOTIF->started.reset();
     PNOTIF->timeMs = timeMs;
     PNOTIF->icon   = icon;
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        g_pCompositor->scheduleFrameForMonitor(m.get());
+    }
 }
 
 wlr_box CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {

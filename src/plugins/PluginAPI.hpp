@@ -272,6 +272,6 @@ namespace HyprlandAPI {
     This function will end up in both hyprland and any/all plugins,
     and can be found by a simple dlsym()
 */
-APICALL inline EXPORT std::string __hyprland_api_get_hash() {
+APICALL inline EXPORT const char* __hyprland_api_get_hash() {
     return GIT_COMMIT_HASH;
 }

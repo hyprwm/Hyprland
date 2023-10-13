@@ -88,6 +88,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wa
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
+add_dependencies(Hyprland wlroots)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Setting debug flags")

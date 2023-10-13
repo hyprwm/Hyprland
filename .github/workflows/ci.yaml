@@ -105,4 +105,4 @@ jobs:
       - name: Configure
         run: mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DNO_XWAYLAND:STRING=true -H./ -B./build -G Ninja 
       - name: Compile
-        run: make config && make release
+        run: make release

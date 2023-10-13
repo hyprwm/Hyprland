@@ -35,7 +35,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual bool                     allowsInput();
 
-    virtual void                     dragWindowToDecoration(CWindow*, const Vector2D&);
+    virtual bool                     dragWindowToDecoration(CWindow*, const Vector2D&);
 
     virtual void                     clickDecoration(const Vector2D&);
 

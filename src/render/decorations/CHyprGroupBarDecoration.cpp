@@ -305,16 +305,34 @@ bool CHyprGroupBarDecoration::allowsInput() {
     return true;
 }
 
-void CHyprGroupBarDecoration::dragWindowToDecoration(CWindow* m_pDraggedWindow, const Vector2D& pos) {
+bool CHyprGroupBarDecoration::dragWindowToDecoration(CWindow* m_pDraggedWindow, const Vector2D& pos) {
+
+    if (!(!g_pKeybindManager->m_bGroupsLocked                                                                                 // global group lock disengaged
+          && ((m_pDraggedWindow->m_eGroupRules & GROUP_INVADE && m_pDraggedWindow->m_bFirstMap)                               // window ignore local group locks, or
+              || (!m_pWindow->getGroupHead()->m_sGroupData.locked                                                             //    target unlocked
+                  && !(m_pDraggedWindow->m_sGroupData.pNextWindow && m_pDraggedWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
+          && !m_pDraggedWindow->m_sGroupData.deny                                                                             // source is not denied entry
+          && !(m_pDraggedWindow->m_eGroupRules & GROUP_BARRED && m_pDraggedWindow->m_bFirstMap)))                             // group rule doesn't prevent adding window
+        return 1;
+
     const float BARRELATIVEX = pos.x - m_vLastWindowPos.x - m_fBarWidth / 2;
     const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 
     CWindow*    pWindowInsertAfter = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
 
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_pDraggedWindow);
+
     pWindowInsertAfter->insertWindowToGroup(m_pDraggedWindow);
 
     if (WINDOWINDEX == -1)
         std::swap(m_pDraggedWindow->m_sGroupData.head, m_pDraggedWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
+
+    m_pWindow->setGroupCurrent(m_pDraggedWindow);
+    m_pDraggedWindow->applyGroupRules();
+    m_pDraggedWindow->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pDraggedWindow);
+
+    return 0;
 }
 
 void CHyprGroupBarDecoration::clickDecoration(const Vector2D& pos) {

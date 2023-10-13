@@ -29,7 +29,7 @@ bool IHyprWindowDecoration::allowsInput() {
     return false;
 }
 
-void IHyprWindowDecoration::dragWindowToDecoration(CWindow*, const Vector2D&) {}
+bool IHyprWindowDecoration::dragWindowToDecoration(CWindow*, const Vector2D&) {}
 
 void IHyprWindowDecoration::clickDecoration(const Vector2D&) {}
 

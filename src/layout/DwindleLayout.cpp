@@ -312,6 +312,19 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         return;
     }
 
+    if (!m_vOverrideFocalPoint && g_pInputManager->m_bWasDraggingWindow) {
+        for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
+            if (!wd->allowsInput())
+                continue;
+
+            if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
+                if (!wd->dragWindowToDecoration(pWindow, MOUSECOORDS))
+                    return;
+                break;
+            }
+        }
+    }
+
     // if it's a group, add the window
     if (OPENINGON->pWindow->m_sGroupData.pNextWindow                                                      // target is group
         && !g_pKeybindManager->m_bGroupsLocked                                                            // global group lock disengaged
@@ -327,25 +340,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
         m_lDwindleNodesData.remove(*PNODE);
 
-        bool handled = true;
-
-        if (g_pInputManager->m_bWasDraggingWindow) {
-            for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
-                if (!wd->allowsInput())
-                    continue;
-
-                if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
-                    wd->dragWindowToDecoration(pWindow, MOUSECOORDS);
-                    handled = false;
-                    break;
-                }
-            }
-        }
-
-        if (handled) {
-            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
-            (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
-        }
+        static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
+        (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
 
         OPENINGON->pWindow->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();

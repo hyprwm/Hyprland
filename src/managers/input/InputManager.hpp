@@ -7,14 +7,12 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode
-{
+enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode
-{
+enum eMouseBindMode {
     MBIND_INVALID            = -1,
     MBIND_MOVE               = 0,
     MBIND_RESIZE             = 1,
@@ -22,8 +20,7 @@ enum eMouseBindMode
     MBIND_RESIZE_FORCE_RATIO = 3
 };
 
-enum eBorderIconDirection
-{
+enum eBorderIconDirection {
     BORDERICON_NONE,
     BORDERICON_UP,
     BORDERICON_DOWN,
@@ -118,6 +115,7 @@ class CInputManager {
     // for dragging floating windows
     CWindow*       currentlyDraggedWindow = nullptr;
     eMouseBindMode dragMode               = MBIND_INVALID;
+    bool           m_bWasDraggingWindow   = false;
 
     // for refocus to be forced
     CWindow*               m_pForcedFocus = nullptr;

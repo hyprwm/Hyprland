@@ -254,6 +254,7 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->unsetCursorImage();
 
     g_pInputManager->currentlyDraggedWindow = nullptr;
+    g_pInputManager->m_bWasDraggingWindow   = true;
 
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;
@@ -265,6 +266,8 @@ void IHyprLayout::onEndDragWindow() {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
     g_pCompositor->focusWindow(DRAGGINGWINDOW);
+
+    g_pInputManager->m_bWasDraggingWindow = false;
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {

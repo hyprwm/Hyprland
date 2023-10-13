@@ -329,14 +329,16 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
         bool handled = true;
 
-        for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
-            if (!wd->allowsInput())
-                continue;
+        if (g_pInputManager->m_bWasDraggingWindow) {
+            for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
+                if (!wd->allowsInput())
+                    continue;
 
-            if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) { // TODO: Deny when not using mouse
-                wd->dragWindowToDecoration(pWindow, MOUSECOORDS);
-                handled = false;
-                break;
+                if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
+                    wd->dragWindowToDecoration(pWindow, MOUSECOORDS);
+                    handled = false;
+                    break;
+                }
             }
         }
 

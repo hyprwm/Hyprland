@@ -47,7 +47,7 @@ install:
 	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1
 
 	mkdir -p ${PREFIX}/lib/
-	cp ./build/libwlroots.so.12032 ${PREFIX}/lib/
+	cp ./subprojects/wlroots/build/libwlroots.so.12032 ${PREFIX}/lib/
 
 	$(MAKE) installheaders
 

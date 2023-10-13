@@ -39,7 +39,7 @@ jobs:
           mkdir hyprland/assets
           cp ./LICENSE hyprland/
           cp build/Hyprland hyprland/
-          cp hyprctl/hyprctl hyprland/
+          cp build/hyprctl/hyprctl hyprland/
           cp subprojects/wlroots/build/libwlroots.so.12032 hyprland/
           cp build/Hyprland hyprland/
           cp -r example/ hyprland/

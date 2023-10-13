@@ -49,6 +49,7 @@ struct SWorkspaceRule {
     std::optional<int>     rounding;
     std::optional<int>     decorate;
     std::optional<int>     shadow;
+    std::string            onCreatedEmptyRunCmd;
 };
 
 struct SMonitorAdditionalReservedArea {

@@ -194,7 +194,7 @@ class CCompositor {
     Vector2D       parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void           forceReportSizesToWindowsOnWorkspace(const int&);
     bool           cursorOnReservedArea();
-    CWorkspace*    createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
+    CWorkspace*    createNewWorkspace(const int&, const int&, const std::string& name = "", bool isEmpty = true); // will be deleted next frame if left empty and unfocused!
     void           renameWorkspace(const int&, const std::string& name = "");
     void           setActiveMonitor(CMonitor*);
     bool           isWorkspaceSpecial(const int&);

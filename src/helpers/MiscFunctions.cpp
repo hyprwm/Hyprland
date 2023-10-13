@@ -503,34 +503,19 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     return result;
 }
 
-static inline void ltrim(std::string& s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
-}
+std::string cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
 
-int parseWorkspaceAndDefaultCmd(std::string inArgs, std::string& outWorkspaceName, std::string& outDefaultCmd) {
 
-    std::string workspaceToToggle;
-    if (inArgs.contains(',')) {
-        const int commaIdx = inArgs.find_first_of(',');
-        workspaceToToggle  = inArgs.substr(0, commaIdx);
-        outDefaultCmd      = inArgs.substr(commaIdx + 1);
-    } else {
-        workspaceToToggle = inArgs;
-    }
+    std::string cmd = removeBeginEndSpacesTabs(dirtyCmd);
 
-    int workspaceID = getWorkspaceIDFromString(workspaceToToggle, outWorkspaceName);
-
-    ltrim(outDefaultCmd);
-
-    if (!outDefaultCmd.empty()) {
+    if (!cmd.empty()) {
         std::string       rules;
-        const std::string workspaceRule = "workspace " + outWorkspaceName;
-        std::string       cmd           = outDefaultCmd;
+        const std::string workspaceRule = "workspace " + inWorkspaceName;
 
-        if (outDefaultCmd[0] == '[') {
-            const int closingBracketIdx = outDefaultCmd.find_last_of(']');
-            auto      tmpRules          = outDefaultCmd.substr(1, closingBracketIdx - 1);
-            cmd                         = outDefaultCmd.substr(closingBracketIdx + 1);
+        if (cmd[0] == '[') {
+            const int closingBracketIdx = cmd.find_last_of(']');
+            auto      tmpRules          = cmd.substr(1, closingBracketIdx - 1);
+            cmd                         = cmd.substr(closingBracketIdx + 1);
 
             auto rulesList = CVarList(tmpRules, 0, ';');
 
@@ -551,10 +536,10 @@ int parseWorkspaceAndDefaultCmd(std::string inArgs, std::string& outWorkspaceNam
             rules = "[" + workspaceRule + "]";
         }
 
-        outDefaultCmd = rules + " " + cmd;
+        return rules + " " + cmd;
     }
 
-    return workspaceID;
+    return {};
 }
 
 float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2) {

@@ -801,7 +801,6 @@ void CKeybindManager::toggleActivePseudo(std::string args) {
 void CKeybindManager::changeworkspace(std::string args) {
     int         workspaceToChangeTo = 0;
     std::string workspaceName       = "";
-    std::string defaultCmd          = "";
 
     // Workspace_back_and_forth being enabled means that an attempt to switch to
     // the current workspace will instead switch to the previous.
@@ -828,7 +827,7 @@ void CKeybindManager::changeworkspace(std::string args) {
                     PCURRENTWORKSPACE->m_sPrevWorkspace.name.empty() ? std::to_string(PCURRENTWORKSPACE->m_sPrevWorkspace.iID) : PCURRENTWORKSPACE->m_sPrevWorkspace.name;
         }
     } else {
-        workspaceToChangeTo = parseWorkspaceAndDefaultCmd(args, workspaceName, defaultCmd);
+        workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
     }
 
     if (workspaceToChangeTo == INT_MAX) {
@@ -848,10 +847,6 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (!pWorkspaceToChangeTo) {
         pWorkspaceToChangeTo = g_pCompositor->createNewWorkspace(BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.iID : workspaceToChangeTo, PMONITOR->ID,
                                                                  BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.name : workspaceName);
-
-        if (!defaultCmd.empty()) {
-            spawn(defaultCmd);
-        }
     }
 
     if (!BISWORKSPACECURRENT && pWorkspaceToChangeTo->m_bIsSpecialWorkspace) {
@@ -947,7 +942,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         pMonitor = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         g_pCompositor->setActiveMonitor(pMonitor);
     } else {
-        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName, false);
         pMonitor   = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
@@ -998,7 +993,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     if (pWorkspace) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     } else {
-        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName, false);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
 
@@ -1448,8 +1443,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
 
-    std::string        workspaceName, defaultCmd;
-    int                workspaceID = parseWorkspaceAndDefaultCmd("special:" + args, workspaceName, defaultCmd);
+    std::string        workspaceName = "";
+    int                workspaceID   = getWorkspaceIDFromString("special:" + args, workspaceName);
 
     if (workspaceID == INT_MAX || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
         Debug::log(ERR, "Invalid workspace passed to special");
@@ -1477,9 +1472,6 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
         if (!PSPECIALWORKSPACE) {
             PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
-            if (!defaultCmd.empty()) {
-                spawn(defaultCmd);
-            }
         }
 
         PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);

@@ -305,7 +305,7 @@ bool CHyprGroupBarDecoration::allowsInput() {
     return true;
 }
 
-bool CHyprGroupBarDecoration::dragWindowToDecoration(CWindow* m_pDraggedWindow, const Vector2D& pos) {
+bool CHyprGroupBarDecoration::onEndDragOnDeco(CWindow* m_pDraggedWindow, const Vector2D& pos) {
 
     if (!(!g_pKeybindManager->m_bGroupsLocked                                                                                 // global group lock disengaged
           && ((m_pDraggedWindow->m_eGroupRules & GROUP_INVADE && m_pDraggedWindow->m_bFirstMap)                               // window ignore local group locks, or
@@ -354,7 +354,7 @@ void CHyprGroupBarDecoration::clickDecoration(const Vector2D& pos) {
         g_pCompositor->focusWindow(pWindow);
 }
 
-void CHyprGroupBarDecoration::dragFromDecoration(const Vector2D& pos) {
+void CHyprGroupBarDecoration::onBeginDragOnDeco(const Vector2D& pos) {
     const float BARRELATIVEX = pos.x - m_vLastWindowPos.x;
     const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 

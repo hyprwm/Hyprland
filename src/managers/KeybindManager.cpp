@@ -1842,7 +1842,7 @@ void CKeybindManager::mouse(std::string args) {
                         continue;
 
                     if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
-                        wd->dragFromDecoration(mouseCoords);
+                        wd->onBeginDragOnDeco(mouseCoords);
                         break;
                     }
                 }

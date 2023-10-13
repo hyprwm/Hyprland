@@ -100,7 +100,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
                 continue;
 
             if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
-                if (!wd->dragWindowToDecoration(pWindow, MOUSECOORDS))
+                if (!wd->onEndDragOnDeco(pWindow, MOUSECOORDS))
                     return;
                 break;
             }

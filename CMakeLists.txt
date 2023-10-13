@@ -203,7 +203,7 @@ target_link_libraries(Hyprland
         OpenGL::EGL
         OpenGL::GL
         Threads::Threads
-        ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
+        libudis86
 )
 
 protocol("protocols/idle.xml" "idle" true)

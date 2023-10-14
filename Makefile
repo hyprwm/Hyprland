@@ -32,6 +32,7 @@ all:
 
 install:
 	@if [ ! -d ./build/Hyprland ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
+	@echo -en "!NOTE: Please note make install does not compile Hyprland and only installs the already built files."
 
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	mkdir -p ${PREFIX}/bin

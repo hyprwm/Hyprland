@@ -26,6 +26,27 @@ execute_process(
 #
 #
 
+# udis
+add_subdirectory("subprojects/udis86")
+
+# wlroots
+message(STATUS "Setting up wlroots")
+
+include(ExternalProject)
+string(TOLOWER ${CMAKE_BUILD_TYPE} BUILDTYPE_LOWER)
+ExternalProject_Add(
+    wlroots
+    PREFIX ${CMAKE_SOURCE_DIR}/subprojects/wlroots
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots
+    PATCH_COMMAND sed -E -i -e "s/(soversion = 12)([^032]|$$)/soversion = 12032/g" meson.build
+    CONFIGURE_COMMAND meson setup build --buildtype=${BUILDTYPE_LOWER} -Dwerror=false -Dexamples=false -Drenderers=gles2 $<IF:$<BOOL:${WITH_ASAN}>,-Db_sanitize=address,-Db_sanitize=none> && meson setup build --buildtype=${BUILDTYPE_LOWER} -Dwerror=false -Dexamples=false -Drenderers=gles2 $<IF:$<BOOL:${WITH_ASAN}>,-Db_sanitize=address,-Db_sanitize=none> --reconfigure
+    BUILD_COMMAND ninja -C build
+    BUILD_ALWAYS true
+    BUILD_IN_SOURCE true
+    BUILD_BYPRODUCTS ${CMAKE_SOURCE_DIR}/subprojects/wlroots/build/libwlroots.so.12032
+    INSTALL_COMMAND echo "wlroots: install not needed"
+)
+
 find_program(WaylandScanner NAMES wayland-scanner)
 message(STATUS "Found WaylandScanner at ${WaylandScanner}")
 execute_process(
@@ -67,6 +88,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wa
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(Hyprland ${SRCFILES})
+add_dependencies(Hyprland wlroots)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Setting debug flags")
@@ -182,7 +204,7 @@ target_link_libraries(Hyprland
         OpenGL::EGL
         OpenGL::GL
         Threads::Threads
-        ${CMAKE_SOURCE_DIR}/subprojects/udis86/build/libudis86/liblibudis86.a
+        libudis86
 )
 
 protocol("protocols/idle.xml" "idle" true)
@@ -201,3 +223,6 @@ protocol("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1
 protocol("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 protocol("unstable/text-input/text-input-unstable-v1.xml" "text-input-unstable-v1" false)
 protocol("staging/cursor-shape/cursor-shape-v1.xml" "cursor-shape-v1" false)
+
+# hyprctl
+add_subdirectory(hyprctl)

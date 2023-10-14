@@ -4,7 +4,7 @@ index e669800..687786b 100644
 +++ b/include/meson.build
 @@ -1,4 +1,5 @@
 -subdir('wlr')
-+run_command('ln', '-s', join_paths(meson.project_source_root(), 'include', 'wlr'), join_paths(meson.project_source_root(), 'include', 'wlroots'), check: true)
++run_command('ln', '-sf', join_paths(meson.project_source_root(), 'include', 'wlr'), join_paths(meson.project_source_root(), 'include', 'wlroots'), check: true)
 +subdir('wlroots')
  
  exclude_files = ['meson.build', 'config.h.in', 'version.h.in']

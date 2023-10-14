@@ -31,7 +31,7 @@ all:
 	$(MAKE) release
 
 install:
-	@if [ ! -d ./build/Hyprland ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
+	@if [ ! -f ./build/Hyprland ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
 	@echo -en "!NOTE: Please note make install does not compile Hyprland and only installs the already built files."
 
 	mkdir -p ${PREFIX}/share/wayland-sessions
@@ -66,7 +66,7 @@ pluginenv:
 	@exit 1
 	
 installheaders:
-	@if [ ! -d ./build/Hyprland ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
+	@if [ ! -f ./build/Hyprland ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
 
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols

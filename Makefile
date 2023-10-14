@@ -43,6 +43,8 @@ install:
 	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
 	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall_* ${PREFIX}/share/hyprland
+	mkdir -p ${PREFIX}/share/xdg-desktop-portal
+	cp ./assets/hyprland-portals.conf ${PREFIX}/share/xdg-desktop-portal
 
 	mkdir -p ${PREFIX}/share/man/man1
 	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1

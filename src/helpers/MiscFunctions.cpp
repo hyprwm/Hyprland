@@ -391,12 +391,12 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 int beginID = finalWSID;
                 int curID   = finalWSID;
                 while (--curID > 0 && remainingWSes > 0) {
-                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                    if (!invalidWSes.contains(curID)) {
                         remainingWSes--;
                     }
                     finalWSID = curID;
                 }
-                if (finalWSID <= 0 || invalidWSes.find(finalWSID) != invalidWSes.end()) {
+                if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
                     if (namedWSes.size()) {
                         // Go to the named workspaces
                         // Need remainingWSes more
@@ -416,7 +416,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             if (walkDir == '+') {
                 int curID = finalWSID;
                 while (++curID < INT32_MAX && remainingWSes > 0) {
-                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                    if (!invalidWSes.contains(curID)) {
                         remainingWSes--;
                     }
                     finalWSID = curID;

@@ -369,7 +369,7 @@ void CConfigManager::init() {
 }
 
 void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::string& VALUE) {
-    if (configValues.find(COMMAND) == configValues.end()) {
+    if (!configValues.contains(COMMAND)) {
         if (!COMMAND.starts_with("device:") /* devices parsed later */ && !COMMAND.starts_with("plugin:") /* plugins parsed later */) {
             if (COMMAND[0] == '$') {
                 // register a dynamic var
@@ -2110,9 +2110,7 @@ bool CConfigManager::deviceConfigExists(const std::string& dev) {
     auto copy = dev;
     std::replace(copy.begin(), copy.end(), ' ', '-');
 
-    const auto it = deviceConfigs.find(copy);
-
-    return it != deviceConfigs.end();
+    return deviceConfigs.contains(copy);
 }
 
 bool CConfigManager::shouldBlurLS(const std::string& ns) {

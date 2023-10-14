@@ -370,7 +370,7 @@ void CConfigManager::init() {
 
 void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::string& VALUE) {
     if (configValues.find(COMMAND) == configValues.end()) {
-        if (COMMAND.find("device:") != 0 /* devices parsed later */ && COMMAND.find("plugin:") != 0 /* plugins parsed later */) {
+        if (!COMMAND.starts_with("device:") /* devices parsed later */ && !COMMAND.starts_with("plugin:") /* plugins parsed later */) {
             if (COMMAND[0] == '$') {
                 // register a dynamic var
                 Debug::log(LOG, "Registered dynamic var \"{}\" -> {}", COMMAND, VALUE);
@@ -387,7 +387,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
 
     SConfigValue* CONFIGENTRY = nullptr;
 
-    if (COMMAND.find("device:") == 0) {
+    if (COMMAND.starts_with("device:")) {
         const auto DEVICE    = COMMAND.substr(7).substr(0, COMMAND.find_last_of(':') - 7);
         const auto CONFIGVAR = COMMAND.substr(COMMAND.find_last_of(':') + 1);
 
@@ -407,7 +407,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         }
 
         CONFIGENTRY = &it->second.at(CONFIGVAR);
-    } else if (COMMAND.find("plugin:") == 0) {
+    } else if (COMMAND.starts_with("plugin:")) {
         for (auto& [handle, pMap] : pluginConfigs) {
             auto it = std::find_if(pMap->begin(), pMap->end(), [&](const auto& other) { return other.first == COMMAND; });
             if (it == pMap->end()) {
@@ -645,11 +645,11 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
         return;
     }
 
-    if (ARGS[1].find("pref") == 0) {
+    if (ARGS[1].starts_with("pref")) {
         newrule.resolution = Vector2D();
-    } else if (ARGS[1].find("highrr") == 0) {
+    } else if (ARGS[1].starts_with("highrr")) {
         newrule.resolution = Vector2D(-1, -1);
-    } else if (ARGS[1].find("highres") == 0) {
+    } else if (ARGS[1].starts_with("highres")) {
         newrule.resolution = Vector2D(-1, -2);
     } else if (parseModeLine(ARGS[1], newrule.drmMode)) {
         newrule.resolution  = Vector2D(newrule.drmMode.hdisplay, newrule.drmMode.vdisplay);
@@ -662,14 +662,14 @@ void CConfigManager::handleMonitor(const std::string& command, const std::string
             newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
     }
 
-    if (ARGS[2].find("auto") == 0) {
+    if (ARGS[2].starts_with("auto")) {
         newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
     } else {
         newrule.offset.x = stoi(ARGS[2].substr(0, ARGS[2].find_first_of('x')));
         newrule.offset.y = stoi(ARGS[2].substr(ARGS[2].find_first_of('x') + 1));
     }
 
-    if (ARGS[3].find("auto") == 0) {
+    if (ARGS[3].starts_with("auto")) {
         newrule.scale = -1;
     } else {
         newrule.scale = stof(ARGS[3]);
@@ -905,7 +905,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
             g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
-        else if (KEY.find("code:") == 0 && isNumber(KEY.substr(5)))
+        else if (KEY.starts_with("code:") && isNumber(KEY.substr(5)))
             g_pKeybindManager->addKeybind(
                 SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
         else
@@ -924,17 +924,17 @@ void CConfigManager::handleUnbind(const std::string& command, const std::string&
 }
 
 bool windowRuleValid(const std::string& RULE) {
-    return !(RULE != "float" && RULE != "tile" && RULE.find("opacity") != 0 && RULE.find("move") != 0 && RULE.find("size") != 0 && RULE.find("minsize") != 0 &&
-             RULE.find("maxsize") != 0 && RULE.find("pseudo") != 0 && RULE.find("monitor") != 0 && RULE.find("idleinhibit") != 0 && RULE != "nofocus" && RULE != "noblur" &&
-             RULE != "noshadow" && RULE != "nodim" && RULE != "noborder" && RULE != "opaque" && RULE != "forceinput" && RULE != "fullscreen" && RULE != "nofullscreenrequest" &&
-             RULE != "nomaximizerequest" && RULE != "fakefullscreen" && RULE != "nomaxsize" && RULE != "pin" && RULE != "noanim" && RULE != "dimaround" && RULE != "windowdance" &&
-             RULE != "maximize" && RULE != "keepaspectratio" && RULE.find("animation") != 0 && RULE.find("rounding") != 0 && RULE.find("workspace") != 0 &&
-             RULE.find("bordercolor") != 0 && RULE != "forcergbx" && RULE != "noinitialfocus" && RULE != "stayfocused" && RULE.find("bordersize") != 0 && RULE.find("xray") != 0 &&
-             RULE.find("center") != 0 && RULE.find("group") != 0 && RULE != "immediate");
+    return RULE == "float" || RULE == "tile" || RULE.starts_with("opacity") || RULE.starts_with("move") || RULE.starts_with("size") || RULE.starts_with("minsize") ||
+        RULE.starts_with("maxsize") || RULE.starts_with("pseudo") || RULE.starts_with("monitor") || RULE.starts_with("idleinhibit") || RULE == "nofocus" || RULE == "noblur" ||
+        RULE == "noshadow" || RULE == "nodim" || RULE == "noborder" || RULE == "opaque" || RULE == "forceinput" || RULE == "fullscreen" || RULE == "nofullscreenrequest" ||
+        RULE == "nomaximizerequest" || RULE == "fakefullscreen" || RULE == "nomaxsize" || RULE == "pin" || RULE == "noanim" || RULE == "dimaround" || RULE == "windowdance" ||
+        RULE == "maximize" || RULE == "keepaspectratio" || RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") ||
+        RULE.starts_with("bordercolor") || RULE == "forcergbx" || RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") ||
+        RULE.starts_with("center") || RULE.starts_with("group") || RULE == "immediate";
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return !(RULE != "noanim" && RULE != "blur" && RULE.find("ignorealpha") != 0 && RULE.find("ignorezero") != 0 && RULE.find("xray") != 0);
+    return RULE == "noanim" || RULE == "blur" || RULE.starts_with("ignorealpha") || RULE.starts_with("ignorezero") || RULE.starts_with("xray");
 }
 
 void CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
@@ -958,7 +958,7 @@ void CConfigManager::handleWindowRule(const std::string& command, const std::str
         return;
     }
 
-    if (RULE.find("size") == 0 || RULE.find("maxsize") == 0 || RULE.find("minsize") == 0)
+    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
         m_dWindowRules.push_front({RULE, VALUE});
     else
         m_dWindowRules.push_back({RULE, VALUE});
@@ -1105,14 +1105,14 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         return;
     }
 
-    if (RULE.find("size") == 0 || RULE.find("maxsize") == 0 || RULE.find("minsize") == 0)
+    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
         m_dWindowRules.push_front(rule);
     else
         m_dWindowRules.push_back(rule);
 }
 
 void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBlur) {
-    const bool  BYADDRESS = name.find("address:") == 0;
+    const bool  BYADDRESS = name.starts_with("address:");
     std::string matchName = name;
 
     if (BYADDRESS) {
@@ -1133,7 +1133,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
 }
 
 void CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
-    if (value.find("remove,") == 0) {
+    if (value.starts_with("remove,")) {
         const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
         if (std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; }))
             updateBlurredLS(TOREMOVE, false);
@@ -1277,7 +1277,7 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
                     parseError += "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): Line parsing error.";
                 }
 
-                if (parseError != "" && parseError.find("Config error at line") != 0) {
+                if (parseError != "" && !parseError.starts_with("Config error at line")) {
                     parseError = "Config error at line " + std::to_string(linenum) + " (" + configCurrentPath + "): " + parseError;
                 }
 
@@ -1350,7 +1350,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         }
     } else if (COMMAND == "monitor")
         handleMonitor(COMMAND, VALUE);
-    else if (COMMAND.find("bind") == 0)
+    else if (COMMAND.starts_with("bind"))
         handleBind(COMMAND, VALUE);
     else if (COMMAND == "unbind")
         handleUnbind(COMMAND, VALUE);
@@ -1374,9 +1374,9 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
-    else if (COMMAND.find("env") == 0)
+    else if (COMMAND.starts_with("env"))
         handleEnv(COMMAND, VALUE);
-    else if (COMMAND.find("plugin") == 0)
+    else if (COMMAND.starts_with("plugin"))
         handlePlugin(COMMAND, VALUE);
     else {
         configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
@@ -1389,7 +1389,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
         // invalidate layouts if they changed
         if (needsLayoutRecalc) {
-            if (needsLayoutRecalc == 1 || COMMAND.contains("gaps_") || COMMAND.find("dwindle:") == 0 || COMMAND.find("master:") == 0) {
+            if (needsLayoutRecalc == 1 || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
                 for (auto& m : g_pCompositor->m_vMonitors)
                     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
             }
@@ -1424,7 +1424,7 @@ void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equals
         const auto STRAFTERDOLLAR = line.substr(dollarPlace + 1);
         bool       found          = false;
         for (auto& [var, value] : configDynamicVars) {
-            if (STRAFTERDOLLAR.find(var) == 0) {
+            if (STRAFTERDOLLAR.starts_with(var)) {
                 line.replace(dollarPlace, var.length() + 1, value);
                 found = true;
                 break;
@@ -1434,7 +1434,7 @@ void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equals
         if (!found) {
             // maybe env?
             for (auto& [var, value] : environmentVariables) {
-                if (STRAFTERDOLLAR.find(var) == 0) {
+                if (STRAFTERDOLLAR.starts_with(var)) {
                     line.replace(dollarPlace, var.length() + 1, value);
                     break;
                 }
@@ -1600,7 +1600,7 @@ void CConfigManager::loadConfigLoadVars() {
                 parseError += "Config error at line " + std::to_string(linenum) + " (" + mainConfigPath + "): Line parsing error.";
             }
 
-            if (parseError != "" && parseError.find("Config error at line") != 0) {
+            if (parseError != "" && !parseError.starts_with("Config error at line")) {
                 parseError = "Config error at line " + std::to_string(linenum) + " (" + mainConfigPath + "): " + parseError;
             }
 
@@ -1816,7 +1816,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const st
 
     for (auto& r : m_dMonitorRules) {
         if (r.name == name ||
-            (r.name.find("desc:") == 0 &&
+            (r.name.starts_with("desc:") &&
              (r.name.substr(5) == displayName || r.name.substr(5) == removeBeginEndSpacesTabs(displayName.substr(0, displayName.find_first_of('(')))))) {
             found = &r;
             break;
@@ -1872,7 +1872,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         // check if we have a matching rule
         if (!rule.v2) {
             try {
-                if (rule.szValue.find("title:") == 0) {
+                if (rule.szValue.starts_with("title:")) {
                     // we have a title rule.
                     std::regex RULECHECK(rule.szValue.substr(6));
 
@@ -1930,7 +1930,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
                     if (!PWORKSPACE)
                         continue;
 
-                    if (rule.szWorkspace.find("name:") == 0) {
+                    if (rule.szWorkspace.starts_with("name:")) {
                         if (PWORKSPACE->m_szName != rule.szWorkspace.substr(5))
                             continue;
                     } else {
@@ -1988,7 +1988,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
         return returns;
 
     for (auto& lr : m_dLayerRules) {
-        if (lr.targetNamespace.find("address:0x") == 0) {
+        if (lr.targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS) != lr.targetNamespace)
                 continue;
         } else {
@@ -2233,7 +2233,7 @@ CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
 
 std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname) {
     for (auto& wr : m_dWorkspaceRules) {
-        const auto WSNAME = wr.workspaceName.find("name:") == 0 ? wr.workspaceName.substr(5) : wr.workspaceName;
+        const auto WSNAME = wr.workspaceName.starts_with("name:") ? wr.workspaceName.substr(5) : wr.workspaceName;
 
         if (WSNAME == wsname) {
             return wr.monitor;

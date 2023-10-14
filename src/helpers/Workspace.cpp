@@ -40,7 +40,7 @@ CWorkspace::~CWorkspace() {
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
     const auto ANIMSTYLE = m_fAlpha.m_pConfig->pValues->internalStyle;
 
-    if (ANIMSTYLE.find("slidefade") == 0) {
+    if (ANIMSTYLE.starts_with("slidefade")) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         float      movePerc = 100.f;
 
@@ -54,7 +54,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.setValueAndWarp(1.f);
         m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
 
-        if (ANIMSTYLE.find("slidefadevert") == 0) {
+        if (ANIMSTYLE.starts_with("slidefadevert")) {
             if (in) {
                 m_fAlpha.setValueAndWarp(0.f);
                 m_vRenderOffset.setValueAndWarp(Vector2D(0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));

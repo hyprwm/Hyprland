@@ -117,7 +117,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_szInitialClass = g_pXWaylandManager->getAppIDClass(PWINDOW);
 
     for (auto& r : WINDOWRULES) {
-        if (r.szRule.find("monitor") == 0) {
+        if (r.szRule.starts_with("monitor")) {
             try {
                 const auto MONITORSTR = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find(' ')));
 
@@ -151,7 +151,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 Debug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
             } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r.szRule, r.szValue, e.what()); }
-        } else if (r.szRule.find("workspace") == 0) {
+        } else if (r.szRule.starts_with("workspace")) {
             // check if it isnt unset
             const auto WORKSPACERQ = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
@@ -167,19 +167,19 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 requestedWorkspace = "";
 
             Debug::log(LOG, "Rule workspace matched by {}, {} applied.", PWINDOW, r.szValue);
-        } else if (r.szRule.find("float") == 0) {
+        } else if (r.szRule.starts_with("float")) {
             PWINDOW->m_bIsFloating = true;
-        } else if (r.szRule.find("tile") == 0) {
+        } else if (r.szRule.starts_with("tile")) {
             PWINDOW->m_bIsFloating = false;
-        } else if (r.szRule.find("pseudo") == 0) {
+        } else if (r.szRule.starts_with("pseudo")) {
             PWINDOW->m_bIsPseudotiled = true;
-        } else if (r.szRule.find("nofocus") == 0) {
+        } else if (r.szRule.starts_with("nofocus")) {
             PWINDOW->m_bNoFocus = true;
-        } else if (r.szRule.find("noinitialfocus") == 0) {
+        } else if (r.szRule.starts_with("noinitialfocus")) {
             PWINDOW->m_bNoInitialFocus = true;
-        } else if (r.szRule.find("nofullscreenrequest") == 0) {
+        } else if (r.szRule.starts_with("nofullscreenrequest")) {
             PWINDOW->m_bNoFullscreenRequest = true;
-        } else if (r.szRule.find("nomaximizerequest") == 0) {
+        } else if (r.szRule.starts_with("nomaximizerequest")) {
             PWINDOW->m_bNoMaximizeRequest = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen     = true;
@@ -199,7 +199,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             overridingNoMaximize = true;
         } else if (r.szRule == "stayfocused") {
             PWINDOW->m_bStayFocused = true;
-        } else if (r.szRule.find("group") == 0) {
+        } else if (r.szRule.starts_with("group")) {
             if (PWINDOW->m_eGroupRules & GROUP_OVERRIDE)
                 continue;
 
@@ -246,7 +246,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 }
                 vPrev = v;
             }
-        } else if (r.szRule.find("idleinhibit") == 0) {
+        } else if (r.szRule.starts_with("idleinhibit")) {
             auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
             if (IDLERULE == "none") {
@@ -273,7 +273,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 0, ' ');
 
     if (!WORKSPACEARGS[0].empty()) {
-        if (WORKSPACEARGS[WORKSPACEARGS.size() - 1].find("silent") == 0)
+        if (WORKSPACEARGS[WORKSPACEARGS.size() - 1].starts_with("silent"))
             workspaceSilent = true;
 
         std::string requestedWorkspaceName;
@@ -309,7 +309,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         // size and move rules
         for (auto& r : WINDOWRULES) {
-            if (r.szRule.find("size") == 0) {
+            if (r.szRule.starts_with("size")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
                     const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
@@ -331,7 +331,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.find("minsize") == 0) {
+            } else if (r.szRule.starts_with("minsize")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
                     const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
@@ -345,7 +345,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule minsize failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.find("maxsize") == 0) {
+            } else if (r.szRule.starts_with("maxsize")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
                     const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
@@ -359,16 +359,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule maxsize failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.find("move") == 0) {
+            } else if (r.szRule.starts_with("move")) {
                 try {
                     auto       value = r.szRule.substr(r.szRule.find(' ') + 1);
 
-                    const bool ONSCREEN = value.find("onscreen") == 0;
+                    const bool ONSCREEN = value.starts_with("onscreen");
 
                     if (ONSCREEN)
                         value = value.substr(value.find_first_of(' ') + 1);
 
-                    const bool CURSOR = value.find("cursor") == 0;
+                    const bool CURSOR = value.starts_with("cursor");
 
                     if (CURSOR)
                         value = value.substr(value.find_first_of(' ') + 1);
@@ -379,7 +379,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     int        posX = 0;
                     int        posY = 0;
 
-                    if (POSXSTR.find("100%-") == 0) {
+                    if (POSXSTR.starts_with("100%-")) {
                         const auto POSXRAW = POSXSTR.substr(5);
                         posX =
                             PMONITOR->vecSize.x - (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stof(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
@@ -398,7 +398,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         }
                     }
 
-                    if (POSYSTR.find("100%-") == 0) {
+                    if (POSYSTR.starts_with("100%-")) {
                         const auto POSYRAW = POSYSTR.substr(5);
                         posY =
                             PMONITOR->vecSize.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
@@ -433,7 +433,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule move failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.find("center") == 0) {
+            } else if (r.szRule.starts_with("center")) {
                 auto       RESERVEDOFFSET = Vector2D();
                 const auto ARGS           = CVarList(r.szRule, 2, ' ');
                 if (ARGS[1] == "1")

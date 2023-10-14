@@ -335,7 +335,10 @@ bool CHyprGroupBarDecoration::onEndDragOnDeco(CWindow* m_pDraggedWindow, const V
     return 0;
 }
 
-void CHyprGroupBarDecoration::clickDecoration(const Vector2D& pos) {
+void CHyprGroupBarDecoration::onMouseDown(const Vector2D& pos, wlr_pointer_button_event* e) {
+    if (e->state != WLR_BUTTON_PRESSED)
+        return;
+
     const float BARRELATIVEX = pos.x - m_vLastWindowPos.x;
     const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 

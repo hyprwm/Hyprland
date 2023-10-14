@@ -43,7 +43,7 @@ class IHyprWindowDecoration {
 
     virtual bool                     onEndDragOnDeco(CWindow*, const Vector2D&);
 
-    virtual void                     clickDecoration(const Vector2D&);
+    virtual void                     onMouseDown(const Vector2D&, wlr_pointer_button_event*);
 
   private:
     CWindow* m_pWindow = nullptr;

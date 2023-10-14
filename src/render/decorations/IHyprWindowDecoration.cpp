@@ -35,4 +35,4 @@ bool IHyprWindowDecoration::onEndDragOnDeco(CWindow*, const Vector2D&) {
     return 1;
 }
 
-void IHyprWindowDecoration::clickDecoration(const Vector2D&) {}
+void IHyprWindowDecoration::onMouseDown(const Vector2D&, wlr_pointer_button_event*) {}

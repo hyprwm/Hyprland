@@ -305,14 +305,14 @@ bool CHyprGroupBarDecoration::allowsInput() {
     return true;
 }
 
-bool CHyprGroupBarDecoration::onEndDragOnDeco(CWindow* m_pDraggedWindow, const Vector2D& pos) {
+bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D& pos) {
 
-    if (!(!g_pKeybindManager->m_bGroupsLocked                                                                                 // global group lock disengaged
-          && ((m_pDraggedWindow->m_eGroupRules & GROUP_INVADE && m_pDraggedWindow->m_bFirstMap)                               // window ignore local group locks, or
-              || (!m_pWindow->getGroupHead()->m_sGroupData.locked                                                             //    target unlocked
-                  && !(m_pDraggedWindow->m_sGroupData.pNextWindow && m_pDraggedWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
-          && !m_pDraggedWindow->m_sGroupData.deny                                                                             // source is not denied entry
-          && !(m_pDraggedWindow->m_eGroupRules & GROUP_BARRED && m_pDraggedWindow->m_bFirstMap)))                             // group rule doesn't prevent adding window
+    if (!(!g_pKeybindManager->m_bGroupsLocked                                                                             // global group lock disengaged
+          && ((pDraggedWindow->m_eGroupRules & GROUP_INVADE && pDraggedWindow->m_bFirstMap)                               // window ignore local group locks, or
+              || (!m_pWindow->getGroupHead()->m_sGroupData.locked                                                         //    target unlocked
+                  && !(pDraggedWindow->m_sGroupData.pNextWindow && pDraggedWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
+          && !pDraggedWindow->m_sGroupData.deny                                                                           // source is not denied entry
+          && !(pDraggedWindow->m_eGroupRules & GROUP_BARRED && pDraggedWindow->m_bFirstMap)))                             // group rule doesn't prevent adding window
         return 1;
 
     const float BARRELATIVEX = pos.x - m_vLastWindowPos.x - m_fBarWidth / 2;
@@ -320,22 +320,22 @@ bool CHyprGroupBarDecoration::onEndDragOnDeco(CWindow* m_pDraggedWindow, const V
 
     CWindow*    pWindowInsertAfter = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_pDraggedWindow);
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
 
-    pWindowInsertAfter->insertWindowToGroup(m_pDraggedWindow);
+    pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
 
     if (WINDOWINDEX == -1)
-        std::swap(m_pDraggedWindow->m_sGroupData.head, m_pDraggedWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
+        std::swap(pDraggedWindow->m_sGroupData.head, pDraggedWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
 
-    m_pWindow->setGroupCurrent(m_pDraggedWindow);
-    m_pDraggedWindow->applyGroupRules();
-    m_pDraggedWindow->updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pDraggedWindow);
+    m_pWindow->setGroupCurrent(pDraggedWindow);
+    pDraggedWindow->applyGroupRules();
+    pDraggedWindow->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
 
     return 0;
 }
 
-void CHyprGroupBarDecoration::onMouseDown(const Vector2D& pos, wlr_pointer_button_event* e) {
+void CHyprGroupBarDecoration::onMouseDownOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
     if (e->state != WLR_BUTTON_PRESSED)
         return;
 
@@ -357,7 +357,7 @@ void CHyprGroupBarDecoration::onMouseDown(const Vector2D& pos, wlr_pointer_butto
         g_pCompositor->focusWindow(pWindow);
 }
 
-void CHyprGroupBarDecoration::onBeginDragOnDeco(const Vector2D& pos) {
+void CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     const float BARRELATIVEX = pos.x - m_vLastWindowPos.x;
     const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 

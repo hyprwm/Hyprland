@@ -29,10 +29,10 @@ bool IHyprWindowDecoration::allowsInput() {
     return false;
 }
 
-void IHyprWindowDecoration::onBeginDragOnDeco(const Vector2D&) {}
+void IHyprWindowDecoration::onBeginWindowDragOnDeco(const Vector2D&) {}
 
-bool IHyprWindowDecoration::onEndDragOnDeco(CWindow*, const Vector2D&) {
+bool IHyprWindowDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&) {
     return 1;
 }
 
-void IHyprWindowDecoration::onMouseDown(const Vector2D&, wlr_pointer_button_event*) {}
+void IHyprWindowDecoration::onMouseDownOnDeco(const Vector2D&, wlr_pointer_button_event*) {}

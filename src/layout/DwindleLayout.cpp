@@ -318,7 +318,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
                 continue;
 
             if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
-                if (!wd->onEndDragOnDeco(pWindow, MOUSECOORDS))
+                if (!wd->onEndWindowDragOnDeco(pWindow, MOUSECOORDS))
                     return;
                 break;
             }

@@ -23,6 +23,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "../helpers/Color.hpp"
 #include "HookSystem.hpp"
 #include "../SharedDefs.hpp"
+#include "../version.h"
 
 #include <any>
 #include <functional>

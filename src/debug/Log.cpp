@@ -10,6 +10,12 @@ void Debug::init(const std::string& IS) {
 }
 
 void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {
+    if (disableLogs && *disableLogs)
+        return;
+
+    if (level > wlr_log_get_verbosity())
+        return;
+
     char*         outputStr = nullptr;
 
     std::ofstream ofs;

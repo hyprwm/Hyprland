@@ -153,7 +153,7 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
     if (!PLUGIN)
         return false;
 
-    if (name.find("plugin:") != 0)
+    if (!name.starts_with("plugin:"))
         return false;
 
     g_pConfigManager->addPluginConfigVar(handle, name, value);

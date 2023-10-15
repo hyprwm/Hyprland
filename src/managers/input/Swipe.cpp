@@ -51,7 +51,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     static auto* const PSWIPENUMBER = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_numbered")->intValue;
     static auto* const PSWIPEUSER   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
     const bool         VERTANIMS    = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.find("slidefadevert") == 0;
+        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
     // commit
     std::string wsname           = "";
@@ -200,7 +200,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     static auto* const PSWIPEUSER             = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
 
     const bool         VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.find("slidefadevert") == 0;
+        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
     m_sActiveSwipe.delta += VERTANIMS ? (*PSWIPEINVR ? -e->dy : e->dy) : (*PSWIPEINVR ? -e->dx : e->dx);
 

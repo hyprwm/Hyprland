@@ -808,9 +808,9 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     const auto         PMONITOR          = g_pCompositor->m_pLastMonitor;
     const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
-    const bool         EXPLICITPREVIOUS  = args.find("previous") == 0;
+    const bool         EXPLICITPREVIOUS  = args.starts_with("previous");
 
-    if (args.find("previous") == 0) {
+    if (args.starts_with("previous")) {
         // Do nothing if there's no previous workspace, otherwise switch to it.
         if (PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1) {
             Debug::log(LOG, "No previous workspace to change to");
@@ -1094,7 +1094,7 @@ void CKeybindManager::swapActive(std::string args) {
 void CKeybindManager::moveActiveTo(std::string args) {
     char arg = args[0];
 
-    if (args.find("mon:") == 0) {
+    if (args.starts_with("mon:")) {
         const auto PNEWMONITOR = g_pCompositor->getMonitorFromString(args.substr(4));
         if (!PNEWMONITOR)
             return;
@@ -1221,7 +1221,7 @@ void CKeybindManager::alterSplitRatio(std::string args) {
     }
 
     if (splitratio == 0) {
-        if (args.find("exact") == 0) {
+        if (args.starts_with("exact")) {
             exact      = true;
             splitratio = getPlusMinusKeywordResult(args.substr(5), 0);
         } else {
@@ -1721,10 +1721,10 @@ void CKeybindManager::toggleOpaque(std::string unused) {
 }
 
 void CKeybindManager::dpms(std::string arg) {
-    bool        enable = arg.find("on") == 0;
+    bool        enable = arg.starts_with("on");
     std::string port   = "";
 
-    if (arg.find("toggle") == 0)
+    if (arg.starts_with("toggle"))
         enable = !std::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](const auto& other) { return !other->dpmsStatus; }); // enable if any is off
 
     if (arg.find_first_of(' ') != std::string::npos)

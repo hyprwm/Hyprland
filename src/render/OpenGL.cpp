@@ -1766,7 +1766,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     static auto* const PFORCEHYPRCHAN  = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
     static auto* const PFORCEWALLPAPER = &g_pConfigManager->getConfigValuePtr("misc:force_default_wallpaper")->intValue;
 
-    const auto         FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, -1L, 2L);
+    const auto         FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];

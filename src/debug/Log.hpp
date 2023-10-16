@@ -1,10 +1,10 @@
 #pragma once
 #include <string>
-#include <wlr/util/log.h>
 #include <format>
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include "../includes.hpp"
 #include "../helpers/MiscFunctions.hpp"
 
 #define LOGMESSAGESIZE 1024

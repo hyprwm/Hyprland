@@ -473,6 +473,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bNoInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 2)
             g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_INVALID);
+        else if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED)
+            requestsMaximize = true;
         else
             requestsFullscreen = true;
     }

@@ -250,7 +250,7 @@ bool isDirection(const std::string& arg) {
 
 int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     int result = INT_MAX;
-    if (in.find("special") == 0) {
+    if (in.starts_with("special")) {
         outName = "special";
 
         if (in.length() > 8) {
@@ -264,7 +264,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         }
 
         return SPECIAL_WORKSPACE_START;
-    } else if (in.find("name:") == 0) {
+    } else if (in.starts_with("name:")) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
         const auto WORKSPACE     = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
         if (!WORKSPACE) {
@@ -273,14 +273,14 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             result = WORKSPACE->m_iID;
         }
         outName = WORKSPACENAME;
-    } else if (in.find("empty") == 0) {
+    } else if (in.starts_with("empty")) {
         int id = 0;
         while (++id < INT_MAX) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
             if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0))
                 return id;
         }
-    } else if (in.find("prev") == 0) {
+    } else if (in.starts_with("prev")) {
         if (!g_pCompositor->m_pLastMonitor)
             return INT_MAX;
 
@@ -391,12 +391,12 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 int beginID = finalWSID;
                 int curID   = finalWSID;
                 while (--curID > 0 && remainingWSes > 0) {
-                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                    if (!invalidWSes.contains(curID)) {
                         remainingWSes--;
                     }
                     finalWSID = curID;
                 }
-                if (finalWSID <= 0 || invalidWSes.find(finalWSID) != invalidWSes.end()) {
+                if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
                     if (namedWSes.size()) {
                         // Go to the named workspaces
                         // Need remainingWSes more
@@ -416,7 +416,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             if (walkDir == '+') {
                 int curID = finalWSID;
                 while (++curID < INT32_MAX && remainingWSes > 0) {
-                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                    if (!invalidWSes.contains(curID)) {
                         remainingWSes--;
                     }
                     finalWSID = curID;
@@ -633,8 +633,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
-    FILE*             infile;
+    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)
@@ -667,11 +667,11 @@ int64_t getPPIDof(int64_t pid) {
 }
 
 int64_t configStringToInt(const std::string& VALUE) {
-    if (VALUE.find("0x") == 0) {
+    if (VALUE.starts_with("0x")) {
         // Values with 0x are hex
         const auto VALUEWITHOUTHEX = VALUE.substr(2);
         return stol(VALUEWITHOUTHEX, nullptr, 16);
-    } else if (VALUE.find("rgba(") == 0 && VALUE.find(')') == VALUE.length() - 1) {
+    } else if (VALUE.starts_with("rgba(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
@@ -683,7 +683,7 @@ int64_t configStringToInt(const std::string& VALUE) {
 
         // now we need to RGBA -> ARGB. The config holds ARGB only.
         return (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
-    } else if (VALUE.find("rgb(") == 0 && VALUE.find(')') == VALUE.length() - 1) {
+    } else if (VALUE.starts_with("rgb(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {
@@ -694,9 +694,9 @@ int64_t configStringToInt(const std::string& VALUE) {
         const auto RGB = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
 
         return RGB + 0xFF000000; // 0xFF for opaque
-    } else if (VALUE.find("true") == 0 || VALUE.find("on") == 0 || VALUE.find("yes") == 0) {
+    } else if (VALUE.starts_with("true") || VALUE.starts_with("on") || VALUE.starts_with("yes")) {
         return 1;
-    } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
+    } else if (VALUE.starts_with("false") || VALUE.starts_with("off") || VALUE.starts_with("no")) {
         return 0;
     }
     return std::stoll(VALUE);

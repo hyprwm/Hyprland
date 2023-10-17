@@ -20,7 +20,7 @@ void SLayerSurface::applyRules() {
             noAnimations = true;
         else if (rule.rule == "blur")
             forceBlur = true;
-        else if (rule.rule.find("ignorealpha") == 0 || rule.rule.find("ignorezero") == 0) {
+        else if (rule.rule.starts_with("ignorealpha") || rule.rule.starts_with("ignorezero")) {
             const auto  FIRST_SPACE_POS = rule.rule.find_first_of(' ');
             std::string alphaValue      = "";
             if (FIRST_SPACE_POS != std::string::npos)
@@ -31,7 +31,7 @@ void SLayerSurface::applyRules() {
                 if (!alphaValue.empty())
                     ignoreAlphaValue = std::stof(alphaValue);
             } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
-        } else if (rule.rule.find("xray") == 0) {
+        } else if (rule.rule.starts_with("xray")) {
             CVarList vars{rule.rule, 0, ' '};
             try {
                 xray = configStringToInt(vars[1]);

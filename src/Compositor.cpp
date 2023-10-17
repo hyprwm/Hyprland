@@ -554,7 +554,7 @@ CMonitor* CCompositor::getMonitorFromName(const std::string& name) {
 
 CMonitor* CCompositor::getMonitorFromDesc(const std::string& desc) {
     for (auto& m : m_vMonitors) {
-        if (m->output->description && std::string(m->output->description).find(desc) == 0)
+        if (m->output->description && std::string(m->output->description).starts_with(desc))
             return m.get();
     }
     return nullptr;
@@ -1617,7 +1617,7 @@ CWorkspace* CCompositor::getWorkspaceByName(const std::string& name) {
 }
 
 CWorkspace* CCompositor::getWorkspaceByString(const std::string& str) {
-    if (str.find("name:") == 0) {
+    if (str.starts_with("name:")) {
         return getWorkspaceByName(str.substr(str.find_first_of(':') + 1));
     }
 
@@ -1976,14 +1976,14 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
             Debug::log(ERR, "Error in getMonitorFromString: invalid arg 1");
             return nullptr;
         }
-    } else if (name.find("desc:") == 0) {
+    } else if (name.starts_with("desc:")) {
         const auto DESCRIPTION = name.substr(5);
 
         for (auto& m : m_vMonitors) {
             if (!m->output)
                 continue;
 
-            if (m->output->description && std::string(m->output->description).find(DESCRIPTION) == 0) {
+            if (m->output->description && std::string(m->output->description).starts_with(DESCRIPTION)) {
                 return m.get();
             }
         }
@@ -2245,13 +2245,13 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
 
     std::regex       regexCheck(regexp);
     std::string      matchCheck;
-    if (regexp.find("title:") == 0) {
+    if (regexp.starts_with("title:")) {
         mode       = MODE_TITLE_REGEX;
         regexCheck = std::regex(regexp.substr(6));
-    } else if (regexp.find("address:") == 0) {
+    } else if (regexp.starts_with("address:")) {
         mode       = MODE_ADDRESS;
         matchCheck = regexp.substr(8);
-    } else if (regexp.find("pid:") == 0) {
+    } else if (regexp.starts_with("pid:")) {
         mode       = MODE_PID;
         matchCheck = regexp.substr(4);
     }

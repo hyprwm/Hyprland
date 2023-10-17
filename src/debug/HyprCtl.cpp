@@ -961,7 +961,7 @@ std::string dispatchSetProp(std::string request) {
     bool       lock = false;
 
     if (vars.size() > 4) {
-        if (vars[4].find("lock") == 0) {
+        if (vars[4].starts_with("lock")) {
             lock = true;
         }
     }
@@ -1271,7 +1271,7 @@ std::string getReply(std::string request) {
         return layersRequest(format);
     else if (request == "version")
         return versionRequest(format);
-    else if (request.find("reload") == 0)
+    else if (request.starts_with("reload"))
         return reloadRequest(request);
     else if (request == "devices")
         return devicesRequest(format);
@@ -1285,27 +1285,27 @@ std::string getReply(std::string request) {
         return globalShortcutsRequest(format);
     else if (request == "animations")
         return animationsRequest(format);
-    else if (request.find("plugin") == 0)
+    else if (request.starts_with("plugin"))
         return dispatchPlugin(request);
-    else if (request.find("notify") == 0)
+    else if (request.starts_with("notify"))
         return dispatchNotify(request);
-    else if (request.find("setprop") == 0)
+    else if (request.starts_with("setprop"))
         return dispatchSetProp(request);
-    else if (request.find("seterror") == 0)
+    else if (request.starts_with("seterror"))
         return dispatchSeterror(request);
-    else if (request.find("switchxkblayout") == 0)
+    else if (request.starts_with("switchxkblayout"))
         return switchXKBLayoutRequest(request);
-    else if (request.find("output") == 0)
+    else if (request.starts_with("output"))
         return dispatchOutput(request);
-    else if (request.find("dispatch") == 0)
+    else if (request.starts_with("dispatch"))
         return dispatchRequest(request);
-    else if (request.find("keyword") == 0)
+    else if (request.starts_with("keyword"))
         return dispatchKeyword(request);
-    else if (request.find("setcursor") == 0)
+    else if (request.starts_with("setcursor"))
         return dispatchSetCursor(request);
-    else if (request.find("getoption") == 0)
+    else if (request.starts_with("getoption"))
         return dispatchGetOption(request, format);
-    else if (request.find("[[BATCH]]") == 0)
+    else if (request.starts_with("[[BATCH]]"))
         return dispatchBatch(request);
 
     return "unknown request";

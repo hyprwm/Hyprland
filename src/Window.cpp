@@ -499,15 +499,15 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             m_sAdditionalConfigData.forceOpaque = true;
     } else if (r.szRule == "immediate") {
         m_sAdditionalConfigData.forceTearing = true;
-    } else if (r.szRule.find("rounding") == 0) {
+    } else if (r.szRule.starts_with("rounding")) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
         } catch (std::exception& e) { Debug::log(ERR, "Rounding rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (r.szRule.find("bordersize") == 0) {
+    } else if (r.szRule.starts_with("bordersize")) {
         try {
             m_sAdditionalConfigData.borderSize = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
         } catch (std::exception& e) { Debug::log(ERR, "Bordersize rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (r.szRule.find("opacity") == 0) {
+    } else if (r.szRule.starts_with("opacity")) {
         try {
             CVarList vars(r.szRule, 0, ' ');
 
@@ -540,10 +540,10 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "noanim") {
         m_sAdditionalConfigData.forceNoAnims = true;
-    } else if (r.szRule.find("animation") == 0) {
+    } else if (r.szRule.starts_with("animation")) {
         auto STYLE                             = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
         m_sAdditionalConfigData.animationStyle = STYLE;
-    } else if (r.szRule.find("bordercolor") == 0) {
+    } else if (r.szRule.starts_with("bordercolor")) {
         try {
             std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
 
@@ -559,7 +559,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.dimAround = true;
     } else if (r.szRule == "keepaspectratio") {
         m_sAdditionalConfigData.keepAspectRatio = true;
-    } else if (r.szRule.find("xray") == 0) {
+    } else if (r.szRule.starts_with("xray")) {
         CVarList vars(r.szRule, 0, ' ');
 
         try {

@@ -880,10 +880,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (pMonitor->tearingState.activelyTearing != shouldTear) {
         // change of state
         pMonitor->tearingState.activelyTearing = shouldTear;
-
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            wlr_output_lock_software_cursors(m->output, pMonitor->tearingState.activelyTearing);
-        }
     }
 
     EMIT_HOOK_EVENT("preRender", pMonitor);

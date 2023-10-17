@@ -256,8 +256,8 @@ void CAnimationManager::tick() {
                     const auto EXTENTS = PDECO->getWindowDecorationExtents();
 
                     wlr_box    dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
-                                   PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
-                                   PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
+                                      PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
+                                      PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
 
                     if (!*PSHADOWIGNOREWINDOW) {
                         // easy, damage the entire box
@@ -429,7 +429,7 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
 
     if (pWindow->m_sAdditionalConfigData.animationStyle != "") {
         // the window has config'd special anim
-        if (pWindow->m_sAdditionalConfigData.animationStyle.find("slide") == 0) {
+        if (pWindow->m_sAdditionalConfigData.animationStyle.starts_with("slide")) {
             if (pWindow->m_sAdditionalConfigData.animationStyle.contains(' ')) {
                 // has a direction
                 animationSlide(pWindow, pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find(' ') + 1), close);
@@ -458,7 +458,7 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
             // anim popin, fallback
 
             float minPerc = 0.f;
-            if (ANIMSTYLE.find("%") != 0) {
+            if (!ANIMSTYLE.starts_with("%")) {
                 try {
                     auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
                     minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
@@ -473,10 +473,10 @@ void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
 }
 
 std::string CAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
-    if (config.find("window") == 0) {
+    if (config.starts_with("window")) {
         if (style == "slide") {
             return "";
-        } else if (style.find("popin") == 0) {
+        } else if (style.starts_with("popin")) {
             // try parsing
             float minPerc = 0.f;
             if (style.find("%") != std::string::npos) {
@@ -497,7 +497,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
     } else if (config == "workspaces" || config == "specialWorkspace") {
         if (style == "slide" || style == "slidevert" || style == "fade")
             return "";
-        else if (style.find("slidefade") == 0) {
+        else if (style.starts_with("slidefade")) {
             // try parsing
             float movePerc = 0.f;
             if (style.find("%") != std::string::npos) {

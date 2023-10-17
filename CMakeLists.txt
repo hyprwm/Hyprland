@@ -5,6 +5,11 @@ include(CheckIncludeFile)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/props.json PROPS)
 string(JSON VER GET ${PROPS} version)
 
+# Avoid having an empty `CMAKE_BUILD_TYPE`.
+if(NOT DEFINED CMAKE_BUILD_TYPE_INIT)
+  set(CMAKE_BUILD_TYPE_INIT "Release")
+endif()
+
 project(Hyprland
     DESCRIPTION "A Modern C++ Wayland Compositor"
     VERSION ${VER}

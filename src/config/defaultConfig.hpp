@@ -58,6 +58,9 @@ general {
     col.inactive_border = rgba(595959aa)
 
     layout = dwindle
+
+    # Please see https://wiki.hyprland.org/Configuring/Tearing/ before you turn this on
+    allow_tearing = false
 }
 
 decoration {
@@ -106,6 +109,11 @@ master {
 gestures {
     # See https://wiki.hyprland.org/Configuring/Variables/ for more
     workspace_swipe = off
+}
+
+misc {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+    force_default_wallpaper = -1 # Set to 0 to disable the anime mascot wallpapers
 }
 
 # Example per-device config

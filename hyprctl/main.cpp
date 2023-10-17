@@ -12,6 +12,7 @@
 #include <ranges>
 #include <algorithm>
 #include <signal.h>
+#include <format>
 
 #include <iostream>
 #include <string>
@@ -104,20 +105,6 @@ std::vector<SInstanceData> instances() {
     std::sort(result.begin(), result.end(), [&](const auto& a, const auto& b) { return a.time < b.time; });
 
     return result;
-}
-
-std::string getFormat(const char* fmt, ...) {
-    char*   outputStr = nullptr;
-
-    va_list args;
-    va_start(args, fmt);
-    vasprintf(&outputStr, fmt, args);
-    va_end(args);
-
-    std::string output = std::string(outputStr);
-    free(outputStr);
-
-    return output;
 }
 
 void request(std::string arg, int minArgs = 0) {
@@ -248,19 +235,19 @@ void instancesRequest(bool json) {
 
     if (!json) {
         for (auto& el : inst) {
-            result += getFormat("instance %s:\n\ttime: %llu\n\tpid: %llu\n\twl socket: %s\n\n", el.id.c_str(), el.time, el.pid, el.wlSocket.c_str());
+            result += std::format("instance {}:\n\ttime: {}\n\tpid: {}\n\twl socket: {}\n\n", el.id, el.time, el.pid, el.wlSocket);
         }
     } else {
         result += '[';
         for (auto& el : inst) {
-            result += getFormat(R"#(
-{
-    "instance": "%s",
-    "time": %llu,
-    "pid": %llu,
-    "wl_socket": "%s"
-},)#",
-                                el.id.c_str(), el.time, el.pid, el.wlSocket.c_str());
+            result += std::format(R"#(
+{{
+    "instance": "{}",
+    "time": {},
+    "pid": {},
+    "wl_socket": "{}"
+}},)#",
+                                  el.id, el.time, el.pid, el.wlSocket);
         }
 
         result.pop_back();

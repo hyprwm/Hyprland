@@ -59,6 +59,7 @@ class CMonitor {
     bool                scheduledRecalc = false;
     wl_output_transform transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     bool                gammaChanged    = false;
+    float               xwaylandScale   = 1.f;
 
     bool                dpmsStatus    = true;
     bool                vrrActive     = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
@@ -79,6 +80,18 @@ class CMonitor {
     std::vector<CMonitor*> mirrors;
 
     CRegion                lastFrameDamage; // stores last frame damage
+
+    // for tearing
+    CWindow* solitaryClient = nullptr;
+
+    struct {
+        bool canTear         = false;
+        bool nextRenderTorn  = false;
+        bool activelyTearing = false;
+
+        bool busy                    = false;
+        bool frameScheduledWhileBusy = false;
+    } tearingState;
 
     // for the special workspace. 0 means not open.
     int                                                        specialWorkspaceID = 0;
@@ -102,11 +115,12 @@ class CMonitor {
     void                       setMirror(const std::string&);
     bool                       isMirror();
     float                      getDefaultScale();
-    void                       changeWorkspace(CWorkspace* const pWorkspace, bool internal = false);
+    void                       changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false);
     void                       changeWorkspace(const int& id, bool internal = false);
     void                       setSpecialWorkspace(CWorkspace* const pWorkspace);
     void                       setSpecialWorkspace(const int& id);
     void                       moveTo(const Vector2D& pos);
+    Vector2D                   middle();
 
     std::shared_ptr<CMonitor>* m_pThisWrap            = nullptr;
     bool                       m_bEnabled             = false;

@@ -36,10 +36,12 @@ void CWLSurface::destroy() {
 
     if (g_pCompositor->m_pLastFocus == m_pWLRSurface)
         g_pCompositor->m_pLastFocus = nullptr;
+    if (g_pInputManager->m_pLastMouseSurface == m_pWLRSurface)
+        g_pInputManager->m_pLastMouseSurface = nullptr;
 
     m_pWLRSurface = nullptr;
 
-    Debug::log(LOG, "CWLSurface %lx called destroy()", this);
+    Debug::log(LOG, "CWLSurface {:x} called destroy()", (uintptr_t)this);
 }
 
 void CWLSurface::init() {
@@ -53,5 +55,5 @@ void CWLSurface::init() {
     hyprListener_destroy.initCallback(
         &m_pWLRSurface->events.destroy, [&](void* owner, void* data) { destroy(); }, this, "CWLSurface");
 
-    Debug::log(LOG, "CWLSurface %lx called init()", this);
+    Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }

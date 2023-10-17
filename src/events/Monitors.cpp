@@ -38,8 +38,18 @@ void Events::listener_change(wl_listener* listener, void* data) {
 
         CONFIGHEAD->state.enabled = m->output->enabled;
         CONFIGHEAD->state.mode    = m->output->current_mode;
-        CONFIGHEAD->state.x       = m->vecPosition.x;
-        CONFIGHEAD->state.y       = m->vecPosition.y;
+        if (!m->output->current_mode) {
+            CONFIGHEAD->state.custom_mode = {
+                m->output->width,
+                m->output->height,
+                m->output->refresh,
+            };
+        }
+        CONFIGHEAD->state.x                     = m->vecPosition.x;
+        CONFIGHEAD->state.y                     = m->vecPosition.y;
+        CONFIGHEAD->state.transform             = m->transform;
+        CONFIGHEAD->state.scale                 = m->scale;
+        CONFIGHEAD->state.adaptive_sync_enabled = m->vrrActive;
     }
 
     wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
@@ -77,24 +87,31 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->refreshRate > g_pHyprRenderer->m_pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
         g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
 
-    // ready to process cuz we have a monitor
-    if (PNEWMONITOR->m_bEnabled) {
+    // wlroots will instantly call this handler before we get a return to the wlr_output* in CCompositor::enterUnsafeState
+    const bool PROBABLYFALLBACK = (g_pCompositor->m_bUnsafeState && !g_pCompositor->m_pUnsafeOutput) || OUTPUT == g_pCompositor->m_pUnsafeOutput;
 
+    // ready to process if we have a real monitor
+    if (PNEWMONITOR->m_bEnabled && !PROBABLYFALLBACK) {
+        // leave unsafe state
         if (g_pCompositor->m_bUnsafeState) {
             // recover workspaces
+            std::vector<CWorkspace*> wsp;
             for (auto& ws : g_pCompositor->m_vWorkspaces) {
-                g_pCompositor->moveWorkspaceToMonitor(ws.get(), PNEWMONITOR);
+                wsp.push_back(ws.get());
+            }
+            for (auto& ws : wsp) {
+                // because this can realloc the vec
+                g_pCompositor->moveWorkspaceToMonitor(ws, PNEWMONITOR);
             }
 
             g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
 
-            const auto POS = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+            const auto POS = PNEWMONITOR->middle();
             if (g_pCompositor->m_sSeat.mouse)
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
         }
 
         g_pCompositor->m_bReadyToProcess = true;
-        g_pCompositor->m_bUnsafeState    = false;
     }
 
     g_pConfigManager->m_bWantsMonitorReload = true;
@@ -102,7 +119,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
 
     if (firstLaunch) {
         firstLaunch    = false;
-        const auto POS = PNEWMONITOR->vecPosition + PNEWMONITOR->vecSize / 2.f;
+        const auto POS = PNEWMONITOR->middle();
         if (g_pCompositor->m_sSeat.mouse)
             wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
     } else {
@@ -121,8 +138,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Attempted to render frame on inactive session!");
 
-        if (g_pCompositor->m_bUnsafeState)
-            g_pConfigManager->performMonitorReload();
+        if (g_pCompositor->m_bUnsafeState && PMONITOR->output != g_pCompositor->m_pUnsafeOutput) {
+            // restore from unsafe state
+            g_pCompositor->leaveUnsafeState();
+        }
 
         return; // cannot draw on session inactive (different tty)
     }
@@ -130,12 +149,25 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     if (!PMONITOR->m_bEnabled)
         return;
 
+    g_pHyprRenderer->recheckSolitaryForMonitor(PMONITOR);
+
+    PMONITOR->tearingState.busy = false;
+
+    if (PMONITOR->tearingState.activelyTearing && PMONITOR->solitaryClient /* can be invalidated by a recheck */) {
+
+        if (!PMONITOR->tearingState.frameScheduledWhileBusy)
+            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
+
+        PMONITOR->tearingState.nextRenderTorn          = true;
+        PMONITOR->tearingState.frameScheduledWhileBusy = false;
+    }
+
     static auto* const PENABLERAT = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_of_time")->intValue;
     static auto* const PRATSAFE   = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_safezone")->intValue;
 
     PMONITOR->lastPresentationTimer.reset();
 
-    if (*PENABLERAT) {
+    if (*PENABLERAT && !PMONITOR->tearingState.nextRenderTorn) {
         if (!PMONITOR->RATScheduled) {
             // render
             g_pHyprRenderer->renderMonitor(PMONITOR);
@@ -179,14 +211,17 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     if (!pMonitor)
         return;
 
-    Debug::log(LOG, "Destroy called for monitor %s", pMonitor->output->name);
+    Debug::log(LOG, "Destroy called for monitor {}", pMonitor->output->name);
 
     pMonitor->onDisconnect();
 
     pMonitor->output                 = nullptr;
     pMonitor->m_bRenderingInitPassed = false;
 
-    Debug::log(LOG, "Removing monitor %s from realMonitors", pMonitor->szName.c_str());
+    if (g_pCompositor->m_pUnsafeOutput == OUTPUT)
+        g_pCompositor->m_pUnsafeOutput = nullptr;
+
+    Debug::log(LOG, "Removing monitor {} from realMonitors", pMonitor->szName);
 
     std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
 }

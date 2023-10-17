@@ -1,24 +1,12 @@
 diff --git a/meson.build b/meson.build
-index f3802553..6a924a79 100644
+index 726933bc..28b4d9ac 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -21,9 +21,9 @@ else
- endif
- 
- GIT_BRANCH = run_command('git', 'rev-parse', '--abbrev-ref', 'HEAD', check: false).stdout().strip()
--GIT_COMMIT_HASH = run_command('git', 'rev-parse', 'HEAD', check: false).stdout().strip()
-+GIT_COMMIT_HASH = '@GIT_COMMIT_HASH@'
- GIT_COMMIT_MESSAGE = run_command('sh', '-c', 'git show | head -n 5 | tail -n 1', check: false).stdout().strip()
--GIT_DIRTY = run_command('sh', '-c', 'git diff-index --quiet HEAD -- || echo "dirty"', check: false).stdout().strip()
-+GIT_DIRTY = '@GIT_DIRTY@'
- 
- add_project_arguments(
-   [
-@@ -39,21 +39,8 @@ add_project_arguments(
+@@ -29,20 +29,7 @@ add_project_arguments(
    ],
    language: 'cpp')
  
--wlroots = subproject('wlroots', default_options: ['examples=false'])
+-wlroots = subproject('wlroots', default_options: ['examples=false', 'renderers=gles2'])
 -have_xwlr = wlroots.get_variable('features').get('xwayland')
 -xcb_dep = dependency('xcb', required: get_option('xwayland'))
 -
@@ -32,17 +20,24 @@ index f3802553..6a924a79 100644
 -have_xwayland = xcb_dep.found() and have_xwlr
 -
 -if not have_xwayland
--  add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
 +if get_option('xwayland').disabled()
-+  add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
+   add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
  endif
  
- backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
+@@ -71,8 +58,6 @@ foreach file : headers
+   install_headers(file, subdir: 'hyprland', preserve_path: true)
+ endforeach
+ 
+-version_h = run_command('sh', '-c', 'scripts/generateVersion.sh')
+-
+ subdir('protocols')
+ subdir('src')
+ subdir('hyprctl')
 diff --git a/src/meson.build b/src/meson.build
-index 7b658d31..60aa4057 100644
+index 2065c6f5..55530605 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -7,16 +7,16 @@ executable('Hyprland', src,
+@@ -9,16 +9,16 @@ executable('Hyprland', src,
      server_protos,
      dependency('wayland-server'),
      dependency('wayland-client'),

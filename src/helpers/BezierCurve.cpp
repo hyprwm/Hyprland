@@ -18,7 +18,7 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
 
     m_dPoints.emplace_back(Vector2D(1, 1));
 
-    RASSERT(m_dPoints.size() == 4, "CBezierCurve only supports cubic beziers! (points num: %i)", m_dPoints.size());
+    RASSERT(m_dPoints.size() == 4, "CBezierCurve only supports cubic beziers! (points num: {})", m_dPoints.size());
 
     // bake BAKEDPOINTS points for faster lookups
     // T -> X ( / BAKEDPOINTS )
@@ -34,8 +34,8 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
         getYForPoint(i);
     const auto ELAPSEDCALCAVG = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - BEGINCALC).count() / 1000.f / 10.f;
 
-    Debug::log(LOG, "Created a bezier curve, baked %i points, mem usage: %.2fkB, time to bake: %.2fµs. Estimated average calc time: %.2fµs.", BAKEDPOINTS, POINTSSIZE, ELAPSEDUS,
-               ELAPSEDCALCAVG);
+    Debug::log(LOG, "Created a bezier curve, baked {} points, mem usage: {:.2f}kB, time to bake: {:.2f}µs. Estimated average calc time: {:.2f}µs.", BAKEDPOINTS, POINTSSIZE,
+               ELAPSEDUS, ELAPSEDCALCAVG);
 }
 
 float CBezierCurve::getYForT(float t) {
@@ -48,27 +48,25 @@ float CBezierCurve::getXForT(float t) {
 
 // Todo: this probably can be done better and faster
 float CBezierCurve::getYForPoint(float x) {
-    if (x >= 1.0)
-        return 1.0;
+    if (x >= 1.f)
+        return 1.f;
 
-    // binary search for the range UPDOWN X
-    int upperT = BAKEDPOINTS - 1;
-    int lowerT = 0;
-    int mid    = upperT / 2;
+    int  index = 0;
+    bool below = true;
+    for (int step = (BAKEDPOINTS + 1) / 2; step > 0; step /= 2) {
+        if (below)
+            index += step;
+        else
+            index -= step;
 
-    while (std::abs(upperT - lowerT) > 1) {
-        if (m_aPointsBaked[mid].x > x) {
-            upperT = mid;
-        } else {
-            lowerT = mid;
-        }
-
-        mid = (upperT + lowerT) / 2;
+        below = m_aPointsBaked[index].x < x;
     }
 
+    int lowerIndex = index - (!below || index == BAKEDPOINTS - 1);
+
     // in the name of performance i shall make a hack
-    const auto LOWERPOINT = &m_aPointsBaked[std::clamp(lowerT, 0, BAKEDPOINTS - 1)];
-    const auto UPPERPOINT = &m_aPointsBaked[std::clamp(upperT, 0, BAKEDPOINTS - 1)];
+    const auto LOWERPOINT = &m_aPointsBaked[lowerIndex];
+    const auto UPPERPOINT = &m_aPointsBaked[lowerIndex + 1];
 
     const auto PERCINDELTA = (x - LOWERPOINT->x) / (UPPERPOINT->x - LOWERPOINT->x);
 

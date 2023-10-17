@@ -2,11 +2,18 @@
 #include "MiscFunctions.hpp"
 #include <string>
 #include "../debug/Log.hpp"
+#include "Watchdog.hpp"
 
 void handleWrapped(wl_listener* listener, void* data) {
     CHyprWLListener::SWrapper* pWrap = wl_container_of(listener, pWrap, m_sListener);
 
-    pWrap->m_pSelf->emit(data);
+    g_pWatchdog->startWatching();
+
+    try {
+        pWrap->m_pSelf->emit(data);
+    } catch (std::exception& e) { Debug::log(ERR, "Listener {} timed out and was killed by Watchdog!!!", (uintptr_t)listener); }
+
+    g_pWatchdog->endWatching();
 }
 
 CHyprWLListener::CHyprWLListener(wl_signal* pSignal, std::function<void(void*, void*)> callback, void* pOwner) {
@@ -25,7 +32,7 @@ CHyprWLListener::~CHyprWLListener() {
 
 void CHyprWLListener::removeCallback() {
     if (isConnected()) {
-        Debug::log(LOG, "Callback %lx -> %lx, %s removed.", &m_pCallback, &m_pOwner, m_szAuthor.c_str());
+        Debug::log(LOG, "Callback {:x} -> {:x}, {} removed.", (uintptr_t)&m_pCallback, (uintptr_t)&m_pOwner, m_szAuthor);
         wl_list_remove(&m_swWrapper.m_sListener.link);
         wl_list_init(&m_swWrapper.m_sListener.link);
     }

@@ -1,11 +1,9 @@
 #include "DwindleLayout.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../Compositor.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
-
-        const auto         REVERSESPLITRATIO = 2.f - splitRatio;
-
         static auto* const PSMARTSPLIT    = &g_pConfigManager->getConfigValuePtr("dwindle:smart_split")->intValue;
         static auto* const PPRESERVESPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:preserve_split")->intValue;
         static auto* const PFLMULT        = &g_pConfigManager->getConfigValuePtr("dwindle:split_width_multiplier")->floatValue;
@@ -23,16 +21,18 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
 
         if (SPLITSIDE) {
             // split left/right
+            int const FIRSTSIZE   = std::round(size.x / 2 * splitRatio);
             children[0]->position = position;
-            children[0]->size     = Vector2D(size.x / 2.f * splitRatio, size.y);
-            children[1]->position = Vector2D(position.x + size.x / 2.f * splitRatio, position.y);
-            children[1]->size     = Vector2D(size.x / 2.f * REVERSESPLITRATIO, size.y);
+            children[0]->size     = Vector2D(FIRSTSIZE, size.y);
+            children[1]->position = Vector2D(position.x + FIRSTSIZE, position.y);
+            children[1]->size     = Vector2D(size.x - FIRSTSIZE, size.y);
         } else {
             // split top/bottom
+            int const FIRSTSIZE   = std::round(size.y / 2 * splitRatio);
             children[0]->position = position;
-            children[0]->size     = Vector2D(size.x, size.y / 2.f * splitRatio);
-            children[1]->position = Vector2D(position.x, position.y + size.y / 2.f * splitRatio);
-            children[1]->size     = Vector2D(size.x, size.y / 2.f * REVERSESPLITRATIO);
+            children[0]->size     = Vector2D(size.x, FIRSTSIZE);
+            children[1]->position = Vector2D(position.x, position.y + FIRSTSIZE);
+            children[1]->size     = Vector2D(size.x, size.y - FIRSTSIZE);
         }
 
         children[0]->recalcSizePosRecursive(force);
@@ -104,7 +104,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node %lx (workspace ID: %i)!!", pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node {}!!", pNode);
         return;
     }
 
@@ -129,7 +129,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
-        Debug::log(ERR, "Node %lx holding invalid window %lx!!", pNode, PWINDOW);
+        Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
         onWindowRemovedTiling(PWINDOW);
         return;
     }
@@ -226,7 +226,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->updateWindowDecos();
 }
 
-void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
+void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating)
         return;
 
@@ -237,6 +237,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     static auto* const PUSEACTIVE    = &g_pConfigManager->getConfigValuePtr("dwindle:use_active_for_splits")->intValue;
     static auto* const PDEFAULTSPLIT = &g_pConfigManager->getConfigValuePtr("dwindle:default_split_ratio")->floatValue;
+
+    if (direction != DIRECTION_DEFAULT && overrideDirection == DIRECTION_DEFAULT)
+        overrideDirection = direction;
 
     // Populate the node with our window's data
     PNODE->workspaceID = pWindow->m_iWorkspaceID;
@@ -270,7 +273,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     } else
         OPENINGON = getFirstNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
-    Debug::log(LOG, "OPENINGON: %lx, Workspace: %i, Monitor: %i", OPENINGON, PNODE->workspaceID, PMONITOR->ID);
+    Debug::log(LOG, "OPENINGON: {}, Monitor: {}", OPENINGON, PMONITOR->ID);
 
     if (OPENINGON && OPENINGON->workspaceID != PNODE->workspaceID) {
         // special workspace handling
@@ -287,17 +290,10 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
         return;
     }
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
-    }
-
     // last fail-safe to avoid duplicate fullscreens
     if ((!OPENINGON || OPENINGON->pWindow == pWindow) && getNodesOnWorkspace(PNODE->workspaceID) > 1) {
         for (auto& node : m_lDwindleNodesData) {
-            if (node.workspaceID == PNODE->workspaceID && node.pWindow != pWindow) {
+            if (node.workspaceID == PNODE->workspaceID && node.pWindow != nullptr && node.pWindow != pWindow) {
                 OPENINGON = &node;
                 break;
             }
@@ -311,39 +307,45 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
         applyNodeDataToWindow(PNODE);
 
+        pWindow->applyGroupRules();
+
         return;
     }
 
     // if it's a group, add the window
-    if (OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked &&
-        !g_pKeybindManager->m_bGroupsLocked) { // target is an unlocked group
+    if (OPENINGON->pWindow->m_sGroupData.pNextWindow                                                      // target is group
+        && !g_pKeybindManager->m_bGroupsLocked                                                            // global group lock disengaged
+        && ((pWindow->m_eGroupRules & GROUP_INVADE && pWindow->m_bFirstMap)                               // window ignore local group locks, or
+            || (!OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked                                  //    target unlocked
+                && !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
+        && !pWindow->m_sGroupData.deny                                                                    // source is not denied entry
+        && !(pWindow->m_eGroupRules & GROUP_BARRED && pWindow->m_bFirstMap)                               // group rule doesn't prevent adding window
+        && !m_vOverrideFocalPoint                                                                         // we are not moving window
+    ) {
+        if (!pWindow->m_sGroupData.pNextWindow)
+            pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
-        if (!pWindow->m_sGroupData.pNextWindow || !pWindow->getGroupHead()->m_sGroupData.locked) { // source is not a group or an unlocked group
-            if (!pWindow->m_sGroupData.pNextWindow)
-                pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+        m_lDwindleNodesData.remove(*PNODE);
 
-            m_lDwindleNodesData.remove(*PNODE);
-
-            const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-            if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
-                const int SIZE               = OPENINGON->pWindow->getGroupSize();
-                const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
-                CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
-                pWindowInsertAfter->insertWindowToGroup(pWindow);
-                if (INDEX == -1)
-                    std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
-            } else {
-                static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("misc:group_insert_after_current")->intValue;
-                (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
-            }
-
-            OPENINGON->pWindow->setGroupCurrent(pWindow);
-            pWindow->updateWindowDecos();
-            recalculateWindow(pWindow);
-
-            g_pCompositor->focusWindow(pWindow);
-            return;
+        const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+        if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
+            const int SIZE               = OPENINGON->pWindow->getGroupSize();
+            const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
+            CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
+            pWindowInsertAfter->insertWindowToGroup(pWindow);
+            if (INDEX == -1)
+                std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
+        } else {
+            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
+            (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
         }
+
+        OPENINGON->pWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
+        pWindow->updateWindowDecos();
+        recalculateWindow(pWindow);
+
+        return;
     }
 
     // If it's not, get the node under our cursor
@@ -373,7 +375,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
     bool               verticalOverride   = false;
 
     // let user select position -> top, right, bottom, left
-    if (overrideDirection != OneTimeFocus::NOFOCUS) {
+    if (overrideDirection != DIRECTION_DEFAULT) {
 
         // this is horizontal
         if (overrideDirection % 2 == 0)
@@ -392,7 +394,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
-            overrideDirection = OneTimeFocus::NOFOCUS;
+            overrideDirection = DIRECTION_DEFAULT;
     } else if (*PSMARTSPLIT == 1) {
         const auto tl = NEWPARENT->position;
         const auto tr = NEWPARENT->position + Vector2D(NEWPARENT->size.x, 0);
@@ -471,8 +473,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     NEWPARENT->recalcSizePosRecursive(false, horizontalOverride, verticalOverride);
 
-    applyNodeDataToWindow(PNODE);
-    applyNodeDataToWindow(OPENINGON);
+    recalculateMonitor(pWindow->m_iMonitorID);
+
+    pWindow->applyGroupRules();
 }
 
 void CHyprDwindleLayout::onWindowRemovedTiling(CWindow* pWindow) {
@@ -849,7 +852,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
-    g_pCompositor->moveWindowToTop(pWindow);
+    g_pCompositor->changeWindowZOrder(pWindow, true);
 
     recalculateMonitor(PMONITOR->ID);
 }
@@ -911,8 +914,10 @@ void CHyprDwindleLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) 
 
     const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(focalPoint);
 
-    pWindow->moveToWorkspace(PMONITORFOCAL->activeWorkspace);
-    pWindow->m_iMonitorID = PMONITORFOCAL->ID;
+    if (PMONITORFOCAL->ID != pWindow->m_iMonitorID) {
+        pWindow->moveToWorkspace(PMONITORFOCAL->activeWorkspace);
+        pWindow->m_iMonitorID = PMONITORFOCAL->ID;
+    }
 
     onWindowCreatedTiling(pWindow);
 
@@ -995,26 +1000,26 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         switch (direction.front()) {
             case 'u':
             case 't': {
-                overrideDirection = OneTimeFocus::UP;
+                overrideDirection = DIRECTION_UP;
                 break;
             }
             case 'd':
             case 'b': {
-                overrideDirection = OneTimeFocus::DOWN;
+                overrideDirection = DIRECTION_DOWN;
                 break;
             }
             case 'r': {
-                overrideDirection = OneTimeFocus::RIGHT;
+                overrideDirection = DIRECTION_RIGHT;
                 break;
             }
             case 'l': {
-                overrideDirection = OneTimeFocus::LEFT;
+                overrideDirection = DIRECTION_LEFT;
                 break;
             }
             default: {
                 // any other character resets the focus direction
                 // needed for the persistent mode
-                overrideDirection = OneTimeFocus::NOFOCUS;
+                overrideDirection = DIRECTION_DEFAULT;
                 break;
             }
         }

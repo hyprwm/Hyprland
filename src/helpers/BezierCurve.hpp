@@ -10,7 +10,6 @@ constexpr float INVBAKEDPOINTS = 1.f / BAKEDPOINTS;
 
 // an implementation of a cubic bezier curve
 // might do better later
-// TODO: n-point curves
 class CBezierCurve {
   public:
     // sets up the bezier curve.

@@ -1,6 +1,7 @@
 #include "Window.hpp"
 #include "Compositor.hpp"
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
+#include "render/decorations/CHyprGroupBarDecoration.hpp"
 
 CWindow::CWindow() {
     m_vRealPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
@@ -340,7 +341,7 @@ void CWindow::moveToWorkspace(int workspaceID) {
     updateSpecialRenderData();
 
     if (PWORKSPACE) {
-        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", getFormat("%lx,%s", this, PWORKSPACE->m_szName.c_str())});
+        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", std::format("{:x},{}", (uintptr_t)this, PWORKSPACE->m_szName)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
     }
 
@@ -413,6 +414,11 @@ void CWindow::onUnmap() {
         if (PMONITOR && PMONITOR->specialWorkspaceID == m_iWorkspaceID)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+
+    if (PMONITOR && PMONITOR->solitaryClient == this)
+        PMONITOR->solitaryClient = nullptr;
 }
 
 void CWindow::onMap() {
@@ -491,15 +497,17 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
     } else if (r.szRule == "opaque") {
         if (!m_sAdditionalConfigData.forceOpaqueOverridden)
             m_sAdditionalConfigData.forceOpaque = true;
-    } else if (r.szRule.find("rounding") == 0) {
+    } else if (r.szRule == "immediate") {
+        m_sAdditionalConfigData.forceTearing = true;
+    } else if (r.szRule.starts_with("rounding")) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-        } catch (std::exception& e) { Debug::log(ERR, "Rounding rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
-    } else if (r.szRule.find("bordersize") == 0) {
+        } catch (std::exception& e) { Debug::log(ERR, "Rounding rule \"{}\" failed with: {}", r.szRule, e.what()); }
+    } else if (r.szRule.starts_with("bordersize")) {
         try {
             m_sAdditionalConfigData.borderSize = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-        } catch (std::exception& e) { Debug::log(ERR, "Bordersize rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
-    } else if (r.szRule.find("opacity") == 0) {
+        } catch (std::exception& e) { Debug::log(ERR, "Bordersize rule \"{}\" failed with: {}", r.szRule, e.what()); }
+    } else if (r.szRule.starts_with("opacity")) {
         try {
             CVarList vars(r.szRule, 0, ' ');
 
@@ -529,13 +537,13 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                     opacityIDX++;
                 }
             }
-        } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
+        } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "noanim") {
         m_sAdditionalConfigData.forceNoAnims = true;
-    } else if (r.szRule.find("animation") == 0) {
+    } else if (r.szRule.starts_with("animation")) {
         auto STYLE                             = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
         m_sAdditionalConfigData.animationStyle = STYLE;
-    } else if (r.szRule.find("bordercolor") == 0) {
+    } else if (r.szRule.starts_with("bordercolor")) {
         try {
             std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
 
@@ -546,12 +554,12 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             } else {
                 m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
             }
-        } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"%s\" failed with: %s", r.szRule.c_str(), e.what()); }
+        } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "dimaround") {
         m_sAdditionalConfigData.dimAround = true;
     } else if (r.szRule == "keepaspectratio") {
         m_sAdditionalConfigData.keepAspectRatio = true;
-    } else if (r.szRule.find("xray") == 0) {
+    } else if (r.szRule.starts_with("xray")) {
         CVarList vars(r.szRule, 0, ' ');
 
         try {
@@ -579,6 +587,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.borderSize      = -1;
     m_sAdditionalConfigData.keepAspectRatio = false;
     m_sAdditionalConfigData.xray            = -1;
+    m_sAdditionalConfigData.forceTearing    = false;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {
@@ -638,6 +647,69 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     wlr_xdg_surface_for_each_popup_surface(m_uSurface.xdg, findExtensionForVector2D, &data);
 
     return resultSurf;
+}
+
+void CWindow::applyGroupRules() {
+    if ((m_eGroupRules & GROUP_SET && m_bFirstMap) || m_eGroupRules & GROUP_SET_ALWAYS)
+        createGroup();
+
+    if (m_sGroupData.pNextWindow && ((m_eGroupRules & GROUP_LOCK && m_bFirstMap) || m_eGroupRules & GROUP_LOCK_ALWAYS))
+        getGroupHead()->m_sGroupData.locked = true;
+}
+
+void CWindow::createGroup() {
+    if (m_sGroupData.deny) {
+        Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_szTitle);
+        return;
+    }
+    if (!m_sGroupData.pNextWindow) {
+        m_sGroupData.pNextWindow = this;
+        m_sGroupData.head        = true;
+        m_sGroupData.locked      = false;
+        m_sGroupData.deny        = false;
+
+        m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(this));
+        updateWindowDecos();
+
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
+        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    }
+}
+
+void CWindow::destroyGroup() {
+    if (m_sGroupData.pNextWindow == this) {
+        if (m_eGroupRules & GROUP_SET_ALWAYS) {
+            Debug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", (uintptr_t)this, this->m_szTitle);
+            return;
+        }
+        m_sGroupData.pNextWindow = nullptr;
+        updateWindowDecos();
+        return;
+    }
+
+    CWindow*              curr = this;
+    std::vector<CWindow*> members;
+    do {
+        const auto PLASTWIN                = curr;
+        curr                               = curr->m_sGroupData.pNextWindow;
+        PLASTWIN->m_sGroupData.pNextWindow = nullptr;
+        curr->setHidden(false);
+        members.push_back(curr);
+    } while (curr != this);
+
+    for (auto& w : members) {
+        if (w->m_sGroupData.head)
+            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
+        w->m_sGroupData.head = false;
+    }
+
+    const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+    g_pKeybindManager->m_bGroupsLocked = true;
+    for (auto& w : members) {
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
+        w->updateWindowDecos();
+    }
+    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
 }
 
 CWindow* CWindow::getGroupHead() {
@@ -732,6 +804,9 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
 void CWindow::insertWindowToGroup(CWindow* pWindow) {
     const auto BEGINAT = this;
     const auto ENDAT   = m_sGroupData.pNextWindow;
+
+    if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
     if (!pWindow->m_sGroupData.pNextWindow) {
         BEGINAT->m_sGroupData.pNextWindow = pWindow;
@@ -857,4 +932,8 @@ int CWindow::getRealBorderSize() {
         return m_sSpecialRenderData.borderSize.toUnderlying();
 
     return g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+}
+
+bool CWindow::canBeTorn() {
+    return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint) && g_pHyprRenderer->m_bTearingEnvSatisfied;
 }

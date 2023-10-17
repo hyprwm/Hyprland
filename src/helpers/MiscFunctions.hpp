@@ -5,6 +5,7 @@
 #include <wlr/util/box.h>
 #include "Vector2D.hpp"
 #include <vector>
+#include <format>
 
 struct SCallstackFrameInfo {
     void*       adr = nullptr;
@@ -13,7 +14,6 @@ struct SCallstackFrameInfo {
 
 std::string                      absolutePath(const std::string&, const std::string&);
 void                             addWLSignal(wl_signal*, wl_listener*, void* pOwner, const std::string& ownerString);
-std::string                      getFormat(const char* fmt, ...); // Basically Debug::log to a string
 std::string                      escapeJSONStrings(const std::string& str);
 void                             scaleBox(wlr_box*, float);
 std::string                      removeBeginEndSpacesTabs(std::string);
@@ -31,3 +31,11 @@ double                           normalizeAngleRad(double ang);
 std::string                      replaceInString(std::string subject, const std::string& search, const std::string& replace);
 std::vector<SCallstackFrameInfo> getBacktrace();
 void                             throwError(const std::string& err);
+
+template <typename... Args>
+[[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {
+    // no need for try {} catch {} because std::format_string<Args...> ensures that vformat never throw std::format_error
+    // because any suck format specifier will cause a compilation error
+    // this is actually what std::format in stdlib does
+    return std::vformat(fmt.get(), std::make_format_args(args...));
+}

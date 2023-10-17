@@ -18,10 +18,10 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_szExtensions = EXTENSIONS;
 
     Debug::log(LOG, "Creating the Hypr OpenGL Renderer!");
-    Debug::log(LOG, "Using: %s", glGetString(GL_VERSION));
-    Debug::log(LOG, "Vendor: %s", glGetString(GL_VENDOR));
-    Debug::log(LOG, "Renderer: %s", glGetString(GL_RENDERER));
-    Debug::log(LOG, "Supported extensions size: %d", std::count(m_szExtensions.begin(), m_szExtensions.end(), ' '));
+    Debug::log(LOG, "Using: {}", (char*)glGetString(GL_VERSION));
+    Debug::log(LOG, "Vendor: {}", (char*)glGetString(GL_VENDOR));
+    Debug::log(LOG, "Renderer: {}", (char*)glGetString(GL_RENDERER));
+    Debug::log(LOG, "Supported extensions size: {}", std::count(m_szExtensions.begin(), m_szExtensions.end(), ' '));
 
 #ifdef USE_TRACY_GPU
 
@@ -50,7 +50,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
         if (vertCompiled == 0)
             return 0;
     } else {
-        RASSERT(vertCompiled, "Compiling shader failed. VERTEX NULL! Shader source:\n\n%s", vert.c_str());
+        RASSERT(vertCompiled, "Compiling shader failed. VERTEX NULL! Shader source:\n\n{}", vert.c_str());
     }
 
     auto fragCompiled = compileShader(GL_FRAGMENT_SHADER, frag, dynamic);
@@ -58,7 +58,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
         if (fragCompiled == 0)
             return 0;
     } else {
-        RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT NULL! Shader source:\n\n%s", frag.c_str());
+        RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT NULL! Shader source:\n\n{}", frag.c_str());
     }
 
     auto prog = glCreateProgram();
@@ -122,7 +122,7 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
     m_iWLROutputFb = m_iCurrentOutputFb;
 
     // ensure a framebuffer for the monitor exists
-    if (m_mMonitorRenderResources.find(pMonitor) == m_mMonitorRenderResources.end() || m_RenderData.pCurrentMonData->primaryFB.m_vSize != pMonitor->vecPixelSize) {
+    if (!m_mMonitorRenderResources.contains(pMonitor) || m_RenderData.pCurrentMonData->primaryFB.m_vSize != pMonitor->vecPixelSize) {
         m_RenderData.pCurrentMonData->stencilTex.allocate();
 
         m_RenderData.pCurrentMonData->primaryFB.m_pStencilTex    = &m_RenderData.pCurrentMonData->stencilTex;
@@ -221,32 +221,30 @@ void CHyprOpenGLImpl::bindWlrOutputFb() {
 }
 
 void CHyprOpenGLImpl::initShaders() {
-    GLuint prog                                                 = createProgram(QUADVERTSRC, QUADFRAGSRC);
-    m_RenderData.pCurrentMonData->m_shQUAD.program              = prog;
-    m_RenderData.pCurrentMonData->m_shQUAD.proj                 = glGetUniformLocation(prog, "proj");
-    m_RenderData.pCurrentMonData->m_shQUAD.color                = glGetUniformLocation(prog, "color");
-    m_RenderData.pCurrentMonData->m_shQUAD.posAttrib            = glGetAttribLocation(prog, "pos");
-    m_RenderData.pCurrentMonData->m_shQUAD.topLeft              = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shQUAD.fullSize             = glGetUniformLocation(prog, "fullSize");
-    m_RenderData.pCurrentMonData->m_shQUAD.radius               = glGetUniformLocation(prog, "radius");
-    m_RenderData.pCurrentMonData->m_shQUAD.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
+    GLuint prog                                      = createProgram(QUADVERTSRC, QUADFRAGSRC);
+    m_RenderData.pCurrentMonData->m_shQUAD.program   = prog;
+    m_RenderData.pCurrentMonData->m_shQUAD.proj      = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shQUAD.color     = glGetUniformLocation(prog, "color");
+    m_RenderData.pCurrentMonData->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shQUAD.topLeft   = glGetUniformLocation(prog, "topLeft");
+    m_RenderData.pCurrentMonData->m_shQUAD.fullSize  = glGetUniformLocation(prog, "fullSize");
+    m_RenderData.pCurrentMonData->m_shQUAD.radius    = glGetUniformLocation(prog, "radius");
 
-    prog                                                        = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
-    m_RenderData.pCurrentMonData->m_shRGBA.program              = prog;
-    m_RenderData.pCurrentMonData->m_shRGBA.proj                 = glGetUniformLocation(prog, "proj");
-    m_RenderData.pCurrentMonData->m_shRGBA.tex                  = glGetUniformLocation(prog, "tex");
-    m_RenderData.pCurrentMonData->m_shRGBA.alpha                = glGetUniformLocation(prog, "alpha");
-    m_RenderData.pCurrentMonData->m_shRGBA.texAttrib            = glGetAttribLocation(prog, "texcoord");
-    m_RenderData.pCurrentMonData->m_shRGBA.posAttrib            = glGetAttribLocation(prog, "pos");
-    m_RenderData.pCurrentMonData->m_shRGBA.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
-    m_RenderData.pCurrentMonData->m_shRGBA.discardAlpha         = glGetUniformLocation(prog, "discardAlpha");
-    m_RenderData.pCurrentMonData->m_shRGBA.discardAlphaValue    = glGetUniformLocation(prog, "discardAlphaValue");
-    m_RenderData.pCurrentMonData->m_shRGBA.topLeft              = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shRGBA.fullSize             = glGetUniformLocation(prog, "fullSize");
-    m_RenderData.pCurrentMonData->m_shRGBA.radius               = glGetUniformLocation(prog, "radius");
-    m_RenderData.pCurrentMonData->m_shRGBA.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
-    m_RenderData.pCurrentMonData->m_shRGBA.applyTint            = glGetUniformLocation(prog, "applyTint");
-    m_RenderData.pCurrentMonData->m_shRGBA.tint                 = glGetUniformLocation(prog, "tint");
+    prog                                                     = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
+    m_RenderData.pCurrentMonData->m_shRGBA.program           = prog;
+    m_RenderData.pCurrentMonData->m_shRGBA.proj              = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shRGBA.tex               = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shRGBA.alpha             = glGetUniformLocation(prog, "alpha");
+    m_RenderData.pCurrentMonData->m_shRGBA.texAttrib         = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shRGBA.posAttrib         = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shRGBA.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
+    m_RenderData.pCurrentMonData->m_shRGBA.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
+    m_RenderData.pCurrentMonData->m_shRGBA.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
+    m_RenderData.pCurrentMonData->m_shRGBA.topLeft           = glGetUniformLocation(prog, "topLeft");
+    m_RenderData.pCurrentMonData->m_shRGBA.fullSize          = glGetUniformLocation(prog, "fullSize");
+    m_RenderData.pCurrentMonData->m_shRGBA.radius            = glGetUniformLocation(prog, "radius");
+    m_RenderData.pCurrentMonData->m_shRGBA.applyTint         = glGetUniformLocation(prog, "applyTint");
+    m_RenderData.pCurrentMonData->m_shRGBA.tint              = glGetUniformLocation(prog, "tint");
 
     prog                                                     = createProgram(TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU);
     m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.program   = prog;
@@ -265,39 +263,37 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shGLITCH.time      = glGetUniformLocation(prog, "time");
     m_RenderData.pCurrentMonData->m_shGLITCH.fullSize  = glGetUniformLocation(prog, "screenSize");
 
-    prog                                                        = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
-    m_RenderData.pCurrentMonData->m_shRGBX.program              = prog;
-    m_RenderData.pCurrentMonData->m_shRGBX.tex                  = glGetUniformLocation(prog, "tex");
-    m_RenderData.pCurrentMonData->m_shRGBX.proj                 = glGetUniformLocation(prog, "proj");
-    m_RenderData.pCurrentMonData->m_shRGBX.alpha                = glGetUniformLocation(prog, "alpha");
-    m_RenderData.pCurrentMonData->m_shRGBX.texAttrib            = glGetAttribLocation(prog, "texcoord");
-    m_RenderData.pCurrentMonData->m_shRGBX.posAttrib            = glGetAttribLocation(prog, "pos");
-    m_RenderData.pCurrentMonData->m_shRGBX.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
-    m_RenderData.pCurrentMonData->m_shRGBX.discardAlpha         = glGetUniformLocation(prog, "discardAlpha");
-    m_RenderData.pCurrentMonData->m_shRGBX.discardAlphaValue    = glGetUniformLocation(prog, "discardAlphaValue");
-    m_RenderData.pCurrentMonData->m_shRGBX.topLeft              = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shRGBX.fullSize             = glGetUniformLocation(prog, "fullSize");
-    m_RenderData.pCurrentMonData->m_shRGBX.radius               = glGetUniformLocation(prog, "radius");
-    m_RenderData.pCurrentMonData->m_shRGBX.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
-    m_RenderData.pCurrentMonData->m_shRGBX.applyTint            = glGetUniformLocation(prog, "applyTint");
-    m_RenderData.pCurrentMonData->m_shRGBX.tint                 = glGetUniformLocation(prog, "tint");
+    prog                                                     = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
+    m_RenderData.pCurrentMonData->m_shRGBX.program           = prog;
+    m_RenderData.pCurrentMonData->m_shRGBX.tex               = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shRGBX.proj              = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shRGBX.alpha             = glGetUniformLocation(prog, "alpha");
+    m_RenderData.pCurrentMonData->m_shRGBX.texAttrib         = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shRGBX.posAttrib         = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shRGBX.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
+    m_RenderData.pCurrentMonData->m_shRGBX.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
+    m_RenderData.pCurrentMonData->m_shRGBX.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
+    m_RenderData.pCurrentMonData->m_shRGBX.topLeft           = glGetUniformLocation(prog, "topLeft");
+    m_RenderData.pCurrentMonData->m_shRGBX.fullSize          = glGetUniformLocation(prog, "fullSize");
+    m_RenderData.pCurrentMonData->m_shRGBX.radius            = glGetUniformLocation(prog, "radius");
+    m_RenderData.pCurrentMonData->m_shRGBX.applyTint         = glGetUniformLocation(prog, "applyTint");
+    m_RenderData.pCurrentMonData->m_shRGBX.tint              = glGetUniformLocation(prog, "tint");
 
-    prog                                                       = createProgram(TEXVERTSRC, TEXFRAGSRCEXT);
-    m_RenderData.pCurrentMonData->m_shEXT.program              = prog;
-    m_RenderData.pCurrentMonData->m_shEXT.tex                  = glGetUniformLocation(prog, "tex");
-    m_RenderData.pCurrentMonData->m_shEXT.proj                 = glGetUniformLocation(prog, "proj");
-    m_RenderData.pCurrentMonData->m_shEXT.alpha                = glGetUniformLocation(prog, "alpha");
-    m_RenderData.pCurrentMonData->m_shEXT.posAttrib            = glGetAttribLocation(prog, "pos");
-    m_RenderData.pCurrentMonData->m_shEXT.texAttrib            = glGetAttribLocation(prog, "texcoord");
-    m_RenderData.pCurrentMonData->m_shEXT.discardOpaque        = glGetUniformLocation(prog, "discardOpaque");
-    m_RenderData.pCurrentMonData->m_shEXT.discardAlpha         = glGetUniformLocation(prog, "discardAlpha");
-    m_RenderData.pCurrentMonData->m_shEXT.discardAlphaValue    = glGetUniformLocation(prog, "discardAlphaValue");
-    m_RenderData.pCurrentMonData->m_shEXT.topLeft              = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shEXT.fullSize             = glGetUniformLocation(prog, "fullSize");
-    m_RenderData.pCurrentMonData->m_shEXT.radius               = glGetUniformLocation(prog, "radius");
-    m_RenderData.pCurrentMonData->m_shEXT.primitiveMultisample = glGetUniformLocation(prog, "primitiveMultisample");
-    m_RenderData.pCurrentMonData->m_shEXT.applyTint            = glGetUniformLocation(prog, "applyTint");
-    m_RenderData.pCurrentMonData->m_shEXT.tint                 = glGetUniformLocation(prog, "tint");
+    prog                                                    = createProgram(TEXVERTSRC, TEXFRAGSRCEXT);
+    m_RenderData.pCurrentMonData->m_shEXT.program           = prog;
+    m_RenderData.pCurrentMonData->m_shEXT.tex               = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shEXT.proj              = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shEXT.alpha             = glGetUniformLocation(prog, "alpha");
+    m_RenderData.pCurrentMonData->m_shEXT.posAttrib         = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shEXT.texAttrib         = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shEXT.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
+    m_RenderData.pCurrentMonData->m_shEXT.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
+    m_RenderData.pCurrentMonData->m_shEXT.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
+    m_RenderData.pCurrentMonData->m_shEXT.topLeft           = glGetUniformLocation(prog, "topLeft");
+    m_RenderData.pCurrentMonData->m_shEXT.fullSize          = glGetUniformLocation(prog, "fullSize");
+    m_RenderData.pCurrentMonData->m_shEXT.radius            = glGetUniformLocation(prog, "radius");
+    m_RenderData.pCurrentMonData->m_shEXT.applyTint         = glGetUniformLocation(prog, "applyTint");
+    m_RenderData.pCurrentMonData->m_shEXT.tint              = glGetUniformLocation(prog, "tint");
 
     prog                                              = createProgram(TEXVERTSRC, FRAGBLUR1);
     m_RenderData.pCurrentMonData->m_shBLUR1.program   = prog;
@@ -353,7 +349,6 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shBORDER1.fullSize              = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shBORDER1.fullSizeUntransformed = glGetUniformLocation(prog, "fullSizeUntransformed");
     m_RenderData.pCurrentMonData->m_shBORDER1.radius                = glGetUniformLocation(prog, "radius");
-    m_RenderData.pCurrentMonData->m_shBORDER1.primitiveMultisample  = glGetUniformLocation(prog, "primitiveMultisample");
     m_RenderData.pCurrentMonData->m_shBORDER1.gradient              = glGetUniformLocation(prog, "gradient");
     m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength        = glGetUniformLocation(prog, "gradientLength");
     m_RenderData.pCurrentMonData->m_shBORDER1.angle                 = glGetUniformLocation(prog, "angle");
@@ -557,16 +552,13 @@ void CHyprOpenGLImpl::renderRectWithDamage(wlr_box* box, const CColor& col, CReg
     wlr_box_transform(&transformedBox, box, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
                       m_RenderData.pMonitor->vecTransformedSize.y);
 
-    const auto         TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
-    const auto         FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
-
-    static auto* const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
+    const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
+    const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
     // Rounded corners
     glUniform2f(m_RenderData.pCurrentMonData->m_shQUAD.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
     glUniform2f(m_RenderData.pCurrentMonData->m_shQUAD.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
     glUniform1f(m_RenderData.pCurrentMonData->m_shQUAD.radius, round);
-    glUniform1i(m_RenderData.pCurrentMonData->m_shQUAD.primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0));
 
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
@@ -715,16 +707,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, wlr_b
     wlr_box_transform(&transformedBox, &newBox, wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
                       m_RenderData.pMonitor->vecTransformedSize.y);
 
-    const auto         TOPLEFT           = Vector2D(transformedBox.x, transformedBox.y);
-    const auto         FULLSIZE          = Vector2D(transformedBox.width, transformedBox.height);
-    static auto* const PMULTISAMPLEEDGES = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
+    const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
+    const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
     if (!usingFinalShader) {
         // Rounded corners
         glUniform2f(shader->topLeft, TOPLEFT.x, TOPLEFT.y);
         glUniform2f(shader->fullSize, FULLSIZE.x, FULLSIZE.y);
         glUniform1f(shader->radius, round);
-        glUniform1i(shader->primitiveMultisample, (int)(*PMULTISAMPLEEDGES == 1 && round != 0 && !noAA));
 
         if (allowDim && m_pCurrentWindow && *PDIMINACTIVE) {
             glUniform1i(shader->applyTint, 1);
@@ -975,13 +965,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
     // damage region will be scaled, make a temp
     CRegion tempDamage{damage};
-    wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / 2.f); // when DOWNscaling, we make the region twice as small because it's the TARGET
-
-    drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage);
 
     // and draw
-    for (int i = 1; i < *PBLURPASSES; ++i) {
-        wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / (1 << (i + 1)));
+    for (int i = 1; i <= *PBLURPASSES; ++i) {
+        wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / (1 << i));
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage); // down
     }
 
@@ -1315,9 +1302,7 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     if (m_RenderData.damage.empty() || (m_pCurrentWindow && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBorder))
         return;
 
-    static auto* const PMULTISAMPLE = &g_pConfigManager->getConfigValuePtr("decoration:multisample_edges")->intValue;
-
-    wlr_box            newBox = *box;
+    wlr_box newBox = *box;
     scaleBox(&newBox, m_RenderData.renderModif.scale);
     newBox.x += m_RenderData.renderModif.translate.x;
     newBox.y += m_RenderData.renderModif.translate.y;
@@ -1375,7 +1360,6 @@ void CHyprOpenGLImpl::renderBorder(wlr_box* box, const CGradientValueData& grad,
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSizeUntransformed, (float)box->width, (float)box->height);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radius, round);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.thick, scaledBorderSize);
-    glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.primitiveMultisample, *PMULTISAMPLE);
 
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -1778,30 +1762,37 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
 void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
 
-    static auto* const              PNOSPLASH      = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
-    static auto* const              PFORCEHYPRCHAN = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
+    static auto* const PNOSPLASH       = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
+    static auto* const PFORCEHYPRCHAN  = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
+    static auto* const PFORCEWALLPAPER = &g_pConfigManager->getConfigValuePtr("misc:force_default_wallpaper")->intValue;
 
-    std::random_device              dev;
-    std::mt19937                    engine(dev());
-    std::uniform_int_distribution<> distribution(0, 2);
-    std::uniform_int_distribution<> distribution2(0, 1);
-
-    const bool                      USEANIME = *PFORCEHYPRCHAN || distribution(engine) == 0; // 66% for anime
+    const auto         FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
 
     // release the last tex if exists
     const auto PTEX = &m_mMonitorBGTextures[pMonitor];
     PTEX->destroyTexture();
 
     PTEX->allocate();
-
     Debug::log(LOG, "Allocated texture for BGTex");
 
     // TODO: use relative paths to the installation
     // or configure the paths at build time
+    std::string texPath    = "/usr/share/hyprland/wall_";
+    std::string prefixes[] = {"", "anime_", "anime2_"};
 
     // get the adequate tex
-    std::string texPath = "/usr/share/hyprland/wall_" + std::string(USEANIME ? (distribution2(engine) == 0 ? "anime_" : "anime2_") : "");
-    // check if wallpapers exist
+    if (FORCEWALLPAPER == -1) {
+        std::random_device              dev;
+        std::mt19937                    engine(dev());
+        std::uniform_int_distribution<> distribution(0, 2);
+        std::uniform_int_distribution<> distribution_anime(1, 2);
+
+        if (PFORCEHYPRCHAN)
+            texPath += prefixes[distribution_anime(engine)];
+        else
+            texPath += prefixes[distribution(engine)];
+    } else
+        texPath += prefixes[FORCEWALLPAPER];
 
     Vector2D textureSize;
     if (pMonitor->vecTransformedSize.x > 3850) {
@@ -1815,6 +1806,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         texPath += "2K.png";
     }
 
+    // check if wallpapers exist
     if (!std::filesystem::exists(texPath)) {
         // try local
         texPath = texPath.substr(0, 5) + "local/" + texPath.substr(5);
@@ -1871,7 +1863,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     cairo_surface_destroy(CAIROSURFACE);
     cairo_destroy(CAIRO);
 
-    Debug::log(LOG, "Background created for monitor %s", pMonitor->szName.c_str());
+    Debug::log(LOG, "Background created for monitor {}", pMonitor->szName);
 }
 
 void CHyprOpenGLImpl::clearWithTex() {
@@ -1903,7 +1895,7 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprOpenGL->m_mMonitorRenderResources.erase(pMonitor);
     g_pHyprOpenGL->m_mMonitorBGTextures.erase(pMonitor);
 
-    Debug::log(LOG, "Monitor %s -> destroyed all render data", pMonitor->szName.c_str());
+    Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName);
 
     wlr_output_rollback(pMonitor->output);
 }

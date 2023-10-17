@@ -42,15 +42,16 @@ class CRegion {
     CRegion&                    intersect(double x, double y, double w, double h);
     CRegion&                    translate(const Vector2D& vec);
     CRegion&                    invert(pixman_box32_t* box);
+    CRegion&                    scale(float scale);
     wlr_box                     getExtents();
-    bool                        containsPoint(const Vector2D& vec);
-    bool                        empty();
-    Vector2D                    closestPoint(const Vector2D& vec);
+    bool                        containsPoint(const Vector2D& vec) const;
+    bool                        empty() const;
+    Vector2D                    closestPoint(const Vector2D& vec) const;
 
     std::vector<pixman_box32_t> getRects() const;
 
     pixman_region32_t*          pixman() {
-        return &m_rRegion;
+                 return &m_rRegion;
     }
 
   private:

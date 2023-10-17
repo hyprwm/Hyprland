@@ -4,9 +4,10 @@
 #include <string>
 #include "../defines.hpp"
 
-enum eFullscreenMode : uint8_t
+enum eFullscreenMode : int8_t
 {
-    FULLSCREEN_FULL = 0,
+    FULLSCREEN_INVALID = -1,
+    FULLSCREEN_FULL    = 0,
     FULLSCREEN_MAXIMIZED
 };
 
@@ -48,9 +49,6 @@ class CWorkspace {
     // user-set
     bool m_bDefaultFloating = false;
     bool m_bDefaultPseudo   = false;
-
-    // don't destroy in sanity check
-    bool m_bIndestructible = false;
 
     // last monitor (used on reconnect)
     std::string m_szLastMonitor = "";

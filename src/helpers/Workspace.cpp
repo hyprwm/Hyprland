@@ -31,7 +31,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
 CWorkspace::~CWorkspace() {
     m_vRenderOffset.unregister();
 
-    Debug::log(LOG, "Destroying workspace ID %d", m_iID);
+    Debug::log(LOG, "Destroying workspace ID {}", m_iID);
 
     g_pEventManager->postEvent({"destroyworkspace", m_szName});
     EMIT_HOOK_EVENT("destroyWorkspace", this);
@@ -40,7 +40,7 @@ CWorkspace::~CWorkspace() {
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
     const auto ANIMSTYLE = m_fAlpha.m_pConfig->pValues->internalStyle;
 
-    if (ANIMSTYLE.find("slidefade") == 0) {
+    if (ANIMSTYLE.starts_with("slidefade")) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         float      movePerc = 100.f;
 
@@ -54,7 +54,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.setValueAndWarp(1.f);
         m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
 
-        if (ANIMSTYLE.find("slidefadevert") == 0) {
+        if (ANIMSTYLE.starts_with("slidefadevert")) {
             if (in) {
                 m_fAlpha.setValueAndWarp(0.f);
                 m_vRenderOffset.setValueAndWarp(Vector2D(0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
@@ -152,7 +152,7 @@ void CWorkspace::rememberPrevWorkspace(const CWorkspace* prev) {
         return;
     }
 
-    if (prev->m_sPrevWorkspace.iID == m_sPrevWorkspace.iID) {
+    if (prev->m_iID == m_iID) {
         Debug::log(LOG, "Tried to set prev workspace to the same as current one");
         return;
     }

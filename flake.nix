@@ -12,7 +12,7 @@
       host = "gitlab.freedesktop.org";
       owner = "wlroots";
       repo = "wlroots";
-      rev = "717ded9bb0191ea31bf4368be32e7a15fe1b8294";
+      rev = "3406c1b17a4a7e6d4e2a7d9c1176affa72bce1bc";
       flake = false;
     };
 
@@ -68,7 +68,6 @@
         hyprland-nvidia
         # hyprland-extras
         xdg-desktop-portal-hyprland
-        hyprland-share-picker
         # dependencies
         hyprland-protocols
         wlroots-hyprland
@@ -77,7 +76,9 @@
     });
 
     devShells = eachSystem (system: {
-      default = pkgsFor.${system}.mkShell {
+      default = pkgsFor.${system}.mkShell.override {
+        stdenv = pkgsFor.${system}.gcc13Stdenv;
+      } {
         name = "hyprland-shell";
         nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
         buildInputs = [self.packages.${system}.wlroots-hyprland];

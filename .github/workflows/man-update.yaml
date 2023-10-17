@@ -1,0 +1,30 @@
+name: Build man pages
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - docs/**
+    branches:
+      - 'main'
+
+jobs:
+  main:
+    name: Build man pages
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install deps
+      run: sudo apt install pandoc
+
+    - name: Clone repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.PAT }}
+
+    - name: Build man pages
+      run: make man
+
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      name: Commit
+      with:
+        commit_message: "[gha] build man pages"

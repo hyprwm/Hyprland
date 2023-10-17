@@ -2,7 +2,7 @@
 #include "../defines.hpp"
 #include "../Compositor.hpp"
 
-void IHyprLayout::onWindowCreated(CWindow* pWindow) {
+void IHyprLayout::onWindowCreated(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
         onWindowCreatedFloating(pWindow);
     } else {
@@ -18,7 +18,7 @@ void IHyprLayout::onWindowCreated(CWindow* pWindow) {
 
         pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
 
-        onWindowCreatedTiling(pWindow);
+        onWindowCreatedTiling(pWindow, direction);
     }
 }
 
@@ -89,7 +89,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Window %lx (%s) has an invalid monitor in onWindowCreatedFloating!!!", pWindow, pWindow->m_szTitle.c_str());
+        Debug::log(ERR, "{:m} has an invalid monitor in onWindowCreatedFloating!!!", pWindow);
         return;
     }
 
@@ -161,7 +161,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
     if (pWindow->m_iX11Type != 2) {
         g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
-        g_pCompositor->moveWindowToTop(pWindow);
+        g_pCompositor->changeWindowZOrder(pWindow, true);
     }
 }
 
@@ -237,7 +237,7 @@ void IHyprLayout::onBeginDragWindow() {
     g_pKeybindManager->shadowKeybinds();
 
     g_pCompositor->focusWindow(DRAGGINGWINDOW);
-    g_pCompositor->moveWindowToTop(DRAGGINGWINDOW);
+    g_pCompositor->changeWindowZOrder(DRAGGINGWINDOW, true);
 }
 
 void IHyprLayout::onEndDragWindow() {
@@ -402,10 +402,11 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow, bool preserveSpecia
     const auto TILED = isWindowTiled(pWindow);
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", getFormat("%lx,%d", pWindow, (int)TILED)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", std::format("{:x},{}", (uintptr_t)pWindow, (int)TILED)});
     EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {
+<<<<<<< HEAD
         // don't move the window out of the special workspace if requested
         if (!preserveSpecialWorkspace || !g_pCompositor->isWorkspaceSpecial(pWindow->m_iWorkspaceID)) {
             const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
@@ -413,6 +414,12 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow, bool preserveSpecia
             pWindow->moveToWorkspace(PNEWMON->activeWorkspace);
             pWindow->updateGroupOutputs();
         }
+=======
+        const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.vec() + pWindow->m_vRealSize.vec() / 2.f);
+        pWindow->m_iMonitorID = PNEWMON->ID;
+        pWindow->moveToWorkspace(PNEWMON->specialWorkspaceID != 0 ? PNEWMON->specialWorkspaceID : PNEWMON->activeWorkspace);
+        pWindow->updateGroupOutputs();
+>>>>>>> upstream/main
 
         // save real pos cuz the func applies the default 5,5 mid
         const auto PSAVEDPOS  = pWindow->m_vRealPosition.goalv();
@@ -439,7 +446,7 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow, bool preserveSpecia
     } else {
         onWindowRemovedTiling(pWindow);
 
-        g_pCompositor->moveWindowToTop(pWindow);
+        g_pCompositor->changeWindowZOrder(pWindow, true);
 
         if (DELTALESSTHAN(pWindow->m_vRealSize.vec().x, pWindow->m_vLastFloatingSize.x, 10) && DELTALESSTHAN(pWindow->m_vRealSize.vec().y, pWindow->m_vLastFloatingSize.y, 10)) {
             pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f + Vector2D{10, 10};
@@ -514,8 +521,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
             return m_pLastTiledWindow;
 
         // if we don't, let's try to find any window that is in the middle
-        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
-            PWINDOWCANDIDATE && PWINDOWCANDIDATE != pWindow)
+        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->middle()); PWINDOWCANDIDATE && PWINDOWCANDIDATE != pWindow)
             return PWINDOWCANDIDATE;
 
         // if not, floating window
@@ -530,7 +536,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     }
 
     // if it was a tiled window, we first try to find the window that will replace it.
-    const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.f);
+    const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->middle());
 
     if (!PWINDOWCANDIDATE || pWindow == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus ||
         PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
@@ -539,12 +545,22 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     return PWINDOWCANDIDATE;
 }
 
-void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
+bool IHyprLayout::isWindowReachable(CWindow* pWindow) {
+    return pWindow && (!pWindow->isHidden() || pWindow->m_sGroupData.pNextWindow);
+}
+
+void IHyprLayout::bringWindowToTop(CWindow* pWindow) {
+    if (pWindow == nullptr)
+        return;
+
     if (pWindow->isHidden() && pWindow->m_sGroupData.pNextWindow) {
         // grouped, change the current to this window
         pWindow->setGroupCurrent(pWindow);
     }
+}
 
+void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
+    bringWindowToTop(pWindow);
     g_pCompositor->focusWindow(pWindow);
 }
 

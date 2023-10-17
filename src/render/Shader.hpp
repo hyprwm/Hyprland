@@ -23,7 +23,6 @@ class CShader {
     GLint   fullSize              = -1;
     GLint   fullSizeUntransformed = -1;
     GLint   radius                = -1;
-    GLint   primitiveMultisample  = -1;
 
     GLint   thick = -1;
 

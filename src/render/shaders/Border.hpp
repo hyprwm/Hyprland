@@ -13,7 +13,6 @@ uniform vec2 fullSize;
 uniform vec2 fullSizeUntransformed;
 uniform float radius;
 uniform float thick;
-uniform int primitiveMultisample;
 
 uniform vec4 gradient[10];
 uniform int gradientLength;
@@ -63,33 +62,22 @@ void main() {
     pixCoord -= topLeft + fullSize * 0.5;
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoord -= fullSize * 0.5 - radius;
+    pixCoord += vec2(1.0, 1.0) / fullSize; // center the pix dont make it top-left
 
     if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
 
 	    float dist = length(pixCoord);
+        float h = (thick / 2.0);
 
-	    if (dist > radius + 1.0 || dist < radius - thick - 1.0)
-	        discard;
-
-	    if (primitiveMultisample == 1 && (dist > radius - 1.0 || dist < radius - thick + 1.0)) {
-	        float distances = 0.0;
-            float len = length(pixCoord + vec2(0.25, 0.25));
-	        distances += float(len < radius && len > radius - thick);
-            len = length(pixCoord + vec2(0.75, 0.25));
-            distances += float(len < radius && len > radius - thick);
-            len = length(pixCoord + vec2(0.25, 0.75));
-            distances += float(len < radius && len > radius - thick);
-            len = length(pixCoord + vec2(0.75, 0.75));
-            distances += float(len < radius && len > radius - thick);
-
-	        if (distances == 0.0)
-		        discard;
-
-	        distances /= 4.0;
-
-	        additionalAlpha *= distances;
-        } else if (dist > radius || dist < radius - thick)
-            discard;
+	    if (dist < radius - h) {
+            // lower
+            float normalized = smoothstep(0.0, 1.0, dist - radius + thick + 0.5);
+            additionalAlpha *= normalized;
+        } else {
+            // higher
+            float normalized = 1.0 - smoothstep(0.0, 1.0, dist - radius + 0.5);
+            additionalAlpha *= normalized;
+        }
 
         done = true;
     }

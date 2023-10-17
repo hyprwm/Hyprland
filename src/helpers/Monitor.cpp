@@ -40,6 +40,8 @@ void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorCommit.initCallback(&output->events.commit, &Events::listener_monitorCommit, this);
     hyprListener_monitorBind.initCallback(&output->events.bind, &Events::listener_monitorBind, this);
 
+    tearingState.canTear = wlr_backend_is_drm(output->backend); // tearing only works on drm
+
     if (m_bEnabled) {
         wlr_output_enable(output, 1);
         wlr_output_commit(output);
@@ -79,15 +81,12 @@ void CMonitor::onConnect(bool noRule) {
         if (PREFSTATE)
             wlr_output_set_mode(output, PREFSTATE);
         else
-            Debug::log(WARN, "No mode found for disabled output %s", output->name);
+            Debug::log(WARN, "No mode found for disabled output {}", output->name);
 
         wlr_output_enable(output, 0);
 
-        if (!wlr_output_commit(output)) {
-            Debug::log(ERR, "Couldn't commit disabled state on output %s", output->name);
-        }
-
-        Events::listener_change(nullptr, nullptr);
+        if (!wlr_output_commit(output))
+            Debug::log(ERR, "Couldn't commit disabled state on output {}", output->name);
 
         m_bEnabled = false;
 
@@ -127,11 +126,6 @@ void CMonitor::onConnect(bool noRule) {
 
     m_bEnabled = true;
 
-    // create it in the arr
-    vecPosition = monitorRule.offset;
-    vecSize     = monitorRule.resolution;
-    refreshRate = monitorRule.refreshRate;
-
     wlr_output_enable(output, 1);
 
     // set mode, also applies
@@ -142,8 +136,7 @@ void CMonitor::onConnect(bool noRule) {
 
     wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
-    Debug::log(LOG, "Added new monitor with name %s at %i,%i with size %ix%i, pointer %lx", output->name, (int)vecPosition.x, (int)vecPosition.y, (int)vecPixelSize.x,
-               (int)vecPixelSize.y, output);
+    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output);
 
     setupDefaultWS(monitorRule);
 
@@ -203,7 +196,7 @@ void CMonitor::onDisconnect() {
     if (!m_bEnabled || g_pCompositor->m_bIsShuttingDown)
         return;
 
-    Debug::log(LOG, "onDisconnect called for %s", output->name);
+    Debug::log(LOG, "onDisconnect called for {}", output->name);
 
     // Cleanup everything. Move windows back, snap cursor, shit.
     CMonitor* BACKUPMON = nullptr;
@@ -245,14 +238,14 @@ void CMonitor::onDisconnect() {
         m_aLayerSurfaceLayers[i].clear();
     }
 
-    Debug::log(LOG, "Removed monitor %s!", szName.c_str());
+    Debug::log(LOG, "Removed monitor {}!", szName);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
     EMIT_HOOK_EVENT("monitorRemoved", this);
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
-        g_pCompositor->m_bUnsafeState = true;
+        g_pCompositor->enterUnsafeState();
     }
 
     if (BACKUPMON) {
@@ -362,12 +355,12 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         WORKSPACEID             = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 
-        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"%s\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName).c_str());
+        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName));
     }
 
     auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
-    Debug::log(LOG, "New monitor: WORKSPACEID %d, exists: %d", WORKSPACEID, (int)(PNEWWORKSPACE != nullptr));
+    Debug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", WORKSPACEID, (int)(PNEWWORKSPACE != nullptr));
 
     if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
@@ -500,13 +493,13 @@ float CMonitor::getDefaultScale() {
     return 1;
 }
 
-void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
+void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool noMouseMove) {
     if (!pWorkspace)
         return;
 
     if (pWorkspace->m_bIsSpecialWorkspace) {
         if (specialWorkspaceID != pWorkspace->m_iID) {
-            Debug::log(LOG, "changeworkspace on special, togglespecialworkspace to id %i", pWorkspace->m_iID);
+            Debug::log(LOG, "changeworkspace on special, togglespecialworkspace to id {}", pWorkspace->m_iID);
             g_pKeybindManager->m_mDispatchers["togglespecialworkspace"](pWorkspace->m_szName == "special" ? "" : pWorkspace->m_szName);
         }
         return;
@@ -549,8 +542,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
 
             g_pCompositor->focusWindow(pWindow);
         }
-
-        g_pInputManager->simulateMouseMovement();
+        if (!noMouseMove)
+            g_pInputManager->simulateMouseMovement();
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
@@ -561,6 +554,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal) {
     g_pHyprRenderer->damageMonitor(this);
 
     g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
+
+    g_pConfigManager->ensureVRR(this);
 }
 
 void CMonitor::changeWorkspace(const int& id, bool internal) {
@@ -625,6 +620,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         g_pInputManager->refocus();
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
+
+    g_pHyprRenderer->damageMonitor(this);
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {
@@ -636,4 +633,8 @@ void CMonitor::moveTo(const Vector2D& pos) {
 
     if (!isMirror())
         wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, output, (int)vecPosition.x, (int)vecPosition.y);
+}
+
+Vector2D CMonitor::middle() {
+    return vecPosition + vecSize / 2.f;
 }

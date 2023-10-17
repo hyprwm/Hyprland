@@ -49,7 +49,7 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
     const auto XCBCONNECTION = xcb_connect(g_pXWaylandManager->m_sWLRXWayland->display_name, NULL);
     const auto ERR           = xcb_connection_has_error(XCBCONNECTION);
     if (ERR) {
-        Debug::log(LogLevel::ERR, "XWayland -> xcb_connection_has_error failed with %i", ERR);
+        Debug::log(LogLevel::ERR, "XWayland -> xcb_connection_has_error failed with {}", ERR);
         return;
     }
 
@@ -58,7 +58,7 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
         xcb_intern_atom_reply_t* reply  = xcb_intern_atom_reply(XCBCONNECTION, cookie, NULL);
 
         if (!reply) {
-            Debug::log(LogLevel::ERR, "XWayland -> Atom failed: %s", ATOM.first.c_str());
+            Debug::log(LogLevel::ERR, "XWayland -> Atom failed: {}", ATOM.first);
             continue;
         }
 
@@ -98,14 +98,14 @@ void Events::listener_startDrag(wl_listener* listener, void* data) {
 
     wlr_drag* wlrDrag = (wlr_drag*)data;
 
-    Debug::log(LOG, "Started drag %lx", wlrDrag);
+    Debug::log(LOG, "Started drag {:x}", (uintptr_t)wlrDrag);
 
     wlrDrag->data = data;
 
     g_pInputManager->m_sDrag.hyprListener_destroy.initCallback(&wlrDrag->events.destroy, &Events::listener_destroyDrag, &g_pInputManager->m_sDrag, "Drag");
 
     if (wlrDrag->icon) {
-        Debug::log(LOG, "Drag started with an icon %lx", wlrDrag->icon);
+        Debug::log(LOG, "Drag started with an icon {:x}", (uintptr_t)wlrDrag->icon);
 
         g_pInputManager->m_sDrag.dragIcon = wlrDrag->icon;
         wlrDrag->icon->data               = g_pInputManager->m_sDrag.dragIcon;
@@ -157,7 +157,7 @@ void Events::listener_commitDragIcon(void* owner, void* data) {
 }
 
 void Events::listener_InhibitActivate(wl_listener* listener, void* data) {
-    Debug::log(LOG, "Activated exclusive for %lx.", g_pCompositor->m_sSeat.exclusiveClient);
+    Debug::log(LOG, "Activated exclusive for {:x}.", (uintptr_t)g_pCompositor->m_sSeat.exclusiveClient);
 
     g_pInputManager->refocus();
     g_pCompositor->m_sSeat.exclusiveClient = g_pCompositor->m_sWLRInhibitMgr->active_client;
@@ -216,14 +216,14 @@ void Events::listener_newSessionLock(wl_listener* listener, void* data) {
 }
 
 void Events::listener_setGamma(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New Gamma event at %lx", data);
+    Debug::log(LOG, "New Gamma event at {:x}", (uintptr_t)data);
 
     const auto E = (wlr_gamma_control_manager_v1_set_gamma_event*)data;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(E->output);
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Gamma event object references non-existent output %lx ?", E->output);
+        Debug::log(ERR, "Gamma event object references non-existent output {:x} ?", (uintptr_t)E->output);
         return;
     }
 
@@ -236,4 +236,44 @@ void Events::listener_setCursorShape(wl_listener* listener, void* data) {
     const auto E = (wlr_cursor_shape_manager_v1_request_set_shape_event*)data;
 
     g_pInputManager->processMouseRequest(E);
+}
+
+void Events::listener_newTearingHint(wl_listener* listener, void* data) {
+    const auto TCTL = (wlr_tearing_control_v1*)data;
+
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(TCTL->surface);
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "Tearing hint {} was attached to an unknown surface", (uintptr_t)data);
+        return;
+    }
+
+    Debug::log(LOG, "New tearing hint for window {} at {}", PWINDOW, (uintptr_t)data);
+
+    const auto NEWCTRL = g_pHyprRenderer->m_vTearingControllers.emplace_back(std::make_unique<STearingController>()).get();
+    NEWCTRL->pWlrHint  = (wlr_tearing_control_v1*)data;
+
+    NEWCTRL->hyprListener_destroy.initCallback(
+        &NEWCTRL->pWlrHint->events.destroy,
+        [&](void* owner, void* data) {
+            Debug::log(LOG, "Destroyed {} tearing hint", (uintptr_t)((STearingController*)owner)->pWlrHint);
+
+            std::erase_if(g_pHyprRenderer->m_vTearingControllers, [&](const auto& other) { return other.get() == owner; });
+        },
+        NEWCTRL, "TearingController");
+
+    NEWCTRL->hyprListener_set.initCallback(
+        &NEWCTRL->pWlrHint->events.set_hint,
+        [&](void* owner, void* data) {
+            const auto TEARINGHINT = (STearingController*)owner;
+
+            const auto PWINDOW = g_pCompositor->getWindowFromSurface(TEARINGHINT->pWlrHint->surface);
+
+            if (PWINDOW) {
+                PWINDOW->m_bTearingHint = TEARINGHINT->pWlrHint->hint;
+
+                Debug::log(LOG, "Hint {} (window {}) set tearing hint to {}", (uintptr_t)TEARINGHINT->pWlrHint, PWINDOW, (uint32_t)TEARINGHINT->pWlrHint->hint);
+            }
+        },
+        NEWCTRL, "TearingController");
 }

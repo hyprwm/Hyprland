@@ -1,0 +1,15 @@
+name: Nix
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  wlroots:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/nix-update-wlroots.yml
+    secrets: inherit
+
+  build:
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    needs: wlroots
+    uses: ./.github/workflows/nix-build.yml
+    secrets: inherit

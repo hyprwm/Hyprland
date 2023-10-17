@@ -30,6 +30,7 @@ in {
     # Hyprland packages themselves
     (final: prev: {
       hyprland = final.callPackage ./default.nix {
+        stdenv = final.gcc13Stdenv;
         version = "${props.version}+date=${mkDate (self.lastModifiedDate or "19700101")}_${self.shortRev or "dirty"}";
         wlroots = final.wlroots-hyprland;
         commit = self.rev or "";
@@ -51,7 +52,6 @@ in {
   # including forked or patched packages for compatibility.
   hyprland-extras = mkJoinedOverlays [
     inputs.xdph.overlays.xdg-desktop-portal-hyprland
-    inputs.xdph.overlays.hyprland-share-picker
   ];
 
   udis86 = final: prev: {

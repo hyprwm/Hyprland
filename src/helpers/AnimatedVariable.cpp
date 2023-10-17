@@ -41,8 +41,8 @@ void CAnimatedVariable::create(ANIMATEDVARTYPE type, std::any val, SAnimationPro
             default: ASSERT(false); break;
         }
     } catch (std::exception& e) {
-        Debug::log(ERR, "CAnimatedVariable create error: %s", e.what());
-        RASSERT(false, "CAnimatedVariable create error: %s", e.what());
+        Debug::log(ERR, "CAnimatedVariable create error: {}", e.what());
+        RASSERT(false, "CAnimatedVariable create error: {}", e.what());
     }
 }
 
@@ -51,6 +51,8 @@ CAnimatedVariable::~CAnimatedVariable() {
 }
 
 void CAnimatedVariable::unregister() {
+    if (!g_pAnimationManager)
+        return;
     std::erase_if(g_pAnimationManager->m_vAnimatedVariables, [&](const auto& other) { return other == this; });
     m_bIsRegistered = false;
     disconnectFromActive();

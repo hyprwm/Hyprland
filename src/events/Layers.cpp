@@ -26,7 +26,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
             return;
         }
 
-        Debug::log(LOG, "New LayerSurface has no preferred monitor. Assigning Monitor %s", PMONITOR->szName.c_str());
+        Debug::log(LOG, "New LayerSurface has no preferred monitor. Assigning Monitor {}", PMONITOR->szName);
 
         WLRLAYERSURFACE->output = PMONITOR->output;
     }
@@ -55,14 +55,14 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
 
     layerSurface->forceBlur = g_pConfigManager->shouldBlurLS(layerSurface->szNamespace);
 
-    Debug::log(LOG, "LayerSurface %lx (namespace %s layer %d) created on monitor %s", layerSurface->layerSurface, layerSurface->layerSurface->_namespace, layerSurface->layer,
-               PMONITOR->szName.c_str());
+    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)layerSurface->layerSurface, layerSurface->layerSurface->_namespace,
+               (int)layerSurface->layer, PMONITOR->szName);
 }
 
 void Events::listener_destroyLayerSurface(void* owner, void* data) {
     SLayerSurface* layersurface = (SLayerSurface*)owner;
 
-    Debug::log(LOG, "LayerSurface %lx destroyed", layersurface->layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layersurface->layerSurface);
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
 
@@ -107,7 +107,7 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
 void Events::listener_mapLayerSurface(void* owner, void* data) {
     SLayerSurface* layersurface = (SLayerSurface*)owner;
 
-    Debug::log(LOG, "LayerSurface %lx mapped", layersurface->layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layersurface->layerSurface);
 
     layersurface->mapped            = true;
     layersurface->keyboardExclusive = layersurface->layerSurface->current.keyboard_interactive;
@@ -177,7 +177,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 void Events::listener_unmapLayerSurface(void* owner, void* data) {
     SLayerSurface* layersurface = (SLayerSurface*)owner;
 
-    Debug::log(LOG, "LayerSurface %lx unmapped", layersurface->layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layersurface->layerSurface);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
     EMIT_HOOK_EVENT("closeLayer", layersurface);

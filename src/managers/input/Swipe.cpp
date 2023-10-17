@@ -25,7 +25,7 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
 void CInputManager::beginWorkspaceSwipe() {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
-    Debug::log(LOG, "Starting a swipe from %s", PWORKSPACE->m_szName.c_str());
+    Debug::log(LOG, "Starting a swipe from {}", PWORKSPACE->m_szName);
 
     m_sActiveSwipe.pWorkspaceBegin = PWORKSPACE;
     m_sActiveSwipe.delta           = 0;
@@ -51,7 +51,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     static auto* const PSWIPENUMBER = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_numbered")->intValue;
     static auto* const PSWIPEUSER   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
     const bool         VERTANIMS    = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.find("slidefadevert") == 0;
+        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
     // commit
     std::string wsname           = "";
@@ -165,6 +165,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
         pSwitchedTo = PWORKSPACER;
     }
+    m_sActiveSwipe.pWorkspaceBegin->rememberPrevWorkspace(pSwitchedTo);
 
     g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
 
@@ -199,7 +200,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     static auto* const PSWIPEUSER             = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
 
     const bool         VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.find("slidefadevert") == 0;
+        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
     m_sActiveSwipe.delta += VERTANIMS ? (*PSWIPEINVR ? -e->dy : e->dy) : (*PSWIPEINVR ? -e->dx : e->dx);
 

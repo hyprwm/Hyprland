@@ -6,7 +6,9 @@
 #include <sys/utsname.h>
 #include <iomanip>
 #include <sstream>
+#ifdef HAS_EXECINFO
 #include <execinfo.h>
+#endif
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -126,20 +128,22 @@ static const float transforms[][9] = {
 std::string absolutePath(const std::string& rawpath, const std::string& currentPath) {
     auto value = rawpath;
 
-    if (value[0] == '.') {
-        auto currentDir = currentPath.substr(0, currentPath.find_last_of('/'));
-
-        if (value[1] == '.') {
-            auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
-            value.replace(0, 2 + currentPath.empty(), parentDir);
-        } else {
-            value.replace(0, 1 + currentPath.empty(), currentDir);
-        }
-    }
-
     if (value[0] == '~') {
         static const char* const ENVHOME = getenv("HOME");
         value.replace(0, 1, std::string(ENVHOME));
+    } else if (value[0] != '/') {
+        auto currentDir = currentPath.substr(0, currentPath.find_last_of('/'));
+
+        if (value[0] == '.') {
+            if (value[1] == '.' && value[2] == '/') {
+                auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+                value.replace(0, 2 + currentPath.empty(), parentDir);
+            } else if (value[1] == '/')
+                value.replace(0, 1 + currentPath.empty(), currentDir);
+            else
+                value = currentDir + '/' + value;
+        } else
+            value = currentDir + '/' + value;
     }
 
     return value;
@@ -151,25 +155,11 @@ void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, const
 
     wl_signal_add(pSignal, pListener);
 
-    Debug::log(LOG, "Registered signal for owner %lx: %lx -> %lx (owner: %s)", pOwner, pSignal, pListener, ownerString.c_str());
+    Debug::log(LOG, "Registered signal for owner {:x}: {:x} -> {:x} (owner: {})", (uintptr_t)pOwner, (uintptr_t)pSignal, (uintptr_t)pListener, ownerString);
 }
 
 void handleNoop(struct wl_listener* listener, void* data) {
     // Do nothing
-}
-
-std::string getFormat(const char* fmt, ...) {
-    char*   outputStr = nullptr;
-
-    va_list args;
-    va_start(args, fmt);
-    vasprintf(&outputStr, fmt, args);
-    va_end(args);
-
-    std::string output = std::string(outputStr);
-    free(outputStr);
-
-    return output;
 }
 
 std::string escapeJSONStrings(const std::string& str) {
@@ -224,7 +214,7 @@ float getPlusMinusKeywordResult(std::string source, float relative) {
     try {
         return relative + stof(source);
     } catch (...) {
-        Debug::log(ERR, "Invalid arg \"%s\" in getPlusMinusKeywordResult!", source.c_str());
+        Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return INT_MAX;
     }
 }
@@ -260,7 +250,7 @@ bool isDirection(const std::string& arg) {
 
 int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     int result = INT_MAX;
-    if (in.find("special") == 0) {
+    if (in.starts_with("special")) {
         outName = "special";
 
         if (in.length() > 8) {
@@ -274,7 +264,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         }
 
         return SPECIAL_WORKSPACE_START;
-    } else if (in.find("name:") == 0) {
+    } else if (in.starts_with("name:")) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
         const auto WORKSPACE     = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
         if (!WORKSPACE) {
@@ -283,14 +273,14 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             result = WORKSPACE->m_iID;
         }
         outName = WORKSPACENAME;
-    } else if (in.find("empty") == 0) {
+    } else if (in.starts_with("empty")) {
         int id = 0;
         while (++id < INT_MAX) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
             if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0))
                 return id;
         }
-    } else if (in.find("prev") == 0) {
+    } else if (in.starts_with("prev")) {
         if (!g_pCompositor->m_pLastMonitor)
             return INT_MAX;
 
@@ -401,12 +391,12 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 int beginID = finalWSID;
                 int curID   = finalWSID;
                 while (--curID > 0 && remainingWSes > 0) {
-                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                    if (!invalidWSes.contains(curID)) {
                         remainingWSes--;
                     }
                     finalWSID = curID;
                 }
-                if (finalWSID <= 0 || invalidWSes.find(finalWSID) != invalidWSes.end()) {
+                if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
                     if (namedWSes.size()) {
                         // Go to the named workspaces
                         // Need remainingWSes more
@@ -426,7 +416,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             if (walkDir == '+') {
                 int curID = finalWSID;
                 while (++curID < INT32_MAX && remainingWSes > 0) {
-                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                    if (!invalidWSes.contains(curID)) {
                         remainingWSes--;
                     }
                     finalWSID = curID;
@@ -539,10 +529,10 @@ void logSystemInfo() {
 
     uname(&unameInfo);
 
-    Debug::log(LOG, "System name: %s", unameInfo.sysname);
-    Debug::log(LOG, "Node name: %s", unameInfo.nodename);
-    Debug::log(LOG, "Release: %s", unameInfo.release);
-    Debug::log(LOG, "Version: %s", unameInfo.version);
+    Debug::log(LOG, "System name: {}", unameInfo.sysname);
+    Debug::log(LOG, "Node name: {}", unameInfo.nodename);
+    Debug::log(LOG, "Release: {}", unameInfo.release);
+    Debug::log(LOG, "Version: {}", unameInfo.version);
 
     Debug::log(NONE, "\n");
 
@@ -551,7 +541,7 @@ void logSystemInfo() {
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
-    Debug::log(LOG, "GPU information:\n%s\n", GPUINFO.c_str());
+    Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
 
     if (GPUINFO.contains("NVIDIA")) {
         Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
@@ -560,7 +550,7 @@ void logSystemInfo() {
     // log etc
     Debug::log(LOG, "os-release:");
 
-    Debug::log(NONE, "%s", execAndGet("cat /etc/os-release").c_str());
+    Debug::log(NONE, "{}", execAndGet("cat /etc/os-release"));
 }
 
 void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
@@ -604,8 +594,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
-    FILE*             infile;
+    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)
@@ -638,15 +628,15 @@ int64_t getPPIDof(int64_t pid) {
 }
 
 int64_t configStringToInt(const std::string& VALUE) {
-    if (VALUE.find("0x") == 0) {
+    if (VALUE.starts_with("0x")) {
         // Values with 0x are hex
         const auto VALUEWITHOUTHEX = VALUE.substr(2);
         return stol(VALUEWITHOUTHEX, nullptr, 16);
-    } else if (VALUE.find("rgba(") == 0 && VALUE.find(')') == VALUE.length() - 1) {
+    } else if (VALUE.starts_with("rgba(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
-            Debug::log(WARN, "invalid length %i for rgba", VALUEWITHOUTFUNC.length());
+            Debug::log(WARN, "invalid length {} for rgba", VALUEWITHOUTFUNC.length());
             throw std::invalid_argument("rgba() expects length of 8 characters (4 bytes)");
         }
 
@@ -654,20 +644,20 @@ int64_t configStringToInt(const std::string& VALUE) {
 
         // now we need to RGBA -> ARGB. The config holds ARGB only.
         return (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
-    } else if (VALUE.find("rgb(") == 0 && VALUE.find(')') == VALUE.length() - 1) {
+    } else if (VALUE.starts_with("rgb(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {
-            Debug::log(WARN, "invalid length %i for rgb", VALUEWITHOUTFUNC.length());
+            Debug::log(WARN, "invalid length {} for rgb", VALUEWITHOUTFUNC.length());
             throw std::invalid_argument("rgb() expects length of 6 characters (3 bytes)");
         }
 
         const auto RGB = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
 
         return RGB + 0xFF000000; // 0xFF for opaque
-    } else if (VALUE.find("true") == 0 || VALUE.find("on") == 0 || VALUE.find("yes") == 0) {
+    } else if (VALUE.starts_with("true") || VALUE.starts_with("on") || VALUE.starts_with("yes")) {
         return 1;
-    } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
+    } else if (VALUE.starts_with("false") || VALUE.starts_with("off") || VALUE.starts_with("no")) {
         return 0;
     }
     return std::stoll(VALUE);
@@ -701,9 +691,10 @@ std::string replaceInString(std::string subject, const std::string& search, cons
 std::vector<SCallstackFrameInfo> getBacktrace() {
     std::vector<SCallstackFrameInfo> callstack;
 
-    void*                            bt[1024];
-    size_t                           btSize;
-    char**                           btSymbols;
+#ifdef HAS_EXECINFO
+    void*  bt[1024];
+    size_t btSize;
+    char** btSymbols;
 
     btSize    = backtrace(bt, 1024);
     btSymbols = backtrace_symbols(bt, btSize);
@@ -711,11 +702,14 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
     for (size_t i = 0; i < btSize; ++i) {
         callstack.emplace_back(SCallstackFrameInfo{bt[i], std::string{btSymbols[i]}});
     }
+#else
+    callstack.emplace_back(SCallstackFrameInfo{nullptr, "configuration does not support execinfo.h"});
+#endif
 
     return callstack;
 }
 
 void throwError(const std::string& err) {
-    Debug::log(CRIT, "Critical error thrown: %s", err.c_str());
+    Debug::log(CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
 }

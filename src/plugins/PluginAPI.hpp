@@ -23,6 +23,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "../helpers/Color.hpp"
 #include "HookSystem.hpp"
 #include "../SharedDefs.hpp"
+#include "../version.h"
 
 #include <any>
 #include <functional>
@@ -40,6 +41,14 @@ struct SFunctionMatch {
     void*       address = nullptr;
     std::string signature;
     std::string demangled;
+};
+
+struct SVersionInfo {
+    std::string hash;
+    std::string tag;
+    bool        dirty = false;
+    std::string branch;
+    std::string message;
 };
 
 #define APICALL extern "C"
@@ -250,4 +259,20 @@ namespace HyprlandAPI {
         Empty means either none found or handle was invalid
     */
     APICALL std::vector<SFunctionMatch> findFunctionsByName(HANDLE handle, const std::string& name);
+
+    /*
+        Returns the hyprland version data. It's highly advised to not run plugins compiled
+        for a different hash.
+    */
+    APICALL SVersionInfo getHyprlandVersion(HANDLE handle);
 };
+
+/*
+    Get the hash this plugin/server was compiled with.
+
+    This function will end up in both hyprland and any/all plugins,
+    and can be found by a simple dlsym()
+*/
+APICALL inline EXPORT const char* __hyprland_api_get_hash() {
+    return GIT_COMMIT_HASH;
+}

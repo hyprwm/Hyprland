@@ -27,6 +27,7 @@
 #include "render/OpenGL.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
+#include "helpers/Watchdog.hpp"
 
 enum eManagersInitStage
 {
@@ -85,6 +86,7 @@ class CCompositor {
     wlr_session_lock_manager_v1*               m_sWLRSessionLockMgr;
     wlr_gamma_control_manager_v1*              m_sWLRGammaCtrlMgr;
     wlr_cursor_shape_manager_v1*               m_sWLRCursorShapeMgr;
+    wlr_tearing_control_manager_v1*            m_sWLRTearingControlMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szWLDisplaySocket   = "";
@@ -119,7 +121,8 @@ class CCompositor {
     bool                                      m_bReadyToProcess = false;
     bool                                      m_bSessionActive  = true;
     bool                                      m_bDPMSStateON    = true;
-    bool                                      m_bUnsafeState    = false; // unsafe state is when there is no monitors.
+    bool                                      m_bUnsafeState    = false;   // unsafe state is when there is no monitors.
+    wlr_output*                               m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
     bool                                      m_bIsShuttingDown = false;
 
     // ------------------------------------------------- //
@@ -139,6 +142,7 @@ class CCompositor {
     CWindow*       vectorToWindowTiled(const Vector2D&);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
     wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
+    Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
     CWindow*       windowFromCursor();
     CWindow*       windowFloatingFromCursor();
     CMonitor*      getMonitorFromOutput(wlr_output*);
@@ -160,7 +164,7 @@ class CCompositor {
     CWindow*       getFullscreenWindowOnWorkspace(const int&);
     bool           doesSeatAcceptInput(wlr_surface*);
     bool           isWindowActive(CWindow*);
-    void           moveWindowToTop(CWindow*);
+    void           changeWindowZOrder(CWindow*, bool);
     void           cleanupFadingOut(const int& monid);
     CWindow*       getWindowInDirection(CWindow*, char);
     CWindow*       getNextWindowOnWorkspace(CWindow*, bool focusableOnly = false);
@@ -201,6 +205,8 @@ class CCompositor {
     void           notifyIdleActivity();
     void           setIdleActivityInhibit(bool inhibit);
     void           arrangeMonitors();
+    void           enterUnsafeState();
+    void           leaveUnsafeState();
 
     std::string    explicitConfigPath;
 

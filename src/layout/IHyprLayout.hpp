@@ -13,7 +13,7 @@ struct SLayoutMessageHeader {
     CWindow* pWindow = nullptr;
 };
 
-enum eFullscreenMode : uint8_t;
+enum eFullscreenMode : int8_t;
 
 enum eRectCorner
 {
@@ -22,6 +22,15 @@ enum eRectCorner
     CORNER_TOPRIGHT,
     CORNER_BOTTOMRIGHT,
     CORNER_BOTTOMLEFT
+};
+
+enum eDirection
+{
+    DIRECTION_DEFAULT = -1,
+    DIRECTION_UP      = 0,
+    DIRECTION_RIGHT,
+    DIRECTION_DOWN,
+    DIRECTION_LEFT
 };
 
 class IHyprLayout {
@@ -35,8 +44,8 @@ class IHyprLayout {
         The layout HAS TO set the goal pos and size (anim mgr will use it)
         If !animationinprogress, then the anim mgr will not apply an anim.
     */
-    virtual void onWindowCreated(CWindow*);
-    virtual void onWindowCreatedTiling(CWindow*) = 0;
+    virtual void onWindowCreated(CWindow*, eDirection direction = DIRECTION_DEFAULT);
+    virtual void onWindowCreatedTiling(CWindow*, eDirection direction = DIRECTION_DEFAULT) = 0;
     virtual void onWindowCreatedFloating(CWindow*);
 
     /*
@@ -156,9 +165,21 @@ class IHyprLayout {
     virtual void replaceWindowDataWith(CWindow* from, CWindow* to) = 0;
 
     /*
+        Determines if a window can be focused. If hidden this usually means the window is part of a group.
+    */
+    virtual bool isWindowReachable(CWindow*);
+
+    /*
+        Called before an attempt is made to focus a window.
+        Brings the window to the top of any groups and ensures it is not hidden.
+        If the window is unmapped following this call, the focus attempt will fail.
+    */
+    virtual void bringWindowToTop(CWindow*);
+
+    /*
         Called via the foreign toplevel activation protocol.
         Focuses a window, bringing it to the top of its group if applicable.
-				May be ignored.
+        May be ignored.
     */
     virtual void requestFocusForWindow(CWindow*);
 

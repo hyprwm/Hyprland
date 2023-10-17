@@ -1,0 +1,29 @@
+name: Nix
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # check daily
+
+jobs:
+  update:
+    name: inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT }}
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: Update inputs
+        run: nix/update-inputs.sh
+
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "[gha] Nix: update inputs"
+
+  update-build:
+    needs: update
+    uses: ./.github/workflows/nix-build.yml
+    secrets: inherit

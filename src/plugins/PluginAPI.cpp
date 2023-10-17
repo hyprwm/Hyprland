@@ -153,7 +153,7 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
     if (!PLUGIN)
         return false;
 
-    if (name.find("plugin:") != 0)
+    if (!name.starts_with("plugin:"))
         return false;
 
     g_pConfigManager->addPluginConfigVar(handle, name, value);
@@ -301,11 +301,15 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
             count++;
         }
 
-        return SYMBOLSDEMANGLED.substr(pos, SYMBOLSDEMANGLED.find('\n', pos + 1) - pos);
+        // Skip the newline char itself
+        if (pos != 0)
+            pos++;
+
+        return SYMBOLSDEMANGLED.substr(pos, SYMBOLSDEMANGLED.find('\n', pos) - pos);
     };
 
     if (SYMBOLS.empty()) {
-        Debug::log(ERR, "Unable to search for function \"%s\": no symbols found in binary (is \"%s\" in path?)", name.c_str(),
+        Debug::log(ERR, "Unable to search for function \"{}\": no symbols found in binary (is \"{}\" in path?)", name,
 #ifdef __clang__
                    "llvm-nm"
 #else
@@ -333,4 +337,13 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     }
 
     return matches;
+}
+
+APICALL SVersionInfo HyprlandAPI::getHyprlandVersion(HANDLE handle) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return {};
+
+    return {GIT_COMMIT_HASH, GIT_TAG, GIT_DIRTY != std::string(""), GIT_BRANCH, GIT_COMMIT_MESSAGE};
 }

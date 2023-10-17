@@ -1,7 +1,6 @@
 #pragma once
 
 #include "defines.hpp"
-#include "events/Events.hpp"
 #include "helpers/SubsurfaceTree.hpp"
 #include "helpers/AnimatedVariable.hpp"
 #include "render/decorations/IHyprWindowDecoration.hpp"
@@ -9,12 +8,28 @@
 #include "config/ConfigDataValues.hpp"
 #include "helpers/Vector2D.hpp"
 #include "helpers/WLSurface.hpp"
+#include "macros.hpp"
+#include "managers/XWaylandManager.hpp"
 
-enum eIdleInhibitMode {
+enum eIdleInhibitMode
+{
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
     IDLEINHIBIT_FOCUS
+};
+
+enum eGroupRules
+{
+    // effective only during first map, except for _ALWAYS variant
+    GROUP_NONE        = 0,
+    GROUP_SET         = 1 << 0, // Open as new group or add to focused group
+    GROUP_SET_ALWAYS  = 1 << 1,
+    GROUP_BARRED      = 1 << 2, // Don't insert to focused group.
+    GROUP_LOCK        = 1 << 3, // Lock m_sGroupData.lock
+    GROUP_LOCK_ALWAYS = 1 << 4,
+    GROUP_INVADE      = 1 << 5, // Force enter a group, event if lock is engaged
+    GROUP_OVERRIDE    = 1 << 6, // Override other rules
 };
 
 template <typename T>
@@ -125,6 +140,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool> keepAspectRatio       = false;
     CWindowOverridableVar<int>  xray                  = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<int>  borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
+    CWindowOverridableVar<bool> forceTearing          = false;
 };
 
 struct SWindowRule {
@@ -299,8 +315,12 @@ class CWindow {
     struct SGroupData {
         CWindow* pNextWindow = nullptr; // nullptr means no grouping. Self means single group.
         bool     head        = false;
-        bool     locked      = false;
+        bool     locked      = false; // per group lock
+        bool     deny        = false; // deny window from enter a group or made a group
     } m_sGroupData;
+    uint16_t m_eGroupRules = GROUP_NONE;
+
+    bool     m_bTearingHint = false;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
@@ -333,6 +353,7 @@ class CWindow {
     Vector2D                 middle();
     bool                     opaque();
     float                    rounding();
+    bool                     canBeTorn();
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();
@@ -341,6 +362,9 @@ class CWindow {
     bool                     isInCurvedCorner(double x, double y);
     bool                     hasPopupAt(const Vector2D& pos);
 
+    void                     applyGroupRules();
+    void                     createGroup();
+    void                     destroyGroup();
     CWindow*                 getGroupHead();
     CWindow*                 getGroupTail();
     CWindow*                 getGroupCurrent();
@@ -355,4 +379,45 @@ class CWindow {
   private:
     // For hidden windows and stuff
     bool m_bHidden = false;
+};
+
+/**
+    format specification
+    - 'x', only address, equivalent of (uintpr_t)CWindow*
+    - 'm', with monitor id
+    - 'w', with workspace id
+    - 'c', with application class
+*/
+
+template <typename CharT>
+struct std::formatter<CWindow*, CharT> : std::formatter<CharT> {
+    bool formatAddressOnly = false;
+    bool formatWorkspace   = false;
+    bool formatMonitor     = false;
+    bool formatClass       = false;
+    FORMAT_PARSE(                           //
+        FORMAT_FLAG('x', formatAddressOnly) //
+        FORMAT_FLAG('m', formatMonitor)     //
+        FORMAT_FLAG('w', formatWorkspace)   //
+        FORMAT_FLAG('c', formatClass),
+        CWindow*)
+
+    template <typename FormatContext>
+    auto format(CWindow* const& w, FormatContext& ctx) const {
+        auto&& out = ctx.out();
+        if (formatAddressOnly)
+            return std::format_to(out, "{:x}", (uintptr_t)w);
+        if (!w)
+            return std::format_to(out, "[Window nullptr]");
+
+        std::format_to(out, "[");
+        std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w, w->m_szTitle);
+        if (formatWorkspace)
+            std::format_to(out, ", workspace: {}", w->m_iWorkspaceID);
+        if (formatMonitor)
+            std::format_to(out, ", monitor: {}", w->m_iMonitorID);
+        if (formatClass)
+            std::format_to(out, ", class: {}", g_pXWaylandManager->getAppIDClass(w));
+        return std::format_to(out, "]");
+    }
 };

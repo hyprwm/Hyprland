@@ -23,12 +23,14 @@ struct SKeybind {
     bool        mouse        = false;
     bool        nonConsuming = false;
     bool        transparent  = false;
+    bool        ignoreMods   = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
 };
 
-enum eFocusWindowMode {
+enum eFocusWindowMode
+{
     MODE_CLASS_REGEX = 0,
     MODE_TITLE_REGEX,
     MODE_ADDRESS,

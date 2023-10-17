@@ -41,8 +41,6 @@ void CInputManager::simulateMouseMovement() {
     clock_gettime(CLOCK_MONOTONIC, &now);
     m_vLastCursorPosFloored = m_vLastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
     mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000);
-
-    m_tmrLastCursorMovement.reset();
 }
 
 void CInputManager::sendMotionEventsToFocused() {

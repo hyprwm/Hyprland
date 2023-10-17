@@ -435,7 +435,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
-        if (!IGNORECONDITIONS && (modmask != k.modmask || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
+        if (!IGNORECONDITIONS &&
+            ((modmask != k.modmask && !k.ignoreMods) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
         if (!key.empty()) {

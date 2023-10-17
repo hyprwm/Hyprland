@@ -832,6 +832,7 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
     bool       mouse        = false;
     bool       nonConsuming = false;
     bool       transparent  = false;
+    bool       ignoreMods   = false;
     const auto BINDARGS     = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -847,6 +848,8 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
             nonConsuming = true;
         } else if (arg == 't') {
             transparent = true;
+        } else if (arg == 'i') {
+            ignoreMods = true;
         } else {
             parseError = "bind: invalid flag";
             return;
@@ -904,12 +907,13 @@ void CConfigManager::handleBind(const std::string& command, const std::string& v
 
     if (KEY != "") {
         if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
+            g_pKeybindManager->addKeybind(
+                SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
         else if (KEY.starts_with("code:") && isNumber(KEY.substr(5)))
             g_pKeybindManager->addKeybind(
-                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
+                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
         else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent});
+            g_pKeybindManager->addKeybind(SKeybind{KEY, -1, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
     }
 }
 

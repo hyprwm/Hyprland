@@ -69,13 +69,13 @@ if get_option('buildtype') == 'debug'
   add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
 endif
 
+version_h = run_command('sh', '-c', 'scripts/generateVersion.sh')
+
 globber = run_command('find', 'src', '-name', '*.h*', check: true)
 headers = globber.stdout().strip().split('\n')
 foreach file : headers
   install_headers(file, subdir: 'hyprland', preserve_path: true)
 endforeach
-
-version_h = run_command('sh', '-c', 'scripts/generateVersion.sh')
 
 subdir('protocols')
 subdir('src')

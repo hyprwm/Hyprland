@@ -24,15 +24,15 @@ index 1d2c7f9f..c5ef4e67 100644
    add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
  endif
  
-@@ -75,8 +62,6 @@ foreach file : headers
-   install_headers(file, subdir: 'hyprland', preserve_path: true)
- endforeach
+@@ -69,8 +56,6 @@ if get_option('buildtype') == 'debug'
+   add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
+ endif
  
 -version_h = run_command('sh', '-c', 'scripts/generateVersion.sh')
 -
- subdir('protocols')
- subdir('src')
- subdir('hyprctl')
+ globber = run_command('find', 'src', '-name', '*.h*', check: true)
+ headers = globber.stdout().strip().split('\n')
+ foreach file : headers
 diff --git a/src/meson.build b/src/meson.build
 index 0af864b9..38723b8c 100644
 --- a/src/meson.build

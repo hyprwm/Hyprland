@@ -2044,7 +2044,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
             Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
 
-            g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID, "", false);
+            g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID, "");
         }
 
         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
@@ -2431,7 +2431,7 @@ bool CCompositor::cursorOnReservedArea() {
     return !VECINRECT(CURSORPOS, XY1.x, XY1.y, XY2.x, XY2.y);
 }
 
-CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, const std::string& name, bool isEmpty) {
+CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, const std::string& name) {
     const auto NAME  = name == "" ? std::to_string(id) : name;
     auto       monID = monid;
 
@@ -2446,13 +2446,6 @@ CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, con
 
     PWORKSPACE->m_iID        = id;
     PWORKSPACE->m_iMonitorID = monID;
-
-    if (isEmpty) {
-        const SWorkspaceRule workspaceRule = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
-        if (!workspaceRule.onCreatedEmptyRunCmd.empty()) {
-            g_pKeybindManager->spawn(workspaceRule.onCreatedEmptyRunCmd);
-        }
-    }
 
     return PWORKSPACE;
 }

@@ -1194,24 +1194,33 @@ void CCompositor::sanityCheckWorkspaces() {
             continue;
         }
 
-        const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace((*it)->m_iID);
+        const auto& WORKSPACE = *it;
+        const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace(WORKSPACE->m_iID);
 
-        if ((WINDOWSONWORKSPACE == 0 && !isWorkspaceVisible((*it)->m_iID))) {
+        if (WINDOWSONWORKSPACE == 0) {
+            if (!isWorkspaceVisible(WORKSPACE->m_iID)) {
 
-            if ((*it)->m_bIsSpecialWorkspace) {
-                if ((*it)->m_fAlpha.fl() > 0.f /* don't abruptly end the fadeout */) {
-                    ++it;
-                    continue;
+                if (WORKSPACE->m_bIsSpecialWorkspace) {
+                    if (WORKSPACE->m_fAlpha.fl() > 0.f /* don't abruptly end the fadeout */) {
+                        ++it;
+                        continue;
+                    }
+
+                    const auto PMONITOR = getMonitorFromID(WORKSPACE->m_iMonitorID);
+
+                    if (PMONITOR && PMONITOR->specialWorkspaceID == WORKSPACE->m_iID)
+                        PMONITOR->setSpecialWorkspace(nullptr);
                 }
 
-                const auto PMONITOR = getMonitorFromID((*it)->m_iMonitorID);
-
-                if (PMONITOR && PMONITOR->specialWorkspaceID == (*it)->m_iID)
-                    PMONITOR->setSpecialWorkspace(nullptr);
+                it = m_vWorkspaces.erase(it);
+                continue;
             }
+            if (!WORKSPACE->m_bOnCreatedEmptyExecuted) {
+                if (!WORKSPACERULE.onCreatedEmptyRunCmd.empty())
+                    g_pKeybindManager->spawn(WORKSPACERULE.onCreatedEmptyRunCmd);
 
-            it = m_vWorkspaces.erase(it);
-            continue;
+                WORKSPACE->m_bOnCreatedEmptyExecuted = true;
+            }
         }
 
         ++it;

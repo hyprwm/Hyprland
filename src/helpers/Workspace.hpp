@@ -53,6 +53,9 @@ class CWorkspace {
     // last monitor (used on reconnect)
     std::string m_szLastMonitor = "";
 
+    // Whether the user configured command for on-created-empty has been executed, if any
+    bool m_bOnCreatedEmptyExecuted = false;
+
     void        startAnim(bool in, bool left, bool instant = false);
     void        setActive(bool on);
 

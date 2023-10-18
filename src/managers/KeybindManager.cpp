@@ -812,7 +812,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     const bool         EXPLICITPREVIOUS  = args.starts_with("previous");
 
-    if (EXPLICITPREVIOUS) {
+    if (args.starts_with("previous")) {
         // Do nothing if there's no previous workspace, otherwise switch to it.
         if (PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1) {
             Debug::log(LOG, "No previous workspace to change to");
@@ -844,10 +844,9 @@ void CKeybindManager::changeworkspace(std::string args) {
     g_pInputManager->m_bEmptyFocusCursorSet = false;
 
     auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.iID : workspaceToChangeTo);
-    if (!pWorkspaceToChangeTo) {
+    if (!pWorkspaceToChangeTo)
         pWorkspaceToChangeTo = g_pCompositor->createNewWorkspace(BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.iID : workspaceToChangeTo, PMONITOR->ID,
                                                                  BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.name : workspaceName);
-    }
 
     if (!BISWORKSPACECURRENT && pWorkspaceToChangeTo->m_bIsSpecialWorkspace) {
         PMONITOR->setSpecialWorkspace(pWorkspaceToChangeTo);
@@ -1470,9 +1469,8 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
         Debug::log(LOG, "Toggling special workspace {} to open", workspaceID);
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
-        if (!PSPECIALWORKSPACE) {
+        if (!PSPECIALWORKSPACE)
             PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
-        }
 
         PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);
     }

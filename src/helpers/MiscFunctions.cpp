@@ -527,9 +527,8 @@ std::string cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string
                 }
             });
 
-            if (!hadWorkspaceRule) {
+            if (!hadWorkspaceRule)
                 rulesList.append(workspaceRule);
-            }
 
             rules = "[" + rulesList.join(";") + "]";
         } else {
@@ -539,7 +538,7 @@ std::string cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string
         return rules + " " + cmd;
     }
 
-    return {};
+    return "";
 }
 
 float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2) {

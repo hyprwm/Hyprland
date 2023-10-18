@@ -5,11 +5,6 @@ include(CheckIncludeFile)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/props.json PROPS)
 string(JSON VER GET ${PROPS} version)
 
-# Avoid having an empty `CMAKE_BUILD_TYPE`.
-if(NOT DEFINED CMAKE_BUILD_TYPE_INIT)
-  set(CMAKE_BUILD_TYPE_INIT "Release")
-endif()
-
 project(Hyprland
     DESCRIPTION "A Modern C++ Wayland Compositor"
     VERSION ${VER}
@@ -38,7 +33,24 @@ add_subdirectory("subprojects/udis86")
 message(STATUS "Setting up wlroots")
 
 include(ExternalProject)
-string(TOLOWER ${CMAKE_BUILD_TYPE} BUILDTYPE_LOWER)
+
+if(CMAKE_BUILD_TYPE)
+    string(TOLOWER ${CMAKE_BUILD_TYPE} BUILDTYPE_LOWER)
+    if(BUILDTYPE_LOWER STREQUAL "release")
+        # Pass.
+    elseif(BUILDTYPE_LOWER STREQUAL "debug")
+        # Pass.
+    elseif(BUILDTYPE_LOWER STREQUAL "relwithdebinfo")
+        set(BUILDTYPE_LOWER "debugoptimized")
+    elseif(BUILDTYPE_LOWER STREQUAL "minsizerel")
+        set(BUILDTYPE_LOWER "minsize")
+    else()
+        set(BUILDTYPE_LOWER "release")
+    endif()
+else()
+    set(BUILDTYPE_LOWER "release")
+endif()
+
 ExternalProject_Add(
     wlroots
     PREFIX ${CMAKE_SOURCE_DIR}/subprojects/wlroots

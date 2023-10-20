@@ -230,36 +230,41 @@ static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat
 }
 
 static std::string getWorkspaceRuleData(const SWorkspaceRule& r, HyprCtl::eHyprCtlOutputFormat format) {
+    const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
     if (format == HyprCtl::FORMAT_JSON) {
-
-        const std::string gapsIn     = (bool)(r.gapsIn) ? std::format(R"#("gapsIn": {},)#", r.gapsIn.value()) : "";
-        const std::string gapsOut    = (bool)(r.gapsOut) ? std::format(R"#("gapsOut": {},)#", r.gapsOut.value()) : "";
-        const std::string borderSize = (bool)(r.borderSize) ? std::format(R"#("borderSize": {},)#", r.borderSize.value()) : "";
-        const std::string border     = (bool)(r.border) ? std::format(R"#("border": {},)#", r.border.value()) : "";
-        const std::string rounding   = (bool)(r.rounding) ? std::format(R"#("rounding": {},)#", r.rounding.value()) : "";
-        const std::string decorate   = (bool)(r.decorate) ? std::format(R"#("decorate": {},)#", r.decorate.value()) : "";
-        const std::string shadow     = (bool)(r.shadow) ? std::format(R"#("shadow": {},)#", r.shadow.value()) : "";
+        const std::string monitor    = r.monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.monitor));
+        const std::string default_   = (bool)(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
+        const std::string persistent = (bool)(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
+        const std::string gapsIn     = (bool)(r.gapsIn) ? std::format(",\n    \"gapsIn\": {}", r.gapsIn.value()) : "";
+        const std::string gapsOut    = (bool)(r.gapsOut) ? std::format(",\n    \"gapsOut\": {}", r.gapsOut.value()) : "";
+        const std::string borderSize = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
+        const std::string border     = (bool)(r.border) ? std::format(",\n    \"border\": {}", boolToString(r.border.value())) : "";
+        const std::string rounding   = (bool)(r.rounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.rounding.value())) : "";
+        const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
+        const std::string shadow     = (bool)(r.shadow) ? std::format(",\n    \"shadow\": {}", boolToString(r.shadow.value())) : "";
 
         std::string       result = std::format(R"#({{
-    "workspaceId": {},
-    "workspaceName": "{}",
-    "monitor": "{}",
-    "workspaceString": "{}",
-    "isDefault": {},
-    "isPersistent": {},
-    {}{}{}{}{}{}{}
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}
 }})#",
-                                               r.workspaceId, escapeJSONStrings(r.workspaceName), escapeJSONStrings(r.monitor), escapeJSONStrings(r.workspaceString),
-                                               (r.isDefault ? "true" : "false"), (r.isPersistent ? "true" : "false"),
-
-                                               gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow);
-
-        trimTrailingComma(result);
+                                               escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow);
 
         return result;
     } else {
+        const std::string monitor    = r.monitor.empty() ? "" : std::format(",monitor:{}", escapeJSONStrings(r.monitor));
+        const std::string default_   = (bool)(r.isDefault) ? std::format(",default:{}", boolToString(r.isDefault)) : "";
+        const std::string persistent = (bool)(r.isPersistent) ? std::format(",persistent:{}", boolToString(r.isPersistent)) : "";
+        const std::string gapsIn     = (bool)(r.gapsIn) ? std::format(",gapsIn:{}", r.gapsIn.value()) : "";
+        const std::string gapsOut    = (bool)(r.gapsOut) ? std::format(",gapsOut:{}", r.gapsOut.value()) : "";
+        const std::string borderSize = (bool)(r.borderSize) ? std::format(",borderSize:{}", r.borderSize.value()) : "";
+        const std::string border     = (bool)(r.border) ? std::format(",border:{}", boolToString(r.border.value())) : "";
+        const std::string rounding   = (bool)(r.rounding) ? std::format(",rounding:{}", boolToString(r.rounding.value())) : "";
+        const std::string decorate   = (bool)(r.decorate) ? std::format(",decorate:{}", boolToString(r.decorate.value())) : "";
+        const std::string shadow     = (bool)(r.shadow) ? std::format(",shadow:{}", boolToString(r.shadow.value())) : "";
 
-        return "not implemented yet";
+        std::string result = std::format("workspace={}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize,
+                                         border, rounding, decorate, shadow);
+
+        return result;
     }
 }
 std::string activeWorkspaceRequest(HyprCtl::eHyprCtlOutputFormat format) {

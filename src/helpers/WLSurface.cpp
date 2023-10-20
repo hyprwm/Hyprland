@@ -27,12 +27,29 @@ wlr_surface* CWLSurface::wlr() const {
     return m_pWLRSurface;
 }
 
+bool CWLSurface::small() const {
+    if (!m_pOwner || !exists())
+        return false;
+
+    return m_pOwner->m_vReportedSize.x > m_pWLRSurface->current.buffer_width || m_pOwner->m_vReportedSize.y > m_pWLRSurface->current.buffer_height;
+}
+
+Vector2D CWLSurface::correctSmallVec() const {
+    if (!m_pOwner || !exists() || !small() || m_bFillIgnoreSmall)
+        return {};
+
+    return Vector2D{(m_pOwner->m_vReportedSize.x - m_pWLRSurface->current.buffer_width) / 2, (m_pOwner->m_vReportedSize.y - m_pWLRSurface->current.buffer_height) / 2}.clamp(
+               {}, {INFINITY, INFINITY}) *
+        (m_pOwner->m_vRealSize.vec() / m_pOwner->m_vReportedSize);
+}
+
 void CWLSurface::destroy() {
     if (!m_pWLRSurface)
         return;
 
     hyprListener_destroy.removeCallback();
     m_pWLRSurface->data = nullptr;
+    m_pOwner            = nullptr;
 
     if (g_pCompositor->m_pLastFocus == m_pWLRSurface)
         g_pCompositor->m_pLastFocus = nullptr;

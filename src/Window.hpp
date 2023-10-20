@@ -203,6 +203,7 @@ class CWindow {
     // for not spamming the protocols
     Vector2D m_vReportedPosition;
     Vector2D m_vReportedSize;
+    Vector2D m_vPendingReportedSize;
 
     // for restoring floating statuses
     Vector2D m_vLastFloatingSize;

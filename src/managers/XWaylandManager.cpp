@@ -163,8 +163,8 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
     if (!force && ((pWindow->m_vReportedSize == size && windowPos == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
         return;
 
-    pWindow->m_vReportedPosition = windowPos;
-    pWindow->m_vReportedSize     = size;
+    pWindow->m_vReportedPosition    = windowPos;
+    pWindow->m_vPendingReportedSize = size;
 
     pWindow->m_fX11SurfaceScaledBy = 1.f;
 

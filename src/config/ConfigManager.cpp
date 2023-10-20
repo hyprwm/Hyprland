@@ -1850,7 +1850,10 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const st
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
     const auto WORKSPACEIDSTR = std::to_string(pWorkspace->m_iID);
     const auto IT             = std::find_if(m_dWorkspaceRules.begin(), m_dWorkspaceRules.end(), [&](const auto& other) {
-        return other.workspaceName == pWorkspace->m_szName || (pWorkspace->m_iID > 0 && WORKSPACEIDSTR == other.workspaceName);
+        return other.workspaceName == pWorkspace->m_szName /* name matches */
+            || (pWorkspace->m_bIsSpecialWorkspace && other.workspaceName.starts_with("special:") &&
+                other.workspaceName.substr(8) == pWorkspace->m_szName)           /* special and special:name */
+            || (pWorkspace->m_iID > 0 && WORKSPACEIDSTR == other.workspaceName); /* id matches and workspace is numerical */
     });
     if (IT == m_dWorkspaceRules.end())
         return SWorkspaceRule{};

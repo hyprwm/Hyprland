@@ -23,9 +23,29 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, RDATA->pMonitor->output, &outputX, &outputY);
 
     wlr_box windowBox;
-    if (RDATA->surface && surface == RDATA->surface)
+    if (RDATA->surface && surface == RDATA->surface) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
-    else { //  here we clamp to 2, these might be some tiny specks
+
+        // however, if surface buffer w / h < box, we need to adjust them
+        auto* const PSURFACE = CWLSurface::surfaceFromWlr(surface);
+
+        if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees m_pOwner */) {
+            const auto CORRECT                     = PSURFACE->correctSmallVec();
+            const auto INTERACTIVERESIZEINPROGRESS = g_pInputManager->currentlyDraggedWindow == PSURFACE->m_pOwner && g_pInputManager->dragMode == MBIND_RESIZE;
+
+            if (!INTERACTIVERESIZEINPROGRESS) {
+                windowBox.x += CORRECT.x;
+                windowBox.y += CORRECT.y;
+
+                windowBox.width  = (double)surface->current.buffer_width * (PSURFACE->m_pOwner->m_vRealSize.vec().x / PSURFACE->m_pOwner->m_vReportedSize.x);
+                windowBox.height = (double)surface->current.buffer_height * (PSURFACE->m_pOwner->m_vRealSize.vec().y / PSURFACE->m_pOwner->m_vReportedSize.y);
+            } else {
+                windowBox.width  = (double)surface->current.buffer_width;
+                windowBox.height = (double)surface->current.buffer_height;
+            }
+        }
+
+    } else { //  here we clamp to 2, these might be some tiny specks
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::max(surface->current.width, 2), std::max(surface->current.height, 2)};
         if (RDATA->pWindow && RDATA->pWindow->m_vRealSize.isBeingAnimated() && RDATA->surface && RDATA->surface != surface && RDATA->squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
@@ -668,7 +688,7 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
         wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, &geom);
 
         // ignore X and Y, adjust uv
-        if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.goalv().x || geom.height > pWindow->m_vRealSize.goalv().y) {
+        if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.vec().x || geom.height > pWindow->m_vRealSize.vec().y) {
             const auto XPERC = (double)geom.x / (double)pSurface->current.width;
             const auto YPERC = (double)geom.y / (double)pSurface->current.height;
             const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.width;
@@ -678,9 +698,9 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
             uvBR               = uvBR - Vector2D(1.0 - WPERC * (uvBR.x - uvTL.x), 1.0 - HPERC * (uvBR.y - uvTL.y));
             uvTL               = uvTL + TOADDTL;
 
-            if (geom.width > pWindow->m_vRealSize.goalv().x || geom.height > pWindow->m_vRealSize.goalv().y) {
-                uvBR.x = uvBR.x * (pWindow->m_vRealSize.goalv().x / geom.width);
-                uvBR.y = uvBR.y * (pWindow->m_vRealSize.goalv().y / geom.height);
+            if (geom.width > pWindow->m_vRealSize.vec().x || geom.height > pWindow->m_vRealSize.vec().y) {
+                uvBR.x = uvBR.x * (pWindow->m_vRealSize.vec().x / geom.width);
+                uvBR.y = uvBR.y * (pWindow->m_vRealSize.vec().y / geom.height);
             }
         }
 
@@ -1391,6 +1411,13 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
 
     if (g_pCompositor->m_bUnsafeState)
         return;
+
+    auto* const PSURFACE = CWLSurface::surfaceFromWlr(pSurface);
+    if (PSURFACE && PSURFACE->m_pOwner && PSURFACE->small()) {
+        const auto CORRECTION = PSURFACE->correctSmallVec();
+        x += CORRECTION.x;
+        y += CORRECTION.y;
+    }
 
     CRegion damageBox;
     wlr_surface_get_effective_damage(pSurface, damageBox.pixman());

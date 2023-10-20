@@ -424,6 +424,7 @@ void CWindow::onUnmap() {
 void CWindow::onMap() {
 
     m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(this));
+    m_pWLSurface.m_pOwner = this;
 
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
     m_vRealPosition.resetAllCallbacks();
@@ -453,6 +454,8 @@ void CWindow::onMap() {
 
     hyprListener_unmapWindow.initCallback(m_bIsX11 ? &m_uSurface.xwayland->surface->events.unmap : &m_uSurface.xdg->surface->events.unmap, &Events::listener_unmapWindow, this,
                                           "CWindow");
+
+    m_vReportedSize = m_vPendingReportedSize;
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {
@@ -881,6 +884,9 @@ bool CWindow::opaque() {
         return false;
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+
+    if (m_pWLSurface.small() && !m_pWLSurface.m_bFillIgnoreSmall)
+        return false;
 
     if (PWORKSPACE->m_fAlpha.fl() != 1.f)
         return false;

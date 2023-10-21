@@ -250,19 +250,19 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, HyprCtl::eHyprC
 
         return result;
     } else {
-        const std::string monitor    = r.monitor.empty() ? "" : std::format(",monitor:{}", escapeJSONStrings(r.monitor));
-        const std::string default_   = (bool)(r.isDefault) ? std::format(",default:{}", boolToString(r.isDefault)) : "";
-        const std::string persistent = (bool)(r.isPersistent) ? std::format(",persistent:{}", boolToString(r.isPersistent)) : "";
-        const std::string gapsIn     = (bool)(r.gapsIn) ? std::format(",gapsIn:{}", r.gapsIn.value()) : "";
-        const std::string gapsOut    = (bool)(r.gapsOut) ? std::format(",gapsOut:{}", r.gapsOut.value()) : "";
-        const std::string borderSize = (bool)(r.borderSize) ? std::format(",borderSize:{}", r.borderSize.value()) : "";
-        const std::string border     = (bool)(r.border) ? std::format(",border:{}", boolToString(r.border.value())) : "";
-        const std::string rounding   = (bool)(r.rounding) ? std::format(",rounding:{}", boolToString(r.rounding.value())) : "";
-        const std::string decorate   = (bool)(r.decorate) ? std::format(",decorate:{}", boolToString(r.decorate.value())) : "";
-        const std::string shadow     = (bool)(r.shadow) ? std::format(",shadow:{}", boolToString(r.shadow.value())) : "";
+        const std::string monitor    = std::format("\tmonitor:{}\n", r.monitor.empty() ? "<unset>" : escapeJSONStrings(r.monitor));
+        const std::string default_   = std::format("\tdefault:{}\n", (bool)(r.isDefault) ? boolToString(r.isDefault) : "<unset>");
+        const std::string persistent = std::format("\tpersistent:{}\n", (bool)(r.isPersistent) ? boolToString(r.isPersistent) : "<unset>");
+        const std::string gapsIn     = std::format("\tgapsIn:{}\n", (bool)(r.gapsIn) ? std::to_string(r.gapsIn.value()) : "<unset>");
+        const std::string gapsOut    = std::format("\tgapsOut:{}\n", (bool)(r.gapsOut) ? std::to_string(r.gapsOut.value()) : "<unset>");
+        const std::string borderSize = std::format("\tborderSize:{}\n", (bool)(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
+        const std::string border     = std::format("\tborder:{}\n", (bool)(r.border) ? boolToString(r.border.value()) : "<unset>");
+        const std::string rounding   = std::format("\trounding:{}\n", (bool)(r.rounding) ? boolToString(r.rounding.value()) : "<unset>");
+        const std::string decorate   = std::format("\tdecorate:{}\n", (bool)(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
+        const std::string shadow     = std::format("\tshadow:{}\n", (bool)(r.shadow) ? boolToString(r.shadow.value()) : "<unset>");
 
-        std::string result = std::format("workspace={}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize,
-                                         border, rounding, decorate, shadow);
+        std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
+                                               borderSize, border, rounding, decorate, shadow);
 
         return result;
     }

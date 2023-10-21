@@ -58,9 +58,9 @@ void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver
 }
 
 CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, std::any param) { this->updateAllOutputs(); });
-    g_pHookSystem->hookDynamic("configReloaded", [this](void* self, std::any param) { this->updateAllOutputs(); });
-    g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, std::any param) {
+    g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
+    g_pHookSystem->hookDynamic("configReloaded", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
+    g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
         const auto PMONITOR = std::any_cast<CMonitor*>(param);
         std::erase_if(m_vXDGOutputs, [&](const auto& other) {
             const auto REMOVE = other->monitor == PMONITOR;

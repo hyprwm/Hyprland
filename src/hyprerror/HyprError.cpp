@@ -5,7 +5,7 @@ CHyprError::CHyprError() {
     m_fFadeOpacity.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), nullptr, AVARDAMAGE_NONE);
     m_fFadeOpacity.registerVar();
 
-    g_pHookSystem->hookDynamic("focusedMon", [&](void* self, std::any param) {
+    g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
         if (!m_bIsCreated)
             return;
 
@@ -13,7 +13,7 @@ CHyprError::CHyprError() {
         m_bMonitorChanged = true;
     });
 
-    g_pHookSystem->hookDynamic("preRender", [&](void* self, std::any param) {
+    g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any param) {
         if (!m_bIsCreated)
             return;
 

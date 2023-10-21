@@ -29,6 +29,7 @@ commands:
     monitors
     workspaces
     activeworkspace
+    workspacerules
     clients
     activewindow
     layers
@@ -369,6 +370,8 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/workspaces"))
         request(fullRequest);
     else if (fullRequest.contains("/activeworkspace"))
+        request(fullRequest);
+    else if (fullRequest.contains("/workspacerules"))
         request(fullRequest);
     else if (fullRequest.contains("/activewindow"))
         request(fullRequest);

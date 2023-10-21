@@ -412,8 +412,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
         const bool TRANSFORMERSPRESENT = !pWindow->m_vTransformers.empty();
 
-        if (TRANSFORMERSPRESENT)
+        if (TRANSFORMERSPRESENT) {
             g_pHyprOpenGL->bindOffMain();
+
+            for (auto& t : pWindow->m_vTransformers) {
+                t->preWindowRender(&renderdata);
+            }
+        }
 
         if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
             for (auto& wd : pWindow->m_dWindowDecorations)

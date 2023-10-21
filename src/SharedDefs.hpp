@@ -23,3 +23,7 @@ enum eRenderStage
     RENDER_PRE_WINDOW,   /* Before rendering a window (any pass) Note some windows (e.g. tiled) may have 2 passes (main & popup) */
     RENDER_POST_WINDOW,  /* After rendering a window (any pass) */
 };
+
+struct SCallbackInfo {
+    bool cancelled = false; /* on cancellable events, will cancel the event. */
+};

@@ -77,7 +77,7 @@ CKeybindManager::CKeybindManager() {
 
     m_tScrollTimer.reset();
 
-    g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, std::any param) {
+    g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
         // clear cuz realloc'd
         m_pActiveKeybind = nullptr;
         m_vPressedSpecialBinds.clear();

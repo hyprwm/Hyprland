@@ -119,7 +119,7 @@ CScreencopyClient::~CScreencopyClient() {
 CScreencopyClient::CScreencopyClient() {
     lastMeasure.reset();
     lastFrame.reset();
-    tickCallback = g_pHookSystem->hookDynamic("tick", [&](void* self, std::any data) { onTick(); });
+    tickCallback = g_pHookSystem->hookDynamic("tick", [&](void* self, SCallbackInfo& info, std::any data) { onTick(); });
 }
 
 void CScreencopyClient::onTick() {

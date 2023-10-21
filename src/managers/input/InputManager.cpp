@@ -97,10 +97,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored && !refocus)
         return;
 
+    EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
+
     if (time)
         g_pCompositor->notifyIdleActivity();
-
-    EMIT_HOOK_EVENT("mouseMove", MOUSECOORDSFLOORED);
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
 
@@ -422,9 +422,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 }
 
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
-    g_pCompositor->notifyIdleActivity();
+    EMIT_HOOK_EVENT_CANCELLABLE("mouseButton", e);
 
-    EMIT_HOOK_EVENT("mouseButton", e);
+    g_pCompositor->notifyIdleActivity();
 
     m_tmrLastCursorMovement.reset();
 
@@ -1580,7 +1580,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
         direction = BORDERICON_NONE;

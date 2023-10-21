@@ -12,7 +12,8 @@
 #include "../plugins/PluginAPI.hpp"
 
 // global typedef for hooked functions. Passes itself as a ptr when called, and `data` additionally.
-typedef std::function<void(void*, std::any)> HOOK_CALLBACK_FN;
+
+typedef std::function<void(void*, SCallbackInfo& info, std::any data)> HOOK_CALLBACK_FN;
 
 struct SCallbackFNPtr {
     HOOK_CALLBACK_FN* fn     = nullptr;
@@ -22,7 +23,17 @@ struct SCallbackFNPtr {
 #define EMIT_HOOK_EVENT(name, param)                                                                                                                                               \
     {                                                                                                                                                                              \
         static auto* const PEVENTVEC = g_pHookSystem->getVecForEvent(name);                                                                                                        \
-        g_pHookSystem->emit(PEVENTVEC, param);                                                                                                                                     \
+        SCallbackInfo      info;                                                                                                                                                   \
+        g_pHookSystem->emit(PEVENTVEC, info, param);                                                                                                                               \
+    }
+
+#define EMIT_HOOK_EVENT_CANCELLABLE(name, param)                                                                                                                                   \
+    {                                                                                                                                                                              \
+        static auto* const PEVENTVEC = g_pHookSystem->getVecForEvent(name);                                                                                                        \
+        SCallbackInfo      info;                                                                                                                                                   \
+        g_pHookSystem->emit(PEVENTVEC, info, param);                                                                                                                               \
+        if (info.cancelled)                                                                                                                                                        \
+            return;                                                                                                                                                                \
     }
 
 class CHookSystemManager {
@@ -34,7 +45,7 @@ class CHookSystemManager {
     void                         hookStatic(const std::string& event, HOOK_CALLBACK_FN* fn, HANDLE handle = nullptr);
     void                         unhook(HOOK_CALLBACK_FN* fn);
 
-    void                         emit(const std::vector<SCallbackFNPtr>* callbacks, std::any data = 0);
+    void                         emit(const std::vector<SCallbackFNPtr>* callbacks, SCallbackInfo& info, std::any data = 0);
     std::vector<SCallbackFNPtr>* getVecForEvent(const std::string& event);
 
     bool                         m_bCurrentEventPlugin = false;

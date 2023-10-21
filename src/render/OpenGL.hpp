@@ -13,6 +13,7 @@
 #include "Shader.hpp"
 #include "Texture.hpp"
 #include "Framebuffer.hpp"
+#include "Transformer.hpp"
 
 #include "../debug/TracyDefines.hpp"
 
@@ -41,6 +42,7 @@ struct SMonitorRenderData {
     CFramebuffer primaryFB;
     CFramebuffer mirrorFB;     // these are used for some effects,
     CFramebuffer mirrorSwapFB; // etc
+    CFramebuffer offMainFB;
 
     CFramebuffer monitorMirrorFB; // used for mirroring outputs
 
@@ -75,6 +77,7 @@ struct SCurrentRenderData {
     float               savedProjection[9];
 
     SMonitorRenderData* pCurrentMonData = nullptr;
+    CFramebuffer*       currentFB       = nullptr;
 
     CRegion             damage;
 
@@ -141,6 +144,10 @@ class CHyprOpenGLImpl {
     void               renderMirrored();
 
     void               applyScreenShader(const std::string& path);
+
+    void               bindOffMain();
+    void               renderOffToMain(CFramebuffer* off);
+    void               bindBackOnMain();
 
     SCurrentRenderData m_RenderData;
 

@@ -406,6 +406,12 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
+
+        const bool TRANSFORMERSPRESENT = !pWindow->m_vTransformers.empty();
+
+        if (TRANSFORMERSPRESENT)
+            g_pHyprOpenGL->bindOffMain();
+
         if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
             for (auto& wd : pWindow->m_dWindowDecorations)
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
@@ -442,6 +448,17 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl());
                 g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, renderdata.rounding, borderSize, a2);
             }
+        }
+
+        if (TRANSFORMERSPRESENT) {
+
+            CFramebuffer* last = g_pHyprOpenGL->m_RenderData.currentFB;
+            for (auto& t : pWindow->m_vTransformers) {
+                last = t->transform(last);
+            }
+
+            g_pHyprOpenGL->bindBackOnMain();
+            g_pHyprOpenGL->renderOffToMain(last);
         }
     }
 

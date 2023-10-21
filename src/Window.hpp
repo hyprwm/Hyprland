@@ -32,6 +32,8 @@ enum eGroupRules
     GROUP_OVERRIDE    = 1 << 6, // Override other rules
 };
 
+class IWindowTransformer;
+
 template <typename T>
 class CWindowOverridableVar {
   public:
@@ -289,6 +291,9 @@ class CWindow {
     // Special render data, rules, etc
     SWindowSpecialRenderData    m_sSpecialRenderData;
     SWindowAdditionalConfigData m_sAdditionalConfigData;
+
+    // Transformers
+    std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;
 
     // for alpha
     CAnimatedVariable m_fActiveInactiveAlpha;

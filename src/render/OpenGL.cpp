@@ -364,7 +364,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 
     m_sFinalScreenShader.destroy();
 
-    if (path == "" || path == STRVAL_EMPTY)
+    if (path == STRVAL_EMPTY)
         return;
 
     std::ifstream infile(absolutePath(path, g_pConfigManager->getConfigDir()));

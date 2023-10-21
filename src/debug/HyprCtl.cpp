@@ -229,6 +229,44 @@ static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat
     }
 }
 
+static std::string getWorkspaceRuleData(const SWorkspaceRule& r, HyprCtl::eHyprCtlOutputFormat format) {
+    const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
+    if (format == HyprCtl::FORMAT_JSON) {
+        const std::string monitor    = r.monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.monitor));
+        const std::string default_   = (bool)(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
+        const std::string persistent = (bool)(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
+        const std::string gapsIn     = (bool)(r.gapsIn) ? std::format(",\n    \"gapsIn\": {}", r.gapsIn.value()) : "";
+        const std::string gapsOut    = (bool)(r.gapsOut) ? std::format(",\n    \"gapsOut\": {}", r.gapsOut.value()) : "";
+        const std::string borderSize = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
+        const std::string border     = (bool)(r.border) ? std::format(",\n    \"border\": {}", boolToString(r.border.value())) : "";
+        const std::string rounding   = (bool)(r.rounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.rounding.value())) : "";
+        const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
+        const std::string shadow     = (bool)(r.shadow) ? std::format(",\n    \"shadow\": {}", boolToString(r.shadow.value())) : "";
+
+        std::string       result = std::format(R"#({{
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}
+}})#",
+                                               escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow);
+
+        return result;
+    } else {
+        const std::string monitor    = std::format("\tmonitor: {}\n", r.monitor.empty() ? "<unset>" : escapeJSONStrings(r.monitor));
+        const std::string default_   = std::format("\tdefault: {}\n", (bool)(r.isDefault) ? boolToString(r.isDefault) : "<unset>");
+        const std::string persistent = std::format("\tpersistent: {}\n", (bool)(r.isPersistent) ? boolToString(r.isPersistent) : "<unset>");
+        const std::string gapsIn     = std::format("\tgapsIn: {}\n", (bool)(r.gapsIn) ? std::to_string(r.gapsIn.value()) : "<unset>");
+        const std::string gapsOut    = std::format("\tgapsOut: {}\n", (bool)(r.gapsOut) ? std::to_string(r.gapsOut.value()) : "<unset>");
+        const std::string borderSize = std::format("\tborderSize: {}\n", (bool)(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
+        const std::string border     = std::format("\tborder: {}\n", (bool)(r.border) ? boolToString(r.border.value()) : "<unset>");
+        const std::string rounding   = std::format("\trounding: {}\n", (bool)(r.rounding) ? boolToString(r.rounding.value()) : "<unset>");
+        const std::string decorate   = std::format("\tdecorate: {}\n", (bool)(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
+        const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.shadow) ? boolToString(r.shadow.value()) : "<unset>");
+
+        std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
+                                               borderSize, border, rounding, decorate, shadow);
+
+        return result;
+    }
+}
 std::string activeWorkspaceRequest(HyprCtl::eHyprCtlOutputFormat format) {
     if (!g_pCompositor->m_pLastMonitor)
         return "unsafe state";
@@ -257,6 +295,26 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     } else {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
             result += getWorkspaceData(w.get(), format);
+        }
+    }
+
+    return result;
+}
+
+std::string workspaceRulesRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+        for (auto& r : g_pConfigManager->getAllWorkspaceRules()) {
+            result += getWorkspaceRuleData(r, format);
+            result += ",";
+        }
+
+        trimTrailingComma(result);
+        result += "]";
+    } else {
+        for (auto& r : g_pConfigManager->getAllWorkspaceRules()) {
+            result += getWorkspaceRuleData(r, format);
         }
     }
 
@@ -1259,6 +1317,8 @@ std::string getReply(std::string request) {
         return monitorsRequest(format);
     else if (request == "workspaces")
         return workspacesRequest(format);
+    else if (request == "workspacerules")
+        return workspaceRulesRequest(format);
     else if (request == "activeworkspace")
         return activeWorkspaceRequest(format);
     else if (request == "clients")

@@ -1393,7 +1393,7 @@ void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
             const auto OUTPUT = g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output", "input:touchdevice:output");
-            if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY)
+            if (OUTPUT != STRVAL_EMPTY)
                 PTOUCHDEV->boundOutput = OUTPUT;
             else
                 PTOUCHDEV->boundOutput = "";
@@ -1423,7 +1423,7 @@ void CInputManager::setTabletConfigs() {
 
             const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output", "input:tablet:output");
             const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
-            if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY && PMONITOR) {
+            if (OUTPUT != STRVAL_EMPTY && PMONITOR) {
                 wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, t.wlrDevice, PMONITOR->output);
                 wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, nullptr);
             }

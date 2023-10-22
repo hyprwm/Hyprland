@@ -506,7 +506,6 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
 std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
 
-
     std::string cmd = removeBeginEndSpacesTabs(dirtyCmd);
 
     if (!cmd.empty()) {

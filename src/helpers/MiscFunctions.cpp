@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include <optional>
 #include <set>
 #include <sys/utsname.h>
 #include <iomanip>
@@ -503,6 +504,43 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     return result;
 }
 
+std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
+
+    std::string cmd = removeBeginEndSpacesTabs(dirtyCmd);
+
+    if (!cmd.empty()) {
+        std::string       rules;
+        const std::string workspaceRule = "workspace " + inWorkspaceName;
+
+        if (cmd[0] == '[') {
+            const int closingBracketIdx = cmd.find_last_of(']');
+            auto      tmpRules          = cmd.substr(1, closingBracketIdx - 1);
+            cmd                         = cmd.substr(closingBracketIdx + 1);
+
+            auto rulesList = CVarList(tmpRules, 0, ';');
+
+            bool hadWorkspaceRule = false;
+            rulesList.map([&](std::string& rule) {
+                if (rule.find("workspace") == 0) {
+                    rule             = workspaceRule;
+                    hadWorkspaceRule = true;
+                }
+            });
+
+            if (!hadWorkspaceRule)
+                rulesList.append(workspaceRule);
+
+            rules = "[" + rulesList.join(";") + "]";
+        } else {
+            rules = "[" + workspaceRule + "]";
+        }
+
+        return std::optional<std::string>(rules + " " + cmd);
+    }
+
+    return std::nullopt;
+}
+
 float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2) {
     const float DX = std::max({0.0, p1.x - vec.x, vec.x - p2.x});
     const float DY = std::max({0.0, p1.y - vec.y, vec.y - p2.y});
@@ -594,8 +632,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string dir = "/proc/" + std::to_string(pid) + "/status";
-    FILE*       infile;
+    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
+    FILE*             infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)

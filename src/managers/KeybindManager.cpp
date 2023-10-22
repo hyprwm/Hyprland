@@ -1,5 +1,7 @@
 #include "KeybindManager.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "debug/Log.hpp"
+#include "helpers/VarList.hpp"
 
 #include <regex>
 

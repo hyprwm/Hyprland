@@ -36,19 +36,20 @@ struct SConfigValue {
 };
 
 struct SWorkspaceRule {
-    std::string            monitor         = "";
-    std::string            workspaceString = "";
-    std::string            workspaceName   = "";
-    int                    workspaceId     = -1;
-    bool                   isDefault       = false;
-    bool                   isPersistent    = false;
-    std::optional<int64_t> gapsIn;
-    std::optional<int64_t> gapsOut;
-    std::optional<int64_t> borderSize;
-    std::optional<int>     border;
-    std::optional<int>     rounding;
-    std::optional<int>     decorate;
-    std::optional<int>     shadow;
+    std::string                monitor         = "";
+    std::string                workspaceString = "";
+    std::string                workspaceName   = "";
+    int                        workspaceId     = -1;
+    bool                       isDefault       = false;
+    bool                       isPersistent    = false;
+    std::optional<int64_t>     gapsIn;
+    std::optional<int64_t>     gapsOut;
+    std::optional<int64_t>     borderSize;
+    std::optional<int>         border;
+    std::optional<int>         rounding;
+    std::optional<int>         decorate;
+    std::optional<int>         shadow;
+    std::optional<std::string> onCreatedEmptyRunCmd;
 };
 
 struct SMonitorAdditionalReservedArea {

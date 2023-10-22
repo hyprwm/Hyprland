@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include <optional>
 #include <set>
 #include <sys/utsname.h>
 #include <iomanip>
@@ -503,7 +504,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     return result;
 }
 
-std::string cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
+std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
 
 
     std::string cmd = removeBeginEndSpacesTabs(dirtyCmd);
@@ -535,10 +536,10 @@ std::string cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string
             rules = "[" + workspaceRule + "]";
         }
 
-        return rules + " " + cmd;
+        return std::optional<std::string>(rules + " " + cmd);
     }
 
-    return "";
+    return std::nullopt;
 }
 
 float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2) {

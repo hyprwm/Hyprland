@@ -1216,8 +1216,8 @@ void CCompositor::sanityCheckWorkspaces() {
                 continue;
             }
             if (!WORKSPACE->m_bOnCreatedEmptyExecuted) {
-                if (!WORKSPACERULE.onCreatedEmptyRunCmd.empty())
-                    g_pKeybindManager->spawn(WORKSPACERULE.onCreatedEmptyRunCmd);
+                if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
+                    g_pKeybindManager->spawn(*cmd);
 
                 WORKSPACE->m_bOnCreatedEmptyExecuted = true;
             }

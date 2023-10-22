@@ -183,14 +183,6 @@ else()
     endif()
 endif()
 
-target_compile_definitions(Hyprland
-    PRIVATE
-    "GIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\""
-    "GIT_BRANCH=\"${GIT_BRANCH}\""
-    "GIT_COMMIT_MESSAGE=\"${GIT_COMMIT_MESSAGE}\""
-    "GIT_DIRTY=\"${GIT_DIRTY}\""
-    "GIT_TAG=\"${GIT_TAG}\"")
-
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)

@@ -1194,8 +1194,8 @@ void CCompositor::sanityCheckWorkspaces() {
             continue;
         }
 
-        const auto& WORKSPACE = *it;
-        const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace(WORKSPACE->m_iID);
+        const auto& WORKSPACE          = *it;
+        const auto  WINDOWSONWORKSPACE = getWindowsOnWorkspace(WORKSPACE->m_iID);
 
         if (WINDOWSONWORKSPACE == 0) {
             if (!isWorkspaceVisible(WORKSPACE->m_iID)) {

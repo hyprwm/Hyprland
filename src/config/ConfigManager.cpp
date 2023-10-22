@@ -1173,10 +1173,10 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
         rules                  = value.substr(WORKSPACE_DELIM + 1);
     }
 
-    const static std::string ruleOnCreatedEmtpy = "on-created-empty:";
+    const static std::string ruleOnCreatedEmtpy    = "on-created-empty:";
     const static int         ruleOnCreatedEmtpyLen = ruleOnCreatedEmtpy.length();
 
-    auto assignRule = [&](std::string rule) {
+    auto                     assignRule = [&](std::string rule) {
         size_t delim = std::string::npos;
         if ((delim = rule.find("gapsin:")) != std::string::npos)
             wsRule.gapsIn = std::stoi(rule.substr(delim + 7));

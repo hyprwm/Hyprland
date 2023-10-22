@@ -335,12 +335,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     bool allowKeyboardRefocus = true;
 
-    if (*PHOGFOCUS && !refocus && g_pCompositor->m_pLastFocus) {
+    if (!refocus && g_pCompositor->m_pLastFocus) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
 
-        if (PLS && PLS->layerSurface->current.keyboard_interactive) {
+        if (PLS && PLS->layerSurface->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
             allowKeyboardRefocus = false;
-        }
     }
 
     // set the values for use
@@ -407,7 +406,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
 
         if (pFoundLayerSurface &&
-            (pFoundLayerSurface->layerSurface->current.keyboard_interactive || (pFoundLayerSurface->layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP && !g_pCompositor->m_pLastWindow)) &&
+            (pFoundLayerSurface->layerSurface->current.keyboard_interactive != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE ||
+             (pFoundLayerSurface->layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP && !g_pCompositor->m_pLastWindow)) &&
             FOLLOWMOUSE != 3 && allowKeyboardRefocus) {
             g_pCompositor->focusSurface(foundSurface);
         }

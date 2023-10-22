@@ -2677,3 +2677,12 @@ void CCompositor::leaveUnsafeState() {
 
     m_pUnsafeOutput = nullptr;
 }
+
+void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scale) {
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(pSurface, scale);
+    wlr_surface_set_preferred_buffer_scale(pSurface, scale);
+}
+
+void CCompositor::setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform) {
+    wlr_surface_set_preferred_buffer_transform(pSurface, transform);
+}

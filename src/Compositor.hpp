@@ -207,6 +207,8 @@ class CCompositor {
     void           arrangeMonitors();
     void           enterUnsafeState();
     void           leaveUnsafeState();
+    void           setPreferredScaleForSurface(wlr_surface* pSurface, double scale);
+    void           setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform);
 
     std::string    explicitConfigPath;
 

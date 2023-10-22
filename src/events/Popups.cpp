@@ -164,8 +164,10 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
 
     g_pHyprRenderer->damageBox(lx - extents.x, ly - extents.y, extents.width + 2, extents.height + 2);
 
-    if (PPOPUP->monitor)
-        g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->scale);
+    if (PPOPUP->monitor) {
+        g_pCompositor->setPreferredScaleForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->scale);
+        g_pCompositor->setPreferredTransformForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->transform);
+    }
 
     Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode {:x}", (uintptr_t)PPOPUP->pSurfaceTree);
 }

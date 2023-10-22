@@ -325,7 +325,8 @@ void CWindow::updateSurfaceOutputs() {
         m_pWLSurface.wlr(),
         [](wlr_surface* surf, int x, int y, void* data) {
             const auto PMONITOR = g_pCompositor->getMonitorFromID(((CWindow*)data)->m_iMonitorID);
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
+            g_pCompositor->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
+            g_pCompositor->setPreferredTransformForSurface(surf, PMONITOR->transform);
         },
         this);
 }

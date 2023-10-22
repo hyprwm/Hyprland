@@ -2053,7 +2053,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
             Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
 
-            g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID, "");
+            g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID);
         }
 
         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);

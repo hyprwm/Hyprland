@@ -65,7 +65,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto* const PMOUSEREFOCUS     = &g_pConfigManager->getConfigValuePtr("input:mouse_refocus")->intValue;
     static auto* const PMOUSEDPMS        = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_enables_dpms")->intValue;
     static auto* const PFOLLOWONDND      = &g_pConfigManager->getConfigValuePtr("misc:always_follow_on_dnd")->intValue;
-    static auto* const PHOGFOCUS         = &g_pConfigManager->getConfigValuePtr("misc:layers_hog_keyboard_focus")->intValue;
     static auto* const PFLOATBEHAVIOR    = &g_pConfigManager->getConfigValuePtr("input:float_switch_override_focus")->intValue;
     static auto* const PMOUSEFOCUSMON    = &g_pConfigManager->getConfigValuePtr("misc:mouse_move_focuses_monitor")->intValue;
     static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;

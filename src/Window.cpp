@@ -335,6 +335,10 @@ void CWindow::moveToWorkspace(int workspaceID) {
     if (m_iWorkspaceID == workspaceID)
         return;
 
+    static auto* const PCLOSEONLASTSPECIAL = &g_pConfigManager->getConfigValuePtr("misc:close_special_on_empty")->intValue;
+
+    const int          OLDWORKSPACE = m_iWorkspaceID;
+
     m_iWorkspaceID = workspaceID;
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
@@ -353,6 +357,15 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     // update xwayland coords
     g_pXWaylandManager->setWindowSize(this, m_vRealSize.vec());
+
+    if (g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE) && g_pCompositor->getWindowsOnWorkspace(OLDWORKSPACE) == 0 && *PCLOSEONLASTSPECIAL) {
+        const auto PWS = g_pCompositor->getWorkspaceByID(OLDWORKSPACE);
+
+        if (PWS) {
+            if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWS->m_iMonitorID); PMONITOR)
+                PMONITOR->setSpecialWorkspace(nullptr);
+        }
+    }
 }
 
 CWindow* CWindow::X11TransientFor() {

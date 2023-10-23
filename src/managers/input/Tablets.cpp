@@ -244,8 +244,6 @@ void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool moti
     if (const auto PWINDOW = g_pCompositor->m_pLastWindow; PWINDOW) {
         const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
 
-        const auto LOCAL = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
-
         if (PTOOL->pSurface != g_pCompositor->m_pLastFocus)
             wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
 
@@ -254,8 +252,14 @@ void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool moti
             wlr_tablet_v2_tablet_tool_notify_proximity_in(PTOOL->wlrTabletToolV2, pTab->wlrTabletV2, g_pCompositor->m_pLastFocus);
         }
 
-        if (motion)
-            wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, LOCAL.x, LOCAL.y);
+        if (motion) {
+            auto local = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
+
+            if(PWINDOW->m_bIsX11)
+                local = local * PWINDOW->m_fX11SurfaceScaledBy;
+
+            wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, local.x, local.y);
+        }
     } else {
         if (PTOOL->pSurface)
             wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);

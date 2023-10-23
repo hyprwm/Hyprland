@@ -44,7 +44,8 @@ class CShader {
     GLint   output  = -1;
 
     // Blur start
-    GLint contrast = -1;
+    GLint contrast        = -1;
+    GLint base_brightness = -1;
 
     // Blur
     GLint boost_colors     = -1;

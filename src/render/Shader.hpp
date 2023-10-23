@@ -43,13 +43,22 @@ class CShader {
     GLint   distort = -1;
     GLint   output  = -1;
 
-    GLint   noise  = -1;
-    GLint   contrast  = -1;
-    GLint   brightness  = -1;
+    // Blur start
+    GLint contrast = -1;
 
-    GLint   getUniformLocation(const std::string&);
+    // Blur
+    GLint boost_colors     = -1;
+    GLint saturation_boost = -1;
+    GLint brightness_boost = -1;
 
-    void    destroy();
+    // Blur finish
+    GLint min_brightness = -1;
+    GLint max_brightness = -1;
+    GLint noise          = -1;
+
+    GLint getUniformLocation(const std::string&);
+
+    void  destroy();
 
   private:
     std::unordered_map<std::string, GLint> m_muUniforms;

@@ -173,6 +173,9 @@ uniform sampler2D    tex;
 
 uniform float        radius;
 uniform vec2         halfpixel;
+uniform float        boost_colors;
+uniform float        saturation_boost;
+uniform float        brightness_boost;
 //
 
 vec3 rgb2hsv(vec3 c) {
@@ -210,7 +213,10 @@ void  main() {
     sum += texture2D(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
 
     vec4  oldColor = sum / 8.0;
-
+    
+    if (boost_colors == 0.0) {
+      gl_FragColor = oldColor;
+    } else {
     vec3  hsv = rgb2hsv(oldColor.rgb);
 
     float boostBase = hsv[1] > 0.0  
@@ -221,17 +227,14 @@ void  main() {
         )
         : 0.0;
 
-    float saturation = clamp(hsv[1] + boostBase, 0.0, 1.0);
-    float brightness = clamp(hsv[2] + boostBase * 0.25, 0.0, 1.0);
+    float saturation = clamp(hsv[1] + boostBase * saturation_boost, 0.0, 1.0);
+    float brightness = clamp(hsv[2] + boostBase * brightness_boost, 0.0, 1.0);
 
     vec3  newColor = hsv2rgb(vec3(hsv[0], saturation, brightness));
-    // vec3 newColor = hsv2rgb(hsv);
 
-    // gl_FragColor = vec4(newColor, oldColor[3]);
     gl_FragColor = vec4(newColor, oldColor[3]);
-    // gl_FragColor = oldColor;
+   }
 }
-
 )#";
 
 inline const std::string FRAGBLUR2 = R"#(
@@ -260,15 +263,31 @@ void main() {
 }
 )#";
 
-inline const std::string FRAGBLURFINISH = R"#(
+inline const std::string FRAGBLURPREPARE = R"#(
 precision         mediump float;
 varying vec2      v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
 uniform float     contrast;
+
+void main() {
+    vec4  pixColor = texture2D(tex, v_texcoord);
+
+    // contrast
+    pixColor.rgb = (pixColor.rgb - 0.5) * contrast + 0.5;
+
+    gl_FragColor = pixColor;
+}
+)#";
+
+inline const std::string FRAGBLURFINISH = R"#(
+precision         mediump float;
+varying vec2      v_texcoord; // is in 0-1
+uniform sampler2D tex;
+
 uniform float     noise;
-uniform float     brightness;
-//
+uniform float     min_brightness;
+uniform float     max_brightness;
 
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -299,8 +318,7 @@ void main() {
 
     vec3  hsv = rgb2hsv(pixColor.rgb);
 
-    float luminance  = clamp(hsv[2], contrast, brightness);
-    // float saturation = mix(hsv[1], 1.0, easeOut(hsv[1], noise));
+    float luminance  = clamp(hsv[2], min_brightness, max_brightness);
 
     vec3  newColor = hsv2rgb(vec3(hsv[0], hsv[1], luminance));
 
@@ -310,7 +328,6 @@ void main() {
     newColor.rgb += noiseAmount * noise;
 
     gl_FragColor = vec4(newColor, pixColor.a);
-    // gl_FragColor = pixColor;
 }
 
 )#";

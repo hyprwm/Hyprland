@@ -167,14 +167,40 @@ void main() {
 
 inline const std::string FRAGBLUR1 = R"#(
 #version 100
-precision mediump float;
+precision            mediump float;
 varying mediump vec2 v_texcoord; // is in 0-1
-uniform sampler2D tex;
+uniform sampler2D    tex;
 
-uniform float radius;
-uniform vec2 halfpixel;
+uniform float        radius;
+uniform vec2         halfpixel;
+//
 
-void main() {
+vec3 rgb2hsv(vec3 c) {
+    vec4  K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4  p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4  q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+// Huge shout-out to @fadaaszhi for helping me
+//https://www.desmos.com/3d/f3d3b9184f
+
+// Determines if high brightness or high saturation is more important
+float proportion1 = 1.085;  // a
+float proportion2 = 0.91; // b
+// Determines the smoothness of the transition of unboosted to boosted colors
+float smoothness = 0.57; // c
+
+void  main() {
     vec2 uv = v_texcoord * 2.0;
 
     vec4 sum = texture2D(tex, uv) * 4.0;
@@ -183,8 +209,29 @@ void main() {
     sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
     sum += texture2D(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
 
-    gl_FragColor = sum / 8.0;
+    vec4  oldColor = sum / 8.0;
+
+    vec3  hsv = rgb2hsv(oldColor.rgb);
+
+    float boostBase = hsv[1] > 0.0  
+        ? smoothstep(                             //
+            proportion2 - smoothness * 0.5,                       //
+            proportion2 + smoothness * 0.5,                       //
+            hsv[1] * cos(proportion1) + hsv[2] * sin(proportion1) //
+        )
+        : 0.0;
+
+    float saturation = clamp(hsv[1] + boostBase, 0.0, 1.0);
+    float brightness = clamp(hsv[2] + boostBase * 0.25, 0.0, 1.0);
+
+    vec3  newColor = hsv2rgb(vec3(hsv[0], saturation, brightness));
+    // vec3 newColor = hsv2rgb(hsv);
+
+    // gl_FragColor = vec4(newColor, oldColor[3]);
+    gl_FragColor = vec4(newColor, oldColor[3]);
+    // gl_FragColor = oldColor;
 }
+
 )#";
 
 inline const std::string FRAGBLUR2 = R"#(
@@ -214,34 +261,59 @@ void main() {
 )#";
 
 inline const std::string FRAGBLURFINISH = R"#(
-precision mediump float;
-varying vec2 v_texcoord; // is in 0-1
+precision         mediump float;
+varying vec2      v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
-uniform float contrast;
-uniform float noise;
-uniform float brightness;
+uniform float     contrast;
+uniform float     noise;
+uniform float     brightness;
+//
 
 float hash(vec2 p) {
-	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+vec3 rgb2hsv(vec3 c) {
+    vec4  K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4  p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4  q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+float easeOut(float x, float strength) {
+    return 1.0 - pow(1.0 - x, strength);
 }
 
 void main() {
-    vec4 pixColor = texture2D(tex, v_texcoord);
+    vec4  pixColor = texture2D(tex, v_texcoord);
 
-    // contrast
-    pixColor.rgb = (pixColor.rgb - 0.5) * contrast + 0.5;
+    vec3  hsv = rgb2hsv(pixColor.rgb);
 
-    // brightness
-    pixColor.rgb *= brightness;
+    float luminance  = clamp(hsv[2], contrast, brightness);
+    // float saturation = mix(hsv[1], 1.0, easeOut(hsv[1], noise));
+
+    vec3  newColor = hsv2rgb(vec3(hsv[0], hsv[1], luminance));
 
     // noise
     float noiseHash = hash(v_texcoord);
     float noiseAmount = (mod(noiseHash, 1.0) - 0.5);
-    pixColor.rgb += noiseAmount * noise;
+    newColor.rgb += noiseAmount * noise;
 
-    gl_FragColor = pixColor;
-})#";
+    gl_FragColor = vec4(newColor, pixColor.a);
+    // gl_FragColor = pixColor;
+}
+
+)#";
 
 inline const std::string TEXFRAGSRCEXT = R"#(
 #extension GL_OES_EGL_image_external : require

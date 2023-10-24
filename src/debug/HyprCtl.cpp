@@ -215,17 +215,19 @@ static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat
     "id": {},
     "name": "{}",
     "monitor": "{}",
+    "monitorID": {},
     "windows": {},
     "hasfullscreen": {},
     "lastwindow": "0x{:x}",
     "lastwindowtitle": "{}"
 }})#",
-                           w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
+                           w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"),
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "undefined"), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
                            ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), (uintptr_t)PLASTW, PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "");
     } else {
-        return std::format("workspace ID {} ({}) on monitor {}:\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\n", w->m_iID, w->m_szName,
-                           PMONITOR ? PMONITOR->szName : "?", g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow, (uintptr_t)PLASTW,
-                           PLASTW ? PLASTW->m_szTitle : "");
+        return std::format("workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\n", w->m_iID,
+                           w->m_szName, PMONITOR ? PMONITOR->szName : "?", PMONITOR ? std::to_string(PMONITOR->ID) : "null", g_pCompositor->getWindowsOnWorkspace(w->m_iID),
+                           (int)w->m_bHasFullscreenWindow, (uintptr_t)PLASTW, PLASTW ? PLASTW->m_szTitle : "");
     }
 }
 
@@ -246,7 +248,7 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, HyprCtl::eHyprC
         std::string       result = std::format(R"#({{
     "workspaceString": "{}"{}{}{}{}{}{}{}{}
 }})#",
-                                               escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow);
+                                         escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow);
 
         return result;
     } else {
@@ -262,7 +264,7 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, HyprCtl::eHyprC
         const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.shadow) ? boolToString(r.shadow.value()) : "<unset>");
 
         std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
-                                               borderSize, border, rounding, decorate, shadow);
+                                         borderSize, border, rounding, decorate, shadow);
 
         return result;
     }

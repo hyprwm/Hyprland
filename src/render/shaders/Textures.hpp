@@ -176,7 +176,6 @@ uniform vec2         halfpixel;
 uniform float        boost_colors;
 uniform float        saturation_boost;
 uniform float        brightness_boost;
-//
 
 vec3 rgb2hsv(vec3 c) {
     vec4  K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -194,7 +193,7 @@ vec3 hsv2rgb(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-// Huge shout-out to @fadaaszhi for helping me
+// Huge shout-out to @fadaaszhi for this formula
 //https://www.desmos.com/3d/f3d3b9184f
 
 // Determines if high brightness or high saturation is more important
@@ -220,10 +219,10 @@ void  main() {
     vec3  hsv = rgb2hsv(oldColor.rgb);
 
     float boostBase = hsv[1] > 0.0  
-        ? smoothstep(                             //
-            proportion2 - smoothness * 0.5,                       //
-            proportion2 + smoothness * 0.5,                       //
-            hsv[1] * cos(proportion1) + hsv[2] * sin(proportion1) //
+        ? smoothstep(                             
+            proportion2 - smoothness * 0.5,                       
+            proportion2 + smoothness * 0.5
+            hsv[1] * cos(proportion1) + hsv[2] * sin(proportion1)
         )
         : 0.0;
 
@@ -310,10 +309,6 @@ vec3 hsv2rgb(vec3 c) {
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-float easeOut(float x, float strength) {
-    return 1.0 - pow(1.0 - x, strength);
 }
 
 float smoothClamp(float x, float a, float b) {

@@ -516,6 +516,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             m_sAdditionalConfigData.forceOpaque = true;
     } else if (r.szRule == "immediate") {
         m_sAdditionalConfigData.forceTearing = true;
+    } else if (r.szRule == "nearestneighbor") {
+        m_sAdditionalConfigData.nearestNeighbor = true;
     } else if (r.szRule.starts_with("rounding")) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -605,6 +607,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.keepAspectRatio = false;
     m_sAdditionalConfigData.xray            = -1;
     m_sAdditionalConfigData.forceTearing    = false;
+    m_sAdditionalConfigData.nearestNeighbor = false;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {

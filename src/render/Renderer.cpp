@@ -427,7 +427,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
 
         static auto* const PXWLUSENN = &g_pConfigManager->getConfigValuePtr("xwayland:use_nearest_neighbor")->intValue;
-        if (pWindow->m_bIsX11 && *PXWLUSENN)
+        if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
         wlr_surface_for_each_surface(pWindow->m_pWLSurface.wlr(), renderSurface, &renderdata);
@@ -483,7 +483,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             renderdata.dontRound       = true; // don't round popups
             renderdata.pMonitor        = pMonitor;
             renderdata.squishOversized = false; // don't squish popups
+
+            if (pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
+                g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+
             wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
+
+            g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
         }
     }
 

@@ -143,6 +143,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<int>  xray                  = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<int>  borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<bool> forceTearing          = false;
+    CWindowOverridableVar<bool> nearestNeighbor       = false;
 };
 
 struct SWindowRule {

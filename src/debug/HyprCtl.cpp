@@ -1073,6 +1073,8 @@ std::string dispatchSetProp(std::string request) {
             PWINDOW->m_sAdditionalConfigData.keepAspectRatio.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "immediate") {
             PWINDOW->m_sAdditionalConfigData.forceTearing.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "nearestneighbor") {
+            PWINDOW->m_sAdditionalConfigData.nearestNeighbor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else {
             return "prop not found";
         }

@@ -215,7 +215,6 @@ void CCompositor::initServer() {
 
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
 
-    m_sWLRIdle         = wlr_idle_create(m_sWLDisplay);
     m_sWLRIdleNotifier = wlr_idle_notifier_v1_create(m_sWLDisplay);
 
     m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay, 4);
@@ -2580,12 +2579,10 @@ CWindow* CCompositor::getForceFocus() {
 }
 
 void CCompositor::notifyIdleActivity() {
-    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
     wlr_idle_notifier_v1_notify_activity(g_pCompositor->m_sWLRIdleNotifier, g_pCompositor->m_sSeat.seat);
 }
 
 void CCompositor::setIdleActivityInhibit(bool enabled) {
-    wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, enabled);
     wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, !enabled);
 }
 void CCompositor::arrangeMonitors() {

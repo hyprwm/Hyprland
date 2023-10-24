@@ -316,12 +316,26 @@ float easeOut(float x, float strength) {
     return 1.0 - pow(1.0 - x, strength);
 }
 
+float smoothClamp(float x, float a, float b) {
+    return smoothstep(0., 1., (x - a)/(b - a))*(b - a) + a;
+}
+
+float softClamp(float x, float min, float max) {
+    // Prevent setting 0 in the config to affect the brightness
+    // But also prevent weird banding  here
+    if (( min == 0. && max > 0.5) && x <= 0.45 ) return x;
+    if (( max == 0. && min < 0.5 ) && x >= 0.55 ) return x;
+
+    return smoothstep(0., 1., (2./3.)*(x - min)/(max - min) + (1./6.))*(max - min) + min;
+}
+
+
 void main() {
     vec4  pixColor = texture2D(tex, v_texcoord);
 
     vec3  hsv = rgb2hsv(pixColor.rgb);
 
-    float luminance  = clamp(hsv[2], min_brightness, max_brightness);
+    float luminance  = softClamp(hsv[2], min_brightness, max_brightness);
 
     vec3  newColor = hsv2rgb(vec3(hsv[0], hsv[1], luminance));
 

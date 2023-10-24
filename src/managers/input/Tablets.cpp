@@ -255,7 +255,7 @@ void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool moti
         if (motion) {
             auto local = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
 
-            if(PWINDOW->m_bIsX11)
+            if (PWINDOW->m_bIsX11)
                 local = local * PWINDOW->m_fX11SurfaceScaledBy;
 
             wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, local.x, local.y);

@@ -64,7 +64,7 @@ void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
 
         auto local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchSurfaceOrigin;
-        if(m_sTouchData.touchFocusWindow->m_bIsX11) {
+        if (m_sTouchData.touchFocusWindow->m_bIsX11) {
             local = (g_pInputManager->getMouseCoordsInternal() * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy) - m_sTouchData.touchSurfaceOrigin;
         }
 

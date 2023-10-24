@@ -263,7 +263,7 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         return;
     }
 
-    const auto PBUFFER = wlr_buffer_from_resource(buffer);
+    const auto PBUFFER = wlr_buffer_try_from_resource(buffer);
     if (!PBUFFER) {
         Debug::log(ERR, "[sc] invalid buffer in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
@@ -332,7 +332,7 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
 }
 
 void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
-    m_pLastMonitorBackBuffer = e->buffer;
+    m_pLastMonitorBackBuffer = e->state->buffer;
     shareAllFrames(pMonitor);
     m_pLastMonitorBackBuffer = nullptr;
 }

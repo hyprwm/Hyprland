@@ -173,9 +173,24 @@ uniform sampler2D    tex;
 
 uniform float        radius;
 uniform vec2         halfpixel;
+uniform float        passes;
 uniform float        boost_colors;
 uniform float        saturation_boost;
 uniform float        brightness_boost;
+//
+// see http://alienryderflex.com/hsp.html
+const float Pr = 0.299;
+const float Pg = 0.587;
+const float Pb = 0.114;
+
+// Huge shout-out to @fadaaszhi for the original formula
+// https://www.desmos.com/3d/a88652b9a4
+// Y is "v" ( brightness ). X is "s" ( saturation )
+// Determines if high brightness or high saturation is more important
+const float a = 0.93;
+const float b = 0.3;
+const float c = 0.66; //  Determines the smoothness of the transition of unboosted to boosted colors
+//
 
 vec3 rgb2hsv(vec3 c) {
     vec4  K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -193,16 +208,23 @@ vec3 hsv2rgb(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-// Huge shout-out to @fadaaszhi for this formula
-//https://www.desmos.com/3d/f3d3b9184f
+// http://www.flong.com/archive/texts/code/shapers_circ/
+float doubleCircleSigmoid (float x, float a){
+  float min_param_a = 0.0;
+  float max_param_a = 1.0;
+  a = max(min_param_a, min(max_param_a, a)); 
 
-// Determines if high brightness or high saturation is more important
-float proportion1 = 1.085;  // a
-float proportion2 = 0.91; // b
-// Determines the smoothness of the transition of unboosted to boosted colors
-float smoothness = 0.57; // c
+  float y = .0;
+  if (x<=a){
+    y = a - sqrt(a*a - x*x);
+  } else {
+    y = a + sqrt(pow(1.-a, 2.) - pow(x-1., 2.));
+  }
+  return y;
+}
 
-void  main() {
+
+void main() {
     vec2 uv = v_texcoord * 2.0;
 
     vec4 sum = texture2D(tex, uv) * 4.0;
@@ -211,29 +233,34 @@ void  main() {
     sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
     sum += texture2D(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
 
-    vec4  oldColor = sum / 8.0;
-    
+    vec4 color = sum / 8.0;
+
     if (boost_colors == 0.0) {
-      gl_FragColor = oldColor;
+        gl_FragColor = color;
     } else {
-    vec3  hsv = rgb2hsv(oldColor.rgb);
+        vec3 hsv = rgb2hsv(color.rgb);
+        // Calculate perceived brightness, as not boost visually dark colors like deep blue as much as equally saturated yellow
+        float perceivedBrightness = doubleCircleSigmoid( sqrt(color.r * color.r * Pr + color.g * color.g * Pg + color.b * color.b * Pb), 0.8 );
 
-    float boostBase = hsv[1] > 0.0  
-        ? smoothstep(                             
-            proportion2 - smoothness * 0.5,                       
-            proportion2 + smoothness * 0.5
-            hsv[1] * cos(proportion1) + hsv[2] * sin(proportion1)
-        )
-        : 0.0;
+        float boostBase = hsv[1] > 0.0 //
+            ?
+            smoothstep(b - c * 0.5, // comments for nicer formatting
+                       b + c * 0.5, //
+                       1.0 - (pow(1.0 -   hsv[1]  * cos(a), 2.0) + pow(1.0 - perceivedBrightness * sin(a), 2.0)) //
+                       ) //
+                * 4.0 // Boost it with the goal that `saturation_boost` at 1 will be more than enough
+            :
+            0.0;
 
-    float saturation = clamp(hsv[1] + boostBase * saturation_boost, 0.0, 1.0);
-    float brightness = clamp(hsv[2] + boostBase * brightness_boost, 0.0, 1.0);
+        float saturation = clamp(hsv[1] + (boostBase * saturation_boost) / passes, 0.0, 1.0);
+        float brightness = clamp(hsv[2] + (boostBase * brightness_boost) / passes, 0.0, 1.0);
 
-    vec3  newColor = hsv2rgb(vec3(hsv[0], saturation, brightness));
+        vec3  newColor = hsv2rgb(vec3(hsv[0], saturation, brightness));
 
-    gl_FragColor = vec4(newColor, oldColor[3]);
-   }
+        gl_FragColor = vec4(newColor, color[3]);
+    }
 }
+
 )#";
 
 inline const std::string FRAGBLUR2 = R"#(

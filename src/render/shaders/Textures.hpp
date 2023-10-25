@@ -173,8 +173,8 @@ uniform sampler2D    tex;
 
 uniform float        radius;
 uniform vec2         halfpixel;
-uniform float        passes;
-uniform float        boost_colors;
+uniform int          passes;
+uniform int          boost_colors;
 uniform float        saturation_boost;
 uniform float        brightness_boost;
 //
@@ -235,7 +235,7 @@ void main() {
 
     vec4 color = sum / 8.0;
 
-    if (boost_colors == 0.0) {
+    if (boost_colors == 0) {
         gl_FragColor = color;
     } else {
         vec3 hsv = rgb2hsv(color.rgb);
@@ -252,8 +252,8 @@ void main() {
             :
             0.0;
 
-        float saturation = clamp(hsv[1] + (boostBase * saturation_boost) / passes, 0.0, 1.0);
-        float brightness = clamp(hsv[2] + (boostBase * brightness_boost) / passes, 0.0, 1.0);
+        float saturation = clamp(hsv[1] + (boostBase * saturation_boost) / float(passes), 0.0, 1.0);
+        float brightness = clamp(hsv[2] + (boostBase * brightness_boost) / float(passes), 0.0, 1.0);
 
         vec3  newColor = hsv2rgb(vec3(hsv[0], saturation, brightness));
 

@@ -947,8 +947,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         if (pShader == &m_RenderData.pCurrentMonData->m_shBLUR1) {
             glUniform2f(m_RenderData.pCurrentMonData->m_shBLUR1.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f),
                         0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
-            glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.passes, *PBLURPASSES);
-            glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.boost_colors, *PBLURBOOSTCOLORS);
+            glUniform1i(m_RenderData.pCurrentMonData->m_shBLUR1.passes, *PBLURPASSES);
+            glUniform1i(m_RenderData.pCurrentMonData->m_shBLUR1.boost_colors, *PBLURBOOSTCOLORS);
             glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.saturation_boost, *PBLURSATURATIONBOOST);
             glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.brightness_boost, *PBLURBRIGHTNESSBOOST);
         } else

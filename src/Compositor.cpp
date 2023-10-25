@@ -121,7 +121,6 @@ void CCompositor::initServer() {
     signal(SIGSEGV, handleUnrecoverableSignal);
     signal(SIGABRT, handleUnrecoverableSignal);
     signal(SIGUSR1, handleUserSignal);
-    //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
     initManagers(STAGE_PRIORITY);
 

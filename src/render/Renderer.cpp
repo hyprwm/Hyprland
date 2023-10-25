@@ -431,6 +431,12 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
+        if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall && renderdata.blur) {
+            wlr_box wb = {renderdata.x, renderdata.y, renderdata.w, renderdata.h};
+            g_pHyprOpenGL->renderRectWithBlur(&wb, CColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1);
+            renderdata.blur = false;
+        }
+
         wlr_surface_for_each_surface(pWindow->m_pWLSurface.wlr(), renderSurface, &renderdata);
 
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;

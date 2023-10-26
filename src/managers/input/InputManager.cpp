@@ -379,11 +379,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             }
 
             if (pFoundWindow == g_pCompositor->m_pLastWindow) {
-                if (foundSurface != g_pCompositor->m_pLastFocus || m_bLastFocusOnLS) {
-                    //      ^^^ changed the subsurface                  ^^^ came back from a LS
-                    m_pLastMouseSurface = foundSurface;
-                    wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
-                }
+                m_pLastMouseSurface = foundSurface;
+                wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
             if (FOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_pLastWindow)

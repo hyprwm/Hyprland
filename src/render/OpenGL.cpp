@@ -319,14 +319,14 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shBLUR2.radius    = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shBLUR2.halfpixel = glGetUniformLocation(prog, "halfpixel");
 
-    prog                                                          = createProgram(TEXVERTSRC, FRAGBLURPREPARE);
-    m_RenderData.pCurrentMonData->m_shBLURPREPARE.program         = prog;
-    m_RenderData.pCurrentMonData->m_shBLURPREPARE.tex             = glGetUniformLocation(prog, "tex");
-    m_RenderData.pCurrentMonData->m_shBLURPREPARE.proj            = glGetUniformLocation(prog, "proj");
-    m_RenderData.pCurrentMonData->m_shBLURPREPARE.posAttrib       = glGetAttribLocation(prog, "pos");
-    m_RenderData.pCurrentMonData->m_shBLURPREPARE.texAttrib       = glGetAttribLocation(prog, "texcoord");
-    m_RenderData.pCurrentMonData->m_shBLURPREPARE.contrast        = glGetUniformLocation(prog, "contrast");
-    m_RenderData.pCurrentMonData->m_shBLURPREPARE.base_brightness = glGetUniformLocation(prog, "base_brightness");
+    prog                                                     = createProgram(TEXVERTSRC, FRAGBLURPREPARE);
+    m_RenderData.pCurrentMonData->m_shBLURPREPARE.program    = prog;
+    m_RenderData.pCurrentMonData->m_shBLURPREPARE.tex        = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shBLURPREPARE.proj       = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shBLURPREPARE.posAttrib  = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shBLURPREPARE.texAttrib  = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shBLURPREPARE.contrast   = glGetUniformLocation(prog, "contrast");
+    m_RenderData.pCurrentMonData->m_shBLURPREPARE.brightness = glGetUniformLocation(prog, "brightness");
 
     prog                                                        = createProgram(TEXVERTSRC, FRAGBLURFINISH);
     m_RenderData.pCurrentMonData->m_shBLURFINISH.program        = prog;
@@ -879,8 +879,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     // Begin with base color adjustments - global brightness and contrast
     // TODO: make this a part of the first pass maybe to save on a drawcall?
     {
-        static auto* const PBLURCONTRAST       = &g_pConfigManager->getConfigValuePtr("decoration:blur:contrast")->floatValue;
-        static auto* const PBLURBASEBRIGHTNESS = &g_pConfigManager->getConfigValuePtr("decoration:blur:base_brightness")->floatValue;
+        static auto* const PBLURCONTRAST   = &g_pConfigManager->getConfigValuePtr("decoration:blur:contrast")->floatValue;
+        static auto* const PBLURBRIGHTNESS = &g_pConfigManager->getConfigValuePtr("decoration:blur:brightness")->floatValue;
 
         PMIRRORSWAPFB->bind();
 
@@ -899,7 +899,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_FALSE, glMatrix);
 #endif
         glUniform1f(m_RenderData.pCurrentMonData->m_shBLURPREPARE.contrast, *PBLURCONTRAST);
-        glUniform1f(m_RenderData.pCurrentMonData->m_shBLURPREPARE.base_brightness, *PBLURBASEBRIGHTNESS);
+        glUniform1f(m_RenderData.pCurrentMonData->m_shBLURPREPARE.brightness, *PBLURBRIGHTNESS);
         glUniform1i(m_RenderData.pCurrentMonData->m_shBLURPREPARE.tex, 0);
 
         glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBLURPREPARE.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);

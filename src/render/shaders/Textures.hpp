@@ -188,41 +188,69 @@ const float Pb = 0.114;
 // Y is "v" ( brightness ). X is "s" ( saturation )
 // Determines if high brightness or high saturation is more important
 const float a = 0.93;
-const float b = 0.3;
+const float b = 0.28;
 const float c = 0.66; //  Determines the smoothness of the transition of unboosted to boosted colors
 //
 
-vec3 rgb2hsv(vec3 c) {
-    vec4  K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-    vec4  p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-    vec4  q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-
-    float d = q.x - min(q.w, q.y);
-    float e = 1.0e-10;
-    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-}
-
-vec3 hsv2rgb(vec3 c) {
-    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
 // http://www.flong.com/archive/texts/code/shapers_circ/
-float doubleCircleSigmoid (float x, float a){
-  float min_param_a = 0.0;
-  float max_param_a = 1.0;
-  a = max(min_param_a, min(max_param_a, a)); 
+float doubleCircleSigmoid(float x, float a) {
+    float min_param_a = 0.0;
+    float max_param_a = 1.0;
+    a                 = max(min_param_a, min(max_param_a, a));
 
-  float y = .0;
-  if (x<=a){
-    y = a - sqrt(a*a - x*x);
-  } else {
-    y = a + sqrt(pow(1.-a, 2.) - pow(x-1., 2.));
-  }
-  return y;
+    float y = .0;
+    if (x <= a) {
+        y = a - sqrt(a * a - x * x);
+    } else {
+        y = a + sqrt(pow(1. - a, 2.) - pow(x - 1., 2.));
+    }
+    return y;
 }
 
+// https://www.shadertoy.com/view/wt23Rt
+vec3 saturate(vec3 v) {
+    return clamp(v, 0., 1.);
+}
+vec3 hue2rgb(float hue) {
+    hue = fract(hue);
+    return saturate(vec3(abs(hue * 6. - 3.) - 1., 2. - abs(hue * 6. - 2.), 2. - abs(hue * 6. - 4.)));
+}
+vec3 rgb2hsl(vec3 c) {
+    float cMin = min(min(c.r, c.g), c.b), cMax = max(max(c.r, c.g), c.b), delta = cMax - cMin;
+    vec3  hsl = vec3(0., 0., (cMax + cMin) / 2.);
+    if (delta != 0.0) { //If it has chroma and isn't gray.
+        if (hsl.z < .5) {
+            hsl.y = delta / (cMax + cMin); //Saturation.
+        } else {
+            hsl.y = delta / (2. - cMax - cMin); //Saturation.
+        }
+        float deltaR = (((cMax - c.r) / 6.) + (delta / 2.)) / delta, deltaG = (((cMax - c.g) / 6.) + (delta / 2.)) / delta, deltaB = (((cMax - c.b) / 6.) + (delta / 2.)) / delta;
+        //Hue.
+        if (c.r == cMax) {
+            hsl.x = deltaB - deltaG;
+        } else if (c.g == cMax) {
+            hsl.x = (1. / 3.) + deltaR - deltaB;
+        } else { //if(c.b==cMax){
+            hsl.x = (2. / 3.) + deltaG - deltaR;
+        }
+        hsl.x = fract(hsl.x);
+    }
+    return hsl;
+}
+vec3 hsl2rgb(vec3 hsl) {
+    if (hsl.y == 0.) {
+        return vec3(hsl.z); //Luminance.
+    } else {
+        float b;
+        if (hsl.z < .5) {
+            b = hsl.z * (1. + hsl.y);
+        } else {
+            b = hsl.z + hsl.y - hsl.y * hsl.z;
+        }
+        float a = 2. * hsl.z - b;
+        return a + hue2rgb(hsl.x) * (b - a);
+    }
+}
 
 void main() {
     vec2 uv = v_texcoord * 2.0;
@@ -238,24 +266,20 @@ void main() {
     if (boost_colors == 0) {
         gl_FragColor = color;
     } else {
-        vec3 hsv = rgb2hsv(color.rgb);
+        // Decrease the RGB components based on their perceived brightness, to prevent visually dark colors from overblowing the rest
+        vec3 hsl = rgb2hsl(color.rgb);
         // Calculate perceived brightness, as not boost visually dark colors like deep blue as much as equally saturated yellow
-        float perceivedBrightness = doubleCircleSigmoid( sqrt(color.r * color.r * Pr + color.g * color.g * Pg + color.b * color.b * Pb), 0.8 );
+        float perceivedBrightness = doubleCircleSigmoid(sqrt(color.r * color.r * Pr + color.g * color.g * Pg + color.b * color.b * Pb), 0.8);
 
-        float boostBase = hsv[1] > 0.0 //
+        float boostBase = hsl[1] > 0.0 //
             ?
-            smoothstep(b - c * 0.5, // comments for nicer formatting
-                       b + c * 0.5, //
-                       1.0 - (pow(1.0 -   hsv[1]  * cos(a), 2.0) + pow(1.0 - perceivedBrightness * sin(a), 2.0)) //
-                       ) //
-                * 4.0 // Boost it with the goal that `saturation_boost` at 1 will be more than enough
-            :
+            smoothstep(b - c * 0.5, b + c * 0.5, 1.0 - (pow(1.0 - hsl[1] * cos(a), 2.0) + pow(1.0 - perceivedBrightness * sin(a), 2.0))) * 4.0 :
             0.0;
 
-        float saturation = clamp(hsv[1] + (boostBase * saturation_boost) / float(passes), 0.0, 1.0);
-        float brightness = clamp(hsv[2] + (boostBase * brightness_boost) / float(passes), 0.0, 1.0);
+        float saturation = clamp(hsl[1] + (boostBase * saturation_boost) / float(passes), 0.0, 1.0);
+        float brightness = clamp(hsl[2] + (boostBase * brightness_boost) / float(passes), 0.0, 1.0);
 
-        vec3  newColor = hsv2rgb(vec3(hsv[0], saturation, brightness));
+        vec3  newColor = hsl2rgb(vec3(hsl[0], saturation, brightness));
 
         gl_FragColor = vec4(newColor, color[3]);
     }

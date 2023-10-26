@@ -182,7 +182,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     // update stuff
     updateDragIcon();
 
-    if (!m_sDrag.drag && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus) {
+    if (!m_sDrag.drag && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus && m_pLastMouseSurface) {
         if (m_bLastFocusOnLS) {
             foundSurface       = m_pLastMouseSurface;
             pFoundLayerSurface = g_pCompositor->getLayerSurfaceFromSurface(foundSurface);
@@ -310,6 +310,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
 
         wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
+        m_pLastMouseSurface = nullptr;
 
         if (refocus || !g_pCompositor->m_pLastWindow) // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
             g_pCompositor->focusWindow(nullptr);

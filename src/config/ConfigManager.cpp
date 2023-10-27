@@ -160,8 +160,8 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:blur:xray"].intValue               = 0;
     configValues["decoration:blur:contrast"].floatValue         = 0.8916;
     configValues["decoration:blur:brightness"].floatValue       = 1.0;
-    configValues["decoration:blur:boost_colors"].intValue       = 1;
-    configValues["decoration:blur:saturation_boost"].floatValue = 0.1;
+    configValues["decoration:blur:boost_colors"].intValue       = 0;
+    configValues["decoration:blur:saturation_boost"].floatValue = 0.5;
     configValues["decoration:blur:brightness_boost"].floatValue = 0.0;
     configValues["decoration:blur:min_brightness"].floatValue   = 0.0;
     configValues["decoration:blur:max_brightness"].floatValue   = 1.0;

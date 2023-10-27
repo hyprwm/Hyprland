@@ -468,7 +468,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
     if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.keyboard_interactive)
         PWINDOW->m_bNoInitialFocus = true;
-    if (PWORKSPACE->m_bHasFullscreenWindow && !requestsFullscreen) {
+    if (PWORKSPACE->m_bHasFullscreenWindow && !requestsFullscreen && !PWINDOW->m_bIsFloating) {
         if (*PNEWTAKESOVERFS == 0)
             PWINDOW->m_bNoInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 2)

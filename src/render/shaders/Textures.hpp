@@ -341,6 +341,7 @@ uniform sampler2D tex;
 uniform float     noise;
 uniform float     min_brightness;
 uniform float     max_brightness;
+//
 
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -363,36 +364,38 @@ vec3 hsv2rgb(vec3 c) {
 }
 
 float smoothClamp(float x, float a, float b) {
-    return smoothstep(0., 1., (x - a)/(b - a))*(b - a) + a;
+    return smoothstep(0., 1., (x - a) / (b - a)) * (b - a) + a;
 }
 
 float softClamp(float x, float min, float max) {
     // Prevent setting 0 in the config to affect the brightness
     // But also prevent weird banding  here
-    if (( min == 0. && max > 0.5) && x <= 0.45 ) return x;
-    if (( max == 0. && min < 0.5 ) && x >= 0.55 ) return x;
+    if ((min == 0. && max > 0.5) && x <= 0.45)
+        return x;
+    if ((max == 0. && min < 0.5) && x >= 0.55)
+        return x;
 
-    return smoothstep(0., 1., (2./3.)*(x - min)/(max - min) + (1./6.))*(max - min) + min;
+    return smoothstep(0., 1., (2. / 3.) * (x - min) / (max - min) + (1. / 6.)) * (max - min) + min;
 }
-
 
 void main() {
-    vec4  pixColor = texture2D(tex, v_texcoord);
+    vec4 pixColor = texture2D(tex, v_texcoord);
+    vec3 color    = pixColor.rgb;
 
-    vec3  hsv = rgb2hsv(pixColor.rgb);
+    if (min_brightness == 0.0 && max_brightness == 1.0) {
+        vec3  hsv       = rgb2hsv(pixColor.rgb);
+        float luminance = softClamp(hsv[2], min_brightness, max_brightness);
 
-    float luminance  = softClamp(hsv[2], min_brightness, max_brightness);
-
-    vec3  newColor = hsv2rgb(vec3(hsv[0], hsv[1], luminance));
+        color = hsv2rgb(vec3(hsv[0], hsv[1], luminance));
+    }
 
     // noise
-    float noiseHash = hash(v_texcoord);
+    float noiseHash   = hash(v_texcoord);
     float noiseAmount = (mod(noiseHash, 1.0) - 0.5);
-    newColor.rgb += noiseAmount * noise;
+    color.rgb += noiseAmount * noise;
 
-    gl_FragColor = vec4(newColor, pixColor.a);
+    gl_FragColor = vec4(color, pixColor.a);
 }
-
 )#";
 
 inline const std::string TEXFRAGSRCEXT = R"#(

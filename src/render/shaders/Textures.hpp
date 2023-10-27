@@ -366,62 +366,21 @@ varying vec2      v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
 uniform float     noise;
-uniform float     min_brightness;
-uniform float     max_brightness;
-//
 
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
-vec3 rgb2hsv(vec3 c) {
-    vec4  K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-    vec4  p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-    vec4  q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-
-    float d = q.x - min(q.w, q.y);
-    float e = 1.0e-10;
-    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-}
-
-vec3 hsv2rgb(vec3 c) {
-    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-float smoothClamp(float x, float a, float b) {
-    return smoothstep(0., 1., (x - a) / (b - a)) * (b - a) + a;
-}
-
-float softClamp(float x, float min, float max) {
-    // Prevent setting 0 in the config to affect the brightness
-    // But also prevent weird banding  here
-    if ((min == 0. && max > 0.5) && x <= 0.45)
-        return x;
-    if ((max == 0. && min < 0.5) && x >= 0.55)
-        return x;
-
-    return smoothstep(0., 1., (2. / 3.) * (x - min) / (max - min) + (1. / 6.)) * (max - min) + min;
-}
-
 void main() {
     vec4 pixColor = texture2D(tex, v_texcoord);
-    vec3 color    = pixColor.rgb;
-
-    if (min_brightness != 0.0 || max_brightness != 1.0) {
-        vec3  hsv       = rgb2hsv(pixColor.rgb);
-        float luminance = softClamp(hsv[2], min_brightness, max_brightness);
-
-        color = hsv2rgb(vec3(hsv[0], hsv[1], luminance));
-    }
 
     // noise
     float noiseHash   = hash(v_texcoord);
     float noiseAmount = (mod(noiseHash, 1.0) - 0.5);
-    color.rgb += noiseAmount * noise;
+    pixColor.rgb += noiseAmount * noise;
+    
 
-    gl_FragColor = vec4(color, pixColor.a);
+    gl_FragColor = pixColor;
 }
 )#";
 

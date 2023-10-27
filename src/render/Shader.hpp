@@ -54,9 +54,7 @@ class CShader {
     GLint brightness_boost = -1;
 
     // Blur finish
-    GLint min_brightness = -1;
-    GLint max_brightness = -1;
-    GLint noise          = -1;
+    GLint noise = -1;
 
     GLint getUniformLocation(const std::string&);
 

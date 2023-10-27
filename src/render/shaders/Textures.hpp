@@ -409,7 +409,7 @@ void main() {
     vec4 pixColor = texture2D(tex, v_texcoord);
     vec3 color    = pixColor.rgb;
 
-    if (min_brightness == 0.0 && max_brightness == 1.0) {
+    if (min_brightness != 0.0 || max_brightness != 1.0) {
         vec3  hsv       = rgb2hsv(pixColor.rgb);
         float luminance = softClamp(hsv[2], min_brightness, max_brightness);
 

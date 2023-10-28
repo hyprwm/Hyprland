@@ -75,6 +75,7 @@ CCompositor::CCompositor() {
     Debug::log(INFO, "If you are crashing, or encounter any bugs, please consult https://wiki.hyprland.org/Crashes-and-Bugs/\n\n");
 
     setRandomSplash();
+    setenv("HYPRLAND_SPLASH", m_szCurrentSplash.c_str(), true);
 
     Debug::log(LOG, "\nCurrent splash: {}\n\n", m_szCurrentSplash);
 }

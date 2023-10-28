@@ -132,6 +132,14 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
 }
 
 static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat format) {
+    auto getFocusHistoryID = [](CWindow* wnd) -> int {
+        for (size_t i = 0; i < g_pCompositor->m_vWindowFocusHistory.size(); ++i) {
+            if (g_pCompositor->m_vWindowFocusHistory[i] == wnd)
+                return i;
+        }
+        return -1;
+    };
+
     if (format == HyprCtl::FORMAT_JSON) {
         return std::format(
             R"#({{
@@ -157,7 +165,8 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
     "fullscreenMode": {},
     "fakeFullscreen": {},
     "grouped": [{}],
-    "swallowing": "0x{:x}"
+    "swallowing": "0x{:x}",
+    "focusHistoryID": {}
 }},)#",
             (uintptr_t)w, (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
             (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
@@ -168,13 +177,13 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             escapeJSONStrings(g_pXWaylandManager->getTitle(w)), escapeJSONStrings(w->m_szInitialClass), escapeJSONStrings(w->m_szInitialTitle), w->getPID(),
             ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"), (w->m_bIsFullscreen ? "true" : "false"),
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? (int)g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
-            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format), (uintptr_t)w->m_pSwallowed);
+            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format), (uintptr_t)w->m_pSwallowed, getFocusHistoryID(w));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
             "{}\n\txwayland: {}\n\tpinned: "
-            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\n",
+            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
             (uintptr_t)w, w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
             (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
             (w->m_iWorkspaceID == -1                                ? "" :
@@ -183,7 +192,7 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w), g_pXWaylandManager->getTitle(w), w->m_szInitialClass, w->m_szInitialTitle,
             w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
-            (int)w->m_bFakeFullscreenState, getGroupedData(w, format), (uintptr_t)w->m_pSwallowed);
+            (int)w->m_bFakeFullscreenState, getGroupedData(w, format), (uintptr_t)w->m_pSwallowed, getFocusHistoryID(w));
     }
 }
 

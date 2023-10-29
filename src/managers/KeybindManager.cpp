@@ -1848,7 +1848,7 @@ void CKeybindManager::mouse(std::string args) {
                 }
             }
 
-            if (g_pInputManager->currentlyDraggedWindow == nullptr)
+            if (!g_pInputManager->currentlyDraggedWindow)
                 g_pInputManager->currentlyDraggedWindow = pWindow;
 
             g_pInputManager->dragMode = MBIND_MOVE;

@@ -32,7 +32,7 @@ bool IHyprWindowDecoration::allowsInput() {
 void IHyprWindowDecoration::onBeginWindowDragOnDeco(const Vector2D&) {}
 
 bool IHyprWindowDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&) {
-    return 1;
+    return true;
 }
 
 void IHyprWindowDecoration::onMouseDownOnDeco(const Vector2D&, wlr_pointer_button_event*) {}

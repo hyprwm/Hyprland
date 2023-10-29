@@ -313,7 +313,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, con
                   && !(pDraggedWindow->m_sGroupData.pNextWindow && pDraggedWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
           && !pDraggedWindow->m_sGroupData.deny                                                                           // source is not denied entry
           && !(pDraggedWindow->m_eGroupRules & GROUP_BARRED && pDraggedWindow->m_bFirstMap)))                             // group rule doesn't prevent adding window
-        return 1;
+        return true;
 
     const float BARRELATIVEX = pos.x - m_vLastWindowPos.x - m_fBarWidth / 2;
     const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
@@ -332,7 +332,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, con
     pDraggedWindow->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
 
-    return 0;
+    return false;
 }
 
 void CHyprGroupBarDecoration::onMouseDownOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {

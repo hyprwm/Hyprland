@@ -301,9 +301,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (g_pHyprRenderer->m_bHasARenderedCursor) {
                 // TODO: maybe wrap?
                 if (m_ecbClickBehavior == CLICKMODE_KILL)
-                    g_pHyprRenderer->setCursorFromName("crosshair");
+                    setCursorImageOverride("crosshair");
                 else
-                    g_pHyprRenderer->setCursorFromName("left_ptr");
+                    setCursorImageOverride("left_ptr");
             }
 
             m_bEmptyFocusCursorSet = true;
@@ -353,6 +353,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
         return;
+    }
+
+    if (pFoundWindow && foundSurface == pFoundWindow->m_pWLSurface.wlr() && !m_bCursorImageOverridden) {
+        const auto BOX = pFoundWindow->getWindowMainSurfaceBox();
+        if (!VECINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
+            setCursorImageOverride("left_ptr");
+        else
+            restoreCursorIconToApp();
     }
 
     if (pFoundWindow) {
@@ -460,25 +468,65 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
     if (!cursorImageUnlocked() || !g_pHyprRenderer->m_bHasARenderedCursor)
         return;
 
-    // cursorSurfaceInfo.pSurface = e->surface;
+    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
+        m_sCursorSurfaceInfo.wlSurface.unassign();
 
-    // if (e->surface) {
-    //     hyprListener_CursorSurfaceDestroy.removeCallback();
-    //     hyprListener_CursorSurfaceDestroy.initCallback(
-    //         &e->surface->events.destroy, [&](void* owner, void* data) { cursorSurfaceInfo.pSurface = nullptr; }, this, "InputManager");
-    //     cursorSurfaceInfo.vHotspot = {e->hotspot_x, e->hotspot_y};
-    // }
+        if (e->surface) {
+            m_sCursorSurfaceInfo.wlSurface.assign(e->surface);
+            m_sCursorSurfaceInfo.vHotspot = {e->hotspot_x, e->hotspot_y};
+            m_sCursorSurfaceInfo.hidden   = false;
+        } else {
+            m_sCursorSurfaceInfo.vHotspot = {};
+            m_sCursorSurfaceInfo.hidden   = true;
+        }
 
-    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
+        m_sCursorSurfaceInfo.name = "";
+
+        m_sCursorSurfaceInfo.inUse = true;
         g_pHyprRenderer->setCursorSurface(e->surface, e->hotspot_x, e->hotspot_y);
+    }
 }
 
 void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
     if (!g_pHyprRenderer->m_bHasARenderedCursor || !cursorImageUnlocked())
         return;
 
-    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
-        g_pHyprRenderer->setCursorFromName(wlr_cursor_shape_v1_name(e->shape));
+    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
+        m_sCursorSurfaceInfo.wlSurface.unassign();
+        m_sCursorSurfaceInfo.vHotspot = {};
+        m_sCursorSurfaceInfo.name     = wlr_cursor_shape_v1_name(e->shape);
+        m_sCursorSurfaceInfo.hidden   = false;
+
+        m_sCursorSurfaceInfo.inUse = true;
+        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
+    }
+}
+
+void CInputManager::restoreCursorIconToApp() {
+    if (m_sCursorSurfaceInfo.inUse)
+        return;
+
+    if (m_sCursorSurfaceInfo.hidden) {
+        g_pHyprRenderer->setCursorSurface(nullptr, 0, 0);
+        return;
+    }
+
+    if (m_sCursorSurfaceInfo.name.empty()) {
+        if (m_sCursorSurfaceInfo.wlSurface.exists())
+            g_pHyprRenderer->setCursorSurface(m_sCursorSurfaceInfo.wlSurface.wlr(), m_sCursorSurfaceInfo.vHotspot.x, m_sCursorSurfaceInfo.vHotspot.y);
+    } else {
+        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
+    }
+
+    m_sCursorSurfaceInfo.inUse = true;
+}
+
+void CInputManager::setCursorImageOverride(const std::string& name) {
+    if (m_bCursorImageOverridden)
+        return;
+
+    m_sCursorSurfaceInfo.inUse = false;
+    g_pHyprRenderer->setCursorFromName(name);
 }
 
 bool CInputManager::cursorImageUnlocked() {
@@ -1487,7 +1535,8 @@ void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
 
 void CInputManager::setCursorImageUntilUnset(std::string name) {
     g_pHyprRenderer->setCursorFromName(name.c_str());
-    m_bCursorImageOverridden = true;
+    m_bCursorImageOverridden   = true;
+    m_sCursorSurfaceInfo.inUse = false;
 }
 
 void CInputManager::unsetCursorImage() {
@@ -1495,8 +1544,7 @@ void CInputManager::unsetCursorImage() {
         return;
 
     m_bCursorImageOverridden = false;
-    if (!g_pHyprRenderer->m_bWindowRequestedCursorHide)
-        g_pHyprRenderer->setCursorFromName("left_ptr");
+    restoreCursorIconToApp();
 }
 
 std::string CInputManager::deviceNameToInternalString(std::string in) {

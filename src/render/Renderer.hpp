@@ -83,6 +83,11 @@ class CHyprRenderer {
 
     CTimer                                           m_tRenderTimer;
 
+    struct {
+      wlr_surface* surf = nullptr;
+      std::string name;
+    } m_sLastCursorData;
+
   private:
     void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
     void renderWorkspaceWindowsFullscreen(CMonitor*, CWorkspace*, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)

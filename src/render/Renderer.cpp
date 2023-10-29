@@ -1940,10 +1940,22 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY) {
     m_bCursorHasSurface = surf;
 
+    if (surf == m_sLastCursorData.surf)
+        return;
+
+    m_sLastCursorData.name = "";
+    m_sLastCursorData.surf = surf;
+
     wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, surf, hotspotX, hotspotY);
 }
 void CHyprRenderer::setCursorFromName(const std::string& name) {
     m_bCursorHasSurface = true;
+
+    if (name == m_sLastCursorData.name)
+        return;
+
+    m_sLastCursorData.name = name;
+    m_sLastCursorData.surf = nullptr;
 
     wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
 }

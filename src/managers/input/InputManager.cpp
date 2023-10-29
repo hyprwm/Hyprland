@@ -1621,49 +1621,70 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     // give a small leeway (10 px) for corner icon
     const auto           CORNER           = *PROUNDING + BORDERSIZE + 10;
     const auto           mouseCoords      = getMouseCoordsInternal();
-    wlr_box              box              = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+    wlr_box              box              = w->getWindowMainSurfaceBox();
     eBorderIconDirection direction        = BORDERICON_NONE;
     wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
-    if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow)) {
+    if (w->hasPopupAt(mouseCoords))
         direction = BORDERICON_NONE;
-    } else if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-        if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
-            direction = BORDERICON_NONE;
-        } else {
-            if (mouseCoords.y < box.y + CORNER) {
-                if (mouseCoords.x < box.x + CORNER)
-                    direction = BORDERICON_UP_LEFT;
-                else
-                    direction = BORDERICON_UP_RIGHT;
-            } else {
-                if (mouseCoords.x < box.x + CORNER)
-                    direction = BORDERICON_DOWN_LEFT;
-                else
-                    direction = BORDERICON_DOWN_RIGHT;
+    else if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow))
+        direction = BORDERICON_NONE;
+    else {
+
+        bool onDeco = false;
+
+        for (auto& d : w->m_dWindowDecorations) {
+            if (!d->allowsInput())
+                continue;
+
+            if (d->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+                onDeco = true;
+                break;
             }
         }
-    } else {
-        if (mouseCoords.y < box.y + CORNER) {
-            if (mouseCoords.x < box.x + CORNER)
-                direction = BORDERICON_UP_LEFT;
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                direction = BORDERICON_UP_RIGHT;
-            else
-                direction = BORDERICON_UP;
-        } else if (mouseCoords.y > box.y + box.height - CORNER) {
-            if (mouseCoords.x < box.x + CORNER)
-                direction = BORDERICON_DOWN_LEFT;
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                direction = BORDERICON_DOWN_RIGHT;
-            else
-                direction = BORDERICON_DOWN;
-        } else {
-            if (mouseCoords.x < box.x + CORNER)
-                direction = BORDERICON_LEFT;
-            else if (mouseCoords.x > box.x + box.width - CORNER)
-                direction = BORDERICON_RIGHT;
+
+        if (onDeco)
+            direction = BORDERICON_NONE;
+        else {
+            if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+                if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+                    direction = BORDERICON_NONE;
+                } else {
+                    if (mouseCoords.y < box.y + CORNER) {
+                        if (mouseCoords.x < box.x + CORNER)
+                            direction = BORDERICON_UP_LEFT;
+                        else
+                            direction = BORDERICON_UP_RIGHT;
+                    } else {
+                        if (mouseCoords.x < box.x + CORNER)
+                            direction = BORDERICON_DOWN_LEFT;
+                        else
+                            direction = BORDERICON_DOWN_RIGHT;
+                    }
+                }
+            } else {
+                if (mouseCoords.y < box.y + CORNER) {
+                    if (mouseCoords.x < box.x + CORNER)
+                        direction = BORDERICON_UP_LEFT;
+                    else if (mouseCoords.x > box.x + box.width - CORNER)
+                        direction = BORDERICON_UP_RIGHT;
+                    else
+                        direction = BORDERICON_UP;
+                } else if (mouseCoords.y > box.y + box.height - CORNER) {
+                    if (mouseCoords.x < box.x + CORNER)
+                        direction = BORDERICON_DOWN_LEFT;
+                    else if (mouseCoords.x > box.x + box.width - CORNER)
+                        direction = BORDERICON_DOWN_RIGHT;
+                    else
+                        direction = BORDERICON_DOWN;
+                } else {
+                    if (mouseCoords.x < box.x + CORNER)
+                        direction = BORDERICON_LEFT;
+                    else if (mouseCoords.x > box.x + box.width - CORNER)
+                        direction = BORDERICON_RIGHT;
+                }
+            }
         }
     }
 

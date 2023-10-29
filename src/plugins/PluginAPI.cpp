@@ -9,6 +9,10 @@
 
 #include <sstream>
 
+APICALL const char* __hyprland_api_get_hash() {
+    return GIT_COMMIT_HASH;
+}
+
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 

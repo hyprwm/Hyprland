@@ -115,6 +115,14 @@ namespace HyprlandAPI {
     APICALL bool addConfigValue(HANDLE handle, const std::string& name, const SConfigValue& value);
 
     /*
+        Add a config keyword.
+        This method may only be called in "pluginInit"
+
+        returns: true on success, false on fail
+    */
+    APICALL bool addConfigKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& key, const std::string& val)> fn);
+
+    /*
         Get a config value.
 
         returns: a pointer to the config value struct, which is guaranteed to be valid for the life of this plugin, unless another `addConfigValue` is called afterwards.

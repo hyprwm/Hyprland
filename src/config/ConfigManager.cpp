@@ -1389,8 +1389,15 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     else if (COMMAND.starts_with("plugin"))
         handlePlugin(COMMAND, VALUE);
     else {
-        configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
-        needsLayoutRecalc = 2;
+        // try config
+        const auto IT = std::find_if(pluginKeywords.begin(), pluginKeywords.end(), [&](const auto& other) { return other.name == COMMAND; });
+
+        if (IT != pluginKeywords.end()) {
+            IT->fn(COMMAND, VALUE);
+        } else {
+            configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
+            needsLayoutRecalc = 2;
+        }
     }
 
     if (dynamic) {
@@ -1524,6 +1531,8 @@ void CConfigManager::parseLine(std::string& line) {
 }
 
 void CConfigManager::loadConfigLoadVars() {
+    EMIT_HOOK_EVENT("preConfigReload", nullptr);
+
     Debug::log(LOG, "Reloading the config!");
     parseError      = ""; // reset the error
     currentCategory = ""; // reset the category
@@ -2312,8 +2321,13 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
     }
 }
 
+void CConfigManager::addPluginKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string&, const std::string&)> fn) {
+    pluginKeywords.emplace_back(SPluginKeyword{handle, name, fn});
+}
+
 void CConfigManager::removePluginConfig(HANDLE handle) {
     std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
+    std::erase_if(pluginKeywords, [&](const auto& other) { return other.handle == handle; });
 }
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {

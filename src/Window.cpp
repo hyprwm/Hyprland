@@ -171,6 +171,10 @@ wlr_box CWindow::getWindowInputBox() {
     return finalBox;
 }
 
+wlr_box CWindow::getWindowMainSurfaceBox() {
+    return {m_vRealPosition.vec().x, m_vRealPosition.vec().y, m_vRealSize.vec().x, m_vRealSize.vec().y};
+}
+
 SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
     SWindowDecorationExtents extents;
 

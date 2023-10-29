@@ -339,6 +339,7 @@ class CWindow {
     wlr_box                  getFullWindowBoundingBox();
     SWindowDecorationExtents getFullWindowExtents();
     wlr_box                  getWindowInputBox();
+    wlr_box                  getWindowMainSurfaceBox();
     wlr_box                  getWindowIdealBoundingBoxIgnoreReserved();
     void                     updateWindowDecos();
     pid_t                    getPID();

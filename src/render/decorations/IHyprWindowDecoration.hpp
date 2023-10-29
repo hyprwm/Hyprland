@@ -39,6 +39,12 @@ class IHyprWindowDecoration {
 
     virtual bool                     allowsInput();
 
+    virtual void                     onBeginWindowDragOnDeco(const Vector2D&); // called when the user calls the "movewindow" mouse dispatcher on the deco
+
+    virtual bool                     onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&); // returns true if the window should be placed by the layout
+
+    virtual void                     onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
+
   private:
     CWindow* m_pWindow = nullptr;
 };

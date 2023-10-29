@@ -35,6 +35,12 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual bool                     allowsInput();
 
+    virtual void                     onBeginWindowDragOnDeco(const Vector2D&);
+
+    virtual bool                     onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&);
+
+    virtual void                     onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
+
   private:
     SWindowDecorationExtents m_seExtents;
 
@@ -44,6 +50,8 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     Vector2D                 m_vLastWindowSize;
 
     std::deque<CWindow*>     m_dwGroupMembers;
+
+    float                    m_fBarWidth;
 
     CTitleTex*               textureFromTitle(const std::string&);
     void                     invalidateTextures();

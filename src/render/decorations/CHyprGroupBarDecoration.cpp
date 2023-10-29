@@ -24,6 +24,7 @@ eDecorationType CHyprGroupBarDecoration::getDecorationType() {
 constexpr int BAR_INDICATOR_HEIGHT   = 3;
 constexpr int BAR_PADDING_OUTER_VERT = 2;
 constexpr int BAR_TEXT_PAD           = 2;
+constexpr int BAR_HORIZONTAL_PADDING = 2;
 
 //
 
@@ -93,15 +94,13 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    const int PAD = 2; //2px
+    m_fBarWidth = (m_vLastWindowSize.x - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
 
-    const int BARW = (m_vLastWindowSize.x - PAD * (barsToDraw - 1)) / barsToDraw;
-
-    int       xoff = 0;
+    int xoff = 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
         wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x,
-                        m_vLastWindowPos.y - BAR_PADDING_OUTER_VERT - BORDERSIZE - BAR_INDICATOR_HEIGHT - pMonitor->vecPosition.y + offset.y, BARW, BAR_INDICATOR_HEIGHT};
+                        m_vLastWindowPos.y - BAR_PADDING_OUTER_VERT - BORDERSIZE - BAR_INDICATOR_HEIGHT - pMonitor->vecPosition.y + offset.y, m_fBarWidth, BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;
@@ -127,15 +126,15 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
             CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[i]->m_szTitle);
 
             if (!pTitleTex)
-                pTitleTex =
-                    m_sTitleTexs.titleTexs
-                        .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i], Vector2D{BARW * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
-                        .get();
+                pTitleTex = m_sTitleTexs.titleTexs
+                                .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i],
+                                                                          Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
+                                .get();
 
             rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * 0.8 * pMonitor->scale;
 
             rect.y -= rect.height;
-            rect.width = BARW * pMonitor->scale;
+            rect.width = m_fBarWidth * pMonitor->scale;
 
             refreshGradients();
 
@@ -148,7 +147,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
             g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f);
         }
 
-        xoff += PAD + BARW;
+        xoff += BAR_HORIZONTAL_PADDING + m_fBarWidth;
     }
 
     if (*PRENDERTITLES)
@@ -304,4 +303,80 @@ void CHyprGroupBarDecoration::refreshGradients() {
 
 bool CHyprGroupBarDecoration::allowsInput() {
     return true;
+}
+
+bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D& pos) {
+
+    if (!(!g_pKeybindManager->m_bGroupsLocked                                                                             // global group lock disengaged
+          && ((pDraggedWindow->m_eGroupRules & GROUP_INVADE && pDraggedWindow->m_bFirstMap)                               // window ignore local group locks, or
+              || (!m_pWindow->getGroupHead()->m_sGroupData.locked                                                         //    target unlocked
+                  && !(pDraggedWindow->m_sGroupData.pNextWindow && pDraggedWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
+          && !pDraggedWindow->m_sGroupData.deny                                                                           // source is not denied entry
+          && !(pDraggedWindow->m_eGroupRules & GROUP_BARRED && pDraggedWindow->m_bFirstMap)))                             // group rule doesn't prevent adding window
+        return true;
+
+    const float BARRELATIVEX = pos.x - m_vLastWindowPos.x - m_fBarWidth / 2;
+    const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    CWindow*    pWindowInsertAfter = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
+
+    pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
+
+    if (WINDOWINDEX == -1)
+        std::swap(pDraggedWindow->m_sGroupData.head, pDraggedWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
+
+    m_pWindow->setGroupCurrent(pDraggedWindow);
+    pDraggedWindow->applyGroupRules();
+    pDraggedWindow->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
+
+    return false;
+}
+
+void CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
+    if (e->state != WLR_BUTTON_PRESSED)
+        return;
+
+    const float BARRELATIVEX = pos.x - m_vLastWindowPos.x;
+    const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth) {
+        if (!g_pCompositor->isWindowActive(m_pWindow))
+            g_pCompositor->focusWindow(m_pWindow);
+        return;
+    }
+
+    CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    if (pWindow != m_pWindow)
+        pWindow->setGroupCurrent(pWindow);
+
+    if (!g_pCompositor->isWindowActive(pWindow))
+        g_pCompositor->focusWindow(pWindow);
+}
+
+void CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
+    const float BARRELATIVEX = pos.x - m_vLastWindowPos.x;
+    const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth)
+        return;
+
+    CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    // hack
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    if (!pWindow->m_bIsFloating) {
+        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+        g_pKeybindManager->m_bGroupsLocked = true;
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    }
+
+    g_pInputManager->currentlyDraggedWindow = pWindow;
+
+    if (!g_pCompositor->isWindowActive(pWindow))
+        g_pCompositor->focusWindow(pWindow);
 }

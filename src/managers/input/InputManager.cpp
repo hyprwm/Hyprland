@@ -546,7 +546,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
                 continue;
 
             if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
-                wd->onMouseDownOnDeco(mouseCoords, e);
+                wd->onMouseButtonOnDeco(mouseCoords, e);
                 return;
             }
         }

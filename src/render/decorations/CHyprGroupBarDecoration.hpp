@@ -39,7 +39,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual bool                     onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&);
 
-    virtual void                     onMouseDownOnDeco(const Vector2D&, wlr_pointer_button_event*);
+    virtual void                     onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
 
   private:
     SWindowDecorationExtents m_seExtents;

@@ -335,7 +335,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, con
     return false;
 }
 
-void CHyprGroupBarDecoration::onMouseDownOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
+void CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
     if (e->state != WLR_BUTTON_PRESSED)
         return;
 

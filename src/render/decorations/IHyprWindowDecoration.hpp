@@ -43,7 +43,7 @@ class IHyprWindowDecoration {
 
     virtual bool                     onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&); // returns true if the window should be placed by the layout
 
-    virtual void                     onMouseDownOnDeco(const Vector2D&, wlr_pointer_button_event*);
+    virtual void                     onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
 
   private:
     CWindow* m_pWindow = nullptr;

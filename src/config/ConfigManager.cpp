@@ -1384,10 +1384,10 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
+    else if (COMMAND == "plugin")
+        handlePlugin(COMMAND, VALUE);
     else if (COMMAND.starts_with("env"))
         handleEnv(COMMAND, VALUE);
-    else if (COMMAND.starts_with("plugin"))
-        handlePlugin(COMMAND, VALUE);
     else {
         // try config
         const auto IT = std::find_if(pluginKeywords.begin(), pluginKeywords.end(), [&](const auto& other) { return other.name == COMMAND; });

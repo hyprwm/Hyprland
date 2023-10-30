@@ -307,12 +307,7 @@ bool CHyprGroupBarDecoration::allowsInput() {
 
 bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D& pos) {
 
-    if (!(!g_pKeybindManager->m_bGroupsLocked                                                                             // global group lock disengaged
-          && ((pDraggedWindow->m_eGroupRules & GROUP_INVADE && pDraggedWindow->m_bFirstMap)                               // window ignore local group locks, or
-              || (!m_pWindow->getGroupHead()->m_sGroupData.locked                                                         //    target unlocked
-                  && !(pDraggedWindow->m_sGroupData.pNextWindow && pDraggedWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
-          && !pDraggedWindow->m_sGroupData.deny                                                                           // source is not denied entry
-          && !(pDraggedWindow->m_eGroupRules & GROUP_BARRED && pDraggedWindow->m_bFirstMap)))                             // group rule doesn't prevent adding window
+    if (!pDraggedWindow->canBeGroupedInto(m_pWindow))
         return true;
 
     const float BARRELATIVEX = pos.x - m_vLastWindowPos.x - m_fBarWidth / 2;

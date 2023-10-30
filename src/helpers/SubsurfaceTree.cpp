@@ -247,6 +247,9 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
         g_pHyprRenderer->damageSurface(pNode->pSurface->wlr(), lx, ly, SCALE);
 
     if (pNode->pWindowOwner) {
+        // update reported size. Some windows do not send a ::commit afterwards. Odd.
+        pNode->pWindowOwner->m_vReportedSize = pNode->pWindowOwner->m_vPendingReportedSize;
+
         // tearing: if solitary, redraw it. This still might be a single surface window
         const auto PMONITOR = g_pCompositor->getMonitorFromID(pNode->pWindowOwner->m_iMonitorID);
         if (PMONITOR->solitaryClient == pNode->pWindowOwner && pNode->pWindowOwner->canBeTorn() && PMONITOR->tearingState.canTear &&

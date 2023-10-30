@@ -361,7 +361,9 @@ void main() {
     }
     
     // brightness
+if (brightness > 1.0) {
     pixColor.rgb *= brightness;
+}
 
     gl_FragColor = pixColor;
 }
@@ -373,6 +375,7 @@ varying vec2      v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
 uniform float     noise;
+uniform float     brightness;
 
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -386,6 +389,10 @@ void main() {
     float noiseAmount = (mod(noiseHash, 1.0) - 0.5);
     pixColor.rgb += noiseAmount * noise;
     
+    // brightness
+if (brightness < 1.0){
+    pixColor.rgb *= brightness;
+}
 
     gl_FragColor = pixColor;
 }

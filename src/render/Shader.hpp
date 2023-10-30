@@ -43,9 +43,8 @@ class CShader {
     GLint   distort = -1;
     GLint   output  = -1;
 
-    // Blur start
-    GLint contrast   = -1;
-    GLint brightness = -1;
+    // Blur prepare
+    GLint contrast = -1;
 
     // Blur
     GLint passes           = -1; // Used by `boost_colors`
@@ -54,7 +53,8 @@ class CShader {
     GLint brightness_boost = -1;
 
     // Blur finish
-    GLint noise = -1;
+    GLint brightness = -1;
+    GLint noise      = -1;
 
     GLint getUniformLocation(const std::string&);
 

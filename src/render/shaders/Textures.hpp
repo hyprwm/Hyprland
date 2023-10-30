@@ -177,18 +177,17 @@ uniform int          passes;
 uniform int          boost_colors;
 uniform float        saturation_boost;
 uniform float        brightness_boost;
-//
+
 // see http://alienryderflex.com/hsp.html
 const float Pr = 0.299;
 const float Pg = 0.587;
 const float Pb = 0.114;
 
-// Huge shout-out to @fadaaszhi for the original formula
-// https://www.desmos.com/3d/a88652b9a4
 // Y is "v" ( brightness ). X is "s" ( saturation )
+// see https://www.desmos.com/3d/a88652b9a4
 // Determines if high brightness or high saturation is more important
 const float a = 0.93;
-const float b = 0.28;
+const float b = 0.11;
 const float c = 0.66; //  Determines the smoothness of the transition of unboosted to boosted colors
 //
 
@@ -299,19 +298,17 @@ void main() {
         // Calculate perceived brightness, as not boost visually dark colors like deep blue as much as equally saturated yellow
         float perceivedBrightness = doubleCircleSigmoid(sqrt(color.r * color.r * Pr + color.g * color.g * Pg + color.b * color.b * Pb), 0.8);
 
-        float boostBase = hsl[1] > 0.0 //
-            ?
-            smoothstep(b - c * 0.5, b + c * 0.5, 1.0 - (pow(1.0 - hsl[1] * cos(a), 2.0) + pow(1.0 - perceivedBrightness * sin(a), 2.0))) * 4.0 :
-            0.0;
+        float boostBase = hsl[1] > 0.0 ? smoothstep(b - c * 0.5, b + c * 0.5, 1.0 - (pow(1.0 - hsl[1] * cos(a), 2.0) + pow(1.0 - perceivedBrightness * sin(a), 2.0))) : 0.0;
 
         float saturation = clamp(hsl[1] + (boostBase * saturation_boost) / float(passes), 0.0, 1.0);
-        float brightness = clamp(hsl[2] + (boostBase * brightness_boost) / float(passes), 0.0, 1.0);
+        float brightness = clamp(hsl[2] + (boostBase * brightness_boost * pow(1.0 - hsl[2], 2.0)) / float(passes), 0.0, 1.0);
 
         vec3  newColor = hsl2rgb(vec3(hsl[0], saturation, brightness));
 
         gl_FragColor = vec4(newColor, color[3]);
     }
 }
+
 )#";
 
 inline const std::string FRAGBLUR2 = R"#(
@@ -348,11 +345,21 @@ uniform sampler2D tex;
 uniform float     contrast;
 uniform float     brightness;
 
+float gain( float x, float k ) {
+    float a = 0.5*pow(2.0*((x<0.5)?x:1.0-x), k);
+    return (x<0.5)?a:1.0-a;
+}
+
 void main() {
     vec4  pixColor = texture2D(tex, v_texcoord);
 
     // contrast
-    pixColor.rgb = (pixColor.rgb - 0.5) * contrast + 0.5;
+    if (contrast != 1.0 ){
+        pixColor.r = gain(pixColor.r, contrast);
+        pixColor.g = gain(pixColor.g, contrast);
+        pixColor.b = gain(pixColor.b, contrast);
+    }
+    
     // brightness
     pixColor.rgb *= brightness;
 

@@ -865,10 +865,13 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, CWindow* pWindow
         },
         &iterData);
 
+    wlr_box geom = {0};
+    wlr_xdg_surface_get_geometry(PSURFACE, &geom);
+
     if (std::get<1>(iterData) == -1337 && std::get<2>(iterData) == -1337)
         return vec - pWindow->m_vRealPosition.goalv();
 
-    return vec - pWindow->m_vRealPosition.goalv() - Vector2D{std::get<1>(iterData), std::get<2>(iterData)};
+    return vec - pWindow->m_vRealPosition.goalv() - Vector2D{std::get<1>(iterData), std::get<2>(iterData)} + Vector2D{geom.x, geom.y};
 }
 
 CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {

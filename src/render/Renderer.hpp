@@ -84,8 +84,8 @@ class CHyprRenderer {
     CTimer                                           m_tRenderTimer;
 
     struct {
-      wlr_surface* surf = nullptr;
-      std::string name;
+        std::optional<wlr_surface*> surf = nullptr;
+        std::string                 name;
     } m_sLastCursorData;
 
   private:

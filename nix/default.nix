@@ -90,8 +90,9 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       then "debug"
       else "release";
 
+    mesonAutoFeatures = "disabled";
+
     mesonFlags = builtins.concatLists [
-      ["-Dauto_features=disabled"]
       (lib.optional enableXWayland "-Dxwayland=enabled")
       (lib.optional legacyRenderer "-Dlegacy_renderer=enabled")
       (lib.optional withSystemd "-Dsystemd=enabled")

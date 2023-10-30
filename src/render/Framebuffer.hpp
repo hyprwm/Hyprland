@@ -7,7 +7,7 @@ class CFramebuffer {
   public:
     ~CFramebuffer();
 
-    bool      alloc(int w, int h);
+    bool      alloc(int w, int h, uint32_t format = GL_RGBA);
     void      bind();
     void      release();
     void      reset();

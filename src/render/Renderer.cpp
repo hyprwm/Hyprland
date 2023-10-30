@@ -1956,7 +1956,7 @@ void CHyprRenderer::setCursorFromName(const std::string& name) {
         return;
 
     m_sLastCursorData.name = name;
-    m_sLastCursorData.surf = nullptr;
+    m_sLastCursorData.surf.reset();
 
     wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
 }

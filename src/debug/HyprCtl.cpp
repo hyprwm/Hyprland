@@ -715,10 +715,7 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 #ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";
 #endif
-#ifndef NDEBUG
-        result += "debug\n";
-#endif
-#ifdef HYPRLAND_DEBUG
+#ifndef ISDEBUG
         result += "debug\n";
 #endif
 #ifdef NO_XWAYLAND
@@ -740,10 +737,7 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";
 #endif
-#ifndef NDEBUG
-        result += "\"debug\",";
-#endif
-#ifdef HYPRLAND_DEBUG
+#ifndef ISDEBUG
         result += "\"debug\",";
 #endif
 #ifdef NO_XWAYLAND

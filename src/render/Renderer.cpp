@@ -1877,7 +1877,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     };
     // clang-format on
 
-    bool set10bit = false;
+    bool set10bit       = false;
+    pMonitor->drmFormat = DRM_FORMAT_INVALID;
 
     for (auto& fmt : formats[(int)!pMonitorRule->enable10bit]) {
         wlr_output_set_render_format(pMonitor->output, fmt.second);
@@ -1888,6 +1889,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             Debug::log(LOG, "output {} succeeded basic test on format {}", pMonitor->szName, fmt.first);
             if (pMonitorRule->enable10bit && fmt.first.contains("101010"))
                 set10bit = true;
+
+            pMonitor->drmFormat = fmt.second;
             break;
         }
     }

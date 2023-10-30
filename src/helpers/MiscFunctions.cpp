@@ -751,3 +751,15 @@ void throwError(const std::string& err) {
     Debug::log(CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
 }
+
+uint32_t drmFormatToGL(uint32_t drm) {
+    switch (drm) {
+        case DRM_FORMAT_XRGB8888:
+        case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
+        case DRM_FORMAT_XRGB2101010:
+        case DRM_FORMAT_XBGR2101010: return GL_RGB10_A2;
+        default: return GL_RGBA;
+    }
+    UNREACHABLE();
+    return GL_RGBA;
+}

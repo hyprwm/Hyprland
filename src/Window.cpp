@@ -767,6 +767,15 @@ int CWindow::getGroupSize() {
     return size;
 }
 
+bool CWindow::canBeGroupedInto(CWindow* pWindow) {
+    return !g_pKeybindManager->m_bGroupsLocked                                          // global group lock disengaged
+        && ((m_eGroupRules & GROUP_INVADE && m_bFirstMap)                               // window ignore local group locks, or
+            || (!pWindow->getGroupHead()->m_sGroupData.locked                           //      target unlocked
+                && !(m_sGroupData.pNextWindow && getGroupHead()->m_sGroupData.locked))) //      source unlocked or isn't group
+        && !m_sGroupData.deny                                                           // source is not denied entry
+        && !(m_eGroupRules & GROUP_BARRED && m_bFirstMap);                              // group rule doesn't prevent adding window
+}
+
 CWindow* CWindow::getGroupWindowByIndex(int index) {
     const int SIZE = getGroupSize();
     index          = ((index % SIZE) + SIZE) % SIZE;

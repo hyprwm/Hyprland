@@ -314,13 +314,14 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, con
     const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 
     CWindow*    pWindowInsertAfter = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+    CWindow*    pDraggedHead       = pDraggedWindow->m_sGroupData.pNextWindow ? pDraggedWindow->getGroupHead() : pDraggedWindow;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
+    g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pDraggedWindow);
 
     pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
 
     if (WINDOWINDEX == -1)
-        std::swap(pDraggedWindow->m_sGroupData.head, pDraggedWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
+        std::swap(pDraggedHead->m_sGroupData.head, pDraggedWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
 
     m_pWindow->setGroupCurrent(pDraggedWindow);
     pDraggedWindow->applyGroupRules();

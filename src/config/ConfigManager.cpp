@@ -2066,7 +2066,7 @@ void CConfigManager::performMonitorReload() {
     bool overAgain = false;
 
     for (auto& m : g_pCompositor->m_vRealMonitors) {
-        if (!m->output || m->output == g_pCompositor->m_pUnsafeOutput->output)
+        if (!m->output || m->isUnsafeFallback)
             continue;
 
         auto rule = getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
@@ -2147,7 +2147,7 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
 
 void CConfigManager::ensureMonitorStatus() {
     for (auto& rm : g_pCompositor->m_vRealMonitors) {
-        if (!rm->output)
+        if (!rm->output || rm->isUnsafeFallback)
             continue;
 
         auto rule = getMonitorRuleFor(rm->szName, rm->output->description ? rm->output->description : "");

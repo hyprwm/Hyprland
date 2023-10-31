@@ -121,6 +121,7 @@ class CCompositor {
     bool                                      m_bSessionActive  = true;
     bool                                      m_bDPMSStateON    = true;
     bool                                      m_bUnsafeState    = false;   // unsafe state is when there is no monitors.
+    bool                                      m_bNextIsUnsafe   = false;   // because wlroots
     CMonitor*                                 m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
     bool                                      m_bIsShuttingDown = false;
 

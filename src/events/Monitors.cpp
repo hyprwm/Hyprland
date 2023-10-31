@@ -74,10 +74,11 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     if (std::string("HEADLESS-1") == OUTPUT->name)
         g_pCompositor->m_pUnsafeOutput = PNEWMONITORWRAP->get();
 
-    (*PNEWMONITORWRAP)->output = OUTPUT;
-    const bool FALLBACK        = g_pCompositor->m_pUnsafeOutput ? OUTPUT == g_pCompositor->m_pUnsafeOutput->output : false;
-    (*PNEWMONITORWRAP)->ID     = FALLBACK ? -1 : g_pCompositor->getNextAvailableMonitorID(OUTPUT->name);
-    const auto PNEWMONITOR     = PNEWMONITORWRAP->get();
+    (*PNEWMONITORWRAP)->output    = OUTPUT;
+    const bool FALLBACK           = g_pCompositor->m_pUnsafeOutput ? OUTPUT == g_pCompositor->m_pUnsafeOutput->output : false;
+    (*PNEWMONITORWRAP)->ID        = FALLBACK ? -1 : g_pCompositor->getNextAvailableMonitorID(OUTPUT->name);
+    const auto PNEWMONITOR        = PNEWMONITORWRAP->get();
+    PNEWMONITOR->isUnsafeFallback = FALLBACK;
 
     if (!FALLBACK)
         PNEWMONITOR->onConnect(false);

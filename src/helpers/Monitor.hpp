@@ -61,11 +61,12 @@ class CMonitor {
     bool                gammaChanged    = false;
     float               xwaylandScale   = 1.f;
 
-    bool                dpmsStatus    = true;
-    bool                vrrActive     = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
-    bool                enabled10bit  = false; // as above, this can be TRUE even if 10 bit failed.
-    bool                createdByUser = false;
-    uint32_t            drmFormat     = DRM_FORMAT_INVALID;
+    bool                dpmsStatus       = true;
+    bool                vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
+    bool                enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
+    bool                createdByUser    = false;
+    uint32_t            drmFormat        = DRM_FORMAT_INVALID;
+    bool                isUnsafeFallback = false;
 
     bool                pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                renderingActive = false;

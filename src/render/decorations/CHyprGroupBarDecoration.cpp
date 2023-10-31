@@ -314,14 +314,45 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, con
     const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 
     CWindow*    pWindowInsertAfter = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+    CWindow*    pWindowInsertEnd   = pWindowInsertAfter->m_sGroupData.pNextWindow;
     CWindow*    pDraggedHead       = pDraggedWindow->m_sGroupData.pNextWindow ? pDraggedWindow->getGroupHead() : pDraggedWindow;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pDraggedWindow);
+    if (pDraggedWindow->m_sGroupData.pNextWindow) {
+
+        // stores group data
+        std::vector<CWindow*> members;
+        CWindow*              curr      = pDraggedHead;
+        const bool            WASLOCKED = pDraggedHead->m_sGroupData.locked;
+        do {
+            members.push_back(curr);
+            curr = curr->m_sGroupData.pNextWindow;
+        } while (curr != members[0]);
+
+        // removes all windows
+        for (CWindow* w : members) {
+            w->m_sGroupData.pNextWindow = nullptr;
+            w->m_sGroupData.head        = false;
+            w->m_sGroupData.locked      = false;
+            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
+        }
+
+        // restores the group
+        for (auto it = members.begin(); it != members.end(); ++it) {
+            if (std::next(it) != members.end())
+                (*it)->m_sGroupData.pNextWindow = *std::next(it);
+            else
+                (*it)->m_sGroupData.pNextWindow = members[0];
+        }
+        members[0]->m_sGroupData.head   = true;
+        members[0]->m_sGroupData.locked = WASLOCKED;
+    } else {
+        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
+    }
 
     pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
 
     if (WINDOWINDEX == -1)
-        std::swap(pDraggedHead->m_sGroupData.head, pDraggedWindow->m_sGroupData.pNextWindow->m_sGroupData.head);
+        std::swap(pDraggedHead->m_sGroupData.head, pWindowInsertEnd->m_sGroupData.head);
 
     m_pWindow->setGroupCurrent(pDraggedWindow);
     pDraggedWindow->applyGroupRules();

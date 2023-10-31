@@ -109,20 +109,20 @@ void CMonitor::onConnect(bool noRule) {
         m_bRenderingInitPassed = true;
     }
 
-    if (!m_pThisWrap) {
+    std::shared_ptr<CMonitor>* thisWrapper = nullptr;
 
-        // find the wrap
-        for (auto& m : g_pCompositor->m_vRealMonitors) {
-            if (m->ID == ID) {
-                m_pThisWrap = &m;
-                break;
-            }
+    // find the wrap
+    for (auto& m : g_pCompositor->m_vRealMonitors) {
+        if (m->ID == ID) {
+            thisWrapper = &m;
+            break;
         }
     }
 
-    if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end()) {
-        g_pCompositor->m_vMonitors.push_back(*m_pThisWrap);
-    }
+    RASSERT(thisWrapper->get(), "CMonitor::onConnect: Had no wrapper???");
+
+    if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end())
+        g_pCompositor->m_vMonitors.push_back(*thisWrapper);
 
     m_bEnabled = true;
 
@@ -131,6 +131,8 @@ void CMonitor::onConnect(bool noRule) {
     // set mode, also applies
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
+
+    wlr_output_commit(output);
 
     wlr_damage_ring_set_bounds(&damage, vecTransformedSize.x, vecTransformedSize.y);
 
@@ -151,8 +153,6 @@ void CMonitor::onConnect(bool noRule) {
     scale = monitorRule.scale;
     if (scale < 0.1)
         scale = getDefaultScale();
-
-    m_pThisWrap = nullptr;
 
     forceFullFrames = 3; // force 3 full frames to make sure there is no blinking due to double-buffering.
     //
@@ -184,6 +184,8 @@ void CMonitor::onConnect(bool noRule) {
         g_pCompositor->setActiveMonitor(this);
 
     renderTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ratHandler, this);
+
+    g_pCompositor->scheduleFrameForMonitor(this);
 }
 
 void CMonitor::onDisconnect() {
@@ -414,19 +416,22 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         vecPosition = RULE.offset;
 
         // push to mvmonitors
-        if (!m_pThisWrap) {
-            // find the wrap
-            for (auto& m : g_pCompositor->m_vRealMonitors) {
-                if (m->ID == ID) {
-                    m_pThisWrap = &m;
-                    break;
-                }
+
+        std::shared_ptr<CMonitor>* thisWrapper = nullptr;
+
+        // find the wrap
+        for (auto& m : g_pCompositor->m_vRealMonitors) {
+            if (m->ID == ID) {
+                thisWrapper = &m;
+                break;
             }
         }
 
+        RASSERT(thisWrapper->get(), "CMonitor::setMirror: Had no wrapper???");
+
         if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) ==
             g_pCompositor->m_vMonitors.end()) {
-            g_pCompositor->m_vMonitors.push_back(*m_pThisWrap);
+            g_pCompositor->m_vMonitors.push_back(*thisWrapper);
         }
 
         setupDefaultWS(RULE);

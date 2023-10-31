@@ -2066,7 +2066,7 @@ void CConfigManager::performMonitorReload() {
     bool overAgain = false;
 
     for (auto& m : g_pCompositor->m_vRealMonitors) {
-        if (!m->output)
+        if (!m->output || m->output == g_pCompositor->m_pUnsafeOutput->output)
             continue;
 
         auto rule = getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
@@ -2152,10 +2152,8 @@ void CConfigManager::ensureMonitorStatus() {
 
         auto rule = getMonitorRuleFor(rm->szName, rm->output->description ? rm->output->description : "");
 
-        if (rule.disabled == rm->m_bEnabled) {
-            rm->m_pThisWrap = &rm;
+        if (rule.disabled == rm->m_bEnabled)
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);
-        }
     }
 }
 

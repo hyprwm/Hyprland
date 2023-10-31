@@ -108,24 +108,23 @@ class CMonitor {
     DYNLISTENER(monitorBind);
 
     // methods
-    void                       onConnect(bool noRule);
-    void                       onDisconnect();
-    void                       addDamage(const pixman_region32_t* rg);
-    void                       addDamage(const CRegion* rg);
-    void                       addDamage(const wlr_box* box);
-    void                       setMirror(const std::string&);
-    bool                       isMirror();
-    float                      getDefaultScale();
-    void                       changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false);
-    void                       changeWorkspace(const int& id, bool internal = false);
-    void                       setSpecialWorkspace(CWorkspace* const pWorkspace);
-    void                       setSpecialWorkspace(const int& id);
-    void                       moveTo(const Vector2D& pos);
-    Vector2D                   middle();
+    void     onConnect(bool noRule);
+    void     onDisconnect();
+    void     addDamage(const pixman_region32_t* rg);
+    void     addDamage(const CRegion* rg);
+    void     addDamage(const wlr_box* box);
+    void     setMirror(const std::string&);
+    bool     isMirror();
+    float    getDefaultScale();
+    void     changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false);
+    void     changeWorkspace(const int& id, bool internal = false);
+    void     setSpecialWorkspace(CWorkspace* const pWorkspace);
+    void     setSpecialWorkspace(const int& id);
+    void     moveTo(const Vector2D& pos);
+    Vector2D middle();
 
-    std::shared_ptr<CMonitor>* m_pThisWrap            = nullptr;
-    bool                       m_bEnabled             = false;
-    bool                       m_bRenderingInitPassed = false;
+    bool     m_bEnabled             = false;
+    bool     m_bRenderingInitPassed = false;
 
     // For the list lookup
 

@@ -116,7 +116,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         message(STATUS "Enabling ASan")
 
         target_link_libraries(Hyprland asan)
-        add_compile_options(-fsanitize=address)
+        target_compile_options(Hyprland PUBLIC -fsanitize=address)
     endif()
 
     if(USE_TRACY)

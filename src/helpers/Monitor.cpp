@@ -258,7 +258,7 @@ void CMonitor::onDisconnect() {
         // move workspaces
         std::deque<CWorkspace*> wspToMove;
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            if (w->m_iMonitorID == ID) {
+            if (w->m_iMonitorID == ID || !g_pCompositor->getMonitorFromID(w->m_iMonitorID)) {
                 wspToMove.push_back(w.get());
             }
         }

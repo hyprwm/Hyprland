@@ -47,10 +47,8 @@ class CShader {
     GLint contrast = -1;
 
     // Blur
-    GLint passes           = -1; // Used by `boost_colors`
-    GLint boost_colors     = -1;
+    GLint passes           = -1; // Used by `saturation_boost`
     GLint saturation_boost = -1;
-    GLint brightness_boost = -1;
 
     // Blur finish
     GLint brightness = -1;

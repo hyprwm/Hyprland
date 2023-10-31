@@ -305,9 +305,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shBLUR1.radius           = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shBLUR1.halfpixel        = glGetUniformLocation(prog, "halfpixel");
     m_RenderData.pCurrentMonData->m_shBLUR1.passes           = glGetUniformLocation(prog, "passes");
-    m_RenderData.pCurrentMonData->m_shBLUR1.boost_colors     = glGetUniformLocation(prog, "boost_colors");
     m_RenderData.pCurrentMonData->m_shBLUR1.saturation_boost = glGetUniformLocation(prog, "saturation_boost");
-    m_RenderData.pCurrentMonData->m_shBLUR1.brightness_boost = glGetUniformLocation(prog, "brightness_boost");
 
     prog                                              = createProgram(TEXVERTSRC, FRAGBLUR2);
     m_RenderData.pCurrentMonData->m_shBLUR2.program   = prog;
@@ -859,9 +857,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     // get the config settings
     static auto* const PBLURSIZE            = &g_pConfigManager->getConfigValuePtr("decoration:blur:size")->intValue;
     static auto* const PBLURPASSES          = &g_pConfigManager->getConfigValuePtr("decoration:blur:passes")->intValue;
-    static auto* const PBLURBOOSTCOLORS     = &g_pConfigManager->getConfigValuePtr("decoration:blur:boost_colors")->intValue; // If color should be boosted
     static auto* const PBLURSATURATIONBOOST = &g_pConfigManager->getConfigValuePtr("decoration:blur:saturation_boost")->floatValue;
-    static auto* const PBLURBRIGHTNESSBOOST = &g_pConfigManager->getConfigValuePtr("decoration:blur:brightness_boost")->floatValue;
 
     // prep damage
     CRegion damage{*originalDamage};
@@ -947,9 +943,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
             glUniform2f(m_RenderData.pCurrentMonData->m_shBLUR1.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f),
                         0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
             glUniform1i(m_RenderData.pCurrentMonData->m_shBLUR1.passes, *PBLURPASSES);
-            glUniform1i(m_RenderData.pCurrentMonData->m_shBLUR1.boost_colors, *PBLURBOOSTCOLORS);
             glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.saturation_boost, *PBLURSATURATIONBOOST);
-            glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.brightness_boost, *PBLURBRIGHTNESSBOOST);
         } else
             glUniform2f(m_RenderData.pCurrentMonData->m_shBLUR2.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f),
                         0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
@@ -997,7 +991,6 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     }
 
     // finalize the image
-    // Add noise and clip the min/max brightness
     {
         static auto* const PBLURNOISE      = &g_pConfigManager->getConfigValuePtr("decoration:blur:noise")->floatValue;
         static auto* const PBLURBRIGHTNESS = &g_pConfigManager->getConfigValuePtr("decoration:blur:brightness")->floatValue;

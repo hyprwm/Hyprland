@@ -4,7 +4,6 @@
 #include "../helpers/WLClasses.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
-#include <wlr/util/region.h>
 
 // --------------------------------------------- //
 //   _____   ____  _____  _    _ _____   _____   //

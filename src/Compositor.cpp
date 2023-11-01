@@ -463,6 +463,25 @@ void CCompositor::removeLockFile() {
         std::filesystem::remove(PATH);
 }
 
+void CCompositor::prepareFallbackOutput() {
+    // create a backup monitor
+    wlr_backend* headless = nullptr;
+    wlr_multi_for_each_backend(
+        m_sWLRBackend,
+        [](wlr_backend* b, void* data) {
+            if (wlr_backend_is_headless(b))
+                *((wlr_backend**)data) = b;
+        },
+        &headless);
+
+    if (!headless) {
+        Debug::log(WARN, "Unsafe state will be ineffective, no fallback output");
+        return;
+    }
+
+    wlr_headless_add_output(headless, 1920, 1080);
+}
+
 void CCompositor::startCompositor() {
     initAllSignals();
 
@@ -513,6 +532,8 @@ void CCompositor::startCompositor() {
         wl_display_destroy(m_sWLDisplay);
         throwError("The backend could not start!");
     }
+
+    prepareFallbackOutput();
 
     g_pHyprRenderer->setCursorFromName("left_ptr");
 
@@ -2657,24 +2678,10 @@ void CCompositor::enterUnsafeState() {
 
     Debug::log(LOG, "Entering unsafe state");
 
+    if (!m_pUnsafeOutput->m_bEnabled)
+        m_pUnsafeOutput->onConnect(false);
+
     m_bUnsafeState = true;
-
-    // create a backup monitor
-    wlr_backend* headless = nullptr;
-    wlr_multi_for_each_backend(
-        m_sWLRBackend,
-        [](wlr_backend* b, void* data) {
-            if (wlr_backend_is_headless(b))
-                *((wlr_backend**)data) = b;
-        },
-        &headless);
-
-    if (!headless) {
-        Debug::log(WARN, "Entering an unsafe state without a headless backend");
-        return;
-    }
-
-    m_pUnsafeOutput = wlr_headless_add_output(headless, 1920, 1080);
 }
 
 void CCompositor::leaveUnsafeState() {
@@ -2685,10 +2692,22 @@ void CCompositor::leaveUnsafeState() {
 
     m_bUnsafeState = false;
 
-    if (m_pUnsafeOutput)
-        wlr_output_destroy(m_pUnsafeOutput);
+    CMonitor* pNewMonitor = nullptr;
+    for (auto& pMonitor : m_vMonitors) {
+        if (pMonitor->output != m_pUnsafeOutput->output) {
+            pNewMonitor = pMonitor.get();
+            break;
+        }
+    }
 
-    m_pUnsafeOutput = nullptr;
+    RASSERT(pNewMonitor, "Tried to leave unsafe without a monitor");
+
+    if (m_pUnsafeOutput->m_bEnabled)
+        m_pUnsafeOutput->onDisconnect();
+
+    for (auto& m : m_vMonitors) {
+        scheduleFrameForMonitor(m.get());
+    }
 }
 
 void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scale) {

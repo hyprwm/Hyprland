@@ -72,15 +72,9 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
 }
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* outputResource) {
-    const auto OUTPUT = wlr_output_from_resource(outputResource);
+    const auto  OUTPUT = wlr_output_from_resource(outputResource);
 
-    if (!OUTPUT)
-        return;
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(OUTPUT);
-
-    if (!PMONITOR)
-        return;
+    const auto  PMONITOR = g_pCompositor->getMonitorFromOutput(OUTPUT);
 
     SXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<SXDGOutput>(PMONITOR)).get();
 #ifndef NO_XWAYLAND
@@ -99,6 +93,10 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 
     pXDGOutput->resource->setImplementation(&OUTPUT_IMPL, nullptr);
     pXDGOutput->resource->setData(this);
+
+    if (!PMONITOR)
+        return;
+
     const auto XDGVER = pXDGOutput->resource->version();
 
     if (XDGVER >= ZXDG_OUTPUT_V1_NAME_SINCE_VERSION)
@@ -116,7 +114,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
-    if (!pOutput->resource->good())
+    if (!pOutput->resource->good() || !pOutput->monitor)
         return;
 
     const auto POS = pOutput->isXWayland ? pOutput->monitor->vecXWaylandPosition : pOutput->monitor->vecPosition;
@@ -133,6 +131,10 @@ void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
 
 void CXDGOutputProtocol::updateAllOutputs() {
     for (auto& o : m_vXDGOutputs) {
+
+        if (!o->monitor)
+            continue;
+
         updateOutputDetails(o.get());
 
         wlr_output_schedule_done(o->monitor->output);

@@ -76,7 +76,7 @@ class CHyprMasterLayout : public IHyprLayout {
     void                              buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle);
     void                              runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);
     int                               getNodesOnWorkspace(const int&);
-    void                              applyNodeDataToWindow(SMasterNodeData*);
+    void                              applyNodeDataToWindow(SMasterNodeData*, bool force = false);
     SMasterNodeData*                  getNodeFromWindow(CWindow*);
     SMasterNodeData*                  getMasterNodeOnWorkspace(const int&);
     SMasterWorkspaceData*             getMasterWorkspaceData(const int&);

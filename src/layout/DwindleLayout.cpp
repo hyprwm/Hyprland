@@ -119,6 +119,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     // if user specified them in config
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
+    if (PWINDOW->m_bIsFullscreen && !force)
+        return;
+
     PWINDOW->updateSpecialRenderData();
 
     static auto* const PGAPSIN         = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
@@ -561,7 +564,7 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
             PFULLWINDOW->m_vPosition = fakeNode.position;
             PFULLWINDOW->m_vSize     = fakeNode.size;
 
-            applyNodeDataToWindow(&fakeNode);
+            applyNodeDataToWindow(&fakeNode, true);
         }
 
         return;

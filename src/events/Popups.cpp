@@ -4,6 +4,7 @@
 #include "../helpers/WLClasses.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
+#include <wlr/util/region.h>
 
 // --------------------------------------------- //
 //   _____   ____  _____  _    _ _____   _____   //
@@ -185,6 +186,14 @@ void Events::listener_repositionPopupXDG(void* owner, void* data) {
 
     PPOPUP->lastPos             = {lx - extents.x, ly - extents.y};
     PPOPUP->repositionRequested = true;
+
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+
+    wlr_box    box = {.x      = PMONITOR->vecPosition.x - lx + PPOPUP->popup->current.geometry.x,
+                      .y      = PMONITOR->vecPosition.y - ly + PPOPUP->popup->current.geometry.y,
+                      .width  = PMONITOR->vecSize.x,
+                      .height = PMONITOR->vecSize.y};
+    wlr_xdg_popup_unconstrain_from_box(PPOPUP->popup, &box);
 }
 
 void Events::listener_unmapPopupXDG(void* owner, void* data) {

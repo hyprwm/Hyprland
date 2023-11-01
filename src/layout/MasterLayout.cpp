@@ -566,7 +566,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     }
 }
 
-void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
+void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode, bool force) {
     CMonitor* PMONITOR = nullptr;
 
     if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
@@ -595,6 +595,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     // get specific gaps and rules for this workspace,
     // if user specified them in config
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
+
+    if (PWINDOW->m_bIsFullscreen && !force)
+        return;
 
     PWINDOW->updateSpecialRenderData();
 
@@ -889,7 +892,7 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
             pWindow->m_vPosition = fakeNode.position;
             pWindow->m_vSize     = fakeNode.size;
 
-            applyNodeDataToWindow(&fakeNode);
+            applyNodeDataToWindow(&fakeNode, true);
         }
     }
 

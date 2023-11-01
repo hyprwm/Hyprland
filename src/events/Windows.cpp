@@ -648,6 +648,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->transform);
+
+    g_pInputManager->simulateMouseMovement();
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -735,13 +737,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
-        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow) {
-            if (!PWINDOWCANDIDATE)
-                g_pInputManager->simulateMouseMovement();
-            else
-                g_pCompositor->focusWindow(PWINDOWCANDIDATE);
-        } else
-            g_pInputManager->simulateMouseMovement();
+        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow && PWINDOWCANDIDATE)
+            g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+
+        g_pInputManager->simulateMouseMovement();
 
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
         if (PWINDOW == g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow) {

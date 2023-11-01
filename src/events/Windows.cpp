@@ -851,8 +851,8 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->m_bReadyToDelete = true;
 
     if (!PWINDOW->m_bFadingOut) {
-        g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
         Debug::log(LOG, "Unmapped {} removed instantly", PWINDOW);
+        g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
     }
 }
 

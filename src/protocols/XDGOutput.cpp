@@ -131,6 +131,10 @@ void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
 
 void CXDGOutputProtocol::updateAllOutputs() {
     for (auto& o : m_vXDGOutputs) {
+
+        if (!o->monitor)
+            continue;
+
         updateOutputDetails(o.get());
 
         wlr_output_schedule_done(o->monitor->output);

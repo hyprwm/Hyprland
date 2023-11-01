@@ -185,6 +185,12 @@ void Events::listener_repositionPopupXDG(void* owner, void* data) {
 
     PPOPUP->lastPos             = {lx - extents.x, ly - extents.y};
     PPOPUP->repositionRequested = true;
+
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+
+    wlr_box    box = {PMONITOR->vecPosition.x - lx + PPOPUP->popup->current.geometry.x, PMONITOR->vecPosition.y - ly + PPOPUP->popup->current.geometry.y, PMONITOR->vecSize.x,
+                      PMONITOR->vecSize.y};
+    wlr_xdg_popup_unconstrain_from_box(PPOPUP->popup, &box);
 }
 
 void Events::listener_unmapPopupXDG(void* owner, void* data) {

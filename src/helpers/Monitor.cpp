@@ -223,9 +223,6 @@ void CMonitor::onDisconnect() {
         g_pConfigManager->m_bWantsMonitorReload = true;
     }
 
-    m_bEnabled             = false;
-    m_bRenderingInitPassed = false;
-
     hyprListener_monitorFrame.removeCallback();
     hyprListener_monitorDamage.removeCallback();
     hyprListener_monitorNeedsFrame.removeCallback();
@@ -249,6 +246,9 @@ void CMonitor::onDisconnect() {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
         g_pCompositor->enterUnsafeState();
     }
+
+    m_bEnabled             = false;
+    m_bRenderingInitPassed = false;
 
     if (BACKUPMON) {
         // snap cursor

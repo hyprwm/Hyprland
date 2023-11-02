@@ -94,7 +94,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 
     const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
-    if (g_pInputManager->m_bWasDraggingWindow) {
+    if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
         for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
             if (!wd->allowsInput())
                 continue;

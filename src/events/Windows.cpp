@@ -651,6 +651,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal()) == g_pCompositor->m_pLastWindow)
         g_pInputManager->simulateMouseMovement();
+
+    // fix some xwayland apps that don't behave nicely
+    PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {

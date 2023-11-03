@@ -68,10 +68,9 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
                 maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
         }
 
-        // +1 +1 -2 -2 is to avoid artifacts with AA. TODO: figure out a better method. Alpha blending? This same shit will happen on hyprbars.
-        m_bLastWindowBox = {(int)(m_vLastWindowPos.x - maxExtents.topLeft.x - BORDER + 1), (int)(m_vLastWindowPos.y - maxExtents.topLeft.y - BORDER + 1),
-                            (int)(m_vLastWindowSize.x + maxExtents.topLeft.x + maxExtents.bottomRight.x + 2 * BORDER - 2),
-                            (int)(m_vLastWindowSize.y + maxExtents.topLeft.y + maxExtents.bottomRight.y + 2 * BORDER - 2)};
+        m_bLastWindowBox = {(int)(m_vLastWindowPos.x - maxExtents.topLeft.x - BORDER), (int)(m_vLastWindowPos.y - maxExtents.topLeft.y - BORDER),
+                            (int)(m_vLastWindowSize.x + maxExtents.topLeft.x + maxExtents.bottomRight.x + 2 * BORDER),
+                            (int)(m_vLastWindowSize.y + maxExtents.topLeft.y + maxExtents.bottomRight.y + 2 * BORDER)};
     }
 }
 
@@ -145,41 +144,29 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
     g_pHyprOpenGL->scissor((wlr_box*)nullptr);
 
+    // we'll take the liberty of using this as it should not be used rn
+    CFramebuffer& alphaFB = g_pHyprOpenGL->m_RenderData.pCurrentMonData->mirrorFB;
+    auto*         LASTFB  = g_pHyprOpenGL->m_RenderData.currentFB;
+
     if (*PSHADOWIGNOREWINDOW) {
-        glEnable(GL_STENCIL_TEST);
-
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
-
-        glStencilFunc(GL_ALWAYS, 1, -1);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
         wlr_box windowBox = {m_bLastWindowBox.x - pMonitor->vecPosition.x, m_bLastWindowBox.y - pMonitor->vecPosition.y, m_bLastWindowBox.width, m_bLastWindowBox.height};
 
         scaleBox(&windowBox, pMonitor->scale);
 
         if (windowBox.width < 1 || windowBox.height < 1) {
-            glClearStencil(0);
-            glClear(GL_STENCIL_BUFFER_BIT);
-            glDisable(GL_STENCIL_TEST);
             return; // prevent assert failed
         }
 
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), ROUNDING * pMonitor->scale);
+        alphaFB.bind();
+        g_pHyprOpenGL->clear(CColor(0, 0, 0, 0));
 
-        glStencilFunc(GL_NOTEQUAL, 1, -1);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(1.0, 1.0, 1.0, 1.0), ROUNDING * pMonitor->scale);
+
+        LASTFB->bind();
     }
 
     scaleBox(&fullBox, pMonitor->scale);
-    g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
-
-    if (*PSHADOWIGNOREWINDOW) {
-        // cleanup
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
-        glDisable(GL_STENCIL_TEST);
-    }
+    g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a, &alphaFB);
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

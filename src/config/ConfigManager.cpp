@@ -161,6 +161,7 @@ void CConfigManager::setDefaultVars() {
     configValues["decoration:blur:contrast"].floatValue         = 0.8916;
     configValues["decoration:blur:brightness"].floatValue       = 1.0;
     configValues["decoration:blur:saturation_boost"].floatValue = 0.1696;
+    configValues["decoration:blur:boost_threshold"].floatValue  = 1.0;
     configValues["decoration:blur:noise"].floatValue            = 0.0117;
     configValues["decoration:blur:special"].intValue            = 0;
     configValues["decoration:active_opacity"].floatValue        = 1;

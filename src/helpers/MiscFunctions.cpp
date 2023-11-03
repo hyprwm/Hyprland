@@ -757,7 +757,12 @@ uint32_t drmFormatToGL(uint32_t drm) {
         case DRM_FORMAT_XRGB8888:
         case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
         case DRM_FORMAT_XRGB2101010:
-        case DRM_FORMAT_XBGR2101010: return GL_RGB10_A2;
+        case DRM_FORMAT_XBGR2101010:
+#ifdef GLES2
+            return GL_RGB10_A2_EXT;
+#else
+            return GL_RGB10_A2;
+#endif
         default: return GL_RGBA;
     }
     UNREACHABLE();

@@ -119,7 +119,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     // if user specified them in config
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
-    if (PWINDOW->m_bIsFullscreen && !force)
+    if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
         return;
 
     PWINDOW->updateSpecialRenderData();
@@ -557,14 +557,15 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
             PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
         } else if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
             SDwindleNodeData fakeNode;
-            fakeNode.pWindow         = PFULLWINDOW;
-            fakeNode.position        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-            fakeNode.size            = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-            fakeNode.workspaceID     = PWORKSPACE->m_iID;
-            PFULLWINDOW->m_vPosition = fakeNode.position;
-            PFULLWINDOW->m_vSize     = fakeNode.size;
+            fakeNode.pWindow                = PFULLWINDOW;
+            fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID            = PWORKSPACE->m_iID;
+            PFULLWINDOW->m_vPosition        = fakeNode.position;
+            PFULLWINDOW->m_vSize            = fakeNode.size;
+            fakeNode.ignoreFullscreenChecks = true;
 
-            applyNodeDataToWindow(&fakeNode, true);
+            applyNodeDataToWindow(&fakeNode);
         }
 
         return;

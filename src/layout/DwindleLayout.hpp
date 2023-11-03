@@ -30,6 +30,8 @@ struct SDwindleNodeData {
 
     bool                             valid = true;
 
+    bool                             ignoreFullscreenChecks = false;
+
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) const {
         return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && position == rhs.position && size == rhs.size && pParent == rhs.pParent &&

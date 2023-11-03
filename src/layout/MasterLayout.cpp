@@ -566,7 +566,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     }
 }
 
-void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode, bool force) {
+void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     CMonitor* PMONITOR = nullptr;
 
     if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
@@ -596,7 +596,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode, bool force
     // if user specified them in config
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
-    if (PWINDOW->m_bIsFullscreen && !force)
+    if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
         return;
 
     PWINDOW->updateSpecialRenderData();
@@ -885,14 +885,15 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
             // To keep consistent with the settings without C+P code
 
             SMasterNodeData fakeNode;
-            fakeNode.pWindow     = pWindow;
-            fakeNode.position    = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-            fakeNode.size        = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-            fakeNode.workspaceID = pWindow->m_iWorkspaceID;
-            pWindow->m_vPosition = fakeNode.position;
-            pWindow->m_vSize     = fakeNode.size;
+            fakeNode.pWindow                = pWindow;
+            fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID            = pWindow->m_iWorkspaceID;
+            pWindow->m_vPosition            = fakeNode.position;
+            pWindow->m_vSize                = fakeNode.size;
+            fakeNode.ignoreFullscreenChecks = true;
 
-            applyNodeDataToWindow(&fakeNode, true);
+            applyNodeDataToWindow(&fakeNode);
         }
     }
 

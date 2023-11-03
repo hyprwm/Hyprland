@@ -76,24 +76,17 @@ static void handleAddonDestroy(wl_resource* resource) {
 
 void CFractionalScaleProtocolManager::getFractionalScale(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* surface) {
     const auto PSURFACE = wlr_surface_from_resource(surface);
+    const auto PADDON   = getAddonForSurface(PSURFACE);
 
-    if (addonExists(PSURFACE)) {
+    if (PADDON->pResource) {
         wl_resource_post_error(resource, WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS, "Fractional scale exists.");
         return;
     }
-
-    const auto PADDON = getAddonForSurface(PSURFACE);
 
     PADDON->pResource = wl_resource_create(client, &wp_fractional_scale_v1_interface, wl_resource_get_version(resource), id);
     wl_resource_set_implementation(PADDON->pResource, &fractionalScaleAddonImpl, PADDON, handleAddonDestroy);
 
     wp_fractional_scale_v1_send_preferred_scale(PADDON->pResource, (uint32_t)std::round(PADDON->preferredScale * 120.0));
-}
-
-bool CFractionalScaleProtocolManager::addonExists(wlr_surface* surface) {
-    const auto IT = std::find_if(m_vFractionalScaleAddons.begin(), m_vFractionalScaleAddons.end(), [&](const auto& other) { return other->pSurface == surface; });
-
-    return IT != m_vFractionalScaleAddons.end();
 }
 
 SFractionalScaleAddon* CFractionalScaleProtocolManager::getAddonForSurface(wlr_surface* surface) {

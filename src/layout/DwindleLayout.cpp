@@ -317,7 +317,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
     if (!m_vOverrideFocalPoint && g_pInputManager->m_bWasDraggingWindow) {
         for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
-            if (!wd->allowsInput())
+            if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
             if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {

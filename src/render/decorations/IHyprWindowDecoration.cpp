@@ -25,14 +25,22 @@ CRegion IHyprWindowDecoration::getWindowDecorationRegion() {
                           m_pWindow->m_vRealSize.vec().y + 2 * BORDERSIZE));
 }
 
-bool IHyprWindowDecoration::allowsInput() {
-    return false;
+void IHyprWindowDecoration::onBeginWindowDragOnDeco(const Vector2D&) {
+    ;
 }
-
-void IHyprWindowDecoration::onBeginWindowDragOnDeco(const Vector2D&) {}
 
 bool IHyprWindowDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&) {
     return true;
 }
 
-void IHyprWindowDecoration::onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*) {}
+void IHyprWindowDecoration::onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*) {
+    ;
+}
+
+eDecorationLayer IHyprWindowDecoration::getDecorationLayer() {
+    return DECORATION_LAYER_UNDER;
+}
+
+uint64_t IHyprWindowDecoration::getDecorationFlags() {
+    return 0;
+}

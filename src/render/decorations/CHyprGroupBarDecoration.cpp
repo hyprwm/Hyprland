@@ -301,10 +301,6 @@ void CHyprGroupBarDecoration::refreshGradients() {
     renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0]);
 }
 
-bool CHyprGroupBarDecoration::allowsInput() {
-    return true;
-}
-
 bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D& pos) {
 
     if (!pDraggedWindow->canBeGroupedInto(m_pWindow))
@@ -406,4 +402,12 @@ void CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
 
     if (!g_pCompositor->isWindowActive(pWindow))
         g_pCompositor->focusWindow(pWindow);
+}
+
+eDecorationLayer CHyprGroupBarDecoration::getDecorationLayer() {
+    return DECORATION_LAYER_OVER;
+}
+
+uint64_t CHyprGroupBarDecoration::getDecorationFlags() {
+    return DECORATION_ALLOWS_MOUSE_INPUT;
 }

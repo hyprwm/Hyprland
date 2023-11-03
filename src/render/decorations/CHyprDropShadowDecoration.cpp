@@ -45,6 +45,33 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
         m_vLastWindowSize = pWindow->m_vRealSize.vec();
 
         damageEntire();
+
+        const auto BORDER = m_pWindow->getRealBorderSize();
+
+        // calculate extents of decos with the DECORATION_PART_OF_MAIN_WINDOW flag
+        SWindowDecorationExtents maxExtents;
+
+        for (auto& wd : m_pWindow->m_dWindowDecorations) {
+            // conveniently, this will also skip us.
+            if (!(wd->getDecorationFlags() & DECORATION_PART_OF_MAIN_WINDOW))
+                continue;
+
+            const auto EXTENTS = wd->getWindowDecorationExtents();
+
+            if (maxExtents.topLeft.x < EXTENTS.topLeft.x)
+                maxExtents.topLeft.x = EXTENTS.topLeft.x;
+            if (maxExtents.topLeft.y < EXTENTS.topLeft.y)
+                maxExtents.topLeft.y = EXTENTS.topLeft.y;
+            if (maxExtents.bottomRight.x < EXTENTS.bottomRight.x)
+                maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
+            if (maxExtents.bottomRight.y < EXTENTS.bottomRight.y)
+                maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
+        }
+
+        // +1 +1 -2 -2 is to avoid artifacts with AA. TODO: figure out a better method. Alpha blending? This same shit will happen on hyprbars.
+        m_bLastWindowBox = {(int)(m_vLastWindowPos.x - maxExtents.topLeft.x - BORDER + 1), (int)(m_vLastWindowPos.y - maxExtents.topLeft.y - BORDER + 1),
+                            (int)(m_vLastWindowSize.x + maxExtents.topLeft.x + maxExtents.bottomRight.x + 2 * BORDER - 2),
+                            (int)(m_vLastWindowSize.y + maxExtents.topLeft.y + maxExtents.bottomRight.y + 2 * BORDER - 2)};
     }
 }
 
@@ -75,12 +102,11 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto ROUNDING = !m_pWindow->m_sSpecialRenderData.rounding ?
-        0 :
-        (m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying());
+    const auto ROUNDING = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
 
     // draw the shadow
-    wlr_box fullBox = {m_vLastWindowPos.x - *PSHADOWSIZE, m_vLastWindowPos.y - *PSHADOWSIZE, m_vLastWindowSize.x + 2.0 * *PSHADOWSIZE, m_vLastWindowSize.y + 2.0 * *PSHADOWSIZE};
+    wlr_box fullBox = {m_bLastWindowBox.x - *PSHADOWSIZE, m_bLastWindowBox.y - *PSHADOWSIZE, m_bLastWindowBox.width + 2.0 * *PSHADOWSIZE,
+                       m_bLastWindowBox.height + 2.0 * *PSHADOWSIZE};
 
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
@@ -95,22 +121,22 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (PSHADOWOFFSET->x < 0) {
         fullBox.x += PSHADOWOFFSET->x;
     } else if (PSHADOWOFFSET->x > 0) {
-        fullBox.x = m_vLastWindowPos.x + m_vLastWindowSize.x - fullBox.width + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->x - pMonitor->vecPosition.x;
+        fullBox.x = m_bLastWindowBox.x + m_bLastWindowBox.width - fullBox.width + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->x - pMonitor->vecPosition.x;
     } else {
-        fullBox.x += ((m_vLastWindowSize.x + 2.0 * *PSHADOWSIZE) - NEWSIZE.x) / 2.0;
+        fullBox.x += ((m_bLastWindowBox.width + 2.0 * *PSHADOWSIZE) - NEWSIZE.x) / 2.0;
     }
 
     if (PSHADOWOFFSET->y < 0) {
         fullBox.y += PSHADOWOFFSET->y;
     } else if (PSHADOWOFFSET->y > 0) {
-        fullBox.y = m_vLastWindowPos.y + m_vLastWindowSize.y - fullBox.height + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->y - pMonitor->vecPosition.y;
+        fullBox.y = m_bLastWindowBox.y + m_bLastWindowBox.height - fullBox.height + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->y - pMonitor->vecPosition.y;
     } else {
-        fullBox.y += ((m_vLastWindowSize.y + 2.0 * *PSHADOWSIZE) - NEWSIZE.y) / 2.0;
+        fullBox.y += ((m_bLastWindowBox.height + 2.0 * *PSHADOWSIZE) - NEWSIZE.y) / 2.0;
     }
 
-    m_seExtents = {{m_vLastWindowPos.x - fullBox.x - pMonitor->vecPosition.x + 2, m_vLastWindowPos.y - fullBox.y - pMonitor->vecPosition.y + 2},
-                   {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
-                    fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_vLastWindowPos.y - m_vLastWindowSize.y + 2}};
+    m_seExtents = {{m_bLastWindowBox.x - fullBox.x - pMonitor->vecPosition.x + 2, m_bLastWindowBox.y - fullBox.y - pMonitor->vecPosition.y + 2},
+                   {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_bLastWindowBox.x - m_bLastWindowBox.width + 2,
+                    fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_bLastWindowBox.y - m_bLastWindowBox.height + 2}};
 
     fullBox.x += offset.x;
     fullBox.y += offset.y;
@@ -129,7 +155,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         glStencilFunc(GL_ALWAYS, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-        wlr_box windowBox = {m_vLastWindowPos.x - pMonitor->vecPosition.x, m_vLastWindowPos.y - pMonitor->vecPosition.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
+        wlr_box windowBox = {m_bLastWindowBox.x - pMonitor->vecPosition.x, m_bLastWindowBox.y - pMonitor->vecPosition.y, m_bLastWindowBox.width, m_bLastWindowBox.height};
 
         scaleBox(&windowBox, pMonitor->scale);
 
@@ -155,4 +181,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         glClear(GL_STENCIL_BUFFER_BIT);
         glDisable(GL_STENCIL_TEST);
     }
+}
+
+eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {
+    return DECORATION_LAYER_BOTTOM;
 }

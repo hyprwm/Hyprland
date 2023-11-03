@@ -30,6 +30,7 @@ class CFractionalScaleProtocolManager {
 
   private:
     SFractionalScaleAddon*                              getAddonForSurface(wlr_surface*);
+    bool                                                addonExists(wlr_surface*);
 
     std::vector<std::unique_ptr<SFractionalScaleAddon>> m_vFractionalScaleAddons;
 

@@ -31,7 +31,7 @@ bool CWLSurface::small() const {
     if (!m_pOwner || !exists())
         return false;
 
-    return m_pOwner->m_vReportedSize.x > m_pWLRSurface->current.buffer_width || m_pOwner->m_vReportedSize.y > m_pWLRSurface->current.buffer_height;
+    return std::abs(m_pOwner->m_vReportedSize.x - m_pWLRSurface->current.buffer_width) > 1 || std::abs(m_pOwner->m_vReportedSize.y - m_pWLRSurface->current.buffer_height) > 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {

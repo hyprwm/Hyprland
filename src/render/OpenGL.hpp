@@ -97,7 +97,6 @@ struct SCurrentRenderData {
 };
 
 class CGradientValueData;
-class CHyprDropShadowDecoration;
 
 class CHyprOpenGLImpl {
   public:
@@ -115,6 +114,9 @@ class CHyprOpenGLImpl {
     void               renderTextureWithBlur(const CTexture&, CBox*, float a, wlr_surface* pSurface, int round = 0, bool blockBlurOptimization = false, float blurA = 1.f);
     void               renderRoundedShadow(CBox*, int round, int range, float a = 1.0);
     void               renderBorder(CBox*, const CGradientValueData&, int round, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);
+    void               renderTextureMatte(const CTexture& tex, CBox* pBox, CFramebuffer& matte);
+
+    void               setMonitorTransformEnabled(bool enabled);
 
     void               saveMatrix();
     void               setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
@@ -192,7 +194,6 @@ class CHyprOpenGLImpl {
     void          renderTextureInternalWithDamage(const CTexture&, CBox* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
                                                   bool allowCustomUV = false, bool allowDim = false);
     void          renderTexturePrimitive(const CTexture& tex, CBox* pBox);
-    void          renderTextureMatte(const CTexture& tex, CBox* pBox, CFramebuffer& matte);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double);
 
     void          preBlurForCurrentMonitor();
@@ -200,7 +201,6 @@ class CHyprOpenGLImpl {
     bool          shouldUseNewBlurOptimizations(SLayerSurface* pLayer, CWindow* pWindow);
 
     friend class CHyprRenderer;
-    friend class CHyprDropShadowDecoration;
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

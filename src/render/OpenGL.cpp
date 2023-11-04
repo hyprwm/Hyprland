@@ -235,8 +235,10 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.program           = prog;
     m_RenderData.pCurrentMonData->m_shRGBA.proj              = glGetUniformLocation(prog, "proj");
     m_RenderData.pCurrentMonData->m_shRGBA.tex               = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shRGBA.alphaMatte        = glGetUniformLocation(prog, "texMatte");
     m_RenderData.pCurrentMonData->m_shRGBA.alpha             = glGetUniformLocation(prog, "alpha");
     m_RenderData.pCurrentMonData->m_shRGBA.texAttrib         = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shRGBA.matteTexAttrib    = glGetAttribLocation(prog, "texcoordMatte");
     m_RenderData.pCurrentMonData->m_shRGBA.posAttrib         = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shRGBA.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
     m_RenderData.pCurrentMonData->m_shRGBA.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
@@ -246,6 +248,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shRGBA.radius            = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shRGBA.applyTint         = glGetUniformLocation(prog, "applyTint");
     m_RenderData.pCurrentMonData->m_shRGBA.tint              = glGetUniformLocation(prog, "tint");
+    m_RenderData.pCurrentMonData->m_shRGBA.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
 
     prog                                                     = createProgram(TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU);
     m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.program   = prog;
@@ -253,6 +256,14 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.tex       = glGetUniformLocation(prog, "tex");
     m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shPASSTHRURGBA.posAttrib = glGetAttribLocation(prog, "pos");
+
+    prog                                               = createProgram(TEXVERTSRC, TEXFRAGSRCRGBAMATTE);
+    m_RenderData.pCurrentMonData->m_shMATTE.program    = prog;
+    m_RenderData.pCurrentMonData->m_shMATTE.proj       = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shMATTE.tex        = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shMATTE.alphaMatte = glGetUniformLocation(prog, "texMatte");
+    m_RenderData.pCurrentMonData->m_shMATTE.texAttrib  = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shMATTE.posAttrib  = glGetAttribLocation(prog, "pos");
 
     prog                                               = createProgram(TEXVERTSRC, FRAGGLITCH);
     m_RenderData.pCurrentMonData->m_shGLITCH.program   = prog;
@@ -801,6 +812,64 @@ void CHyprOpenGLImpl::renderTexturePrimitive(const CTexture& tex, CBox* pBox) {
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
 #endif
     glUniform1i(shader->tex, 0);
+
+    glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+    glEnableVertexAttribArray(shader->posAttrib);
+    glEnableVertexAttribArray(shader->texAttrib);
+
+    for (auto& RECT : m_RenderData.damage.getRects()) {
+        scissor(&RECT);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    scissor((CBox*)nullptr);
+
+    glDisableVertexAttribArray(shader->posAttrib);
+    glDisableVertexAttribArray(shader->texAttrib);
+
+    glBindTexture(tex.m_iTarget, 0);
+}
+
+void CHyprOpenGLImpl::renderTextureMatte(const CTexture& tex, CBox* pBox, CFramebuffer& matte) {
+    RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
+    RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
+
+    TRACY_GPU_ZONE("RenderTextureMatte");
+
+    if (m_RenderData.damage.empty())
+        return;
+
+    CBox newBox = *pBox;
+    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+
+    // get transform
+    const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
+    float      matrix[9];
+    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+
+    float glMatrix[9];
+    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+
+    CShader* shader = &m_RenderData.pCurrentMonData->m_shMATTE;
+
+    glUseProgram(shader->program);
+
+#ifndef GLES2
+    glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix);
+#else
+    wlr_matrix_transpose(glMatrix, glMatrix);
+    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
+#endif
+    glUniform1i(shader->tex, 0);
+    glUniform1i(shader->alphaMatte, 1);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(tex.m_iTarget, tex.m_iTexID);
+
+    glActiveTexture(GL_TEXTURE0 + 1);
+    glBindTexture(matte.m_cTex.m_iTarget, matte.m_cTex.m_iTexID);
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -1629,7 +1698,7 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     m_bEndFrame = false;
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, float a, CFramebuffer* matte) {
+void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, float a) {
     RASSERT(m_RenderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box->width > 0 && box->height > 0), "Tried to render shadow with width/height < 0!");
     RASSERT(m_pCurrentWindow, "Tried to render shadow without a window!");
@@ -1647,7 +1716,6 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, float
     static auto* const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->intValue;
 
     const auto         SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
-    const auto         USEMATTE    = matte;
 
     const auto         col = m_pCurrentWindow->m_cRealShadowColor.col();
 
@@ -1682,33 +1750,11 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, float
     glUniform1f(m_RenderData.pCurrentMonData->m_shSHADOW.range, range);
     glUniform1f(m_RenderData.pCurrentMonData->m_shSHADOW.shadowPower, SHADOWPOWER);
 
-    if (USEMATTE) {
-        glUniform1i(m_RenderData.pCurrentMonData->m_shSHADOW.useAlphaMatte, 1);
-        glUniform1i(m_RenderData.pCurrentMonData->m_shSHADOW.alphaMatte, 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(matte->m_cTex.m_iTarget, matte->m_cTex.m_iTexID);
-    } else {
-        glUniform1i(m_RenderData.pCurrentMonData->m_shSHADOW.useAlphaMatte, 0);
-    }
-
-    const float texVerts[] = {
-        ((float)(box->x + box->width) / m_RenderData.pMonitor->vecPixelSize.x),
-        ((float)box->y / m_RenderData.pMonitor->vecPixelSize.y), // top right
-        ((float)box->x / m_RenderData.pMonitor->vecPixelSize.x),
-        ((float)box->y / m_RenderData.pMonitor->vecPixelSize.y), // top left
-        ((float)(box->x + box->width) / m_RenderData.pMonitor->vecPixelSize.x),
-        ((float)(box->y + box->height) / m_RenderData.pMonitor->vecPixelSize.y), // bottom right
-        ((float)box->x / m_RenderData.pMonitor->vecPixelSize.x),
-        ((float)(box->y + box->height) / m_RenderData.pMonitor->vecPixelSize.y), // bottom left
-    };
-
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shSHADOW.matteTexAttrib, 2, GL_FLOAT, GL_FALSE, 0, texVerts);
 
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib);
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib);
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.matteTexAttrib);
 
     if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
         CRegion damageClip{m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height};
@@ -1727,7 +1773,6 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, float
         }
     }
 
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.matteTexAttrib);
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib);
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib);
 }

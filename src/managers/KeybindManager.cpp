@@ -1841,7 +1841,7 @@ void CKeybindManager::mouse(std::string args) {
 
             if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords)) {
                 for (auto& wd : pWindow->m_dWindowDecorations) {
-                    if (!wd->allowsInput())
+                    if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                         continue;
 
                     if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {

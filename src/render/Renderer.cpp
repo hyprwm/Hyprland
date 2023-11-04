@@ -425,9 +425,21 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             }
         }
 
-        if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
-            for (auto& wd : pWindow->m_dWindowDecorations)
+        if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) {
+            for (auto& wd : pWindow->m_dWindowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
+                    continue;
+
                 wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+            }
+
+            for (auto& wd : pWindow->m_dWindowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_UNDER)
+                    continue;
+
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+            }
+        }
 
         static auto* const PXWLUSENN = &g_pConfigManager->getConfigValuePtr("xwayland:use_nearest_neighbor")->intValue;
         if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
@@ -470,6 +482,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             }
         }
 
+        for (auto& wd : pWindow->m_dWindowDecorations) {
+            if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
+                continue;
+
+            wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+        }
+
         if (TRANSFORMERSPRESENT) {
 
             CFramebuffer* last = g_pHyprOpenGL->m_RenderData.currentFB;
@@ -500,6 +519,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
 
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+        }
+
+        for (auto& wd : pWindow->m_dWindowDecorations) {
+            if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
+                continue;
+
+            wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
         }
     }
 

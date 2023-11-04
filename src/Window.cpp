@@ -146,7 +146,7 @@ wlr_box CWindow::getWindowInputBox() {
 
     for (auto& wd : m_dWindowDecorations) {
 
-        if (!wd->allowsInput())
+        if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
             continue;
 
         const auto EXTENTS = wd->getWindowDecorationExtents();

@@ -585,7 +585,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
     if (w && !w->m_bIsFullscreen && !w->hasPopupAt(mouseCoords)) {
         for (auto& wd : w->m_dWindowDecorations) {
-            if (!wd->allowsInput())
+            if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
             if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
@@ -1634,11 +1634,11 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
 
         bool onDeco = false;
 
-        for (auto& d : w->m_dWindowDecorations) {
-            if (!d->allowsInput())
+        for (auto& wd : w->m_dWindowDecorations) {
+            if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
-            if (d->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+            if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
                 onDeco = true;
                 break;
             }

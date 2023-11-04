@@ -329,18 +329,21 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shBLURFINISH.contrast   = glGetUniformLocation(prog, "contrast");
     m_RenderData.pCurrentMonData->m_shBLURFINISH.brightness = glGetUniformLocation(prog, "brightness");
 
-    prog                                                 = createProgram(QUADVERTSRC, FRAGSHADOW);
-    m_RenderData.pCurrentMonData->m_shSHADOW.program     = prog;
-    m_RenderData.pCurrentMonData->m_shSHADOW.proj        = glGetUniformLocation(prog, "proj");
-    m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib   = glGetAttribLocation(prog, "pos");
-    m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib   = glGetAttribLocation(prog, "texcoord");
-    m_RenderData.pCurrentMonData->m_shSHADOW.topLeft     = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shSHADOW.bottomRight = glGetUniformLocation(prog, "bottomRight");
-    m_RenderData.pCurrentMonData->m_shSHADOW.fullSize    = glGetUniformLocation(prog, "fullSize");
-    m_RenderData.pCurrentMonData->m_shSHADOW.radius      = glGetUniformLocation(prog, "radius");
-    m_RenderData.pCurrentMonData->m_shSHADOW.range       = glGetUniformLocation(prog, "range");
-    m_RenderData.pCurrentMonData->m_shSHADOW.shadowPower = glGetUniformLocation(prog, "shadowPower");
-    m_RenderData.pCurrentMonData->m_shSHADOW.color       = glGetUniformLocation(prog, "color");
+    prog                                                    = createProgram(QUADVERTSRC, FRAGSHADOW);
+    m_RenderData.pCurrentMonData->m_shSHADOW.program        = prog;
+    m_RenderData.pCurrentMonData->m_shSHADOW.proj           = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib      = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib      = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shSHADOW.matteTexAttrib = glGetAttribLocation(prog, "texcoordMatte");
+    m_RenderData.pCurrentMonData->m_shSHADOW.alphaMatte     = glGetUniformLocation(prog, "alphaMatte");
+    m_RenderData.pCurrentMonData->m_shSHADOW.topLeft        = glGetUniformLocation(prog, "topLeft");
+    m_RenderData.pCurrentMonData->m_shSHADOW.bottomRight    = glGetUniformLocation(prog, "bottomRight");
+    m_RenderData.pCurrentMonData->m_shSHADOW.fullSize       = glGetUniformLocation(prog, "fullSize");
+    m_RenderData.pCurrentMonData->m_shSHADOW.radius         = glGetUniformLocation(prog, "radius");
+    m_RenderData.pCurrentMonData->m_shSHADOW.range          = glGetUniformLocation(prog, "range");
+    m_RenderData.pCurrentMonData->m_shSHADOW.shadowPower    = glGetUniformLocation(prog, "shadowPower");
+    m_RenderData.pCurrentMonData->m_shSHADOW.color          = glGetUniformLocation(prog, "color");
+    m_RenderData.pCurrentMonData->m_shSHADOW.useAlphaMatte  = glGetUniformLocation(prog, "useAlphaMatte");
 
     prog                                                            = createProgram(QUADVERTSRC, FRAGBORDER1);
     m_RenderData.pCurrentMonData->m_shBORDER1.program               = prog;
@@ -1637,7 +1640,7 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     m_bEndFrame = false;
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, float a) {
+void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, float a, CFramebuffer* matte) {
     RASSERT(m_RenderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box->width > 0 && box->height > 0), "Tried to render shadow with width/height < 0!");
     RASSERT(m_pCurrentWindow, "Tried to render shadow without a window!");
@@ -1657,6 +1660,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     static auto* const PSHADOWPOWER = &g_pConfigManager->getConfigValuePtr("decoration:shadow_render_power")->intValue;
 
     const auto         SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
+    const auto         USEMATTE    = matte;
 
     const auto         col = m_pCurrentWindow->m_cRealShadowColor.col();
 
@@ -1691,11 +1695,33 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
     glUniform1f(m_RenderData.pCurrentMonData->m_shSHADOW.range, range);
     glUniform1f(m_RenderData.pCurrentMonData->m_shSHADOW.shadowPower, SHADOWPOWER);
 
+    if (USEMATTE) {
+        glUniform1i(m_RenderData.pCurrentMonData->m_shSHADOW.useAlphaMatte, 1);
+        glUniform1i(m_RenderData.pCurrentMonData->m_shSHADOW.alphaMatte, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(matte->m_cTex.m_iTarget, matte->m_cTex.m_iTexID);
+    } else {
+        glUniform1i(m_RenderData.pCurrentMonData->m_shSHADOW.useAlphaMatte, 0);
+    }
+
+    const float texVerts[] = {
+        ((float)(box->x + box->width) / m_RenderData.pMonitor->vecPixelSize.x),
+        ((float)box->y / m_RenderData.pMonitor->vecPixelSize.y), // top right
+        ((float)box->x / m_RenderData.pMonitor->vecPixelSize.x),
+        ((float)box->y / m_RenderData.pMonitor->vecPixelSize.y), // top left
+        ((float)(box->x + box->width) / m_RenderData.pMonitor->vecPixelSize.x),
+        ((float)(box->y + box->height) / m_RenderData.pMonitor->vecPixelSize.y), // bottom right
+        ((float)box->x / m_RenderData.pMonitor->vecPixelSize.x),
+        ((float)(box->y + box->height) / m_RenderData.pMonitor->vecPixelSize.y), // bottom left
+    };
+
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shSHADOW.matteTexAttrib, 2, GL_FLOAT, GL_FALSE, 0, texVerts);
 
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib);
     glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib);
+    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.matteTexAttrib);
 
     if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
         CRegion damageClip{m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height};
@@ -1714,6 +1740,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(wlr_box* box, int round, int range, fl
         }
     }
 
+    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.matteTexAttrib);
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib);
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib);
 }

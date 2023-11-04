@@ -10,10 +10,12 @@ class CShader {
     GLuint  program           = 0;
     GLint   proj              = -1;
     GLint   color             = -1;
+    GLint   alphaMatte        = -1;
     GLint   tex               = -1;
     GLint   alpha             = -1;
     GLint   posAttrib         = -1;
     GLint   texAttrib         = -1;
+    GLint   matteTexAttrib    = -1;
     GLint   discardOpaque     = -1;
     GLint   discardAlpha      = -1;
     GLfloat discardAlphaValue = -1;
@@ -29,8 +31,9 @@ class CShader {
 
     GLint   halfpixel = -1;
 
-    GLint   range       = -1;
-    GLint   shadowPower = -1;
+    GLint   range         = -1;
+    GLint   shadowPower   = -1;
+    GLint   useAlphaMatte = -1; // always inverted
 
     GLint   applyTint = -1;
     GLint   tint      = -1;
@@ -43,9 +46,9 @@ class CShader {
     GLint   distort = -1;
     GLint   output  = -1;
 
-    GLint   noise  = -1;
-    GLint   contrast  = -1;
-    GLint   brightness  = -1;
+    GLint   noise      = -1;
+    GLint   contrast   = -1;
+    GLint   brightness = -1;
 
     GLint   getUniformLocation(const std::string&);
 

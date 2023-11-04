@@ -243,13 +243,14 @@ void CConfigManager::setDefaultVars() {
     configValues["input:tablet:region_position"].vecValue           = Vector2D();
     configValues["input:tablet:region_size"].vecValue               = Vector2D();
 
-    configValues["binds:pass_mouse_when_bound"].intValue    = 0;
-    configValues["binds:scroll_event_delay"].intValue       = 300;
-    configValues["binds:workspace_back_and_forth"].intValue = 0;
-    configValues["binds:allow_workspace_cycles"].intValue   = 0;
-    configValues["binds:workspace_center_on"].intValue      = 1;
-    configValues["binds:focus_preferred_method"].intValue   = 0;
-    configValues["binds:ignore_group_lock"].intValue        = 0;
+    configValues["binds:pass_mouse_when_bound"].intValue       = 0;
+    configValues["binds:scroll_event_delay"].intValue          = 300;
+    configValues["binds:workspace_back_and_forth"].intValue    = 0;
+    configValues["binds:allow_workspace_cycles"].intValue      = 0;
+    configValues["binds:workspace_center_on"].intValue         = 1;
+    configValues["binds:focus_preferred_method"].intValue      = 0;
+    configValues["binds:ignore_group_lock"].intValue           = 0;
+    configValues["binds:movefocus_cycles_fullscreen"].intValue = 1;
 
     configValues["gestures:workspace_swipe"].intValue                          = 0;
     configValues["gestures:workspace_swipe_fingers"].intValue                  = 3;

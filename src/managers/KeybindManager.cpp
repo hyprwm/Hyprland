@@ -1004,7 +1004,8 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {
-    char arg = args[0];
+    static auto* const PFULLCYCLE = &g_pConfigManager->getConfigValuePtr("binds:movefocus_cycles_fullscreen")->intValue;
+    char               arg        = args[0];
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move focus in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -1020,7 +1021,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
     // remove constraints
     g_pInputManager->unconstrainMouse();
 
-    const auto PWINDOWTOCHANGETO = PLASTWINDOW->m_bIsFullscreen ?
+    const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->m_bIsFullscreen ?
         (arg == 'd' || arg == 'b' || arg == 'r' ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true) : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true)) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 

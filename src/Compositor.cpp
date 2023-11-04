@@ -1504,13 +1504,19 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
     // 0 -> history, 1 -> shared length
     static auto* const PMETHOD = &g_pConfigManager->getConfigValuePtr("binds:focus_preferred_method")->intValue;
 
-    const auto         WINDOWIDEALBB = pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    const auto         POSA  = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
-    const auto         SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
+    if (!PMONITOR)
+        return nullptr; // ??
 
-    auto               leaderValue  = -1;
-    CWindow*           leaderWindow = nullptr;
+    const auto WINDOWIDEALBB = pWindow->m_bIsFullscreen ? wlr_box{(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y} :
+                                                          pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+
+    const auto POSA  = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
+    const auto SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
+
+    auto       leaderValue  = -1;
+    CWindow*   leaderWindow = nullptr;
 
     for (auto& w : m_vWindows) {
         if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || w->m_bIsFloating || !isWorkspaceVisible(w->m_iWorkspaceID))

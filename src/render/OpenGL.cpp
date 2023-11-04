@@ -1495,6 +1495,8 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFra
 
     pFramebuffer->bind();
 
+    m_RenderData.currentFB = pFramebuffer;
+
     clear(CColor(0, 0, 0, 0)); // JIC
 
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, false, RENDER_PASS_ALL, true);
@@ -1553,6 +1555,8 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
 
     PFRAMEBUFFER->bind();
 
+    m_RenderData.currentFB = PFRAMEBUFFER;
+
     clear(CColor(0, 0, 0, 0)); // JIC
 
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
@@ -1597,6 +1601,8 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->drmFormat);
 
     PFRAMEBUFFER->bind();
+
+    m_RenderData.currentFB = PFRAMEBUFFER;
 
     clear(CColor(0, 0, 0, 0)); // JIC
 

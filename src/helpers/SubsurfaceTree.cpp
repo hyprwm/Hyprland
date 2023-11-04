@@ -98,8 +98,9 @@ void SubsurfaceTree::destroySurfaceTree(SSurfaceTreeNode* pNode) {
 
     // damage
     if (pNode->pSurface && pNode->pSurface->exists()) {
-        wlr_box extents = {};
-        wlr_surface_get_extends(pNode->pSurface->wlr(), &extents);
+        CBox extents = {};
+        wlr_surface_get_extends(pNode->pSurface->wlr(), extents.pWlr());
+        extents.applyFromWlr();
 
         int lx = 0, ly = 0;
         addSurfaceGlobalOffset(pNode, &lx, &ly);
@@ -198,7 +199,7 @@ void Events::listener_unmapSubsurface(void* owner, void* data) {
                 int lx = 0, ly = 0;
                 addSurfaceGlobalOffset(PNODE, &lx, &ly);
 
-                wlr_box extents = {lx, ly, 0, 0};
+                CBox extents = {lx, ly, 0, 0};
 
                 extents.width  = PNODE->pSurface->wlr()->current.width;
                 extents.height = PNODE->pSurface->wlr()->current.height;

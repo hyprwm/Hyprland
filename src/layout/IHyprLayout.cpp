@@ -6,7 +6,7 @@ void IHyprLayout::onWindowCreated(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
         onWindowCreatedFloating(pWindow);
     } else {
-        wlr_box desiredGeometry = {0};
+        CBox desiredGeometry = {};
         g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
 
         if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
@@ -75,7 +75,7 @@ void IHyprLayout::onWindowRemovedFloating(CWindow* pWindow) {
 
 void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
 
-    wlr_box desiredGeometry = {0};
+    CBox desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 

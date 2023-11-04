@@ -15,7 +15,7 @@ class CHyprXWaylandManager {
     wlr_surface*  getWindowSurface(CWindow*);
     void          activateSurface(wlr_surface*, bool);
     void          activateWindow(CWindow*, bool);
-    void          getGeometryForWindow(CWindow*, wlr_box*);
+    void          getGeometryForWindow(CWindow*, CBox*);
     std::string   getTitle(CWindow*);
     std::string   getAppIDClass(CWindow*);
     void          sendCloseWindow(CWindow*);

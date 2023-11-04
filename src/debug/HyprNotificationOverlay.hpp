@@ -44,8 +44,8 @@ class CHyprNotificationOverlay {
     void addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon = ICON_NONE);
 
   private:
-    wlr_box                                    drawNotifications(CMonitor* pMonitor);
-    wlr_box                                    m_bLastDamage;
+    CBox                                       drawNotifications(CMonitor* pMonitor);
+    CBox                                       m_bLastDamage;
 
     std::deque<std::unique_ptr<SNotification>> m_dNotifications;
 

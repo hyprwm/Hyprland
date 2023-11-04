@@ -50,7 +50,7 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CC
     }
 }
 
-wlr_box CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
+CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     static constexpr auto ANIM_DURATION_MS   = 600.0;
     static constexpr auto ANIM_LAG_MS        = 100.0;
     static constexpr auto NOTIF_LEFTBAR_SIZE = 5.0;
@@ -170,7 +170,7 @@ wlr_box CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     // cleanup notifs
     std::erase_if(m_dNotifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });
 
-    return wlr_box{(int)(pMonitor->vecPosition.x + pMonitor->vecSize.x - maxWidth - 20), (int)pMonitor->vecPosition.y, (int)maxWidth + 20, (int)offsetY + 10};
+    return CBox{(int)(pMonitor->vecPosition.x + pMonitor->vecSize.x - maxWidth - 20), (int)pMonitor->vecPosition.y, (int)maxWidth + 20, (int)offsetY + 10};
 }
 
 void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
@@ -201,7 +201,7 @@ void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
 
     cairo_surface_flush(m_pCairoSurface);
 
-    wlr_box damage = drawNotifications(pMonitor);
+    CBox damage = drawNotifications(pMonitor);
 
     g_pHyprRenderer->damageBox(&damage);
     g_pHyprRenderer->damageBox(&m_bLastDamage);
@@ -224,6 +224,6 @@ void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
-    wlr_box pMonBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
+    CBox pMonBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
     g_pHyprOpenGL->renderTexture(m_tTexture, &pMonBox, 1.f);
 }

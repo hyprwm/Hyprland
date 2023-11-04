@@ -183,7 +183,7 @@ void CScreencopyProtocolManager::removeFrame(SScreencopyFrame* frame, bool force
     m_lFrames.remove(*frame);
 }
 
-void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output, wlr_box box) {
+void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output, CBox box) {
     const auto PCLIENT = clientFromResource(resource);
 
     const auto PFRAME     = &m_lFrames.emplace_back();
@@ -239,8 +239,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     }
     int ow, oh;
     wlr_output_effective_resolution(PFRAME->pMonitor->output, &ow, &oh);
-    wlr_box_transform(&PFRAME->box, &PFRAME->box, PFRAME->pMonitor->transform, ow, oh);
-    scaleBox(&PFRAME->box, PFRAME->pMonitor->scale);
+    PFRAME->box.transform(PFRAME->pMonitor->transform, ow, oh).scale(PFRAME->pMonitor->scale);
 
     PFRAME->shmStride = (PSHMINFO->bpp / 8) * PFRAME->box.width;
 

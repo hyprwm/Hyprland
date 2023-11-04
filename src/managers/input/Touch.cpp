@@ -32,12 +32,12 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     if (m_sTouchData.touchFocusWindow) {
         if (m_sTouchData.touchFocusWindow->m_bIsX11) {
-            local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition.goalv();
+            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition.goalv()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
+            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition.goalv();
         } else {
             g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow, local);
+            m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
         }
-
-        m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
     } else if (m_sTouchData.touchFocusLS) {
         local = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_sTouchData.touchFocusLS->geometry.x, m_sTouchData.touchFocusLS->geometry.y);
 
@@ -63,7 +63,9 @@ void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
 
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
 
-        const auto local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchSurfaceOrigin;
+        auto local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchSurfaceOrigin;
+        if (m_sTouchData.touchFocusWindow->m_bIsX11)
+            local = local * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
 
         wlr_seat_touch_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, e->touch_id, local.x, local.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, local.x, local.y);

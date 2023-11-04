@@ -146,7 +146,7 @@ wlr_box CWindow::getWindowInputBox() {
 
     for (auto& wd : m_dWindowDecorations) {
 
-        if (!wd->allowsInput())
+        if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
             continue;
 
         const auto EXTENTS = wd->getWindowDecorationExtents();
@@ -169,6 +169,10 @@ wlr_box CWindow::getWindowInputBox() {
                         m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
 
     return finalBox;
+}
+
+wlr_box CWindow::getWindowMainSurfaceBox() {
+    return {m_vRealPosition.vec().x, m_vRealPosition.vec().y, m_vRealSize.vec().x, m_vRealSize.vec().y};
 }
 
 SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
@@ -219,6 +223,9 @@ pid_t CWindow::getPID() {
 
         wl_client_get_credentials(wl_resource_get_client(m_uSurface.xdg->resource), &PID, nullptr, nullptr);
     } else {
+        if (!m_bIsMapped || !m_bMappedX11)
+            return -1;
+
         PID = m_uSurface.xwayland->pid;
     }
 
@@ -325,7 +332,8 @@ void CWindow::updateSurfaceOutputs() {
         m_pWLSurface.wlr(),
         [](wlr_surface* surf, int x, int y, void* data) {
             const auto PMONITOR = g_pCompositor->getMonitorFromID(((CWindow*)data)->m_iMonitorID);
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
+            g_pCompositor->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
+            g_pCompositor->setPreferredTransformForSurface(surf, PMONITOR->transform);
         },
         this);
 }
@@ -333,6 +341,10 @@ void CWindow::updateSurfaceOutputs() {
 void CWindow::moveToWorkspace(int workspaceID) {
     if (m_iWorkspaceID == workspaceID)
         return;
+
+    static auto* const PCLOSEONLASTSPECIAL = &g_pConfigManager->getConfigValuePtr("misc:close_special_on_empty")->intValue;
+
+    const int          OLDWORKSPACE = m_iWorkspaceID;
 
     m_iWorkspaceID = workspaceID;
 
@@ -352,6 +364,15 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     // update xwayland coords
     g_pXWaylandManager->setWindowSize(this, m_vRealSize.vec());
+
+    if (g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE) && g_pCompositor->getWindowsOnWorkspace(OLDWORKSPACE) == 0 && *PCLOSEONLASTSPECIAL) {
+        const auto PWS = g_pCompositor->getWorkspaceByID(OLDWORKSPACE);
+
+        if (PWS) {
+            if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWS->m_iMonitorID); PMONITOR)
+                PMONITOR->setSpecialWorkspace(nullptr);
+        }
+    }
 }
 
 CWindow* CWindow::X11TransientFor() {
@@ -502,6 +523,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             m_sAdditionalConfigData.forceOpaque = true;
     } else if (r.szRule == "immediate") {
         m_sAdditionalConfigData.forceTearing = true;
+    } else if (r.szRule == "nearestneighbor") {
+        m_sAdditionalConfigData.nearestNeighbor = true;
     } else if (r.szRule.starts_with("rounding")) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -591,6 +614,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.keepAspectRatio = false;
     m_sAdditionalConfigData.xray            = -1;
     m_sAdditionalConfigData.forceTearing    = false;
+    m_sAdditionalConfigData.nearestNeighbor = false;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {
@@ -744,6 +768,15 @@ int CWindow::getGroupSize() {
         size++;
     }
     return size;
+}
+
+bool CWindow::canBeGroupedInto(CWindow* pWindow) {
+    return !g_pKeybindManager->m_bGroupsLocked                                          // global group lock disengaged
+        && ((m_eGroupRules & GROUP_INVADE && m_bFirstMap)                               // window ignore local group locks, or
+            || (!pWindow->getGroupHead()->m_sGroupData.locked                           //      target unlocked
+                && !(m_sGroupData.pNextWindow && getGroupHead()->m_sGroupData.locked))) //      source unlocked or isn't group
+        && !m_sGroupData.deny                                                           // source is not denied entry
+        && !(m_eGroupRules & GROUP_BARRED && m_bFirstMap);                              // group rule doesn't prevent adding window
 }
 
 CWindow* CWindow::getGroupWindowByIndex(int index) {

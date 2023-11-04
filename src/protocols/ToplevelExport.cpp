@@ -229,7 +229,7 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
         return;
     }
 
-    const auto PBUFFER = wlr_buffer_from_resource(buffer);
+    const auto PBUFFER = wlr_buffer_try_from_resource(buffer);
     if (!PBUFFER) {
         wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
         removeFrame(PFRAME);

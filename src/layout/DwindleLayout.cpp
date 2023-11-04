@@ -119,6 +119,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     // if user specified them in config
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
+    if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
+        return;
+
     PWINDOW->updateSpecialRenderData();
 
     static auto* const PGAPSIN         = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
@@ -312,33 +315,29 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         return;
     }
 
+    if (!m_vOverrideFocalPoint && g_pInputManager->m_bWasDraggingWindow) {
+        for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
+            if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
+                continue;
+
+            if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
+                if (!wd->onEndWindowDragOnDeco(pWindow, MOUSECOORDS))
+                    return;
+                break;
+            }
+        }
+    }
+
     // if it's a group, add the window
-    if (OPENINGON->pWindow->m_sGroupData.pNextWindow                                                      // target is group
-        && !g_pKeybindManager->m_bGroupsLocked                                                            // global group lock disengaged
-        && ((pWindow->m_eGroupRules & GROUP_INVADE && pWindow->m_bFirstMap)                               // window ignore local group locks, or
-            || (!OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked                                  //    target unlocked
-                && !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
-        && !pWindow->m_sGroupData.deny                                                                    // source is not denied entry
-        && !(pWindow->m_eGroupRules & GROUP_BARRED && pWindow->m_bFirstMap)                               // group rule doesn't prevent adding window
-        && !m_vOverrideFocalPoint                                                                         // we are not moving window
-    ) {
+    if (OPENINGON->pWindow->m_sGroupData.pNextWindow                                  // target is group
+        && pWindow->canBeGroupedInto(OPENINGON->pWindow) && !m_vOverrideFocalPoint) { // we are not moving window
         if (!pWindow->m_sGroupData.pNextWindow)
             pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
         m_lDwindleNodesData.remove(*PNODE);
 
-        const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-        if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
-            const int SIZE               = OPENINGON->pWindow->getGroupSize();
-            const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
-            CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
-            pWindowInsertAfter->insertWindowToGroup(pWindow);
-            if (INDEX == -1)
-                std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
-        } else {
-            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
-            (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
-        }
+        static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
+        (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
 
         OPENINGON->pWindow->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();
@@ -558,12 +557,13 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
             PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
         } else if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
             SDwindleNodeData fakeNode;
-            fakeNode.pWindow         = PFULLWINDOW;
-            fakeNode.position        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-            fakeNode.size            = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-            fakeNode.workspaceID     = PWORKSPACE->m_iID;
-            PFULLWINDOW->m_vPosition = fakeNode.position;
-            PFULLWINDOW->m_vSize     = fakeNode.size;
+            fakeNode.pWindow                = PFULLWINDOW;
+            fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID            = PWORKSPACE->m_iID;
+            PFULLWINDOW->m_vPosition        = fakeNode.position;
+            PFULLWINDOW->m_vSize            = fakeNode.size;
+            fakeNode.ignoreFullscreenChecks = true;
 
             applyNodeDataToWindow(&fakeNode);
         }

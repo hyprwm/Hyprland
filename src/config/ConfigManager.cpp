@@ -2,6 +2,7 @@
 #include "../managers/KeybindManager.hpp"
 
 #include <string.h>
+#include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -936,7 +937,7 @@ bool windowRuleValid(const std::string& RULE) {
         RULE == "nomaximizerequest" || RULE == "fakefullscreen" || RULE == "nomaxsize" || RULE == "pin" || RULE == "noanim" || RULE == "dimaround" || RULE == "windowdance" ||
         RULE == "maximize" || RULE == "keepaspectratio" || RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") ||
         RULE.starts_with("bordercolor") || RULE == "forcergbx" || RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") ||
-        RULE.starts_with("center") || RULE.starts_with("group") || RULE == "immediate";
+        RULE.starts_with("center") || RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor";
 }
 
 bool layerRuleValid(const std::string& RULE) {
@@ -1178,7 +1179,10 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
         rules                  = value.substr(WORKSPACE_DELIM + 1);
     }
 
-    auto assignRule = [&](std::string rule) {
+    const static std::string ruleOnCreatedEmtpy    = "on-created-empty:";
+    const static int         ruleOnCreatedEmtpyLen = ruleOnCreatedEmtpy.length();
+
+    auto                     assignRule = [&](std::string rule) {
         size_t delim = std::string::npos;
         if ((delim = rule.find("gapsin:")) != std::string::npos)
             wsRule.gapsIn = std::stoi(rule.substr(delim + 7));
@@ -1200,6 +1204,8 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
             wsRule.isDefault = configStringToInt(rule.substr(delim + 8));
         else if ((delim = rule.find("persistent:")) != std::string::npos)
             wsRule.isPersistent = configStringToInt(rule.substr(delim + 11));
+        else if ((delim = rule.find(ruleOnCreatedEmtpy)) != std::string::npos)
+            wsRule.onCreatedEmptyRunCmd = cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmtpyLen));
     };
 
     size_t      pos = 0;
@@ -1380,13 +1386,20 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
+    else if (COMMAND == "plugin")
+        handlePlugin(COMMAND, VALUE);
     else if (COMMAND.starts_with("env"))
         handleEnv(COMMAND, VALUE);
-    else if (COMMAND.starts_with("plugin"))
-        handlePlugin(COMMAND, VALUE);
     else {
-        configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
-        needsLayoutRecalc = 2;
+        // try config
+        const auto IT = std::find_if(pluginKeywords.begin(), pluginKeywords.end(), [&](const auto& other) { return other.name == COMMAND; });
+
+        if (IT != pluginKeywords.end()) {
+            IT->fn(COMMAND, VALUE);
+        } else {
+            configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
+            needsLayoutRecalc = 2;
+        }
     }
 
     if (dynamic) {
@@ -1520,6 +1533,8 @@ void CConfigManager::parseLine(std::string& line) {
 }
 
 void CConfigManager::loadConfigLoadVars() {
+    EMIT_HOOK_EVENT("preConfigReload", nullptr);
+
     Debug::log(LOG, "Reloading the config!");
     parseError      = ""; // reset the error
     currentCategory = ""; // reset the category
@@ -2053,7 +2068,7 @@ void CConfigManager::performMonitorReload() {
     bool overAgain = false;
 
     for (auto& m : g_pCompositor->m_vRealMonitors) {
-        if (!m->output)
+        if (!m->output || m->isUnsafeFallback)
             continue;
 
         auto rule = getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
@@ -2134,15 +2149,13 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
 
 void CConfigManager::ensureMonitorStatus() {
     for (auto& rm : g_pCompositor->m_vRealMonitors) {
-        if (!rm->output)
+        if (!rm->output || rm->isUnsafeFallback)
             continue;
 
         auto rule = getMonitorRuleFor(rm->szName, rm->output->description ? rm->output->description : "");
 
-        if (rule.disabled == rm->m_bEnabled) {
-            rm->m_pThisWrap = &rm;
+        if (rule.disabled == rm->m_bEnabled)
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);
-        }
     }
 }
 
@@ -2308,8 +2321,13 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
     }
 }
 
+void CConfigManager::addPluginKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string&, const std::string&)> fn) {
+    pluginKeywords.emplace_back(SPluginKeyword{handle, name, fn});
+}
+
 void CConfigManager::removePluginConfig(HANDLE handle) {
     std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
+    std::erase_if(pluginKeywords, [&](const auto& other) { return other.handle == handle; });
 }
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {

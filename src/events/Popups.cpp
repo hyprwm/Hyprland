@@ -164,8 +164,10 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
 
     g_pHyprRenderer->damageBox(lx - extents.x, ly - extents.y, extents.width + 2, extents.height + 2);
 
-    if (PPOPUP->monitor)
-        g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->scale);
+    if (PPOPUP->monitor) {
+        g_pCompositor->setPreferredScaleForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->scale);
+        g_pCompositor->setPreferredTransformForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->transform);
+    }
 
     Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode {:x}", (uintptr_t)PPOPUP->pSurfaceTree);
 }
@@ -183,6 +185,12 @@ void Events::listener_repositionPopupXDG(void* owner, void* data) {
 
     PPOPUP->lastPos             = {lx - extents.x, ly - extents.y};
     PPOPUP->repositionRequested = true;
+
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+
+    wlr_box    box = {PMONITOR->vecPosition.x - lx + PPOPUP->popup->current.geometry.x, PMONITOR->vecPosition.y - ly + PPOPUP->popup->current.geometry.y, PMONITOR->vecSize.x,
+                      PMONITOR->vecSize.y};
+    wlr_xdg_popup_unconstrain_from_box(PPOPUP->popup, &box);
 }
 
 void Events::listener_unmapPopupXDG(void* owner, void* data) {

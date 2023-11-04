@@ -9,6 +9,10 @@
 
 #include <sstream>
 
+APICALL const char* __hyprland_api_get_hash() {
+    return GIT_COMMIT_HASH;
+}
+
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
@@ -157,6 +161,19 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
         return false;
 
     g_pConfigManager->addPluginConfigVar(handle, name, value);
+    return true;
+}
+
+APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& key, const std::string& val)> fn) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!g_pPluginSystem->m_bAllowConfigVars)
+        return false;
+
+    if (!PLUGIN)
+        return false;
+
+    g_pConfigManager->addPluginKeyword(handle, name, fn);
     return true;
 }
 

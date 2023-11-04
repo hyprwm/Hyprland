@@ -11,16 +11,14 @@
 #include "macros.hpp"
 #include "managers/XWaylandManager.hpp"
 
-enum eIdleInhibitMode
-{
+enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
     IDLEINHIBIT_FOCUS
 };
 
-enum eGroupRules
-{
+enum eGroupRules {
     // effective only during first map, except for _ALWAYS variant
     GROUP_NONE        = 0,
     GROUP_SET         = 1 << 0, // Open as new group or add to focused group
@@ -31,6 +29,8 @@ enum eGroupRules
     GROUP_INVADE      = 1 << 5, // Force enter a group, event if lock is engaged
     GROUP_OVERRIDE    = 1 << 6, // Override other rules
 };
+
+class IWindowTransformer;
 
 template <typename T>
 class CWindowOverridableVar {
@@ -141,6 +141,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<int>  xray                  = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<int>  borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<bool> forceTearing          = false;
+    CWindowOverridableVar<bool> nearestNeighbor       = false;
 };
 
 struct SWindowRule {
@@ -290,6 +291,9 @@ class CWindow {
     SWindowSpecialRenderData    m_sSpecialRenderData;
     SWindowAdditionalConfigData m_sAdditionalConfigData;
 
+    // Transformers
+    std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;
+
     // for alpha
     CAnimatedVariable m_fActiveInactiveAlpha;
 
@@ -333,6 +337,7 @@ class CWindow {
     wlr_box                  getFullWindowBoundingBox();
     SWindowDecorationExtents getFullWindowExtents();
     wlr_box                  getWindowInputBox();
+    wlr_box                  getWindowMainSurfaceBox();
     wlr_box                  getWindowIdealBoundingBoxIgnoreReserved();
     void                     updateWindowDecos();
     pid_t                    getPID();
@@ -372,6 +377,7 @@ class CWindow {
     CWindow*                 getGroupPrevious();
     CWindow*                 getGroupWindowByIndex(int);
     int                      getGroupSize();
+    bool                     canBeGroupedInto(CWindow* pWindow);
     void                     setGroupCurrent(CWindow* pWindow);
     void                     insertWindowToGroup(CWindow* pWindow);
     void                     updateGroupOutputs();

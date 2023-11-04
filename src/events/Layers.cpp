@@ -142,7 +142,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
 
-    const bool GRABSFOCUS = layersurface->layerSurface->current.keyboard_interactive &&
+    const bool GRABSFOCUS = layersurface->layerSurface->current.keyboard_interactive != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
         // don't focus if constrained
         (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint);
 
@@ -171,7 +171,8 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
     EMIT_HOOK_EVENT("openLayer", layersurface);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
+    g_pCompositor->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
+    g_pCompositor->setPreferredTransformForSurface(layersurface->layerSurface->surface, PMONITOR->transform);
 }
 
 void Events::listener_unmapLayerSurface(void* owner, void* data) {
@@ -342,5 +343,6 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
+    g_pCompositor->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
+    g_pCompositor->setPreferredTransformForSurface(layersurface->layerSurface->surface, PMONITOR->transform);
 }

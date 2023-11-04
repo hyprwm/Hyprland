@@ -3,7 +3,7 @@
 #include <pango/pangocairo.h>
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
-    g_pHookSystem->hookDynamic("focusedMon", [&](void* self, std::any param) {
+    g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
         if (m_dNotifications.size() == 0)
             return;
 

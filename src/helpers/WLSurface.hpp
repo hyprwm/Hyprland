@@ -22,6 +22,7 @@ class CWLSurface {
     bool         exists() const;
     bool         small() const;           // means surface is smaller than the requested size
     Vector2D     correctSmallVec() const; // returns a corrective vector for small() surfaces
+    Vector2D     getViewporterCorrectedSize() const;
 
     // allow stretching. Useful for plugins.
     bool m_bFillIgnoreSmall = false;

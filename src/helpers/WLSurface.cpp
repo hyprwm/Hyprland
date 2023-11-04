@@ -31,16 +31,25 @@ bool CWLSurface::small() const {
     if (!m_pOwner || !exists())
         return false;
 
-    return m_pOwner->m_vReportedSize.x > m_pWLRSurface->current.buffer_width || m_pOwner->m_vReportedSize.y > m_pWLRSurface->current.buffer_height;
+    return std::abs(m_pOwner->m_vReportedSize.x - m_pWLRSurface->current.buffer_width) > 1 || std::abs(m_pOwner->m_vReportedSize.y - m_pWLRSurface->current.buffer_height) > 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
     if (!m_pOwner || !exists() || !small() || m_bFillIgnoreSmall)
         return {};
 
-    return Vector2D{(m_pOwner->m_vReportedSize.x - m_pWLRSurface->current.buffer_width) / 2, (m_pOwner->m_vReportedSize.y - m_pWLRSurface->current.buffer_height) / 2}.clamp(
-               {}, {INFINITY, INFINITY}) *
+    const auto SIZE = getViewporterCorrectedSize();
+
+    return Vector2D{(m_pOwner->m_vReportedSize.x - SIZE.x) / 2, (m_pOwner->m_vReportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) *
         (m_pOwner->m_vRealSize.vec() / m_pOwner->m_vReportedSize);
+}
+
+Vector2D CWLSurface::getViewporterCorrectedSize() const {
+    if (!exists())
+        return {};
+
+    return m_pWLRSurface->current.viewport.has_dst ? Vector2D{m_pWLRSurface->current.viewport.dst_width, m_pWLRSurface->current.viewport.dst_height} :
+                                                     Vector2D{m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height};
 }
 
 void CWLSurface::destroy() {
@@ -55,6 +64,8 @@ void CWLSurface::destroy() {
         g_pCompositor->m_pLastFocus = nullptr;
     if (g_pInputManager->m_pLastMouseSurface == m_pWLRSurface)
         g_pInputManager->m_pLastMouseSurface = nullptr;
+    if (g_pHyprRenderer->m_sLastCursorData.surf == m_pWLRSurface)
+        g_pInputManager->setCursorImageOverride("left_ptr");
 
     m_pWLRSurface = nullptr;
 

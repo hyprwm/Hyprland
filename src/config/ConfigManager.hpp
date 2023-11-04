@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <regex>
 #include <optional>
+#include <functional>
 #include <xf86drmMode.h>
 #include "../Window.hpp"
 #include "../helpers/WLClasses.hpp"
@@ -36,19 +37,20 @@ struct SConfigValue {
 };
 
 struct SWorkspaceRule {
-    std::string            monitor         = "";
-    std::string            workspaceString = "";
-    std::string            workspaceName   = "";
-    int                    workspaceId     = -1;
-    bool                   isDefault       = false;
-    bool                   isPersistent    = false;
-    std::optional<int64_t> gapsIn;
-    std::optional<int64_t> gapsOut;
-    std::optional<int64_t> borderSize;
-    std::optional<int>     border;
-    std::optional<int>     rounding;
-    std::optional<int>     decorate;
-    std::optional<int>     shadow;
+    std::string                monitor         = "";
+    std::string                workspaceString = "";
+    std::string                workspaceName   = "";
+    int                        workspaceId     = -1;
+    bool                       isDefault       = false;
+    bool                       isPersistent    = false;
+    std::optional<int64_t>     gapsIn;
+    std::optional<int64_t>     gapsOut;
+    std::optional<int64_t>     borderSize;
+    std::optional<int>         border;
+    std::optional<int>         rounding;
+    std::optional<int>         decorate;
+    std::optional<int>         shadow;
+    std::optional<std::string> onCreatedEmptyRunCmd;
 };
 
 struct SMonitorAdditionalReservedArea {
@@ -68,6 +70,12 @@ struct SAnimationPropertyConfig {
 
     SAnimationPropertyConfig* pValues          = nullptr;
     SAnimationPropertyConfig* pParentAnimation = nullptr;
+};
+
+struct SPluginKeyword {
+    HANDLE                                                      handle = 0;
+    std::string                                                 name   = "";
+    std::function<void(const std::string&, const std::string&)> fn;
 };
 
 struct SExecRequestedRule {
@@ -119,7 +127,8 @@ class CConfigManager {
     std::unordered_map<std::string, SAnimationPropertyConfig>       getAnimationConfig();
 
     void                                                            addPluginConfigVar(HANDLE handle, const std::string& name, const SConfigValue& value);
-    void                                                            removePluginConfig(HANDLE handle);
+    void addPluginKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& cmd, const std::string& val)> fun);
+    void removePluginConfig(HANDLE handle);
 
     // no-op when done.
     void                      dispatchExecOnce();
@@ -162,6 +171,7 @@ class CConfigManager {
 
     std::vector<std::string>                                                                   m_vDeclaredPlugins;
     std::unordered_map<HANDLE, std::unique_ptr<std::unordered_map<std::string, SConfigValue>>> pluginConfigs; // stores plugin configs
+    std::vector<SPluginKeyword>                                                                pluginKeywords;
 
     bool                                                                                       isFirstLaunch = true; // For exec-once
 

@@ -1,9 +1,18 @@
 #include "Framebuffer.hpp"
 #include "OpenGL.hpp"
 
-bool CFramebuffer::alloc(int w, int h) {
+bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     bool firstAlloc = false;
     RASSERT((w > 1 && h > 1), "cannot alloc a FB with negative / zero size! (attempted {}x{})", w, h);
+
+    uint32_t glFormat = drmFormatToGL(drmFormat);
+    uint32_t glType   = glFormat != GL_RGBA ?
+#ifdef GLES2
+        GL_UNSIGNED_INT_2_10_10_10_REV_EXT :
+#else
+        GL_UNSIGNED_INT_2_10_10_10_REV :
+#endif
+        GL_UNSIGNED_BYTE;
 
     if (m_iFb == (uint32_t)-1) {
         firstAlloc = true;
@@ -22,7 +31,7 @@ bool CFramebuffer::alloc(int w, int h) {
 
     if (firstAlloc || m_vSize != Vector2D(w, h)) {
         glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, glFormat, w, h, 0, GL_RGBA, glType, 0);
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cTex.m_iTexID, 0);

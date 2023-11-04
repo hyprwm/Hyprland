@@ -4,8 +4,7 @@
 #include <string>
 #include "../defines.hpp"
 
-enum eFullscreenMode : int8_t
-{
+enum eFullscreenMode : int8_t {
     FULLSCREEN_INVALID = -1,
     FULLSCREEN_FULL    = 0,
     FULLSCREEN_MAXIMIZED
@@ -52,6 +51,9 @@ class CWorkspace {
 
     // last monitor (used on reconnect)
     std::string m_szLastMonitor = "";
+
+    // Whether the user configured command for on-created-empty has been executed, if any
+    bool        m_bOnCreatedEmptyExecuted = false;
 
     void        startAnim(bool in, bool left, bool instant = false);
     void        setActive(bool on);

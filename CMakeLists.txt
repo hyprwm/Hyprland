@@ -45,7 +45,7 @@ if(CMAKE_BUILD_TYPE)
     elseif(BUILDTYPE_LOWER STREQUAL "minsizerel")
         set(BUILDTYPE_LOWER "minsize")
     elseif(BUILDTYPE_LOWER STREQUAL "none")
-        set(BUILDTYPE_LOWER "empty")
+        set(BUILDTYPE_LOWER "plain")
     else()
         set(BUILDTYPE_LOWER "release")
     endif()
@@ -116,7 +116,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         message(STATUS "Enabling ASan")
 
         target_link_libraries(Hyprland asan)
-        add_compile_options(-fsanitize=address)
+        target_compile_options(Hyprland PUBLIC -fsanitize=address)
     endif()
 
     if(USE_TRACY)
@@ -182,14 +182,6 @@ else()
         message(WARNING "Systemd support requested but systemd headers were not found")
     endif()
 endif()
-
-target_compile_definitions(Hyprland
-    PRIVATE
-    "GIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\""
-    "GIT_BRANCH=\"${GIT_BRANCH}\""
-    "GIT_COMMIT_MESSAGE=\"${GIT_COMMIT_MESSAGE}\""
-    "GIT_DIRTY=\"${GIT_DIRTY}\""
-    "GIT_TAG=\"${GIT_TAG}\"")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

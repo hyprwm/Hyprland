@@ -94,33 +94,30 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 
     const auto         MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
+    if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
+        for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
+            if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
+                continue;
+
+            if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
+                if (!wd->onEndWindowDragOnDeco(pWindow, MOUSECOORDS))
+                    return;
+                break;
+            }
+        }
+    }
+
     // if it's a group, add the window
-    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow                   // target is group
-        && !g_pKeybindManager->m_bGroupsLocked                                                            // global group lock disengaged
-        && ((pWindow->m_eGroupRules & GROUP_INVADE && pWindow->m_bFirstMap)                               // window ignore local group locks, or
-            || (!OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked                                  //    target unlocked
-                && !(pWindow->m_sGroupData.pNextWindow && pWindow->getGroupHead()->m_sGroupData.locked))) //    source unlocked or isn't group
-        && !pWindow->m_sGroupData.deny                                                                    // source is not denied entry
-        && !(pWindow->m_eGroupRules & GROUP_BARRED)                                                       // group rule doesn't prevent adding window
-    ) {
+    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow // target is group
+        && pWindow->canBeGroupedInto(OPENINGON->pWindow)) {
 
         if (!pWindow->m_sGroupData.pNextWindow)
             pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
         m_lMasterNodesData.remove(*PNODE);
 
-        const wlr_box box = OPENINGON->pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-        if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
-            const int SIZE               = OPENINGON->pWindow->getGroupSize();
-            const int INDEX              = (int)((MOUSECOORDS.x - box.x) * 2 * SIZE / box.width + 1) / 2 - 1;
-            CWindow*  pWindowInsertAfter = OPENINGON->pWindow->getGroupWindowByIndex(INDEX);
-            pWindowInsertAfter->insertWindowToGroup(pWindow);
-            if (INDEX == -1)
-                std::swap(pWindow->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
-        } else {
-            static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
-            (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
-        }
+        static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
+        (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
 
         OPENINGON->pWindow->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();
@@ -136,34 +133,67 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     const auto         PWORKSPACEDATA = getMasterWorkspaceData(pWindow->m_iWorkspaceID);
     eOrientation       orientation    = PWORKSPACEDATA->orientation;
     const auto         NODEIT         = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
+
+    bool               forceDropAsMaster = false;
+    // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
     if (*PDROPATCURSOR && g_pInputManager->dragMode == MBIND_MOVE) {
-        // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
-        for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
-            if (it->workspaceID != pWindow->m_iWorkspaceID)
-                continue;
-            const wlr_box box = it->pWindow->getWindowIdealBoundingBoxIgnoreReserved();
-            if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) { // TODO: Deny when not using mouse
-                switch (orientation) {
-                    case ORIENTATION_LEFT:
-                    case ORIENTATION_RIGHT:
-                        if (MOUSECOORDS.y > it->pWindow->middle().y)
-                            ++it;
-                        break;
-                    case ORIENTATION_TOP:
-                    case ORIENTATION_BOTTOM:
-                        if (MOUSECOORDS.x > it->pWindow->middle().x)
-                            ++it;
-                        break;
-                    case ORIENTATION_CENTER: break;
-                    default: UNREACHABLE();
+        if (WINDOWSONWORKSPACE > 2) {
+            for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
+                if (it->workspaceID != pWindow->m_iWorkspaceID)
+                    continue;
+                const wlr_box box = it->pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+                if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) {
+                    switch (orientation) {
+                        case ORIENTATION_LEFT:
+                        case ORIENTATION_RIGHT:
+                            if (MOUSECOORDS.y > it->pWindow->middle().y)
+                                ++it;
+                            break;
+                        case ORIENTATION_TOP:
+                        case ORIENTATION_BOTTOM:
+                            if (MOUSECOORDS.x > it->pWindow->middle().x)
+                                ++it;
+                            break;
+                        case ORIENTATION_CENTER: break;
+                        default: UNREACHABLE();
+                    }
+                    m_lMasterNodesData.splice(it, m_lMasterNodesData, NODEIT);
+                    break;
                 }
-                m_lMasterNodesData.splice(it, m_lMasterNodesData, NODEIT);
-                break;
+            }
+        } else if (WINDOWSONWORKSPACE == 2) {
+            // when dropping as the second tiled window in the workspace,
+            // make it the master only if the cursor is on the master side of the screen
+            for (auto& nd : m_lMasterNodesData) {
+                if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
+                    switch (orientation) {
+                        case ORIENTATION_LEFT:
+                        case ORIENTATION_CENTER:
+                            if (MOUSECOORDS.x < nd.pWindow->middle().x)
+                                forceDropAsMaster = true;
+                            break;
+                        case ORIENTATION_RIGHT:
+                            if (MOUSECOORDS.x > nd.pWindow->middle().x)
+                                forceDropAsMaster = true;
+                            break;
+                        case ORIENTATION_TOP:
+                            if (MOUSECOORDS.y < nd.pWindow->middle().y)
+                                forceDropAsMaster = true;
+                            break;
+                        case ORIENTATION_BOTTOM:
+                            if (MOUSECOORDS.y > nd.pWindow->middle().y)
+                                forceDropAsMaster = true;
+                            break;
+                        default: UNREACHABLE();
+                    }
+                    break;
+                }
             }
         }
     }
 
-    if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster)) {
+    if ((*PNEWISMASTER && g_pInputManager->dragMode != MBIND_MOVE) || WINDOWSONWORKSPACE == 1 || (WINDOWSONWORKSPACE > 2 && !pWindow->m_bFirstMap && OPENINGON->isMaster) ||
+        forceDropAsMaster) {
         for (auto& nd : m_lMasterNodesData) {
             if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
                 nd.isMaster      = false;
@@ -599,6 +629,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     // if user specified them in config
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
+    if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
+        return;
+
     PWINDOW->updateSpecialRenderData();
 
     static auto* const PGAPSIN         = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
@@ -885,12 +918,13 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
             // To keep consistent with the settings without C+P code
 
             SMasterNodeData fakeNode;
-            fakeNode.pWindow     = pWindow;
-            fakeNode.position    = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-            fakeNode.size        = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-            fakeNode.workspaceID = pWindow->m_iWorkspaceID;
-            pWindow->m_vPosition = fakeNode.position;
-            pWindow->m_vSize     = fakeNode.size;
+            fakeNode.pWindow                = pWindow;
+            fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID            = pWindow->m_iWorkspaceID;
+            pWindow->m_vPosition            = fakeNode.position;
+            pWindow->m_vSize                = fakeNode.size;
+            fakeNode.ignoreFullscreenChecks = true;
 
             applyNodeDataToWindow(&fakeNode);
         }

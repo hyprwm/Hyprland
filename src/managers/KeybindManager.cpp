@@ -1,5 +1,7 @@
 #include "KeybindManager.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "debug/Log.hpp"
+#include "helpers/VarList.hpp"
 
 #include <regex>
 
@@ -77,7 +79,7 @@ CKeybindManager::CKeybindManager() {
 
     m_tScrollTimer.reset();
 
-    g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, std::any param) {
+    g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
         // clear cuz realloc'd
         m_pActiveKeybind = nullptr;
         m_vPressedSpecialBinds.clear();
@@ -1837,25 +1839,22 @@ void CKeybindManager::mouse(std::string args) {
             const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
             CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
-            if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords) && pWindow->m_sGroupData.pNextWindow) {
-                const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-                if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
-                    const int SIZE = pWindow->getGroupSize();
-                    pWindow        = pWindow->getGroupWindowByIndex((mouseCoords.x - box.x) * SIZE / box.width);
+            if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords)) {
+                for (auto& wd : pWindow->m_dWindowDecorations) {
+                    if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
+                        continue;
 
-                    // hack
-                    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
-                    if (!pWindow->m_bIsFloating) {
-                        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
-                        g_pKeybindManager->m_bGroupsLocked = true;
-                        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-                        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+                    if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+                        wd->onBeginWindowDragOnDeco(mouseCoords);
+                        break;
                     }
                 }
             }
 
-            g_pInputManager->currentlyDraggedWindow = pWindow;
-            g_pInputManager->dragMode               = MBIND_MOVE;
+            if (!g_pInputManager->currentlyDraggedWindow)
+                g_pInputManager->currentlyDraggedWindow = pWindow;
+
+            g_pInputManager->dragMode = MBIND_MOVE;
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;

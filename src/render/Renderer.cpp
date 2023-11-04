@@ -31,17 +31,18 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
 
         if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees m_pOwner */) {
             const auto CORRECT                     = PSURFACE->correctSmallVec();
+            const auto SIZE                        = PSURFACE->getViewporterCorrectedSize();
             const auto INTERACTIVERESIZEINPROGRESS = g_pInputManager->currentlyDraggedWindow == PSURFACE->m_pOwner && g_pInputManager->dragMode == MBIND_RESIZE;
 
             if (!INTERACTIVERESIZEINPROGRESS) {
                 windowBox.x += CORRECT.x;
                 windowBox.y += CORRECT.y;
 
-                windowBox.width  = (double)surface->current.buffer_width * (PSURFACE->m_pOwner->m_vRealSize.vec().x / PSURFACE->m_pOwner->m_vReportedSize.x);
-                windowBox.height = (double)surface->current.buffer_height * (PSURFACE->m_pOwner->m_vRealSize.vec().y / PSURFACE->m_pOwner->m_vReportedSize.y);
+                windowBox.width  = SIZE.x * (PSURFACE->m_pOwner->m_vRealSize.vec().x / PSURFACE->m_pOwner->m_vReportedSize.x);
+                windowBox.height = SIZE.y * (PSURFACE->m_pOwner->m_vRealSize.vec().y / PSURFACE->m_pOwner->m_vReportedSize.y);
             } else {
-                windowBox.width  = (double)surface->current.buffer_width;
-                windowBox.height = (double)surface->current.buffer_height;
+                windowBox.width  = SIZE.x;
+                windowBox.height = SIZE.y;
             }
         }
 
@@ -61,6 +62,9 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
             windowBox.height = RDATA->h - y;
     }
 
+    if (windowBox.width <= 1 || windowBox.height <= 1)
+        return; // invisible
+
     g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->squishOversized);
 
     scaleBox(&windowBox, RDATA->pMonitor->scale);
@@ -72,7 +76,8 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     if (RDATA->dontRound)
         rounding = 0;
 
-    const bool CANDISABLEBLEND = RDATA->alpha >= 1.f && rounding == 0 && surface->opaque;
+    const bool WINDOWOPAQUE    = RDATA->pWindow && RDATA->pWindow->m_pWLSurface.wlr() == surface ? RDATA->pWindow->opaque() : false;
+    const bool CANDISABLEBLEND = RDATA->alpha * RDATA->fadeAlpha >= 1.f && rounding == 0 && (WINDOWOPAQUE || surface->opaque);
 
     if (CANDISABLEBLEND)
         g_pHyprOpenGL->blend(false);
@@ -336,6 +341,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     const auto         REALPOS     = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
     static auto* const PDIMAROUND  = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
     static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PBLUR       = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
 
     SRenderData        renderdata = {pMonitor, time, REALPOS.x, REALPOS.y};
     if (ignorePosition) {
@@ -376,8 +382,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     }
 
     // clip box for animated offsets
-    Vector2D offset;
+    const Vector2D PREOFFSETPOS = {renderdata.x, renderdata.y};
     if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bPinned) {
+        Vector2D offset;
+
         if (PWORKSPACE->m_vRenderOffset.vec().x != 0) {
             const auto PWSMON   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             const auto PROGRESS = PWORKSPACE->m_vRenderOffset.vec().x / PWSMON->vecSize.x;
@@ -406,13 +414,43 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
-        if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL)
-            for (auto& wd : pWindow->m_dWindowDecorations)
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
+
+        const bool TRANSFORMERSPRESENT = !pWindow->m_vTransformers.empty();
+
+        if (TRANSFORMERSPRESENT) {
+            g_pHyprOpenGL->bindOffMain();
+
+            for (auto& t : pWindow->m_vTransformers) {
+                t->preWindowRender(&renderdata);
+            }
+        }
+
+        if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) {
+            for (auto& wd : pWindow->m_dWindowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
+                    continue;
+
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+            }
+
+            for (auto& wd : pWindow->m_dWindowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_UNDER)
+                    continue;
+
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+            }
+        }
 
         static auto* const PXWLUSENN = &g_pConfigManager->getConfigValuePtr("xwayland:use_nearest_neighbor")->intValue;
-        if (pWindow->m_bIsX11 && *PXWLUSENN)
+        if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+
+        if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
+            wlr_box wb = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
+            scaleBox(&wb, pMonitor->scale);
+            g_pHyprOpenGL->renderRectWithBlur(&wb, CColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1, renderdata.fadeAlpha);
+            renderdata.blur = false;
+        }
 
         wlr_surface_for_each_surface(pWindow->m_pWLSurface.wlr(), renderSurface, &renderdata);
 
@@ -443,6 +481,24 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, renderdata.rounding, borderSize, a2);
             }
         }
+
+        for (auto& wd : pWindow->m_dWindowDecorations) {
+            if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
+                continue;
+
+            wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+        }
+
+        if (TRANSFORMERSPRESENT) {
+
+            CFramebuffer* last = g_pHyprOpenGL->m_RenderData.currentFB;
+            for (auto& t : pWindow->m_vTransformers) {
+                last = t->transform(last);
+            }
+
+            g_pHyprOpenGL->bindBackOnMain();
+            g_pHyprOpenGL->renderOffToMain(last);
+        }
     }
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
@@ -456,7 +512,20 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             renderdata.dontRound       = true; // don't round popups
             renderdata.pMonitor        = pMonitor;
             renderdata.squishOversized = false; // don't squish popups
+
+            if (pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
+                g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+
             wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
+
+            g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+        }
+
+        for (auto& wd : pWindow->m_dWindowDecorations) {
+            if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
+                continue;
+
+            wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
         }
     }
 
@@ -1835,7 +1904,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     };
     // clang-format on
 
-    bool set10bit = false;
+    bool set10bit       = false;
+    pMonitor->drmFormat = DRM_FORMAT_INVALID;
 
     for (auto& fmt : formats[(int)!pMonitorRule->enable10bit]) {
         wlr_output_set_render_format(pMonitor->output, fmt.second);
@@ -1846,6 +1916,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             Debug::log(LOG, "output {} succeeded basic test on format {}", pMonitor->szName, fmt.first);
             if (pMonitorRule->enable10bit && fmt.first.contains("101010"))
                 set10bit = true;
+
+            pMonitor->drmFormat = fmt.second;
             break;
         }
     }
@@ -1899,10 +1971,22 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY) {
     m_bCursorHasSurface = surf;
 
+    if (surf == m_sLastCursorData.surf)
+        return;
+
+    m_sLastCursorData.name = "";
+    m_sLastCursorData.surf = surf;
+
     wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, surf, hotspotX, hotspotY);
 }
 void CHyprRenderer::setCursorFromName(const std::string& name) {
     m_bCursorHasSurface = true;
+
+    if (name == m_sLastCursorData.name)
+        return;
+
+    m_sLastCursorData.name = name;
+    m_sLastCursorData.surf.reset();
 
     wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
 }

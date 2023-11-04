@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <wayland-server.h>
 #include <wlr/util/box.h>
@@ -20,6 +21,7 @@ std::string                      removeBeginEndSpacesTabs(std::string);
 bool                             isNumber(const std::string&, bool allowfloat = false);
 bool                             isDirection(const std::string&);
 int                              getWorkspaceIDFromString(const std::string&, std::string&);
+std::optional<std::string>       cleanCmdForWorkspace(const std::string&, std::string);
 float                            vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);
 void                             logSystemInfo();
 std::string                      execAndGet(const char*);
@@ -31,6 +33,7 @@ double                           normalizeAngleRad(double ang);
 std::string                      replaceInString(std::string subject, const std::string& search, const std::string& replace);
 std::vector<SCallstackFrameInfo> getBacktrace();
 void                             throwError(const std::string& err);
+uint32_t                         drmFormatToGL(uint32_t drm);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {

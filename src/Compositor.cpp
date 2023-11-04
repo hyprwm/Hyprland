@@ -121,7 +121,6 @@ void CCompositor::initServer() {
     signal(SIGSEGV, handleUnrecoverableSignal);
     signal(SIGABRT, handleUnrecoverableSignal);
     signal(SIGUSR1, handleUserSignal);
-    //wl_event_loop_add_signal(m_sWLEventLoop, SIGINT, handleCritSignal, nullptr);
 
     initManagers(STAGE_PRIORITY);
 
@@ -215,7 +214,6 @@ void CCompositor::initServer() {
 
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
 
-    m_sWLRIdle         = wlr_idle_create(m_sWLDisplay);
     m_sWLRIdleNotifier = wlr_idle_notifier_v1_create(m_sWLDisplay);
 
     m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay, 4);
@@ -465,6 +463,25 @@ void CCompositor::removeLockFile() {
         std::filesystem::remove(PATH);
 }
 
+void CCompositor::prepareFallbackOutput() {
+    // create a backup monitor
+    wlr_backend* headless = nullptr;
+    wlr_multi_for_each_backend(
+        m_sWLRBackend,
+        [](wlr_backend* b, void* data) {
+            if (wlr_backend_is_headless(b))
+                *((wlr_backend**)data) = b;
+        },
+        &headless);
+
+    if (!headless) {
+        Debug::log(WARN, "Unsafe state will be ineffective, no fallback output");
+        return;
+    }
+
+    wlr_headless_add_output(headless, 1920, 1080);
+}
+
 void CCompositor::startCompositor() {
     initAllSignals();
 
@@ -515,6 +532,8 @@ void CCompositor::startCompositor() {
         wl_display_destroy(m_sWLDisplay);
         throwError("The backend could not start!");
     }
+
+    prepareFallbackOutput();
 
     g_pHyprRenderer->setCursorFromName("left_ptr");
 
@@ -867,10 +886,13 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, CWindow* pWindow
         },
         &iterData);
 
+    wlr_box geom = {0};
+    wlr_xdg_surface_get_geometry(PSURFACE, &geom);
+
     if (std::get<1>(iterData) == -1337 && std::get<2>(iterData) == -1337)
         return vec - pWindow->m_vRealPosition.goalv();
 
-    return vec - pWindow->m_vRealPosition.goalv() - Vector2D{std::get<1>(iterData), std::get<2>(iterData)};
+    return vec - pWindow->m_vRealPosition.goalv() - Vector2D{std::get<1>(iterData), std::get<2>(iterData)} + Vector2D{geom.x, geom.y};
 }
 
 CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
@@ -884,6 +906,8 @@ CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
 }
 
 void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
+
+    static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
 
     if (g_pCompositor->m_sSeat.exclusiveClient) {
         Debug::log(LOG, "Disallowing setting focus to a window due to there being an active input inhibitor layer.");
@@ -1008,6 +1032,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     } else {
         std::rotate(m_vWindowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
     }
+
+    if (*PFOLLOWMOUSE == 0)
+        g_pInputManager->sendMotionEventsToFocused();
 }
 
 void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
@@ -1194,24 +1221,33 @@ void CCompositor::sanityCheckWorkspaces() {
             continue;
         }
 
-        const auto WINDOWSONWORKSPACE = getWindowsOnWorkspace((*it)->m_iID);
+        const auto& WORKSPACE          = *it;
+        const auto  WINDOWSONWORKSPACE = getWindowsOnWorkspace(WORKSPACE->m_iID);
 
-        if ((WINDOWSONWORKSPACE == 0 && !isWorkspaceVisible((*it)->m_iID))) {
+        if (WINDOWSONWORKSPACE == 0) {
+            if (!isWorkspaceVisible(WORKSPACE->m_iID)) {
 
-            if ((*it)->m_bIsSpecialWorkspace) {
-                if ((*it)->m_fAlpha.fl() > 0.f /* don't abruptly end the fadeout */) {
-                    ++it;
-                    continue;
+                if (WORKSPACE->m_bIsSpecialWorkspace) {
+                    if (WORKSPACE->m_fAlpha.fl() > 0.f /* don't abruptly end the fadeout */) {
+                        ++it;
+                        continue;
+                    }
+
+                    const auto PMONITOR = getMonitorFromID(WORKSPACE->m_iMonitorID);
+
+                    if (PMONITOR && PMONITOR->specialWorkspaceID == WORKSPACE->m_iID)
+                        PMONITOR->setSpecialWorkspace(nullptr);
                 }
 
-                const auto PMONITOR = getMonitorFromID((*it)->m_iMonitorID);
-
-                if (PMONITOR && PMONITOR->specialWorkspaceID == (*it)->m_iID)
-                    PMONITOR->setSpecialWorkspace(nullptr);
+                it = m_vWorkspaces.erase(it);
+                continue;
             }
+            if (!WORKSPACE->m_bOnCreatedEmptyExecuted) {
+                if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
+                    g_pKeybindManager->spawn(*cmd);
 
-            it = m_vWorkspaces.erase(it);
-            continue;
+                WORKSPACE->m_bOnCreatedEmptyExecuted = true;
+            }
         }
 
         ++it;
@@ -2161,7 +2197,7 @@ void CCompositor::updateFullscreenFadeOnWorkspace(CWorkspace* pWorkspace) {
 }
 
 void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode mode) {
-    if (!windowValidMapped(pWindow))
+    if (!windowValidMapped(pWindow) || g_pCompositor->m_bUnsafeState)
         return;
 
     if (pWindow->m_bPinned) {
@@ -2571,12 +2607,10 @@ CWindow* CCompositor::getForceFocus() {
 }
 
 void CCompositor::notifyIdleActivity() {
-    wlr_idle_notify_activity(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat);
     wlr_idle_notifier_v1_notify_activity(g_pCompositor->m_sWLRIdleNotifier, g_pCompositor->m_sSeat.seat);
 }
 
 void CCompositor::setIdleActivityInhibit(bool enabled) {
-    wlr_idle_set_enabled(g_pCompositor->m_sWLRIdle, g_pCompositor->m_sSeat.seat, enabled);
     wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, !enabled);
 }
 void CCompositor::arrangeMonitors() {
@@ -2644,24 +2678,10 @@ void CCompositor::enterUnsafeState() {
 
     Debug::log(LOG, "Entering unsafe state");
 
+    if (!m_pUnsafeOutput->m_bEnabled)
+        m_pUnsafeOutput->onConnect(false);
+
     m_bUnsafeState = true;
-
-    // create a backup monitor
-    wlr_backend* headless = nullptr;
-    wlr_multi_for_each_backend(
-        m_sWLRBackend,
-        [](wlr_backend* b, void* data) {
-            if (wlr_backend_is_headless(b))
-                *((wlr_backend**)data) = b;
-        },
-        &headless);
-
-    if (!headless) {
-        Debug::log(WARN, "Entering an unsafe state without a headless backend");
-        return;
-    }
-
-    m_pUnsafeOutput = wlr_headless_add_output(headless, 1920, 1080);
 }
 
 void CCompositor::leaveUnsafeState() {
@@ -2672,8 +2692,29 @@ void CCompositor::leaveUnsafeState() {
 
     m_bUnsafeState = false;
 
-    if (m_pUnsafeOutput)
-        wlr_output_destroy(m_pUnsafeOutput);
+    CMonitor* pNewMonitor = nullptr;
+    for (auto& pMonitor : m_vMonitors) {
+        if (pMonitor->output != m_pUnsafeOutput->output) {
+            pNewMonitor = pMonitor.get();
+            break;
+        }
+    }
 
-    m_pUnsafeOutput = nullptr;
+    RASSERT(pNewMonitor, "Tried to leave unsafe without a monitor");
+
+    if (m_pUnsafeOutput->m_bEnabled)
+        m_pUnsafeOutput->onDisconnect();
+
+    for (auto& m : m_vMonitors) {
+        scheduleFrameForMonitor(m.get());
+    }
+}
+
+void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scale) {
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(pSurface, scale);
+    wlr_surface_set_preferred_buffer_scale(pSurface, static_cast<int32_t>(std::ceil(scale)));
+}
+
+void CCompositor::setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform) {
+    wlr_surface_set_preferred_buffer_transform(pSurface, transform);
 }

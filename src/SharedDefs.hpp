@@ -1,5 +1,7 @@
 #pragma once
 
+#include "helpers/Vector2D.hpp"
+
 enum eIcons
 {
     ICON_WARNING = 0,

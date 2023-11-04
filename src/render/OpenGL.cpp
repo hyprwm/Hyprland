@@ -1994,3 +1994,7 @@ void CHyprOpenGLImpl::bindBackOnMain() {
     m_RenderData.pCurrentMonData->primaryFB.bind();
     m_RenderData.currentFB = &m_RenderData.pCurrentMonData->primaryFB;
 }
+
+void CHyprOpenGLImpl::setMonitorTransformEnabled(bool enabled) {
+    m_bEndFrame = !enabled;
+}

@@ -154,10 +154,10 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
         LASTFB->bind();
 
-        CBox monbox                = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
-        g_pHyprOpenGL->m_bEndFrame = true;
+        CBox monbox = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
+        g_pHyprOpenGL->setMonitorTransformEnabled(false);
         g_pHyprOpenGL->renderTextureMatte(alphaSwapFB.m_cTex, &monbox, alphaFB);
-        g_pHyprOpenGL->m_bEndFrame = false;
+        g_pHyprOpenGL->setMonitorTransformEnabled(true);
     } else {
         g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
     }

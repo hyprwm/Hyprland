@@ -17,6 +17,8 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual void                     damageEntire();
 
+    virtual eDecorationLayer         getDecorationLayer();
+
   private:
     SWindowDecorationExtents m_seExtents;
 
@@ -24,4 +26,6 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     Vector2D                 m_vLastWindowPos;
     Vector2D                 m_vLastWindowSize;
+
+    wlr_box                  m_bLastWindowBox = {0};
 };

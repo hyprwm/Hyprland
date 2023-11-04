@@ -96,7 +96,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 
     if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
         for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
-            if (!wd->allowsInput())
+            if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
             if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {

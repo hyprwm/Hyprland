@@ -21,6 +21,10 @@ CRegion::CRegion(wlr_box* box) {
     pixman_region32_init_rect(&m_rRegion, box->x, box->y, box->width, box->height);
 }
 
+CRegion::CRegion(CBox* box) {
+    pixman_region32_init_rect(&m_rRegion, box->x, box->y, box->w, box->h);
+}
+
 CRegion::CRegion(pixman_box32_t* box) {
     pixman_region32_init_rect(&m_rRegion, box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1);
 }
@@ -100,7 +104,7 @@ std::vector<pixman_box32_t> CRegion::getRects() const {
     return result;
 }
 
-wlr_box CRegion::getExtents() {
+CBox CRegion::getExtents() {
     pixman_box32_t* box = pixman_region32_extents(&m_rRegion);
     return {box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1};
 }

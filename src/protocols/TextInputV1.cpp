@@ -200,7 +200,7 @@ void CTextInputV1ProtocolManager::handleSetContentType(wl_client* client, wl_res
 
 void CTextInputV1ProtocolManager::handleSetCursorRectangle(wl_client* client, wl_resource* resource, int32_t x, int32_t y, int32_t width, int32_t height) {
     const auto PTI       = tiFromResource(resource);
-    PTI->cursorRectangle = wlr_box{x, y, width, height};
+    PTI->cursorRectangle = CBox{x, y, width, height};
 }
 
 void CTextInputV1ProtocolManager::handleSetPreferredLanguage(wl_client* client, wl_resource* resource, const char* language) {

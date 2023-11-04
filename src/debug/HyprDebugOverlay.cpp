@@ -233,6 +233,6 @@ void CHyprDebugOverlay::draw() {
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
-    wlr_box pMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    CBox pMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
     g_pHyprOpenGL->renderTexture(m_tTexture, &pMonBox, 1.f);
 }

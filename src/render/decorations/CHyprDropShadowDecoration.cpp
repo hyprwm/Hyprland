@@ -29,8 +29,8 @@ void CHyprDropShadowDecoration::damageEntire() {
     if (*PSHADOWS != 1)
         return; // disabled
 
-    wlr_box dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
-                  m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
+    CBox dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
+               m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
     g_pHyprRenderer->damageBox(&dm);
 }
 
@@ -68,9 +68,8 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
                 maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
         }
 
-        m_bLastWindowBox = {(int)(m_vLastWindowPos.x - maxExtents.topLeft.x - BORDER), (int)(m_vLastWindowPos.y - maxExtents.topLeft.y - BORDER),
-                            (int)(m_vLastWindowSize.x + maxExtents.topLeft.x + maxExtents.bottomRight.x + 2 * BORDER),
-                            (int)(m_vLastWindowSize.y + maxExtents.topLeft.y + maxExtents.bottomRight.y + 2 * BORDER)};
+        m_bLastWindowBox = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
+        m_eLastExtents   = {{maxExtents.topLeft + Vector2D{BORDER, BORDER}}, {maxExtents.bottomRight + Vector2D{BORDER, BORDER}}};
     }
 }
 
@@ -103,55 +102,40 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     const auto ROUNDING = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
 
     // draw the shadow
-    wlr_box fullBox = {m_bLastWindowBox.x - *PSHADOWSIZE, m_bLastWindowBox.y - *PSHADOWSIZE, m_bLastWindowBox.width + 2.0 * *PSHADOWSIZE,
-                       m_bLastWindowBox.height + 2.0 * *PSHADOWSIZE};
-
-    fullBox.x -= pMonitor->vecPosition.x;
-    fullBox.y -= pMonitor->vecPosition.y;
+    CBox fullBox = {m_bLastWindowBox.x, m_bLastWindowBox.y, m_bLastWindowBox.width, m_bLastWindowBox.height};
+    fullBox.addExtents(m_eLastExtents).translate(-pMonitor->vecPosition);
+    fullBox.x -= *PSHADOWSIZE;
+    fullBox.y -= *PSHADOWSIZE;
+    fullBox.w += 2 * *PSHADOWSIZE;
+    fullBox.h += 2 * *PSHADOWSIZE;
 
     const float SHADOWSCALE = std::clamp(*PSHADOWSCALE, 0.f, 1.f);
 
     // scale the box in relation to the center of the box
-    const Vector2D NEWSIZE = Vector2D{fullBox.width, fullBox.height} * SHADOWSCALE;
-    fullBox.width          = NEWSIZE.x;
-    fullBox.height         = NEWSIZE.y;
-
-    if (PSHADOWOFFSET->x < 0) {
-        fullBox.x += PSHADOWOFFSET->x;
-    } else if (PSHADOWOFFSET->x > 0) {
-        fullBox.x = m_bLastWindowBox.x + m_bLastWindowBox.width - fullBox.width + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->x - pMonitor->vecPosition.x;
-    } else {
-        fullBox.x += ((m_bLastWindowBox.width + 2.0 * *PSHADOWSIZE) - NEWSIZE.x) / 2.0;
-    }
-
-    if (PSHADOWOFFSET->y < 0) {
-        fullBox.y += PSHADOWOFFSET->y;
-    } else if (PSHADOWOFFSET->y > 0) {
-        fullBox.y = m_bLastWindowBox.y + m_bLastWindowBox.height - fullBox.height + (SHADOWSCALE * *PSHADOWSIZE) + PSHADOWOFFSET->y - pMonitor->vecPosition.y;
-    } else {
-        fullBox.y += ((m_bLastWindowBox.height + 2.0 * *PSHADOWSIZE) - NEWSIZE.y) / 2.0;
-    }
+    fullBox.scaleFromCenter(SHADOWSCALE).translate(*PSHADOWOFFSET);
 
     m_seExtents = {{m_vLastWindowPos.x - fullBox.x - pMonitor->vecPosition.x + 2, m_vLastWindowPos.y - fullBox.y - pMonitor->vecPosition.y + 2},
                    {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
                     fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_vLastWindowPos.y - m_vLastWindowSize.y + 2}};
 
-    fullBox.x += offset.x;
-    fullBox.y += offset.y;
+    fullBox.translate(offset);
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return; // don't draw invisible shadows
 
-    g_pHyprOpenGL->scissor((wlr_box*)nullptr);
+    g_pHyprOpenGL->scissor((CBox*)nullptr);
 
     // we'll take the liberty of using this as it should not be used rn
     CFramebuffer& alphaFB = g_pHyprOpenGL->m_RenderData.pCurrentMonData->mirrorFB;
     auto*         LASTFB  = g_pHyprOpenGL->m_RenderData.currentFB;
 
     if (*PSHADOWIGNOREWINDOW) {
-        wlr_box windowBox = {m_bLastWindowBox.x - pMonitor->vecPosition.x, m_bLastWindowBox.y - pMonitor->vecPosition.y, m_bLastWindowBox.width, m_bLastWindowBox.height};
+        CBox windowBox = m_bLastWindowBox;
 
-        scaleBox(&windowBox, pMonitor->scale);
+        windowBox.translate(-pMonitor->vecPosition).scale(pMonitor->scale);
+        windowBox.round();
+
+        windowBox.addExtents(SWindowDecorationExtents{m_eLastExtents * pMonitor->scale}.floor()).round();
 
         if (windowBox.width < 1 || windowBox.height < 1) {
             return; // prevent assert failed
@@ -165,7 +149,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         LASTFB->bind();
     }
 
-    scaleBox(&fullBox, pMonitor->scale);
+    fullBox.scale(pMonitor->scale).round();
     g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a, &alphaFB);
 }
 

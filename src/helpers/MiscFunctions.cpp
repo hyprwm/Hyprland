@@ -185,13 +185,6 @@ std::string escapeJSONStrings(const std::string& str) {
     return oss.str();
 }
 
-void scaleBox(wlr_box* box, float scale) {
-    box->width  = std::round(box->width * scale);
-    box->height = std::round(box->height * scale);
-    box->x      = std::round(box->x * scale);
-    box->y      = std::round(box->y * scale);
-}
-
 std::string removeBeginEndSpacesTabs(std::string str) {
     if (str.empty())
         return str;

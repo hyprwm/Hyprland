@@ -46,7 +46,7 @@ struct SScreencopyFrame {
 
     uint32_t           shmFormat    = 0;
     uint32_t           dmabufFormat = 0;
-    wlr_box            box          = {0};
+    CBox               box          = {};
     int                shmStride    = 0;
 
     bool               overlayCursor = false;
@@ -73,7 +73,7 @@ class CScreencopyProtocolManager {
     void removeFrame(SScreencopyFrame* frame, bool force = false);
     void displayDestroy();
 
-    void captureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output, wlr_box box = {0, 0, 0, 0});
+    void captureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output, CBox box = {0, 0, 0, 0});
 
     void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer);
 

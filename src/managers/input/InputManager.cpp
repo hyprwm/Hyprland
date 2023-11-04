@@ -599,8 +599,8 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
         if (w && !w->m_bIsFullscreen) {
-            const wlr_box real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-            if ((!wlr_box_contains_point(&real, mouseCoords.x, mouseCoords.y) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
+            const CBox real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+            if ((!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
                 g_pKeybindManager->resizeWithBorder(e);
                 return;
             }
@@ -675,8 +675,8 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
     const auto pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
 
     if (*PGROUPBARSCROLLING && pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(MOUSECOORDS) && pWindow->m_sGroupData.pNextWindow) {
-        const wlr_box box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
-        if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) {
+        const CBox box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+        if (box.containsPoint(MOUSECOORDS)) {
             if (e->delta > 0)
                 pWindow->setGroupCurrent(pWindow->m_sGroupData.pNextWindow);
             else
@@ -1207,7 +1207,7 @@ void CInputManager::updateDragIcon() {
     switch (m_sDrag.dragIcon->drag->grab_type) {
         case WLR_DRAG_GRAB_KEYBOARD: break;
         case WLR_DRAG_GRAB_KEYBOARD_POINTER: {
-            wlr_box box = {m_sDrag.pos.x - 2, m_sDrag.pos.y - 2, m_sDrag.dragIcon->surface->current.width + 4, m_sDrag.dragIcon->surface->current.height + 4};
+            CBox box = {m_sDrag.pos.x - 2, m_sDrag.pos.y - 2, m_sDrag.dragIcon->surface->current.width + 4, m_sDrag.dragIcon->surface->current.height + 4};
             g_pHyprRenderer->damageBox(&box);
             m_sDrag.pos = getMouseCoordsInternal();
             break;
@@ -1474,9 +1474,9 @@ void CInputManager::setTabletConfigs() {
 
             const auto REGION_POS  = g_pConfigManager->getDeviceVec(t.name, "region_position", "input:tablet:region_position");
             const auto REGION_SIZE = g_pConfigManager->getDeviceVec(t.name, "region_size", "input:tablet:region_size");
-            const auto REGION      = wlr_box{REGION_POS.x, REGION_POS.y, REGION_SIZE.x, REGION_SIZE.y};
-            if (!wlr_box_empty(&REGION))
-                wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, &REGION);
+            auto       regionBox   = CBox{REGION_POS.x, REGION_POS.y, REGION_SIZE.x, REGION_SIZE.y};
+            if (!regionBox.empty())
+                wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, regionBox.pWlr());
         }
     }
 }
@@ -1621,14 +1621,14 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     // give a small leeway (10 px) for corner icon
     const auto           CORNER           = *PROUNDING + BORDERSIZE + 10;
     const auto           mouseCoords      = getMouseCoordsInternal();
-    wlr_box              box              = w->getWindowMainSurfaceBox();
+    CBox                 box              = w->getWindowMainSurfaceBox();
     eBorderIconDirection direction        = BORDERICON_NONE;
-    wlr_box              boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+    CBox                 boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
+                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (w->hasPopupAt(mouseCoords))
         direction = BORDERICON_NONE;
-    else if (!wlr_box_contains_point(&boxFullGrabInput, mouseCoords.x, mouseCoords.y) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow))
+    else if (!boxFullGrabInput.containsPoint(mouseCoords) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow))
         direction = BORDERICON_NONE;
     else {
 
@@ -1647,7 +1647,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
         if (onDeco)
             direction = BORDERICON_NONE;
         else {
-            if (wlr_box_contains_point(&box, mouseCoords.x, mouseCoords.y)) {
+            if (box.containsPoint(mouseCoords)) {
                 if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
                     direction = BORDERICON_NONE;
                 } else {

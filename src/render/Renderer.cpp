@@ -1435,6 +1435,8 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
 
         apply_exclusive(usableArea->pWlr(), PSTATE->anchor, PSTATE->exclusive_zone, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
+        usableArea->applyFromWlr();
+
         if (Vector2D{box.width, box.height} != OLDSIZE)
             wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
 

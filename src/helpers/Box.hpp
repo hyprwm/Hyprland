@@ -49,27 +49,7 @@ class CBox {
     bool     containsPoint(const Vector2D& vec) const;
     bool     empty() const;
 
-    CBox&    operator+(const Vector2D& vec) {
-        translate(vec);
-        return *this;
-    }
-
-    CBox& operator+(const SWindowDecorationExtents& e) {
-        addExtents(e);
-        return *this;
-    }
-
-    CBox& operator*(const double s) {
-        scale(s);
-        return *this;
-    }
-
-    CBox& operator*(const Vector2D& s) {
-        scale(s);
-        return *this;
-    }
-
-    double x = 0, y = 0;
+    double   x = 0, y = 0;
     union {
         double w;
         double width;

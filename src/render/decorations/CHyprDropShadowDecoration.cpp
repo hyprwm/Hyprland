@@ -130,6 +130,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     CFramebuffer& alphaSwapFB = g_pHyprOpenGL->m_RenderData.pCurrentMonData->mirrorSwapFB;
     auto*         LASTFB      = g_pHyprOpenGL->m_RenderData.currentFB;
 
+    fullBox.scale(pMonitor->scale).round();
+
     if (*PSHADOWIGNOREWINDOW) {
         CBox windowBox = m_bLastWindowBox;
 

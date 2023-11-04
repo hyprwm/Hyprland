@@ -295,18 +295,18 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shEXT.applyTint         = glGetUniformLocation(prog, "applyTint");
     m_RenderData.pCurrentMonData->m_shEXT.tint              = glGetUniformLocation(prog, "tint");
 
-    prog                                                     = createProgram(TEXVERTSRC, FRAGBLUR1);
-    m_RenderData.pCurrentMonData->m_shBLUR1.program          = prog;
-    m_RenderData.pCurrentMonData->m_shBLUR1.tex              = glGetUniformLocation(prog, "tex");
-    m_RenderData.pCurrentMonData->m_shBLUR1.alpha            = glGetUniformLocation(prog, "alpha");
-    m_RenderData.pCurrentMonData->m_shBLUR1.proj             = glGetUniformLocation(prog, "proj");
-    m_RenderData.pCurrentMonData->m_shBLUR1.posAttrib        = glGetAttribLocation(prog, "pos");
-    m_RenderData.pCurrentMonData->m_shBLUR1.texAttrib        = glGetAttribLocation(prog, "texcoord");
-    m_RenderData.pCurrentMonData->m_shBLUR1.radius           = glGetUniformLocation(prog, "radius");
-    m_RenderData.pCurrentMonData->m_shBLUR1.halfpixel        = glGetUniformLocation(prog, "halfpixel");
-    m_RenderData.pCurrentMonData->m_shBLUR1.passes           = glGetUniformLocation(prog, "passes");
-    m_RenderData.pCurrentMonData->m_shBLUR1.saturation_boost = glGetUniformLocation(prog, "saturation_boost");
-    m_RenderData.pCurrentMonData->m_shBLUR1.boost_threshold  = glGetUniformLocation(prog, "boost_threshold");
+    prog                                                      = createProgram(TEXVERTSRC, FRAGBLUR1);
+    m_RenderData.pCurrentMonData->m_shBLUR1.program           = prog;
+    m_RenderData.pCurrentMonData->m_shBLUR1.tex               = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shBLUR1.alpha             = glGetUniformLocation(prog, "alpha");
+    m_RenderData.pCurrentMonData->m_shBLUR1.proj              = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shBLUR1.posAttrib         = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shBLUR1.texAttrib         = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shBLUR1.radius            = glGetUniformLocation(prog, "radius");
+    m_RenderData.pCurrentMonData->m_shBLUR1.halfpixel         = glGetUniformLocation(prog, "halfpixel");
+    m_RenderData.pCurrentMonData->m_shBLUR1.passes            = glGetUniformLocation(prog, "passes");
+    m_RenderData.pCurrentMonData->m_shBLUR1.vibrancy          = glGetUniformLocation(prog, "vibrancy");
+    m_RenderData.pCurrentMonData->m_shBLUR1.vibrancy_darkness = glGetUniformLocation(prog, "vibrancy_darkness");
 
     prog                                              = createProgram(TEXVERTSRC, FRAGBLUR2);
     m_RenderData.pCurrentMonData->m_shBLUR2.program   = prog;
@@ -856,10 +856,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
 
     // get the config settings
-    static auto* const PBLURSIZE            = &g_pConfigManager->getConfigValuePtr("decoration:blur:size")->intValue;
-    static auto* const PBLURPASSES          = &g_pConfigManager->getConfigValuePtr("decoration:blur:passes")->intValue;
-    static auto* const PBLURSATURATIONBOOST = &g_pConfigManager->getConfigValuePtr("decoration:blur:saturation_boost")->floatValue;
-    static auto* const PBLURBOOSTTHRESHOLD  = &g_pConfigManager->getConfigValuePtr("decoration:blur:boost_threshold")->floatValue;
+    static auto* const PBLURSIZE             = &g_pConfigManager->getConfigValuePtr("decoration:blur:size")->intValue;
+    static auto* const PBLURPASSES           = &g_pConfigManager->getConfigValuePtr("decoration:blur:passes")->intValue;
+    static auto* const PBLURVIBRANCY         = &g_pConfigManager->getConfigValuePtr("decoration:blur:vibrancy")->floatValue;
+    static auto* const PBLURVIBRANCYDARKNESS = &g_pConfigManager->getConfigValuePtr("decoration:blur:vibrancy_darkness")->floatValue;
 
     // prep damage
     CRegion damage{*originalDamage};
@@ -945,8 +945,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
             glUniform2f(m_RenderData.pCurrentMonData->m_shBLUR1.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f),
                         0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
             glUniform1i(m_RenderData.pCurrentMonData->m_shBLUR1.passes, *PBLURPASSES);
-            glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.saturation_boost, *PBLURSATURATIONBOOST);
-            glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.boost_threshold, *PBLURBOOSTTHRESHOLD);
+            glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.vibrancy, *PBLURVIBRANCY);
+            glUniform1f(m_RenderData.pCurrentMonData->m_shBLUR1.vibrancy_darkness, *PBLURVIBRANCYDARKNESS);
         } else
             glUniform2f(m_RenderData.pCurrentMonData->m_shBLUR2.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f),
                         0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));

@@ -174,8 +174,8 @@ uniform sampler2D    tex;
 uniform float        radius;
 uniform vec2         halfpixel;
 uniform int          passes;
-uniform float        saturation_boost;
-uniform float        boost_threshold;
+uniform float        vibrancy;
+uniform float        vibrancy_darkness;
 
 // see http://alienryderflex.com/hsp.html
 const float Pr = 0.299;
@@ -289,18 +289,21 @@ void main() {
 
     vec4 color = sum / 8.0;
 
-    if (saturation_boost == 0.0) {
+    if (vibrancy == 0.0) {
         gl_FragColor = color;
     } else {
+        // Invert it so that it correctly maps to the config setting
+        float vibrancy_darkness1 = 1.0 - vibrancy_darkness;
+
         // Decrease the RGB components based on their perceived brightness, to prevent visually dark colors from overblowing the rest.
         vec3 hsl = rgb2hsl(color.rgb);
         // Calculate perceived brightness, as not boost visually dark colors like deep blue as much as equally saturated yellow
-        float perceivedBrightness = doubleCircleSigmoid(sqrt(color.r * color.r * Pr + color.g * color.g * Pg + color.b * color.b * Pb), 0.8 * boost_threshold);
+        float perceivedBrightness = doubleCircleSigmoid(sqrt(color.r * color.r * Pr + color.g * color.g * Pg + color.b * color.b * Pb), 0.8 * vibrancy_darkness1);
 
-        float b1        = b * boost_threshold;
+        float b1        = b * vibrancy_darkness1;
         float boostBase = hsl[1] > 0.0 ? smoothstep(b1 - c * 0.5, b1 + c * 0.5, 1.0 - (pow(1.0 - hsl[1] * cos(a), 2.0) + pow(1.0 - perceivedBrightness * sin(a), 2.0))) : 0.0;
 
-        float saturation = clamp(hsl[1] + (boostBase * saturation_boost) / float(passes), 0.0, 1.0);
+        float saturation = clamp(hsl[1] + (boostBase * vibrancy) / float(passes), 0.0, 1.0);
 
         vec3  newColor = hsl2rgb(vec3(hsl[0], saturation, hsl[2]));
 

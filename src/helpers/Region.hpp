@@ -2,6 +2,7 @@
 #include <pixman.h>
 #include <vector>
 #include "Vector2D.hpp"
+#include "Box.hpp"
 
 struct wlr_box;
 

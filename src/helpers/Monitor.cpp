@@ -317,14 +317,14 @@ void CMonitor::addDamage(const CRegion* rg) {
     addDamage(const_cast<CRegion*>(rg)->pixman());
 }
 
-void CMonitor::addDamage(const wlr_box* box) {
+void CMonitor::addDamage(const CBox* box) {
     static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
     }
 
-    if (wlr_damage_ring_add_box(&damage, box))
+    if (wlr_damage_ring_add_box(&damage, const_cast<CBox*>(box)->pWlr()))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 

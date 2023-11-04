@@ -81,7 +81,7 @@ void CAnimationManager::tick() {
         CMonitor*  PMONITOR           = nullptr;
         bool       animationsDisabled = animGlobalDisabled;
 
-        wlr_box    WLRBOXPREV = {0, 0, 0, 0};
+        CBox       WLRBOXPREV = {0, 0, 0, 0};
         if (PWINDOW) {
             WLRBOXPREV = PWINDOW->getFullWindowBoundingBox();
             PMONITOR   = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
@@ -236,7 +236,7 @@ void CAnimationManager::tick() {
                                            BORDERSIZE + ROUNDINGSIZE); // bottom
 
                 // damage for new box
-                const wlr_box WLRBOXNEW = {PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y};
+                const CBox WLRBOXNEW = {PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y, PWINDOW->m_vRealSize.vec().x, PWINDOW->m_vRealSize.vec().y};
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height + 2 * BORDERSIZE); // left
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width - ROUNDINGSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE,
@@ -255,9 +255,8 @@ void CAnimationManager::tick() {
                 if (PDECO) {
                     const auto EXTENTS = PDECO->getWindowDecorationExtents();
 
-                    wlr_box    dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
-                                      PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x,
-                                      PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
+                    CBox       dmg = {PWINDOW->m_vRealPosition.vec().x - EXTENTS.topLeft.x, PWINDOW->m_vRealPosition.vec().y - EXTENTS.topLeft.y,
+                                PWINDOW->m_vRealSize.vec().x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x, PWINDOW->m_vRealSize.vec().y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y};
 
                     if (!*PSHADOWIGNOREWINDOW) {
                         // easy, damage the entire box

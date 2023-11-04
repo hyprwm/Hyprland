@@ -113,7 +113,7 @@ class CMonitor {
     void     onDisconnect();
     void     addDamage(const pixman_region32_t* rg);
     void     addDamage(const CRegion* rg);
-    void     addDamage(const wlr_box* box);
+    void     addDamage(const CBox* box);
     void     setMirror(const std::string&);
     bool     isMirror();
     float    getDefaultScale();

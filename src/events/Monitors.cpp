@@ -28,8 +28,9 @@ void Events::listener_change(wl_listener* listener, void* data) {
 
         const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m->output);
 
-        wlr_box    BOX;
-        wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m->output, &BOX);
+        CBox       BOX;
+        wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m->output, BOX.pWlr());
+        BOX.applyFromWlr();
 
         //m->vecSize.x = BOX.width;
         // m->vecSize.y = BOX.height;

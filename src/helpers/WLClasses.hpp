@@ -33,7 +33,7 @@ struct SLayerSurface {
     DYNLISTENER(commitLayerSurface);
     DYNLISTENER(newPopup);
 
-    wlr_box                   geometry = {0, 0, 0, 0};
+    CBox                      geometry = {0, 0, 0, 0};
     Vector2D                  position;
     zwlr_layer_shell_v1_layer layer;
 
@@ -65,12 +65,12 @@ class CMonitor;
 struct SRenderData {
     CMonitor* pMonitor;
     timespec* when;
-    int       x, y;
+    double    x, y;
 
     // for iters
     void*        data    = nullptr;
     wlr_surface* surface = nullptr;
-    int          w, h;
+    double       w, h;
 
     // for rounding
     bool dontRound = true;

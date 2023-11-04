@@ -154,7 +154,7 @@ void CHyprError::draw() {
 
     const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
 
-    wlr_box    monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    CBox       monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
 
     m_bDamageBox.x = (int)PMONITOR->vecPosition.x;
     m_bDamageBox.y = (int)PMONITOR->vecPosition.y;

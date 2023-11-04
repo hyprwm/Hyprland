@@ -74,7 +74,7 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
         g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID)->m_pLastFocusedWindow = pWindow;
 }
 
-void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox) {
+void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, CBox* pbox) {
     if (pWindow->m_bIsX11) {
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
 
@@ -89,8 +89,10 @@ void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox)
             pbox->width  = pWindow->m_uSurface.xwayland->width;
             pbox->height = pWindow->m_uSurface.xwayland->height;
         }
-    } else
-        wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, pbox);
+    } else {
+        wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, pbox->pWlr());
+        pbox->applyFromWlr();
+    }
 }
 
 std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {

@@ -141,8 +141,8 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
             for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
                 if (it->workspaceID != pWindow->m_iWorkspaceID)
                     continue;
-                const wlr_box box = it->pWindow->getWindowIdealBoundingBoxIgnoreReserved();
-                if (wlr_box_contains_point(&box, MOUSECOORDS.x, MOUSECOORDS.y)) {
+                const CBox box = it->pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+                if (box.containsPoint(MOUSECOORDS)) {
                     switch (orientation) {
                         case ORIENTATION_LEFT:
                         case ORIENTATION_RIGHT:

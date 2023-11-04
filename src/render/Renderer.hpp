@@ -40,7 +40,7 @@ class CHyprRenderer {
     void                            arrangeLayersForMonitor(const int&);
     void                            damageSurface(wlr_surface*, double, double, double scale = 1.0);
     void                            damageWindow(CWindow*);
-    void                            damageBox(wlr_box*);
+    void                            damageBox(CBox*);
     void                            damageBox(const int& x, const int& y, const int& w, const int& h);
     void                            damageRegion(const CRegion&);
     void                            damageMonitor(CMonitor*);
@@ -89,7 +89,7 @@ class CHyprRenderer {
     } m_sLastCursorData;
 
   private:
-    void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, wlr_box*);
+    void arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, CBox*);
     void renderWorkspaceWindowsFullscreen(CMonitor*, CWorkspace*, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
     void renderWorkspaceWindows(CMonitor*, CWorkspace*, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
     void renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
@@ -97,7 +97,7 @@ class CHyprRenderer {
     void renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
     void renderDragIcon(CMonitor*, timespec*);
     void renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
-    void renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const wlr_box& geometry);
+    void renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const CBox& geometry);
     void renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
     bool m_bHasARenderedCursor = true;

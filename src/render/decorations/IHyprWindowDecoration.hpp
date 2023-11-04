@@ -11,11 +11,6 @@ enum eDecorationType
     DECORATION_CUSTOM
 };
 
-struct SWindowDecorationExtents {
-    Vector2D topLeft;
-    Vector2D bottomRight;
-};
-
 enum eDecorationLayer
 {
     DECORATION_LAYER_BOTTOM = 0, /* lowest. */

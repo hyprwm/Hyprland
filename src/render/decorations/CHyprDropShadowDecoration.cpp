@@ -126,8 +126,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     g_pHyprOpenGL->scissor((CBox*)nullptr);
 
     // we'll take the liberty of using this as it should not be used rn
-    CFramebuffer& alphaFB = g_pHyprOpenGL->m_RenderData.pCurrentMonData->mirrorFB;
-    auto*         LASTFB  = g_pHyprOpenGL->m_RenderData.currentFB;
+    CFramebuffer& alphaFB     = g_pHyprOpenGL->m_RenderData.pCurrentMonData->mirrorFB;
+    CFramebuffer& alphaSwapFB = g_pHyprOpenGL->m_RenderData.pCurrentMonData->mirrorSwapFB;
+    auto*         LASTFB      = g_pHyprOpenGL->m_RenderData.currentFB;
 
     if (*PSHADOWIGNOREWINDOW) {
         CBox windowBox = m_bLastWindowBox;
@@ -146,11 +147,20 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
         g_pHyprOpenGL->renderRect(&windowBox, CColor(1.0, 1.0, 1.0, 1.0), ROUNDING * pMonitor->scale);
 
-        LASTFB->bind();
-    }
+        alphaSwapFB.bind();
+        g_pHyprOpenGL->clear(CColor(0, 0, 0, 0));
 
-    fullBox.scale(pMonitor->scale).round();
-    g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a, *PSHADOWIGNOREWINDOW ? &alphaFB : nullptr);
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
+
+        LASTFB->bind();
+
+        CBox monbox                = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
+        g_pHyprOpenGL->m_bEndFrame = true;
+        g_pHyprOpenGL->renderTextureMatte(alphaSwapFB.m_cTex, &monbox, alphaFB);
+        g_pHyprOpenGL->m_bEndFrame = false;
+    } else {
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
+    }
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

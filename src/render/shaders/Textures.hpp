@@ -130,6 +130,16 @@ void main() {
     gl_FragColor = texture2D(tex, v_texcoord);
 })#";
 
+inline const std::string TEXFRAGSRCRGBAMATTE = R"#(
+precision mediump float;
+varying vec2 v_texcoord; // is in 0-1
+uniform sampler2D tex;
+uniform sampler2D texMatte;
+
+void main() {
+    gl_FragColor = texture2D(tex, v_texcoord) * (1.0 - texture2D(texMatte, v_texcoord)[3]);
+})#";
+
 inline const std::string TEXFRAGSRCRGBX = R"#(
 precision mediump float;
 varying vec2 v_texcoord;

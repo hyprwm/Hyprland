@@ -102,3 +102,11 @@ CBox CBox::roundInternal() {
 
     return CBox{std::floor(x), std::floor(y), std::floor(newW), std::floor(newH)};
 }
+
+Vector2D CBox::pos() const {
+    return {x, y};
+}
+
+Vector2D CBox::size() const {
+    return {w, h};
+}

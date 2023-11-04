@@ -32,6 +32,13 @@ class CBox {
         h = d;
     }
 
+    CBox(const Vector2D& pos, const Vector2D& size) {
+        x = pos.x;
+        y = pos.y;
+        w = size.x;
+        h = size.y;
+    }
+
     wlr_box  wlr();
     wlr_box* pWlr();
 
@@ -45,6 +52,8 @@ class CBox {
     CBox&    addExtents(const SWindowDecorationExtents& e);
 
     Vector2D middle() const;
+    Vector2D pos() const;
+    Vector2D size() const;
 
     bool     containsPoint(const Vector2D& vec) const;
     bool     empty() const;
@@ -58,6 +67,11 @@ class CBox {
         double h;
         double height;
     };
+
+    //
+    bool operator==(const CBox& rhs) const {
+        return x == rhs.x && y == rhs.y && w == rhs.w && h == rhs.h;
+    }
 
   private:
     CBox    roundInternal();

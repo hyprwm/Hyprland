@@ -150,7 +150,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     }
 
     fullBox.scale(pMonitor->scale).round();
-    g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a, &alphaFB);
+    g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a, *PSHADOWIGNOREWINDOW ? &alphaFB : nullptr);
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

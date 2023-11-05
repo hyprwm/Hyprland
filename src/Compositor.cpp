@@ -2350,13 +2350,15 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
     } else if (regexp.starts_with("pid:")) {
         mode       = MODE_PID;
         matchCheck = regexp.substr(4);
-    } else if (regexp.starts_with("floating")) {
+    } else if (regexp.starts_with("floating") || regexp.starts_with("tiled")) {
         // first floating on the current ws
         if (!m_pLastWindow)
             return nullptr;
 
+        const bool FLOAT = regexp.starts_with("floating");
+
         for (auto& w : m_vWindows) {
-            if (!w->m_bIsMapped || !w->m_bIsFloating || w->m_iWorkspaceID != m_pLastWindow->m_iWorkspaceID || w->isHidden())
+            if (!w->m_bIsMapped || w->m_bIsFloating != FLOAT || w->m_iWorkspaceID != m_pLastWindow->m_iWorkspaceID || w->isHidden())
                 continue;
 
             return w.get();

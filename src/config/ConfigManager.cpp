@@ -129,6 +129,7 @@ void CConfigManager::setDefaultVars() {
     configValues["group:insert_after_current"].intValue = 1;
     configValues["group:focus_removed_window"].intValue = 1;
 
+    configValues["group:groupbar:font_family"].strValue   = "Sans";
     configValues["group:groupbar:font_size"].intValue     = 8;
     configValues["group:groupbar:gradients"].intValue     = 1;
     configValues["group:groupbar:render_titles"].intValue = 1;

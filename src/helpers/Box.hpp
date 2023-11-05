@@ -1,9 +1,8 @@
 #pragma once
 
-#include <wlr/util/box.h>
 #include "Vector2D.hpp"
 #include "../SharedDefs.hpp"
-
+#include "../includes.hpp"
 class CBox {
   public:
     CBox(double x_, double y_, double w_, double h_) {

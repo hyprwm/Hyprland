@@ -45,3 +45,7 @@ bool Vector2D::inTriangle(const Vector2D& p1, const Vector2D& p2, const Vector2D
 
     return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
 }
+
+double Vector2D::size() const {
+    return std::sqrt(x * x + y * y);
+}

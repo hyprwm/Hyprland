@@ -242,6 +242,10 @@ bool isDirection(const std::string& arg) {
     return arg == "l" || arg == "r" || arg == "u" || arg == "d" || arg == "t" || arg == "b";
 }
 
+bool isDirection(const char& arg) {
+    return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
+}
+
 int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     int result = INT_MAX;
     if (in.starts_with("special")) {

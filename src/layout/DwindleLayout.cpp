@@ -207,10 +207,13 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         // if special, we adjust the coords a bit
         static auto* const PSCALEFACTOR = &g_pConfigManager->getConfigValuePtr("dwindle:special_scale_factor")->floatValue;
 
-        PWINDOW->m_vRealPosition = calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f;
-        PWINDOW->m_vRealSize     = calcSize * *PSCALEFACTOR;
+        CBox               wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};
+        wb.round(); // avoid rounding mess
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, calcSize * *PSCALEFACTOR);
+        PWINDOW->m_vRealPosition = wb.pos();
+        PWINDOW->m_vRealSize     = wb.size();
+
+        g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
     } else {
         PWINDOW->m_vRealSize     = calcSize;
         PWINDOW->m_vRealPosition = calcPos;

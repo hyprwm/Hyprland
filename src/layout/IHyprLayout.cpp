@@ -162,7 +162,8 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
-    }
+    } else
+        pWindow->m_vPendingReportedSize = pWindow->m_vRealSize.goalv();
 }
 
 void IHyprLayout::onBeginDragWindow() {

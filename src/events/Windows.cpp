@@ -653,8 +653,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         g_pInputManager->simulateMouseMovement();
 
     // fix some xwayland apps that don't behave nicely
-    PWINDOW->m_vPendingReportedSize = PWINDOW->m_vRealSize.goalv();
-    PWINDOW->m_vReportedSize        = PWINDOW->m_vPendingReportedSize;
+    PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {

@@ -58,12 +58,12 @@ CBox& CBox::applyFromWlr() {
 }
 
 CBox& CBox::round() {
-    float newW = x + w - std::floor(x);
-    float newH = y + h - std::floor(y);
-    x          = std::floor(x);
-    y          = std::floor(y);
-    w          = std::floor(newW);
-    h          = std::floor(newH);
+    float newW = x + w - std::round(x);
+    float newH = y + h - std::round(y);
+    x          = std::round(x);
+    y          = std::round(y);
+    w          = std::round(newW);
+    h          = std::round(newH);
 
     return *this;
 }

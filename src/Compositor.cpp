@@ -1501,6 +1501,9 @@ void CCompositor::addToFadingOutSafe(CWindow* pWindow) {
 
 CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
 
+    if (!isDirection(dir))
+        return nullptr;
+
     // 0 -> history, 1 -> shared length
     static auto* const PMETHOD = &g_pConfigManager->getConfigValuePtr("binds:focus_preferred_method")->intValue;
 
@@ -1515,77 +1518,127 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
     const auto POSA  = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
     const auto SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
 
+    const auto PWORKSPACE   = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     auto       leaderValue  = -1;
     CWindow*   leaderWindow = nullptr;
 
-    for (auto& w : m_vWindows) {
-        if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || w->m_bIsFloating || !isWorkspaceVisible(w->m_iWorkspaceID))
-            continue;
+    if (!pWindow->m_bIsFloating) {
 
-        if (pWindow->m_iMonitorID == w->m_iMonitorID && pWindow->m_iWorkspaceID != w->m_iWorkspaceID)
-            continue;
+        // for tiled windows, we calc edges
+        for (auto& w : m_vWindows) {
+            if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || w->m_bIsFloating || !isWorkspaceVisible(w->m_iWorkspaceID))
+                continue;
 
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID);
-        if (PWORKSPACE->m_bHasFullscreenWindow && !w->m_bIsFullscreen && !w->m_bCreatedOverFullscreen)
-            continue;
+            if (pWindow->m_iMonitorID == w->m_iMonitorID && pWindow->m_iWorkspaceID != w->m_iWorkspaceID)
+                continue;
 
-        const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
+            if (PWORKSPACE->m_bHasFullscreenWindow && !w->m_bIsFullscreen && !w->m_bCreatedOverFullscreen)
+                continue;
 
-        const auto POSB  = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
-        const auto SIZEB = Vector2D(BWINDOWIDEALBB.width, BWINDOWIDEALBB.height);
+            const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
 
-        double     intersectLength = -1;
+            const auto POSB  = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
+            const auto SIZEB = Vector2D(BWINDOWIDEALBB.width, BWINDOWIDEALBB.height);
 
-        switch (dir) {
-            case 'l':
-                if (STICKS(POSA.x, POSB.x + SIZEB.x)) {
-                    intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
-                }
-                break;
-            case 'r':
-                if (STICKS(POSA.x + SIZEA.x, POSB.x)) {
-                    intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
-                }
-                break;
-            case 't':
-            case 'u':
-                if (STICKS(POSA.y, POSB.y + SIZEB.y)) {
-                    intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
-                }
-                break;
-            case 'b':
-            case 'd':
-                if (STICKS(POSA.y + SIZEA.y, POSB.y)) {
-                    intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
-                }
-                break;
-        }
+            double     intersectLength = -1;
 
-        if (*PMETHOD == 0 /* history */) {
-            if (intersectLength > 0) {
+            switch (dir) {
+                case 'l':
+                    if (STICKS(POSA.x, POSB.x + SIZEB.x)) {
+                        intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    }
+                    break;
+                case 'r':
+                    if (STICKS(POSA.x + SIZEA.x, POSB.x)) {
+                        intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                    }
+                    break;
+                case 't':
+                case 'u':
+                    if (STICKS(POSA.y, POSB.y + SIZEB.y)) {
+                        intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    }
+                    break;
+                case 'b':
+                case 'd':
+                    if (STICKS(POSA.y + SIZEA.y, POSB.y)) {
+                        intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                    }
+                    break;
+            }
 
-                // get idx
-                int windowIDX = -1;
-                for (size_t i = 0; i < g_pCompositor->m_vWindowFocusHistory.size(); ++i) {
-                    if (g_pCompositor->m_vWindowFocusHistory[i] == w.get()) {
-                        windowIDX = i;
-                        break;
+            if (*PMETHOD == 0 /* history */) {
+                if (intersectLength > 0) {
+
+                    // get idx
+                    int windowIDX = -1;
+                    for (size_t i = 0; i < g_pCompositor->m_vWindowFocusHistory.size(); ++i) {
+                        if (g_pCompositor->m_vWindowFocusHistory[i] == w.get()) {
+                            windowIDX = i;
+                            break;
+                        }
+                    }
+
+                    windowIDX = g_pCompositor->m_vWindowFocusHistory.size() - windowIDX;
+
+                    if (windowIDX > leaderValue) {
+                        leaderValue  = windowIDX;
+                        leaderWindow = w.get();
                     }
                 }
-
-                windowIDX = g_pCompositor->m_vWindowFocusHistory.size() - windowIDX;
-
-                if (windowIDX > leaderValue) {
-                    leaderValue  = windowIDX;
+            } else /* length */ {
+                if (intersectLength > leaderValue) {
+                    leaderValue  = intersectLength;
                     leaderWindow = w.get();
                 }
             }
-        } else /* length */ {
-            if (intersectLength > leaderValue) {
-                leaderValue  = intersectLength;
+        }
+    } else {
+        // for floating windows, we calculate best distance and angle.
+        // if there is a window with angle better than THRESHOLD, only distance counts
+
+        if (dir == 'u')
+            dir = 't';
+        if (dir == 'd')
+            dir = 'b';
+
+        static const std::unordered_map<char, Vector2D> VECTORS = {{'r', {1, 0}}, {'t', {0, -1}}, {'b', {0, 1}}, {'l', {-1, 0}}};
+
+        //
+        auto vectorAngles = [](Vector2D a, Vector2D b) -> double {
+            double dot = a.x * b.x + a.y * b.y;
+            double ang = std::acos(dot / (a.size() * b.size()));
+            return ang;
+        };
+
+        float           bestAngleAbs = 2.0 * M_PI;
+        constexpr float THRESHOLD    = 0.3 * M_PI;
+
+        for (auto& w : m_vWindows) {
+            if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || !w->m_bIsFloating || !isWorkspaceVisible(w->m_iWorkspaceID))
+                continue;
+
+            if (pWindow->m_iMonitorID == w->m_iMonitorID && pWindow->m_iWorkspaceID != w->m_iWorkspaceID)
+                continue;
+
+            if (PWORKSPACE->m_bHasFullscreenWindow && !w->m_bIsFullscreen && !w->m_bCreatedOverFullscreen)
+                continue;
+
+            const auto DIST  = w->middle().distance(pWindow->middle());
+            const auto ANGLE = vectorAngles(Vector2D{w->middle() - pWindow->middle()}, VECTORS.at(dir));
+
+            if (ANGLE > M_PI_2)
+                continue; // if the angle is over 90 degrees, ignore. Wrong direction entirely.
+
+            if ((bestAngleAbs < THRESHOLD && DIST < leaderValue && ANGLE < THRESHOLD) || (ANGLE < bestAngleAbs && bestAngleAbs > THRESHOLD) || leaderValue == -1) {
+                leaderValue  = DIST;
+                bestAngleAbs = ANGLE;
                 leaderWindow = w.get();
             }
         }
+
+        if (!leaderWindow && PWORKSPACE->m_bHasFullscreenWindow)
+            leaderWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
     }
 
     if (leaderValue != -1)

@@ -19,6 +19,7 @@ std::string                      escapeJSONStrings(const std::string& str);
 std::string                      removeBeginEndSpacesTabs(std::string);
 bool                             isNumber(const std::string&, bool allowfloat = false);
 bool                             isDirection(const std::string&);
+bool                             isDirection(const char&);
 int                              getWorkspaceIDFromString(const std::string&, std::string&);
 std::optional<std::string>       cleanCmdForWorkspace(const std::string&, std::string);
 float                            vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);

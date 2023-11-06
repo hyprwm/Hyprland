@@ -110,7 +110,7 @@ class CMonitor {
 
     // methods
     void     onConnect(bool noRule);
-    void     onDisconnect();
+    void     onDisconnect(bool destroy = false);
     void     addDamage(const pixman_region32_t* rg);
     void     addDamage(const CRegion* rg);
     void     addDamage(const CBox* box);

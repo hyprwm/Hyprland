@@ -700,10 +700,13 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
         g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
     } else {
-        PWINDOW->m_vRealSize     = calcSize;
-        PWINDOW->m_vRealPosition = calcPos;
+        CBox wb = {calcPos, calcSize};
+        wb.round(); // avoid rounding mess
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
+        PWINDOW->m_vRealPosition = wb.pos();
+        PWINDOW->m_vRealSize     = wb.size();
+
+        g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
     }
 
     if (m_bForceWarps && !*PANIMATE) {

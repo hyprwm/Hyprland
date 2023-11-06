@@ -361,12 +361,15 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
                 newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0);
 
+            CBox wb = {newPos, newSize};
+            wb.round();
+
             if (*PANIMATE) {
-                DRAGGINGWINDOW->m_vRealSize     = newSize;
-                DRAGGINGWINDOW->m_vRealPosition = newPos;
+                DRAGGINGWINDOW->m_vRealSize     = wb.size();
+                DRAGGINGWINDOW->m_vRealPosition = wb.pos();
             } else {
-                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(newSize);
-                DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(newPos);
+                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(wb.size());
+                DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
             }
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());

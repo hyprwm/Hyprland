@@ -305,11 +305,13 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (g_pInputManager->dragMode == MBIND_MOVE) {
 
-        if (*PANIMATEMOUSE) {
-            DRAGGINGWINDOW->m_vRealPosition = m_vBeginDragPositionXY + DELTA;
-        } else {
-            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
-        }
+        CBox wb = {m_vBeginDragPositionXY + DELTA, DRAGGINGWINDOW->m_vRealSize.goalv()};
+        wb.round();
+
+        if (*PANIMATEMOUSE)
+            DRAGGINGWINDOW->m_vRealPosition = wb.pos();
+        else
+            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {

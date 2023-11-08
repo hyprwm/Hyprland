@@ -185,13 +185,6 @@ std::string escapeJSONStrings(const std::string& str) {
     return oss.str();
 }
 
-void scaleBox(wlr_box* box, float scale) {
-    box->width  = std::round(box->width * scale);
-    box->height = std::round(box->height * scale);
-    box->x      = std::round(box->x * scale);
-    box->y      = std::round(box->y * scale);
-}
-
 std::string removeBeginEndSpacesTabs(std::string str) {
     if (str.empty())
         return str;
@@ -247,6 +240,10 @@ bool isNumber(const std::string& str, bool allowfloat) {
 
 bool isDirection(const std::string& arg) {
     return arg == "l" || arg == "r" || arg == "u" || arg == "d" || arg == "t" || arg == "b";
+}
+
+bool isDirection(const char& arg) {
+    return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
 }
 
 int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
@@ -757,7 +754,12 @@ uint32_t drmFormatToGL(uint32_t drm) {
         case DRM_FORMAT_XRGB8888:
         case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
         case DRM_FORMAT_XRGB2101010:
-        case DRM_FORMAT_XBGR2101010: return GL_RGB10_A2;
+        case DRM_FORMAT_XBGR2101010:
+#ifdef GLES2
+            return GL_RGB10_A2_EXT;
+#else
+            return GL_RGB10_A2;
+#endif
         default: return GL_RGBA;
     }
     UNREACHABLE();

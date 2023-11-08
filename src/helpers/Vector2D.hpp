@@ -22,6 +22,9 @@ class Vector2D {
     Vector2D operator-(const Vector2D& a) const {
         return Vector2D(this->x - a.x, this->y - a.y);
     }
+    Vector2D operator-() const {
+        return Vector2D(-this->x, -this->y);
+    }
     Vector2D operator*(const float& a) const {
         return Vector2D(this->x * a, this->y * a);
     }
@@ -54,7 +57,7 @@ class Vector2D {
     }
 
     double   distance(const Vector2D& other) const;
-
+    double   size() const;
     Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D()) const;
 
     Vector2D floor() const;

@@ -23,7 +23,7 @@ class CHyprError {
     bool              m_bIsCreated     = false;
     CTexture          m_tTexture;
     CAnimatedVariable m_fFadeOpacity;
-    wlr_box           m_bDamageBox = {0, 0, 0, 0};
+    CBox              m_bDamageBox = {0, 0, 0, 0};
 
     bool              m_bMonitorChanged = false;
 };

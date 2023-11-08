@@ -2,6 +2,7 @@
 #include <pixman.h>
 #include <vector>
 #include "Vector2D.hpp"
+#include "Box.hpp"
 
 struct wlr_box;
 
@@ -15,6 +16,8 @@ class CRegion {
     CRegion(double x, double y, double w, double h);
     /* Create from a wlr_box */
     CRegion(wlr_box* box);
+    /* Create from a CBox */
+    CRegion(CBox* box);
     /* Create from a pixman_box32_t */
     CRegion(pixman_box32_t* box);
 
@@ -43,7 +46,7 @@ class CRegion {
     CRegion&                    translate(const Vector2D& vec);
     CRegion&                    invert(pixman_box32_t* box);
     CRegion&                    scale(float scale);
-    wlr_box                     getExtents();
+    CBox                        getExtents();
     bool                        containsPoint(const Vector2D& vec) const;
     bool                        empty() const;
     Vector2D                    closestPoint(const Vector2D& vec) const;
@@ -51,7 +54,7 @@ class CRegion {
     std::vector<pixman_box32_t> getRects() const;
 
     pixman_region32_t*          pixman() {
-                 return &m_rRegion;
+        return &m_rRegion;
     }
 
   private:

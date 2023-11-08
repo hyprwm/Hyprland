@@ -76,8 +76,8 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 }
 
 void CHyprGroupBarDecoration::damageEntire() {
-    wlr_box dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
-                  m_seExtents.topLeft.y};
+    CBox dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
+               m_seExtents.topLeft.y};
     g_pHyprRenderer->damageBox(&dm);
 }
 
@@ -99,13 +99,13 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     int xoff = 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
-        wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x,
-                        m_vLastWindowPos.y - BAR_PADDING_OUTER_VERT - BORDERSIZE - BAR_INDICATOR_HEIGHT - pMonitor->vecPosition.y + offset.y, m_fBarWidth, BAR_INDICATOR_HEIGHT};
+        CBox rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x,
+                     m_vLastWindowPos.y - BAR_PADDING_OUTER_VERT - BORDERSIZE - BAR_INDICATOR_HEIGHT - pMonitor->vecPosition.y + offset.y, m_fBarWidth, BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;
 
-        scaleBox(&rect, pMonitor->scale);
+        rect.scale(pMonitor->scale);
 
         static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
         static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
@@ -179,8 +179,9 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
-    static auto* const PTEXTCOLOR     = &g_pConfigManager->getConfigValuePtr("group:groupbar:text_color")->intValue;
+    static auto* const PTITLEFONTFAMILY = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_family")->strValue;
+    static auto* const PTITLEFONTSIZE   = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
+    static auto* const PTEXTCOLOR       = &g_pConfigManager->getConfigValuePtr("group:groupbar:text_color")->intValue;
 
     const CColor       COLOR = CColor(*PTEXTCOLOR);
 
@@ -194,7 +195,7 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     PangoLayout* layout = pango_cairo_create_layout(CAIRO);
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
-    PangoFontDescription* fontDesc = pango_font_description_from_string("Sans");
+    PangoFontDescription* fontDesc = pango_font_description_from_string(PTITLEFONTFAMILY->c_str());
     pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
@@ -301,10 +302,6 @@ void CHyprGroupBarDecoration::refreshGradients() {
     renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0]);
 }
 
-bool CHyprGroupBarDecoration::allowsInput() {
-    return true;
-}
-
 bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D& pos) {
 
     if (!pDraggedWindow->canBeGroupedInto(m_pWindow))
@@ -406,4 +403,12 @@ void CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
 
     if (!g_pCompositor->isWindowActive(pWindow))
         g_pCompositor->focusWindow(pWindow);
+}
+
+eDecorationLayer CHyprGroupBarDecoration::getDecorationLayer() {
+    return DECORATION_LAYER_OVER;
+}
+
+uint64_t CHyprGroupBarDecoration::getDecorationFlags() {
+    return DECORATION_ALLOWS_MOUSE_INPUT;
 }

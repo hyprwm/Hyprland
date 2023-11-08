@@ -11,14 +11,16 @@
 #include "macros.hpp"
 #include "managers/XWaylandManager.hpp"
 
-enum eIdleInhibitMode {
+enum eIdleInhibitMode
+{
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
     IDLEINHIBIT_FULLSCREEN,
     IDLEINHIBIT_FOCUS
 };
 
-enum eGroupRules {
+enum eGroupRules
+{
     // effective only during first map, except for _ALWAYS variant
     GROUP_NONE        = 0,
     GROUP_SET         = 1 << 0, // Open as new group or add to focused group
@@ -334,11 +336,11 @@ class CWindow {
     }
 
     // methods
-    wlr_box                  getFullWindowBoundingBox();
+    CBox                     getFullWindowBoundingBox();
     SWindowDecorationExtents getFullWindowExtents();
-    wlr_box                  getWindowInputBox();
-    wlr_box                  getWindowMainSurfaceBox();
-    wlr_box                  getWindowIdealBoundingBoxIgnoreReserved();
+    CBox                     getWindowInputBox();
+    CBox                     getWindowMainSurfaceBox();
+    CBox                     getWindowIdealBoundingBoxIgnoreReserved();
     void                     updateWindowDecos();
     pid_t                    getPID();
     IHyprWindowDecoration*   getDecorationByType(eDecorationType);

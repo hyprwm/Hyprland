@@ -37,13 +37,16 @@ uniform mat3 proj;
 uniform vec4 color;
 attribute vec2 pos;
 attribute vec2 texcoord;
+attribute vec2 texcoordMatte;
 varying vec4 v_color;
 varying vec2 v_texcoord;
+varying vec2 v_texcoordMatte;
 
 void main() {
     gl_Position = vec4(proj * vec3(pos, 1.0), 1.0);
     v_color = color;
     v_texcoord = texcoord;
+    v_texcoordMatte = texcoordMatte;
 })#";
 
 inline const std::string QUADFRAGSRC = R"#(
@@ -127,6 +130,16 @@ void main() {
     gl_FragColor = texture2D(tex, v_texcoord);
 })#";
 
+inline const std::string TEXFRAGSRCRGBAMATTE = R"#(
+precision mediump float;
+varying vec2 v_texcoord; // is in 0-1
+uniform sampler2D tex;
+uniform sampler2D texMatte;
+
+void main() {
+    gl_FragColor = texture2D(tex, v_texcoord) * (1.0 - texture2D(texMatte, v_texcoord)[3]);
+})#";
+
 inline const std::string TEXFRAGSRCRGBX = R"#(
 precision mediump float;
 varying vec2 v_texcoord;
@@ -167,12 +180,116 @@ void main() {
 
 inline const std::string FRAGBLUR1 = R"#(
 #version 100
-precision mediump float;
+precision            mediump float;
 varying mediump vec2 v_texcoord; // is in 0-1
-uniform sampler2D tex;
+uniform sampler2D    tex;
 
-uniform float radius;
-uniform vec2 halfpixel;
+uniform float        radius;
+uniform vec2         halfpixel;
+uniform int          passes;
+uniform float        vibrancy;
+uniform float        vibrancy_darkness;
+
+// see http://alienryderflex.com/hsp.html
+const float Pr = 0.299;
+const float Pg = 0.587;
+const float Pb = 0.114;
+
+// Y is "v" ( brightness ). X is "s" ( saturation )
+// see https://www.desmos.com/3d/a88652b9a4
+// Determines if high brightness or high saturation is more important
+const float a = 0.93;
+const float b = 0.11;
+const float c = 0.66; //  Determines the smoothness of the transition of unboosted to boosted colors
+//
+
+// http://www.flong.com/archive/texts/code/shapers_circ/
+float doubleCircleSigmoid(float x, float a) {
+    float min_param_a = 0.0;
+    float max_param_a = 1.0;
+    a                 = max(min_param_a, min(max_param_a, a));
+
+    float y = .0;
+    if (x <= a) {
+        y = a - sqrt(a * a - x * x);
+    } else {
+        y = a + sqrt(pow(1. - a, 2.) - pow(x - 1., 2.));
+    }
+    return y;
+}
+
+vec3 rgb2hsl(vec3 col) {
+    float red   = col.r;
+    float green = col.g;
+    float blue  = col.b;
+
+    float minc  = min(col.r, min(col.g, col.b));
+    float maxc  = max(col.r, max(col.g, col.b));
+    float delta = maxc - minc;
+
+    float lum = (minc + maxc) * 0.5;
+    float sat = 0.0;
+    float hue = 0.0;
+
+    if (lum > 0.0 && lum < 1.0) {
+        float mul = (lum < 0.5) ? (lum) : (1.0 - lum);
+        sat       = delta / (mul * 2.0);
+    }
+
+    vec3  masks = vec3((maxc == red && maxc != green) ? 1.0 : 0.0, (maxc == green && maxc != blue) ? 1.0 : 0.0, (maxc == blue && maxc != red) ? 1.0 : 0.0);
+
+    vec3  adds = vec3(((green - blue) / delta), 2.0 + ((blue - red) / delta), 4.0 + ((red - green) / delta));
+
+    float deltaGtz = (delta > 0.0) ? 1.0 : 0.0;
+
+    hue += dot(adds, masks);
+    hue *= deltaGtz;
+    hue /= 6.0;
+
+    if (hue < 0.0)
+        hue += 1.0;
+
+    return vec3(hue, sat, lum);
+}
+vec3 hsl2rgb(vec3 col) {
+    const float onethird = 1.0 / 3.0;
+    const float twothird = 2.0 / 3.0;
+    const float rcpsixth = 6.0;
+
+    float       hue = col.x;
+    float       sat = col.y;
+    float       lum = col.z;
+
+    vec3        xt = vec3(rcpsixth * (hue - twothird), 0.0, rcpsixth * (1.0 - hue));
+
+    if (hue < twothird) {
+        xt.r = 0.0;
+        xt.g = rcpsixth * (twothird - hue);
+        xt.b = rcpsixth * (hue - onethird);
+    }
+
+    if (hue < onethird) {
+        xt.r = rcpsixth * (onethird - hue);
+        xt.g = rcpsixth * hue;
+        xt.b = 0.0;
+    }
+
+    xt = min(xt, 1.0);
+
+    float sat2   = 2.0 * sat;
+    float satinv = 1.0 - sat;
+    float luminv = 1.0 - lum;
+    float lum2m1 = (2.0 * lum) - 1.0;
+    vec3  ct     = (sat2 * xt) + satinv;
+
+    vec3  rgb;
+    if (lum >= 0.5)
+        rgb = (luminv * ct) + lum2m1;
+    else
+        rgb = lum * ct;
+
+    return rgb;
+}
 
 void main() {
     vec2 uv = v_texcoord * 2.0;
@@ -183,7 +300,28 @@ void main() {
     sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
     sum += texture2D(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
 
-    gl_FragColor = sum / 8.0;
+    vec4 color = sum / 8.0;
+
+    if (vibrancy == 0.0) {
+        gl_FragColor = color;
+    } else {
+        // Invert it so that it correctly maps to the config setting
+        float vibrancy_darkness1 = 1.0 - vibrancy_darkness;
+
+        // Decrease the RGB components based on their perceived brightness, to prevent visually dark colors from overblowing the rest.
+        vec3 hsl = rgb2hsl(color.rgb);
+        // Calculate perceived brightness, as not boost visually dark colors like deep blue as much as equally saturated yellow
+        float perceivedBrightness = doubleCircleSigmoid(sqrt(color.r * color.r * Pr + color.g * color.g * Pg + color.b * color.b * Pb), 0.8 * vibrancy_darkness1);
+
+        float b1        = b * vibrancy_darkness1;
+        float boostBase = hsl[1] > 0.0 ? smoothstep(b1 - c * 0.5, b1 + c * 0.5, 1.0 - (pow(1.0 - hsl[1] * cos(a), 2.0) + pow(1.0 - perceivedBrightness * sin(a), 2.0))) : 0.0;
+
+        float saturation = clamp(hsl[1] + (boostBase * vibrancy) / float(passes), 0.0, 1.0);
+
+        vec3  newColor = hsl2rgb(vec3(hsl[0], saturation, hsl[2]));
+
+        gl_FragColor = vec4(newColor, color[3]);
+    }
 }
 )#";
 
@@ -213,35 +351,66 @@ void main() {
 }
 )#";
 
-inline const std::string FRAGBLURFINISH = R"#(
-precision mediump float;
-varying vec2 v_texcoord; // is in 0-1
+inline const std::string FRAGBLURPREPARE = R"#(
+precision         mediump float;
+varying vec2      v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
-uniform float contrast;
-uniform float noise;
-uniform float brightness;
+uniform float     contrast;
+uniform float     brightness;
 
-float hash(vec2 p) {
-	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+float gain(float x, float k) {
+    float a = 0.5 * pow(2.0 * ((x < 0.5) ? x : 1.0 - x), k);
+    return (x < 0.5) ? a : 1.0 - a;
 }
 
 void main() {
     vec4 pixColor = texture2D(tex, v_texcoord);
 
     // contrast
-    pixColor.rgb = (pixColor.rgb - 0.5) * contrast + 0.5;
+    if (contrast != 1.0) {
+        pixColor.r = gain(pixColor.r, contrast);
+        pixColor.g = gain(pixColor.g, contrast);
+        pixColor.b = gain(pixColor.b, contrast);
+    }
 
     // brightness
-    pixColor.rgb *= brightness;
+    if (brightness > 1.0) {
+        pixColor.rgb *= brightness;
+    }
+
+    gl_FragColor = pixColor;
+}
+)#";
+
+inline const std::string FRAGBLURFINISH = R"#(
+precision         mediump float;
+varying vec2      v_texcoord; // is in 0-1
+uniform sampler2D tex;
+
+uniform float     noise;
+uniform float     brightness;
+
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+void main() {
+    vec4 pixColor = texture2D(tex, v_texcoord);
 
     // noise
-    float noiseHash = hash(v_texcoord);
+    float noiseHash   = hash(v_texcoord);
     float noiseAmount = (mod(noiseHash, 1.0) - 0.5);
     pixColor.rgb += noiseAmount * noise;
 
+    // brightness
+    if (brightness < 1.0) {
+        pixColor.rgb *= brightness;
+    }
+
     gl_FragColor = pixColor;
-})#";
+}
+)#";
 
 inline const std::string TEXFRAGSRCEXT = R"#(
 #extension GL_OES_EGL_image_external : require

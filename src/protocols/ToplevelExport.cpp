@@ -201,7 +201,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     PFRAME->box = {0, 0, (int)(PFRAME->pWindow->m_vRealSize.vec().x * PMONITOR->scale), (int)(PFRAME->pWindow->m_vRealSize.vec().y * PMONITOR->scale)};
     int ow, oh;
     wlr_output_effective_resolution(PMONITOR->output, &ow, &oh);
-    wlr_box_transform(&PFRAME->box, &PFRAME->box, PMONITOR->transform, ow, oh);
+    PFRAME->box.transform(PMONITOR->transform, ow, oh);
 
     PFRAME->shmStride = (PSHMINFO->bpp / 8) * PFRAME->box.width;
 
@@ -301,9 +301,9 @@ void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_outp
         if (PMONITOR != g_pCompositor->getMonitorFromID(f->pWindow->m_iMonitorID))
             continue;
 
-        wlr_box geometry = {f->pWindow->m_vRealPosition.vec().x, f->pWindow->m_vRealPosition.vec().y, f->pWindow->m_vRealSize.vec().x, f->pWindow->m_vRealSize.vec().y};
+        CBox geometry = {f->pWindow->m_vRealPosition.vec().x, f->pWindow->m_vRealPosition.vec().y, f->pWindow->m_vRealSize.vec().x, f->pWindow->m_vRealSize.vec().y};
 
-        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, &geometry))
+        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, geometry.pWlr()))
             continue;
 
         shareFrame(f);
@@ -448,7 +448,7 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
 
     g_pHyprOpenGL->bindWlrOutputFb();
 
-    wlr_box monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    CBox monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
     g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f);
 
     g_pHyprOpenGL->end();

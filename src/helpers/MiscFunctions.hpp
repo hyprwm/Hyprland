@@ -16,10 +16,10 @@ struct SCallstackFrameInfo {
 std::string                      absolutePath(const std::string&, const std::string&);
 void                             addWLSignal(wl_signal*, wl_listener*, void* pOwner, const std::string& ownerString);
 std::string                      escapeJSONStrings(const std::string& str);
-void                             scaleBox(wlr_box*, float);
 std::string                      removeBeginEndSpacesTabs(std::string);
 bool                             isNumber(const std::string&, bool allowfloat = false);
 bool                             isDirection(const std::string&);
+bool                             isDirection(const char&);
 int                              getWorkspaceIDFromString(const std::string&, std::string&);
 std::optional<std::string>       cleanCmdForWorkspace(const std::string&, std::string);
 float                            vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);

@@ -178,7 +178,7 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
 
     bool       cursorRect      = PFOCUSEDTI->pWlrInput ? PFOCUSEDTI->pWlrInput->current.features & WLR_TEXT_INPUT_V3_FEATURE_CURSOR_RECTANGLE : true;
     const auto PFOCUSEDSURFACE = focusedSurface(PFOCUSEDTI);
-    auto       cursorBox       = PFOCUSEDTI->pWlrInput ? PFOCUSEDTI->pWlrInput->current.cursor_rectangle : PFOCUSEDTI->pV1Input->cursorRectangle;
+    CBox       cursorBox       = PFOCUSEDTI->pWlrInput ? PFOCUSEDTI->pWlrInput->current.cursor_rectangle : PFOCUSEDTI->pV1Input->cursorRectangle;
     CMonitor*  pMonitor        = nullptr;
 
     Vector2D   parentPos;
@@ -209,7 +209,7 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
     if (!pMonitor)
         return;
 
-    wlr_box finalBox = cursorBox;
+    CBox finalBox = cursorBox;
 
     if (cursorBox.y + parentPos.y + pPopup->pSurface->surface->current.height + finalBox.height > pMonitor->vecPosition.y + pMonitor->vecSize.y)
         finalBox.y -= pPopup->pSurface->surface->current.height + finalBox.height;
@@ -225,7 +225,7 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
 
     pPopup->lastSize = Vector2D(pPopup->pSurface->surface->current.width, pPopup->pSurface->surface->current.height);
 
-    wlr_input_popup_surface_v2_send_text_input_rectangle(pPopup->pSurface, &finalBox);
+    wlr_input_popup_surface_v2_send_text_input_rectangle(pPopup->pSurface, finalBox.pWlr());
 
     damagePopup(pPopup);
 }

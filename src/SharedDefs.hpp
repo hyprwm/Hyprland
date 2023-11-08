@@ -1,5 +1,7 @@
 #pragma once
 
+#include "helpers/Vector2D.hpp"
+
 enum eIcons
 {
     ICON_WARNING = 0,
@@ -26,4 +28,18 @@ enum eRenderStage
 
 struct SCallbackInfo {
     bool cancelled = false; /* on cancellable events, will cancel the event. */
+};
+
+struct SWindowDecorationExtents {
+    Vector2D topLeft;
+    Vector2D bottomRight;
+
+    //
+    SWindowDecorationExtents operator*(const double& scale) const {
+        return SWindowDecorationExtents{topLeft * scale, bottomRight * scale};
+    }
+
+    SWindowDecorationExtents floor() {
+        return {topLeft.floor(), bottomRight.floor()};
+    }
 };

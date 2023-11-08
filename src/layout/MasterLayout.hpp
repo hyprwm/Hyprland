@@ -10,8 +10,7 @@
 enum eFullscreenMode : int8_t;
 
 //orientation determines which side of the screen the master area resides
-enum eOrientation : uint8_t
-{
+enum eOrientation : uint8_t {
     ORIENTATION_LEFT = 0,
     ORIENTATION_TOP,
     ORIENTATION_RIGHT,
@@ -32,7 +31,10 @@ struct SMasterNodeData {
 
     int      workspaceID = -1;
 
-    bool     operator==(const SMasterNodeData& rhs) const {
+    bool     ignoreFullscreenChecks = false;
+
+    //
+    bool operator==(const SMasterNodeData& rhs) const {
         return pWindow == rhs.pWindow;
     }
 };
@@ -41,7 +43,8 @@ struct SMasterWorkspaceData {
     int          workspaceID = -1;
     eOrientation orientation = ORIENTATION_LEFT;
 
-    bool         operator==(const SMasterWorkspaceData& rhs) const {
+    //
+    bool operator==(const SMasterWorkspaceData& rhs) const {
         return workspaceID == rhs.workspaceID;
     }
 };
@@ -76,7 +79,7 @@ class CHyprMasterLayout : public IHyprLayout {
     void                              buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle);
     void                              runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);
     int                               getNodesOnWorkspace(const int&);
-    void                              applyNodeDataToWindow(SMasterNodeData*, bool force = false);
+    void                              applyNodeDataToWindow(SMasterNodeData*);
     SMasterNodeData*                  getNodeFromWindow(CWindow*);
     SMasterNodeData*                  getMasterNodeOnWorkspace(const int&);
     SMasterWorkspaceData*             getMasterWorkspaceData(const int&);

@@ -96,7 +96,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PWORKSPACE->m_bDefaultPseudo) {
         PWINDOW->m_bIsPseudotiled = true;
-        wlr_box desiredGeometry   = {0};
+        CBox desiredGeometry      = {0};
         g_pXWaylandManager->getGeometryForWindow(PWINDOW, &desiredGeometry);
         PWINDOW->m_vPseudoSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
     }
@@ -649,7 +649,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->transform);
 
-    g_pInputManager->simulateMouseMovement();
+    if (g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal()) == g_pCompositor->m_pLastWindow)
+        g_pInputManager->simulateMouseMovement();
+
+    // fix some xwayland apps that don't behave nicely
+    PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -740,7 +744,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow && PWINDOWCANDIDATE)
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
 
-        g_pInputManager->simulateMouseMovement();
+        if (g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal()) == PWINDOWCANDIDATE)
+            g_pInputManager->simulateMouseMovement();
 
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
         if (PWINDOW == g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow) {
@@ -1008,6 +1013,7 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     if (!PWINDOW->m_uSurface.xwayland->surface || !PWINDOW->m_uSurface.xwayland->surface->mapped || !PWINDOW->m_bMappedX11) {
         wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
+        PWINDOW->m_vReportedSize = {E->width, E->height};
         return;
     }
 
@@ -1053,6 +1059,8 @@ void Events::listener_configureX11(void* owner, void* data) {
     g_pHyprRenderer->damageWindow(PWINDOW);
 
     PWINDOW->updateWindowDecos();
+
+    PWINDOW->m_vReportedSize = {E->width, E->height};
 }
 
 void Events::listener_unmanagedSetGeometry(void* owner, void* data) {

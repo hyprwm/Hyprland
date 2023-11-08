@@ -73,7 +73,7 @@ CDecorationPositioner::SWindowPositioningData* CDecorationPositioner::getDataFor
 }
 
 void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
-    if (!pWindow)
+    if (!g_pCompositor->windowValidMapped(pWindow))
         return;
 
     auto* const WINDOWDATA     = &m_mWindowDatas[pWindow];

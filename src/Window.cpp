@@ -173,6 +173,9 @@ SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
 void CWindow::updateWindowDecos() {
     bool recalc = false;
 
+    if (!m_bIsMapped || isHidden())
+        return;
+
     for (auto& wd : m_vDecosToRemove) {
         for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
             if (it->get() == wd) {

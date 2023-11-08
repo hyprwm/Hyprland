@@ -500,7 +500,7 @@ void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round
         return;
 
     CRegion damage{m_RenderData.damage};
-    damage.intersect(box);
+    damage.intersect(*box);
 
     CFramebuffer* POUTFB = blurMainFramebufferWithDamage(blurA, &damage);
 
@@ -1395,7 +1395,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
     if (borderSize < 1)
         return;
 
-    int scaledBorderSize = borderSize * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale;
+    int scaledBorderSize = std::round(borderSize * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale);
 
     // adjust box
     box->x -= scaledBorderSize;

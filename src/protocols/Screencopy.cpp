@@ -239,7 +239,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     }
     int ow, oh;
     wlr_output_effective_resolution(PFRAME->pMonitor->output, &ow, &oh);
-    PFRAME->box.transform(PFRAME->pMonitor->transform, ow, oh).scale(PFRAME->pMonitor->scale);
+    PFRAME->box.transform(PFRAME->pMonitor->transform, ow, oh).scale(PFRAME->pMonitor->scale).round();
 
     PFRAME->shmStride = (PSHMINFO->bpp / 8) * PFRAME->box.width;
 

@@ -201,7 +201,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     PFRAME->box = {0, 0, (int)(PFRAME->pWindow->m_vRealSize.vec().x * PMONITOR->scale), (int)(PFRAME->pWindow->m_vRealSize.vec().y * PMONITOR->scale)};
     int ow, oh;
     wlr_output_effective_resolution(PMONITOR->output, &ow, &oh);
-    PFRAME->box.transform(PMONITOR->transform, ow, oh);
+    PFRAME->box.transform(PMONITOR->transform, ow, oh).round();
 
     PFRAME->shmStride = (PSHMINFO->bpp / 8) * PFRAME->box.width;
 

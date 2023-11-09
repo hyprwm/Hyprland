@@ -105,27 +105,20 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
     if (!w->m_sGroupData.pNextWindow)
         return isJson ? "" : "0";
 
-    std::vector<CWindow*> groupMembers;
-
-    CWindow*              curr = w;
-    do {
-        groupMembers.push_back(curr);
-        curr = curr->m_sGroupData.pNextWindow;
-    } while (curr != w);
-
-    const auto         comma = isJson ? ", " : ",";
     std::ostringstream result;
 
-    bool               first = true;
-    for (auto& gw : groupMembers) {
-        if (first)
-            first = false;
-        else
-            result << comma;
+    CWindow*           head = w->getGroupHead();
+    CWindow*           curr = head;
+    while (true) {
         if (isJson)
-            result << std::format("\"0x{:x}\"", (uintptr_t)gw);
+            result << std::format("\"0x{:x}\"", (uintptr_t)curr);
         else
-            result << std::format("{:x}", (uintptr_t)gw);
+            result << std::format("{:x}", (uintptr_t)curr);
+        curr = curr->m_sGroupData.pNextWindow;
+        // We've wrapped around to the start, break out without trailing comma
+        if (curr == head)
+            break;
+        result << (isJson ? ", " : ",");
     }
 
     return result.str();

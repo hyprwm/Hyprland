@@ -14,8 +14,10 @@ project('Hyprland', 'cpp', 'c',
 cpp_compiler = meson.get_compiler('cpp')
 if cpp_compiler.has_argument('-std=c++23')
   add_global_arguments('-std=c++23', language: 'cpp')
-elif cpp_compiler.has_argument('-std=c++2b')
+elif cpp_compiler.get_id() == 'clang'
   add_global_arguments('-std=c++2b', language: 'cpp')
+  add_global_arguments('-stdlib=libc++', language: 'cpp')
+  add_global_arguments('-fexperimental-library', language: 'cpp')
 else
   error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.version() + ') with required C++ standard (C++23)')
 endif

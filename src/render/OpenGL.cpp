@@ -1718,7 +1718,7 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     m_bEndFrame = false;
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, float a) {
+void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const CColor& color, float a) {
     RASSERT(m_RenderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box->width > 0 && box->height > 0), "Tried to render shadow with width/height < 0!");
     RASSERT(m_pCurrentWindow, "Tried to render shadow without a window!");
@@ -1737,7 +1737,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, float
 
     const auto         SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
 
-    const auto         col = m_pCurrentWindow->m_cRealShadowColor.col();
+    const auto         col = color;
 
     float              matrix[9];
     wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,

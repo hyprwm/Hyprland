@@ -137,7 +137,7 @@ uniform sampler2D tex;
 uniform sampler2D texMatte;
 
 void main() {
-    gl_FragColor = texture2D(tex, v_texcoord) * (1.0 - texture2D(texMatte, v_texcoord)[3]);
+    gl_FragColor = texture2D(tex, v_texcoord) * texture2D(texMatte, v_texcoord)[0]; // I know it only uses R, but matte should be black/white anyways.
 })#";
 
 inline const std::string TEXFRAGSRCRGBX = R"#(

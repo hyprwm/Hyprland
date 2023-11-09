@@ -248,14 +248,13 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
         g_pHyprRenderer->damageSurface(pNode->pSurface->wlr(), lx, ly, SCALE);
 
     if (pNode->pWindowOwner) {
-        // update reported size. Some windows do not send a ::commit afterwards. Odd.
-        pNode->pWindowOwner->m_vReportedSize = pNode->pWindowOwner->m_vPendingReportedSize;
+        if (pNode->pWindowOwner->m_bIsX11)
+            pNode->pWindowOwner->m_vReportedSize = pNode->pWindowOwner->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
 
         // tearing: if solitary, redraw it. This still might be a single surface window
         const auto PMONITOR = g_pCompositor->getMonitorFromID(pNode->pWindowOwner->m_iMonitorID);
         if (PMONITOR->solitaryClient == pNode->pWindowOwner && pNode->pWindowOwner->canBeTorn() && PMONITOR->tearingState.canTear &&
             pNode->pSurface->wlr()->current.committed & WLR_SURFACE_STATE_BUFFER) {
-
             CRegion damageBox;
             wlr_surface_get_effective_damage(pNode->pSurface->wlr(), damageBox.pixman());
 

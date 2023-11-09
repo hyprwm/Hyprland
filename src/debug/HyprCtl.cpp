@@ -45,7 +45,7 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
         result += "[";
 
         for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
-            if (!m->output || m->ID == -1u)
+            if (!m->output || m->ID == -1ull)
                 continue;
 
             result += "{";
@@ -103,7 +103,7 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
         result += "]";
     } else {
         for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
-            if (!m->output || m->ID == -1u)
+            if (!m->output || m->ID == -1ull)
                 continue;
 
 

@@ -504,6 +504,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestResize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_resize, &Events::listener_requestResize, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW,
                                                             "XDG Window Late");
+        PWINDOW->hyprListener_ackConfigure.initCallback(&PWINDOW->m_uSurface.xdg->events.ack_configure, &Events::listener_ackConfigure, PWINDOW, "XDG Window Late");
     } else {
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW,
                                                             "XWayland Window Late");
@@ -682,6 +683,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestMove.removeCallback();
         PWINDOW->hyprListener_requestResize.removeCallback();
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
+        PWINDOW->hyprListener_ackConfigure.removeCallback();
     } else {
         Debug::log(LOG, "Unregistered late callbacks XWL");
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
@@ -788,13 +790,26 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     PWINDOW->onUnmap();
 }
 
+void Events::listener_ackConfigure(void* owner, void* data) {
+    CWindow*   PWINDOW = (CWindow*)owner;
+    const auto E       = (wlr_xdg_surface_configure*)data;
+
+    if (!PWINDOW->m_iPendingSizeAck.has_value() || E->serial != PWINDOW->m_iPendingSizeAck)
+        return;
+
+    PWINDOW->m_bPendingSizeAcked = true;
+    PWINDOW->m_iPendingSizeAck.reset();
+}
+
 void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
     if (!PWINDOW->m_bMappedX11 || PWINDOW->isHidden() || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
         return;
 
-    PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
+    if (PWINDOW->m_bIsX11 || PWINDOW->m_bPendingSizeAcked)
+        PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
+    PWINDOW->m_bPendingSizeAcked = false;
 
     PWINDOW->updateSurfaceOutputs();
 

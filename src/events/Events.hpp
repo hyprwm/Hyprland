@@ -62,6 +62,7 @@ namespace Events {
     DYNLISTENFUNC(setOverrideRedirect);
     DYNLISTENFUNC(associateX11);
     DYNLISTENFUNC(dissociateX11);
+    DYNLISTENFUNC(ackConfigure);
 
     // Window subsurfaces
     // LISTENER(newSubsurfaceWindow);

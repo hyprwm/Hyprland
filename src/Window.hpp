@@ -185,6 +185,7 @@ class CWindow {
     DYNLISTENER(setOverrideRedirect);
     DYNLISTENER(associateX11);
     DYNLISTENER(dissociateX11);
+    DYNLISTENER(ackConfigure);
     // DYNLISTENER(newSubsurfaceWindow);
 
     CWLSurface            m_pWLSurface;
@@ -204,9 +205,11 @@ class CWindow {
     CAnimatedVariable m_vRealSize;
 
     // for not spamming the protocols
-    Vector2D m_vReportedPosition;
-    Vector2D m_vReportedSize;
-    Vector2D m_vPendingReportedSize;
+    Vector2D                                     m_vReportedPosition;
+    Vector2D                                     m_vReportedSize;
+    Vector2D                                     m_vPendingReportedSize;
+    std::optional<std::pair<uint32_t, Vector2D>> m_pPendingSizeAck;
+    std::vector<std::pair<uint32_t, Vector2D>>   m_vPendingSizeAcks;
 
     // for restoring floating statuses
     Vector2D m_vLastFloatingSize;

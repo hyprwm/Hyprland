@@ -17,7 +17,9 @@ if cpp_compiler.has_argument('-std=c++23')
 elif cpp_compiler.get_id() == 'clang'
   add_global_arguments('-std=c++2b', language: 'cpp')
   add_global_arguments('-stdlib=libc++', language: 'cpp')
-  add_global_arguments('-fexperimental-library', language: 'cpp')
+  if cpp_compiler.version().version_compare('>=15.0.0')
+    add_global_arguments('-fexperimental-library', language: 'cpp')
+  endif
 else
   error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.version() + ') with required C++ standard (C++23)')
 endif

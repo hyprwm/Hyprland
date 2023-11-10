@@ -794,11 +794,14 @@ void Events::listener_ackConfigure(void* owner, void* data) {
     CWindow*   PWINDOW = (CWindow*)owner;
     const auto E       = (wlr_xdg_surface_configure*)data;
 
-    if (!PWINDOW->m_iPendingSizeAck.has_value() || E->serial != PWINDOW->m_iPendingSizeAck)
+    // find last matching serial
+    const auto SERIAL = std::find_if(PWINDOW->m_vPendingSizeAcks.rbegin(), PWINDOW->m_vPendingSizeAcks.rend(), [&](const auto& e) { return e.first == E->serial; });
+
+    if (SERIAL == PWINDOW->m_vPendingSizeAcks.rend())
         return;
 
-    PWINDOW->m_bPendingSizeAcked = true;
-    PWINDOW->m_iPendingSizeAck.reset();
+    PWINDOW->m_pPendingSizeAck = *SERIAL;
+    std::erase_if(PWINDOW->m_vPendingSizeAcks, [&](const auto& el) { return el.first == SERIAL->first; });
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {
@@ -807,9 +810,12 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_bMappedX11 || PWINDOW->isHidden() || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
         return;
 
-    if (PWINDOW->m_bIsX11 || PWINDOW->m_bPendingSizeAcked)
+    if (PWINDOW->m_bIsX11)
         PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
-    PWINDOW->m_bPendingSizeAcked = false;
+    else if (PWINDOW->m_pPendingSizeAck.has_value()) {
+        PWINDOW->m_vReportedSize = PWINDOW->m_pPendingSizeAck->second;
+        PWINDOW->m_pPendingSizeAck.reset();
+    }
 
     PWINDOW->updateSurfaceOutputs();
 

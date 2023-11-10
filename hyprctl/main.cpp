@@ -274,7 +274,6 @@ bool isNumber(const std::string& str, bool allowfloat) {
 }
 
 int main(int argc, char** argv) {
-    int  bflag = 0, sflag = 0, index, c;
     bool parseArgs = true;
 
     if (argc < 2) {
@@ -288,7 +287,7 @@ int main(int argc, char** argv) {
     bool        json             = false;
     std::string overrideInstance = "";
 
-    for (auto i = 0; i < ARGS.size(); ++i) {
+    for (std::size_t i = 0; i < ARGS.size(); ++i) {
         if (ARGS[i] == "--") {
             // Stop parsing arguments after --
             parseArgs = false;
@@ -342,7 +341,7 @@ int main(int argc, char** argv) {
 
         const auto INSTANCES = instances();
 
-        if (INSTANCENO < 0 || INSTANCENO >= INSTANCES.size()) {
+        if (INSTANCENO < 0 || static_cast<std::size_t>(INSTANCENO) >= INSTANCES.size()) {
             std::cout << "no such instance\n";
             return 1;
         }

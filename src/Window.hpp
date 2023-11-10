@@ -205,11 +205,11 @@ class CWindow {
     CAnimatedVariable m_vRealSize;
 
     // for not spamming the protocols
-    Vector2D                m_vReportedPosition;
-    Vector2D                m_vReportedSize;
-    Vector2D                m_vPendingReportedSize;
-    bool                    m_bPendingSizeAcked = false;
-    std::optional<uint32_t> m_iPendingSizeAck;
+    Vector2D                                     m_vReportedPosition;
+    Vector2D                                     m_vReportedSize;
+    Vector2D                                     m_vPendingReportedSize;
+    std::optional<std::pair<uint32_t, Vector2D>> m_pPendingSizeAck;
+    std::vector<std::pair<uint32_t, Vector2D>>   m_vPendingSizeAcks;
 
     // for restoring floating statuses
     Vector2D m_vLastFloatingSize;

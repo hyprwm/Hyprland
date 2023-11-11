@@ -184,8 +184,11 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
 }
 
 void CHyprXWaylandManager::setWindowStyleTiled(CWindow* pWindow, uint32_t edgez) {
-    if (!pWindow->m_bIsX11)
-        wlr_xdg_toplevel_set_tiled(pWindow->m_uSurface.xdg->toplevel, edgez);
+    if (pWindow->m_bIsX11)
+        return;
+
+    wlr_xdg_toplevel_set_tiled(pWindow->m_uSurface.xdg->toplevel, edgez);
+    wlr_xdg_toplevel_set_maximized(pWindow->m_uSurface.xdg->toplevel, true);
 }
 
 wlr_surface* CHyprXWaylandManager::surfaceAt(CWindow* pWindow, const Vector2D& client, Vector2D& surface) {

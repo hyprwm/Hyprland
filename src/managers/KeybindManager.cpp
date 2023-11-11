@@ -1845,7 +1845,7 @@ void CKeybindManager::mouse(std::string args) {
                     if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                         continue;
 
-                    if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+                    if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords)) {
                         wd->onBeginWindowDragOnDeco(mouseCoords);
                         break;
                     }
@@ -1964,9 +1964,6 @@ void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDi
     if (pWindow->m_sGroupData.deny)
         return;
 
-    if (!pWindow->m_sGroupData.pNextWindow)
-        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes groupped property!
 
     static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
@@ -1978,6 +1975,9 @@ void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDi
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
     g_pCompositor->focusWindow(pWindow);
     g_pCompositor->warpCursorTo(pWindow->middle());
+
+    if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+        pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 }
 
 void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir) {

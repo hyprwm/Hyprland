@@ -39,26 +39,29 @@ class CBox {
         h = size.y;
     }
 
-    wlr_box  wlr();
-    wlr_box* pWlr();
+    wlr_box                  wlr();
+    wlr_box*                 pWlr();
 
-    CBox&    applyFromWlr();
-    CBox&    scale(double scale);
-    CBox&    scaleFromCenter(double scale);
-    CBox&    scale(const Vector2D& scale);
-    CBox&    translate(const Vector2D& vec);
-    CBox&    round();
-    CBox&    transform(const wl_output_transform t, double w, double h);
-    CBox&    addExtents(const SWindowDecorationExtents& e);
+    CBox&                    applyFromWlr();
+    CBox&                    scale(double scale);
+    CBox&                    scaleFromCenter(double scale);
+    CBox&                    scale(const Vector2D& scale);
+    CBox&                    translate(const Vector2D& vec);
+    CBox&                    round();
+    CBox&                    transform(const wl_output_transform t, double w, double h);
+    CBox&                    addExtents(const SWindowDecorationExtents& e);
+    CBox&                    expand(const double& value);
 
-    Vector2D middle() const;
-    Vector2D pos() const;
-    Vector2D size() const;
+    SWindowDecorationExtents extentsFrom(const CBox&); // this is the big box
 
-    bool     containsPoint(const Vector2D& vec) const;
-    bool     empty() const;
+    Vector2D                 middle() const;
+    Vector2D                 pos() const;
+    Vector2D                 size() const;
 
-    double   x = 0, y = 0;
+    bool                     containsPoint(const Vector2D& vec) const;
+    bool                     empty() const;
+
+    double                   x = 0, y = 0;
     union {
         double w;
         double width;

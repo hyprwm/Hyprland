@@ -588,7 +588,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
-            if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+            if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords)) {
                 wd->onMouseButtonOnDeco(mouseCoords, e);
                 return;
             }
@@ -675,7 +675,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
     const auto pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
 
     if (*PGROUPBARSCROLLING && pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(MOUSECOORDS) && pWindow->m_sGroupData.pNextWindow) {
-        const CBox box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+        const CBox box = g_pDecorationPositioner->getWindowDecorationBox(pWindow->getDecorationByType(DECORATION_GROUPBAR));
         if (box.containsPoint(MOUSECOORDS)) {
             if (e->delta > 0)
                 pWindow->setGroupCurrent(pWindow->m_sGroupData.pNextWindow);
@@ -1638,7 +1638,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
             if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
-            if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+            if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords)) {
                 onDeco = true;
                 break;
             }

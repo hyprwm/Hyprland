@@ -27,18 +27,18 @@ enum eDecorationEdges
 Request the positioner to position a decoration
 
 DECORATION_POSITION_ABSOLUTE:
-    - all params ignored
+    - desiredExtents may contain the extents to be used when reserved is set. Edges has to have the edges used.
 DECORATION_POSITION_STICKY:
     - one edge allowed
     - priority allowed
-    - desiredGeometry contains either w (for vertical) or h (for horizontal) edges
+    - desiredExtents contains the desired extents. Any other edge than the one selected is ignored.
     - reserved is allowed
 */
 struct SDecorationPositioningInfo {
     eDecorationPositioningPolicy policy   = DECORATION_POSITION_ABSOLUTE;
     uint32_t                     edges    = 0;  // enum eDecorationEdges
     uint32_t                     priority = 10; // priority, decos will be evaluated high -> low
-    CBox                         desiredGeometry;
+    SWindowDecorationExtents     desiredExtents;
     bool                         reserved = false; // if true, geometry will use reserved area
 };
 
@@ -77,6 +77,7 @@ class CDecorationPositioner {
         IHyprWindowDecoration*      pDecoration = nullptr;
         SDecorationPositioningInfo  positioningInfo;
         SDecorationPositioningReply lastReply;
+        bool                        needsReposition = true;
     };
 
     struct SWindowData {

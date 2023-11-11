@@ -76,15 +76,23 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
 
-    auto* const WINDOWDATA     = &m_mWindowDatas[pWindow];
-    WINDOWDATA->lastWindowSize = pWindow->m_vRealSize.vec();
-    const bool EPHEMERAL       = pWindow->m_vRealSize.isBeingAnimated();
+    auto* const WINDOWDATA = &m_mWindowDatas[pWindow];
 
     //
     std::vector<CDecorationPositioner::SWindowPositioningData*> datas;
     for (auto& wd : pWindow->m_dWindowDecorations) {
         datas.push_back(getDataFor(wd.get(), pWindow));
     }
+
+    if (WINDOWDATA->lastWindowSize == pWindow->m_vRealSize.vec() /* position not changed */
+        &&
+        std::all_of(m_vWindowPositioningDatas.begin(), m_vWindowPositioningDatas.end(), [pWindow](const auto& data) { return pWindow != data->pWindow || !data->needsReposition; })
+        /* all window datas are either not for this window or don't need a reposition */
+    )
+        return;
+
+    WINDOWDATA->lastWindowSize = pWindow->m_vRealSize.vec();
+    const bool EPHEMERAL       = pWindow->m_vRealSize.isBeingAnimated();
 
     std::sort(datas.begin(), datas.end(), [](const auto& a, const auto& b) { return a->positioningInfo.priority > b->positioningInfo.priority; });
 
@@ -97,32 +105,22 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
     for (size_t i = 0; i < datas.size(); ++i) {
         auto* const wd = datas[i];
 
-        if (wd->positioningInfo.policy != DECORATION_POSITION_STICKY)
-            continue;
-
         if (!wd->positioningInfo.reserved)
             continue;
 
-        const auto DESIREDSIZE =
-            wd->positioningInfo.edges & (DECORATION_EDGE_TOP | DECORATION_EDGE_BOTTOM) ? wd->positioningInfo.desiredGeometry.h : wd->positioningInfo.desiredGeometry.w;
-
-        const bool TOP     = wd->positioningInfo.edges & DECORATION_EDGE_TOP;
-        const bool BOTTOM  = wd->positioningInfo.edges & DECORATION_EDGE_BOTTOM;
-        const bool LEFT    = wd->positioningInfo.edges & DECORATION_EDGE_LEFT;
-        const bool RIGHT   = wd->positioningInfo.edges & DECORATION_EDGE_RIGHT;
-        const int  EDGESNO = TOP + BOTTOM + LEFT + RIGHT;
-
-        if (EDGESNO != 1)
-            continue;
+        const bool TOP    = wd->positioningInfo.edges & DECORATION_EDGE_TOP;
+        const bool BOTTOM = wd->positioningInfo.edges & DECORATION_EDGE_BOTTOM;
+        const bool LEFT   = wd->positioningInfo.edges & DECORATION_EDGE_LEFT;
+        const bool RIGHT  = wd->positioningInfo.edges & DECORATION_EDGE_RIGHT;
 
         if (LEFT)
-            reservedXL += DESIREDSIZE;
-        else if (RIGHT)
-            reservedXR += DESIREDSIZE;
-        else if (TOP)
-            reservedYT += DESIREDSIZE;
-        else
-            reservedYB += DESIREDSIZE;
+            reservedXL += wd->positioningInfo.desiredExtents.topLeft.x;
+        if (RIGHT)
+            reservedXR += wd->positioningInfo.desiredExtents.bottomRight.x;
+        if (TOP)
+            reservedYT += wd->positioningInfo.desiredExtents.topLeft.y;
+        if (BOTTOM)
+            reservedYB += wd->positioningInfo.desiredExtents.bottomRight.y;
     }
 
     WINDOWDATA->reserved = {{reservedXL, reservedYT}, {reservedXR, reservedYB}};
@@ -132,17 +130,28 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
     for (size_t i = 0; i < datas.size(); ++i) {
         auto* const wd = datas[i];
 
-        if (wd->positioningInfo.policy == DECORATION_POSITION_ABSOLUTE) {
-            wd->lastReply = {};
-            wd->pDecoration->onPositioningReply({});
-            continue;
-        }
+        wd->needsReposition = false;
 
         const bool TOP     = wd->positioningInfo.edges & DECORATION_EDGE_TOP;
         const bool BOTTOM  = wd->positioningInfo.edges & DECORATION_EDGE_BOTTOM;
         const bool LEFT    = wd->positioningInfo.edges & DECORATION_EDGE_LEFT;
         const bool RIGHT   = wd->positioningInfo.edges & DECORATION_EDGE_RIGHT;
         const int  EDGESNO = TOP + BOTTOM + LEFT + RIGHT;
+
+        if (wd->positioningInfo.policy == DECORATION_POSITION_ABSOLUTE) {
+            if (LEFT)
+                stickyOffsetXL += wd->positioningInfo.desiredExtents.topLeft.x;
+            if (RIGHT)
+                stickyOffsetXR += wd->positioningInfo.desiredExtents.bottomRight.x;
+            if (TOP)
+                stickyOffsetYT += wd->positioningInfo.desiredExtents.topLeft.y;
+            if (BOTTOM)
+                stickyOffsetYB += wd->positioningInfo.desiredExtents.bottomRight.y;
+
+            wd->lastReply = {};
+            wd->pDecoration->onPositioningReply({});
+            continue;
+        }
 
         if (wd->positioningInfo.policy == DECORATION_POSITION_STICKY) {
             if (EDGESNO != 1) {
@@ -151,8 +160,15 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
                 continue;
             }
 
-            const auto DESIREDSIZE =
-                wd->positioningInfo.edges & (DECORATION_EDGE_TOP | DECORATION_EDGE_BOTTOM) ? wd->positioningInfo.desiredGeometry.h : wd->positioningInfo.desiredGeometry.w;
+            auto desiredSize = 0;
+            if (LEFT)
+                desiredSize = wd->positioningInfo.desiredExtents.topLeft.x;
+            else if (RIGHT)
+                desiredSize = wd->positioningInfo.desiredExtents.bottomRight.x;
+            else if (TOP)
+                desiredSize = wd->positioningInfo.desiredExtents.topLeft.y;
+            else
+                desiredSize = wd->positioningInfo.desiredExtents.bottomRight.y;
 
             const auto EDGEPOINT = getEdgeDefinedPoint(wd->positioningInfo.edges, pWindow);
 
@@ -160,26 +176,26 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
 
             if (LEFT) {
                 pos = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, 0};
-                pos.x -= DESIREDSIZE;
-                size = {DESIREDSIZE, wb.size().y};
+                pos.x -= desiredSize;
+                size = {desiredSize, wb.size().y};
 
-                stickyOffsetXL += DESIREDSIZE;
+                stickyOffsetXL += desiredSize;
             } else if (RIGHT) {
                 pos  = wb.pos() + Vector2D{wb.size().x, 0} - EDGEPOINT + Vector2D{stickyOffsetXR, 0};
-                size = {DESIREDSIZE, wb.size().y};
+                size = {desiredSize, wb.size().y};
 
-                stickyOffsetXR += DESIREDSIZE;
+                stickyOffsetXR += desiredSize;
             } else if (TOP) {
                 pos = wb.pos() - EDGEPOINT - Vector2D{0, stickyOffsetYT};
-                pos.y -= DESIREDSIZE;
-                size = {wb.size().x, DESIREDSIZE};
+                pos.y -= desiredSize;
+                size = {wb.size().x, desiredSize};
 
-                stickyOffsetYT += DESIREDSIZE;
+                stickyOffsetYT += desiredSize;
             } else {
                 pos  = wb.pos() + Vector2D{0, wb.size().y} - EDGEPOINT - Vector2D{0, stickyOffsetYB};
-                size = {wb.size().x, DESIREDSIZE};
+                size = {wb.size().x, desiredSize};
 
-                stickyOffsetYB += DESIREDSIZE;
+                stickyOffsetYB += desiredSize;
             }
 
             wd->lastReply = {{pos, size}, EPHEMERAL};
@@ -224,9 +240,16 @@ CBox CDecorationPositioner::getBoxWithIncludedDecos(CWindow* pWindow) {
         if (!(data->pDecoration->getDecorationFlags() & DECORATION_PART_OF_MAIN_WINDOW))
             continue;
 
-        CBox       decoBox   = data->lastReply.assignedGeometry;
-        const auto EDGEPOINT = getEdgeDefinedPoint(data->positioningInfo.edges, pWindow);
-        decoBox.translate(EDGEPOINT);
+        CBox decoBox;
+
+        if (data->positioningInfo.policy == DECORATION_POSITION_ABSOLUTE) {
+            decoBox = data->pWindow->getWindowMainSurfaceBox();
+            decoBox.addExtents(data->positioningInfo.desiredExtents);
+        } else {
+            decoBox              = data->lastReply.assignedGeometry;
+            const auto EDGEPOINT = getEdgeDefinedPoint(data->positioningInfo.edges, pWindow);
+            decoBox.translate(EDGEPOINT);
+        }
 
         SWindowDecorationExtents extentsToAdd;
 
@@ -238,6 +261,8 @@ CBox CDecorationPositioner::getBoxWithIncludedDecos(CWindow* pWindow) {
             extentsToAdd.bottomRight.x = accum.x + accum.w - (decoBox.x + decoBox.w);
         if (decoBox.y + decoBox.h > accum.y + accum.h)
             extentsToAdd.bottomRight.y = accum.y + accum.h - (decoBox.y + decoBox.h);
+
+        accum.addExtents(extentsToAdd);
     }
 
     return accum;

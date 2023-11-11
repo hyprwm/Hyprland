@@ -23,11 +23,11 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto* const         PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
 
     SDecorationPositioningInfo info;
-    info.policy          = DECORATION_POSITION_STICKY;
-    info.edges           = DECORATION_EDGE_TOP;
-    info.priority        = 3;
-    info.reserved        = true;
-    info.desiredGeometry = {0, 0, 0, BORDERSIZE + BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2};
+    info.policy         = DECORATION_POSITION_STICKY;
+    info.edges          = DECORATION_EDGE_TOP;
+    info.priority       = 3;
+    info.reserved       = true;
+    info.desiredExtents = {{0, BORDERSIZE + BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2}, {0, 0}};
     return info;
 }
 

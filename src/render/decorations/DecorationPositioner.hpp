@@ -27,7 +27,8 @@ enum eDecorationEdges
 Request the positioner to position a decoration
 
 DECORATION_POSITION_ABSOLUTE:
-    - desiredExtents may contain the extents to be used when reserved is set. Edges has to have the edges used.
+    - desiredExtents has to contain the extents. Edges has to have the edges used.
+    - reserved allowed
 DECORATION_POSITION_STICKY:
     - one edge allowed
     - priority allowed

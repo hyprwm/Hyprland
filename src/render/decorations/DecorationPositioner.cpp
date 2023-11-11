@@ -226,11 +226,41 @@ SWindowDecorationExtents CDecorationPositioner::getWindowDecorationReserved(CWin
 }
 
 SWindowDecorationExtents CDecorationPositioner::getWindowDecorationExtents(CWindow* pWindow, bool inputOnly) {
-    if (!inputOnly)
-        return m_mWindowDatas[pWindow].extents;
+    CBox accum = pWindow->getWindowMainSurfaceBox().expand(pWindow->getRealBorderSize());
 
-    // TODO:
-    return m_mWindowDatas[pWindow].extents;
+    for (auto& data : m_vWindowPositioningDatas) {
+        if (data->pWindow != pWindow)
+            continue;
+
+        if (!(data->pDecoration->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT) && inputOnly)
+            continue;
+
+        CBox decoBox;
+
+        if (data->positioningInfo.policy == DECORATION_POSITION_ABSOLUTE) {
+            decoBox = data->pWindow->getWindowMainSurfaceBox();
+            decoBox.addExtents(data->positioningInfo.desiredExtents);
+        } else {
+            decoBox              = data->lastReply.assignedGeometry;
+            const auto EDGEPOINT = getEdgeDefinedPoint(data->positioningInfo.edges, pWindow);
+            decoBox.translate(EDGEPOINT);
+        }
+
+        SWindowDecorationExtents extentsToAdd;
+
+        if (decoBox.x < accum.x)
+            extentsToAdd.topLeft.x = accum.x - decoBox.x;
+        if (decoBox.y < accum.y)
+            extentsToAdd.topLeft.y = accum.y - decoBox.y;
+        if (decoBox.x + decoBox.w > accum.x + accum.w)
+            extentsToAdd.bottomRight.x = (decoBox.x + decoBox.w) - (accum.x + accum.w);
+        if (decoBox.y + decoBox.h > accum.y + accum.h)
+            extentsToAdd.bottomRight.y = (decoBox.y + decoBox.h) - (accum.y + accum.h);
+
+        accum.addExtents(extentsToAdd);
+    }
+
+    return accum.extentsFrom(pWindow->getWindowMainSurfaceBox());
 }
 
 CBox CDecorationPositioner::getBoxWithIncludedDecos(CWindow* pWindow) {

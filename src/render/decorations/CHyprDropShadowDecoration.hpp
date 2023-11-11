@@ -23,6 +23,7 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
   private:
     SWindowDecorationExtents m_seExtents;
+    SWindowDecorationExtents m_seReportedExtents;
 
     CWindow*                 m_pWindow = nullptr;
 

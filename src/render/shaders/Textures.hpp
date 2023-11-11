@@ -234,11 +234,11 @@ vec3 rgb2hsl(vec3 col) {
         sat       = delta / (mul * 2.0);
     }
 
-    vec3  masks = vec3((maxc == red && maxc != green) ? 1.0 : 0.0, (maxc == green && maxc != blue) ? 1.0 : 0.0, (maxc == blue && maxc != red) ? 1.0 : 0.0);
-
-    vec3  adds = vec3(((green - blue) / delta), 2.0 + ((blue - red) / delta), 4.0 + ((red - green) / delta));
-
     if (delta > 0.0) {
+        vec3  maxcVec = vec3(maxc);
+        vec3  masks = vec3(equal(maxcVec, col)) * vec3(notEqual(maxcVec, vec3(green, blue, red)));
+        vec3  adds = vec3(0.0, 2.0, 4.0) + vec3(green - blue, blue - red, red - green) / delta;
+
         hue += dot(adds, masks);
         hue /= 6.0;
 
@@ -248,6 +248,7 @@ vec3 rgb2hsl(vec3 col) {
 
     return vec3(hue, sat, lum);
 }
+
 vec3 hsl2rgb(vec3 col) {
     const float onethird = 1.0 / 3.0;
     const float twothird = 2.0 / 3.0;

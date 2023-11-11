@@ -19,7 +19,7 @@ SDecorationPositioningInfo CHyprDropShadowDecoration::getPositioningInfo() {
 }
 
 void CHyprDropShadowDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
-    // ignored
+    updateWindow(m_pWindow);
 }
 
 void CHyprDropShadowDecoration::damageEntire() {
@@ -39,13 +39,11 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
 
     const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
-    if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
-        m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
-        m_vLastWindowSize = pWindow->m_vRealSize.vec();
+    m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
+    m_vLastWindowSize = pWindow->m_vRealSize.vec();
 
-        m_bLastWindowBox          = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
-        m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
-    }
+    m_bLastWindowBox          = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
+    m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
 }
 
 void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {

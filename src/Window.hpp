@@ -344,7 +344,9 @@ class CWindow {
     CBox                     getWindowInputBox();
     CBox                     getWindowMainSurfaceBox();
     CBox                     getWindowIdealBoundingBoxIgnoreReserved();
+    void                     addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco);
     void                     updateWindowDecos();
+    void                     removeWindowDeco(IHyprWindowDecoration* deco);
     pid_t                    getPID();
     IHyprWindowDecoration*   getDecorationByType(eDecorationType);
     void                     removeDecorationByType(eDecorationType);

@@ -2105,7 +2105,7 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
 
         box.scale(PMONITOR->scale);
 
-        rg.add(&box);
+        rg.add(box);
     }
 
     region.subtract(rg);

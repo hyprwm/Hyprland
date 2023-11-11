@@ -21,8 +21,8 @@ CRegion::CRegion(wlr_box* box) {
     pixman_region32_init_rect(&m_rRegion, box->x, box->y, box->width, box->height);
 }
 
-CRegion::CRegion(CBox* box) {
-    pixman_region32_init_rect(&m_rRegion, box->x, box->y, box->w, box->h);
+CRegion::CRegion(const CBox& box) {
+    pixman_region32_init_rect(&m_rRegion, box.x, box.y, box.w, box.h);
 }
 
 CRegion::CRegion(pixman_box32_t* box) {
@@ -60,6 +60,11 @@ CRegion& CRegion::add(const CRegion& other) {
 
 CRegion& CRegion::add(double x, double y, double w, double h) {
     pixman_region32_union_rect(&m_rRegion, &m_rRegion, x, y, w, h);
+    return *this;
+}
+
+CRegion& CRegion::add(const CBox& other) {
+    pixman_region32_union_rect(&m_rRegion, &m_rRegion, other.x, other.y, other.w, other.h);
     return *this;
 }
 

@@ -61,6 +61,7 @@ class Vector2D {
     Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D()) const;
 
     Vector2D floor() const;
+    Vector2D round() const;
 
     bool     inTriangle(const Vector2D& p1, const Vector2D& p2, const Vector2D& p3) const;
 };

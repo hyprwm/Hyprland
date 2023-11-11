@@ -10,17 +10,16 @@ CHyprDropShadowDecoration::~CHyprDropShadowDecoration() {
     updateWindow(m_pWindow);
 }
 
-SWindowDecorationExtents CHyprDropShadowDecoration::getWindowDecorationExtents() {
-    static auto* const PSHADOWS = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
-
-    if (*PSHADOWS != 1)
-        return {{}, {}};
-
-    return m_seExtents;
-}
-
 eDecorationType CHyprDropShadowDecoration::getDecorationType() {
     return DECORATION_SHADOW;
+}
+
+SDecorationPositioningInfo CHyprDropShadowDecoration::getPositioningInfo() {
+    return {DECORATION_POSITION_ABSOLUTE};
+}
+
+void CHyprDropShadowDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
+    updateWindow(m_pWindow);
 }
 
 void CHyprDropShadowDecoration::damageEntire() {
@@ -40,37 +39,11 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
 
     const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
-    if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
-        m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
-        m_vLastWindowSize = pWindow->m_vRealSize.vec();
+    m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
+    m_vLastWindowSize = pWindow->m_vRealSize.vec();
 
-        damageEntire();
-
-        const auto BORDER = m_pWindow->getRealBorderSize();
-
-        // calculate extents of decos with the DECORATION_PART_OF_MAIN_WINDOW flag
-        SWindowDecorationExtents maxExtents;
-
-        for (auto& wd : m_pWindow->m_dWindowDecorations) {
-            // conveniently, this will also skip us.
-            if (!(wd->getDecorationFlags() & DECORATION_PART_OF_MAIN_WINDOW))
-                continue;
-
-            const auto EXTENTS = wd->getWindowDecorationExtents();
-
-            if (maxExtents.topLeft.x < EXTENTS.topLeft.x)
-                maxExtents.topLeft.x = EXTENTS.topLeft.x;
-            if (maxExtents.topLeft.y < EXTENTS.topLeft.y)
-                maxExtents.topLeft.y = EXTENTS.topLeft.y;
-            if (maxExtents.bottomRight.x < EXTENTS.bottomRight.x)
-                maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-            if (maxExtents.bottomRight.y < EXTENTS.bottomRight.y)
-                maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
-        }
-
-        m_bLastWindowBox = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
-        m_eLastExtents   = {{maxExtents.topLeft + Vector2D{BORDER, BORDER}}, {maxExtents.bottomRight + Vector2D{BORDER, BORDER}}};
-    }
+    m_bLastWindowBox          = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
+    m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
 }
 
 void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
@@ -102,8 +75,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     const auto ROUNDING = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
 
     // draw the shadow
-    CBox fullBox = {m_bLastWindowBox.x, m_bLastWindowBox.y, m_bLastWindowBox.width, m_bLastWindowBox.height};
-    fullBox.addExtents(m_eLastExtents).translate(-pMonitor->vecPosition);
+    CBox fullBox = m_bLastWindowBoxWithDecos;
+    fullBox.translate(-pMonitor->vecPosition);
     fullBox.x -= *PSHADOWSIZE;
     fullBox.y -= *PSHADOWSIZE;
     fullBox.w += 2 * *PSHADOWSIZE;
@@ -134,11 +107,16 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
     if (*PSHADOWIGNOREWINDOW) {
         CBox windowBox = m_bLastWindowBox;
+        CBox withDecos = m_bLastWindowBoxWithDecos;
 
-        windowBox.translate(-pMonitor->vecPosition).scale(pMonitor->scale);
-        windowBox.round();
+        // get window box
+        windowBox.translate(-pMonitor->vecPosition).scale(pMonitor->scale).round();
+        withDecos.translate(-pMonitor->vecPosition).scale(pMonitor->scale).round();
 
-        windowBox.addExtents(SWindowDecorationExtents{m_eLastExtents * pMonitor->scale}.floor()).round();
+        auto scaledDecoExtents = withDecos.extentsFrom(windowBox).round();
+
+        // add extents
+        windowBox.addExtents(scaledDecoExtents).round();
 
         if (windowBox.width < 1 || windowBox.height < 1)
             return; // prevent assert failed

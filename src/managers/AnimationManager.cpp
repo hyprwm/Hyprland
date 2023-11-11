@@ -68,6 +68,7 @@ void CAnimationManager::tick() {
 
         if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {
             av->warp(false);
+            animationEndedVars.push_back(av);
             continue;
         }
 

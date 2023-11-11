@@ -9,14 +9,12 @@
 class CWindow;
 class IHyprWindowDecoration;
 
-enum eDecorationPositioningPolicy
-{
+enum eDecorationPositioningPolicy {
     DECORATION_POSITION_ABSOLUTE = 0, /* Decoration does not interfere with anything else */
     DECORATION_POSITION_STICKY,       /* Decoration is stuck to some edge of a window */
 };
 
-enum eDecorationEdges
-{
+enum eDecorationEdges {
     DECORATION_EDGE_TOP    = 1 << 0,
     DECORATION_EDGE_BOTTOM = 1 << 1,
     DECORATION_EDGE_LEFT   = 1 << 2,
@@ -93,6 +91,8 @@ class CDecorationPositioner {
 
     SWindowPositioningData*                              getDataFor(IHyprWindowDecoration* pDecoration, CWindow* pWindow);
     void                                                 onWindowUnmap(CWindow* pWindow);
+    void                                                 onWindowMap(CWindow* pWindow);
+    void                                                 sanitizeDatas();
 };
 
 inline std::unique_ptr<CDecorationPositioner> g_pDecorationPositioner;

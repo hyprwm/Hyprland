@@ -150,8 +150,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         // first, clear with black (fully transparent)
         g_pHyprOpenGL->clear(CColor(0, 0, 0, 1));
 
-        // render white shadow
-        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, 1), a);
+        // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, m_pWindow->m_cRealShadowColor.col().a), a);
 
         // render black window box ("clip")
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 1.0), ROUNDING * pMonitor->scale);
@@ -159,7 +159,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         alphaSwapFB.bind();
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
-        g_pHyprOpenGL->clear(m_pWindow->m_cRealShadowColor.col());
+        g_pHyprOpenGL->clear(m_pWindow->m_cRealShadowColor.col().stripA());
 
         LASTFB->bind();
 

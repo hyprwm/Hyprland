@@ -258,19 +258,18 @@ vec3 hsl2rgb(vec3 col) {
     float       sat = col.y;
     float       lum = col.z;
 
-    vec3        xt = vec3(rcpsixth * (hue - twothird), 0.0, rcpsixth * (1.0 - hue));
-
-    if (hue < twothird) {
-        xt.r = 0.0;
-        xt.g = rcpsixth * (twothird - hue);
-        xt.b = rcpsixth * (hue - onethird);
-    }
+    vec3        xt = vec3(0.0);
 
     if (hue < onethird) {
         xt.r = rcpsixth * (onethird - hue);
         xt.g = rcpsixth * hue;
         xt.b = 0.0;
-    }
+    } else if (hue < twothird) {
+        xt.r = 0.0;
+        xt.g = rcpsixth * (twothird - hue);
+        xt.b = rcpsixth * (hue - onethird);
+    } else
+        xt = vec3(rcpsixth * (hue - twothird), 0.0, rcpsixth * (1.0 - hue));
 
     xt = min(xt, 1.0);
 

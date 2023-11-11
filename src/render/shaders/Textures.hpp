@@ -205,9 +205,7 @@ const float c = 0.66; //  Determines the smoothness of the transition of unboost
 
 // http://www.flong.com/archive/texts/code/shapers_circ/
 float doubleCircleSigmoid(float x, float a) {
-    float min_param_a = 0.0;
-    float max_param_a = 1.0;
-    a                 = max(min_param_a, min(max_param_a, a));
+    a = clamp(a, 0.0, 1.0);
 
     float y = .0;
     if (x <= a) {

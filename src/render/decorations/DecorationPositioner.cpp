@@ -52,6 +52,7 @@ Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, CWindow* pWi
 
 void CDecorationPositioner::uncacheDecoration(IHyprWindowDecoration* deco) {
     std::erase_if(m_vWindowPositioningDatas, [&](const auto& data) { return data->pDecoration == deco; });
+    m_mWindowDatas[deco->m_pWindow].needsRecalc = true;
 }
 
 void CDecorationPositioner::repositionDeco(IHyprWindowDecoration* deco) {
@@ -88,10 +89,12 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
         &&
         std::all_of(m_vWindowPositioningDatas.begin(), m_vWindowPositioningDatas.end(), [pWindow](const auto& data) { return pWindow != data->pWindow || !data->needsReposition; })
         /* all window datas are either not for this window or don't need a reposition */
+        && !WINDOWDATA->needsRecalc /* window doesn't need recalc */
     )
         return;
 
     WINDOWDATA->lastWindowSize = pWindow->m_vRealSize.vec();
+    WINDOWDATA->needsRecalc    = false;
     const bool EPHEMERAL       = pWindow->m_vRealSize.isBeingAnimated();
 
     std::sort(datas.begin(), datas.end(), [](const auto& a, const auto& b) { return a->positioningInfo.priority > b->positioningInfo.priority; });

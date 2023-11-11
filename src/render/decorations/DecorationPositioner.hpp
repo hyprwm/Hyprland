@@ -84,6 +84,7 @@ class CDecorationPositioner {
         Vector2D                 lastWindowSize = {};
         SWindowDecorationExtents reserved       = {};
         SWindowDecorationExtents extents        = {};
+        bool                     needsRecalc    = false;
     };
 
     std::unordered_map<CWindow*, SWindowData>            m_mWindowDatas;

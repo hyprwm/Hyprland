@@ -42,4 +42,8 @@ struct SWindowDecorationExtents {
     SWindowDecorationExtents round() {
         return {topLeft.round(), bottomRight.round()};
     }
+
+    bool operator==(const SWindowDecorationExtents& other) const {
+        return topLeft == other.topLeft && bottomRight == other.bottomRight;
+    }
 };

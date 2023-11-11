@@ -6,16 +6,20 @@ CHyprDropShadowDecoration::CHyprDropShadowDecoration(CWindow* pWindow) : IHyprWi
     m_pWindow = pWindow;
 }
 
-CHyprDropShadowDecoration::~CHyprDropShadowDecoration() {
-    updateWindow(m_pWindow);
-}
+CHyprDropShadowDecoration::~CHyprDropShadowDecoration() {}
 
 eDecorationType CHyprDropShadowDecoration::getDecorationType() {
     return DECORATION_SHADOW;
 }
 
 SDecorationPositioningInfo CHyprDropShadowDecoration::getPositioningInfo() {
-    return {DECORATION_POSITION_ABSOLUTE};
+    SDecorationPositioningInfo info;
+    info.policy         = DECORATION_POSITION_ABSOLUTE;
+    info.desiredExtents = m_seExtents;
+    info.edges          = DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP;
+
+    m_seReportedExtents = m_seExtents;
+    return info;
 }
 
 void CHyprDropShadowDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
@@ -148,6 +152,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     } else {
         g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
     }
+
+    if (m_seExtents != m_seReportedExtents)
+        g_pDecorationPositioner->repositionDeco(this);
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

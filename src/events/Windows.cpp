@@ -668,6 +668,13 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         return;
     }
 
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    if (PMONITOR) {
+        PWINDOW->m_vOriginalClosedPos     = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
+        PWINDOW->m_vOriginalClosedSize    = PWINDOW->m_vRealSize.vec();
+        PWINDOW->m_eOriginalClosedExtents = PWINDOW->getFullWindowExtents();
+    }
+
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
@@ -696,13 +703,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     if (PWINDOW->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-    if (PMONITOR) {
-        PWINDOW->m_vOriginalClosedPos     = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
-        PWINDOW->m_vOriginalClosedSize    = PWINDOW->m_vRealSize.vec();
-        PWINDOW->m_eOriginalClosedExtents = PWINDOW->getFullWindowExtents();
-    }
 
     // Allow the renderer to catch the last frame.
     g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);

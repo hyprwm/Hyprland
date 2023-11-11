@@ -238,14 +238,13 @@ vec3 rgb2hsl(vec3 col) {
 
     vec3  adds = vec3(((green - blue) / delta), 2.0 + ((blue - red) / delta), 4.0 + ((red - green) / delta));
 
-    float deltaGtz = (delta > 0.0) ? 1.0 : 0.0;
+    if (delta > 0.0) {
+        hue += dot(adds, masks);
+        hue /= 6.0;
 
-    hue += dot(adds, masks);
-    hue *= deltaGtz;
-    hue /= 6.0;
-
-    if (hue < 0.0)
-        hue += 1.0;
+        if (hue < 0.0)
+            hue += 1.0;
+    }
 
     return vec3(hue, sat, lum);
 }

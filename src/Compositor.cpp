@@ -81,6 +81,7 @@ CCompositor::CCompositor() {
 
 CCompositor::~CCompositor() {
     cleanup();
+    g_pDecorationPositioner.reset();
     g_pPluginSystem.reset();
     g_pHyprNotificationOverlay.reset();
     g_pDebugOverlay.reset();
@@ -441,6 +442,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Debug::log(LOG, "Creating the PluginSystem!");
             g_pPluginSystem = std::make_unique<CPluginSystem>();
             g_pConfigManager->handlePluginLoads();
+
+            Debug::log(LOG, "Creating the DecorationPositioner!");
+            g_pDecorationPositioner = std::make_unique<CDecorationPositioner>();
         } break;
         default: UNREACHABLE();
     }
@@ -1920,8 +1924,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
         pWindow->m_cRealShadowColor.setValueAndWarp(CColor(0, 0, 0, 0)); // no shadow
     }
 
-    for (auto& d : pWindow->m_dWindowDecorations)
-        d->updateWindow(pWindow);
+    pWindow->updateWindowDecos();
 }
 
 int CCompositor::getNextAvailableMonitorID(std::string const& name) {

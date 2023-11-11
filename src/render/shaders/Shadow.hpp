@@ -5,9 +5,7 @@
 inline const std::string FRAGSHADOW = R"#(
 precision mediump float;
 varying vec4 v_color;
-uniform sampler2D alphaMatte;
 varying vec2 v_texcoord;
-varying vec2 v_texcoordMatte;
 
 uniform vec2 topLeft;
 uniform vec2 bottomRight;
@@ -15,7 +13,6 @@ uniform vec2 fullSize;
 uniform float radius;
 uniform float range;
 uniform float shadowPower;
-uniform int useAlphaMatte;
 
 float pixAlphaRoundedDistance(float distanceToCorner) {
      if (distanceToCorner > radius) {
@@ -75,10 +72,6 @@ void main() {
         if (smallest < range) {
             pixColor[3] = pixColor[3] * pow((smallest / range), shadowPower);
         }
-    }
-
-    if (useAlphaMatte == 1) {
-        pixColor[3] *= 1.0 - texture2D(alphaMatte, v_texcoordMatte)[3];
     }
 
     if (pixColor[3] == 0.0) {

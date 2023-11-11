@@ -6,21 +6,24 @@ CHyprDropShadowDecoration::CHyprDropShadowDecoration(CWindow* pWindow) : IHyprWi
     m_pWindow = pWindow;
 }
 
-CHyprDropShadowDecoration::~CHyprDropShadowDecoration() {
-    updateWindow(m_pWindow);
-}
-
-SWindowDecorationExtents CHyprDropShadowDecoration::getWindowDecorationExtents() {
-    static auto* const PSHADOWS = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
-
-    if (*PSHADOWS != 1)
-        return {{}, {}};
-
-    return m_seExtents;
-}
+CHyprDropShadowDecoration::~CHyprDropShadowDecoration() {}
 
 eDecorationType CHyprDropShadowDecoration::getDecorationType() {
     return DECORATION_SHADOW;
+}
+
+SDecorationPositioningInfo CHyprDropShadowDecoration::getPositioningInfo() {
+    SDecorationPositioningInfo info;
+    info.policy         = DECORATION_POSITION_ABSOLUTE;
+    info.desiredExtents = m_seExtents;
+    info.edges          = DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP;
+
+    m_seReportedExtents = m_seExtents;
+    return info;
+}
+
+void CHyprDropShadowDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
+    updateWindow(m_pWindow);
 }
 
 void CHyprDropShadowDecoration::damageEntire() {
@@ -35,42 +38,11 @@ void CHyprDropShadowDecoration::damageEntire() {
 }
 
 void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
+    m_vLastWindowPos  = m_pWindow->m_vRealPosition.vec();
+    m_vLastWindowSize = m_pWindow->m_vRealSize.vec();
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-
-    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
-
-    if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
-        m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
-        m_vLastWindowSize = pWindow->m_vRealSize.vec();
-
-        damageEntire();
-
-        const auto BORDER = m_pWindow->getRealBorderSize();
-
-        // calculate extents of decos with the DECORATION_PART_OF_MAIN_WINDOW flag
-        SWindowDecorationExtents maxExtents;
-
-        for (auto& wd : m_pWindow->m_dWindowDecorations) {
-            // conveniently, this will also skip us.
-            if (!(wd->getDecorationFlags() & DECORATION_PART_OF_MAIN_WINDOW))
-                continue;
-
-            const auto EXTENTS = wd->getWindowDecorationExtents();
-
-            if (maxExtents.topLeft.x < EXTENTS.topLeft.x)
-                maxExtents.topLeft.x = EXTENTS.topLeft.x;
-            if (maxExtents.topLeft.y < EXTENTS.topLeft.y)
-                maxExtents.topLeft.y = EXTENTS.topLeft.y;
-            if (maxExtents.bottomRight.x < EXTENTS.bottomRight.x)
-                maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-            if (maxExtents.bottomRight.y < EXTENTS.bottomRight.y)
-                maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
-        }
-
-        m_bLastWindowBox = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
-        m_eLastExtents   = {{maxExtents.topLeft + Vector2D{BORDER, BORDER}}, {maxExtents.bottomRight + Vector2D{BORDER, BORDER}}};
-    }
+    m_bLastWindowBox          = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
+    m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
 }
 
 void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
@@ -99,11 +71,13 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto ROUNDING = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
+    const auto ROUNDING        = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
+    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
     // draw the shadow
-    CBox fullBox = {m_bLastWindowBox.x, m_bLastWindowBox.y, m_bLastWindowBox.width, m_bLastWindowBox.height};
-    fullBox.addExtents(m_eLastExtents).translate(-pMonitor->vecPosition);
+    CBox fullBox = m_bLastWindowBoxWithDecos;
+    fullBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
     fullBox.x -= *PSHADOWSIZE;
     fullBox.y -= *PSHADOWSIZE;
     fullBox.w += 2 * *PSHADOWSIZE;
@@ -134,25 +108,37 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
     if (*PSHADOWIGNOREWINDOW) {
         CBox windowBox = m_bLastWindowBox;
+        CBox withDecos = m_bLastWindowBoxWithDecos;
 
-        windowBox.translate(-pMonitor->vecPosition).scale(pMonitor->scale);
-        windowBox.round();
+        // get window box
+        windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale).round();
+        withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale).round();
 
-        windowBox.addExtents(SWindowDecorationExtents{m_eLastExtents * pMonitor->scale}.floor()).round();
+        auto scaledDecoExtents = withDecos.extentsFrom(windowBox).round();
 
-        if (windowBox.width < 1 || windowBox.height < 1) {
+        // add extents
+        windowBox.addExtents(scaledDecoExtents).round();
+
+        if (windowBox.width < 1 || windowBox.height < 1)
             return; // prevent assert failed
-        }
 
         alphaFB.bind();
-        g_pHyprOpenGL->clear(CColor(0, 0, 0, 0));
 
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(1.0, 1.0, 1.0, 1.0), ROUNDING * pMonitor->scale);
+        // build the matte
+        // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
+        // first, clear with black (fully transparent)
+        g_pHyprOpenGL->clear(CColor(0, 0, 0, 1));
+
+        // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, m_pWindow->m_cRealShadowColor.col().a), a);
+
+        // render black window box ("clip")
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 1.0), ROUNDING * pMonitor->scale);
 
         alphaSwapFB.bind();
-        g_pHyprOpenGL->clear(CColor(0, 0, 0, 0));
 
-        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
+        // alpha swap just has the shadow color. It will be the "texture" to render.
+        g_pHyprOpenGL->clear(m_pWindow->m_cRealShadowColor.col().stripA());
 
         LASTFB->bind();
 
@@ -163,6 +149,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     } else {
         g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
     }
+
+    if (m_seExtents != m_seReportedExtents)
+        g_pDecorationPositioner->repositionDeco(this);
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

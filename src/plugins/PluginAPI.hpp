@@ -221,7 +221,7 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addWindowDecoration(HANDLE handle, CWindow* pWindow, IHyprWindowDecoration* pDecoration);
+    APICALL bool addWindowDecoration(HANDLE handle, CWindow* pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration);
 
     /*
         Removes a window decoration

@@ -162,7 +162,7 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
         windowPos = windowPos + PMONITOR->vecXWaylandPosition; // move to correct position for xwayland
     }
 
-    if (!force && ((pWindow->m_vReportedSize == size && windowPos == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
+    if (!force && ((pWindow->m_vPendingReportedSize == size && windowPos == pWindow->m_vReportedPosition) || (pWindow->m_vPendingReportedSize == size && !pWindow->m_bIsX11)))
         return;
 
     pWindow->m_vReportedPosition    = windowPos;
@@ -180,12 +180,15 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
     if (pWindow->m_bIsX11)
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, windowPos.x, windowPos.y, size.x, size.y);
     else
-        wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y);
+        pWindow->m_vPendingSizeAcks.push_back(std::make_pair<>(wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y), size.floor()));
 }
 
 void CHyprXWaylandManager::setWindowStyleTiled(CWindow* pWindow, uint32_t edgez) {
-    if (!pWindow->m_bIsX11)
-        wlr_xdg_toplevel_set_tiled(pWindow->m_uSurface.xdg->toplevel, edgez);
+    if (pWindow->m_bIsX11)
+        return;
+
+    wlr_xdg_toplevel_set_tiled(pWindow->m_uSurface.xdg->toplevel, edgez);
+    wlr_xdg_toplevel_set_maximized(pWindow->m_uSurface.xdg->toplevel, true);
 }
 
 wlr_surface* CHyprXWaylandManager::surfaceAt(CWindow* pWindow, const Vector2D& client, Vector2D& surface) {

@@ -38,13 +38,8 @@ void CHyprDropShadowDecoration::damageEntire() {
 }
 
 void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
-
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-
-    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
-
-    m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
-    m_vLastWindowSize = pWindow->m_vRealSize.vec();
+    m_vLastWindowPos  = m_pWindow->m_vRealPosition.vec();
+    m_vLastWindowSize = m_pWindow->m_vRealSize.vec();
 
     m_bLastWindowBox          = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
     m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
@@ -76,11 +71,13 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto ROUNDING = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
+    const auto ROUNDING        = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
+    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
     // draw the shadow
     CBox fullBox = m_bLastWindowBoxWithDecos;
-    fullBox.translate(-pMonitor->vecPosition);
+    fullBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
     fullBox.x -= *PSHADOWSIZE;
     fullBox.y -= *PSHADOWSIZE;
     fullBox.w += 2 * *PSHADOWSIZE;
@@ -114,8 +111,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         CBox withDecos = m_bLastWindowBoxWithDecos;
 
         // get window box
-        windowBox.translate(-pMonitor->vecPosition).scale(pMonitor->scale).round();
-        withDecos.translate(-pMonitor->vecPosition).scale(pMonitor->scale).round();
+        windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale).round();
+        withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale).round();
 
         auto scaledDecoExtents = withDecos.extentsFrom(windowBox).round();
 

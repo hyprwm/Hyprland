@@ -21,6 +21,8 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual eDecorationLayer           getDecorationLayer();
 
+    virtual uint64_t                   getDecorationFlags();
+
   private:
     SWindowDecorationExtents m_seExtents;
     SWindowDecorationExtents m_seReportedExtents;

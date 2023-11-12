@@ -211,7 +211,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : (*PSWIPEUSER ? "r-1" : "m-1"), wsname);
     auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : (*PSWIPEUSER ? "r+1" : "m+1"), wsname);
 
-    if ((workspaceIDLeft == INT_MAX || workspaceIDRight == INT_MAX || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID) && !*PSWIPENEW) {
+    if ((workspaceIDLeft == WORKSPACE_INVALID || workspaceIDRight == WORKSPACE_INVALID || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID) && !*PSWIPENEW) {
         m_sActiveSwipe.pWorkspaceBegin = nullptr; // invalidate the swipe
         return;
     }

@@ -22,8 +22,11 @@ void Events::listener_change(wl_listener* listener, void* data) {
     if (!CONFIG)
         return;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto& m : g_pCompositor->m_vRealMonitors) {
         if (!m->output)
+            continue;
+
+        if (g_pCompositor->m_pUnsafeOutput == m.get())
             continue;
 
         const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m->output);
@@ -195,7 +198,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     Debug::log(LOG, "Destroy called for monitor {}", pMonitor->output->name);
 
-    pMonitor->onDisconnect();
+    pMonitor->onDisconnect(true);
 
     pMonitor->output                 = nullptr;
     pMonitor->m_bRenderingInitPassed = false;

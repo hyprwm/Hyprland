@@ -168,16 +168,20 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
         const bool LEFT    = wd->positioningInfo.edges & DECORATION_EDGE_LEFT;
         const bool RIGHT   = wd->positioningInfo.edges & DECORATION_EDGE_RIGHT;
         const int  EDGESNO = TOP + BOTTOM + LEFT + RIGHT;
+        const bool SOLID   = !(wd->pDecoration->getDecorationFlags() & DECORATION_NON_SOLID);
 
         if (wd->positioningInfo.policy == DECORATION_POSITION_ABSOLUTE) {
-            if (LEFT)
-                stickyOffsetXL += wd->positioningInfo.desiredExtents.topLeft.x;
-            if (RIGHT)
-                stickyOffsetXR += wd->positioningInfo.desiredExtents.bottomRight.x;
-            if (TOP)
-                stickyOffsetYT += wd->positioningInfo.desiredExtents.topLeft.y;
-            if (BOTTOM)
-                stickyOffsetYB += wd->positioningInfo.desiredExtents.bottomRight.y;
+
+            if (SOLID) {
+                if (LEFT)
+                    stickyOffsetXL += wd->positioningInfo.desiredExtents.topLeft.x;
+                if (RIGHT)
+                    stickyOffsetXR += wd->positioningInfo.desiredExtents.bottomRight.x;
+                if (TOP)
+                    stickyOffsetYT += wd->positioningInfo.desiredExtents.topLeft.y;
+                if (BOTTOM)
+                    stickyOffsetYB += wd->positioningInfo.desiredExtents.bottomRight.y;
+            }
 
             wd->lastReply = {};
             wd->pDecoration->onPositioningReply({});
@@ -210,23 +214,27 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
                 pos.x -= desiredSize;
                 size = {desiredSize, wb.size().y};
 
-                stickyOffsetXL += desiredSize;
+                if (SOLID)
+                    stickyOffsetXL += desiredSize;
             } else if (RIGHT) {
                 pos  = wb.pos() + Vector2D{wb.size().x, 0} - EDGEPOINT + Vector2D{stickyOffsetXR, 0};
                 size = {desiredSize, wb.size().y};
 
-                stickyOffsetXR += desiredSize;
+                if (SOLID)
+                    stickyOffsetXR += desiredSize;
             } else if (TOP) {
                 pos = wb.pos() - EDGEPOINT - Vector2D{0, stickyOffsetYT};
                 pos.y -= desiredSize;
                 size = {wb.size().x, desiredSize};
 
-                stickyOffsetYT += desiredSize;
+                if (SOLID)
+                    stickyOffsetYT += desiredSize;
             } else {
                 pos  = wb.pos() + Vector2D{0, wb.size().y} - EDGEPOINT - Vector2D{0, stickyOffsetYB};
                 size = {wb.size().x, desiredSize};
 
-                stickyOffsetYB += desiredSize;
+                if (SOLID)
+                    stickyOffsetYB += desiredSize;
             }
 
             wd->lastReply = {{pos, size}, EPHEMERAL};

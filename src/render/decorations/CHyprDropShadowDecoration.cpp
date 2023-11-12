@@ -26,6 +26,10 @@ void CHyprDropShadowDecoration::onPositioningReply(const SDecorationPositioningR
     updateWindow(m_pWindow);
 }
 
+uint64_t CHyprDropShadowDecoration::getDecorationFlags() {
+    return DECORATION_NON_SOLID;
+}
+
 void CHyprDropShadowDecoration::damageEntire() {
     static auto* const PSHADOWS = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
 

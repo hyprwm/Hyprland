@@ -84,9 +84,9 @@ CDecorationPositioner::SWindowPositioningData* CDecorationPositioner::getDataFor
 }
 
 void CDecorationPositioner::sanitizeDatas() {
-    std::erase_if(m_mWindowDatas, [](const auto& other) { return !g_pCompositor->windowValidMapped(other.first); });
+    std::erase_if(m_mWindowDatas, [](const auto& other) { return !g_pCompositor->windowExists(other.first); });
     std::erase_if(m_vWindowPositioningDatas, [](const auto& other) {
-        if (!g_pCompositor->windowValidMapped(other->pWindow))
+        if (!g_pCompositor->windowExists(other->pWindow))
             return true;
         if (std::find_if(other->pWindow->m_dWindowDecorations.begin(), other->pWindow->m_dWindowDecorations.end(),
                          [&](const auto& el) { return el.get() == other->pDecoration; }) == other->pWindow->m_dWindowDecorations.end())
@@ -96,7 +96,7 @@ void CDecorationPositioner::sanitizeDatas() {
 }
 
 void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
-    if (!g_pCompositor->windowValidMapped(pWindow))
+    if (!g_pCompositor->windowExists(pWindow) || !pWindow->m_bIsMapped)
         return;
 
     const auto WIT = std::find_if(m_mWindowDatas.begin(), m_mWindowDatas.end(), [&](const auto& other) { return other.first == pWindow; });

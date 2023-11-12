@@ -831,7 +831,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
     }
 
-    if (workspaceToChangeTo == INT_MAX) {
+    if (workspaceToChangeTo == WORKSPACE_INVALID) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
         return;
     }
@@ -920,7 +920,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     std::string workspaceName;
     const auto  WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
 
-    if (WORKSPACEID == INT_MAX) {
+    if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(LOG, "Invalid workspace in moveActiveToWorkspace");
         return;
     }
@@ -977,7 +977,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     const int   WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
 
-    if (WORKSPACEID == INT_MAX) {
+    if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
         return;
     }
@@ -1216,24 +1216,16 @@ void CKeybindManager::toggleSplit(std::string args) {
 }
 
 void CKeybindManager::alterSplitRatio(std::string args) {
-    float splitratio = 0;
-    bool  exact      = false;
+    std::optional<float> splitResult;
+    bool                 exact = false;
 
-    if (args == "+" || args == "-") {
-        Debug::log(LOG, "alterSplitRatio: using LEGACY +/-, consider switching to the Hyprland syntax.");
-        splitratio = (args == "+" ? 0.05f : -0.05f);
-    }
+    if (args.starts_with("exact")) {
+        exact       = true;
+        splitResult = getPlusMinusKeywordResult(args.substr(5), 0);
+    } else
+        splitResult = getPlusMinusKeywordResult(args, 0);
 
-    if (splitratio == 0) {
-        if (args.starts_with("exact")) {
-            exact      = true;
-            splitratio = getPlusMinusKeywordResult(args.substr(5), 0);
-        } else {
-            splitratio = getPlusMinusKeywordResult(args, 0);
-        }
-    }
-
-    if (splitratio == INT_MAX) {
+    if (!splitResult.has_value()) {
         Debug::log(ERR, "Splitratio invalid in alterSplitRatio!");
         return;
     }
@@ -1243,7 +1235,7 @@ void CKeybindManager::alterSplitRatio(std::string args) {
     if (!PLASTWINDOW)
         return;
 
-    g_pLayoutManager->getCurrentLayout()->alterSplitRatio(PLASTWINDOW, splitratio, exact);
+    g_pLayoutManager->getCurrentLayout()->alterSplitRatio(PLASTWINDOW, splitResult.value(), exact);
 }
 
 void CKeybindManager::focusMonitor(std::string arg) {
@@ -1425,7 +1417,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
     std::string workspaceName;
     const int   WORKSPACEID = getWorkspaceIDFromString(workspace, workspaceName);
 
-    if (WORKSPACEID == INT_MAX) {
+    if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "moveWorkspaceToMonitor invalid workspace!");
         return;
     }
@@ -1447,7 +1439,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     std::string        workspaceName = "";
     int                workspaceID   = getWorkspaceIDFromString("special:" + args, workspaceName);
 
-    if (workspaceID == INT_MAX || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
+    if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
         Debug::log(ERR, "Invalid workspace passed to special");
         return;
     }

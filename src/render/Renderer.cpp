@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "linux-dmabuf-unstable-v1-protocol.h"
 #include "../helpers/Region.hpp"
+#include <algorithm>
 
 CHyprRenderer::CHyprRenderer() {
     const auto ENV = getenv("WLR_DRM_NO_ATOMIC");
@@ -1287,13 +1288,22 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
             break;
     }
 
-    if (!test)
+    if (!test) {
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
+        // if everything is disabled, performMonitorReload won't be called from renderMonitor
+        bool allDisabled = std::all_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(),
+                                       [](const auto m) { return !m->m_bEnabled || g_pCompositor->m_pUnsafeOutput == m.get(); });
+        if (allDisabled) {
+            Debug::log(LOG, "OutputMgr apply: All monitors disabled; performing monitor reload.");
+            g_pConfigManager->performMonitorReload();
+        }
+    }
 
     if (ok)
         wlr_output_configuration_v1_send_succeeded(config);
     else
         wlr_output_configuration_v1_send_failed(config);
+
     wlr_output_configuration_v1_destroy(config);
 
     Debug::log(LOG, "OutputMgr Applied/Tested.");
@@ -1645,7 +1655,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     // if it's disabled, disable and ignore
     if (pMonitorRule->disabled) {
-
         if (pMonitor->m_bEnabled)
             pMonitor->onDisconnect();
 

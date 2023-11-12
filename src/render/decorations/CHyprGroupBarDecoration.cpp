@@ -405,5 +405,13 @@ uint64_t CHyprGroupBarDecoration::getDecorationFlags() {
 
 CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     CBox box = m_bAssignedBox;
-    return box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow));
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow));
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+
+    if (!PWORKSPACE)
+        return box;
+
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    return box.translate(WORKSPACEOFFSET);
 }

@@ -776,10 +776,16 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
             uvBR               = uvBR - Vector2D(1.0 - WPERC * (uvBR.x - uvTL.x), 1.0 - HPERC * (uvBR.y - uvTL.y));
             uvTL               = uvTL + TOADDTL;
 
-            if (geom.width > pWindow->m_vRealSize.vec().x)
-                uvBR.x = uvBR.x * (pWindow->m_vRealSize.vec().x / geom.width);
-            if (geom.height > pWindow->m_vRealSize.vec().y)
-                uvBR.y = uvBR.y * (pWindow->m_vRealSize.vec().y / geom.height);
+            // TODO: make this passed to the func. Might break in the future.
+            auto maxSize = pWindow->m_vRealSize.vec();
+
+            if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall)
+                maxSize = pWindow->m_pWLSurface.getViewporterCorrectedSize();
+
+            if (geom.width > maxSize.x)
+                uvBR.x = uvBR.x * (maxSize.x / geom.width);
+            if (geom.height > maxSize.y)
+                uvBR.y = uvBR.y * (maxSize.y / geom.height);
         }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;

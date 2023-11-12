@@ -776,10 +776,10 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
             uvBR               = uvBR - Vector2D(1.0 - WPERC * (uvBR.x - uvTL.x), 1.0 - HPERC * (uvBR.y - uvTL.y));
             uvTL               = uvTL + TOADDTL;
 
-            if (geom.width > pWindow->m_vRealSize.vec().x || geom.height > pWindow->m_vRealSize.vec().y) {
+            if (geom.width > pWindow->m_vRealSize.vec().x)
                 uvBR.x = uvBR.x * (pWindow->m_vRealSize.vec().x / geom.width);
+            if (geom.height > pWindow->m_vRealSize.vec().y)
                 uvBR.y = uvBR.y * (pWindow->m_vRealSize.vec().y / geom.height);
-            }
         }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;

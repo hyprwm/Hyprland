@@ -3,6 +3,18 @@
 #include "wlr/types/wlr_switch.h"
 #include <ranges>
 
+CInputManager::~CInputManager() {
+    m_lConstraints.clear();
+    m_lKeyboards.clear();
+    m_lMice.clear();
+    m_lTablets.clear();
+    m_lTabletTools.clear();
+    m_lTabletPads.clear();
+    m_lIdleInhibitors.clear();
+    m_lTouchDevices.clear();
+    m_lSwitches.clear();
+}
+
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     static auto* const PSENS      = &g_pConfigManager->getConfigValuePtr("general:sensitivity")->floatValue;
     static auto* const PNOACCEL   = &g_pConfigManager->getConfigValuePtr("input:force_no_accel")->intValue;

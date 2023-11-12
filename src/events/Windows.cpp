@@ -279,7 +279,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         std::string requestedWorkspaceName;
         const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0), requestedWorkspaceName);
 
-        if (REQUESTEDWORKSPACEID != INT_MAX) {
+        if (REQUESTEDWORKSPACEID != WORKSPACE_INVALID) {
             auto pWorkspace = g_pCompositor->getWorkspaceByID(REQUESTEDWORKSPACEID);
 
             if (!pWorkspace)

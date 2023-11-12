@@ -831,7 +831,7 @@ void CKeybindManager::changeworkspace(std::string args) {
         workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
     }
 
-    if (workspaceToChangeTo == INT_MAX) {
+    if (workspaceToChangeTo == WORKSPACE_INVALID) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
         return;
     }
@@ -920,7 +920,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     std::string workspaceName;
     const auto  WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
 
-    if (WORKSPACEID == INT_MAX) {
+    if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(LOG, "Invalid workspace in moveActiveToWorkspace");
         return;
     }
@@ -977,7 +977,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     const int   WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
 
-    if (WORKSPACEID == INT_MAX) {
+    if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
         return;
     }
@@ -1233,7 +1233,7 @@ void CKeybindManager::alterSplitRatio(std::string args) {
         }
     }
 
-    if (splitratio == INT_MAX) {
+    if (splitratio == WORKSPACE_INVALID) {
         Debug::log(ERR, "Splitratio invalid in alterSplitRatio!");
         return;
     }
@@ -1425,7 +1425,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
     std::string workspaceName;
     const int   WORKSPACEID = getWorkspaceIDFromString(workspace, workspaceName);
 
-    if (WORKSPACEID == INT_MAX) {
+    if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "moveWorkspaceToMonitor invalid workspace!");
         return;
     }
@@ -1447,7 +1447,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     std::string        workspaceName = "";
     int                workspaceID   = getWorkspaceIDFromString("special:" + args, workspaceName);
 
-    if (workspaceID == INT_MAX || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
+    if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
         Debug::log(ERR, "Invalid workspace passed to special");
         return;
     }

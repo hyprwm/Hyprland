@@ -1164,13 +1164,13 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
     auto           rules = value.substr(FIRST_DELIM + 1);
     SWorkspaceRule wsRule;
     wsRule.workspaceString = first_ident;
-    if (id == INT_MAX) {
+    if (id == WORKSPACE_INVALID) {
         // it could be the monitor. If so, second value MUST be
         // the workspace.
         const auto WORKSPACE_DELIM = value.find_first_of(',', FIRST_DELIM + 1);
         auto       wsIdent         = removeBeginEndSpacesTabs(value.substr(FIRST_DELIM + 1, (WORKSPACE_DELIM - FIRST_DELIM - 1)));
         id                         = getWorkspaceIDFromString(wsIdent, name);
-        if (id == INT_MAX) {
+        if (id == WORKSPACE_INVALID) {
             Debug::log(ERR, "Invalid workspace identifier found: {}", wsIdent);
             parseError = "Invalid workspace identifier found: " + wsIdent;
             return;

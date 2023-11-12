@@ -353,7 +353,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
                         findAvailableDefaultWS() :
                         getWorkspaceIDFromString(g_pConfigManager->getDefaultWorkspaceFor(szName), newDefaultWorkspaceName);
 
-    if (WORKSPACEID == INT_MAX || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
+    if (WORKSPACEID == WORKSPACE_INVALID || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
         WORKSPACEID             = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 

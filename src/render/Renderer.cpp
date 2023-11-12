@@ -66,7 +66,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     if (windowBox.width <= 1 || windowBox.height <= 1)
         return; // invisible
 
-    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->squishOversized);
+    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface);
 
     windowBox.scale(RDATA->pMonitor->scale);
     windowBox.round();

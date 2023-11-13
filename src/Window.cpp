@@ -202,12 +202,16 @@ void CWindow::updateWindowDecos() {
 
 void CWindow::addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco) {
     m_dWindowDecorations.emplace_back(std::move(deco));
+    g_pDecorationPositioner->forceRecalcFor(this);
     updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 }
 
 void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
     m_vDecosToRemove.push_back(deco);
+    g_pDecorationPositioner->forceRecalcFor(this);
     updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 }
 
 pid_t CWindow::getPID() {

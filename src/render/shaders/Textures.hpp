@@ -137,7 +137,7 @@ uniform sampler2D tex;
 uniform sampler2D texMatte;
 
 void main() {
-    gl_FragColor = texture2D(tex, v_texcoord) * (1.0 - texture2D(texMatte, v_texcoord)[3]);
+    gl_FragColor = texture2D(tex, v_texcoord) * texture2D(texMatte, v_texcoord)[0]; // I know it only uses R, but matte should be black/white anyways.
 })#";
 
 inline const std::string TEXFRAGSRCRGBX = R"#(
@@ -205,9 +205,7 @@ const float c = 0.66; //  Determines the smoothness of the transition of unboost
 
 // http://www.flong.com/archive/texts/code/shapers_circ/
 float doubleCircleSigmoid(float x, float a) {
-    float min_param_a = 0.0;
-    float max_param_a = 1.0;
-    a                 = max(min_param_a, min(max_param_a, a));
+    a = clamp(a, 0.0, 1.0);
 
     float y = .0;
     if (x <= a) {
@@ -236,21 +234,21 @@ vec3 rgb2hsl(vec3 col) {
         sat       = delta / (mul * 2.0);
     }
 
-    vec3  masks = vec3((maxc == red && maxc != green) ? 1.0 : 0.0, (maxc == green && maxc != blue) ? 1.0 : 0.0, (maxc == blue && maxc != red) ? 1.0 : 0.0);
+    if (delta > 0.0) {
+        vec3  maxcVec = vec3(maxc);
+        vec3  masks = vec3(equal(maxcVec, col)) * vec3(notEqual(maxcVec, vec3(green, blue, red)));
+        vec3  adds = vec3(0.0, 2.0, 4.0) + vec3(green - blue, blue - red, red - green) / delta;
 
-    vec3  adds = vec3(((green - blue) / delta), 2.0 + ((blue - red) / delta), 4.0 + ((red - green) / delta));
+        hue += dot(adds, masks);
+        hue /= 6.0;
 
-    float deltaGtz = (delta > 0.0) ? 1.0 : 0.0;
-
-    hue += dot(adds, masks);
-    hue *= deltaGtz;
-    hue /= 6.0;
-
-    if (hue < 0.0)
-        hue += 1.0;
+        if (hue < 0.0)
+            hue += 1.0;
+    }
 
     return vec3(hue, sat, lum);
 }
+
 vec3 hsl2rgb(vec3 col) {
     const float onethird = 1.0 / 3.0;
     const float twothird = 2.0 / 3.0;
@@ -260,19 +258,18 @@ vec3 hsl2rgb(vec3 col) {
     float       sat = col.y;
     float       lum = col.z;
 
-    vec3        xt = vec3(rcpsixth * (hue - twothird), 0.0, rcpsixth * (1.0 - hue));
-
-    if (hue < twothird) {
-        xt.r = 0.0;
-        xt.g = rcpsixth * (twothird - hue);
-        xt.b = rcpsixth * (hue - onethird);
-    }
+    vec3        xt = vec3(0.0);
 
     if (hue < onethird) {
         xt.r = rcpsixth * (onethird - hue);
         xt.g = rcpsixth * hue;
         xt.b = 0.0;
-    }
+    } else if (hue < twothird) {
+        xt.r = 0.0;
+        xt.g = rcpsixth * (twothird - hue);
+        xt.b = rcpsixth * (hue - onethird);
+    } else
+        xt = vec3(rcpsixth * (hue - twothird), 0.0, rcpsixth * (1.0 - hue));
 
     xt = min(xt, 1.0);
 

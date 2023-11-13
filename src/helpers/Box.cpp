@@ -96,6 +96,15 @@ CBox& CBox::scaleFromCenter(double scale) {
     return *this;
 }
 
+CBox& CBox::expand(const double& value) {
+    x -= value;
+    y -= value;
+    w += value * 2.0;
+    h += value * 2.0;
+
+    return *this;
+}
+
 CBox CBox::roundInternal() {
     float newW = x + w - std::floor(x);
     float newH = y + h - std::floor(y);
@@ -109,4 +118,8 @@ Vector2D CBox::pos() const {
 
 Vector2D CBox::size() const {
     return {w, h};
+}
+
+SWindowDecorationExtents CBox::extentsFrom(const CBox& small) {
+    return {{small.x - x, small.y - y}, {w - small.w - (small.x - x), h - small.h - (small.y - y)}};
 }

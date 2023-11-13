@@ -26,6 +26,8 @@ struct SSurfaceTreeNode {
     void*                  globalOffsetData;
     CWindow*               pWindowOwner = nullptr;
 
+    Vector2D               lastSize;
+
     //
     bool operator==(const SSurfaceTreeNode& rhs) const {
         return pSurface == rhs.pSurface;

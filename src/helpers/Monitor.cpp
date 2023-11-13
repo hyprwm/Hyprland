@@ -188,7 +188,7 @@ void CMonitor::onConnect(bool noRule) {
     g_pCompositor->scheduleFrameForMonitor(this);
 }
 
-void CMonitor::onDisconnect() {
+void CMonitor::onDisconnect(bool destroy) {
 
     if (renderTimer) {
         wl_event_source_remove(renderTimer);
@@ -276,7 +276,8 @@ void CMonitor::onDisconnect() {
 
     activeWorkspace = -1;
 
-    wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
+    if (!destroy)
+        wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
 
     wlr_output_enable(output, false);
 
@@ -298,7 +299,6 @@ void CMonitor::onDisconnect() {
 
         g_pHyprRenderer->m_pMostHzMonitor = pMonitorMostHz;
     }
-
     std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
 }
 
@@ -353,7 +353,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
                         findAvailableDefaultWS() :
                         getWorkspaceIDFromString(g_pConfigManager->getDefaultWorkspaceFor(szName), newDefaultWorkspaceName);
 
-    if (WORKSPACEID == INT_MAX || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
+    if (WORKSPACEID == WORKSPACE_INVALID || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
         WORKSPACEID             = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 

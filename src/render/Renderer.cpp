@@ -1455,9 +1455,6 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
 
         if (Vector2D{box.width, box.height} != OLDSIZE)
             wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
-
-        Debug::log(LOG, "LayerSurface {:x} arranged: x: {} y: {} w: {} h: {} with margins: t: {} l: {} r: {} b: {}", (uintptr_t)&ls, box.x, box.y, box.width, box.height,
-                   PSTATE->margin.top, PSTATE->margin.left, PSTATE->margin.right, PSTATE->margin.bottom);
     }
 }
 
@@ -1496,8 +1493,6 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     damageMonitor(PMONITOR);
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
-
-    Debug::log(LOG, "Monitor {} layers arranged: reserved: {:5j} {:5j}", PMONITOR->szName, PMONITOR->vecReservedTopLeft, PMONITOR->vecReservedBottomRight);
 }
 
 void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, double scale) {

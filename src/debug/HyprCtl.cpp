@@ -625,6 +625,20 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return ret;
 }
 
+std::string rollinglogRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[\n\"log\":\"";
+        result += escapeJSONStrings(Debug::rollingLog);
+        result += "\"]";
+    } else {
+        result = Debug::rollingLog;
+    }
+
+    return result;
+}
+
 std::string globalShortcutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string ret       = "";
     const auto  SHORTCUTS = g_pProtocolManager->m_pGlobalShortcutsProtocolManager->getAllShortcuts();
@@ -1351,6 +1365,8 @@ std::string getReply(std::string request) {
         return globalShortcutsRequest(format);
     else if (request == "animations")
         return animationsRequest(format);
+    else if (request == "rollinglog")
+        return rollinglogRequest(format);
     else if (request.starts_with("plugin"))
         return dispatchPlugin(request);
     else if (request.starts_with("notify"))

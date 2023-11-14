@@ -246,20 +246,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 }
                 vPrev = v;
             }
-        } else if (r.szRule.starts_with("idleinhibit")) {
-            auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
-
-            if (IDLERULE == "none") {
-                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_NONE;
-            } else if (IDLERULE == "always") {
-                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_ALWAYS;
-            } else if (IDLERULE == "focus") {
-                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_FOCUS;
-            } else if (IDLERULE == "fullscreen") {
-                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
-            } else {
-                Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
-            }
         }
         PWINDOW->applyDynamicRule(r);
     }

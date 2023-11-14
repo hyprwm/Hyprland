@@ -591,6 +591,19 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             m_sAdditionalConfigData.xray = configStringToInt(vars[1]);
         } catch (...) {}
+    } else if (r.szRule.starts_with("idleinhibit")) {
+        auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+
+        if (IDLERULE == "none")
+            m_eIdleInhibitMode = IDLEINHIBIT_NONE;
+        else if (IDLERULE == "always")
+            m_eIdleInhibitMode = IDLEINHIBIT_ALWAYS;
+        else if (IDLERULE == "focus")
+            m_eIdleInhibitMode = IDLEINHIBIT_FOCUS;
+        else if (IDLERULE == "fullscreen")
+            m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
+        else
+            Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
     }
 }
 
@@ -615,6 +628,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.xray            = -1;
     m_sAdditionalConfigData.forceTearing    = false;
     m_sAdditionalConfigData.nearestNeighbor = false;
+    m_eIdleInhibitMode                      = IDLEINHIBIT_NONE;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {

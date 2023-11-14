@@ -145,7 +145,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:log_damage"].intValue         = 0;
     configValues["debug:overlay"].intValue            = 0;
     configValues["debug:damage_blink"].intValue       = 0;
-    configValues["debug:disable_logs"].intValue       = 0;
+    configValues["debug:disable_logs"].intValue       = 1;
     configValues["debug:disable_time"].intValue       = 1;
     configValues["debug:enable_stdout_logs"].intValue = 0;
     configValues["debug:damage_tracking"].intValue    = DAMAGE_TRACKING_FULL;

@@ -396,6 +396,8 @@ int main(int argc, char** argv) {
         request(fullRequest);
     else if (fullRequest.contains("/globalshortcuts"))
         request(fullRequest);
+    else if (fullRequest.contains("/rollinglog"))
+        request(fullRequest);
     else if (fullRequest.contains("/instances"))
         instancesRequest(json);
     else if (fullRequest.contains("/switchxkblayout"))

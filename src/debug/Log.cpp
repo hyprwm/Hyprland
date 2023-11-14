@@ -10,25 +10,24 @@ void Debug::init(const std::string& IS) {
 }
 
 void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {
-    if (disableLogs && *disableLogs)
-        return;
-
     if (level > wlr_log_get_verbosity())
         return;
 
-    char*         outputStr = nullptr;
-
-    std::ofstream ofs;
-    ofs.open(logFile, std::ios::out | std::ios::app);
+    char* outputStr = nullptr;
 
     vasprintf(&outputStr, fmt, args);
 
     std::string output = std::string(outputStr);
     free(outputStr);
 
-    ofs << "[wlr] " << output << "\n";
+    rollingLog += output + "\n";
 
-    ofs.close();
+    if (!disableLogs || !*disableLogs) {
+        std::ofstream ofs;
+        ofs.open(logFile, std::ios::out | std::ios::app);
+        ofs << "[wlr] " << output << "\n";
+        ofs.close();
+    }
 
     if (!disableStdout)
         std::cout << output << "\n";

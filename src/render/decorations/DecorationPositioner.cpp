@@ -95,6 +95,16 @@ void CDecorationPositioner::sanitizeDatas() {
     });
 }
 
+void CDecorationPositioner::forceRecalcFor(CWindow* pWindow) {
+    const auto WIT = std::find_if(m_mWindowDatas.begin(), m_mWindowDatas.end(), [&](const auto& other) { return other.first == pWindow; });
+    if (WIT == m_mWindowDatas.end())
+        return;
+
+    const auto WINDOWDATA = &WIT->second;
+
+    WINDOWDATA->needsRecalc = true;
+}
+
 void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
     if (!g_pCompositor->windowExists(pWindow) || !pWindow->m_bIsMapped)
         return;

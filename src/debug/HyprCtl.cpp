@@ -1417,14 +1417,14 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
 
-    sockaddr_in clientAddress;
-    socklen_t   clientSize = sizeof(clientAddress);
+    sockaddr_in            clientAddress;
+    socklen_t              clientSize = sizeof(clientAddress);
 
-    const auto  ACCEPTEDCONNECTION = accept4(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
+    const auto             ACCEPTEDCONNECTION = accept4(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
 
-    char        readBuffer[1024];
+    std::array<char, 1024> readBuffer;
 
-    fd_set      fdset;
+    fd_set                 fdset;
     FD_ZERO(&fdset);
     FD_SET(ACCEPTEDCONNECTION, &fdset);
     timeval timeout = {.tv_sec = 0, .tv_usec = 5000};
@@ -1435,10 +1435,17 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
         return 0;
     }
 
-    auto messageSize                                     = read(ACCEPTEDCONNECTION, readBuffer, 1024);
-    readBuffer[messageSize == 1024 ? 1023 : messageSize] = '\0';
-
-    std::string request(readBuffer);
+    std::string request;
+    while (true) {
+        readBuffer.fill(0);
+        auto messageSize = read(ACCEPTEDCONNECTION, readBuffer.data(), 1023);
+        if (messageSize < 1)
+            break;
+        std::string recvd = readBuffer.data();
+        request += recvd;
+        if (messageSize < 1023)
+            break;
+    }
 
     std::string reply = "";
 

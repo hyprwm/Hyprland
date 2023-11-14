@@ -71,6 +71,7 @@ class CDecorationPositioner {
     CBox                     getBoxWithIncludedDecos(CWindow* pWindow);
     void                     repositionDeco(IHyprWindowDecoration* deco);
     CBox                     getWindowDecorationBox(IHyprWindowDecoration* deco);
+    void                     forceRecalcFor(CWindow* pWindow);
 
   private:
     struct SWindowPositioningData {

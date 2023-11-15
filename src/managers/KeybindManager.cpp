@@ -949,6 +949,12 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     POLDWS->m_pLastFocusedWindow = g_pCompositor->getFirstWindowOnWorkspace(POLDWS->m_iID);
 
+    CMonitor* pOldMonitor = g_pCompositor->getMonitorFromID(POLDWS->m_iMonitorID);
+    if (pWorkspace->m_bIsSpecialWorkspace)
+        pOldMonitor->setSpecialWorkspace(pWorkspace);
+    else if (POLDWS->m_bIsSpecialWorkspace)
+        pOldMonitor->setSpecialWorkspace(nullptr);
+
     pMonitor->changeWorkspace(pWorkspace);
 
     g_pCompositor->focusWindow(PWINDOW);

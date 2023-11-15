@@ -80,7 +80,7 @@
         stdenv = pkgsFor.${system}.gcc13Stdenv;
       } {
         name = "hyprland-shell";
-        nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
+        nativeBuildInputs = with pkgsFor.${system}; [cmake python3 xorg.libXdmcp];
         buildInputs = [self.packages.${system}.wlroots-hyprland];
         inputsFrom = [
           self.packages.${system}.wlroots-hyprland

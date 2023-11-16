@@ -137,27 +137,20 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
     if (!w->m_sGroupData.pNextWindow)
         return isJson ? "" : "0";
 
-    std::vector<CWindow*> groupMembers;
-
-    CWindow*              curr = w;
-    do {
-        groupMembers.push_back(curr);
-        curr = curr->m_sGroupData.pNextWindow;
-    } while (curr != w);
-
-    const auto         comma = isJson ? ", " : ",";
     std::ostringstream result;
 
-    bool               first = true;
-    for (auto& gw : groupMembers) {
-        if (first)
-            first = false;
-        else
-            result << comma;
+    CWindow*           head = w->getGroupHead();
+    CWindow*           curr = head;
+    while (true) {
         if (isJson)
-            result << std::format("\"0x{:x}\"", (uintptr_t)gw);
+            result << std::format("\"0x{:x}\"", (uintptr_t)curr);
         else
-            result << std::format("{:x}", (uintptr_t)gw);
+            result << std::format("{:x}", (uintptr_t)curr);
+        curr = curr->m_sGroupData.pNextWindow;
+        // We've wrapped around to the start, break out without trailing comma
+        if (curr == head)
+            break;
+        result << (isJson ? ", " : ",");
     }
 
     return result.str();
@@ -662,6 +655,20 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     }
 
     return ret;
+}
+
+std::string rollinglogRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[\n\"log\":\"";
+        result += escapeJSONStrings(Debug::rollingLog);
+        result += "\"]";
+    } else {
+        result = Debug::rollingLog;
+    }
+
+    return result;
 }
 
 std::string globalShortcutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
@@ -1390,6 +1397,8 @@ std::string getReply(std::string request) {
         return globalShortcutsRequest(format);
     else if (request == "animations")
         return animationsRequest(format);
+    else if (request == "rollinglog")
+        return rollinglogRequest(format);
     else if (request.starts_with("plugin"))
         return dispatchPlugin(request);
     else if (request.starts_with("notify"))
@@ -1424,14 +1433,14 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
 
-    sockaddr_in clientAddress;
-    socklen_t   clientSize = sizeof(clientAddress);
+    sockaddr_in            clientAddress;
+    socklen_t              clientSize = sizeof(clientAddress);
 
-    const auto  ACCEPTEDCONNECTION = accept4(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
+    const auto             ACCEPTEDCONNECTION = accept4(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
 
-    char        readBuffer[1024];
+    std::array<char, 1024> readBuffer;
 
-    fd_set      fdset;
+    fd_set                 fdset;
     FD_ZERO(&fdset);
     FD_SET(ACCEPTEDCONNECTION, &fdset);
     timeval timeout = {.tv_sec = 0, .tv_usec = 5000};
@@ -1442,10 +1451,17 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
         return 0;
     }
 
-    auto messageSize                                     = read(ACCEPTEDCONNECTION, readBuffer, 1024);
-    readBuffer[messageSize == 1024 ? 1023 : messageSize] = '\0';
-
-    std::string request(readBuffer);
+    std::string request;
+    while (true) {
+        readBuffer.fill(0);
+        auto messageSize = read(ACCEPTEDCONNECTION, readBuffer.data(), 1023);
+        if (messageSize < 1)
+            break;
+        std::string recvd = readBuffer.data();
+        request += recvd;
+        if (messageSize < 1023)
+            break;
+    }
 
     std::string reply = "";
 

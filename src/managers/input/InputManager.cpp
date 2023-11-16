@@ -3,6 +3,18 @@
 #include "wlr/types/wlr_switch.h"
 #include <ranges>
 
+CInputManager::~CInputManager() {
+    m_lConstraints.clear();
+    m_lKeyboards.clear();
+    m_lMice.clear();
+    m_lTablets.clear();
+    m_lTabletTools.clear();
+    m_lTabletPads.clear();
+    m_lIdleInhibitors.clear();
+    m_lTouchDevices.clear();
+    m_lSwitches.clear();
+}
+
 void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     static auto* const PSENS      = &g_pConfigManager->getConfigValuePtr("general:sensitivity")->floatValue;
     static auto* const PNOACCEL   = &g_pConfigManager->getConfigValuePtr("input:force_no_accel")->intValue;
@@ -112,7 +124,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    if (!PMONITOR->solitaryClient && g_pHyprRenderer->shouldRenderCursor())
+    if (!PMONITOR->solitaryClient && g_pHyprRenderer->shouldRenderCursor() && PMONITOR->output->software_cursor_locks > 0)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     CWindow* forcedFocus = m_pForcedFocus;
@@ -588,7 +600,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
-            if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+            if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords)) {
                 wd->onMouseButtonOnDeco(mouseCoords, e);
                 return;
             }
@@ -675,7 +687,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
     const auto pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
 
     if (*PGROUPBARSCROLLING && pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(MOUSECOORDS) && pWindow->m_sGroupData.pNextWindow) {
-        const CBox box = pWindow->getDecorationByType(DECORATION_GROUPBAR)->getWindowDecorationRegion().getExtents();
+        const CBox box = g_pDecorationPositioner->getWindowDecorationBox(pWindow->getDecorationByType(DECORATION_GROUPBAR));
         if (box.containsPoint(MOUSECOORDS)) {
             if (e->delta > 0)
                 pWindow->setGroupCurrent(pWindow->m_sGroupData.pNextWindow);
@@ -1638,7 +1650,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
             if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
-            if (wd->getWindowDecorationRegion().containsPoint(mouseCoords)) {
+            if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords)) {
                 onDeco = true;
                 break;
             }

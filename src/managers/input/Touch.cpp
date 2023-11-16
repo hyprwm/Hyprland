@@ -2,6 +2,8 @@
 #include "../../Compositor.hpp"
 
 void CInputManager::onTouchDown(wlr_touch_down_event* e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("touchDown", e);
+
     auto       PMONITOR = g_pCompositor->getMonitorFromName(e->touch->output_name ? e->touch->output_name : "");
 
     const auto PDEVIT = std::find_if(m_lTouchDevices.begin(), m_lTouchDevices.end(), [&](const STouchDevice& other) { return other.pWlrDevice == &e->touch->base; });
@@ -52,12 +54,14 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 }
 
 void CInputManager::onTouchUp(wlr_touch_up_event* e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("touchUp", e);
     if (m_sTouchData.touchFocusSurface) {
         wlr_seat_touch_notify_up(g_pCompositor->m_sSeat.seat, e->time_msec, e->touch_id);
     }
 }
 
 void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("touchMove", e);
     if (m_sTouchData.touchFocusWindow && g_pCompositor->windowValidMapped(m_sTouchData.touchFocusWindow)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusWindow->m_iMonitorID);
 

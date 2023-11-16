@@ -7,12 +7,14 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode {
+enum eClickBehaviorMode
+{
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode {
+enum eMouseBindMode
+{
     MBIND_INVALID            = -1,
     MBIND_MOVE               = 0,
     MBIND_RESIZE             = 1,
@@ -20,7 +22,8 @@ enum eMouseBindMode {
     MBIND_RESIZE_FORCE_RATIO = 3
 };
 
-enum eBorderIconDirection {
+enum eBorderIconDirection
+{
     BORDERICON_NONE,
     BORDERICON_UP,
     BORDERICON_DOWN,
@@ -61,6 +64,8 @@ class CKeybindManager;
 
 class CInputManager {
   public:
+    ~CInputManager();
+
     void               onMouseMoved(wlr_pointer_motion_event*);
     void               onMouseWarp(wlr_pointer_motion_absolute_event*);
     void               onMouseButton(wlr_pointer_button_event*);

@@ -13,7 +13,7 @@ CWindow::CWindow() {
     m_cRealShadowColor.create(AVARTYPE_COLOR, g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), (void*)this, AVARDAMAGE_SHADOW);
     m_fDimPercent.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), (void*)this, AVARDAMAGE_ENTIRE);
 
-    m_dWindowDecorations.emplace_back(std::make_unique<CHyprDropShadowDecoration>(this)); // put the shadow so it's the first deco (has to be rendered first)
+    addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(this));
 }
 
 CWindow::~CWindow() {
@@ -37,22 +37,19 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
 
     SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    for (auto& wd : m_dWindowDecorations) {
+    const auto               EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(this);
 
-        const auto EXTENTS = wd->getWindowDecorationExtents();
+    if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
+        maxExtents.topLeft.x = EXTENTS.topLeft.x;
 
-        if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
-            maxExtents.topLeft.x = EXTENTS.topLeft.x;
+    if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
+        maxExtents.topLeft.y = EXTENTS.topLeft.y;
 
-        if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
-            maxExtents.topLeft.y = EXTENTS.topLeft.y;
+    if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
+        maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
 
-        if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-
-        if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
-    }
+    if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
+        maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
 
     if (m_pWLSurface.exists() && !m_bIsX11) {
         CBox surfaceExtents = {0, 0, 0, 0};
@@ -144,25 +141,19 @@ CBox CWindow::getWindowInputBox() {
 
     SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    for (auto& wd : m_dWindowDecorations) {
+    const auto               EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(this, true);
 
-        if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
-            continue;
+    if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
+        maxExtents.topLeft.x = EXTENTS.topLeft.x;
 
-        const auto EXTENTS = wd->getWindowDecorationExtents();
+    if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
+        maxExtents.topLeft.y = EXTENTS.topLeft.y;
 
-        if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
-            maxExtents.topLeft.x = EXTENTS.topLeft.x;
+    if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
+        maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
 
-        if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
-            maxExtents.topLeft.y = EXTENTS.topLeft.y;
-
-        if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-
-        if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
-    }
+    if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
+        maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
 
     // Add extents to the real base BB and return
     CBox finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
@@ -176,30 +167,19 @@ CBox CWindow::getWindowMainSurfaceBox() {
 }
 
 SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
-    SWindowDecorationExtents extents;
-
-    for (auto& wd : m_dWindowDecorations) {
-        const auto RESERVED = wd->getWindowDecorationReservedArea();
-
-        if (RESERVED.bottomRight == Vector2D{} && RESERVED.topLeft == Vector2D{})
-            continue;
-
-        extents.topLeft     = extents.topLeft + RESERVED.topLeft;
-        extents.bottomRight = extents.bottomRight + RESERVED.bottomRight;
-    }
-
-    return extents;
+    return g_pDecorationPositioner->getWindowDecorationReserved(this);
 }
 
 void CWindow::updateWindowDecos() {
-    for (auto& wd : m_dWindowDecorations)
-        wd->updateWindow(this);
-
     bool recalc = false;
+
+    if (!m_bIsMapped || isHidden())
+        return;
 
     for (auto& wd : m_vDecosToRemove) {
         for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
             if (it->get() == wd) {
+                g_pDecorationPositioner->uncacheDecoration(it->get());
                 it     = m_dWindowDecorations.erase(it);
                 recalc = true;
                 if (it == m_dWindowDecorations.end())
@@ -208,10 +188,30 @@ void CWindow::updateWindowDecos() {
         }
     }
 
+    g_pDecorationPositioner->onWindowUpdate(this);
+
     if (recalc)
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 
     m_vDecosToRemove.clear();
+
+    for (auto& wd : m_dWindowDecorations) {
+        wd->updateWindow(this);
+    }
+}
+
+void CWindow::addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco) {
+    m_dWindowDecorations.emplace_back(std::move(deco));
+    g_pDecorationPositioner->forceRecalcFor(this);
+    updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
+}
+
+void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
+    m_vDecosToRemove.push_back(deco);
+    g_pDecorationPositioner->forceRecalcFor(this);
+    updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 }
 
 pid_t CWindow::getPID() {
@@ -591,6 +591,19 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             m_sAdditionalConfigData.xray = configStringToInt(vars[1]);
         } catch (...) {}
+    } else if (r.szRule.starts_with("idleinhibit")) {
+        auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+
+        if (IDLERULE == "none")
+            m_eIdleInhibitMode = IDLEINHIBIT_NONE;
+        else if (IDLERULE == "always")
+            m_eIdleInhibitMode = IDLEINHIBIT_ALWAYS;
+        else if (IDLERULE == "focus")
+            m_eIdleInhibitMode = IDLEINHIBIT_FOCUS;
+        else if (IDLERULE == "fullscreen")
+            m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
+        else
+            Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
     }
 }
 
@@ -615,6 +628,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.xray            = -1;
     m_sAdditionalConfigData.forceTearing    = false;
     m_sAdditionalConfigData.nearestNeighbor = false;
+    m_eIdleInhibitMode                      = IDLEINHIBIT_NONE;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {
@@ -689,14 +703,14 @@ void CWindow::createGroup() {
         Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_szTitle);
         return;
     }
+
     if (!m_sGroupData.pNextWindow) {
         m_sGroupData.pNextWindow = this;
         m_sGroupData.head        = true;
         m_sGroupData.locked      = false;
         m_sGroupData.deny        = false;
 
-        m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(this));
-        updateWindowDecos();
+        addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(this));
 
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -835,6 +849,8 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
         g_pCompositor->setWindowFullscreen(pWindow, true, WORKSPACE->m_efFullscreenMode);
 
     g_pHyprRenderer->damageWindow(pWindow);
+
+    pWindow->updateWindowDecos();
 }
 
 void CWindow::insertWindowToGroup(CWindow* pWindow) {
@@ -842,7 +858,7 @@ void CWindow::insertWindowToGroup(CWindow* pWindow) {
     const auto ENDAT   = m_sGroupData.pNextWindow;
 
     if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+        pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
     if (!pWindow->m_sGroupData.pNextWindow) {
         BEGINAT->m_sGroupData.pNextWindow = pWindow;

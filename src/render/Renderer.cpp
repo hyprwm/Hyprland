@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "linux-dmabuf-unstable-v1-protocol.h"
 #include "../helpers/Region.hpp"
+#include <algorithm>
 
 CHyprRenderer::CHyprRenderer() {
     const auto ENV = getenv("WLR_DRM_NO_ATOMIC");
@@ -65,7 +66,7 @@ void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     if (windowBox.width <= 1 || windowBox.height <= 1)
         return; // invisible
 
-    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->squishOversized);
+    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface);
 
     windowBox.scale(RDATA->pMonitor->scale);
     windowBox.round();
@@ -418,6 +419,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         renderdata.y += offset.y;
     }
 
+    // if window is floating and we have a slide animation, clip it to its full bb
+    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bIsFullscreen && PWORKSPACE->m_vRenderOffset.isBeingAnimated())
+        g_pHyprOpenGL->m_RenderData.clipBox = pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition);
+
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
 
@@ -507,6 +512,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         }
     }
 
+    g_pHyprOpenGL->m_RenderData.clipBox = CBox();
+
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_bIsX11) {
             CBox geom;
@@ -539,7 +546,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
 
     g_pHyprOpenGL->m_pCurrentWindow     = nullptr;
-    g_pHyprOpenGL->m_RenderData.clipBox = {0, 0, 0, 0};
+    g_pHyprOpenGL->m_RenderData.clipBox = CBox();
 }
 
 void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time) {
@@ -775,10 +782,16 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
             uvBR               = uvBR - Vector2D(1.0 - WPERC * (uvBR.x - uvTL.x), 1.0 - HPERC * (uvBR.y - uvTL.y));
             uvTL               = uvTL + TOADDTL;
 
-            if (geom.width > pWindow->m_vRealSize.vec().x || geom.height > pWindow->m_vRealSize.vec().y) {
-                uvBR.x = uvBR.x * (pWindow->m_vRealSize.vec().x / geom.width);
-                uvBR.y = uvBR.y * (pWindow->m_vRealSize.vec().y / geom.height);
-            }
+            // TODO: make this passed to the func. Might break in the future.
+            auto maxSize = pWindow->m_vRealSize.vec();
+
+            if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall)
+                maxSize = pWindow->m_pWLSurface.getViewporterCorrectedSize();
+
+            if (geom.width > maxSize.x)
+                uvBR.x = uvBR.x * (maxSize.x / geom.width);
+            if (geom.height > maxSize.y)
+                uvBR.y = uvBR.y * (maxSize.y / geom.height);
         }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;
@@ -1287,13 +1300,22 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
             break;
     }
 
-    if (!test)
+    if (!test) {
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
+        // if everything is disabled, performMonitorReload won't be called from renderMonitor
+        bool allDisabled = std::all_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(),
+                                       [](const auto m) { return !m->m_bEnabled || g_pCompositor->m_pUnsafeOutput == m.get(); });
+        if (allDisabled) {
+            Debug::log(LOG, "OutputMgr apply: All monitors disabled; performing monitor reload.");
+            g_pConfigManager->performMonitorReload();
+        }
+    }
 
     if (ok)
         wlr_output_configuration_v1_send_succeeded(config);
     else
         wlr_output_configuration_v1_send_failed(config);
+
     wlr_output_configuration_v1_destroy(config);
 
     Debug::log(LOG, "OutputMgr Applied/Tested.");
@@ -1439,9 +1461,6 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
 
         if (Vector2D{box.width, box.height} != OLDSIZE)
             wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
-
-        Debug::log(LOG, "LayerSurface {:x} arranged: x: {} y: {} w: {} h: {} with margins: t: {} l: {} r: {} b: {}", (uintptr_t)&ls, box.x, box.y, box.width, box.height,
-                   PSTATE->margin.top, PSTATE->margin.left, PSTATE->margin.right, PSTATE->margin.bottom);
     }
 }
 
@@ -1480,8 +1499,6 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     damageMonitor(PMONITOR);
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
-
-    Debug::log(LOG, "Monitor {} layers arranged: reserved: {:5j} {:5j}", PMONITOR->szName, PMONITOR->vecReservedTopLeft, PMONITOR->vecReservedBottomRight);
 }
 
 void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, double scale) {
@@ -1645,7 +1662,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     // if it's disabled, disable and ignore
     if (pMonitorRule->disabled) {
-
         if (pMonitor->m_bEnabled)
             pMonitor->onDisconnect();
 
@@ -2105,7 +2121,7 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
 
         box.scale(PMONITOR->scale);
 
-        rg.add(&box);
+        rg.add(box);
     }
 
     region.subtract(rg);

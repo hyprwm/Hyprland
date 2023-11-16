@@ -419,6 +419,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         renderdata.y += offset.y;
     }
 
+    // if window is floating and we have a slide animation, clip it to its full bb
+    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bIsFullscreen && PWORKSPACE->m_vRenderOffset.isBeingAnimated())
+        g_pHyprOpenGL->m_RenderData.clipBox = pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition);
+
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
 
@@ -508,6 +512,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         }
     }
 
+    g_pHyprOpenGL->m_RenderData.clipBox = CBox();
+
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_bIsX11) {
             CBox geom;
@@ -540,7 +546,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
 
     g_pHyprOpenGL->m_pCurrentWindow     = nullptr;
-    g_pHyprOpenGL->m_RenderData.clipBox = {0, 0, 0, 0};
+    g_pHyprOpenGL->m_RenderData.clipBox = CBox();
 }
 
 void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time) {

@@ -213,6 +213,12 @@ void CAnimationManager::tick() {
                             continue;
 
                         w->updateWindowDecos();
+
+                        if (w->m_bIsFloating) {
+                            auto bb = w->getFullWindowBoundingBox();
+                            bb.translate(PWORKSPACE->m_vRenderOffset.vec());
+                            g_pHyprRenderer->damageBox(&bb);
+                        }
                     }
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)

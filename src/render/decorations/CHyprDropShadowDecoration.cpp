@@ -129,7 +129,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         CRegion saveDamage = g_pHyprOpenGL->m_RenderData.damage;
 
         g_pHyprOpenGL->m_RenderData.damage = fullBox;
-        g_pHyprOpenGL->m_RenderData.damage.subtract(windowBox.expand(-ROUNDING * pMonitor->scale)).intersect(saveDamage);
+        g_pHyprOpenGL->m_RenderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->scale)).intersect(saveDamage);
 
         alphaFB.bind();
 

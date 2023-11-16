@@ -32,13 +32,11 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
     CVarList vars(request, 0, ' ');
     auto allMonitors = false;
     
-    if (vars.size() > 2) {
-        return "to much args";
-    }
+    if (vars.size() > 2)
+        return "to many args";
 
-    if (vars.size() == 2 && vars[1] == "all") {
+    if (vars.size() == 2 && vars[1] == "all")
         allMonitors = true;
-    }
 
     std::string result = "";
     if (format == HyprCtl::FORMAT_JSON) {

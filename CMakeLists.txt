@@ -106,7 +106,13 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wa
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
-add_executable(Hyprland ${SRCFILES})
+set(TRACY_CPP_FILES "")
+if(USE_TRACY)
+    set(TRACY_CPP_FILES "subprojects/tracy/public/TracyClient.cpp")
+    message(STATUS "Tracy enabled, TRACY_CPP_FILES: " ${TRACY_CPP_FILES})
+endif()
+
+add_executable(Hyprland ${SRCFILES} ${TRACY_CPP_FILES})
 add_dependencies(Hyprland wlroots)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)

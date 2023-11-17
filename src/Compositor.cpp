@@ -2524,6 +2524,8 @@ CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, con
     PWORKSPACE->m_iID        = id;
     PWORKSPACE->m_iMonitorID = monID;
 
+    PWORKSPACE->m_fAlpha.setValueAndWarp(0);
+
     return PWORKSPACE;
 }
 

@@ -33,7 +33,7 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
     auto allMonitors = false;
     
     if (vars.size() > 2)
-        return "to many args";
+        return "too many args";
 
     if (vars.size() == 2 && vars[1] == "all")
         allMonitors = true;

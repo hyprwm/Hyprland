@@ -427,7 +427,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         const auto PSAVEDSIZE = pWindow->m_vRealSize.goalv();
 
         // if the window is pseudo, update its size
-        pWindow->m_vPseudoSize = pWindow->m_vRealSize.goalv();
+        if (!pWindow->m_bDraggingTiled)
+            pWindow->m_vPseudoSize = pWindow->m_vRealSize.goalv();
 
         pWindow->m_vLastFloatingSize = PSAVEDSIZE;
 

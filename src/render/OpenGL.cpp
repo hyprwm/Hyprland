@@ -1535,6 +1535,9 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
 
+    if (!g_pHyprRenderer->shouldRenderWindow(pWindow))
+        return; // ignore, window is not being rendered
+
     wlr_output_attach_render(PMONITOR->output, nullptr);
 
     // we need to "damage" the entire monitor

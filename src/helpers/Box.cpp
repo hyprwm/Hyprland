@@ -112,6 +112,10 @@ CBox CBox::roundInternal() {
     return CBox{std::floor(x), std::floor(y), std::floor(newW), std::floor(newH)};
 }
 
+CBox CBox::copy() const {
+    return CBox{*this};
+}
+
 Vector2D CBox::pos() const {
     return {x, y};
 }

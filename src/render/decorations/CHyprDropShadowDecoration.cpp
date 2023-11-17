@@ -126,12 +126,17 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         if (windowBox.width < 1 || windowBox.height < 1)
             return; // prevent assert failed
 
+        CRegion saveDamage = g_pHyprOpenGL->m_RenderData.damage;
+
+        g_pHyprOpenGL->m_RenderData.damage = fullBox;
+        g_pHyprOpenGL->m_RenderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->scale)).intersect(saveDamage);
+
         alphaFB.bind();
 
         // build the matte
         // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
-        // first, clear with black (fully transparent)
-        g_pHyprOpenGL->clear(CColor(0, 0, 0, 1));
+        // first, clear region of interest with black (fully transparent)
+        g_pHyprOpenGL->renderRect(&fullBox, CColor(0, 0, 0, 1), 0);
 
         // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
         g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, m_pWindow->m_cRealShadowColor.col().a), a);
@@ -142,7 +147,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         alphaSwapFB.bind();
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
-        g_pHyprOpenGL->clear(m_pWindow->m_cRealShadowColor.col().stripA());
+        g_pHyprOpenGL->renderRect(&fullBox, m_pWindow->m_cRealShadowColor.col().stripA(), 0);
 
         LASTFB->bind();
 
@@ -150,6 +155,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         g_pHyprOpenGL->setMonitorTransformEnabled(false);
         g_pHyprOpenGL->renderTextureMatte(alphaSwapFB.m_cTex, &monbox, alphaFB);
         g_pHyprOpenGL->setMonitorTransformEnabled(true);
+
+        g_pHyprOpenGL->m_RenderData.damage = saveDamage;
     } else {
         g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
     }

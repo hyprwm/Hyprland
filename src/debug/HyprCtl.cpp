@@ -32,13 +32,11 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
     CVarList vars(request, 0, ' ');
     auto allMonitors = false;
     
-    if (vars.size() > 2) {
-        return "to much args";
-    }
+    if (vars.size() > 2)
+        return "to many args";
 
-    if (vars.size() == 2 && vars[1] == "all") {
+    if (vars.size() == 2 && vars[1] == "all")
         allMonitors = true;
-    }
 
     std::string result = "";
     if (format == HyprCtl::FORMAT_JSON) {
@@ -48,10 +46,8 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
             if (!m->output || m->ID == -1ull)
                 continue;
 
-            result += "{";
-
             result += std::format(
-                R"#(    
+                R"#({{
     "id": {},
     "name": "{}",
     "description": "{}",
@@ -60,13 +56,7 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
     "serial": "{}",
     "width": {},
     "height": {},
-    "refreshRate": {:.5f})#",
-                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""),
-                (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate);
-
-            if (!allMonitors) {
-                result += std::format(
-                    R"#(,
+    "refreshRate": {:.5f},
     "x": {},
     "y": {},
     "activeWorkspace": {{
@@ -84,18 +74,14 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
     "dpmsStatus": {},
     "vrr": {},
     "activelyTearing": {}
-)#",
-                    (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName),
-                    m->specialWorkspaceID, escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
-                    (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
-                    (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
-                    m->tearingState.activelyTearing ? "true" : "false");
-            }
-            else {
-                result += "\n";
-            }
-
-            result += "},";
+}},)#",
+                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""),
+                (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate,
+                (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, (m->activeWorkspace == -1 ? "" : escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName)),
+                m->specialWorkspaceID, escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
+                (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
+                (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
+                m->tearingState.activelyTearing ? "true" : "false");
         }
 
         trimTrailingComma(result);
@@ -106,26 +92,17 @@ std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat f
             if (!m->output || m->ID == -1ull)
                 continue;
 
-
             result +=
-                std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n",
+                std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
+                            "workspace: {} ({})\n\treserved: {} "
+                            "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
+                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\n",
                             m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
                             (m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
-                            (m->output->serial ? m->output->serial : ""));
-
-            if (!allMonitors) {
-                result +=
-                    std::format("\tactive workspace: {} ({})\n\tspecial "
-                                "workspace: {} ({})\n\treserved: {} "
-                                "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
-                                "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\n",
-                                m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName, m->specialWorkspaceID,
-                                getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
-                                (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
-                                (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing);
-            } else {
-                result += "\n";
-            }
+                            (m->output->serial ? m->output->serial : ""), m->activeWorkspace, (m->activeWorkspace == -1 ? "" : g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName), m->specialWorkspaceID,
+                            getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
+                            (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
+                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing);
         }
     }
 
@@ -655,6 +632,20 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     }
 
     return ret;
+}
+
+std::string rollinglogRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[\n\"log\":\"";
+        result += escapeJSONStrings(Debug::rollingLog);
+        result += "\"]";
+    } else {
+        result = Debug::rollingLog;
+    }
+
+    return result;
 }
 
 std::string globalShortcutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
@@ -1383,6 +1374,8 @@ std::string getReply(std::string request) {
         return globalShortcutsRequest(format);
     else if (request == "animations")
         return animationsRequest(format);
+    else if (request == "rollinglog")
+        return rollinglogRequest(format);
     else if (request.starts_with("plugin"))
         return dispatchPlugin(request);
     else if (request.starts_with("notify"))

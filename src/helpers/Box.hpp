@@ -52,6 +52,8 @@ class CBox {
     CBox&                    addExtents(const SWindowDecorationExtents& e);
     CBox&                    expand(const double& value);
 
+    CBox                     copy() const;
+
     SWindowDecorationExtents extentsFrom(const CBox&); // this is the big box
 
     Vector2D                 middle() const;

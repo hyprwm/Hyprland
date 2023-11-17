@@ -10,6 +10,7 @@
   git,
   hyprland-protocols,
   jq,
+  libGL,
   libdrm,
   libinput,
   libxcb,
@@ -71,6 +72,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         git
         cairo
         hyprland-protocols
+        libGL
         libdrm
         libinput
         libxkbcommon

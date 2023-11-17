@@ -708,6 +708,10 @@ int64_t configStringToInt(const std::string& VALUE) {
     } else if (VALUE.starts_with("false") || VALUE.starts_with("off") || VALUE.starts_with("no")) {
         return 0;
     }
+
+    if (VALUE.empty() || !isNumber(VALUE))
+        return 0;
+
     return std::stoll(VALUE);
 }
 

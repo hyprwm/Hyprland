@@ -28,13 +28,22 @@ static std::string getWorkspaceNameFromSpecialID(const int workspaceID) {
     return workspace->m_szName;
 }
 
-std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
+    CVarList vars(request, 0, ' ');
+    auto allMonitors = false;
+    
+    if (vars.size() > 2)
+        return "too many args";
+
+    if (vars.size() == 2 && vars[1] == "all")
+        allMonitors = true;
+
     std::string result = "";
     if (format == HyprCtl::FORMAT_JSON) {
         result += "[";
 
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (!m->output)
+        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+            if (!m->output || m->ID == -1ull)
                 continue;
 
             result += std::format(
@@ -68,7 +77,7 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 }},)#",
                 m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""),
                 (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate,
-                (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName),
+                (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, (m->activeWorkspace == -1 ? "" : escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName)),
                 m->specialWorkspaceID, escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
                 (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
@@ -79,8 +88,8 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
         result += "]";
     } else {
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (!m->output)
+        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+            if (!m->output || m->ID == -1ull)
                 continue;
 
             result +=
@@ -90,7 +99,7 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
                             "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\n",
                             m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
                             (m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
-                            (m->output->serial ? m->output->serial : ""), m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName, m->specialWorkspaceID,
+                            (m->output->serial ? m->output->serial : ""), m->activeWorkspace, (m->activeWorkspace == -1 ? "" : g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName), m->specialWorkspaceID,
                             getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
                             (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
                             (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing);
@@ -1333,8 +1342,8 @@ std::string getReply(std::string request) {
             request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
     }
 
-    if (request == "monitors")
-        return monitorsRequest(format);
+    if (request.starts_with("monitors"))
+        return monitorsRequest(request, format);
     else if (request == "workspaces")
         return workspacesRequest(format);
     else if (request == "workspacerules")

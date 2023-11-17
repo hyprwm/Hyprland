@@ -137,7 +137,6 @@ class CCompositor {
     void           focusSurface(wlr_surface*, CWindow* pWindowOwner = nullptr);
     bool           windowExists(CWindow*);
     bool           windowValidMapped(CWindow*);
-    CWindow*       vectorToWindow(const Vector2D&);
     CWindow*       vectorToWindowIdeal(const Vector2D&); // used only for finding a window to focus on, basically a "findFocusableWindow"
     CWindow*       vectorToWindowTiled(const Vector2D&);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);

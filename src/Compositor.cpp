@@ -657,24 +657,6 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
     const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
-    // special workspace
-    if (PMONITOR->specialWorkspaceID) {
-        for (auto& w : m_vWindows | std::views::reverse) {
-            const auto BB  = w->getWindowInputBox();
-            CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
-            if (w->m_bIsFloating && w->m_iWorkspaceID == PMONITOR->specialWorkspaceID && w->m_bIsMapped && box.containsPoint(pos) && !w->isHidden() && !w->m_bX11ShouldntFocus &&
-                !w->m_bNoFocus)
-                return w.get();
-        }
-
-        for (auto& w : m_vWindows) {
-            CBox box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
-            if (!w->m_bIsFloating && w->m_iWorkspaceID == PMONITOR->specialWorkspaceID && w->m_bIsMapped && box.containsPoint(pos) && !w->isHidden() && !w->m_bX11ShouldntFocus &&
-                !w->m_bNoFocus)
-                return w.get();
-        }
-    }
-
     // pinned windows on top of floating regardless
     for (auto& w : m_vWindows | std::views::reverse) {
         const auto BB  = w->getWindowInputBox();
@@ -690,48 +672,69 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
         }
     }
 
-    // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
-    for (auto& w : m_vWindows | std::views::reverse) {
-        const auto BB  = w->getWindowInputBox();
-        CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
-        if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() && !w->m_bPinned && !w->m_bNoFocus) {
-            // OR windows should add focus to parent
-            if (w->m_bX11ShouldntFocus && w->m_iX11Type != 2)
+    auto windowForWorkspace = [&](bool special) -> CWindow* {
+        // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
+        for (auto& w : m_vWindows | std::views::reverse) {
+
+            if (special && !isWorkspaceSpecial(w->m_iWorkspaceID)) // because special floating may creep up into regular
                 continue;
 
-            if (box.containsPoint({m_sWLRCursor->x, m_sWLRCursor->y})) {
+            const auto BB  = w->getWindowInputBox();
+            CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
+            if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() && !w->m_bPinned && !w->m_bNoFocus) {
+                // OR windows should add focus to parent
+                if (w->m_bX11ShouldntFocus && w->m_iX11Type != 2)
+                    continue;
 
-                if (w->m_bIsX11 && w->m_iX11Type == 2 && !wlr_xwayland_or_surface_wants_focus(w->m_uSurface.xwayland)) {
-                    // Override Redirect
-                    return g_pCompositor->m_pLastWindow; // we kinda trick everything here.
-                                                         // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
+                if (box.containsPoint({m_sWLRCursor->x, m_sWLRCursor->y})) {
+
+                    if (w->m_bIsX11 && w->m_iX11Type == 2 && !wlr_xwayland_or_surface_wants_focus(w->m_uSurface.xwayland)) {
+                        // Override Redirect
+                        return g_pCompositor->m_pLastWindow; // we kinda trick everything here.
+                                                             // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
+                    }
+
+                    return w.get();
                 }
 
-                return w.get();
+                if (!w->m_bIsX11) {
+                    if (w->hasPopupAt(pos))
+                        return w.get();
+                }
             }
+        }
 
-            if (!w->m_bIsX11) {
-                if (w->hasPopupAt(pos))
+        // for windows, we need to check their extensions too, first.
+        for (auto& w : m_vWindows) {
+            if (special != isWorkspaceSpecial(w->m_iWorkspaceID))
+                continue;
+
+            const int64_t WORKSPACEID = special ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
+
+            if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus) {
+                if ((w)->hasPopupAt(pos))
                     return w.get();
             }
         }
-    }
+        for (auto& w : m_vWindows) {
+            if (special != isWorkspaceSpecial(w->m_iWorkspaceID))
+                continue;
 
-    // for windows, we need to check their extensions too, first.
-    for (auto& w : m_vWindows) {
-        if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus) {
-            if ((w)->hasPopupAt(pos))
+            const int64_t WORKSPACEID = special ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
+
+            CBox          box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
+            if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus)
                 return w.get();
         }
-    }
-    for (auto& w : m_vWindows) {
-        CBox box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
-        if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->isHidden() && !w->m_bX11ShouldntFocus &&
-            !w->m_bNoFocus)
-            return w.get();
-    }
 
-    return nullptr;
+        return nullptr;
+    };
+
+    // special workspace
+    if (PMONITOR->specialWorkspaceID)
+        return windowForWorkspace(true);
+
+    return windowForWorkspace(false);
 }
 
 CWindow* CCompositor::windowFromCursor() {

@@ -253,9 +253,6 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
-        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue; // special are in the third pass
-
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
@@ -280,9 +277,6 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
-        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue; // special are in the third pass
-
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
@@ -298,9 +292,6 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!w->m_bIsFloating || w->m_bPinned)
             continue;
 
-        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue;
-
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
@@ -314,9 +305,6 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
             continue;
 
         if (!w->m_bPinned || !w->m_bIsFloating)
-            continue;
-
-        if (g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
@@ -681,18 +669,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
         }
     }
 
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
-            continue;
-
-        if (!g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
-            continue;
-
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
-            continue;
-
-        // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+    // special
+    for (auto& ws : g_pCompositor->m_vWorkspaces) {
+        if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.fl() > 0.f && ws->m_bIsSpecialWorkspace)
+            renderWorkspaceWindows(pMonitor, ws.get(), time);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);

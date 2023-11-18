@@ -44,12 +44,13 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     if (!m_sActiveSwipe.pWorkspaceBegin)
         return; // no valid swipe
 
-    static auto* const PSWIPEPERC   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_cancel_ratio")->floatValue;
-    static auto* const PSWIPEDIST   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
-    static auto* const PSWIPEFORC   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_min_speed_to_force")->intValue;
-    static auto* const PSWIPENEW    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
-    static auto* const PSWIPENUMBER = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_numbered")->intValue;
-    static auto* const PSWIPEUSER   = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
+    static auto* const PSWIPEPERC    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_cancel_ratio")->floatValue;
+    static auto* const PSWIPEDIST    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_distance")->intValue;
+    static auto* const PSWIPEFORC    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_min_speed_to_force")->intValue;
+    static auto* const PSWIPENEW     = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_create_new")->intValue;
+    static auto* const PSWIPENUMBER  = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_numbered")->intValue;
+    static auto* const PSWIPEUSER    = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
+    static auto* const PWORKSPACEGAP = &g_pConfigManager->getConfigValuePtr("animations:workspace_gap")->intValue;
     const bool         VERTANIMS    = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
@@ -96,16 +97,16 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
                 // to left
                 if (PWORKSPACEL) {
                     if (VERTANIMS)
-                        PWORKSPACEL->m_vRenderOffset = Vector2D({0, -m_sActiveSwipe.pMonitor->vecSize.y});
+                        PWORKSPACEL->m_vRenderOffset = Vector2D({0, -(m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP)});
                     else
-                        PWORKSPACEL->m_vRenderOffset = Vector2D({-m_sActiveSwipe.pMonitor->vecSize.x, 0});
+                        PWORKSPACEL->m_vRenderOffset = Vector2D({-(m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP), 0});
                 }
             } else if (PWORKSPACER) {
                 // to right
                 if (VERTANIMS)
-                    PWORKSPACER->m_vRenderOffset = Vector2D({0, m_sActiveSwipe.pMonitor->vecSize.y});
+                    PWORKSPACER->m_vRenderOffset = Vector2D({0, m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP});
                 else
-                    PWORKSPACER->m_vRenderOffset = Vector2D({m_sActiveSwipe.pMonitor->vecSize.x, 0});
+                    PWORKSPACER->m_vRenderOffset = Vector2D({m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP, 0});
             }
 
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D();
@@ -128,9 +129,9 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
         if (VERTANIMS)
-            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, m_sActiveSwipe.pMonitor->vecSize.y);
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP);
         else
-            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(m_sActiveSwipe.pMonitor->vecSize.x, 0);
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP, 0);
         m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(1.f);
 
         g_pInputManager->unconstrainMouse();
@@ -154,9 +155,9 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
         if (VERTANIMS)
-            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, -m_sActiveSwipe.pMonitor->vecSize.y);
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, -m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP);
         else
-            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-m_sActiveSwipe.pMonitor->vecSize.x, 0);
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-(m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP), 0);
         m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(1.f);
 
         g_pInputManager->unconstrainMouse();

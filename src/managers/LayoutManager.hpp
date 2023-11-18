@@ -13,6 +13,7 @@ class CLayoutManager {
 
     bool         addLayout(const std::string& name, IHyprLayout* layout);
     bool         removeLayout(IHyprLayout* layout);
+    std::vector<std::pair<std::string, IHyprLayout*>> m_vLayouts;
 
   private:
     enum HYPRLAYOUTS
@@ -25,8 +26,6 @@ class CLayoutManager {
 
     CHyprDwindleLayout                                m_cDwindleLayout;
     CHyprMasterLayout                                 m_cMasterLayout;
-
-    std::vector<std::pair<std::string, IHyprLayout*>> m_vLayouts;
 };
 
 inline std::unique_ptr<CLayoutManager> g_pLayoutManager;

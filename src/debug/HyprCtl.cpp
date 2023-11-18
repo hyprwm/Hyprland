@@ -413,6 +413,32 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return result;
 }
 
+std::string layoutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string  result    = "";
+    IHyprLayout* curLayout = g_pLayoutManager->getCurrentLayout();
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+
+        for (auto& m : g_pLayoutManager->m_vLayouts) {
+            result += std::format(
+                R"#({{
+    "name": "{}",
+    "current": {}
+}},)#",
+                m.first, m.second == curLayout ? "true" : "false");
+        }
+
+        trimTrailingComma(result);
+
+        result += "]\n";
+    } else {
+        for (auto& m : g_pLayoutManager->m_vLayouts) {
+            result += std::format("{}:\n\tcurrent: {}\n", m.first, m.second == curLayout ? "true" : "false");
+        }
+    }
+    return result;
+}
+
 std::string devicesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string result = "";
 
@@ -1367,6 +1393,8 @@ std::string getReply(std::string request) {
         return animationsRequest(format);
     else if (request == "rollinglog")
         return rollinglogRequest(format);
+    else if (request == "layouts")
+        return layoutsRequest(format);
     else if (request.starts_with("plugin"))
         return dispatchPlugin(request);
     else if (request.starts_with("notify"))

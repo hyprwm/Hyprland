@@ -52,6 +52,7 @@ commands:
     notify
     globalshortcuts
     instances
+		layouts
 
 flags:
     -j -> output in JSON
@@ -420,6 +421,8 @@ int main(int argc, char** argv) {
         request(fullRequest, 2);
     else if (fullRequest.contains("/hyprpaper"))
         requestHyprpaper(fullRequest);
+    else if (fullRequest.contains("/layouts"))
+        request(fullRequest);
     else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {

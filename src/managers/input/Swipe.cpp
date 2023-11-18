@@ -204,6 +204,8 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     static auto* const PSWIPEUSER             = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
     static auto* const PWORKSPACEGAP          = &g_pConfigManager->getConfigValuePtr("animations:workspace_gap")->intValue;
 
+    const auto  XDISTANCE = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
+    const auto  YDISTANCE = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
     const bool         VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
@@ -215,8 +217,6 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     std::string wsname           = "";
     auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : (*PSWIPEUSER ? "r-1" : "m-1"), wsname);
     auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : (*PSWIPEUSER ? "r+1" : "m+1"), wsname);
-    const auto  XDISTANCE = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
-    const auto  YDISTANCE = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
 
     if ((workspaceIDLeft == WORKSPACE_INVALID || workspaceIDRight == WORKSPACE_INVALID || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID) && !*PSWIPENEW) {
         m_sActiveSwipe.pWorkspaceBegin = nullptr; // invalidate the swipe

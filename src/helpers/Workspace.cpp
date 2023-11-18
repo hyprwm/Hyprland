@@ -39,9 +39,10 @@ CWorkspace::~CWorkspace() {
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
     const auto ANIMSTYLE = m_fAlpha.m_pConfig->pValues->internalStyle;
+    const auto PWORKSPACEGAP = &g_pConfigManager->getConfigValuePtr("animations:workspace_gap")->intValue;
 
     if (ANIMSTYLE.starts_with("slidefade")) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        const auto PMONITOR      = g_pCompositor->getMonitorFromID(m_iMonitorID);
         float      movePerc = 100.f;
 
         if (ANIMSTYLE.find("%") != std::string::npos) {
@@ -94,10 +95,10 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y));
+            m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? PMONITOR->vecSize.y + *PWORKSPACEGAP : -(PMONITOR->vecSize.y + *PWORKSPACEGAP)));
             m_vRenderOffset = Vector2D(0, 0);
         } else {
-            m_vRenderOffset = Vector2D(0, left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y);
+            m_vRenderOffset = Vector2D(0, left ? -(PMONITOR->vecSize.y + *PWORKSPACEGAP) : PMONITOR->vecSize.y + *PWORKSPACEGAP);
         }
     } else {
         // fallback is slide
@@ -106,10 +107,10 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x, 0));
+            m_vRenderOffset.setValueAndWarp(Vector2D(left ? PMONITOR->vecSize.x + *PWORKSPACEGAP : -(PMONITOR->vecSize.x + *PWORKSPACEGAP), 0));
             m_vRenderOffset = Vector2D(0, 0);
         } else {
-            m_vRenderOffset = Vector2D(left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x, 0);
+            m_vRenderOffset = Vector2D(left ? -(PMONITOR->vecSize.x + *PWORKSPACEGAP) : PMONITOR->vecSize.x + *PWORKSPACEGAP, 0);
         }
     }
 

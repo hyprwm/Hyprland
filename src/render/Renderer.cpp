@@ -295,6 +295,9 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
+        if (pWorkspace->m_bIsSpecialWorkspace && w->m_iWorkspaceID != pWorkspace->m_iID)
+            continue;
+
         // render the bad boy
         renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }

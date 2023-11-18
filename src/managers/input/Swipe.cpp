@@ -160,7 +160,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         if (VERTANIMS)
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, -YDISTANCE);
         else
-            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-YDISTANCE, 0);
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-XDISTANCE, 0);
         m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(1.f);
 
         g_pInputManager->unconstrainMouse();

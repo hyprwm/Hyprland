@@ -91,26 +91,28 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     } else if (ANIMSTYLE == "slidevert") {
         // fallback is slide
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        const auto YDISTANCE = PMONITOR->vecSize.y + *PWORKSPACEGAP;
 
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? PMONITOR->vecSize.y + *PWORKSPACEGAP : -(PMONITOR->vecSize.y + *PWORKSPACEGAP)));
+            m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? YDISTANCE : -YDISTANCE));
             m_vRenderOffset = Vector2D(0, 0);
         } else {
-            m_vRenderOffset = Vector2D(0, left ? -(PMONITOR->vecSize.y + *PWORKSPACEGAP) : PMONITOR->vecSize.y + *PWORKSPACEGAP);
+            m_vRenderOffset = Vector2D(0, left ? -YDISTANCE : YDISTANCE);
         }
     } else {
         // fallback is slide
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        const auto XDISTANCE = PMONITOR->vecSize.x + *PWORKSPACEGAP;
 
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(left ? PMONITOR->vecSize.x + *PWORKSPACEGAP : -(PMONITOR->vecSize.x + *PWORKSPACEGAP), 0));
+            m_vRenderOffset.setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0));
             m_vRenderOffset = Vector2D(0, 0);
         } else {
-            m_vRenderOffset = Vector2D(left ? -(PMONITOR->vecSize.x + *PWORKSPACEGAP) : PMONITOR->vecSize.x + *PWORKSPACEGAP, 0);
+            m_vRenderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0);
         }
     }
 

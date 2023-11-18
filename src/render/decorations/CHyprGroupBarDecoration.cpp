@@ -135,7 +135,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
             if (*PGRADIENTS)
                 g_pHyprOpenGL->renderTexture((m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? m_tGradientActive : m_tGradientInactive), &rect, 1.0);
 
-            rect.y      = (ASSIGNEDBOX.y + ASSIGNEDBOX.h / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
+            rect.y += (ASSIGNEDBOX.h / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
             rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;
 
             g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f);

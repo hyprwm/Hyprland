@@ -270,7 +270,7 @@ void IHyprLayout::onEndDragWindow() {
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
         CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS, DRAGGINGWINDOW);
 
-        if (pWindow) {
+        if (pWindow && pWindow->m_bIsFloating) {
             for (auto& wd : pWindow->m_dWindowDecorations) {
                 if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                     continue;

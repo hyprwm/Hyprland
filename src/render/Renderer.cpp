@@ -408,8 +408,11 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     }
 
     // if window is floating and we have a slide animation, clip it to its full bb
-    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bIsFullscreen && PWORKSPACE->m_vRenderOffset.isBeingAnimated())
-        g_pHyprOpenGL->m_RenderData.clipBox = pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition);
+    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bIsFullscreen && PWORKSPACE->m_vRenderOffset.isBeingAnimated()) {
+        CRegion rg = pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition);
+        rg.add(CBox{0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y});
+        g_pHyprOpenGL->m_RenderData.clipBox = rg.getExtents();
+    }
 
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {

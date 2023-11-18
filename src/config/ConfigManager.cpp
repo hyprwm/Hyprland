@@ -208,7 +208,7 @@ void CConfigManager::setDefaultVars() {
     configValues["master:smart_resizing"].intValue         = 1;
     configValues["master:drop_at_cursor"].intValue         = 1;
 
-    configValues["animations:enabled"].intValue = 1;
+    configValues["animations:enabled"].intValue       = 1;
     configValues["animations:workspace_gap"].intValue = 0;
 
     configValues["input:follow_mouse"].intValue                     = 1;

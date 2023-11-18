@@ -155,7 +155,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
 
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValue(RENDEROFFSETMIDDLE);
         if (VERTANIMS)
-            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, -m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP);
+            m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(0, -(m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP));
         else
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset = Vector2D(-(m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP), 0);
         m_sActiveSwipe.pWorkspaceBegin->m_fAlpha.setValueAndWarp(1.f);

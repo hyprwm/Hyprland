@@ -76,12 +76,12 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         workspaceIDRight = maxWorkspace + 1;
     }
 
-    auto        PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
-    auto        PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
+    auto       PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
+    auto       PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
 
-    const auto  RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.vec();
-    const auto  XDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
-    const auto  YDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
+    const auto RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.vec();
+    const auto XDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
+    const auto YDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
 
     CWorkspace* pSwitchedTo = nullptr;
 
@@ -204,9 +204,9 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     static auto* const PSWIPEUSER             = &g_pConfigManager->getConfigValuePtr("gestures:workspace_swipe_use_r")->intValue;
     static auto* const PWORKSPACEGAP          = &g_pConfigManager->getConfigValuePtr("animations:workspace_gap")->intValue;
 
-    const auto  XDISTANCE = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
-    const auto  YDISTANCE = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
-    const bool         VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
+    const auto XDISTANCE = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
+    const auto YDISTANCE = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
+    const bool VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
     m_sActiveSwipe.delta += VERTANIMS ? (*PSWIPEINVR ? -e->dy : e->dy) : (*PSWIPEINVR ? -e->dx : e->dx);

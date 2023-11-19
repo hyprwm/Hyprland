@@ -79,6 +79,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:no_border_on_floating"].intValue = 0;
     configValues["general:gaps_in"].intValue               = 5;
     configValues["general:gaps_out"].intValue              = 20;
+    configValues["general:gaps_workspaces"].intValue        = 0;
     ((CGradientValueData*)configValues["general:col.active_border"].data.get())->reset(0xffffffff);
     ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
     ((CGradientValueData*)configValues["general:col.nogroup_border"].data.get())->reset(0xff444444);

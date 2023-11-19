@@ -650,7 +650,7 @@ CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
     return nullptr;
 }
 
-CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
+CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos, CWindow* pIgnoreWindow) {
     const auto         PMONITOR          = getMonitorFromVector(pos);
     static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;
     static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
@@ -661,7 +661,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
     for (auto& w : m_vWindows | std::views::reverse) {
         const auto BB  = w->getWindowInputBox();
         CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
-        if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_bNoFocus) {
+        if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_bNoFocus && w.get() != pIgnoreWindow) {
             if (box.containsPoint({m_sWLRCursor->x, m_sWLRCursor->y}))
                 return w.get();
 
@@ -681,7 +681,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
             const auto BB  = w->getWindowInputBox();
             CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
-            if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() && !w->m_bPinned && !w->m_bNoFocus) {
+            if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() && !w->m_bPinned && !w->m_bNoFocus && w.get() != pIgnoreWindow) {
                 // OR windows should add focus to parent
                 if (w->m_bX11ShouldntFocus && w->m_iX11Type != 2)
                     continue;
@@ -711,7 +711,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
 
             const int64_t WORKSPACEID = special ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
 
-            if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus) {
+            if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus &&
+                w.get() != pIgnoreWindow) {
                 if ((w)->hasPopupAt(pos))
                     return w.get();
             }
@@ -723,7 +724,8 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos) {
             const int64_t WORKSPACEID = special ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
 
             CBox          box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
-            if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus)
+            if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus &&
+                w.get() != pIgnoreWindow)
                 return w.get();
         }
 

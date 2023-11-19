@@ -79,6 +79,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:no_border_on_floating"].intValue = 0;
     configValues["general:gaps_in"].intValue               = 5;
     configValues["general:gaps_out"].intValue              = 20;
+    configValues["general:gaps_workspace"].intValue        = 0;
     ((CGradientValueData*)configValues["general:col.active_border"].data.get())->reset(0xffffffff);
     ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
     ((CGradientValueData*)configValues["general:col.nogroup_border"].data.get())->reset(0xff444444);
@@ -208,8 +209,7 @@ void CConfigManager::setDefaultVars() {
     configValues["master:smart_resizing"].intValue         = 1;
     configValues["master:drop_at_cursor"].intValue         = 1;
 
-    configValues["animations:enabled"].intValue       = 1;
-    configValues["animations:workspace_gap"].intValue = 0;
+    configValues["animations:enabled"].intValue = 1;
 
     configValues["input:follow_mouse"].intValue                     = 1;
     configValues["input:mouse_refocus"].intValue                    = 1;

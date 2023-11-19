@@ -39,7 +39,7 @@ CWorkspace::~CWorkspace() {
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
     const auto ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
-    const auto PWORKSPACEGAP = &g_pConfigManager->getConfigValuePtr("animations:workspace_gap")->intValue;
+    const auto PWORKSPACEGAP = &g_pConfigManager->getConfigValuePtr("general:gaps_workspace")->intValue;
 
     if (ANIMSTYLE.starts_with("slidefade")) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);

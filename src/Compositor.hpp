@@ -29,8 +29,7 @@
 #include "plugins/PluginSystem.hpp"
 #include "helpers/Watchdog.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -137,7 +136,7 @@ class CCompositor {
     void           focusSurface(wlr_surface*, CWindow* pWindowOwner = nullptr);
     bool           windowExists(CWindow*);
     bool           windowValidMapped(CWindow*);
-    CWindow*       vectorToWindowIdeal(const Vector2D&); // used only for finding a window to focus on, basically a "findFocusableWindow"
+    CWindow*       vectorToWindowIdeal(const Vector2D&, CWindow* pIgnoreWindow = nullptr); // used only for finding a window to focus on, basically a "findFocusableWindow"
     CWindow*       vectorToWindowTiled(const Vector2D&);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
     wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);

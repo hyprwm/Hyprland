@@ -344,6 +344,9 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, con
     pDraggedWindow->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
 
+    if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
+        pDraggedWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pDraggedWindow));
+
     return false;
 }
 

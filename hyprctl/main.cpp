@@ -52,7 +52,7 @@ commands:
     notify
     globalshortcuts
     instances
-		layouts
+    layouts
 
 flags:
     -j -> output in JSON

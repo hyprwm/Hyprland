@@ -414,26 +414,22 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
 }
 
 std::string layoutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
-    std::string  result    = "";
-    IHyprLayout* curLayout = g_pLayoutManager->getCurrentLayout();
+    std::string result = "";
     if (format == HyprCtl::FORMAT_JSON) {
         result += "[";
 
-        for (auto& m : g_pLayoutManager->m_vLayouts) {
+        for (auto& m : g_pLayoutManager->getAllLayoutNames()) {
             result += std::format(
-                R"#({{
-    "name": "{}",
-    "current": {}
-}},)#",
-                m.first, m.second == curLayout ? "true" : "false");
+                R"#(
+    "{}",)#",
+                m);
         }
-
         trimTrailingComma(result);
 
-        result += "]\n";
+        result += "\n]\n";
     } else {
-        for (auto& m : g_pLayoutManager->m_vLayouts) {
-            result += std::format("{}:\n\tcurrent: {}\n", m.first, m.second == curLayout ? "true" : "false");
+        for (auto& m : g_pLayoutManager->getAllLayoutNames()) {
+            result += std::format("{}\n", m);
         }
     }
     return result;

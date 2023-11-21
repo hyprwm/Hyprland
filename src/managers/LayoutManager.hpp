@@ -7,17 +7,16 @@ class CLayoutManager {
   public:
     CLayoutManager();
 
-    IHyprLayout* getCurrentLayout();
+    IHyprLayout*             getCurrentLayout();
 
-    void         switchToLayout(std::string);
+    void                     switchToLayout(std::string);
 
-    bool         addLayout(const std::string& name, IHyprLayout* layout);
-    bool         removeLayout(IHyprLayout* layout);
+    bool                     addLayout(const std::string& name, IHyprLayout* layout);
+    bool                     removeLayout(IHyprLayout* layout);
     std::vector<std::string> getAllLayoutNames();
 
   private:
-    enum HYPRLAYOUTS
-    {
+    enum HYPRLAYOUTS {
         LAYOUT_DWINDLE = 0,
         LAYOUT_MASTER
     };

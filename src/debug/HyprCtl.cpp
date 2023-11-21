@@ -250,7 +250,7 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, HyprCtl::eHyprC
         std::string       result = std::format(R"#({{
     "workspaceString": "{}"{}{}{}{}{}{}{}{}
 }})#",
-                                         escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow);
+                                               escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow);
 
         return result;
     } else {
@@ -266,7 +266,7 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, HyprCtl::eHyprC
         const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.shadow) ? boolToString(r.shadow.value()) : "<unset>");
 
         std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
-                                         borderSize, border, rounding, decorate, shadow);
+                                               borderSize, border, rounding, decorate, shadow);
 
         return result;
     }

@@ -51,3 +51,10 @@ bool CLayoutManager::removeLayout(IHyprLayout* layout) {
 
     return true;
 }
+
+std::vector<std::string> CLayoutManager::getAllLayoutNames() {
+    std::vector<std::string> results(m_vLayouts.size());
+    for (size_t i = 0; i < m_vLayouts.size(); ++i)
+        results[i] = m_vLayouts[i].first;
+    return results;
+}

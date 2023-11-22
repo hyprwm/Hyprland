@@ -260,7 +260,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
             continue;
 
         // render active window after all others of this pass
-        if (w.get() == g_pCompositor->m_pLastWindow) {
+        if (w.get() == g_pCompositor->m_pLastWindow && w->m_iWorkspaceID == pWorkspace->m_iID) {
             lastWindow = w.get();
             continue;
         }

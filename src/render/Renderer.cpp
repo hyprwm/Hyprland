@@ -256,6 +256,9 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
+        if (pWorkspace->m_bIsSpecialWorkspace && w->m_iWorkspaceID != pWorkspace->m_iID)
+            continue;
+
         // render active window after all others of this pass
         if (w.get() == g_pCompositor->m_pLastWindow) {
             lastWindow = w.get();
@@ -277,6 +280,9 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
+        if (pWorkspace->m_bIsSpecialWorkspace && w->m_iWorkspaceID != pWorkspace->m_iID)
+            continue;
+
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
@@ -296,21 +302,6 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
             continue;
 
         if (pWorkspace->m_bIsSpecialWorkspace && w->m_iWorkspaceID != pWorkspace->m_iID)
-            continue;
-
-        // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
-    }
-
-    // pinned always above
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
-            continue;
-
-        if (!w->m_bPinned || !w->m_bIsFloating)
-            continue;
-
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
         // render the bad boy
@@ -678,6 +669,21 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
         if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.fl() > 0.f && ws->m_bIsSpecialWorkspace)
             renderWorkspaceWindows(pMonitor, ws.get(), time);
+    }
+
+    // pinned always above
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
+
+        if (!w->m_bPinned || !w->m_bIsFloating)
+            continue;
+
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+            continue;
+
+        // render the bad boy
+        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);

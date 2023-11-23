@@ -173,6 +173,7 @@ class CHyprOpenGLImpl {
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
+        PFNEGLDESTROYIMAGEKHRPROC                     eglDestroyImageKHR = nullptr;
     } m_sProc;
 
   private:

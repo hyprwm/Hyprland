@@ -2,31 +2,40 @@
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
 
-extern "C" {
-// TODO: this is evil
-#include "../../subprojects/wlroots/include/render/egl.h"
-}
+#include <dlfcn.h>
 
 CRenderbuffer::~CRenderbuffer() {
-    wlr_egl_context lastCTX;
-    wlr_egl_save_context(&lastCTX);
-    wlr_egl_make_current(g_pCompositor->m_sWLREGL);
+    if (eglGetCurrentContext() != wlr_egl_get_context(g_pCompositor->m_sWLREGL))
+        eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL));
 
     m_sFramebuffer.release();
     glDeleteRenderbuffers(1, &m_iRBO);
 
-    wlr_egl_destroy_image(g_pCompositor->m_sWLREGL, m_iImage);
-
-    wlr_egl_restore_context(&lastCTX);
+    g_pHyprOpenGL->m_sProc.eglDestroyImageKHR(wlr_egl_get_display(g_pCompositor->m_sWLREGL), m_iImage);
 }
 
 CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format) : m_pWlrBuffer(buffer) {
+
+    // EVIL, but we can't include a hidden header because nixos is fucking special
+    static EGLImageKHR (*PWLREGLCREATEIMAGEFROMDMABUF)(wlr_egl*, wlr_dmabuf_attributes*, bool*);
+    static bool symbolFound = false;
+    if (!symbolFound) {
+        PWLREGLCREATEIMAGEFROMDMABUF = reinterpret_cast<EGLImageKHR (*)(wlr_egl*, wlr_dmabuf_attributes*, bool*)>(dlsym(nullptr, "wlr_egl_create_image_from_dmabuf"));
+
+        symbolFound = true;
+
+        RASSERT(PWLREGLCREATEIMAGEFROMDMABUF, "wlr_egl_create_image_from_dmabuf was not found in wlroots!");
+
+        Debug::log(LOG, "CRenderbuffer: wlr_egl_create_image_from_dmabuf found at {:x}", (uintptr_t)PWLREGLCREATEIMAGEFROMDMABUF);
+    }
+    // end evil hack
+
     struct wlr_dmabuf_attributes dmabuf = {0};
     if (!wlr_buffer_get_dmabuf(buffer, &dmabuf))
         throw std::runtime_error("wlr_buffer_get_dmabuf failed");
 
     bool externalOnly;
-    m_iImage = wlr_egl_create_image_from_dmabuf(g_pCompositor->m_sWLREGL, &dmabuf, &externalOnly);
+    m_iImage = PWLREGLCREATEIMAGEFROMDMABUF(g_pCompositor->m_sWLREGL, &dmabuf, &externalOnly);
     if (m_iImage == EGL_NO_IMAGE_KHR)
         throw std::runtime_error("wlr_egl_create_image_from_dmabuf failed");
 

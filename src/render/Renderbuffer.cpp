@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 
 extern "C" {
+// TODO: this is evil
 #include "../../subprojects/wlroots/include/render/egl.h"
 }
 

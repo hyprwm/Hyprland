@@ -573,7 +573,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,
-                           m_RenderData.pMonitor->output->transform_matrix); // TODO: write own, don't use WLR here
+                           m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -660,7 +660,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, CBox*
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float      matrix[9];
-    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->projMatrix.data());
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -821,7 +821,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(const CTexture& tex, CBox* pBox) {
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float      matrix[9];
-    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->projMatrix.data());
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -875,7 +875,7 @@ void CHyprOpenGLImpl::renderTextureMatte(const CTexture& tex, CBox* pBox, CFrame
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float      matrix[9];
-    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->projMatrix.data());
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -934,7 +934,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     const auto TRANSFORM = wlr_output_transform_invert(m_RenderData.pMonitor->transform);
     float      matrix[9];
     CBox       MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-    wlr_matrix_project_box(matrix, MONITORBOX.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->output->transform_matrix);
+    wlr_matrix_project_box(matrix, MONITORBOX.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->projMatrix.data());
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -1423,7 +1423,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
 
     float matrix[9];
     wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,
-                           m_RenderData.pMonitor->output->transform_matrix); // TODO: write own, don't use WLR here
+                           m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -1763,7 +1763,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
 
     float              matrix[9];
     wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,
-                           m_RenderData.pMonitor->output->transform_matrix); // TODO: write own, don't use WLR here
+                           m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);

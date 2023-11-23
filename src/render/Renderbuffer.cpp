@@ -20,7 +20,7 @@ CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format) : m_pWlrBuffer
     static EGLImageKHR (*PWLREGLCREATEIMAGEFROMDMABUF)(wlr_egl*, wlr_dmabuf_attributes*, bool*);
     static bool symbolFound = false;
     if (!symbolFound) {
-        PWLREGLCREATEIMAGEFROMDMABUF = reinterpret_cast<EGLImageKHR (*)(wlr_egl*, wlr_dmabuf_attributes*, bool*)>(dlsym(nullptr, "wlr_egl_create_image_from_dmabuf"));
+        PWLREGLCREATEIMAGEFROMDMABUF = reinterpret_cast<EGLImageKHR (*)(wlr_egl*, wlr_dmabuf_attributes*, bool*)>(dlsym(RTLD_DEFAULT, "wlr_egl_create_image_from_dmabuf"));
 
         symbolFound = true;
 

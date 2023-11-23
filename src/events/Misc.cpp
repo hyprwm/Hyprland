@@ -156,20 +156,6 @@ void Events::listener_commitDragIcon(void* owner, void* data) {
     Debug::log(LOG, "Drag icon committed.");
 }
 
-void Events::listener_InhibitActivate(wl_listener* listener, void* data) {
-    Debug::log(LOG, "Activated exclusive for {:x}.", (uintptr_t)g_pCompositor->m_sSeat.exclusiveClient);
-
-    g_pInputManager->refocus();
-    g_pCompositor->m_sSeat.exclusiveClient = g_pCompositor->m_sWLRInhibitMgr->active_client;
-}
-
-void Events::listener_InhibitDeactivate(wl_listener* listener, void* data) {
-    Debug::log(LOG, "Deactivated exclusive.");
-
-    g_pCompositor->m_sSeat.exclusiveClient = nullptr;
-    g_pInputManager->refocus();
-}
-
 void Events::listener_RendererDestroy(wl_listener* listener, void* data) {
     Debug::log(LOG, "!!Renderer destroyed!!");
 }

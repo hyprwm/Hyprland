@@ -93,6 +93,15 @@ CRegion& CRegion::translate(const Vector2D& vec) {
     return *this;
 }
 
+CRegion& CRegion::transform(const wl_output_transform t, double w, double h) {
+    wlr_region_transform(&m_rRegion, &m_rRegion, t, w, h);
+    return *this;
+}
+
+CRegion CRegion::copy() const {
+    return CRegion(*this);
+}
+
 CRegion& CRegion::scale(float scale) {
     wlr_region_scale(&m_rRegion, &m_rRegion, scale);
     return *this;

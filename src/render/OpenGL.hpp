@@ -14,6 +14,9 @@
 #include "Texture.hpp"
 #include "Framebuffer.hpp"
 #include "Transformer.hpp"
+#include "Renderbuffer.hpp"
+
+#include <GLES2/gl2ext.h>
 
 #include "../debug/TracyDefines.hpp"
 
@@ -39,7 +42,7 @@ struct SRenderModifData {
 };
 
 struct SMonitorRenderData {
-    CFramebuffer primaryFB;
+    CFramebuffer offloadFB;
     CFramebuffer mirrorFB;     // these are used for some effects,
     CFramebuffer mirrorSwapFB; // etc
     CFramebuffer offMainFB;
@@ -80,6 +83,7 @@ struct SCurrentRenderData {
 
     SMonitorRenderData* pCurrentMonData = nullptr;
     CFramebuffer*       currentFB       = nullptr;
+    CFramebuffer*       mainFB          = nullptr;
 
     CRegion             damage;
 
@@ -105,7 +109,6 @@ class CHyprOpenGLImpl {
 
     void               begin(CMonitor*, CRegion*, bool fake = false);
     void               end();
-    void               bindWlrOutputFb();
 
     void               renderRect(CBox*, const CColor&, int round = 0);
     void               renderRectWithBlur(CBox*, const CColor&, int round = 0, float blurA = 1.f);
@@ -157,7 +160,6 @@ class CHyprOpenGLImpl {
     SCurrentRenderData m_RenderData;
 
     GLint              m_iCurrentOutputFb = 0;
-    GLint              m_iWLROutputFb     = 0;
 
     bool               m_bReloadScreenShader = true; // at launch it can be set
 
@@ -169,6 +171,10 @@ class CHyprOpenGLImpl {
     std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
     std::unordered_map<CMonitor*, CTexture>           m_mMonitorBGTextures;
 
+    struct {
+        PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
+    } m_sProc;
+
   private:
     std::list<GLuint> m_lBuffers;
     std::list<GLuint> m_lTextures;
@@ -176,10 +182,11 @@ class CHyprOpenGLImpl {
     int               m_iDRMFD;
     std::string       m_szExtensions;
 
-    bool              m_bFakeFrame        = false;
-    bool              m_bEndFrame         = false;
-    bool              m_bApplyFinalShader = false;
-    bool              m_bBlend            = false;
+    bool              m_bFakeFrame            = false;
+    bool              m_bEndFrame             = false;
+    bool              m_bApplyFinalShader     = false;
+    bool              m_bBlend                = false;
+    bool              m_bOffloadedFramebuffer = false;
 
     CShader           m_sFinalScreenShader;
     CTimer            m_tGlobalTimer;

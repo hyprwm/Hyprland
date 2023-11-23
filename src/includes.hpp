@@ -106,6 +106,9 @@ extern "C" {
 #include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/types/wlr_tearing_control_v1.h>
 #include <wlr/util/box.h>
+#include <wlr/util/transform.h>
+#include <wlr/render/swapchain.h>
+#include <wlr/render/egl.h>
 
 #include <libdrm/drm_fourcc.h>
 

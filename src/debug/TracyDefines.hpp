@@ -13,15 +13,6 @@ inline PFNGLGETQUERYOBJECTUI64VEXTPROC glGetQueryObjectui64v;
 
 #include "../../subprojects/tracy/public/tracy/TracyOpenGL.hpp"
 
-inline void loadGLProc(void* pProc, const char* name) {
-    void* proc = (void*)eglGetProcAddress(name);
-    if (proc == NULL) {
-        Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
-        abort();
-    }
-    *(void**)pProc = proc;
-}
-
 #define TRACY_GPU_CONTEXT TracyGpuContext
 #define TRACY_GPU_ZONE(e) TracyGpuZone(e)
 #define TRACY_GPU_COLLECT TracyGpuCollect

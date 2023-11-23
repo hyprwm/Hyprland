@@ -1063,7 +1063,14 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
     }
 
-    beginRender(pMonitor, damage, RENDER_MODE_NORMAL);
+    if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
+        Debug::log(ERR, "renderer: couldn't beginRender()!");
+
+        if (UNLOCK_SC)
+            wlr_output_lock_software_cursors(pMonitor->output, false);
+
+        return;
+    }
 
     EMIT_HOOK_EVENT("render", RENDER_BEGIN);
 

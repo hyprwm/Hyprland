@@ -118,6 +118,8 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
     m_RenderData.pMonitor = pMonitor;
 
+    static auto* const PBLUR = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
+
     TRACY_GPU_ZONE("RenderBegin");
 
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
@@ -160,7 +162,8 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
 
     const auto PRBO = g_pHyprRenderer->getCurrentRBO();
 
-    if (m_sFinalScreenShader.program > 0 || m_bFakeFrame || m_RenderData.mouseZoomFactor != 1.0 || pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) {
+    if (m_sFinalScreenShader.program > 0 || m_bFakeFrame || m_RenderData.mouseZoomFactor != 1.0 || pMonitor->vecPixelSize != PRBO->getFB()->m_vSize ||
+        *PBLUR != 0 /* TODO: revisit when possible */) {
         // we have to offload
         // bind the primary Hypr Framebuffer
         m_RenderData.pCurrentMonData->offloadFB.bind();

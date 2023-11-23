@@ -256,7 +256,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
-        if (pWorkspace->m_bIsSpecialWorkspace && w->m_iWorkspaceID != pWorkspace->m_iID)
+        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID) && !pWorkspace->m_bIsSpecialWorkspace)
             continue;
 
         // render active window after all others of this pass
@@ -280,7 +280,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
-        if (pWorkspace->m_bIsSpecialWorkspace && w->m_iWorkspaceID != pWorkspace->m_iID)
+        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID) && !pWorkspace->m_bIsSpecialWorkspace)
             continue;
 
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
@@ -301,7 +301,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
-        if (pWorkspace->m_bIsSpecialWorkspace && w->m_iWorkspaceID != pWorkspace->m_iID)
+        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID) && !pWorkspace->m_bIsSpecialWorkspace)
             continue;
 
         // render the bad boy

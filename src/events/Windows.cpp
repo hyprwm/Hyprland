@@ -1171,8 +1171,7 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
 
 void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {
     // A window got opened
-    const auto XDGTOPLEVEL = (wlr_xdg_toplevel*)data;
-    const auto XDGSURFACE  = XDGTOPLEVEL->base;
+    const auto XDGSURFACE = (wlr_xdg_surface*)data;
 
     if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
         return;

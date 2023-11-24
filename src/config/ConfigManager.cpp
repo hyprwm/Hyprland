@@ -209,7 +209,8 @@ void CConfigManager::setDefaultVars() {
     configValues["master:smart_resizing"].intValue         = 1;
     configValues["master:drop_at_cursor"].intValue         = 1;
 
-    configValues["animations:enabled"].intValue = 1;
+    configValues["animations:enabled"].intValue                = 1;
+    configValues["animations:first_launch_animation"].intValue = 1;
 
     configValues["input:follow_mouse"].intValue                     = 1;
     configValues["input:mouse_refocus"].intValue                    = 1;

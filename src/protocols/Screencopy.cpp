@@ -448,25 +448,19 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
     if (!sourceTex)
         return false;
 
-    float glMatrix[9];
-    wlr_matrix_identity(glMatrix);
-    wlr_matrix_translate(glMatrix, -frame->box.x, -frame->box.y);
-    wlr_matrix_scale(glMatrix, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
+    CRegion fakeDamage = {0, 0, frame->box.width, frame->box.height};
 
-    if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, frame->buffer)) {
-        Debug::log(ERR, "[sc] dmabuf: Client requested a copy to a buffer that failed to pass wlr_renderer_begin_with_buffer");
-        wlr_texture_destroy(sourceTex);
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer))
         return false;
-    }
 
-    float color[] = {0, 0, 0, 0};
-    wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, color);
-    // TODO: use hl render methods to use damage
-    wlr_render_texture_with_matrix(g_pCompositor->m_sWLRRenderer, sourceTex, glMatrix, 1.0f);
+    CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}.translate({-frame->box.x, -frame->box.y});
+    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    g_pHyprOpenGL->setMonitorTransformEnabled(true);
+
+    g_pHyprRenderer->endRender();
 
     wlr_texture_destroy(sourceTex);
-
-    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
 
     return true;
 }

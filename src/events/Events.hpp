@@ -42,7 +42,7 @@ namespace Events {
     DYNLISTENFUNC(repositionPopupXDG);
 
     // Surface XDG (window)
-    LISTENER(newXDGSurface);
+    LISTENER(newXDGToplevel);
     LISTENER(activateXDG);
 
     // Window events
@@ -120,10 +120,6 @@ namespace Events {
     DYNLISTENFUNC(unmapDragIcon);
     DYNLISTENFUNC(destroyDragIcon);
     DYNLISTENFUNC(commitDragIcon);
-
-    // Inhibit
-    LISTENER(InhibitActivate);
-    LISTENER(InhibitDeactivate);
 
     // Deco XDG
     LISTENER(NewXDGDeco);

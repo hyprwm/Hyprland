@@ -1169,7 +1169,7 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     PNEWWINDOW->hyprListener_configureX11.initCallback(&XWSURFACE->events.request_configure, &Events::listener_configureX11, PNEWWINDOW, "XWayland Window");
 }
 
-void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
+void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {
     // A window got opened
     const auto XDGSURFACE = (wlr_xdg_surface*)data;
 

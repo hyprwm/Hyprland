@@ -845,8 +845,8 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 }
 
 void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
-    static std::chrono::high_resolution_clock::time_point startRender        = std::chrono::high_resolution_clock::now();
-    static std::chrono::high_resolution_clock::time_point startRenderOverlay = std::chrono::high_resolution_clock::now();
+    static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
+    static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
 
     static auto* const                                    PDEBUGOVERLAY       = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
@@ -887,7 +887,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         firstLaunchAnimActive = false;
     }
 
-    startRender = std::chrono::high_resolution_clock::now();
+    renderStart = std::chrono::high_resolution_clock::now();
 
     if (*PDEBUGOVERLAY == 1) {
         g_pDebugOverlay->frameData(pMonitor);
@@ -991,7 +991,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     // check the damage
     CRegion damage;
     bool    hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
-    int     bufferAge;
 
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
         return;
@@ -1007,16 +1006,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, true);
 
-    if (!wlr_output_attach_render(pMonitor->output, &bufferAge)) {
-        Debug::log(ERR, "Couldn't attach render to display {} ???", pMonitor->szName);
-
-        if (UNLOCK_SC)
-            wlr_output_lock_software_cursors(pMonitor->output, false);
-
-        return;
-    }
-
-    wlr_damage_ring_get_buffer_damage(&pMonitor->damage, bufferAge, damage.pixman());
+    wlr_damage_ring_get_buffer_damage(&pMonitor->damage, m_iLastBufferAge, damage.pixman());
 
     pMonitor->renderingActive = true;
 
@@ -1062,7 +1052,25 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     TRACY_GPU_ZONE("Render");
 
-    g_pHyprOpenGL->begin(pMonitor, &damage);
+    if (pMonitor == g_pCompositor->getMonitorFromCursor())
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
+    else
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = 1.f;
+
+    if (zoomInFactorFirstLaunch > 1.f) {
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor    = zoomInFactorFirstLaunch;
+        g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse  = false;
+        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+    }
+
+    if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
+        Debug::log(ERR, "renderer: couldn't beginRender()!");
+
+        if (UNLOCK_SC)
+            wlr_output_lock_software_cursors(pMonitor->output, false);
+
+        return;
+    }
 
     EMIT_HOOK_EVENT("render", RENDER_BEGIN);
 
@@ -1097,7 +1105,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
             // for drawing the debug overlay
             if (pMonitor == g_pCompositor->m_vMonitors.front().get() && *PDEBUGOVERLAY == 1) {
-                startRenderOverlay = std::chrono::high_resolution_clock::now();
+                renderStartOverlay = std::chrono::high_resolution_clock::now();
                 g_pDebugOverlay->draw();
                 endRenderOverlay = std::chrono::high_resolution_clock::now();
             }
@@ -1118,35 +1126,22 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     renderCursor = renderCursor && shouldRenderCursor();
 
-    if (renderCursor && wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y)) {
+    if (renderCursor) {
         TRACY_GPU_ZONE("RenderCursor");
 
         bool lockSoftware = pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f;
 
         if (lockSoftware) {
             wlr_output_lock_software_cursors(pMonitor->output, true);
-            wlr_output_render_software_cursors(pMonitor->output, NULL);
+            g_pHyprRenderer->renderSoftwareCursors(pMonitor, g_pHyprOpenGL->m_RenderData.damage);
             wlr_output_lock_software_cursors(pMonitor->output, false);
         } else
-            wlr_output_render_software_cursors(pMonitor->output, NULL);
-
-        wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
-    }
-
-    if (pMonitor == g_pCompositor->getMonitorFromCursor())
-        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
-    else
-        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = 1.f;
-
-    if (zoomInFactorFirstLaunch > 1.f) {
-        g_pHyprOpenGL->m_RenderData.mouseZoomFactor    = zoomInFactorFirstLaunch;
-        g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse  = false;
-        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+            g_pHyprRenderer->renderSoftwareCursors(pMonitor, g_pHyprOpenGL->m_RenderData.damage);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 
-    g_pHyprOpenGL->end();
+    endRender();
 
     TRACY_GPU_COLLECT;
 
@@ -1192,12 +1187,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     pMonitor->pendingFrame = false;
 
-    const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startRender).count() / 1000.f;
+    const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
     g_pDebugOverlay->renderData(pMonitor, µs);
 
     if (*PDEBUGOVERLAY == 1) {
         if (pMonitor == g_pCompositor->m_vMonitors.front().get()) {
-            const float µsNoOverlay = µs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - startRenderOverlay).count() / 1000.f;
+            const float µsNoOverlay = µs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, µsNoOverlay);
         } else {
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, µs);
@@ -1957,6 +1952,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }
 
+    pMonitor->updateMatrix();
+
     // update renderer (here because it will call rollback, so we cannot do this before committing)
     g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 
@@ -2190,4 +2187,100 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
 
     // found one!
     pMonitor->solitaryClient = PCANDIDATE;
+}
+
+void CHyprRenderer::renderSoftwareCursors(CMonitor* pMonitor, const CRegion& damage, std::optional<Vector2D> overridePos) {
+    const auto         CURSORPOS = overridePos.value_or(g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition);
+    wlr_output_cursor* cursor;
+    wl_list_for_each(cursor, &pMonitor->output->cursors, link) {
+        if (!cursor->enabled || !cursor->visible || pMonitor->output->hardware_cursor == cursor)
+            continue;
+
+        if (!cursor->texture)
+            continue;
+
+        CBox cursorBox = CBox{CURSORPOS.x, CURSORPOS.y, cursor->width, cursor->height}.translate({-cursor->hotspot_x, -cursor->hotspot_y});
+
+        g_pHyprOpenGL->renderTexturePrimitive(cursor->texture, &cursorBox);
+    }
+}
+
+CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt) {
+    auto it = std::find_if(m_vRenderbuffers.begin(), m_vRenderbuffers.end(), [&](const auto& other) { return other->m_pWlrBuffer == buffer; });
+
+    if (it != m_vRenderbuffers.end())
+        return it->get();
+
+    return m_vRenderbuffers.emplace_back(std::make_unique<CRenderbuffer>(buffer, fmt)).get();
+}
+
+bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode, wlr_buffer* withBuffer) {
+
+    if (eglGetCurrentContext() != wlr_egl_get_context(g_pCompositor->m_sWLREGL))
+        eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL));
+
+    m_eRenderMode = mode;
+
+    g_pHyprOpenGL->m_RenderData.pMonitor = pMonitor; // has to be set cuz allocs
+
+    if (mode == RENDER_MODE_FULL_FAKE) {
+        wlr_output_attach_render(pMonitor->output, nullptr);
+        g_pHyprOpenGL->begin(pMonitor, &damage, true);
+        return true;
+    }
+
+    if (!withBuffer) {
+        if (!wlr_output_configure_primary_swapchain(pMonitor->output, &pMonitor->output->pending, &pMonitor->output->swapchain))
+            return false;
+
+        m_pCurrentWlrBuffer = wlr_swapchain_acquire(pMonitor->output->swapchain, &m_iLastBufferAge);
+        if (!m_pCurrentWlrBuffer)
+            return false;
+    } else {
+        m_pCurrentWlrBuffer = withBuffer;
+    }
+
+    try {
+        m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentWlrBuffer, pMonitor->drmFormat);
+    } catch (std::exception& e) {
+        wlr_buffer_unlock(m_pCurrentWlrBuffer);
+        return false;
+    }
+
+    m_pCurrentRenderbuffer->bind();
+    g_pHyprOpenGL->begin(pMonitor, &damage);
+
+    return true;
+}
+
+void CHyprRenderer::endRender() {
+    const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
+
+    g_pHyprOpenGL->end();
+
+    if (m_eRenderMode == RENDER_MODE_FULL_FAKE) {
+        wlr_output_rollback(PMONITOR->output);
+        return;
+    }
+
+    glFlush();
+
+    if (m_eRenderMode == RENDER_MODE_NORMAL)
+        wlr_output_state_set_buffer(&PMONITOR->output->pending, m_pCurrentWlrBuffer);
+
+    wlr_buffer_unlock(m_pCurrentWlrBuffer);
+
+    m_pCurrentRenderbuffer->unbind();
+
+    m_pCurrentRenderbuffer = nullptr;
+    m_pCurrentWlrBuffer    = nullptr;
+    m_iLastBufferAge       = 0;
+}
+
+void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
+    std::erase_if(m_vRenderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
+}
+
+CRenderbuffer* CHyprRenderer::getCurrentRBO() {
+    return m_pCurrentRenderbuffer;
 }

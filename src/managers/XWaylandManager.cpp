@@ -45,10 +45,11 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
             wlr_xdg_toplevel_set_activated(PSURF->toplevel, activate);
 
     } else if (wlr_xwayland_surface_try_from_wlr_surface(pSurface)) {
-        wlr_xwayland_surface_activate(wlr_xwayland_surface_try_from_wlr_surface(pSurface), activate);
+        const auto XSURF = wlr_xwayland_surface_try_from_wlr_surface(pSurface);
+        wlr_xwayland_surface_activate(XSURF, activate);
 
-        if (activate)
-            wlr_xwayland_surface_restack(wlr_xwayland_surface_try_from_wlr_surface(pSurface), nullptr, XCB_STACK_MODE_ABOVE);
+        if (activate && !XSURF->override_redirect)
+            wlr_xwayland_surface_restack(XSURF, nullptr, XCB_STACK_MODE_ABOVE);
     }
 }
 
@@ -58,7 +59,8 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
 
         if (activate) {
             wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
-            wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, nullptr, XCB_STACK_MODE_ABOVE);
+            if (!pWindow->m_uSurface.xwayland->override_redirect)
+                wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, nullptr, XCB_STACK_MODE_ABOVE);
         }
 
         wlr_xwayland_surface_activate(pWindow->m_uSurface.xwayland, activate);

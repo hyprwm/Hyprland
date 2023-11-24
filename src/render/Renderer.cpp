@@ -2199,9 +2199,10 @@ void CHyprRenderer::renderSoftwareCursors(CMonitor* pMonitor, const CRegion& dam
         if (!cursor->texture)
             continue;
 
-        CBox cursorBox = CBox{CURSORPOS.x, CURSORPOS.y, cursor->width, cursor->height}.translate({-cursor->hotspot_x, -cursor->hotspot_y});
+        CBox cursorBox = CBox{CURSORPOS.x, CURSORPOS.y, cursor->width, cursor->height}.translate({-cursor->hotspot_x, -cursor->hotspot_y}).scale(pMonitor->scale);
 
-        g_pHyprOpenGL->renderTexturePrimitive(cursor->texture, &cursorBox);
+        // TODO: NVIDIA doesn't like if we use renderTexturePrimitive here. Why?
+        g_pHyprOpenGL->renderTexture(cursor->texture, &cursorBox, 1.0);
     }
 }
 

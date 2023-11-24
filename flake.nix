@@ -12,7 +12,7 @@
       host = "gitlab.freedesktop.org";
       owner = "wlroots";
       repo = "wlroots";
-      rev = "26158d0718e239b4d2423a3dc22365cc4c749ffd";
+      rev = "f1762f428b0ef2989c81f57ea9e810403d34d946";
       flake = false;
     };
 

@@ -256,7 +256,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
-        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID) && !pWorkspace->m_bIsSpecialWorkspace)
+        if (pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
         // render active window after all others of this pass
@@ -280,7 +280,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
-        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID) && !pWorkspace->m_bIsSpecialWorkspace)
+        if (pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
@@ -301,8 +301,11 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
-        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID) && !pWorkspace->m_bIsSpecialWorkspace)
+        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
+
+        if (pWorkspace->m_bIsSpecialWorkspace && w->m_iMonitorID != pWorkspace->m_iMonitorID)
+            continue; // special on another are rendered as a part of the base pass
 
         // render the bad boy
         renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);

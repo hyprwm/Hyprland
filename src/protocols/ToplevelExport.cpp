@@ -134,7 +134,8 @@ void CToplevelExportProtocolManager::removeFrame(SScreencopyFrame* frame, bool f
     std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other == frame; });
 
     wl_resource_set_user_data(frame->resource, nullptr);
-    wlr_buffer_unlock(frame->buffer);
+    if (frame->buffer && frame->buffer->n_locks > 0)
+        wlr_buffer_unlock(frame->buffer);
     removeClient(frame->client, force);
     m_lFrames.remove(*frame);
 }
@@ -362,18 +363,14 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
     CRegion    fakeDamage{0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10};
 
-    if (frame->overlayCursor)
-        wlr_output_lock_software_cursors(PMONITOR->output, true);
-
-    if (!wlr_output_attach_render(PMONITOR->output, nullptr)) {
-        Debug::log(ERR, "[toplevel_export] Couldn't attach render");
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE)) {
         wlr_buffer_end_data_ptr_access(frame->buffer);
-        if (frame->overlayCursor)
-            wlr_output_lock_software_cursors(PMONITOR->output, false);
         return false;
     }
 
-    g_pHyprOpenGL->begin(PMONITOR, &fakeDamage, true);
+    if (frame->overlayCursor)
+        wlr_output_lock_software_cursors(PMONITOR->output, true);
+
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
 
     // render client at 0,0
@@ -381,46 +378,25 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprRenderer->renderWindow(frame->pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
-    if (frame->overlayCursor && wlr_renderer_begin(g_pCompositor->m_sWLRRenderer, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y)) {
-        // hack le massive
-        wlr_output_cursor* cursor;
-        const auto         OFFSET = frame->pWindow->m_vRealPosition.vec() - PMONITOR->vecPosition;
-        wl_list_for_each(cursor, &PMONITOR->output->cursors, link) {
-            if (!cursor->enabled || !cursor->visible || PMONITOR->output->hardware_cursor == cursor) {
-                continue;
-            }
-            cursor->x -= OFFSET.x;
-            cursor->y -= OFFSET.y;
-        }
-        wlr_output_render_software_cursors(PMONITOR->output, NULL);
-        wl_list_for_each(cursor, &PMONITOR->output->cursors, link) {
-            if (!cursor->enabled || !cursor->visible || PMONITOR->output->hardware_cursor == cursor) {
-                continue;
-            }
-            cursor->x += OFFSET.x;
-            cursor->y += OFFSET.y;
-        }
-        wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
-    }
+    if (frame->overlayCursor)
+        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.vec());
 
     // copy pixels
     const auto PFORMAT = gles2FromDRM(format);
     if (!PFORMAT) {
         Debug::log(ERR, "[toplevel_export] Cannot read pixels, unsupported format {:x}", (uintptr_t)PFORMAT);
-        g_pHyprOpenGL->end();
+        g_pHyprRenderer->endRender();
         wlr_buffer_end_data_ptr_access(frame->buffer);
         if (frame->overlayCursor)
             wlr_output_lock_software_cursors(PMONITOR->output, false);
         return false;
     }
 
-    glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_RenderData.pCurrentMonData->primaryFB.m_iFb);
+    g_pHyprOpenGL->m_RenderData.mainFB->bind();
 
     glReadPixels(0, 0, frame->box.width, frame->box.height, PFORMAT->gl_format, PFORMAT->gl_type, data);
 
-    g_pHyprOpenGL->end();
-
-    wlr_output_rollback(PMONITOR->output);
+    g_pHyprRenderer->endRender();
 
     wlr_buffer_end_data_ptr_access(frame->buffer);
 
@@ -431,14 +407,12 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
 }
 
 bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, timespec* now) {
-    if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, frame->buffer))
-        return false;
-
     const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
 
     CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
-    g_pHyprOpenGL->begin(PMONITOR, &fakeDamage, true);
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer))
+        return false;
 
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
 
@@ -446,14 +420,10 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
     g_pHyprRenderer->renderWindow(frame->pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
-    g_pHyprOpenGL->bindWlrOutputFb();
+    if (frame->overlayCursor)
+        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.vec());
 
-    CBox monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
-    g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_RenderData.pCurrentMonData->primaryFB.m_cTex, &monbox, 1.f);
-
-    g_pHyprOpenGL->end();
-
-    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+    g_pHyprRenderer->endRender();
     return true;
 }
 

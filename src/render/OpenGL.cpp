@@ -115,10 +115,50 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
     return shader;
 }
 
-void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
-    m_RenderData.pMonitor = pMonitor;
+bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
+    // passes requiring introspection are the ones that need to render blur.
 
     static auto* const PBLUR = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
+    static auto* const PXRAY = &g_pConfigManager->getConfigValuePtr("decoration:blur:xray")->intValue;
+
+    if (*PBLUR == 0)
+        return false;
+
+    if (m_RenderData.pCurrentMonData->blurFBShouldRender)
+        return true;
+
+    if (pMonitor->solitaryClient)
+        return false;
+
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        if (ls->forceBlur && !ls->xray)
+            return true;
+    }
+
+    if (*PXRAY)
+        return false;
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped || w->isHidden() || (!w->m_bIsFloating && !g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID)))
+            continue;
+
+        if (!g_pHyprRenderer->shouldRenderWindow(w.get()))
+            continue;
+
+        if (w->m_sAdditionalConfigData.forceNoBlur.toUnderlying() == true || w->m_sAdditionalConfigData.xray.toUnderlying() == true)
+            continue;
+
+        if (w->opaque())
+            continue;
+
+        return true;
+    }
+
+    return false;
+}
+
+void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
+    m_RenderData.pMonitor = pMonitor;
 
     TRACY_GPU_ZONE("RenderBegin");
 
@@ -163,7 +203,7 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
     const auto PRBO = g_pHyprRenderer->getCurrentRBO();
 
     if (m_sFinalScreenShader.program > 0 || m_bFakeFrame || m_RenderData.mouseZoomFactor != 1.0 || pMonitor->vecPixelSize != PRBO->getFB()->m_vSize ||
-        (*PBLUR != 0 && !pMonitor->solitaryClient /* TODO: revisit when possible */)) {
+        passRequiresIntrospection(pMonitor)) {
         // we have to offload
         // bind the primary Hypr Framebuffer
         m_RenderData.pCurrentMonData->offloadFB.bind();

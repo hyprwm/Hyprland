@@ -2209,7 +2209,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
 }
 
 void CHyprRenderer::renderSoftwareCursors(CMonitor* pMonitor, const CRegion& damage, std::optional<Vector2D> overridePos) {
-    const auto         CURSORPOS = overridePos.value_or(g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition);
+    const auto         CURSORPOS = overridePos.value_or(g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition) * pMonitor->scale;
     wlr_output_cursor* cursor;
     wl_list_for_each(cursor, &pMonitor->output->cursors, link) {
         if (!cursor->enabled || !cursor->visible || pMonitor->output->hardware_cursor == cursor)
@@ -2218,7 +2218,7 @@ void CHyprRenderer::renderSoftwareCursors(CMonitor* pMonitor, const CRegion& dam
         if (!cursor->texture)
             continue;
 
-        CBox cursorBox = CBox{CURSORPOS.x, CURSORPOS.y, cursor->width, cursor->height}.translate({-cursor->hotspot_x, -cursor->hotspot_y}).scale(pMonitor->scale);
+        CBox cursorBox = CBox{CURSORPOS.x, CURSORPOS.y, cursor->width, cursor->height}.translate({-cursor->hotspot_x, -cursor->hotspot_y});
 
         // TODO: NVIDIA doesn't like if we use renderTexturePrimitive here. Why?
         g_pHyprOpenGL->renderTexture(cursor->texture, &cursorBox, 1.0);

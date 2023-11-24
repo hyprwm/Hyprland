@@ -30,8 +30,7 @@ inline const float fullVerts[] = {
 };
 inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
-enum eDiscardMode
-{
+enum eDiscardMode {
     DISCARD_OPAQUE = 1,
     DISCARD_ALPHA  = 1 << 1
 };
@@ -173,7 +172,7 @@ class CHyprOpenGLImpl {
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
-        PFNEGLDESTROYIMAGEKHRPROC                     eglDestroyImageKHR = nullptr;
+        PFNEGLDESTROYIMAGEKHRPROC                     eglDestroyImageKHR                     = nullptr;
     } m_sProc;
 
   private:
@@ -208,6 +207,8 @@ class CHyprOpenGLImpl {
     void          preBlurForCurrentMonitor();
 
     bool          shouldUseNewBlurOptimizations(SLayerSurface* pLayer, CWindow* pWindow);
+
+    bool          passRequiresIntrospection(CMonitor* pMonitor);
 
     friend class CHyprRenderer;
 };

@@ -139,6 +139,7 @@ class CCompositor {
     CWindow*       vectorToWindowIdeal(const Vector2D&, CWindow* pIgnoreWindow = nullptr); // used only for finding a window to focus on, basically a "findFocusableWindow"
     CWindow*       vectorToWindowTiled(const Vector2D&);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
+    SIMEPopup*     vectorToIMEPopup(const Vector2D& pos, std::list<SIMEPopup>& popups);
     wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
     Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
     CWindow*       windowFromCursor();

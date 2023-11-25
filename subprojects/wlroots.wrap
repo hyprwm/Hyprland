@@ -1,7 +1,7 @@
 [wrap-git]
 directory = wlroots
 url = https://gitlab.freedesktop.org/wlroots/wlroots.git
-revision = f1762f428b0ef2989c81f57ea9e810403d34d946
+revision = 2eb225236eb72f27beec921e9f37ddf58e874fba
 depth = 1
 
 diff_files = wlroots-meson-build.patch

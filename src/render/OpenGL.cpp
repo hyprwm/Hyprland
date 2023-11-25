@@ -202,7 +202,7 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
 
     const auto PRBO = g_pHyprRenderer->getCurrentRBO();
 
-    if (m_sFinalScreenShader.program > 0 || m_bFakeFrame || m_RenderData.mouseZoomFactor != 1.0 || pMonitor->vecPixelSize != PRBO->getFB()->m_vSize ||
+    if (m_sFinalScreenShader.program > 0 || m_bFakeFrame || m_RenderData.mouseZoomFactor != 1.0 || pMonitor->vecPixelSize != PRBO->getFB()->m_vSize || !pMonitor->mirrors.empty() ||
         passRequiresIntrospection(pMonitor)) {
         // we have to offload
         // bind the primary Hypr Framebuffer

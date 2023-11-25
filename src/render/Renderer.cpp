@@ -16,7 +16,7 @@ CHyprRenderer::CHyprRenderer() {
 
     if (g_pCompositor->m_sWLRSession) {
         wlr_device* dev;
-		wl_list_for_each(dev, &g_pCompositor->m_sWLRSession->devices, link) {
+        wl_list_for_each(dev, &g_pCompositor->m_sWLRSession->devices, link) {
             const auto  DRMV = drmGetVersion(dev->fd);
 
             std::string name = std::string{DRMV->name, DRMV->name_len};
@@ -26,7 +26,7 @@ CHyprRenderer::CHyprRenderer() {
                 m_bNvidia = true;
 
             Debug::log(LOG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
-                    std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+                       std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
 
             drmFreeVersion(DRMV);
         }
@@ -42,7 +42,7 @@ CHyprRenderer::CHyprRenderer() {
             m_bNvidia = true;
 
         Debug::log(LOG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
-                std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+                   std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
 
         drmFreeVersion(DRMV);
     }

@@ -118,9 +118,10 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     // passes requiring introspection are the ones that need to render blur.
 
-    static auto* const PBLUR  = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
-    static auto* const PXRAY  = &g_pConfigManager->getConfigValuePtr("decoration:blur:xray")->intValue;
-    static auto* const POPTIM = &g_pConfigManager->getConfigValuePtr("decoration:blur:new_optimizations")->intValue;
+    static auto* const PBLUR        = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
+    static auto* const PXRAY        = &g_pConfigManager->getConfigValuePtr("decoration:blur:xray")->intValue;
+    static auto* const POPTIM       = &g_pConfigManager->getConfigValuePtr("decoration:blur:new_optimizations")->intValue;
+    static auto* const PBLURSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:blur:special")->intValue;
 
     if (*PBLUR == 0)
         return false;
@@ -141,6 +142,18 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
         if (ls->forceBlur && !XRAYMODE)
             return true;
+    }
+
+    if (*PBLURSPECIAL) {
+        for (auto& ws : g_pCompositor->m_vWorkspaces) {
+            if (!ws->m_bIsSpecialWorkspace || ws->m_iMonitorID != pMonitor->ID)
+                continue;
+
+            if (ws->m_fAlpha.fl() == 0)
+                continue;
+
+            return true;
+        }
     }
 
     if (*PXRAY)

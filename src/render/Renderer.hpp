@@ -69,6 +69,7 @@ class CHyprRenderer {
     void                            renderSoftwareCursors(CMonitor* pMonitor, const CRegion& damage, std::optional<Vector2D> overridePos = {});
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
     CRenderbuffer*                  getCurrentRBO();
+    bool                            isNvidia();
 
     bool                            beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, wlr_buffer* withBuffer = nullptr);
     void                            endRender();
@@ -120,6 +121,8 @@ class CHyprRenderer {
     wlr_buffer*    m_pCurrentWlrBuffer    = nullptr;
     eRenderMode    m_eRenderMode          = RENDER_MODE_NORMAL;
     int            m_iLastBufferAge       = 0;
+
+    bool           m_bNvidia = false;
 
     CRenderbuffer* getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt);
     std::vector<std::unique_ptr<CRenderbuffer>> m_vRenderbuffers;

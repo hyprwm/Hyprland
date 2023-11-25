@@ -118,8 +118,9 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     // passes requiring introspection are the ones that need to render blur.
 
-    static auto* const PBLUR = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
-    static auto* const PXRAY = &g_pConfigManager->getConfigValuePtr("decoration:blur:xray")->intValue;
+    static auto* const PBLUR  = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
+    static auto* const PXRAY  = &g_pConfigManager->getConfigValuePtr("decoration:blur:xray")->intValue;
+    static auto* const POPTIM = &g_pConfigManager->getConfigValuePtr("decoration:blur:new_optimizations")->intValue;
 
     if (*PBLUR == 0)
         return false;
@@ -146,7 +147,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         return false;
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || w->isHidden() || (!w->m_bIsFloating && !g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID)))
+        if (!w->m_bIsMapped || w->isHidden() || (!w->m_bIsFloating && *POPTIM))
             continue;
 
         if (!g_pHyprRenderer->shouldRenderWindow(w.get()))

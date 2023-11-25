@@ -38,7 +38,12 @@ in {
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
       hyprland-debug = final.hyprland.override {debug = true;};
-      hyprland-nvidia = final.hyprland.override {enableNvidiaPatches = true;};
+      hyprland-nvidia =
+        builtins.trace ''
+          hyprland-nvidia was removed. Please use the hyprland package.
+          Nvidia patches are no longer needed.
+        ''
+        final.hyprland;
       hyprland-hidpi =
         builtins.trace ''
           hyprland-hidpi was removed. Please use the hyprland package.

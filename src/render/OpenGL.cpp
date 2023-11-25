@@ -130,8 +130,15 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     if (pMonitor->solitaryClient)
         return false;
 
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+        const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
+        if (ls->forceBlur && !XRAYMODE)
+            return true;
+    }
+
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (ls->forceBlur && !ls->xray)
+        const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
+        if (ls->forceBlur && !XRAYMODE)
             return true;
     }
 

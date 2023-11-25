@@ -4,11 +4,51 @@
 #include "../helpers/Region.hpp"
 #include <algorithm>
 
+extern "C" {
+#include <xf86drm.h>
+}
+
 CHyprRenderer::CHyprRenderer() {
     const auto ENV = getenv("WLR_DRM_NO_ATOMIC");
 
     if (ENV && std::string(ENV) == "1")
         m_bTearingEnvSatisfied = true;
+
+    if (g_pCompositor->m_sWLRSession) {
+        wlr_device* dev;
+		wl_list_for_each(dev, &g_pCompositor->m_sWLRSession->devices, link) {
+            const auto  DRMV = drmGetVersion(dev->fd);
+
+            std::string name = std::string{DRMV->name, DRMV->name_len};
+            std::transform(name.begin(), name.end(), name.begin(), tolower);
+
+            if (name.contains("nvidia"))
+                m_bNvidia = true;
+
+            Debug::log(LOG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
+                    std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+
+            drmFreeVersion(DRMV);
+        }
+    } else {
+        Debug::log(LOG, "m_sWLRSession is null, omitting full DRM node checks");
+
+        const auto  DRMV = drmGetVersion(g_pCompositor->m_iDRMFD);
+
+        std::string name = std::string{DRMV->name, DRMV->name_len};
+        std::transform(name.begin(), name.end(), name.begin(), tolower);
+
+        if (name.contains("nvidia"))
+            m_bNvidia = true;
+
+        Debug::log(LOG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
+                std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+
+        drmFreeVersion(DRMV);
+    }
+
+    if (m_bNvidia)
+        Debug::log(WARN, "NVIDIA detected, please remember to follow nvidia instructions on the wiki");
 }
 
 void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
@@ -2284,7 +2324,10 @@ void CHyprRenderer::endRender() {
         return;
     }
 
-    glFlush();
+    if (isNvidia())
+        glFinish();
+    else
+        glFlush();
 
     if (m_eRenderMode == RENDER_MODE_NORMAL)
         wlr_output_state_set_buffer(&PMONITOR->output->pending, m_pCurrentWlrBuffer);
@@ -2304,4 +2347,8 @@ void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
 
 CRenderbuffer* CHyprRenderer::getCurrentRBO() {
     return m_pCurrentRenderbuffer;
+}
+
+bool CHyprRenderer::isNvidia() {
+    return m_bNvidia;
 }

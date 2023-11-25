@@ -210,7 +210,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     PFRAME->client = PCLIENT;
     PCLIENT->ref++;
 
-    PFRAME->shmFormat = wlr_output_preferred_read_format(PFRAME->pMonitor->output);
+    PFRAME->shmFormat = g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XRGB8888 : wlr_output_preferred_read_format(PFRAME->pMonitor->output);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture output");
         zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);

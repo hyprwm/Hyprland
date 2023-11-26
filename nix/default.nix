@@ -27,7 +27,6 @@
   xcbutilwm,
   xwayland,
   debug ? false,
-  enableNvidiaPatches ? false,
   enableXWayland ? true,
   legacyRenderer ? false,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
@@ -35,13 +34,15 @@
   version ? "git",
   commit,
   # deprecated flags
+  enableNvidiaPatches ? false,
   nvidiaPatches ? false,
   hidpiXWayland ? false,
 }:
-assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been renamed `enableNvidiaPatches`";
+assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
+assert lib.assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
 assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
   stdenv.mkDerivation {
-    pname = "hyprland${lib.optionalString enableNvidiaPatches "-nvidia"}${lib.optionalString debug "-debug"}";
+    pname = "hyprland${lib.optionalString debug "-debug"}";
     inherit version;
 
     src = lib.cleanSourceWith {
@@ -82,7 +83,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         wayland
         wayland-protocols
         pciutils
-        (wlroots.override {inherit enableNvidiaPatches;})
+        wlroots
       ]
       ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland]
       ++ lib.optionals withSystemd [systemd];

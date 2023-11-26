@@ -10,7 +10,6 @@ jobs:
       matrix:
         package:
           - hyprland
-          - hyprland-nvidia
           - xdg-desktop-portal-hyprland
 
     runs-on: ubuntu-latest

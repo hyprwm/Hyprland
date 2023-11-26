@@ -65,7 +65,6 @@
         hyprland
         hyprland-unwrapped
         hyprland-debug
-        hyprland-nvidia
         # hyprland-extras
         xdg-desktop-portal-hyprland
         # dependencies

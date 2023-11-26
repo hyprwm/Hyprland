@@ -45,6 +45,10 @@ size_t CFunctionHook::getInstructionLenAt(void* start) {
         // I don't have an assembler. I don't think udis provides one. Besides, variables might be tricky.
         if (((uint8_t*)start)[0] == 0xFF && ((uint8_t*)start)[1] == 0x15)
             m_vTrampolineRIPUses.emplace_back(std::make_pair<>((uint64_t)start - (uint64_t)m_pSource, ins));
+        else {
+            Debug::log(ERR, "[CFunctionHook] Cannot hook: unsupported %rip usage: {}", ins);
+            throw std::runtime_error("unsupported %rip usage");
+        }
     }
 
     return insSize;
@@ -90,7 +94,10 @@ bool CFunctionHook::hook() {
     static constexpr size_t  CALL_WITH_RAX_ADDRESS_OFFSET = 2;
 
     // get minimum size to overwrite
-    const auto HOOKSIZE = probeMinimumJumpSize(m_pSource, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));
+    size_t HOOKSIZE = 0;
+    try {
+        HOOKSIZE = probeMinimumJumpSize(m_pSource, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));
+    } catch (std::exception& e) { return false; }
 
     // alloc trampoline
     const auto TRAMPOLINE_SIZE = sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE + sizeof(PUSH_RAX) + m_vTrampolineRIPUses.size() * (sizeof(CALL_WITH_RAX) - 6);

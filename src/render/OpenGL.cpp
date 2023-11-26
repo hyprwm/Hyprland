@@ -160,7 +160,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         return false;
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || w->isHidden() || (!w->m_bIsFloating && *POPTIM))
+        if (!w->m_bIsMapped || w->isHidden() || (!w->m_bIsFloating && *POPTIM && !g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID)))
             continue;
 
         if (!g_pHyprRenderer->shouldRenderWindow(w.get()))

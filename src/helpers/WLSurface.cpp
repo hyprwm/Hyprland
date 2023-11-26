@@ -65,7 +65,7 @@ void CWLSurface::destroy() {
     if (g_pInputManager->m_pLastMouseSurface == m_pWLRSurface)
         g_pInputManager->m_pLastMouseSurface = nullptr;
     if (g_pHyprRenderer->m_sLastCursorData.surf == m_pWLRSurface)
-        g_pInputManager->setCursorImageOverride("left_ptr");
+        g_pHyprRenderer->m_sLastCursorData.surf.reset();
 
     m_pWLRSurface = nullptr;
 

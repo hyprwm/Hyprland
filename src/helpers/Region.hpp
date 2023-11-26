@@ -47,6 +47,7 @@ class CRegion {
     CRegion&                    translate(const Vector2D& vec);
     CRegion&                    transform(const wl_output_transform t, double w, double h);
     CRegion&                    invert(pixman_box32_t* box);
+    CRegion&                    invert(const CBox& box);
     CRegion&                    scale(float scale);
     CBox                        getExtents();
     bool                        containsPoint(const Vector2D& vec) const;

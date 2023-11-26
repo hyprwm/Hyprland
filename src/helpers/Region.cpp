@@ -88,6 +88,11 @@ CRegion& CRegion::invert(pixman_box32_t* box) {
     return *this;
 }
 
+CRegion& CRegion::invert(const CBox& box) {
+    pixman_box32 pixmanBox = {box.x, box.y, box.w + box.x, box.h + box.y};
+    return this->invert(&pixmanBox);
+}
+
 CRegion& CRegion::translate(const Vector2D& vec) {
     pixman_region32_translate(&m_rRegion, vec.x, vec.y);
     return *this;

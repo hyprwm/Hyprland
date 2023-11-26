@@ -16,6 +16,8 @@ class CTitleTex {
     CWindow*    pWindowOwner = nullptr;
 };
 
+void refreshGroupBarGradients();
+
 class CHyprGroupBarDecoration : public IHyprWindowDecoration {
   public:
     CHyprGroupBarDecoration(CWindow*);
@@ -56,8 +58,6 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     CTitleTex*               textureFromTitle(const std::string&);
     void                     invalidateTextures();
-
-    void                     refreshGradients();
 
     CBox                     assignedBoxGlobal();
 

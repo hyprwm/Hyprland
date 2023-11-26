@@ -7,7 +7,6 @@ self: {
   cfg = config.wayland.windowManager.hyprland;
   defaultHyprlandPackage = self.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
     enableXWayland = cfg.xwayland.enable;
-    inherit (cfg) enableNvidiaPatches;
   };
 in {
   disabledModules = ["services/window-managers/hyprland.nix"];
@@ -35,12 +34,10 @@ in {
       defaultText = lib.literalExpression ''
         hyprland.packages.''${pkgs.stdenv.hostPlatform.system}.default.override {
           enableXWayland = config.wayland.windowManager.hyprland.xwayland.enable;
-          inherit (config.wayland.windowManager.hyprland) enableNvidiaPatches;
         }
       '';
       description = lib.mdDoc ''
-        Hyprland package to use. Will override the 'xwayland' and
-        'enableNvidiaPatches' options.
+        Hyprland package to use. Will override the 'xwayland' option.
 
         Defaults to the one provided by the flake. Set it to
         {package}`pkgs.hyprland` to use the one provided by nixpkgs or
@@ -85,8 +82,6 @@ in {
       };
 
     xwayland.enable = lib.mkEnableOption (lib.mdDoc "XWayland") // {default = true;};
-
-    enableNvidiaPatches = lib.mkEnableOption (lib.mdDoc "patching wlroots for better Nvidia support.");
 
     extraConfig = lib.mkOption {
       type = lib.types.nullOr lib.types.lines;
@@ -173,5 +168,7 @@ in {
   imports = [
     (lib.mkRemovedOptionModule ["wayland" "windowManager" "hyprland" "xwayland" "hidpi"]
       "Support for this option has been removed. Refer to https://wiki.hyprland.org/Configuring/XWayland for more info")
+    (lib.mkRemovedOptionModule ["wayland" "windowManager" "hyprland" "xwayland" "enableNvidiaPatches"]
+      "Nvidia patches are no longer needed for Hyprland")
   ];
 }

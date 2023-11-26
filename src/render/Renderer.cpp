@@ -2187,7 +2187,12 @@ bool CHyprRenderer::canSkipBackBufferClear(CMonitor* pMonitor) {
             ls->geometry.height != pMonitor->vecSize.y)
             continue;
 
-        if (!ls->layerSurface->surface->opaque)
+        // TODO: cache maybe?
+        CRegion opaque = &ls->layerSurface->surface->opaque_region;
+        CBox    lsbox  = {0, 0, ls->layerSurface->surface->current.buffer_width, ls->layerSurface->surface->current.buffer_height};
+        opaque.invert(lsbox);
+
+        if (!opaque.empty())
             continue;
 
         return true;

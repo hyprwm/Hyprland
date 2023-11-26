@@ -1,4 +1,5 @@
 #include "HookSystem.hpp"
+#include "../debug/Log.hpp"
 
 #define register
 #include <udis86.h>

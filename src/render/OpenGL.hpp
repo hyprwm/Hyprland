@@ -30,7 +30,8 @@ inline const float fullVerts[] = {
 };
 inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
-enum eDiscardMode {
+enum eDiscardMode
+{
     DISCARD_OPAQUE = 1,
     DISCARD_ALPHA  = 1 << 1
 };

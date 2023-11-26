@@ -42,13 +42,15 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
     const auto PWORKSPACEDATA   = &m_lMasterWorkspacesData.emplace_back();
     PWORKSPACEDATA->workspaceID = ws;
     const auto orientation      = &g_pConfigManager->getConfigValuePtr("master:orientation")->strValue;
-    if (*orientation == "top") {
+    const auto orientationForWs = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).masterOrientation.value_or(*orientation);
+
+    if (orientationForWs == "top") {
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-    } else if (*orientation == "right") {
+    } else if (orientationForWs == "right") {
         PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-    } else if (*orientation == "bottom") {
+    } else if (orientationForWs == "bottom") {
         PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
-    } else if (*orientation == "left") {
+    } else if (orientationForWs == "left") {
         PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
     } else {
         PWORKSPACEDATA->orientation = ORIENTATION_CENTER;

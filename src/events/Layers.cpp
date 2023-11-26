@@ -254,6 +254,8 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     geomFixed = {layersurface->geometry.x + (int)PMONITOR->vecPosition.x, layersurface->geometry.y + (int)PMONITOR->vecPosition.y,
                  (int)layersurface->layerSurface->surface->current.width, (int)layersurface->layerSurface->surface->current.height};
     g_pHyprRenderer->damageBox(&geomFixed);
+
+    g_pInputManager->simulateMouseMovement();
 }
 
 void Events::listener_commitLayerSurface(void* owner, void* data) {

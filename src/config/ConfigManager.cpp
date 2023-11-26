@@ -33,6 +33,8 @@ CConfigManager::CConfigManager() {
     configValues["group:groupbar:col.locked_active"].data   = std::make_shared<CGradientValueData>(0x66ff5500);
     configValues["group:groupbar:col.locked_inactive"].data = std::make_shared<CGradientValueData>(0x66775500);
 
+    Debug::log(LOG, "NOTE: further logs to stdout / logfile are disabled by default. Use debug:disable_logs and debug:enable_stdout_logs to override this.");
+
     setDefaultVars();
     setDefaultAnimationVars();
 

@@ -42,7 +42,7 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
     const auto PWORKSPACEDATA   = &m_lMasterWorkspacesData.emplace_back();
     PWORKSPACEDATA->workspaceID = ws;
     const auto orientation      = &g_pConfigManager->getConfigValuePtr("master:orientation")->strValue;
-    const auto orientationForWs = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).masterOrientation.value_or(*orientation);
+    const auto orientationForWs = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).layoutOrientation.value_or(*orientation);
 
     if (orientationForWs == "top") {
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;

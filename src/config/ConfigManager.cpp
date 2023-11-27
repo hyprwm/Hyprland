@@ -1211,7 +1211,7 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
         else if ((delim = rule.find(ruleOnCreatedEmtpy)) != std::string::npos)
             wsRule.onCreatedEmptyRunCmd = cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmtpyLen));
         else if ((delim = rule.find("layoutopt:orientation:")) != std::string::npos)
-            wsRule.masterOrientation = rule.substr(delim + 22);
+            wsRule.layoutOrientation = rule.substr(delim + 22);
     };
 
     size_t      pos = 0;

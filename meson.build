@@ -2,10 +2,7 @@ project('Hyprland', 'cpp', 'c',
   version : run_command('jq', '-r', '.version', join_paths(meson.source_root(), 'props.json'), check: true).stdout().strip(),
   default_options : [
     'warning_level=2',
-    'default_library=static',
-    'optimization=3',
-    'buildtype=release',
-    'debug=false'
+    'default_library=static'
     # 'cpp_std=c++23' # not yet supported by meson, as of version 0.63.0
     ])
 
@@ -18,6 +15,13 @@ elif cpp_compiler.has_argument('-std=c++2b')
   add_global_arguments('-std=c++2b', language: 'cpp')
 else
   error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.version() + ') with required C++ standard (C++23)')
+endif
+
+if get_option('fast_math').enabled()
+  add_global_arguments(
+  cpp_compiler.get_supported_arguments(
+    ['-ffast-math', '-falign-functions=32']
+  ), language: 'cpp')
 endif
 
 add_project_arguments(
@@ -33,7 +37,9 @@ if cpp_compiler.check_header('execinfo.h')
   add_project_arguments('-DHAS_EXECINFO', language: 'cpp')
 endif
 
-wlroots = subproject('wlroots', default_options: ['examples=false', 'renderers=gles2'])
+wlroots = subproject('wlroots', default_options:
+  ['examples=false', 'renderers=gles2', 'backends=[\'libinput\', \'drm\']']
+)
 have_xwlr = wlroots.get_variable('features').get('xwayland')
 xcb_dep = dependency('xcb', required: get_option('xwayland'))
 

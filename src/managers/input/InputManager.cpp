@@ -379,9 +379,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (pFoundWindow && foundSurface == pFoundWindow->m_pWLSurface.wlr() && !m_bCursorImageOverridden) {
         const auto BOX = pFoundWindow->getWindowMainSurfaceBox();
-        if (!VECINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
-            setCursorImageOverride("left_ptr");
-        else
+        if (VECINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
             restoreCursorIconToApp();
     }
 

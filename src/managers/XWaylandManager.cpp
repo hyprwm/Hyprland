@@ -172,16 +172,13 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
 
     pWindow->m_fX11SurfaceScaledBy = 1.f;
 
-    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID); PMONITOR) {
+    if (pWindow->m_bIsX11) {
+        if (*PXWLFORCESCALEZERO) {
             size                           = size * PMONITOR->scale;
             pWindow->m_fX11SurfaceScaledBy = PMONITOR->scale;
         }
-    }
-
-    if (pWindow->m_bIsX11)
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, windowPos.x, windowPos.y, size.x, size.y);
-    else
+    } else
         pWindow->m_vPendingSizeAcks.push_back(std::make_pair<>(wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y), size.floor()));
 }
 
@@ -242,13 +239,15 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
             return true; // override_redirect
 
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
-        if (SIZEHINTS && (pWindow->m_uSurface.xwayland->parent || ((SIZEHINTS->min_width == SIZEHINTS->max_width) && (SIZEHINTS->min_height == SIZEHINTS->max_height))))
+        if (SIZEHINTS &&
+            (pWindow->m_uSurface.xwayland->parent ||
+             (SIZEHINTS->min_width > 0 && SIZEHINTS->min_height > 0 && SIZEHINTS->min_width == SIZEHINTS->max_width && SIZEHINTS->min_height == SIZEHINTS->max_height)))
             return true;
     } else {
         const auto PSTATE = &pWindow->m_uSurface.xdg->toplevel->current;
-
-        if ((PSTATE->min_width != 0 && PSTATE->min_height != 0 && (PSTATE->min_width == PSTATE->max_width || PSTATE->min_height == PSTATE->max_height)) ||
-            pWindow->m_uSurface.xdg->toplevel->parent)
+        if (PSTATE &&
+            (pWindow->m_uSurface.xdg->toplevel->parent ||
+             (PSTATE->min_width > 0 && PSTATE->min_height > 0 && PSTATE->min_width == PSTATE->max_width && PSTATE->min_height == PSTATE->max_height)))
             return true;
     }
 

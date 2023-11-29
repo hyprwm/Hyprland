@@ -50,6 +50,10 @@ void CMonitor::onConnect(bool noRule) {
 
     szName = output->name;
 
+    szDescription = output->description ? output->description : "";
+    // remove comma character from description. This allow monitor specific rules to work on monitor with comma on their description
+    szDescription.erase(std::remove(szDescription.begin(), szDescription.end(), ','), szDescription.end());
+
     if (!wlr_backend_is_drm(output->backend))
         createdByUser = true; // should be true. WL, X11 and Headless backends should be addable / removable
 

@@ -238,6 +238,9 @@ CTitleTex::~CTitleTex() {
 
 void renderGradientTo(CTexture& tex, const CColor& grad) {
 
+    if (!g_pCompositor->m_pLastMonitor)
+        return;
+
     const Vector2D& bufferSize = g_pCompositor->m_pLastMonitor->vecPixelSize;
 
     const auto      CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);

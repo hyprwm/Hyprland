@@ -574,7 +574,7 @@ CMonitor* CCompositor::getMonitorFromName(const std::string& name) {
 
 CMonitor* CCompositor::getMonitorFromDesc(const std::string& desc) {
     for (auto& m : m_vMonitors) {
-        if (m->output->description && std::string(m->output->description).starts_with(desc))
+        if (m->szDescription.starts_with(desc))
             return m.get();
     }
     return nullptr;
@@ -2059,7 +2059,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
             if (!m->output)
                 continue;
 
-            if (m->output->description && std::string(m->output->description).starts_with(DESCRIPTION)) {
+            if (m->szDescription.starts_with(DESCRIPTION)) {
                 return m.get();
             }
         }

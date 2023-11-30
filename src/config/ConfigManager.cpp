@@ -2082,7 +2082,7 @@ void CConfigManager::performMonitorReload() {
         if (!m->output || m->isUnsafeFallback)
             continue;
 
-        auto rule = getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
+        auto rule = getMonitorRuleFor(m->szName, m->szDescription);
 
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
             overAgain = true;
@@ -2163,7 +2163,7 @@ void CConfigManager::ensureMonitorStatus() {
         if (!rm->output || rm->isUnsafeFallback)
             continue;
 
-        auto rule = getMonitorRuleFor(rm->szName, rm->output->description ? rm->output->description : "");
+        auto rule = getMonitorRuleFor(rm->szName, rm->szDescription);
 
         if (rule.disabled == rm->m_bEnabled)
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);

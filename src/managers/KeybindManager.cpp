@@ -1473,7 +1473,7 @@ void CKeybindManager::forceRendererReload(std::string args) {
         if (!m->output)
             continue;
 
-        auto rule = g_pConfigManager->getMonitorRuleFor(m->szName, m->output->description ? m->output->description : "");
+        auto rule = g_pConfigManager->getMonitorRuleFor(m->szName, m->szDescription);
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule, true)) {
             overAgain = true;
             break;

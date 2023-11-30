@@ -464,9 +464,15 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
         return false;
     }
 
+    g_pHyprRenderer->endRender();
+
+    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->m_RenderData.pMonitor = frame->pMonitor;
+    fb.bind();
+
     glReadPixels(0, 0, frame->box.w, frame->box.h, PFORMAT->gl_format, PFORMAT->gl_type, data);
 
-    g_pHyprRenderer->endRender();
+    g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
 
     wlr_buffer_end_data_ptr_access(frame->buffer);
     wlr_texture_destroy(sourceTex);

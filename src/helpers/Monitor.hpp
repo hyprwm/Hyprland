@@ -43,6 +43,7 @@ class CMonitor {
     float           scale           = 1;
 
     std::string     szName = "";
+    std::string     szDescription = "";
 
     Vector2D        vecReservedTopLeft     = Vector2D(0, 0);
     Vector2D        vecReservedBottomRight = Vector2D(0, 0);

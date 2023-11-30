@@ -424,26 +424,54 @@ void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
 }
 
 bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {
-    // void*    data;
-    // uint32_t format;
-    // size_t   stride;
-    // if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride))
-    //     return false;
+    wlr_texture* sourceTex = wlr_texture_from_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer);
+    if (!sourceTex)
+        return false;
 
-    // if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer)) {
-    //     Debug::log(ERR, "[sc] shm: Client requested a copy to a buffer that failed to pass wlr_renderer_begin_with_buffer");
-    //     wlr_buffer_end_data_ptr_access(frame->buffer);
-    //     return false;
-    // }
+    void*    data;
+    uint32_t format;
+    size_t   stride;
+    if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride)) {
+        wlr_texture_destroy(sourceTex);
+        return false;
+    }
 
-    // bool success = wlr_renderer_read_pixels(g_pCompositor->m_sWLRRenderer, format, stride, frame->box.width, frame->box.height, frame->box.x, frame->box.y, 0, 0, data);
-    // wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
-    // wlr_buffer_end_data_ptr_access(frame->buffer);
+    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    // return success;
+    g_pHyprRenderer->makeEGLCurrent();
 
-    return false; // TODO: maybe fix this with the new rendering pipeline?
-                  // though who tf isnt using dmabuf?
+    CFramebuffer fb;
+    fb.alloc(frame->box.w, frame->box.h); // 8bit only
+
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb)) {
+        wlr_texture_destroy(sourceTex);
+        wlr_buffer_end_data_ptr_access(frame->buffer);
+        return false;
+    }
+
+    CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}.translate({-frame->box.x, -frame->box.y});
+    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    g_pHyprOpenGL->setMonitorTransformEnabled(true);
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.m_iFb);
+
+    const auto PFORMAT = gles2FromDRM(format);
+    if (!PFORMAT) {
+        Debug::log(ERR, "[sc] Cannot read pixels, unsupported format {:x}", (uintptr_t)PFORMAT);
+        wlr_texture_destroy(sourceTex);
+        wlr_buffer_end_data_ptr_access(frame->buffer);
+        return false;
+    }
+
+    glReadPixels(0, 0, frame->box.w, frame->box.h, PFORMAT->gl_format, PFORMAT->gl_type, data);
+
+    g_pHyprRenderer->endRender();
+
+    wlr_buffer_end_data_ptr_access(frame->buffer);
+    wlr_texture_destroy(sourceTex);
+
+    return true;
 }
 
 bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {

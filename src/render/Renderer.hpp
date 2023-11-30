@@ -30,9 +30,10 @@ enum eRenderPassMode
 
 enum eRenderMode
 {
-    RENDER_MODE_NORMAL    = 0,
-    RENDER_MODE_FULL_FAKE = 1,
-    RENDER_MODE_TO_BUFFER = 2
+    RENDER_MODE_NORMAL              = 0,
+    RENDER_MODE_FULL_FAKE           = 1,
+    RENDER_MODE_TO_BUFFER           = 2,
+    RENDER_MODE_TO_BUFFER_READ_ONLY = 3,
 };
 
 class CToplevelExportProtocolManager;

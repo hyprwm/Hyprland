@@ -363,7 +363,12 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
     CRegion    fakeDamage{0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10};
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE)) {
+    g_pHyprRenderer->makeEGLCurrent();
+
+    CFramebuffer outFB;
+    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB)) {
         wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;
     }

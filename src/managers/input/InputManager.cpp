@@ -597,6 +597,9 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     const auto         PASS            = g_pKeybindManager->onMouseEvent(e);
     static auto* const PFOLLOWMOUSE    = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
     static auto* const PRESIZEONBORDER = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;
+    static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+    static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     if (!PASS && !*PPASSMOUSE)
         return;
@@ -621,7 +624,8 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
         if (w && !w->m_bIsFullscreen) {
             const CBox real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
-            if ((!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) && !w->hasPopupAt(mouseCoords)) {
+            const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
+            if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {
                 g_pKeybindManager->resizeWithBorder(e);
                 return;
             }

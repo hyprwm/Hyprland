@@ -424,23 +424,26 @@ void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
 }
 
 bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {
-    void*    data;
-    uint32_t format;
-    size_t   stride;
-    if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride))
-        return false;
+    // void*    data;
+    // uint32_t format;
+    // size_t   stride;
+    // if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride))
+    //     return false;
 
-    if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer)) {
-        Debug::log(ERR, "[sc] shm: Client requested a copy to a buffer that failed to pass wlr_renderer_begin_with_buffer");
-        wlr_buffer_end_data_ptr_access(frame->buffer);
-        return false;
-    }
+    // if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer)) {
+    //     Debug::log(ERR, "[sc] shm: Client requested a copy to a buffer that failed to pass wlr_renderer_begin_with_buffer");
+    //     wlr_buffer_end_data_ptr_access(frame->buffer);
+    //     return false;
+    // }
 
-    bool success = wlr_renderer_read_pixels(g_pCompositor->m_sWLRRenderer, format, stride, frame->box.width, frame->box.height, frame->box.x, frame->box.y, 0, 0, data);
-    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
-    wlr_buffer_end_data_ptr_access(frame->buffer);
+    // bool success = wlr_renderer_read_pixels(g_pCompositor->m_sWLRRenderer, format, stride, frame->box.width, frame->box.height, frame->box.x, frame->box.y, 0, 0, data);
+    // wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
+    // wlr_buffer_end_data_ptr_access(frame->buffer);
 
-    return success;
+    // return success;
+
+    return false; // TODO: maybe fix this with the new rendering pipeline?
+                  // though who tf isnt using dmabuf?
 }
 
 bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {

@@ -2280,22 +2280,31 @@ CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(wlr_buffer* buffer, uint32
     return m_vRenderbuffers.emplace_back(std::make_unique<CRenderbuffer>(buffer, fmt)).get();
 }
 
-bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode, wlr_buffer* withBuffer) {
-
+void CHyprRenderer::makeEGLCurrent() {
     if (eglGetCurrentContext() != wlr_egl_get_context(g_pCompositor->m_sWLREGL))
         eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL));
+}
+
+void CHyprRenderer::unsetEGL() {
+    eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+}
+
+bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode, wlr_buffer* buffer, CFramebuffer* fb) {
+
+    makeEGLCurrent();
 
     m_eRenderMode = mode;
 
     g_pHyprOpenGL->m_RenderData.pMonitor = pMonitor; // has to be set cuz allocs
 
     if (mode == RENDER_MODE_FULL_FAKE) {
-        wlr_output_attach_render(pMonitor->output, nullptr);
-        g_pHyprOpenGL->begin(pMonitor, &damage, true);
+        RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
+        fb->bind();
+        g_pHyprOpenGL->begin(pMonitor, &damage, fb);
         return true;
     }
 
-    if (!withBuffer) {
+    if (!buffer) {
         if (!wlr_output_configure_primary_swapchain(pMonitor->output, &pMonitor->output->pending, &pMonitor->output->swapchain))
             return false;
 
@@ -2303,7 +2312,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         if (!m_pCurrentWlrBuffer)
             return false;
     } else {
-        m_pCurrentWlrBuffer = withBuffer;
+        m_pCurrentWlrBuffer = buffer;
     }
 
     try {
@@ -2334,8 +2343,10 @@ void CHyprRenderer::endRender() {
     else
         glFlush();
 
-    if (m_eRenderMode == RENDER_MODE_NORMAL)
+    if (m_eRenderMode == RENDER_MODE_NORMAL) {
         wlr_output_state_set_buffer(&PMONITOR->output->pending, m_pCurrentWlrBuffer);
+        unsetEGL(); // flush the context
+    }
 
     wlr_buffer_unlock(m_pCurrentWlrBuffer);
 

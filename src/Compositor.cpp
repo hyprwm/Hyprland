@@ -190,7 +190,7 @@ void CCompositor::initServer() {
 
     m_sWLRGammaCtrlMgr = wlr_gamma_control_manager_v1_create(m_sWLDisplay);
 
-    m_sWLROutputLayout = wlr_output_layout_create();
+    m_sWLROutputLayout = wlr_output_layout_create(m_sWLDisplay);
 
     m_sWLROutputPowerMgr = wlr_output_power_manager_v1_create(m_sWLDisplay);
 
@@ -282,7 +282,7 @@ void CCompositor::initServer() {
 
 void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRBackend->events.new_output, &Events::listen_newOutput, m_sWLRBackend, "Backend");
-    addWLSignal(&m_sWLRXDGShell->events.new_surface, &Events::listen_newXDGToplevel, m_sWLRXDGShell, "XDG Shell");
+    addWLSignal(&m_sWLRXDGShell->events.new_toplevel, &Events::listen_newXDGToplevel, m_sWLRXDGShell, "XDG Shell");
     addWLSignal(&m_sWLRCursor->events.motion, &Events::listen_mouseMove, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRCursor->events.motion_absolute, &Events::listen_mouseMoveAbsolute, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRCursor->events.button, &Events::listen_mouseButton, m_sWLRCursor, "WLRCursor");

@@ -82,8 +82,9 @@ struct SCurrentRenderData {
     float               savedProjection[9];
 
     SMonitorRenderData* pCurrentMonData = nullptr;
-    CFramebuffer*       currentFB       = nullptr;
-    CFramebuffer*       mainFB          = nullptr;
+    CFramebuffer*       currentFB       = nullptr; // current rendering to
+    CFramebuffer*       mainFB          = nullptr; // main to render to
+    CFramebuffer*       outFB           = nullptr; // out to render to (if offloaded, etc)
 
     CRegion             damage;
 
@@ -107,7 +108,7 @@ class CHyprOpenGLImpl {
   public:
     CHyprOpenGLImpl();
 
-    void               begin(CMonitor*, CRegion*, bool fake = false);
+    void               begin(CMonitor*, CRegion*, CFramebuffer* fb = nullptr /* if provided, it's not a real frame */);
     void               end();
 
     void               renderRect(CBox*, const CColor&, int round = 0);

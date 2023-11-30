@@ -123,6 +123,12 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     static auto* const POPTIM       = &g_pConfigManager->getConfigValuePtr("decoration:blur:new_optimizations")->intValue;
     static auto* const PBLURSPECIAL = &g_pConfigManager->getConfigValuePtr("decoration:blur:special")->intValue;
 
+    if (m_RenderData.mouseZoomFactor != 1.0)
+        return true;
+
+    if (!pMonitor->mirrors.empty())
+        return true;
+
     if (*PBLUR == 0)
         return false;
 
@@ -178,7 +184,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     return false;
 }
 
-void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
+void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* fb) {
     m_RenderData.pMonitor = pMonitor;
 
     TRACY_GPU_ZONE("RenderBegin");
@@ -214,35 +220,36 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, bool fake) {
 
     m_RenderData.damage.set(*pDamage);
 
-    m_bFakeFrame = fake;
+    m_bFakeFrame = fb;
 
     if (m_bReloadScreenShader) {
         m_bReloadScreenShader = false;
         applyScreenShader(g_pConfigManager->getString("decoration:screen_shader"));
     }
 
-    const auto PRBO = g_pHyprRenderer->getCurrentRBO();
+    const auto PRBO         = g_pHyprRenderer->getCurrentRBO();
+    const bool FBPROPERSIZE = fb && fb->m_vSize == pMonitor->vecPixelSize;
 
-    if (m_sFinalScreenShader.program > 0 || m_bFakeFrame || m_RenderData.mouseZoomFactor != 1.0 || pMonitor->vecPixelSize != PRBO->getFB()->m_vSize || !pMonitor->mirrors.empty() ||
-        passRequiresIntrospection(pMonitor)) {
+    if (!FBPROPERSIZE || m_sFinalScreenShader.program > 0 || (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) || passRequiresIntrospection(pMonitor)) {
         // we have to offload
-        // bind the primary Hypr Framebuffer
+        // bind the offload Hypr Framebuffer
         m_RenderData.pCurrentMonData->offloadFB.bind();
         m_RenderData.currentFB  = &m_RenderData.pCurrentMonData->offloadFB;
         m_bOffloadedFramebuffer = true;
     } else {
-        // we can render to the rbo directly
-        const auto PFBO        = PRBO->getFB();
+        // we can render to the rbo / fbo (fake) directly
+        const auto PFBO        = fb ? fb : PRBO->getFB();
         m_RenderData.currentFB = PFBO;
         if (PFBO->m_pStencilTex != &m_RenderData.pCurrentMonData->stencilTex) {
             PFBO->m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
             PFBO->addStencil();
         }
-        PRBO->bindFB();
+        PFBO->bind();
         m_bOffloadedFramebuffer = false;
     }
 
     m_RenderData.mainFB = m_RenderData.currentFB;
+    m_RenderData.outFB  = fb ? fb : PRBO->getFB();
 }
 
 void CHyprOpenGLImpl::end() {
@@ -254,10 +261,10 @@ void CHyprOpenGLImpl::end() {
         saveBufferForMirror(); // save with original damage region
 
     // end the render, copy the data to the WLR framebuffer
-    if (m_bOffloadedFramebuffer && !m_bFakeFrame) {
+    if (m_bOffloadedFramebuffer) {
         m_RenderData.damage = m_RenderData.pMonitor->lastFrameDamage;
 
-        g_pHyprRenderer->getCurrentRBO()->bindFB();
+        m_RenderData.outFB->bind();
 
         CBox monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
@@ -1559,14 +1566,18 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFra
     if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
 
-    wlr_output_attach_render(PMONITOR->output, nullptr);
-
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesnt mess with the actual wlr damage
     CRegion fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
 
-    begin(PMONITOR, &fakeDamage, true);
+    g_pHyprRenderer->makeEGLCurrent();
+
+    pFramebuffer->m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
+
+    pFramebuffer->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->drmFormat);
+
+    g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, pFramebuffer);
 
     clear(CColor(0, 0, 0, 0)); // JIC
 
@@ -1584,12 +1595,6 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFra
     // TODO: how can we make this the size of the window? setting it to window's size makes the entire screen render with the wrong res forever more. odd.
     glViewport(0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
 
-    pFramebuffer->m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
-
-    pFramebuffer->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->drmFormat);
-
-    pFramebuffer->bind();
-
     m_RenderData.currentFB = pFramebuffer;
 
     clear(CColor(0, 0, 0, 0)); // JIC
@@ -1598,15 +1603,7 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(CWindow* pWindow, CFramebuffer* pFra
 
     g_pConfigManager->setInt("decoration:blur:enabled", BLURVAL);
 
-// restore original fb
-#ifndef GLES2
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);
-#else
-    glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
-#endif
-    end();
-
-    wlr_output_rollback(PMONITOR->output);
+    g_pHyprRenderer->endRender();
 }
 
 void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
@@ -1619,14 +1616,18 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     if (!g_pHyprRenderer->shouldRenderWindow(pWindow))
         return; // ignore, window is not being rendered
 
-    wlr_output_attach_render(PMONITOR->output, nullptr);
-
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesnt mess with the actual wlr damage
     CRegion fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
 
-    begin(PMONITOR, &fakeDamage, true);
+    g_pHyprRenderer->makeEGLCurrent();
+
+    const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
+
+    PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->drmFormat);
+
+    g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
 
     g_pHyprRenderer->m_bRenderingSnapshot = true;
 
@@ -1643,35 +1644,15 @@ void CHyprOpenGLImpl::makeWindowSnapshot(CWindow* pWindow) {
     const auto BLURVAL = g_pConfigManager->getInt("decoration:blur:enabled");
     g_pConfigManager->setInt("decoration:blur:enabled", 0);
 
-    glViewport(0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
-
-    const auto PFRAMEBUFFER = &m_mWindowFramebuffers[pWindow];
-
-    PFRAMEBUFFER->m_pStencilTex = &m_RenderData.pCurrentMonData->stencilTex;
-
-    PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->drmFormat);
-
-    PFRAMEBUFFER->bind();
-
-    m_RenderData.currentFB = PFRAMEBUFFER;
-
     clear(CColor(0, 0, 0, 0)); // JIC
 
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
 
     g_pConfigManager->setInt("decoration:blur:enabled", BLURVAL);
 
-// restore original fb
-#ifndef GLES2
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);
-#else
-    glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
-#endif
-    end();
+    g_pHyprRenderer->endRender();
 
     g_pHyprRenderer->m_bRenderingSnapshot = false;
-
-    wlr_output_rollback(PMONITOR->output);
 }
 
 void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
@@ -1681,26 +1662,18 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
     if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
 
-    wlr_output_attach_render(PMONITOR->output, nullptr);
-
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesnt mess with the actual wlr damage
-    CRegion fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
-
-    begin(PMONITOR, &fakeDamage, true);
-
-    g_pHyprRenderer->m_bRenderingSnapshot = true;
+    CRegion    fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
 
     const auto PFRAMEBUFFER = &m_mLayerFramebuffers[pLayer];
 
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
-
     PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->drmFormat);
 
-    PFRAMEBUFFER->bind();
+    g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
 
-    m_RenderData.currentFB = PFRAMEBUFFER;
+    g_pHyprRenderer->m_bRenderingSnapshot = true;
 
     clear(CColor(0, 0, 0, 0)); // JIC
 
@@ -1715,20 +1688,9 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 
     pLayer->forceBlur = BLURLSSTATUS;
 
-    // TODO: WARN:
-    // revise if any stencil-requiring rendering is done to the layers.
-
-// restore original fb
-#ifndef GLES2
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_iCurrentOutputFb);
-#else
-    glBindFramebuffer(GL_FRAMEBUFFER, m_iCurrentOutputFb);
-#endif
-    end();
+    g_pHyprRenderer->endRender();
 
     g_pHyprRenderer->m_bRenderingSnapshot = false;
-
-    wlr_output_rollback(PMONITOR->output);
 }
 
 void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
@@ -2052,7 +2014,7 @@ void CHyprOpenGLImpl::clearWithTex() {
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
-    wlr_output_attach_render(pMonitor->output, nullptr);
+    g_pHyprRenderer->makeEGLCurrent();
 
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorFB.release();
     g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].offloadFB.release();
@@ -2066,8 +2028,6 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprOpenGL->m_mMonitorBGTextures.erase(pMonitor);
 
     Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName);
-
-    wlr_output_rollback(pMonitor->output);
 }
 
 void CHyprOpenGLImpl::saveMatrix() {

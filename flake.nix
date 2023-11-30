@@ -4,6 +4,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # <https://github.com/nix-systems/nix-systems>
     systems.url = "github:nix-systems/default-linux";
 
@@ -62,13 +67,16 @@
       inherit
         (pkgsFor.${system})
         # hyprland-packages
+        
         hyprland
         hyprland-unwrapped
         hyprland-debug
         hyprland-legacy-renderer
         # hyprland-extras
+        
         xdg-desktop-portal-hyprland
         # dependencies
+        
         hyprland-protocols
         wlroots-hyprland
         udis86
@@ -76,17 +84,18 @@
     });
 
     devShells = eachSystem (system: {
-      default = pkgsFor.${system}.mkShell.override {
-        stdenv = pkgsFor.${system}.gcc13Stdenv;
-      } {
-        name = "hyprland-shell";
-        nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
-        buildInputs = [self.packages.${system}.wlroots-hyprland];
-        inputsFrom = [
-          self.packages.${system}.wlroots-hyprland
-          self.packages.${system}.hyprland
-        ];
-      };
+      default =
+        pkgsFor.${system}.mkShell.override {
+          stdenv = pkgsFor.${system}.gcc13Stdenv;
+        } {
+          name = "hyprland-shell";
+          nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
+          buildInputs = [self.packages.${system}.wlroots-hyprland];
+          inputsFrom = [
+            self.packages.${system}.wlroots-hyprland
+            self.packages.${system}.hyprland
+          ];
+        };
     });
 
     formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.alejandra);

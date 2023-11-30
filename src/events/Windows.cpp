@@ -1171,12 +1171,10 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
 
 void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {
     // A window got opened
-    const auto XDGSURFACE = (wlr_xdg_surface*)data;
+    const auto XDGTOPLEVEL = (wlr_xdg_toplevel*)data;
+    const auto XDGSURFACE  = XDGTOPLEVEL->base;
 
-    if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
-        return;
-
-    Debug::log(LOG, "New XDG Surface created. (class: {})", XDGSURFACE->toplevel->app_id ? XDGSURFACE->toplevel->app_id : "null");
+    Debug::log(LOG, "New XDG Toplevel created. (class: {})", XDGSURFACE->toplevel->app_id ? XDGSURFACE->toplevel->app_id : "null");
 
     const auto PNEWWINDOW      = g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;

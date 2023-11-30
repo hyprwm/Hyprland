@@ -2312,7 +2312,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         if (!m_pCurrentWlrBuffer)
             return false;
     } else {
-        m_pCurrentWlrBuffer = buffer;
+        m_pCurrentWlrBuffer = wlr_buffer_lock(buffer);
     }
 
     try {
@@ -2331,12 +2331,16 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
 void CHyprRenderer::endRender() {
     const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
 
-    g_pHyprOpenGL->end();
-
-    if (m_eRenderMode == RENDER_MODE_FULL_FAKE) {
-        wlr_output_rollback(PMONITOR->output);
-        return;
+    if (m_eRenderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
+        g_pHyprOpenGL->end();
+    else {
+        g_pHyprOpenGL->m_RenderData.pMonitor          = nullptr;
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor   = 1.f;
+        g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse = true;
     }
+
+    if (m_eRenderMode == RENDER_MODE_FULL_FAKE)
+        return;
 
     if (isNvidia())
         glFinish();

@@ -688,7 +688,10 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
     auto               factor = (*PSCROLLFACTOR <= 0.f || e->source != WLR_AXIS_SOURCE_FINGER ? 1.f : *PSCROLLFACTOR);
 
-    bool               passEvent = g_pKeybindManager->onAxisEvent(e);
+    const auto         EMAP = std::unordered_map<std::string, std::any>{{"event", e}};
+    EMIT_HOOK_EVENT_CANCELLABLE("mouseAxis", EMAP);
+
+    bool passEvent = g_pKeybindManager->onAxisEvent(e);
 
     g_pCompositor->notifyIdleActivity();
 
@@ -1151,6 +1154,9 @@ void CInputManager::updateKeyboardsLeds(wlr_input_device* pKeyboard) {
 void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
     if (!pKeyboard->enabled)
         return;
+
+    const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", e}};
+    EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
     static auto* const PDPMS = &g_pConfigManager->getConfigValuePtr("misc:key_press_enables_dpms")->intValue;
     if (*PDPMS && !g_pCompositor->m_bDPMSStateON) {
@@ -1645,7 +1651,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     CBox                 box              = w->getWindowMainSurfaceBox();
     eBorderIconDirection direction        = BORDERICON_NONE;
     CBox                 boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (w->hasPopupAt(mouseCoords))
         direction = BORDERICON_NONE;

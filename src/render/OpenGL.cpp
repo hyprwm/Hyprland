@@ -257,7 +257,7 @@ void CHyprOpenGLImpl::end() {
 
     TRACY_GPU_ZONE("RenderEnd");
 
-    if (!m_RenderData.pMonitor->mirrors.empty())
+    if (!m_RenderData.pMonitor->mirrors.empty() && !m_bFakeFrame)
         saveBufferForMirror(); // save with original damage region
 
     // end the render, copy the data to the WLR framebuffer

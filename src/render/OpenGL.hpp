@@ -158,6 +158,8 @@ class CHyprOpenGLImpl {
     void               renderOffToMain(CFramebuffer* off);
     void               bindBackOnMain();
 
+    uint32_t           getPreferredReadFormat(CMonitor* pMonitor);
+
     SCurrentRenderData m_RenderData;
 
     GLint              m_iCurrentOutputFb = 0;

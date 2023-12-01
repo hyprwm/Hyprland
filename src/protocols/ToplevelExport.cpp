@@ -177,7 +177,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PFRAME->pWindow->m_iMonitorID);
 
-    PFRAME->shmFormat = g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XRGB8888 : PMONITOR->drmFormat;
+    PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PFRAME->pMonitor);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture toplevel");
         hyprland_toplevel_export_frame_v1_send_failed(resource);
@@ -366,7 +366,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer outFB;
-    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->drmFormat);
 
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB)) {
         wlr_buffer_end_data_ptr_access(frame->buffer);
@@ -386,20 +386,12 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     if (frame->overlayCursor)
         g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.vec());
 
-    // copy pixels
-    const auto PFORMAT = gles2FromDRM(format);
-    if (!PFORMAT) {
-        Debug::log(ERR, "[toplevel_export] Cannot read pixels, unsupported format {:x}", (uintptr_t)PFORMAT);
-        g_pHyprRenderer->endRender();
-        wlr_buffer_end_data_ptr_access(frame->buffer);
-        if (frame->overlayCursor)
-            wlr_output_lock_software_cursors(PMONITOR->output, false);
-        return false;
-    }
+    const auto GLFORMAT = drmFormatToGL(frame->pMonitor->drmFormat);
+    const auto GLTYPE   = glFormatToType(GLFORMAT);
 
     g_pHyprOpenGL->m_RenderData.mainFB->bind();
 
-    glReadPixels(0, 0, frame->box.width, frame->box.height, PFORMAT->gl_format, PFORMAT->gl_type, data);
+    glReadPixels(0, 0, frame->box.width, frame->box.height, GL_RGBA, GLTYPE, data);
 
     g_pHyprRenderer->endRender();
 

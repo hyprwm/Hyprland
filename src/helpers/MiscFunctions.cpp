@@ -782,3 +782,13 @@ uint32_t drmFormatToGL(uint32_t drm) {
     UNREACHABLE();
     return GL_RGBA;
 }
+
+uint32_t glFormatToType(uint32_t gl) {
+    return gl != GL_RGBA ?
+#ifdef GLES2
+        GL_UNSIGNED_INT_2_10_10_10_REV_EXT :
+#else
+        GL_UNSIGNED_INT_2_10_10_10_REV :
+#endif
+        GL_UNSIGNED_BYTE;
+}

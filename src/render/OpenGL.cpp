@@ -2064,3 +2064,16 @@ void CHyprOpenGLImpl::bindBackOnMain() {
 void CHyprOpenGLImpl::setMonitorTransformEnabled(bool enabled) {
     m_bEndFrame = !enabled;
 }
+
+uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
+    if (g_pHyprRenderer->isNvidia())
+        return DRM_FORMAT_XRGB8888;
+
+    if (pMonitor->drmFormat == DRM_FORMAT_XRGB8888)
+        return DRM_FORMAT_XRGB8888;
+    if (pMonitor->drmFormat == DRM_FORMAT_XBGR8888)
+        return DRM_FORMAT_XBGR8888;
+    if (pMonitor->drmFormat == DRM_FORMAT_XRGB2101010 || pMonitor->drmFormat == DRM_FORMAT_XBGR2101010)
+        return DRM_FORMAT_XBGR2101010;
+    return DRM_FORMAT_INVALID;
+}

@@ -177,7 +177,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PFRAME->pWindow->m_iMonitorID);
 
-    PFRAME->shmFormat = g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XRGB8888 : wlr_output_preferred_read_format(PMONITOR->output);
+    PFRAME->shmFormat = g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XRGB8888 : PMONITOR->drmFormat;
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture toplevel");
         hyprland_toplevel_export_frame_v1_send_failed(resource);

@@ -210,7 +210,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     PFRAME->client = PCLIENT;
     PCLIENT->ref++;
 
-    PFRAME->shmFormat = g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XRGB8888 : PFRAME->pMonitor->drmFormat;
+    PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PFRAME->pMonitor);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture output");
         zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
@@ -441,7 +441,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer fb;
-    fb.alloc(frame->box.w, frame->box.h); // 8bit only
+    fb.alloc(frame->box.w, frame->box.h, frame->pMonitor->drmFormat);
 
     if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb)) {
         wlr_texture_destroy(sourceTex);
@@ -456,13 +456,8 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.m_iFb);
 
-    const auto PFORMAT = gles2FromDRM(format);
-    if (!PFORMAT) {
-        Debug::log(ERR, "[sc] Cannot read pixels, unsupported format {:x}", (uintptr_t)PFORMAT);
-        wlr_texture_destroy(sourceTex);
-        wlr_buffer_end_data_ptr_access(frame->buffer);
-        return false;
-    }
+    const auto GLFORMAT = drmFormatToGL(frame->pMonitor->drmFormat);
+    const auto GLTYPE   = glFormatToType(GLFORMAT);
 
     g_pHyprRenderer->endRender();
 
@@ -470,7 +465,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     g_pHyprOpenGL->m_RenderData.pMonitor = frame->pMonitor;
     fb.bind();
 
-    glReadPixels(0, 0, frame->box.w, frame->box.h, PFORMAT->gl_format, PFORMAT->gl_type, data);
+    glReadPixels(0, 0, frame->box.w, frame->box.h, GL_RGBA, GLTYPE, data);
 
     g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
 

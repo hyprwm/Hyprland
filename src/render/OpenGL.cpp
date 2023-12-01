@@ -2070,9 +2070,9 @@ uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
         return DRM_FORMAT_XRGB8888;
 
     if (pMonitor->drmFormat == DRM_FORMAT_XRGB8888)
-        return DRM_FORMAT_XRGB8888;
-    if (pMonitor->drmFormat == DRM_FORMAT_XBGR8888)
         return DRM_FORMAT_XBGR8888;
+    if (pMonitor->drmFormat == DRM_FORMAT_XBGR8888)
+        return DRM_FORMAT_XRGB8888;
     if (pMonitor->drmFormat == DRM_FORMAT_XRGB2101010 || pMonitor->drmFormat == DRM_FORMAT_XBGR2101010)
         return DRM_FORMAT_XBGR2101010;
     return DRM_FORMAT_INVALID;

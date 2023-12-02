@@ -179,6 +179,10 @@ class CHyprOpenGLImpl {
         PFNEGLDESTROYIMAGEKHRPROC                     eglDestroyImageKHR                     = nullptr;
     } m_sProc;
 
+    struct {
+        bool EXT_read_format_bgra = false;
+    } m_sExts;
+
   private:
     std::list<GLuint> m_lBuffers;
     std::list<GLuint> m_lTextures;

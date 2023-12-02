@@ -35,6 +35,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     loadGLProc(&m_sProc.glEGLImageTargetRenderbufferStorageOES, "glEGLImageTargetRenderbufferStorageOES");
     loadGLProc(&m_sProc.eglDestroyImageKHR, "eglDestroyImageKHR");
 
+    m_sExts.EXT_read_format_bgra = m_szExtensions.contains("GL_EXT_read_format_bgra");
+
 #ifdef USE_TRACY_GPU
 
     loadGLProc(&glQueryCounter, "glQueryCounterEXT");
@@ -2067,12 +2069,10 @@ void CHyprOpenGLImpl::setMonitorTransformEnabled(bool enabled) {
 
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
     if (g_pHyprRenderer->isNvidia())
-        return DRM_FORMAT_XRGB8888;
-
-    if (pMonitor->drmFormat == DRM_FORMAT_XRGB8888)
         return DRM_FORMAT_XBGR8888;
-    if (pMonitor->drmFormat == DRM_FORMAT_XBGR8888)
-        return DRM_FORMAT_XRGB8888;
+
+    if (pMonitor->drmFormat == DRM_FORMAT_XRGB8888 || pMonitor->drmFormat == DRM_FORMAT_XBGR8888)
+        return DRM_FORMAT_XBGR8888;
     if (pMonitor->drmFormat == DRM_FORMAT_XRGB2101010 || pMonitor->drmFormat == DRM_FORMAT_XBGR2101010)
         return DRM_FORMAT_XBGR2101010;
     return DRM_FORMAT_INVALID;

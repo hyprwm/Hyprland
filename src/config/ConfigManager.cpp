@@ -1570,20 +1570,20 @@ void CConfigManager::loadConfigLoadVars() {
     std::string mainConfigPath = getMainConfigPath();
     Debug::log(LOG, "Using config: {}", mainConfigPath);
     configPaths.push_back(mainConfigPath);
-    std::string configPath = mainConfigPath.substr(0, mainConfigPath.find_last_of('/'));
-    // find_last_of never returns npos since main_config at least has /hypr/
 
-    if (!std::filesystem::is_directory(configPath)) {
-        Debug::log(WARN, "Creating config home directory");
-        try {
-            std::filesystem::create_directories(configPath);
-        } catch (...) {
-            parseError = "Broken config file! (Could not create config directory)";
-            return;
+    if (g_pCompositor->explicitConfigPath.empty() && !std::filesystem::exists(mainConfigPath)) {
+        std::string configPath = std::filesystem::path(mainConfigPath).parent_path();
+
+        if (!std::filesystem::is_directory(configPath)) {
+            Debug::log(WARN, "Creating config home directory");
+            try {
+                std::filesystem::create_directories(configPath);
+            } catch (...) {
+                parseError = "Broken config file! (Could not create config directory)";
+                return;
+            }
         }
-    }
 
-    if (!std::filesystem::exists(mainConfigPath)) {
         Debug::log(WARN, "No config file found; attempting to generate.");
         std::ofstream ofs;
         ofs.open(mainConfigPath, std::ios::trunc);

@@ -30,8 +30,8 @@ monitor=,preferred,auto,auto
 
 # Set programs that you use
 $terminal = 'kitty'
-$FileManager = 'dolphin'
-$Menu = 'wofi --show drun'
+$fileManager = 'dolphin'
+$menu = 'wofi --show drun'
 
 
 # Some default env vars.

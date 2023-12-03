@@ -143,9 +143,9 @@ $mainMod = SUPER
 bind = $mainMod, Q, exec, $terminal
 bind = $mainMod, C, killactive, 
 bind = $mainMod, M, exit, 
-bind = $mainMod, E, exec, $FileManager
+bind = $mainMod, E, exec, $fileManager
 bind = $mainMod, V, togglefloating, 
-bind = $mainMod, R, exec, $Menu
+bind = $mainMod, R, exec, $menu
 bind = $mainMod, P, pseudo, # dwindle
 bind = $mainMod, J, togglesplit, # dwindle
 

@@ -701,26 +701,29 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos, CWindow* pIgnoreW
             }
         }
 
+        const int64_t WORKSPACEID = special ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
+        const auto    PWORKSPACE  = getWorkspaceByID(WORKSPACEID);
+
+        if (PWORKSPACE->m_bHasFullscreenWindow)
+            return getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+
         // for windows, we need to check their extensions too, first.
         for (auto& w : m_vWindows) {
             if (special != isWorkspaceSpecial(w->m_iWorkspaceID))
                 continue;
 
-            const int64_t WORKSPACEID = special ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
-
             if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus &&
                 w.get() != pIgnoreWindow) {
-                if ((w)->hasPopupAt(pos))
+                if (w->hasPopupAt(pos))
                     return w.get();
             }
         }
+
         for (auto& w : m_vWindows) {
             if (special != isWorkspaceSpecial(w->m_iWorkspaceID))
                 continue;
 
-            const int64_t WORKSPACEID = special ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
-
-            CBox          box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
+            CBox box = {w->m_vPosition, w->m_vSize};
             if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus &&
                 w.get() != pIgnoreWindow)
                 return w.get();

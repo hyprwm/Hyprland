@@ -1263,7 +1263,12 @@ void CConfigManager::handleSource(const std::string& command, const std::string&
     for (size_t i = 0; i < glob_buf->gl_pathc; i++) {
         auto value = absolutePath(glob_buf->gl_pathv[i], configCurrentPath);
 
-        if (!std::filesystem::exists(value)) {
+        if (!std::filesystem::is_regular_file(value)) {
+            if (std::filesystem::exists(value)) {
+                Debug::log(WARN, "source= skipping non-file {}", value);
+                continue;
+            }
+
             Debug::log(ERR, "source= file doesnt exist");
             parseError = "source file " + value + " doesn't exist!";
             return;

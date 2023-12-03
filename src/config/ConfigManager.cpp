@@ -48,12 +48,11 @@ CConfigManager::CConfigManager() {
 
 std::string CConfigManager::getConfigDir() {
     static const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
-    std::string        configPath;
-    if (!xdgConfigHome)
-        configPath = getenv("HOME") + std::string("/.config");
-    else
-        configPath = xdgConfigHome;
-    return configPath;
+
+    if (xdgConfigHome && std::filesystem::path(xdgConfigHome).is_absolute())
+        return xdgConfigHome;
+
+    return getenv("HOME") + std::string("/.config");
 }
 
 std::string CConfigManager::getMainConfigPath() {

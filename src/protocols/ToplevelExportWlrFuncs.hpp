@@ -11,8 +11,10 @@ struct wlr_pixel_format_info {
 	 */
     uint32_t opaque_substitute;
 
-    /* Bits per pixels */
-    uint32_t bpp;
+    /* Bytes per block (including padding) */
+    uint32_t bytes_per_block;
+    /* Size of a block in pixels (zero for 1×1) */
+    uint32_t block_width, block_height;
 
     /* True if the format has an alpha channel */
     bool has_alpha;
@@ -20,142 +22,170 @@ struct wlr_pixel_format_info {
 
 static const struct wlr_pixel_format_info pixel_format_info[] = {
     {
-        .drm_format        = DRM_FORMAT_XRGB8888,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 32,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_XRGB8888,
+        .bytes_per_block = 4,
     },
     {
         .drm_format        = DRM_FORMAT_ARGB8888,
         .opaque_substitute = DRM_FORMAT_XRGB8888,
-        .bpp               = 32,
+        .bytes_per_block   = 4,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_XBGR8888,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 32,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_XBGR8888,
+        .bytes_per_block = 4,
     },
     {
         .drm_format        = DRM_FORMAT_ABGR8888,
         .opaque_substitute = DRM_FORMAT_XBGR8888,
-        .bpp               = 32,
+        .bytes_per_block   = 4,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_RGBX8888,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 32,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_RGBX8888,
+        .bytes_per_block = 4,
     },
     {
         .drm_format        = DRM_FORMAT_RGBA8888,
         .opaque_substitute = DRM_FORMAT_RGBX8888,
-        .bpp               = 32,
+        .bytes_per_block   = 4,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_BGRX8888,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 32,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_BGRX8888,
+        .bytes_per_block = 4,
     },
     {
         .drm_format        = DRM_FORMAT_BGRA8888,
         .opaque_substitute = DRM_FORMAT_BGRX8888,
-        .bpp               = 32,
+        .bytes_per_block   = 4,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_BGR888,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 24,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_R8,
+        .bytes_per_block = 1,
     },
     {
-        .drm_format        = DRM_FORMAT_RGBX4444,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 16,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_GR88,
+        .bytes_per_block = 2,
+    },
+    {
+        .drm_format      = DRM_FORMAT_RGB888,
+        .bytes_per_block = 3,
+    },
+    {
+        .drm_format      = DRM_FORMAT_BGR888,
+        .bytes_per_block = 3,
+    },
+    {
+        .drm_format      = DRM_FORMAT_RGBX4444,
+        .bytes_per_block = 2,
     },
     {
         .drm_format        = DRM_FORMAT_RGBA4444,
         .opaque_substitute = DRM_FORMAT_RGBX4444,
-        .bpp               = 16,
+        .bytes_per_block   = 2,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_RGBX5551,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 16,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_BGRX4444,
+        .bytes_per_block = 2,
+    },
+    {
+        .drm_format        = DRM_FORMAT_BGRA4444,
+        .opaque_substitute = DRM_FORMAT_BGRX4444,
+        .bytes_per_block   = 2,
+        .has_alpha         = true,
+    },
+    {
+        .drm_format      = DRM_FORMAT_RGBX5551,
+        .bytes_per_block = 2,
     },
     {
         .drm_format        = DRM_FORMAT_RGBA5551,
         .opaque_substitute = DRM_FORMAT_RGBX5551,
-        .bpp               = 16,
+        .bytes_per_block   = 2,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_RGB565,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 16,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_BGRX5551,
+        .bytes_per_block = 2,
     },
     {
-        .drm_format        = DRM_FORMAT_BGR565,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 16,
-        .has_alpha         = false,
+        .drm_format        = DRM_FORMAT_BGRA5551,
+        .opaque_substitute = DRM_FORMAT_BGRX5551,
+        .bytes_per_block   = 2,
+        .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_XRGB2101010,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 32,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_XRGB1555,
+        .bytes_per_block = 2,
+    },
+    {
+        .drm_format        = DRM_FORMAT_ARGB1555,
+        .opaque_substitute = DRM_FORMAT_XRGB1555,
+        .bytes_per_block   = 2,
+        .has_alpha         = true,
+    },
+    {
+        .drm_format      = DRM_FORMAT_RGB565,
+        .bytes_per_block = 2,
+    },
+    {
+        .drm_format      = DRM_FORMAT_BGR565,
+        .bytes_per_block = 2,
+    },
+    {
+        .drm_format      = DRM_FORMAT_XRGB2101010,
+        .bytes_per_block = 4,
     },
     {
         .drm_format        = DRM_FORMAT_ARGB2101010,
         .opaque_substitute = DRM_FORMAT_XRGB2101010,
-        .bpp               = 32,
+        .bytes_per_block   = 4,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_XBGR2101010,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 32,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_XBGR2101010,
+        .bytes_per_block = 4,
     },
     {
         .drm_format        = DRM_FORMAT_ABGR2101010,
         .opaque_substitute = DRM_FORMAT_XBGR2101010,
-        .bpp               = 32,
+        .bytes_per_block   = 4,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_XBGR16161616F,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 64,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_XBGR16161616F,
+        .bytes_per_block = 8,
     },
     {
         .drm_format        = DRM_FORMAT_ABGR16161616F,
         .opaque_substitute = DRM_FORMAT_XBGR16161616F,
-        .bpp               = 64,
+        .bytes_per_block   = 8,
         .has_alpha         = true,
     },
     {
-        .drm_format        = DRM_FORMAT_XBGR16161616,
-        .opaque_substitute = DRM_FORMAT_INVALID,
-        .bpp               = 64,
-        .has_alpha         = false,
+        .drm_format      = DRM_FORMAT_XBGR16161616,
+        .bytes_per_block = 8,
     },
     {
         .drm_format        = DRM_FORMAT_ABGR16161616,
         .opaque_substitute = DRM_FORMAT_XBGR16161616,
-        .bpp               = 64,
+        .bytes_per_block   = 8,
         .has_alpha         = true,
+    },
+    {
+        .drm_format      = DRM_FORMAT_YVYU,
+        .bytes_per_block = 4,
+        .block_width     = 2,
+        .block_height    = 1,
+    },
+    {
+        .drm_format      = DRM_FORMAT_VYUY,
+        .bytes_per_block = 4,
+        .block_width     = 2,
+        .block_height    = 1,
     },
 };
 
@@ -187,124 +217,27 @@ static enum wl_shm_format convert_drm_format_to_wl_shm(uint32_t fmt) {
     }
 }
 
-struct wlr_gles2_pixel_format {
-    uint32_t drm_format;
-    // optional field, if empty then internalformat = format
-    GLint gl_internalformat;
-    GLint gl_format, gl_type;
-    bool  has_alpha;
-};
+static uint32_t pixel_format_info_pixels_per_block(const struct wlr_pixel_format_info* info) {
+    uint32_t pixels = info->block_width * info->block_height;
+    return pixels > 0 ? pixels : 1;
+}
 
-static const struct wlr_gles2_pixel_format formats[] = {
-    {
-        .drm_format = DRM_FORMAT_ARGB8888,
-        .gl_format  = GL_BGRA_EXT,
-        .gl_type    = GL_UNSIGNED_BYTE,
-        .has_alpha  = true,
-    },
-    {
-        .drm_format = DRM_FORMAT_XRGB8888,
-        .gl_format  = GL_BGRA_EXT,
-        .gl_type    = GL_UNSIGNED_BYTE,
-        .has_alpha  = false,
-    },
-    {
-        .drm_format = DRM_FORMAT_XBGR8888,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_UNSIGNED_BYTE,
-        .has_alpha  = false,
-    },
-    {
-        .drm_format = DRM_FORMAT_ABGR8888,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_UNSIGNED_BYTE,
-        .has_alpha  = true,
-    },
-    {
-        .drm_format = DRM_FORMAT_BGR888,
-        .gl_format  = GL_RGB,
-        .gl_type    = GL_UNSIGNED_BYTE,
-        .has_alpha  = false,
-    },
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    {
-        .drm_format = DRM_FORMAT_RGBX4444,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_UNSIGNED_SHORT_4_4_4_4,
-        .has_alpha  = false,
-    },
-    {
-        .drm_format = DRM_FORMAT_RGBA4444,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_UNSIGNED_SHORT_4_4_4_4,
-        .has_alpha  = true,
-    },
-    {
-        .drm_format = DRM_FORMAT_RGBX5551,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_UNSIGNED_SHORT_5_5_5_1,
-        .has_alpha  = false,
-    },
-    {
-        .drm_format = DRM_FORMAT_RGBA5551,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_UNSIGNED_SHORT_5_5_5_1,
-        .has_alpha  = true,
-    },
-    {
-        .drm_format = DRM_FORMAT_RGB565,
-        .gl_format  = GL_RGB,
-        .gl_type    = GL_UNSIGNED_SHORT_5_6_5,
-        .has_alpha  = false,
-    },
-    {
-        .drm_format = DRM_FORMAT_XBGR2101010,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
-        .has_alpha  = false,
-    },
-    {
-        .drm_format = DRM_FORMAT_ABGR2101010,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
-        .has_alpha  = true,
-    },
-    {
-        .drm_format = DRM_FORMAT_XBGR16161616F,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_HALF_FLOAT_OES,
-        .has_alpha  = false,
-    },
-    {
-        .drm_format = DRM_FORMAT_ABGR16161616F,
-        .gl_format  = GL_RGBA,
-        .gl_type    = GL_HALF_FLOAT_OES,
-        .has_alpha  = true,
-    },
-    {
-        .drm_format        = DRM_FORMAT_XBGR16161616,
-        .gl_internalformat = GL_RGBA16_EXT,
-        .gl_format         = GL_RGBA,
-        .gl_type           = GL_UNSIGNED_SHORT,
-        .has_alpha         = false,
-    },
-    {
-        .drm_format        = DRM_FORMAT_ABGR16161616,
-        .gl_internalformat = GL_RGBA16_EXT,
-        .gl_format         = GL_RGBA,
-        .gl_type           = GL_UNSIGNED_SHORT,
-        .has_alpha         = true,
-    },
-#endif
-};
-
-inline const struct wlr_gles2_pixel_format* gles2FromDRM(uint32_t fmt) {
-    for (size_t i = 0; i < sizeof(formats) / sizeof(*formats); ++i) {
-        if (formats[i].drm_format == fmt) {
-            return &formats[i];
-        }
+static int32_t div_round_up(int32_t dividend, int32_t divisor) {
+    int32_t quotient = dividend / divisor;
+    if (dividend % divisor != 0) {
+        quotient++;
     }
-    return NULL;
+    return quotient;
+}
+
+static int32_t pixel_format_info_min_stride(const wlr_pixel_format_info* fmt, int32_t width) {
+    int32_t pixels_per_block = (int32_t)pixel_format_info_pixels_per_block(fmt);
+    int32_t bytes_per_block  = (int32_t)fmt->bytes_per_block;
+    if (width > INT32_MAX / bytes_per_block) {
+        wlr_log(WLR_DEBUG, "Invalid width %d (overflow)", width);
+        return 0;
+    }
+    return div_round_up(width * bytes_per_block, pixels_per_block);
 }
 
 #endif

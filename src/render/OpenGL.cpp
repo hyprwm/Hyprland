@@ -2067,13 +2067,138 @@ void CHyprOpenGLImpl::setMonitorTransformEnabled(bool enabled) {
     m_bEndFrame = !enabled;
 }
 
+struct SGLPixelFormat {
+    uint32_t drmFormat        = DRM_FORMAT_INVALID;
+    GLint    glInternalFormat = 0;
+    GLint    glFormat         = 0;
+    GLint    glType           = 0;
+    bool     withAlpha        = false;
+};
+
+inline const SGLPixelFormat GLES2_FORMATS[] = {
+    {
+        .drmFormat = DRM_FORMAT_ARGB8888,
+        .glFormat  = GL_BGRA_EXT,
+        .glType    = GL_UNSIGNED_BYTE,
+        .withAlpha = true,
+    },
+    {
+        .drmFormat = DRM_FORMAT_XRGB8888,
+        .glFormat  = GL_BGRA_EXT,
+        .glType    = GL_UNSIGNED_BYTE,
+        .withAlpha = false,
+    },
+    {
+        .drmFormat = DRM_FORMAT_XBGR8888,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_UNSIGNED_BYTE,
+        .withAlpha = false,
+    },
+    {
+        .drmFormat = DRM_FORMAT_ABGR8888,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_UNSIGNED_BYTE,
+        .withAlpha = true,
+    },
+    {
+        .drmFormat = DRM_FORMAT_BGR888,
+        .glFormat  = GL_RGB,
+        .glType    = GL_UNSIGNED_BYTE,
+        .withAlpha = false,
+    },
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    {
+        .drmFormat = DRM_FORMAT_RGBX4444,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_UNSIGNED_SHORT_4_4_4_4,
+        .withAlpha = false,
+    },
+    {
+        .drmFormat = DRM_FORMAT_RGBA4444,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_UNSIGNED_SHORT_4_4_4_4,
+        .withAlpha = true,
+    },
+    {
+        .drmFormat = DRM_FORMAT_RGBX5551,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_UNSIGNED_SHORT_5_5_5_1,
+        .withAlpha = false,
+    },
+    {
+        .drmFormat = DRM_FORMAT_RGBA5551,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_UNSIGNED_SHORT_5_5_5_1,
+        .withAlpha = true,
+    },
+    {
+        .drmFormat = DRM_FORMAT_RGB565,
+        .glFormat  = GL_RGB,
+        .glType    = GL_UNSIGNED_SHORT_5_6_5,
+        .withAlpha = false,
+    },
+    {
+        .drmFormat = DRM_FORMAT_XBGR2101010,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
+        .withAlpha = false,
+    },
+    {
+        .drmFormat = DRM_FORMAT_ABGR2101010,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
+        .withAlpha = true,
+    },
+    {
+        .drmFormat = DRM_FORMAT_XBGR16161616F,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_HALF_FLOAT_OES,
+        .withAlpha = false,
+    },
+    {
+        .drmFormat = DRM_FORMAT_ABGR16161616F,
+        .glFormat  = GL_RGBA,
+        .glType    = GL_HALF_FLOAT_OES,
+        .withAlpha = true,
+    },
+    {
+        .drmFormat        = DRM_FORMAT_XBGR16161616,
+        .glInternalFormat = GL_RGBA16_EXT,
+        .glFormat         = GL_RGBA,
+        .glType           = GL_UNSIGNED_SHORT,
+        .withAlpha        = false,
+    },
+    {
+        .drmFormat        = DRM_FORMAT_ABGR16161616,
+        .glInternalFormat = GL_RGBA16_EXT,
+        .glFormat         = GL_RGBA,
+        .glType           = GL_UNSIGNED_SHORT,
+        .withAlpha        = true,
+    },
+#endif
+};
+
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
     if (g_pHyprRenderer->isNvidia())
         return DRM_FORMAT_XBGR8888;
 
-    if (pMonitor->drmFormat == DRM_FORMAT_XRGB8888 || pMonitor->drmFormat == DRM_FORMAT_XBGR8888)
-        return DRM_FORMAT_XBGR8888;
-    if (pMonitor->drmFormat == DRM_FORMAT_XRGB2101010 || pMonitor->drmFormat == DRM_FORMAT_XBGR2101010)
-        return DRM_FORMAT_XBGR2101010;
-    return DRM_FORMAT_INVALID;
+    GLint glf = -1, glt = -1, as = -1;
+    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
+    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE, &glt);
+    glGetIntegerv(GL_ALPHA_BITS, &as);
+
+    if (glf == 0 || glt == 0) {
+        glf = drmFormatToGL(pMonitor->drmFormat);
+        glt = glFormatToType(glf);
+    }
+
+    for (auto& fmt : GLES2_FORMATS) {
+        if (fmt.glFormat == glf && fmt.glType == glt && fmt.withAlpha == (as > 0))
+            return fmt.drmFormat;
+    }
+
+    if (m_sExts.EXT_read_format_bgra)
+        return DRM_FORMAT_XRGB8888;
+
+    return DRM_FORMAT_XBGR8888;
 }

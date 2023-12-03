@@ -210,6 +210,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     PFRAME->client = PCLIENT;
     PCLIENT->ref++;
 
+    g_pHyprRenderer->makeEGLCurrent();
     PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PFRAME->pMonitor);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture output");
@@ -241,7 +242,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     wlr_output_effective_resolution(PFRAME->pMonitor->output, &ow, &oh);
     PFRAME->box.transform(PFRAME->pMonitor->transform, ow, oh).scale(PFRAME->pMonitor->scale).round();
 
-    PFRAME->shmStride = (PSHMINFO->bpp / 8) * PFRAME->box.width;
+    PFRAME->shmStride = pixel_format_info_min_stride(PSHMINFO, PFRAME->box.w);
 
     zwlr_screencopy_frame_v1_send_buffer(PFRAME->resource, convert_drm_format_to_wl_shm(PFRAME->shmFormat), PFRAME->box.width, PFRAME->box.height, PFRAME->shmStride);
 
@@ -456,8 +457,13 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.m_iFb);
 
-    const auto GLFORMAT = drmFormatToGL(frame->pMonitor->drmFormat);
-    const auto GLTYPE   = glFormatToType(GLFORMAT);
+    GLint glf, glt;
+    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
+    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE, &glt);
+    if (glf == 0 || glt == 0) {
+        glf = drmFormatToGL(frame->pMonitor->drmFormat);
+        glt = glFormatToType(glf);
+    }
 
     g_pHyprRenderer->endRender();
 
@@ -465,7 +471,20 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     g_pHyprOpenGL->m_RenderData.pMonitor = frame->pMonitor;
     fb.bind();
 
-    glReadPixels(0, 0, frame->box.w, frame->box.h, GL_RGBA, GLTYPE, data);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    const auto                   FMT        = g_pHyprOpenGL->getPreferredReadFormat(frame->pMonitor);
+    const wlr_pixel_format_info* drmFmtWlr  = drm_get_pixel_format_info(FMT);
+    uint32_t                     packStride = pixel_format_info_min_stride(drmFmtWlr, frame->box.w);
+
+    if (packStride == stride) {
+        glReadPixels(frame->box.x, frame->box.y, frame->box.w, frame->box.h, glf, glt, data);
+    } else {
+        for (size_t i = 0; i < frame->box.h; ++i) {
+            uint32_t y = frame->box.x + i;
+            glReadPixels(frame->box.x, y, frame->box.w, 1, glf, glt, ((unsigned char*)data) + i * stride);
+        }
+    }
 
     g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
 

@@ -177,6 +177,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PFRAME->pWindow->m_iMonitorID);
 
+    g_pHyprRenderer->makeEGLCurrent();
     PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PFRAME->pMonitor);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture toplevel");
@@ -204,7 +205,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     wlr_output_effective_resolution(PMONITOR->output, &ow, &oh);
     PFRAME->box.transform(PMONITOR->transform, ow, oh).round();
 
-    PFRAME->shmStride = (PSHMINFO->bpp / 8) * PFRAME->box.width;
+    PFRAME->shmStride = pixel_format_info_min_stride(PSHMINFO, PFRAME->box.w);
 
     hyprland_toplevel_export_frame_v1_send_buffer(PFRAME->resource, convert_drm_format_to_wl_shm(PFRAME->shmFormat), PFRAME->box.width, PFRAME->box.height, PFRAME->shmStride);
 
@@ -386,12 +387,19 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     if (frame->overlayCursor)
         g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.vec());
 
-    const auto GLFORMAT = drmFormatToGL(frame->pMonitor->drmFormat);
-    const auto GLTYPE   = glFormatToType(GLFORMAT);
+    GLint glf, glt;
+    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
+    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE, &glt);
+    if (glf == 0 || glt == 0) {
+        glf = drmFormatToGL(frame->pMonitor->drmFormat);
+        glt = glFormatToType(glf);
+    }
 
     g_pHyprOpenGL->m_RenderData.mainFB->bind();
 
-    glReadPixels(0, 0, frame->box.width, frame->box.height, GL_RGBA, GLTYPE, data);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    glReadPixels(0, 0, frame->box.width, frame->box.height, glf, glt, data);
 
     g_pHyprRenderer->endRender();
 

@@ -21,6 +21,9 @@ CWindow::~CWindow() {
         g_pCompositor->m_pLastFocus  = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
     }
+
+    g_pHyprRenderer->makeEGLCurrent();
+    std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return other.first == this; });
 }
 
 SWindowDecorationExtents CWindow::getFullWindowExtents() {

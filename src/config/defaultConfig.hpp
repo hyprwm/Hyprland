@@ -28,6 +28,11 @@ monitor=,preferred,auto,auto
 # Source a file (multi-file configs)
 # source = ~/.config/hypr/myColors.conf
 
+# Set programs that you use
+$terminal = kitty
+$fileManager = dolphin
+$menu = wofi --show drun
+
 # Some default env vars.
 env = XCURSOR_SIZE,24
 
@@ -134,12 +139,12 @@ windowrulev2 = nomaximizerequest, class:.* # You'll probably like this.
 $mainMod = SUPER
 
 # Example binds, see https://wiki.hyprland.org/Configuring/Binds/ for more
-bind = $mainMod, Q, exec, kitty
+bind = $mainMod, Q, exec, $terminal
 bind = $mainMod, C, killactive, 
 bind = $mainMod, M, exit, 
-bind = $mainMod, E, exec, dolphin
+bind = $mainMod, E, exec, $fileManager
 bind = $mainMod, V, togglefloating, 
-bind = $mainMod, R, exec, wofi --show drun
+bind = $mainMod, R, exec, $menu
 bind = $mainMod, P, pseudo, # dwindle
 bind = $mainMod, J, togglesplit, # dwindle
 

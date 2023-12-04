@@ -29,9 +29,9 @@ monitor=,preferred,auto,auto
 # source = ~/.config/hypr/myColors.conf
 
 # Set programs that you use
-$terminal = 'kitty'
-$fileManager = 'dolphin'
-$menu = 'wofi --show drun'
+$terminal = kitty
+$fileManager = dolphin
+$menu = wofi --show drun
 
 
 # Some default env vars.

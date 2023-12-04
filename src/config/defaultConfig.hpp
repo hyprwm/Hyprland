@@ -33,7 +33,6 @@ $terminal = kitty
 $fileManager = dolphin
 $menu = wofi --show drun
 
-
 # Some default env vars.
 env = XCURSOR_SIZE,24
 

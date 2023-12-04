@@ -54,14 +54,17 @@ int main(int argc, char** argv) {
             }
             std::string next_arg = std::next(it)->c_str();
 
-            if (!std::filesystem::exists(next_arg)) {
-                std::cerr << "[ ERROR ] Config path '" << next_arg << "' doesn't exist!\n";
+            if (std::filesystem::is_symlink(next_arg))
+                next_arg = std::filesystem::read_symlink(next_arg);
+
+            if (!std::filesystem::is_regular_file(next_arg)) {
+                std::cerr << "[ ERROR ] Config file '" << next_arg << "' doesn't exist!\n";
                 help();
 
                 return 1;
             }
 
-            configPath = next_arg;
+            configPath = std::filesystem::weakly_canonical(next_arg);
             Debug::log(LOG, "User-specified config location: '{}'", configPath);
 
             it++;

@@ -387,19 +387,18 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     if (frame->overlayCursor)
         g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.vec());
 
-    GLint glf, glt;
-    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
-    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE, &glt);
-    if (glf == 0 || glt == 0) {
-        glf = drmFormatToGL(frame->pMonitor->drmFormat);
-        glt = glFormatToType(glf);
+    const auto PFORMAT = g_pHyprOpenGL->getPixelFormatFromDRM(format);
+    if (!PFORMAT) {
+        g_pHyprRenderer->endRender();
+        wlr_buffer_end_data_ptr_access(frame->buffer);
+        return false;
     }
 
     g_pHyprOpenGL->m_RenderData.mainFB->bind();
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    glReadPixels(0, 0, frame->box.width, frame->box.height, glf, glt, data);
+    glReadPixels(0, 0, frame->box.width, frame->box.height, PFORMAT->glFormat, PFORMAT->glType, data);
 
     g_pHyprRenderer->endRender();
 

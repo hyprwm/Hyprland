@@ -2067,14 +2067,6 @@ void CHyprOpenGLImpl::setMonitorTransformEnabled(bool enabled) {
     m_bEndFrame = !enabled;
 }
 
-struct SGLPixelFormat {
-    uint32_t drmFormat        = DRM_FORMAT_INVALID;
-    GLint    glInternalFormat = 0;
-    GLint    glFormat         = 0;
-    GLint    glType           = 0;
-    bool     withAlpha        = false;
-};
-
 inline const SGLPixelFormat GLES2_FORMATS[] = {
     {
         .drmFormat = DRM_FORMAT_ARGB8888,
@@ -2179,9 +2171,6 @@ inline const SGLPixelFormat GLES2_FORMATS[] = {
 };
 
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
-    if (g_pHyprRenderer->isNvidia())
-        return DRM_FORMAT_XBGR8888;
-
     GLint glf = -1, glt = -1, as = -1;
     glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
     glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE, &glt);
@@ -2201,4 +2190,13 @@ uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
         return DRM_FORMAT_XRGB8888;
 
     return DRM_FORMAT_XBGR8888;
+}
+
+const SGLPixelFormat* CHyprOpenGLImpl::getPixelFormatFromDRM(uint32_t drmFormat) {
+    for (auto& fmt : GLES2_FORMATS) {
+        if (fmt.drmFormat == drmFormat)
+            return &fmt;
+    }
+
+    return nullptr;
 }

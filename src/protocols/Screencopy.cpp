@@ -457,12 +457,12 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.m_iFb);
 
-    GLint glf, glt;
-    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
-    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE, &glt);
-    if (glf == 0 || glt == 0) {
-        glf = drmFormatToGL(frame->pMonitor->drmFormat);
-        glt = glFormatToType(glf);
+    const auto PFORMAT = g_pHyprOpenGL->getPixelFormatFromDRM(format);
+    if (!PFORMAT) {
+        g_pHyprRenderer->endRender();
+        wlr_texture_destroy(sourceTex);
+        wlr_buffer_end_data_ptr_access(frame->buffer);
+        return false;
     }
 
     g_pHyprRenderer->endRender();
@@ -473,16 +473,15 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    const auto                   FMT        = g_pHyprOpenGL->getPreferredReadFormat(frame->pMonitor);
-    const wlr_pixel_format_info* drmFmtWlr  = drm_get_pixel_format_info(FMT);
+    const wlr_pixel_format_info* drmFmtWlr  = drm_get_pixel_format_info(format);
     uint32_t                     packStride = pixel_format_info_min_stride(drmFmtWlr, frame->box.w);
 
     if (packStride == stride) {
-        glReadPixels(frame->box.x, frame->box.y, frame->box.w, frame->box.h, glf, glt, data);
+        glReadPixels(frame->box.x, frame->box.y, frame->box.w, frame->box.h, PFORMAT->glFormat, PFORMAT->glType, data);
     } else {
         for (size_t i = 0; i < frame->box.h; ++i) {
             uint32_t y = frame->box.x + i;
-            glReadPixels(frame->box.x, y, frame->box.w, 1, glf, glt, ((unsigned char*)data) + i * stride);
+            glReadPixels(frame->box.x, y, frame->box.w, 1, PFORMAT->glFormat, PFORMAT->glType, ((unsigned char*)data) + i * stride);
         }
     }
 

@@ -16,6 +16,7 @@ struct SLayerRule {
 
 struct SLayerSurface {
     SLayerSurface();
+    ~SLayerSurface();
 
     void                  applyRules();
 

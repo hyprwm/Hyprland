@@ -1441,9 +1441,6 @@ void CCompositor::cleanupFadingOut(const int& monid) {
             g_pHyprOpenGL->markBlurDirtyForMonitor(getMonitorFromID(monid));
 
         if (ls->fadingOut && ls->readyToDelete && !ls->alpha.isBeingAnimated()) {
-            g_pHyprOpenGL->m_mLayerFramebuffers[ls].release();
-            g_pHyprOpenGL->m_mLayerFramebuffers.erase(ls);
-
             for (auto& m : m_vMonitors) {
                 for (auto& lsl : m->m_aLayerSurfaceLayers) {
                     if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; }) != lsl.end()) {

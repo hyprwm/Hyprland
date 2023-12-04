@@ -367,7 +367,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer outFB;
-    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->drmFormat);
+    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : PMONITOR->drmFormat);
 
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB)) {
         wlr_buffer_end_data_ptr_access(frame->buffer);

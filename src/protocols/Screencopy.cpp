@@ -442,7 +442,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer fb;
-    fb.alloc(frame->box.w, frame->box.h, frame->pMonitor->drmFormat);
+    fb.alloc(frame->box.w, frame->box.h, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : frame->pMonitor->drmFormat);
 
     if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb)) {
         wlr_texture_destroy(sourceTex);

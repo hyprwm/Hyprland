@@ -1395,14 +1395,11 @@ void CCompositor::cleanupFadingOut(const int& monid) {
             if (valid && !w->m_bReadyToDelete)
                 continue;
 
-            std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return other.first == w; });
             w->m_bFadingOut = false;
             removeWindowFromVectorSafe(w);
             std::erase(m_vWindowsFadingOut, w);
 
             Debug::log(LOG, "Cleanup: destroyed a window");
-
-            glFlush(); // to free mem NOW.
             return;
         }
     }

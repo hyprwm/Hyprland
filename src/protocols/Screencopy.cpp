@@ -455,7 +455,11 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
 
+#ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.m_iFb);
+#else
+    glBindFramebuffer(GL_FRAMEBUFFER, fb.m_iFb);
+#endif
 
     const auto PFORMAT = g_pHyprOpenGL->getPixelFormatFromDRM(format);
     if (!PFORMAT) {

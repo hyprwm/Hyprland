@@ -57,6 +57,8 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 }
 
 void CFramebuffer::addStencil() {
+    // TODO: Allow this with gles2
+#ifndef GLES2
     glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_vSize.x, m_vSize.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
 
@@ -69,6 +71,7 @@ void CFramebuffer::addStencil() {
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_iCurrentOutputFb);
+#endif
 }
 
 void CFramebuffer::bind() {

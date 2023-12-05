@@ -481,11 +481,11 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     uint32_t                     packStride = pixel_format_info_min_stride(drmFmtWlr, frame->box.w);
 
     if (packStride == stride) {
-        glReadPixels(frame->box.x, frame->box.y, frame->box.w, frame->box.h, PFORMAT->glFormat, PFORMAT->glType, data);
+        glReadPixels(0, 0, frame->box.w, frame->box.h, PFORMAT->glFormat, PFORMAT->glType, data);
     } else {
         for (size_t i = 0; i < frame->box.h; ++i) {
-            uint32_t y = frame->box.x + i;
-            glReadPixels(frame->box.x, y, frame->box.w, 1, PFORMAT->glFormat, PFORMAT->glType, ((unsigned char*)data) + i * stride);
+            uint32_t y = i;
+            glReadPixels(0, y, frame->box.w, 1, PFORMAT->glFormat, PFORMAT->glType, ((unsigned char*)data) + i * stride);
         }
     }
 

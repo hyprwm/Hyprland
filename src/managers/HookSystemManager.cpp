@@ -1,6 +1,8 @@
 #include "HookSystemManager.hpp"
 
+#ifdef WITH_PLUGINS
 #include "../plugins/PluginSystem.hpp"
+#endif
 
 CHookSystemManager::CHookSystemManager() {
     ; //
@@ -61,10 +63,12 @@ void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, SCal
         }
     }
 
+#ifdef WITH_PLUGINS
     if (!faultyHandles.empty()) {
         for (auto& h : faultyHandles)
             g_pPluginSystem->unloadPlugin(g_pPluginSystem->getPluginByHandle(h), true);
     }
+#endif
 }
 
 std::vector<SCallbackFNPtr>* CHookSystemManager::getVecForEvent(const std::string& event) {

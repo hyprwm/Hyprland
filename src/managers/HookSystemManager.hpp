@@ -9,7 +9,9 @@
 
 #include <csetjmp>
 
+#ifdef WITH_PLUGINS
 #include "../plugins/PluginAPI.hpp"
+#endif
 
 // global typedef for hooked functions. Passes itself as a ptr when called, and `data` additionally.
 
@@ -20,6 +22,7 @@ struct SCallbackFNPtr {
     HANDLE            handle = nullptr;
 };
 
+#ifdef WITH_PLUGINS
 #define EMIT_HOOK_EVENT(name, param)                                                                                                                                               \
     {                                                                                                                                                                              \
         static auto* const PEVENTVEC = g_pHookSystem->getVecForEvent(name);                                                                                                        \
@@ -35,6 +38,12 @@ struct SCallbackFNPtr {
         if (info.cancelled)                                                                                                                                                        \
             return;                                                                                                                                                                \
     }
+#else
+#define EMIT_HOOK_EVENT(name, param)                                                                                                                                               \
+    {}
+#define EMIT_HOOK_EVENT_CANCELLABLE(name, param)                                                                                                                                   \
+    {}
+#endif
 
 class CHookSystemManager {
   public:

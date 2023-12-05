@@ -4,7 +4,9 @@
 #include <fstream>
 #include <signal.h>
 
+#ifdef WITH_PLUGINS
 #include "../plugins/PluginSystem.hpp"
+#endif
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/sysctl.h>
@@ -48,6 +50,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += std::format("Version: {}\nTag: {}\n\n", GIT_COMMIT_HASH, GIT_TAG);
 
+#ifdef WITH_PLUGINS
     if (g_pPluginSystem && !g_pPluginSystem->getAllPlugins().empty()) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
@@ -57,6 +60,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
         finalCrashReport += "\n\n";
     }
+#endif
 
     finalCrashReport += "System info:\n";
 

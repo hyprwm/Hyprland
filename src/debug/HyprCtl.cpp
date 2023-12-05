@@ -1260,6 +1260,7 @@ std::string dispatchOutput(std::string request) {
     return "ok";
 }
 
+#ifdef WITH_PLUGINS
 std::string dispatchPlugin(std::string request) {
     CVarList vars(request, 0, ' ');
 
@@ -1302,6 +1303,7 @@ std::string dispatchPlugin(std::string request) {
 
     return "ok";
 }
+#endif
 
 std::string dispatchNotify(std::string request) {
     CVarList vars(request, 0, ' ');
@@ -1401,8 +1403,10 @@ std::string getReply(std::string request) {
         return rollinglogRequest(format);
     else if (request == "layouts")
         return layoutsRequest(format);
+#ifdef WITH_PLUGINS
     else if (request.starts_with("plugin"))
         return dispatchPlugin(request);
+#endif
     else if (request.starts_with("notify"))
         return dispatchNotify(request);
     else if (request.starts_with("setprop"))

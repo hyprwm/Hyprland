@@ -82,7 +82,9 @@ CCompositor::CCompositor() {
 CCompositor::~CCompositor() {
     cleanup();
     g_pDecorationPositioner.reset();
+#ifdef WITH_PLUGINS
     g_pPluginSystem.reset();
+#endif
     g_pHyprNotificationOverlay.reset();
     g_pDebugOverlay.reset();
     g_pEventManager.reset();
@@ -346,9 +348,11 @@ void CCompositor::cleanup() {
         sd_notify(0, "STOPPING=1");
 #endif
 
+#ifdef WITH_PLUGINS
     // unload all remaining plugins while the compositor is
     // still in a normal working state.
     g_pPluginSystem->unloadAllPlugins();
+#endif
 
     m_pLastFocus  = nullptr;
     m_pLastWindow = nullptr;
@@ -436,9 +440,11 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Debug::log(LOG, "Creating the HyprNotificationOverlay!");
             g_pHyprNotificationOverlay = std::make_unique<CHyprNotificationOverlay>();
 
+#ifdef WITH_PLUGINS
             Debug::log(LOG, "Creating the PluginSystem!");
             g_pPluginSystem = std::make_unique<CPluginSystem>();
             g_pConfigManager->handlePluginLoads();
+#endif
 
             Debug::log(LOG, "Creating the DecorationPositioner!");
             g_pDecorationPositioner = std::make_unique<CDecorationPositioner>();

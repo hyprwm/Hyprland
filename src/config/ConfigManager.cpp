@@ -380,7 +380,11 @@ void CConfigManager::init() {
 
 void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::string& VALUE) {
     if (!configValues.contains(COMMAND)) {
+#ifdef WITH_PLUGINS
         if (!COMMAND.starts_with("device:") /* devices parsed later */ && !COMMAND.starts_with("plugin:") /* plugins parsed later */) {
+#else
+        if (!COMMAND.starts_with("device:") /* devices parsed later */) {
+#endif
             if (COMMAND[0] == '$') {
                 // register a dynamic var
                 Debug::log(LOG, "Registered dynamic var \"{}\" -> {}", COMMAND, VALUE);
@@ -417,6 +421,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         }
 
         CONFIGENTRY = &it->second.at(CONFIGVAR);
+#ifdef WITH_PLUGINS
     } else if (COMMAND.starts_with("plugin:")) {
         for (auto& [handle, pMap] : pluginConfigs) {
             auto it = std::find_if(pMap->begin(), pMap->end(), [&](const auto& other) { return other.first == COMMAND; });
@@ -431,6 +436,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
             m_vFailedPluginConfigValues.emplace_back(std::make_pair<>(COMMAND, VALUE));
             return; // silent ignore
         }
+#endif
     } else {
         CONFIGENTRY = &configValues.at(COMMAND);
     }
@@ -1347,6 +1353,7 @@ void CConfigManager::handleEnv(const std::string& command, const std::string& va
     }
 }
 
+#ifdef WITH_PLUGINS
 void CConfigManager::handlePlugin(const std::string& command, const std::string& path) {
     if (std::find(m_vDeclaredPlugins.begin(), m_vDeclaredPlugins.end(), path) != m_vDeclaredPlugins.end()) {
         parseError = "plugin '" + path + "' declared twice";
@@ -1355,6 +1362,7 @@ void CConfigManager::handlePlugin(const std::string& command, const std::string&
 
     m_vDeclaredPlugins.push_back(path);
 }
+#endif
 
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE, bool dynamic) {
     if (dynamic) {
@@ -1400,22 +1408,27 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
         handleBlurLS(COMMAND, VALUE);
     else if (COMMAND == "wsbind")
         handleBindWS(COMMAND, VALUE);
+#ifdef WITH_PLUGINS
     else if (COMMAND == "plugin")
         handlePlugin(COMMAND, VALUE);
+#endif
     else if (COMMAND.starts_with("env"))
         handleEnv(COMMAND, VALUE);
     else {
+#ifdef WITH_PLUGINS
         // try config
         const auto IT = std::find_if(pluginKeywords.begin(), pluginKeywords.end(), [&](const auto& other) { return other.name == COMMAND; });
 
         if (IT != pluginKeywords.end()) {
             IT->fn(COMMAND, VALUE);
         } else {
+#endif
             configSetValueSafe(currentCategory + (currentCategory == "" ? "" : ":") + COMMAND, VALUE);
             needsLayoutRecalc = 2;
+#ifdef WITH_PLUGINS
         }
+#endif
     }
-
     if (dynamic) {
         std::string retval = parseError;
         parseError         = "";
@@ -1565,9 +1578,13 @@ void CConfigManager::loadConfigLoadVars() {
     m_dBlurLSNamespaces.clear();
     m_dWorkspaceRules.clear();
     setDefaultAnimationVars(); // reset anims
+#ifdef WITH_PLUGINS
     m_vDeclaredPlugins.clear();
+#endif
     m_dLayerRules.clear();
+#ifdef WITH_PLUGINS
     m_vFailedPluginConfigValues.clear();
+#endif
 
     // paths
     configPaths.clear();
@@ -1723,8 +1740,10 @@ void CConfigManager::loadConfigLoadVars() {
     // Reset no monitor reload
     m_bNoMonitorReload = false;
 
+#ifdef WITH_PLUGINS
     // update plugins
     handlePluginLoads();
+#endif
 
     EMIT_HOOK_EVENT("configReloaded", nullptr);
 }
@@ -2128,6 +2147,7 @@ SConfigValue* CConfigManager::getConfigValuePtrSafe(const std::string& val) {
             return nullptr;
 
         return &IT->second;
+#ifdef WITH_PLUGINS
     } else if (val.starts_with("plugin:")) {
         for (auto& [pl, pMap] : pluginConfigs) {
             const auto IT = pMap->find(val);
@@ -2137,6 +2157,7 @@ SConfigValue* CConfigManager::getConfigValuePtrSafe(const std::string& val) {
         }
 
         return nullptr;
+#endif
     }
 
     const auto IT = configValues.find(val);
@@ -2288,6 +2309,7 @@ void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
     execRequestedRules.push_back(rule);
 }
 
+#ifdef WITH_PLUGINS
 void CConfigManager::handlePluginLoads() {
     if (g_pPluginSystem == nullptr)
         return;
@@ -2312,6 +2334,7 @@ void CConfigManager::handlePluginLoads() {
         tick();
     }
 }
+#endif
 
 ICustomConfigValueData::~ICustomConfigValueData() {
     ; // empty
@@ -2321,6 +2344,7 @@ std::unordered_map<std::string, SAnimationPropertyConfig> CConfigManager::getAni
     return animationConfig;
 }
 
+#ifdef WITH_PLUGINS
 void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, const SConfigValue& value) {
     auto CONFIGMAPIT = std::find_if(pluginConfigs.begin(), pluginConfigs.end(), [&](const auto& other) { return other.first == handle; });
 
@@ -2346,6 +2370,7 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
     std::erase_if(pluginConfigs, [&](const auto& other) { return other.first == handle; });
     std::erase_if(pluginKeywords, [&](const auto& other) { return other.handle == handle; });
 }
+#endif
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
     for (auto other = m_dWorkspaceRules.begin(); other != m_dWorkspaceRules.end(); ++other) {

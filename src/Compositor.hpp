@@ -26,7 +26,9 @@
 #include "render/Renderer.hpp"
 #include "render/OpenGL.hpp"
 #include "hyprerror/HyprError.hpp"
+#ifdef WITH_PLUGINS
 #include "plugins/PluginSystem.hpp"
+#endif
 #include "helpers/Watchdog.hpp"
 
 enum eManagersInitStage

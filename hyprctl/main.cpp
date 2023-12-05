@@ -26,33 +26,33 @@
 const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
 
 commands:
-    monitors
-    workspaces
-    activeworkspace
-    workspacerules
-    clients
     activewindow
-    layers
-    devices
+    activeworkspace
     binds
+    clients
+    cursorpos
+    devices
     dispatch
-    keyword
-    version
-    kill
-    splash
+    getoption
+    globalshortcuts
     hyprpaper
+    instances
+    keyword
+    kill
+    layers
+    layouts
+    monitors
+    notify
+    plugin
     reload
     setcursor
-    getoption
-    cursorpos
-    switchxkblayout
     seterror
     setprop
-    plugin
-    notify
-    globalshortcuts
-    instances
-    layouts
+    splash
+    switchxkblayout
+    version
+    workspacerules
+    workspaces
 
 flags:
     -j -> output in JSON

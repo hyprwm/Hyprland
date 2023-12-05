@@ -1207,13 +1207,6 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 }
 
 void CHyprOpenGLImpl::markBlurDirtyForMonitor(CMonitor* pMonitor) {
-    const auto PWORKSPACE  = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
-    const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pMonitor->activeWorkspace);
-
-    if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL && PFULLWINDOW && !PFULLWINDOW->m_vRealSize.isBeingAnimated() &&
-        PFULLWINDOW->opaque())
-        return;
-
     m_mMonitorRenderResources[pMonitor].blurFBDirty = true;
 }
 
@@ -1223,6 +1216,10 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
     static auto* const PBLUR            = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
 
     if (!*PBLURNEWOPTIMIZE || !m_mMonitorRenderResources[pMonitor].blurFBDirty || !*PBLUR)
+        return;
+
+    // ignore if solitary present, nothing to blur
+    if (pMonitor->solitaryClient)
         return;
 
     // check if we need to update the blur fb

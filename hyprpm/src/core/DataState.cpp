@@ -4,7 +4,21 @@
 #include <filesystem>
 #include <fstream>
 
+void DataState::ensureStateStoreExists() {
+    const auto HOME = getenv("HOME");
+    if (!HOME) {
+        std::cerr << "DataState: no $HOME\n";
+        return;
+    }
+    const auto PATH = std::string(HOME) + "/.hyprpm/";
+
+    if (!std::filesystem::exists(PATH))
+        std::filesystem::create_directories(PATH);
+}
+
 void DataState::addNewPluginRepo(const SPluginRepository& repo) {
+    ensureStateStoreExists();
+
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::cerr << "DataState: no $HOME\n";
@@ -38,6 +52,8 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
 }
 
 bool DataState::pluginRepoExists(const std::string& urlOrName) {
+    ensureStateStoreExists();
+
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::cerr << "DataState: no $HOME\n";
@@ -62,6 +78,8 @@ bool DataState::pluginRepoExists(const std::string& urlOrName) {
 }
 
 void DataState::removePluginRepo(const std::string& urlOrName) {
+    ensureStateStoreExists();
+
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::cerr << "DataState: no $HOME\n";
@@ -86,6 +104,8 @@ void DataState::removePluginRepo(const std::string& urlOrName) {
 }
 
 void DataState::updateGlobalState(const SGlobalState& state) {
+    ensureStateStoreExists();
+
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::cerr << "DataState: no $HOME\n";
@@ -108,6 +128,8 @@ void DataState::updateGlobalState(const SGlobalState& state) {
 }
 
 std::vector<SPluginRepository> DataState::getAllRepositories() {
+    ensureStateStoreExists();
+
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::cerr << "DataState: no $HOME\n";
@@ -149,6 +171,8 @@ std::vector<SPluginRepository> DataState::getAllRepositories() {
 }
 
 bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
+    ensureStateStoreExists();
+
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::cerr << "DataState: no $HOME\n";

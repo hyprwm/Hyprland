@@ -162,7 +162,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
     std::string       repohash = execAndGet("cd /tmp/hyprpm/new/ && git rev-parse HEAD");
     if (repohash.length() > 0)
         repohash.pop_back();
-    repo.name = url.substr(url.find_last_of('/') + 1);
+    repo.name = pManifest->m_sRepository.name.empty() ? url.substr(url.find_last_of('/') + 1) : pManifest->m_sRepository.name;
     repo.url  = url;
     repo.hash = repohash;
     for (auto& p : pManifest->m_vPlugins) {

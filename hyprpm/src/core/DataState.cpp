@@ -118,6 +118,7 @@ void DataState::updateGlobalState(const SGlobalState& state) {
     auto DATA = toml::table{
         {"state", toml::table{
             {"hash", state.headersHashCompiled},
+            {"dont_warn_install", state.dontWarnInstall}
         }}
     };
     // clang-format on
@@ -125,6 +126,23 @@ void DataState::updateGlobalState(const SGlobalState& state) {
     std::ofstream ofs(PATH + "/state.toml", std::ios::trunc);
     ofs << DATA;
     ofs.close();
+}
+
+SGlobalState DataState::getGlobalState() {
+    ensureStateStoreExists();
+
+    const auto PATH = getDataStatePath();
+
+    if (!std::filesystem::exists(PATH + "/state.toml"))
+        return SGlobalState{};
+
+    auto         DATA = toml::parse_file(PATH + "/state.toml");
+
+    SGlobalState state;
+    state.headersHashCompiled = DATA["state"]["hash"].value_or("");
+    state.dontWarnInstall     = DATA["state"]["dont_warn_install"].value_or(false);
+
+    return state;
 }
 
 std::vector<SPluginRepository> DataState::getAllRepositories() {

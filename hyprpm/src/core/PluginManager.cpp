@@ -34,6 +34,15 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
         return false;
     }
 
+    auto GLOBALSTATE = DataState::getGlobalState();
+    if (!GLOBALSTATE.dontWarnInstall) {
+        std::cout << Colors::YELLOW << "!" << Colors::RED << " Disclaimer:\n  " << Colors::RESET
+                  << "plugins, especially not official, have no guarantee of stability, availablity or security.\n  Run them at your own risk.\n  "
+                  << "This message will not appear again.\n";
+        GLOBALSTATE.dontWarnInstall = true;
+        DataState::updateGlobalState(GLOBALSTATE);
+    }
+
     std::cout << Colors::GREEN << "✔" << Colors::RESET << Colors::RED << " adding a new plugin repository " << Colors::RESET << "from " << url << "\n  " << Colors::RED
               << "MAKE SURE" << Colors::RESET << " that you trust the authors. " << Colors::RED << "DO NOT" << Colors::RESET
               << " install random plugins without verifying the code and author.\n  "
@@ -284,7 +293,9 @@ bool CPluginManager::updateHeaders() {
 
     if (headersValid() == HEADERS_OK) {
         std::cout << "\n" << std::string{Colors::GREEN} + "✔" + Colors::RESET + " Your headers are already up-to-date.\n";
-        DataState::updateGlobalState(SGlobalState{hlcommit});
+        auto GLOBALSTATE                = DataState::getGlobalState();
+        GLOBALSTATE.headersHashCompiled = hlcommit;
+        DataState::updateGlobalState(GLOBALSTATE);
         return true;
     }
 
@@ -313,7 +324,7 @@ bool CPluginManager::updateHeaders() {
     progress.m_szCurrentMessage = "Checking out sources";
     progress.print();
 
-    ret = execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + hlbranch + " && git submodule update --init && git reset --hard --recurse-submodules " + hlcommit);
+    ret = execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + hlbranch + " 2>&1 && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + hlcommit);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " checked out to running ver");
     progress.m_iSteps           = 3;
@@ -338,17 +349,20 @@ bool CPluginManager::updateHeaders() {
     // remove build files
     std::filesystem::remove_all("/tmp/hyprpm/hyprland");
 
-    if (headersValid() == HEADERS_OK) {
+    auto HEADERSVALID = headersValid();
+    if (HEADERSVALID == HEADERS_OK) {
         progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " installed headers");
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Done!";
         progress.print();
 
-        DataState::updateGlobalState(SGlobalState{hlcommit});
+        auto GLOBALSTATE                = DataState::getGlobalState();
+        GLOBALSTATE.headersHashCompiled = hlcommit;
+        DataState::updateGlobalState(GLOBALSTATE);
 
         std::cout << "\n";
     } else {
-        progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " failed to install headers");
+        progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " failed to install headers with error code " + std::to_string((int)HEADERSVALID));
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Failed";
         progress.print();

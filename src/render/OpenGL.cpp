@@ -583,14 +583,14 @@ void CHyprOpenGLImpl::renderRect(CBox* box, const CColor& col, int round) {
         renderRectWithDamage(box, col, &m_RenderData.damage, round);
 }
 
-void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round, float blurA) {
+void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round, float blurA, bool xray) {
     if (m_RenderData.damage.empty())
         return;
 
     CRegion damage{m_RenderData.damage};
     damage.intersect(*box);
 
-    CFramebuffer* POUTFB = blurMainFramebufferWithDamage(blurA, &damage);
+    CFramebuffer* POUTFB = xray ? &m_RenderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(blurA, &damage);
 
     m_RenderData.currentFB->bind();
 
@@ -1232,6 +1232,9 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
 
         if (pWindow->m_sAdditionalConfigData.forceNoBlur)
             return false;
+
+        if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall)
+            return true;
 
         const auto  PSURFACE = pWindow->m_pWLSurface.wlr();
 

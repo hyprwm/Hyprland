@@ -20,6 +20,7 @@
   pango,
   pciutils,
   systemd,
+  tomlplusplus,
   udis86,
   wayland,
   wayland-protocols,
@@ -81,19 +82,20 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
     buildInputs =
       [
-        git
         cairo
+        git
         hyprland-protocols
-        libGL
         libdrm_2_4_118
+        libGL
         libinput
         libxkbcommon
         mesa
         pango
+        pciutils
+        tomlplusplus
         udis86
         wayland
         wayland-protocols
-        pciutils
         wlroots
       ]
       ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland]

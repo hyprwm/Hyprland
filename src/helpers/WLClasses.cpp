@@ -9,6 +9,9 @@ SLayerSurface::SLayerSurface() {
 }
 
 SLayerSurface::~SLayerSurface() {
+    if (!g_pHyprOpenGL)
+        return;
+
     g_pHyprRenderer->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_mLayerFramebuffers, [&](const auto& other) { return other.first == this; });
 }

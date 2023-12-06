@@ -27,6 +27,7 @@ namespace Debug {
     inline int64_t*    disableTime   = nullptr;
     inline bool        disableStdout = false;
     inline bool        trace         = false;
+    inline bool        shuttingDown  = false;
 
     inline std::string rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
 
@@ -34,6 +35,9 @@ namespace Debug {
     template <typename... Args>
     void log(LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
         if (level == TRACE && !trace)
+            return;
+
+        if (shuttingDown)
             return;
 
         std::string logMsg = "";

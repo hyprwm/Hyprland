@@ -10,3 +10,6 @@
 [submodule "subprojects/tracy"]
 	path = subprojects/tracy
 	url = https://github.com/wolfpld/tracy
+[submodule "hyprpm/subprojects/tomlpp"]
+	path = hyprpm/subprojects/tomlpp
+	url = https://github.com/marzer/tomlplusplus

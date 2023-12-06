@@ -245,5 +245,6 @@ protocol("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" f
 protocol("unstable/text-input/text-input-unstable-v1.xml" "text-input-unstable-v1" false)
 protocol("staging/cursor-shape/cursor-shape-v1.xml" "cursor-shape-v1" false)
 
-# hyprctl
+# tools
 add_subdirectory(hyprctl)
+add_subdirectory(hyprpm)

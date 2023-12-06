@@ -157,7 +157,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
     progress.m_szCurrentMessage = "Installing repository";
     progress.print();
 
-    // add repo toml to ~/.hyprpm
+    // add repo toml to DataState
     SPluginRepository repo;
     std::string       repohash = execAndGet("cd /tmp/hyprpm/new/ && git rev-parse HEAD");
     if (repohash.length() > 0)
@@ -491,7 +491,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         if (failed)
             continue;
 
-        // add repo toml to ~/.hyprpm
+        // add repo toml to DataState
         SPluginRepository newrepo = repo;
         newrepo.plugins.clear();
         std::string repohash = execAndGet(

@@ -4,13 +4,23 @@
 #include <filesystem>
 #include <fstream>
 
-void DataState::ensureStateStoreExists() {
+std::string DataState::getDataStatePath() {
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::cerr << "DataState: no $HOME\n";
-        return;
+        throw std::runtime_error("no $HOME");
+        return "";
     }
-    const auto PATH = std::string(HOME) + "/.hyprpm/";
+
+    const auto XDG_DATA_HOME = getenv("XDG_DATA_HOME");
+
+    if (XDG_DATA_HOME)
+        return std::string{XDG_DATA_HOME} + "/hyprpm";
+    return std::string{HOME} + "/.local/share/hyprpm";
+}
+
+void DataState::ensureStateStoreExists() {
+    const auto PATH = getDataStatePath();
 
     if (!std::filesystem::exists(PATH))
         std::filesystem::create_directories(PATH);
@@ -19,12 +29,7 @@ void DataState::ensureStateStoreExists() {
 void DataState::addNewPluginRepo(const SPluginRepository& repo) {
     ensureStateStoreExists();
 
-    const auto HOME = getenv("HOME");
-    if (!HOME) {
-        std::cerr << "DataState: no $HOME\n";
-        return;
-    }
-    const auto PATH = std::string(HOME) + "/.hyprpm/" + repo.name;
+    const auto PATH = getDataStatePath() + "/" + repo.name;
 
     std::filesystem::create_directories(PATH);
     // clang-format off
@@ -54,12 +59,7 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
 bool DataState::pluginRepoExists(const std::string& urlOrName) {
     ensureStateStoreExists();
 
-    const auto HOME = getenv("HOME");
-    if (!HOME) {
-        std::cerr << "DataState: no $HOME\n";
-        return false;
-    }
-    const auto PATH = std::string(HOME) + "/.hyprpm/";
+    const auto PATH = getDataStatePath();
 
     for (const auto& entry : std::filesystem::directory_iterator(PATH)) {
         if (!entry.is_directory())
@@ -80,12 +80,7 @@ bool DataState::pluginRepoExists(const std::string& urlOrName) {
 void DataState::removePluginRepo(const std::string& urlOrName) {
     ensureStateStoreExists();
 
-    const auto HOME = getenv("HOME");
-    if (!HOME) {
-        std::cerr << "DataState: no $HOME\n";
-        return;
-    }
-    const auto PATH = std::string(HOME) + "/.hyprpm/";
+    const auto PATH = getDataStatePath();
 
     for (const auto& entry : std::filesystem::directory_iterator(PATH)) {
         if (!entry.is_directory())
@@ -106,12 +101,7 @@ void DataState::removePluginRepo(const std::string& urlOrName) {
 void DataState::updateGlobalState(const SGlobalState& state) {
     ensureStateStoreExists();
 
-    const auto HOME = getenv("HOME");
-    if (!HOME) {
-        std::cerr << "DataState: no $HOME\n";
-        return;
-    }
-    const auto PATH = std::string(HOME) + "/.hyprpm/";
+    const auto PATH = getDataStatePath();
 
     std::filesystem::create_directories(PATH);
     // clang-format off
@@ -130,12 +120,7 @@ void DataState::updateGlobalState(const SGlobalState& state) {
 std::vector<SPluginRepository> DataState::getAllRepositories() {
     ensureStateStoreExists();
 
-    const auto HOME = getenv("HOME");
-    if (!HOME) {
-        std::cerr << "DataState: no $HOME\n";
-        return {};
-    }
-    const auto                     PATH = std::string(HOME) + "/.hyprpm/";
+    const auto                     PATH = getDataStatePath();
 
     std::vector<SPluginRepository> repos;
 
@@ -173,12 +158,7 @@ std::vector<SPluginRepository> DataState::getAllRepositories() {
 bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
     ensureStateStoreExists();
 
-    const auto HOME = getenv("HOME");
-    if (!HOME) {
-        std::cerr << "DataState: no $HOME\n";
-        return false;
-    }
-    const auto PATH = std::string(HOME) + "/.hyprpm/";
+    const auto PATH = getDataStatePath();
 
     for (const auto& entry : std::filesystem::directory_iterator(PATH)) {
         if (!entry.is_directory())

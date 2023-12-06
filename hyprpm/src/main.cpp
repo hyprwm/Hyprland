@@ -17,6 +17,11 @@ const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ update                 → Check and update all plugins if needed
 ┣ load                   → Load hyprpm state. Ensure all enabled plugins are loaded.
 ┣ list                   → List all installed plugins
+┃
+┣ Flags:
+┃
+┣ --notify       | -n    → Send a hyprland notification for important events (e.g. load fail)
+┣ --help         | -h    → Show this menu
 ┗
 )#";
 

@@ -28,6 +28,13 @@ std::string execAndGet(std::string cmd) {
 }
 
 SHyprlandVersion CPluginManager::getHyprlandVersion() {
+    static SHyprlandVersion ver;
+    static bool             once = false;
+
+    if (once)
+        return ver;
+
+    once                 = true;
     const auto HLVERCALL = execAndGet("hyprctl version");
     if (m_bVerbose)
         std::cout << Colors::BLUE << "[v] " << Colors::RESET << "version returned: " << HLVERCALL << "\n";
@@ -46,7 +53,8 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     if (m_bVerbose)
         std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << "\n";
 
-    return SHyprlandVersion{hlbranch, hlcommit};
+    ver = SHyprlandVersion{hlbranch, hlcommit};
+    return ver;
 }
 
 bool CPluginManager::addNewPluginRepo(const std::string& url) {
@@ -335,6 +343,9 @@ bool CPluginManager::updateHeaders() {
 
     ret =
         execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + HLVER.branch + " 2>&1 && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + HLVER.hash);
+
+    if (m_bVerbose)
+        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "git returned: " + ret);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " checked out to running ver");
     progress.m_iSteps           = 3;

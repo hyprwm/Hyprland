@@ -339,7 +339,8 @@ void CCompositor::cleanup() {
 
     removeLockFile();
 
-    m_bIsShuttingDown = true;
+    m_bIsShuttingDown   = true;
+    Debug::shuttingDown = true;
 
 #ifdef USES_SYSTEMD
     if (sd_booted() > 0)

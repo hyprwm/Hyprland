@@ -2281,6 +2281,9 @@ CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(wlr_buffer* buffer, uint32
 }
 
 void CHyprRenderer::makeEGLCurrent() {
+    if (!g_pCompositor)
+        return;
+
     if (eglGetCurrentContext() != wlr_egl_get_context(g_pCompositor->m_sWLREGL))
         eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL));
 }

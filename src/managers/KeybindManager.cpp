@@ -801,6 +801,10 @@ void CKeybindManager::changeworkspace(std::string args) {
     static auto* const PWORKSPACECENTERON    = &g_pConfigManager->getConfigValuePtr("binds:workspace_center_on")->intValue;
 
     const auto         PMONITOR          = g_pCompositor->m_pLastMonitor;
+
+    if (!PMONITOR)
+        return;
+
     const auto         PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     const bool         EXPLICITPREVIOUS  = args.starts_with("previous");
 

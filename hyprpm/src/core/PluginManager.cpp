@@ -535,17 +535,17 @@ bool CPluginManager::disablePlugin(const std::string& name) {
     return ret;
 }
 
-void CPluginManager::ensurePluginsLoadState() {
+ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     if (headersValid() != HEADERS_OK) {
         std::cerr << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " headers are not up-to-date, please run hyprpm update.";
-        return;
+        return LOADSTATE_HEADERS_OUTDATED;
     }
 
     const auto HOME = getenv("HOME");
     const auto HIS  = getenv("HYPRLAND_INSTANCE_SIGNATURE");
     if (!HOME || !HIS) {
         std::cerr << "PluginManager: no $HOME or HIS\n";
-        return;
+        return LOADSTATE_FAIL;
     }
     const auto               HYPRPMPATH = DataState::getDataStatePath() + "/";
 
@@ -622,6 +622,8 @@ void CPluginManager::ensurePluginsLoadState() {
     }
 
     std::cout << Colors::GREEN << "✔" << Colors::RESET << " Plugin load state ensured\n";
+
+    return LOADSTATE_OK;
 }
 
 bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
@@ -644,4 +646,8 @@ void CPluginManager::listAllPlugins() {
                       << Colors::RESET << "\n";
         }
     }
+}
+
+void CPluginManager::notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message) {
+    execAndGet("hyprctl notify " + std::to_string((int)icon) + " " + std::to_string(durationMs) + " " + std::to_string(color) + " " + message);
 }

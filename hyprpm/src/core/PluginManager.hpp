@@ -5,29 +5,50 @@
 
 enum eHeadersErrors
 {
-    HEADERS_OK,
+    HEADERS_OK = 0,
     HEADERS_NOT_HYPRLAND,
     HEADERS_MISSING,
     HEADERS_CORRUPTED,
     HEADERS_MISMATCHED,
 };
 
+enum eNotifyIcons
+{
+    ICON_WARNING = 0,
+    ICON_INFO,
+    ICON_HINT,
+    ICON_ERROR,
+    ICON_CONFUSED,
+    ICON_OK,
+    ICON_NONE
+};
+
+enum ePluginLoadStateReturn
+{
+    LOADSTATE_OK = 0,
+    LOADSTATE_FAIL,
+    LOADSTATE_PARTIAL_FAIL,
+    LOADSTATE_HEADERS_OUTDATED
+};
+
 class CPluginManager {
   public:
-    bool           addNewPluginRepo(const std::string& url);
-    bool           removePluginRepo(const std::string& urlOrName);
+    bool                   addNewPluginRepo(const std::string& url);
+    bool                   removePluginRepo(const std::string& urlOrName);
 
-    eHeadersErrors headersValid();
-    bool           updateHeaders();
-    bool           updatePlugins(bool forceUpdateAll);
+    eHeadersErrors         headersValid();
+    bool                   updateHeaders();
+    bool                   updatePlugins(bool forceUpdateAll);
 
-    void           listAllPlugins();
+    void                   listAllPlugins();
 
-    bool           enablePlugin(const std::string& name);
-    bool           disablePlugin(const std::string& name);
-    void           ensurePluginsLoadState();
+    bool                   enablePlugin(const std::string& name);
+    bool                   disablePlugin(const std::string& name);
+    ePluginLoadStateReturn ensurePluginsLoadState();
 
-    bool           loadUnloadPlugin(const std::string& path, bool load);
+    bool                   loadUnloadPlugin(const std::string& path, bool load);
+
+    void                   notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message);
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

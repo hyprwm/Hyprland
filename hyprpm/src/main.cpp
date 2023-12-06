@@ -26,61 +26,105 @@ int               main(int argc, char** argv, char** envp) {
         ARGS[i] = std::string{argv[i]};
     }
 
-    if (ARGS.size() < 2 || ARGS[1] == "--help" || ARGS[1] == "-h") {
+    if (ARGS.size() < 2) {
         std::cout << HELP;
         return 1;
     }
 
+    std::vector<std::string> command;
+    bool                     notify = false;
+
+    for (int i = 1; i < argc; ++i) {
+        if (ARGS[i].starts_with("-")) {
+            if (ARGS[i] == "--help" || ARGS[i] == "-h") {
+                std::cout << HELP;
+                return 0;
+            } else if (ARGS[i] == "--notify" || ARGS[i] == "-n") {
+                notify = true;
+            } else {
+                std::cerr << "Unrecognized option " << ARGS[i];
+                return 1;
+            }
+        } else {
+            command.push_back(ARGS[i]);
+        }
+    }
+
     g_pPluginManager = std::make_unique<CPluginManager>();
 
-    if (ARGS[1] == "add") {
-        if (ARGS.size() < 3) {
+    if (command[0] == "add") {
+        if (command.size() < 2) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for add.\n";
             return 1;
         }
 
-        return g_pPluginManager->addNewPluginRepo(ARGS[2]) ? 0 : 1;
-    } else if (ARGS[1] == "remove") {
-        if (ARGS.size() < 3) {
+        return g_pPluginManager->addNewPluginRepo(command[1]) ? 0 : 1;
+    } else if (command[0] == "remove") {
+        if (ARGS.size() < 2) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for remove.\n";
             return 1;
         }
 
-        return g_pPluginManager->removePluginRepo(ARGS[2]) ? 0 : 1;
-    } else if (ARGS[1] == "update") {
+        return g_pPluginManager->removePluginRepo(command[1]) ? 0 : 1;
+    } else if (command[0] == "update") {
         bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
         bool headers      = g_pPluginManager->updateHeaders();
         if (headers) {
-            g_pPluginManager->updatePlugins(!headersValid);
-            g_pPluginManager->ensurePluginsLoadState();
-        }
-    } else if (ARGS[1] == "enable") {
-        if (ARGS.size() < 3) {
+            bool ret1 = g_pPluginManager->updatePlugins(!headersValid);
+
+            if (!ret1)
+                return 1;
+
+            auto ret2 = g_pPluginManager->ensurePluginsLoadState();
+
+            if (ret2 != LOADSTATE_OK)
+                return 1;
+        } else if (notify)
+            g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Couldn't update headers");
+    } else if (command[0] == "enable") {
+        if (ARGS.size() < 2) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for enable.\n";
             return 1;
         }
 
-        if (!g_pPluginManager->enablePlugin(ARGS[2])) {
+        if (!g_pPluginManager->enablePlugin(command[1])) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Couldn't enable plugin (missing?)\n";
             return 1;
         }
 
-        g_pPluginManager->ensurePluginsLoadState();
-    } else if (ARGS[1] == "disable") {
-        if (ARGS.size() < 3) {
+        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        if (ret != LOADSTATE_OK)
+            return 1;
+    } else if (command[0] == "disable") {
+        if (command.size() < 2) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for disable.\n";
             return 1;
         }
 
-        if (!g_pPluginManager->disablePlugin(ARGS[2])) {
+        if (!g_pPluginManager->disablePlugin(command[1])) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Couldn't disable plugin (missing?)\n";
             return 1;
         }
 
-        g_pPluginManager->ensurePluginsLoadState();
-    } else if (ARGS[1] == "load") {
-        g_pPluginManager->ensurePluginsLoadState();
-    } else if (ARGS[1] == "list") {
+        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        if (ret != LOADSTATE_OK)
+            return 1;
+    } else if (command[0] == "load") {
+        auto ret = g_pPluginManager->ensurePluginsLoadState();
+
+        if (ret != LOADSTATE_OK && notify) {
+            switch (ret) {
+                case LOADSTATE_FAIL:
+                case LOADSTATE_PARTIAL_FAIL: g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins"); break;
+                case LOADSTATE_HEADERS_OUTDATED:
+                    g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins: Outdated headers. Please run hyprpm update manually.");
+                    break;
+                default: break;
+            }
+        } else if (notify) {
+            g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
+        }
+    } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();
     } else {
         std::cout << HELP;

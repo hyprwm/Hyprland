@@ -29,8 +29,7 @@
 #include "plugins/PluginSystem.hpp"
 #include "helpers/Watchdog.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };

@@ -27,7 +27,7 @@
 // pthread first because it uses class in a C++ way and XWayland includes that...
 #include <pthread.h>
 
-#define class _class
+#define class     _class
 #define namespace _namespace
 #define static
 #define delete delete_

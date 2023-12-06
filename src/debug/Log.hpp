@@ -10,8 +10,7 @@
 #define LOGMESSAGESIZE   1024
 #define ROLLING_LOG_SIZE 4096
 
-enum LogLevel
-{
+enum LogLevel {
     NONE = -1,
     LOG  = 0,
     WARN,

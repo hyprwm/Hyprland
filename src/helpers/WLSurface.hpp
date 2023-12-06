@@ -13,10 +13,10 @@ class CWLSurface {
     void assign(wlr_surface* pSurface);
     void unassign();
 
-    CWLSurface(const CWLSurface&) = delete;
-    CWLSurface(CWLSurface&&)      = delete;
+    CWLSurface(const CWLSurface&)             = delete;
+    CWLSurface(CWLSurface&&)                  = delete;
     CWLSurface&  operator=(const CWLSurface&) = delete;
-    CWLSurface&  operator=(CWLSurface&&) = delete;
+    CWLSurface&  operator=(CWLSurface&&)      = delete;
 
     wlr_surface* wlr() const;
     bool         exists() const;

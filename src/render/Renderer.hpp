@@ -13,23 +13,20 @@
 struct SMonitorRule;
 
 // TODO: add fuller damage tracking for updating only parts of a window
-enum DAMAGETRACKINGMODES
-{
+enum DAMAGETRACKINGMODES {
     DAMAGE_TRACKING_INVALID = -1,
     DAMAGE_TRACKING_NONE    = 0,
     DAMAGE_TRACKING_MONITOR,
     DAMAGE_TRACKING_FULL
 };
 
-enum eRenderPassMode
-{
+enum eRenderPassMode {
     RENDER_PASS_ALL = 0,
     RENDER_PASS_MAIN,
     RENDER_PASS_POPUP
 };
 
-enum eRenderMode
-{
+enum eRenderMode {
     RENDER_MODE_NORMAL              = 0,
     RENDER_MODE_FULL_FAKE           = 1,
     RENDER_MODE_TO_BUFFER           = 2,

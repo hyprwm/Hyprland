@@ -28,8 +28,7 @@ typedef struct {
 } xcb_size_hints_t;
 typedef unsigned int xcb_window_t;
 
-typedef enum xcb_stack_mode_t
-{
+typedef enum xcb_stack_mode_t {
     XCB_STACK_MODE_ABOVE     = 0,
     XCB_STACK_MODE_BELOW     = 1,
     XCB_STACK_MODE_TOP_IF    = 2,

@@ -13,19 +13,19 @@
 std::string getRandomMessage() {
 
     const std::vector<std::string>  MESSAGES = {"Sorry, didn't mean to...",
-                                               "This was an accident, I swear!",
-                                               "Calm down, it was a misinput! MISINPUT!",
-                                               "Oops",
-                                               "Vaxry is going to be upset.",
-                                               "Who tried dividing by zero?!",
-                                               "Maybe you should try dusting your PC in the meantime?",
-                                               "I tried so hard, and got so far...",
-                                               "I don't feel so good...",
-                                               "*thud*",
-                                               "Well this is awkward.",
-                                               "\"stable\"",
-                                               "I hope you didn't have any unsaved progress.",
-                                               "All these computers..."};
+                                                "This was an accident, I swear!",
+                                                "Calm down, it was a misinput! MISINPUT!",
+                                                "Oops",
+                                                "Vaxry is going to be upset.",
+                                                "Who tried dividing by zero?!",
+                                                "Maybe you should try dusting your PC in the meantime?",
+                                                "I tried so hard, and got so far...",
+                                                "I don't feel so good...",
+                                                "*thud*",
+                                                "Well this is awkward.",
+                                                "\"stable\"",
+                                                "I hope you didn't have any unsaved progress.",
+                                                "All these computers..."};
 
     std::random_device              dev;
     std::mt19937                    engine(dev());

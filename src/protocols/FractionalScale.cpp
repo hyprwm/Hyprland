@@ -53,7 +53,9 @@ void CFractionalScaleProtocolManager::bindManager(wl_client* client, void* data,
 static void handleDestroyScaleAddon(wl_client* client, wl_resource* resource);
 //
 
-static const struct wp_fractional_scale_v1_interface fractionalScaleAddonImpl { .destroy = handleDestroyScaleAddon };
+static const struct wp_fractional_scale_v1_interface fractionalScaleAddonImpl {
+    .destroy = handleDestroyScaleAddon
+};
 
 //
 SFractionalScaleAddon* addonFromResource(wl_resource* resource) {

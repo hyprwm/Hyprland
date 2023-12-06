@@ -2,8 +2,7 @@
 
 #include "helpers/Vector2D.hpp"
 
-enum eIcons
-{
+enum eIcons {
     ICON_WARNING = 0,
     ICON_INFO,
     ICON_HINT,
@@ -13,8 +12,7 @@ enum eIcons
     ICON_NONE
 };
 
-enum eRenderStage
-{
+enum eRenderStage {
     RENDER_PRE = 0,      /* Before binding the gl context */
     RENDER_BEGIN,        /* Just when the rendering begins, nothing has been rendered yet. Damage, current render data in opengl valid. */
     RENDER_PRE_WINDOWS,  /* Pre windows, post bottom and overlay layers */

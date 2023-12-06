@@ -14,10 +14,10 @@ class CFunctionHook {
     bool hook();
     bool unhook();
 
-    CFunctionHook(const CFunctionHook&) = delete;
-    CFunctionHook(CFunctionHook&&)      = delete;
+    CFunctionHook(const CFunctionHook&)            = delete;
+    CFunctionHook(CFunctionHook&&)                 = delete;
     CFunctionHook& operator=(const CFunctionHook&) = delete;
-    CFunctionHook& operator=(CFunctionHook&&) = delete;
+    CFunctionHook& operator=(CFunctionHook&&)      = delete;
 
     void*          m_pOriginal = nullptr;
 

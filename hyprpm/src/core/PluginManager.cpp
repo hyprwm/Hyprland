@@ -367,7 +367,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     const auto REPOS = DataState::getAllRepositories();
 
     if (REPOS.size() < 1) {
-        std::cout << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " No repos to update.";
+        std::cout << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " No repos to update.\n";
         return true;
     }
 
@@ -631,4 +631,17 @@ bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
         execAndGet("hyprctl plugin unload " + path);
 
     return true;
+}
+
+void CPluginManager::listAllPlugins() {
+    const auto REPOS = DataState::getAllRepositories();
+
+    for (auto& r : REPOS) {
+        std::cout << std::string{Colors::RESET} + " → Repository " + r.name + ":\n";
+
+        for (auto& p : r.plugins) {
+            std::cout << std::string{Colors::RESET} + "  │ Plugin " + p.name + "\n  └─ enabled: " << (p.enabled ? Colors::GREEN : Colors::RED) << (p.enabled ? "true" : "false")
+                      << Colors::RESET << "\n";
+        }
+    }
 }

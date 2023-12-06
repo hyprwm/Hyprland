@@ -21,6 +21,8 @@ class CPluginManager {
     bool           updateHeaders();
     bool           updatePlugins(bool forceUpdateAll);
 
+    void           listAllPlugins();
+
     bool           enablePlugin(const std::string& name);
     bool           disablePlugin(const std::string& name);
     void           ensurePluginsLoadState();

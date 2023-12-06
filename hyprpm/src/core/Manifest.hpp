@@ -3,8 +3,7 @@
 #include <string>
 #include <vector>
 
-enum eManifestType
-{
+enum eManifestType {
     MANIFEST_HYPRLOAD,
     MANIFEST_HYPRPM
 };

@@ -355,6 +355,8 @@ bool CPluginManager::updateHeaders() {
     progress.printMessageAbove(std::string{Colors::YELLOW} + "!" + Colors::RESET + " configuring Hyprland");
 
     ret = execAndGet("cd /tmp/hyprpm/hyprland && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja");
+    // le hack. Wlroots has to generate its build/include
+    ret = execAndGet("cd /tmp/hyprpm/hyprland/subprojects/wlroots && meson setup -Drenderers=gles2 -Dexamples=false build");
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " configured Hyprland");
     progress.m_iSteps           = 4;

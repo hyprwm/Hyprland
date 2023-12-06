@@ -15,7 +15,7 @@ const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ enable [name]          → Enable a plugin
 ┣ disable [name]         → Disable a plugin
 ┣ update                 → Check and update all plugins if needed
-┣ load                   → Load hyprpm state. Ensure all enabled plugins are loaded.
+┣ reload                 → Reload hyprpm state. Ensure all enabled plugins are loaded.
 ┣ list                   → List all installed plugins
 ┃
 ┣ Flags:
@@ -114,7 +114,7 @@ int               main(int argc, char** argv, char** envp) {
         auto ret = g_pPluginManager->ensurePluginsLoadState();
         if (ret != LOADSTATE_OK)
             return 1;
-    } else if (command[0] == "load") {
+    } else if (command[0] == "reload") {
         auto ret = g_pPluginManager->ensurePluginsLoadState();
 
         if (ret != LOADSTATE_OK && notify) {

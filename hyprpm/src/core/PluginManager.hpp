@@ -24,6 +24,8 @@ class CPluginManager {
     bool           enablePlugin(const std::string& name);
     bool           disablePlugin(const std::string& name);
     void           ensurePluginsLoadState();
+
+    bool           loadUnloadPlugin(const std::string& path, bool load);
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

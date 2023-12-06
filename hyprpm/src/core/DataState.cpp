@@ -3,6 +3,7 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include "PluginManager.hpp"
 
 std::string DataState::getDataStatePath() {
     const auto HOME = getenv("HOME");
@@ -92,6 +93,15 @@ void DataState::removePluginRepo(const std::string& urlOrName) {
         const auto URL  = STATE["repository"]["url"].value_or("");
 
         if (URL == urlOrName || NAME == urlOrName) {
+
+            // unload the plugins!!
+            for (const auto& file : std::filesystem::directory_iterator(entry.path())) {
+                if (!file.path().string().ends_with(".so"))
+                    continue;
+
+                g_pPluginManager->loadUnloadPlugin(std::filesystem::absolute(file.path()), false);
+            }
+
             std::filesystem::remove_all(entry.path());
             return;
         }

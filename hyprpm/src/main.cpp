@@ -48,8 +48,10 @@ int               main(int argc, char** argv, char** envp) {
     } else if (ARGS[1] == "update") {
         bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
         bool headers      = g_pPluginManager->updateHeaders();
-        if (headers)
+        if (headers) {
             g_pPluginManager->updatePlugins(!headersValid);
+            g_pPluginManager->ensurePluginsLoadState();
+        }
     } else if (ARGS[1] == "enable") {
         if (ARGS.size() < 3) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for enable.\n";

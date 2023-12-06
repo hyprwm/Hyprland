@@ -494,13 +494,15 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         // add repo toml to DataState
         SPluginRepository newrepo = repo;
         newrepo.plugins.clear();
-        std::string repohash = execAndGet(
-            "cd /tmp/hyprpm/update/ && git pull --recurse-submodules && git reset --hard --recurse-submodules && git rev-parse HEAD"); // repo hash in the state.toml has to match head and not any pin
+        execAndGet(
+            "cd /tmp/hyprpm/update/ && git pull --recurse-submodules && git reset --hard --recurse-submodules"); // repo hash in the state.toml has to match head and not any pin
+        std::string repohash = execAndGet("git rev-parse HEAD");
         if (repohash.length() > 0)
             repohash.pop_back();
         newrepo.hash = repohash;
         for (auto& p : pManifest->m_vPlugins) {
-            newrepo.plugins.push_back(SPlugin{p.name, "/tmp/hyprpm/update/" + p.output, false});
+            const auto OLDPLUGINIT = std::find_if(repo.plugins.begin(), repo.plugins.end(), [&](const auto& other) { return other.name == p.name; });
+            newrepo.plugins.push_back(SPlugin{p.name, "/tmp/hyprpm/update/" + p.output, OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false});
         }
         DataState::removePluginRepo(newrepo.name);
         DataState::addNewPluginRepo(newrepo);
@@ -545,7 +547,7 @@ void CPluginManager::ensurePluginsLoadState() {
         std::cerr << "PluginManager: no $HOME or HIS\n";
         return;
     }
-    const auto               HYPRPMPATH = std::string(HOME) + "/.hyprpm/";
+    const auto               HYPRPMPATH = DataState::getDataStatePath() + "/";
 
     auto                     pluginLines = execAndGet("hyprctl plugins list | grep Plugin");
 
@@ -600,7 +602,7 @@ void CPluginManager::ensurePluginsLoadState() {
     for (auto& p : loadedPlugins) {
         if (!enabled(p)) {
             // unload
-            execAndGet("hyprctl plugin unload " + HYPRPMPATH + repoForName(p) + "/" + p + ".so");
+            loadUnloadPlugin(HYPRPMPATH + repoForName(p) + "/" + p + ".so", false);
             std::cout << Colors::GREEN << "✔" << Colors::RESET << " Unloaded " << p << "\n";
         }
     }
@@ -614,10 +616,19 @@ void CPluginManager::ensurePluginsLoadState() {
             if (std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
                 continue;
 
-            execAndGet("hyprctl plugin load " + HYPRPMPATH + repoForName(p.name) + "/" + p.filename);
+            loadUnloadPlugin(HYPRPMPATH + repoForName(p.name) + "/" + p.filename, true);
             std::cout << Colors::GREEN << "✔" << Colors::RESET << " Loaded " << p.name << "\n";
         }
     }
 
     std::cout << Colors::GREEN << "✔" << Colors::RESET << " Plugin load state ensured\n";
+}
+
+bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
+    if (load)
+        execAndGet("hyprctl plugin load " + path);
+    else
+        execAndGet("hyprctl plugin unload " + path);
+
+    return true;
 }

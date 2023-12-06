@@ -8,14 +8,24 @@
 #include <chrono>
 #include <thread>
 
-int main(int argc, char** argv, char** envp) {
+const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
+┃
+┣ add [url]              → Install a new plugin repository from git
+┣ remove [url/name]      → Remove an installed plugin repository
+┣ enable [name]          → Enable a plugin
+┣ disable [name]         → Disable a plugin
+┣ load                   → Load hyprpm state. Ensure all enabled plugins are loaded.
+┗
+)#";
+
+int               main(int argc, char** argv, char** envp) {
     std::vector<std::string> ARGS{argc};
     for (int i = 0; i < argc; ++i) {
         ARGS[i] = std::string{argv[i]};
     }
 
-    if (ARGS.size() < 2) {
-        std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args.\n";
+    if (ARGS.size() < 2 || ARGS[1] == "--help" || ARGS[1] == "-h") {
+        std::cout << HELP;
         return 1;
     }
 
@@ -66,6 +76,9 @@ int main(int argc, char** argv, char** envp) {
         g_pPluginManager->ensurePluginsLoadState();
     } else if (ARGS[1] == "load") {
         g_pPluginManager->ensurePluginsLoadState();
+    } else {
+        std::cout << HELP;
+        return 1;
     }
 
     return 0;

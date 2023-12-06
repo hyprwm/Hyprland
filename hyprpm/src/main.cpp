@@ -22,6 +22,7 @@ const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
 ┣ --notify       | -n    → Send a hyprland notification for important events (e.g. load fail)
 ┣ --help         | -h    → Show this menu
+┣ --verbose      | -v    → Enable too much logging
 ┗
 )#";
 
@@ -37,7 +38,7 @@ int               main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false;
+    bool                     notify = false, verbose = false;
 
     for (int i = 1; i < argc; ++i) {
         if (ARGS[i].starts_with("-")) {
@@ -46,6 +47,8 @@ int               main(int argc, char** argv, char** envp) {
                 return 0;
             } else if (ARGS[i] == "--notify" || ARGS[i] == "-n") {
                 notify = true;
+            } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
+                verbose = true;
             } else {
                 std::cerr << "Unrecognized option " << ARGS[i];
                 return 1;
@@ -55,7 +58,8 @@ int               main(int argc, char** argv, char** envp) {
         }
     }
 
-    g_pPluginManager = std::make_unique<CPluginManager>();
+    g_pPluginManager             = std::make_unique<CPluginManager>();
+    g_pPluginManager->m_bVerbose = verbose;
 
     if (command[0] == "add") {
         if (command.size() < 2) {

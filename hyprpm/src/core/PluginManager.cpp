@@ -27,6 +27,28 @@ std::string execAndGet(std::string cmd) {
     return result;
 }
 
+SHyprlandVersion CPluginManager::getHyprlandVersion() {
+    const auto HLVERCALL = execAndGet("hyprctl version");
+    if (m_bVerbose)
+        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "version returned: " << HLVERCALL << "\n";
+
+    if (!HLVERCALL.contains("Tag:")) {
+        std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " You don't seem to be running Hyprland.";
+        return SHyprlandVersion{};
+    }
+
+    std::string hlcommit = HLVERCALL.substr(HLVERCALL.find("at commit") + 10);
+    hlcommit             = hlcommit.substr(0, hlcommit.find_first_of(' '));
+
+    std::string hlbranch = HLVERCALL.substr(HLVERCALL.find("from branch") + 12);
+    hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
+
+    if (m_bVerbose)
+        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << "\n";
+
+    return SHyprlandVersion{hlbranch, hlcommit};
+}
+
 bool CPluginManager::addNewPluginRepo(const std::string& url) {
 
     if (DataState::pluginRepoExists(url)) {
@@ -155,6 +177,10 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
 
         if (!std::filesystem::exists("/tmp/hyprpm/new/" + p.output)) {
             std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Plugin " << p.name << " failed to build.\n";
+
+            if (m_bVerbose)
+                std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
+
             return false;
         }
 
@@ -216,13 +242,7 @@ bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
 }
 
 eHeadersErrors CPluginManager::headersValid() {
-    const auto HLVERCALL = execAndGet("hyprctl version");
-
-    if (!HLVERCALL.contains("Tag:"))
-        return HEADERS_NOT_HYPRLAND;
-
-    std::string hlcommit = HLVERCALL.substr(HLVERCALL.find("at commit") + 10);
-    hlcommit             = hlcommit.substr(0, hlcommit.find_first_of(' '));
+    const auto HLVER = getHyprlandVersion();
 
     // find headers commit
     auto headers = execAndGet("pkg-config --cflags hyprland");
@@ -265,7 +285,7 @@ eHeadersErrors CPluginManager::headersValid() {
     hash             = hash.substr(hash.find_first_of('"') + 1);
     hash             = hash.substr(0, hash.find_first_of('"'));
 
-    if (hash != hlcommit)
+    if (hash != HLVER.hash)
         return HEADERS_MISMATCHED;
 
     return HEADERS_OK;
@@ -273,18 +293,7 @@ eHeadersErrors CPluginManager::headersValid() {
 
 bool CPluginManager::updateHeaders() {
 
-    const auto HLVERCALL = execAndGet("hyprctl version");
-
-    if (!HLVERCALL.contains("Tag:")) {
-        std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " You don't seem to be running Hyprland.";
-        return false;
-    }
-
-    std::string hlcommit = HLVERCALL.substr(HLVERCALL.find("at commit") + 10);
-    hlcommit             = hlcommit.substr(0, hlcommit.find_first_of(' '));
-
-    std::string hlbranch = HLVERCALL.substr(HLVERCALL.find("from branch") + 12);
-    hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
+    const auto HLVER = getHyprlandVersion();
 
     if (!std::filesystem::exists("/tmp/hyprpm")) {
         std::filesystem::create_directory("/tmp/hyprpm");
@@ -294,7 +303,7 @@ bool CPluginManager::updateHeaders() {
     if (headersValid() == HEADERS_OK) {
         std::cout << "\n" << std::string{Colors::GREEN} + "✔" + Colors::RESET + " Your headers are already up-to-date.\n";
         auto GLOBALSTATE                = DataState::getGlobalState();
-        GLOBALSTATE.headersHashCompiled = hlcommit;
+        GLOBALSTATE.headersHashCompiled = HLVER.hash;
         DataState::updateGlobalState(GLOBALSTATE);
         return true;
     }
@@ -324,7 +333,8 @@ bool CPluginManager::updateHeaders() {
     progress.m_szCurrentMessage = "Checking out sources";
     progress.print();
 
-    ret = execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + hlbranch + " 2>&1 && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + hlcommit);
+    ret =
+        execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + HLVER.branch + " 2>&1 && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + HLVER.hash);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " checked out to running ver");
     progress.m_iSteps           = 3;
@@ -346,6 +356,9 @@ bool CPluginManager::updateHeaders() {
 
     ret = execAndGet("pkexec sh \"-c\" \"cd /tmp/hyprpm/hyprland && make installheaders\"");
 
+    if (m_bVerbose)
+        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "pkexec returned: " << ret << "\n";
+
     // remove build files
     std::filesystem::remove_all("/tmp/hyprpm/hyprland");
 
@@ -357,7 +370,7 @@ bool CPluginManager::updateHeaders() {
         progress.print();
 
         auto GLOBALSTATE                = DataState::getGlobalState();
-        GLOBALSTATE.headersHashCompiled = hlcommit;
+        GLOBALSTATE.headersHashCompiled = HLVER.hash;
         DataState::updateGlobalState(GLOBALSTATE);
 
         std::cout << "\n";
@@ -388,15 +401,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         return true;
     }
 
-    const auto HLVERCALL = execAndGet("hyprctl version");
-
-    if (!HLVERCALL.contains("Tag:")) {
-        std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " You don't seem to be running Hyprland.";
-        return false;
-    }
-
-    std::string hlcommit = HLVERCALL.substr(HLVERCALL.find("at commit") + 10);
-    hlcommit             = hlcommit.substr(0, hlcommit.find_first_of(' '));
+    const auto   HLVER = getHyprlandVersion();
 
     CProgressBar progress;
     progress.m_iMaxSteps        = REPOS.size() * 2 + 1;
@@ -477,7 +482,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             progress.printMessageAbove(std::string{Colors::RESET} + " → Manifest has " + std::to_string(pManifest->m_sRepository.commitPins.size()) + " pins, checking");
 
             for (auto& [hl, plugin] : pManifest->m_sRepository.commitPins) {
-                if (hl != hlcommit)
+                if (hl != HLVER.hash)
                     continue;
 
                 progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " commit pin " + plugin + " matched hl, resetting");
@@ -499,6 +504,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             if (!std::filesystem::exists("/tmp/hyprpm/update/" + p.output)) {
                 std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Plugin " << p.name << " failed to build.\n";
                 failed = true;
+                if (m_bVerbose)
+                    std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
                 break;
             }
 

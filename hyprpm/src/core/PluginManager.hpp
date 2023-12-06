@@ -3,8 +3,7 @@
 #include <memory>
 #include <string>
 
-enum eHeadersErrors
-{
+enum eHeadersErrors {
     HEADERS_OK = 0,
     HEADERS_NOT_HYPRLAND,
     HEADERS_MISSING,
@@ -12,8 +11,7 @@ enum eHeadersErrors
     HEADERS_MISMATCHED,
 };
 
-enum eNotifyIcons
-{
+enum eNotifyIcons {
     ICON_WARNING = 0,
     ICON_INFO,
     ICON_HINT,
@@ -23,12 +21,16 @@ enum eNotifyIcons
     ICON_NONE
 };
 
-enum ePluginLoadStateReturn
-{
+enum ePluginLoadStateReturn {
     LOADSTATE_OK = 0,
     LOADSTATE_FAIL,
     LOADSTATE_PARTIAL_FAIL,
     LOADSTATE_HEADERS_OUTDATED
+};
+
+struct SHyprlandVersion {
+    std::string branch;
+    std::string hash;
 };
 
 class CPluginManager {
@@ -47,8 +49,11 @@ class CPluginManager {
     ePluginLoadStateReturn ensurePluginsLoadState();
 
     bool                   loadUnloadPlugin(const std::string& path, bool load);
+    SHyprlandVersion       getHyprlandVersion();
 
     void                   notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message);
+
+    bool                   m_bVerbose = false;
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

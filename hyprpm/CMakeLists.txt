@@ -9,5 +9,7 @@ file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 set(CMAKE_CXX_STANDARD 23)
 
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET tomlplusplus)
+
 add_executable(hyprpm ${SRCFILES})
 target_include_directories(hyprpm PUBLIC "." "subprojects/tomlpp/include")

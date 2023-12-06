@@ -42,7 +42,7 @@ class CMonitor {
     int             activeWorkspace = -1;
     float           scale           = 1;
 
-    std::string     szName = "";
+    std::string     szName        = "";
     std::string     szDescription = "";
 
     Vector2D        vecReservedTopLeft     = Vector2D(0, 0);

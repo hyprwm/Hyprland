@@ -19,8 +19,7 @@ namespace HyprCtl {
 
     inline int              iSocketFD = -1;
 
-    enum eHyprCtlOutputFormat
-    {
+    enum eHyprCtlOutputFormat {
         FORMAT_NORMAL = 0,
         FORMAT_JSON
     };

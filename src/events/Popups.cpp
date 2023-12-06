@@ -191,7 +191,7 @@ void Events::listener_repositionPopupXDG(void* owner, void* data) {
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
     CBox       box = {PMONITOR->vecPosition.x - lx + PPOPUP->popup->current.geometry.x, PMONITOR->vecPosition.y - ly + PPOPUP->popup->current.geometry.y, PMONITOR->vecSize.x,
-                PMONITOR->vecSize.y};
+                      PMONITOR->vecSize.y};
     wlr_xdg_popup_unconstrain_from_box(PPOPUP->popup, box.pWlr());
 }
 

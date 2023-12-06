@@ -1657,7 +1657,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
     CBox                 box              = w->getWindowMainSurfaceBox();
     eBorderIconDirection direction        = BORDERICON_NONE;
     CBox                 boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
-                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
+                                             box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
 
     if (w->hasPopupAt(mouseCoords))
         direction = BORDERICON_NONE;

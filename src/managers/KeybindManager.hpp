@@ -29,8 +29,7 @@ struct SKeybind {
     bool shadowed = false;
 };
 
-enum eFocusWindowMode
-{
+enum eFocusWindowMode {
     MODE_CLASS_REGEX = 0,
     MODE_TITLE_REGEX,
     MODE_ADDRESS,

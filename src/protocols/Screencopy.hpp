@@ -10,8 +10,7 @@
 
 class CMonitor;
 
-enum eClientOwners
-{
+enum eClientOwners {
     CLIENT_SCREENCOPY = 0,
     CLIENT_TOPLEVEL_EXPORT
 };

@@ -68,7 +68,7 @@ pluginenv:
 	@exit 1
 	
 installheaders:
-	@if [ ! -f ./build/Hyprland ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
+	@if [ ! -f ./src/version.h ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
 
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols

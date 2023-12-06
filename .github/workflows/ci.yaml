@@ -106,3 +106,32 @@ jobs:
         run: mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DNO_XWAYLAND:STRING=true -H./ -B./build -G Ninja 
       - name: Compile
         run: make release
+
+  clang-format:
+    name: "Code Style (Arch)"
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux
+    steps:
+      - name: Download dependencies
+        run: |
+          sed -i 's/SigLevel    = Required DatabaseOptional/SigLevel    = Optional TrustAll/' /etc/pacman.conf
+          pacman --noconfirm --noprogressbar -Syyu
+          pacman --noconfirm --noprogressbar -Sy glslang libepoxy libfontenc libxcvt libxfont2 libxkbfile vulkan-headers vulkan-validation-layers git go clang lld libc++ pkgconf meson ninja wayland wayland-protocols libinput libxkbcommon pixman glm libdrm libglvnd cairo pango systemd scdoc base-devel seatd cmake jq python libliftoff tomlplusplus
+      - name: Set up user
+        run: |
+          useradd -m githubuser
+          echo -e "root ALL=(ALL:ALL) ALL\ngithubuser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers
+      - name: Install libdisplay-info from the AUR
+        run: |
+          su githubuser -c "cd ~ && git clone https://aur.archlinux.org/libdisplay-info.git && cd ./libdisplay-info && makepkg -si --skippgpcheck --noconfirm --noprogressbar"
+      - name: Checkout Hyprland
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Configure
+        run: |
+          meson obj-x86_64-pc-linux-gnu \
+            -Ddefault_library=static
+      - name: clang-format check
+        run: ninja -C obj-x86_64-pc-linux-gnu clang-format-check

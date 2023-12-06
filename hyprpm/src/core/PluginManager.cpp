@@ -363,7 +363,7 @@ bool CPluginManager::updateHeaders() {
 
 bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     if (headersValid() != HEADERS_OK) {
-        std::cout << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " headers are not up-to-date, please run hyprpm update.";
+        std::cout << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " headers are not up-to-date, please run hyprpm update.\n";
         return false;
     }
 
@@ -540,7 +540,7 @@ bool CPluginManager::disablePlugin(const std::string& name) {
 
 ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     if (headersValid() != HEADERS_OK) {
-        std::cerr << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " headers are not up-to-date, please run hyprpm update.";
+        std::cerr << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " headers are not up-to-date, please run hyprpm update.\n";
         return LOADSTATE_HEADERS_OUTDATED;
     }
 

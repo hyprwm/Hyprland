@@ -274,6 +274,9 @@ bool CPluginManager::updateHeaders() {
     std::string hlcommit = HLVERCALL.substr(HLVERCALL.find("at commit") + 10);
     hlcommit             = hlcommit.substr(0, hlcommit.find_first_of(' '));
 
+    std::string hlbranch = HLVERCALL.substr(HLVERCALL.find("from branch") + 12);
+    hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
+
     if (!std::filesystem::exists("/tmp/hyprpm")) {
         std::filesystem::create_directory("/tmp/hyprpm");
         std::filesystem::permissions("/tmp/hyprpm", std::filesystem::perms::all, std::filesystem::perm_options::replace);
@@ -310,7 +313,7 @@ bool CPluginManager::updateHeaders() {
     progress.m_szCurrentMessage = "Checking out sources";
     progress.print();
 
-    ret = execAndGet("cd /tmp/hyprpm/hyprland && git reset --hard --recurse-submodules " + hlcommit);
+    ret = execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + hlbranch + " && git reset --hard --recurse-submodules " + hlcommit);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " checked out to running ver");
     progress.m_iSteps           = 3;

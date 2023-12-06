@@ -14,6 +14,7 @@ const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ remove [url/name]      → Remove an installed plugin repository
 ┣ enable [name]          → Enable a plugin
 ┣ disable [name]         → Disable a plugin
+┣ update                 → Check and update all plugins if needed
 ┣ load                   → Load hyprpm state. Ensure all enabled plugins are loaded.
 ┗
 )#";

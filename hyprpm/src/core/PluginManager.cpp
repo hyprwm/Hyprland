@@ -313,7 +313,7 @@ bool CPluginManager::updateHeaders() {
     progress.m_szCurrentMessage = "Checking out sources";
     progress.print();
 
-    ret = execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + hlbranch + " && git reset --hard --recurse-submodules " + hlcommit);
+    ret = execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + hlbranch + " && git submodule update --init && git reset --hard --recurse-submodules " + hlcommit);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " checked out to running ver");
     progress.m_iSteps           = 3;

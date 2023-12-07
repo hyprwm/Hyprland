@@ -80,6 +80,7 @@ endforeach
 subdir('protocols')
 subdir('src')
 subdir('hyprctl')
+subdir('hyprpm/src')
 subdir('assets')
 subdir('example')
 subdir('docs')

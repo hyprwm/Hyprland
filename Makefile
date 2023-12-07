@@ -60,6 +60,7 @@ uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop
 	rm -f ${PREFIX}/bin/Hyprland
 	rm -f ${PREFIX}/bin/hyprctl
+	rm -f ${PREFIX}/bin/hyprpm
 	rm -f ${PREFIX}/lib/libwlroots.so.13032
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/man/man1/Hyprland.1

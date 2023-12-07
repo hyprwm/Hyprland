@@ -253,7 +253,7 @@ eHeadersErrors CPluginManager::headersValid() {
     const auto HLVER = getHyprlandVersion();
 
     // find headers commit
-    auto headers = execAndGet("pkg-config --cflags hyprland");
+    auto headers = execAndGet("pkg-config --cflags --keep-system-cflags hyprland");
 
     if (!headers.contains("-I/"))
         return HEADERS_MISSING;

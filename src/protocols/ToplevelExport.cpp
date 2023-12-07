@@ -394,13 +394,15 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
         return false;
     }
 
-    g_pHyprOpenGL->m_RenderData.mainFB->bind();
+    g_pHyprRenderer->endRender();
+
+    g_pHyprRenderer->makeEGLCurrent();
+
+    outFB.bind();
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     glReadPixels(0, 0, frame->box.width, frame->box.height, PFORMAT->glFormat, PFORMAT->glType, data);
-
-    g_pHyprRenderer->endRender();
 
     wlr_buffer_end_data_ptr_access(frame->buffer);
 

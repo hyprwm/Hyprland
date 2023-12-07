@@ -533,24 +533,24 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
             }
         }
 
-        static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+        if (!g_pCompositor->m_pLastMonitor->specialWorkspaceID) {
+            static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+            CWindow*           pWindow      = pWorkspace->getLastFocusedWindow();
 
-        if (const auto PLASTWINDOW = pWorkspace->getLastFocusedWindow(); PLASTWINDOW)
-            g_pCompositor->focusWindow(PLASTWINDOW);
-        else {
-            CWindow* pWindow = nullptr;
+            if (!pWindow) {
+                if (*PFOLLOWMOUSE == 1)
+                    pWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
 
-            if (*PFOLLOWMOUSE == 1)
-                pWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
+                if (!pWindow)
+                    pWindow = g_pCompositor->getTopLeftWindowOnWorkspace(pWorkspace->m_iID);
 
-            if (!pWindow)
-                pWindow = g_pCompositor->getTopLeftWindowOnWorkspace(pWorkspace->m_iID);
-
-            if (!pWindow)
-                pWindow = g_pCompositor->getFirstWindowOnWorkspace(pWorkspace->m_iID);
+                if (!pWindow)
+                    pWindow = g_pCompositor->getFirstWindowOnWorkspace(pWorkspace->m_iID);
+            }
 
             g_pCompositor->focusWindow(pWindow);
         }
+
         if (!noMouseMove)
             g_pInputManager->simulateMouseMovement();
 

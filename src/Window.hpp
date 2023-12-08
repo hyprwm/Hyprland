@@ -155,6 +155,7 @@ struct SWindowRule {
     int         bFloating   = -1;
     int         bFullscreen = -1;
     int         bPinned     = -1;
+    int         bFocus      = -1;
     std::string szWorkspace = ""; // empty means any
 };
 

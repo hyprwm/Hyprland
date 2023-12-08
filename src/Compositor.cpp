@@ -943,6 +943,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
     if (windowValidMapped(PLASTWINDOW)) {
+        PLASTWINDOW->updateDynamicRules();
+
         updateWindowAnimatedDecorationValues(PLASTWINDOW);
 
         if (!pWindow->m_bIsX11 || pWindow->m_iX11Type == 1)
@@ -959,6 +961,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     focusSurface(PWINDOWSURFACE, pWindow);
 
     g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
+
+    pWindow->updateDynamicRules();
 
     updateWindowAnimatedDecorationValues(pWindow);
 

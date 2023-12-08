@@ -1028,9 +1028,10 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     const auto FULLSCREENPOS = VALUE.find("fullscreen:");
     const auto PINNEDPOS     = VALUE.find("pinned:");
     const auto WORKSPACEPOS  = VALUE.find("workspace:");
+    const auto FOCUSPOS      = VALUE.find("focus:");
 
     if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos &&
-        PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos) {
+        PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos && FOCUSPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -1054,7 +1055,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         if (PINNEDPOS > pos && PINNEDPOS < min)
             min = PINNEDPOS;
         if (WORKSPACEPOS > pos && WORKSPACEPOS < min)
-            min = PINNEDPOS;
+            min = WORKSPACEPOS;
+        if (FOCUSPOS > pos && FOCUSPOS < min)
+            min = FOCUSPOS;
 
         result = result.substr(0, min - pos);
 
@@ -1087,6 +1090,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     if (WORKSPACEPOS != std::string::npos)
         rule.szWorkspace = extract(WORKSPACEPOS + 10);
 
+    if (FOCUSPOS != std::string::npos)
+        rule.bFocus = extract(FOCUSPOS + 6) == "1" ? 1 : 0;
+
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
             if (!other.v2) {
@@ -1111,6 +1117,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
                     return false;
 
                 if (!rule.szWorkspace.empty() && rule.szWorkspace != other.szWorkspace)
+                    return false;
+
+                if (rule.bFocus != -1 && rule.bFocus != other.bFocus)
                     return false;
 
                 return true;
@@ -1962,6 +1971,11 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 
                 if (rule.bPinned != -1) {
                     if (pWindow->m_bPinned != rule.bPinned)
+                        continue;
+                }
+
+                if (rule.bFocus != -1) {
+                    if (rule.bFocus != (g_pCompositor->m_pLastWindow == pWindow))
                         continue;
                 }
 

@@ -330,6 +330,12 @@ int main(int argc, char** argv) {
 
     fullRequest = fullArgs + "/" + fullRequest;
 
+    // instances is HIS-independent
+    if (fullRequest.contains("/instances")) {
+        instancesRequest(json);
+        return 0;
+    }
+
     if (overrideInstance.contains("_"))
         instanceSignature = overrideInstance;
     else if (!overrideInstance.empty()) {
@@ -399,8 +405,6 @@ int main(int argc, char** argv) {
         request(fullRequest);
     else if (fullRequest.contains("/rollinglog"))
         request(fullRequest);
-    else if (fullRequest.contains("/instances"))
-        instancesRequest(json);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))

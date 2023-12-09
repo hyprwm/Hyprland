@@ -128,8 +128,11 @@ bool CFunctionHook::hook() {
         (uint64_t)((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make jump to hk
-    mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
-    memcpy(m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
+    const auto     PAGESIZE  = sysconf(_SC_PAGE_SIZE);
+    const uint8_t* PROTSTART = (uint8_t*)m_pSource - ((uint64_t)m_pSource % PAGESIZE);
+    const size_t   PROTLEN   = std::ceil((float)(HOOKSIZE + ((uint64_t)m_pSource - (uint64_t)PROTSTART)) / (float)PAGESIZE) * PAGESIZE;
+    mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_WRITE | PROT_EXEC);
+    memcpy((uint8_t*)m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make popq %rax and NOP all remaining
     memcpy((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
@@ -140,7 +143,7 @@ bool CFunctionHook::hook() {
     *(uint64_t*)((uint8_t*)m_pSource + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)(m_pDestination);
 
     // revert mprot
-    mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
+    mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_EXEC);
 
     // set original addr to trampo addr
     m_pOriginal = m_pTrampolineAddr;

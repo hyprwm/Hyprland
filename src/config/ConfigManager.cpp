@@ -1610,9 +1610,15 @@ void CConfigManager::loadConfigLoadVars() {
     ifs.open(mainConfigPath);
 
     if (!ifs.good()) {
-        Debug::log(WARN, "Config reading error. Attempting to generate, backing up old one if exists");
-
         ifs.close();
+
+        if (!g_pCompositor->explicitConfigPath.empty()) {
+            Debug::log(WARN, "Config reading error!");
+            parseError = "Broken config file! (Could not read)";
+            return;
+        }
+
+        Debug::log(WARN, "Config reading error. Attempting to generate, backing up old one if exists");
 
         if (std::filesystem::exists(mainConfigPath))
             std::filesystem::rename(mainConfigPath, mainConfigPath + ".backup");

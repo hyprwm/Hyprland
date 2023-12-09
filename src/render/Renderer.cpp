@@ -381,11 +381,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     TRACY_GPU_ZONE("RenderWindow");
 
-    const auto         PWORKSPACE  = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    const auto         REALPOS     = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
-    static auto* const PDIMAROUND  = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
-    static auto* const PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-    static auto* const PBLUR       = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
+    const auto         PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    const auto         REALPOS    = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
+    static auto* const PDIMAROUND = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
+    static auto* const PBLUR      = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
 
     SRenderData        renderdata = {pMonitor, time};
     CBox               textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_vRealSize.vec().x, 5.0), std::max(pWindow->m_vRealSize.vec().y, 5.0)};
@@ -511,32 +510,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         wlr_surface_for_each_surface(pWindow->m_pWLSurface.wlr(), renderSurface, &renderdata);
 
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
-
-        if (renderdata.decorate && pWindow->m_sSpecialRenderData.border) {
-            auto       grad     = g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColor;
-            const bool ANIMATED = g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.isBeingAnimated();
-            float      a1       = renderdata.fadeAlpha * renderdata.alpha * (ANIMATED ? g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl() : 1.f);
-
-            if (g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.getConfig()->pValues->internalEnabled) {
-                grad.m_fAngle += g_pHyprOpenGL->m_pCurrentWindow->m_fBorderAngleAnimationProgress.fl() * M_PI * 2;
-                grad.m_fAngle = normalizeAngleRad(grad.m_fAngle);
-            }
-
-            CBox windowBox = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
-
-            windowBox.scale(pMonitor->scale).round();
-
-            int borderSize = pWindow->m_sSpecialRenderData.borderSize.toUnderlying() == -1 ? *PBORDERSIZE : pWindow->m_sSpecialRenderData.borderSize.toUnderlying();
-            if (pWindow->m_sAdditionalConfigData.borderSize.toUnderlying() != -1)
-                borderSize = pWindow->m_sAdditionalConfigData.borderSize.toUnderlying();
-
-            g_pHyprOpenGL->renderBorder(&windowBox, grad, renderdata.rounding, borderSize, a1);
-
-            if (ANIMATED) {
-                float a2 = renderdata.fadeAlpha * renderdata.alpha * (1.f - g_pHyprOpenGL->m_pCurrentWindow->m_fBorderFadeAnimationProgress.fl());
-                g_pHyprOpenGL->renderBorder(&windowBox, g_pHyprOpenGL->m_pCurrentWindow->m_cRealBorderColorPrevious, renderdata.rounding, borderSize, a2);
-            }
-        }
 
         for (auto& wd : pWindow->m_dWindowDecorations) {
             if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)

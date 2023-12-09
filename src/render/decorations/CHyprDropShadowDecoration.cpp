@@ -116,16 +116,18 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         CBox withDecos = m_bLastWindowBoxWithDecos;
 
         // get window box
-        windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale).round();
-        withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale).round();
+        windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
+        withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
 
-        auto scaledDecoExtents = withDecos.extentsFrom(windowBox).round();
+        auto extentss = withDecos.extentsFrom(windowBox);
 
         // add extents
-        windowBox.addExtents(scaledDecoExtents).round();
+        windowBox.addExtents(extentss).scale(pMonitor->scale).round();
 
         if (windowBox.width < 1 || windowBox.height < 1)
             return; // prevent assert failed
+
+        windowBox.x += 1;
 
         CRegion saveDamage = g_pHyprOpenGL->m_RenderData.damage;
 
@@ -159,7 +161,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
         g_pHyprOpenGL->m_RenderData.damage = saveDamage;
     } else {
-        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, a);
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, m_pWindow->m_cRealShadowColor.col(), a);
     }
 
     if (m_seExtents != m_seReportedExtents)

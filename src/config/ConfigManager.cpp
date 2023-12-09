@@ -80,6 +80,7 @@ void CConfigManager::setDefaultVars() {
     configValues["general:apply_sens_to_raw"].intValue     = 0;
     configValues["general:border_size"].intValue           = 1;
     configValues["general:no_border_on_floating"].intValue = 0;
+    configValues["general:border_part_of_window"].intValue = 1;
     configValues["general:gaps_in"].intValue               = 5;
     configValues["general:gaps_out"].intValue              = 20;
     configValues["general:gaps_workspaces"].intValue       = 0;

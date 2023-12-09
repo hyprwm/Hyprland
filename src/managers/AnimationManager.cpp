@@ -229,6 +229,8 @@ void CAnimationManager::tick() {
             case AVARDAMAGE_BORDER: {
                 RASSERT(PWINDOW, "Tried to AVARDAMAGE_BORDER a non-window AVAR!");
 
+                // TODO: move this to the border class
+
                 // damage only the border.
                 static auto* const PROUNDING    = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
                 const auto         ROUNDINGSIZE = *PROUNDING + 1;

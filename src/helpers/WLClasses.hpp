@@ -252,6 +252,8 @@ struct STablet {
     wlr_tablet_v2_tablet* wlrTabletV2 = nullptr;
     wlr_input_device*     wlrDevice   = nullptr;
 
+    bool                  relativeInput = false;
+
     std::string           name = "";
 
     //

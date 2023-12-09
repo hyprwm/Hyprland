@@ -250,6 +250,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:tablet:output"].strValue                    = STRVAL_EMPTY;
     configValues["input:tablet:region_position"].vecValue           = Vector2D();
     configValues["input:tablet:region_size"].vecValue               = Vector2D();
+    configValues["input:tablet:relative_input"].intValue            = 0;
 
     configValues["binds:pass_mouse_when_bound"].intValue       = 0;
     configValues["binds:scroll_event_delay"].intValue          = 300;
@@ -310,6 +311,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["enabled"].intValue                 = 1;          // only for mice / touchpads
     cfgValues["region_position"].vecValue         = Vector2D(); // only for tablets
     cfgValues["region_size"].vecValue             = Vector2D(); // only for tablets
+    cfgValues["relative_input"].intValue          = 0;          // only for tablets
 }
 
 void CConfigManager::setDefaultAnimationVars() {

@@ -1402,10 +1402,17 @@ std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
     // process flags for non-batch requests
-    if (!request.contains("[[BATCH]]") && request.contains("/")) {
+    if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
         long unsigned int sepIndex = 0;
         for (const auto& c : request) {
             if (c == '/') { // stop at separator
+                break;
+            }
+
+            // after whitespace assume the first word as a keyword,
+            // so its value can have slashes (e.g., a path)
+            if (c == ' ') {
+                sepIndex = request.size();
                 break;
             }
 

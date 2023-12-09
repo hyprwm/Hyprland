@@ -1066,7 +1066,7 @@ void CInputManager::setPointerConfigs() {
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
 
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
-            const auto SCROLLPOINTS = g_pConfigManager->getDeviceString(devname, "scroll_points", "input:touchpad:scroll_points");
+            const auto SCROLLPOINTS = g_pConfigManager->getDeviceString(devname, "scroll_points", "input:scroll_points");
 
             if (ACCELPROFILE.empty()) {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, libinput_device_config_accel_get_default_profile(LIBINPUTDEV));

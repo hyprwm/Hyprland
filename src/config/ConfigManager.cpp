@@ -235,6 +235,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:scroll_method"].strValue                    = STRVAL_EMPTY;
     configValues["input:scroll_button"].intValue                    = 0;
     configValues["input:scroll_button_lock"].intValue               = 0;
+    configValues["input:scroll_points"].strValue                    = STRVAL_EMPTY;
     configValues["input:touchpad:natural_scroll"].intValue          = 0;
     configValues["input:touchpad:disable_while_typing"].intValue    = 1;
     configValues["input:touchpad:clickfinger_behavior"].intValue    = 0;
@@ -244,7 +245,6 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:tap-and-drag"].intValue            = 1;
     configValues["input:touchpad:drag_lock"].intValue               = 0;
     configValues["input:touchpad:scroll_factor"].floatValue         = 1.f;
-    configValues["input:touchpad:scroll_points"].strValue           = STRVAL_EMPTY;
     configValues["input:touchdevice:transform"].intValue            = 0;
     configValues["input:touchdevice:output"].strValue               = STRVAL_EMPTY;
     configValues["input:tablet:transform"].intValue                 = 0;

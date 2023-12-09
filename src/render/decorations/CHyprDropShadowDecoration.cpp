@@ -127,8 +127,6 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         if (windowBox.width < 1 || windowBox.height < 1)
             return; // prevent assert failed
 
-        windowBox.x += 1;
-
         CRegion saveDamage = g_pHyprOpenGL->m_RenderData.damage;
 
         g_pHyprOpenGL->m_RenderData.damage = fullBox;

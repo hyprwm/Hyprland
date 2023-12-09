@@ -2,7 +2,6 @@
 #include "../managers/KeybindManager.hpp"
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
-#include "macros.hpp"
 
 #include <string.h>
 #include <string>

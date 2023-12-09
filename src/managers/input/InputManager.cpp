@@ -1494,7 +1494,10 @@ void CInputManager::setTabletConfigs() {
         if (wlr_input_device_is_libinput(t.wlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(t.wlrDevice);
 
-            const int  ROTATION = std::clamp(g_pConfigManager->getDeviceInt(t.name, "transform", "input:tablet:transform"), 0, 7);
+            const auto RELINPUT = g_pConfigManager->getDeviceInt(t.name, "relative_input", "input:tablet:relative_input");
+            t.relativeInput     = RELINPUT;
+
+            const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(t.name, "transform", "input:tablet:transform"), 0, 7);
             Debug::log(LOG, "Setting calibration matrix for device {}", t.name);
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 

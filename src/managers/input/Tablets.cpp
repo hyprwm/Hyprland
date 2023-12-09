@@ -43,9 +43,16 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                     g_pInputManager->m_tmrLastCursorMovement.reset();
                     break;
                 default:
-                    double x = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_X) ? EVENT->x : NAN;
-                    double y = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_Y) ? EVENT->y : NAN;
-                    wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
+                    double x  = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_X) ? EVENT->x : NAN;
+                    double dx = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_X) ? EVENT->dx : NAN;
+                    double y  = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_Y) ? EVENT->y : NAN;
+                    double dy = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_Y) ? EVENT->dy : NAN;
+
+                    if (PTAB->relativeInput)
+                        wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, dx, dy);
+                    else
+                        wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
+
                     g_pInputManager->refocus();
                     g_pInputManager->m_tmrLastCursorMovement.reset();
                     break;

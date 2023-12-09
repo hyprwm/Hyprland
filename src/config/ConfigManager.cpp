@@ -2,6 +2,7 @@
 #include "../managers/KeybindManager.hpp"
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "macros.hpp"
 
 #include <string.h>
 #include <string>
@@ -244,6 +245,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:tap-and-drag"].intValue            = 1;
     configValues["input:touchpad:drag_lock"].intValue               = 0;
     configValues["input:touchpad:scroll_factor"].floatValue         = 1.f;
+    configValues["input:touchpad:scroll_points"].strValue           = STRVAL_EMPTY;
     configValues["input:touchdevice:transform"].intValue            = 0;
     configValues["input:touchdevice:output"].strValue               = STRVAL_EMPTY;
     configValues["input:tablet:transform"].intValue                 = 0;
@@ -305,6 +307,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["scroll_method"].strValue           = STRVAL_EMPTY;
     cfgValues["scroll_button"].intValue           = 0;
     cfgValues["scroll_button_lock"].intValue      = 0;
+    cfgValues["scroll_points"].strValue           = STRVAL_EMPTY;
     cfgValues["transform"].intValue               = 0;
     cfgValues["output"].strValue                  = STRVAL_EMPTY;
     cfgValues["enabled"].intValue                 = 1;          // only for mice / touchpads

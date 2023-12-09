@@ -1,5 +1,6 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "config/ConfigManager.hpp"
 #include "wlr/types/wlr_switch.h"
 #include <ranges>
 
@@ -1066,6 +1067,7 @@ void CInputManager::setPointerConfigs() {
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
 
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
+            const auto SCROLLPOINTS = g_pConfigManager->getDeviceString(devname, "scroll_points", "input:touchpad:scroll_points");
 
             if (ACCELPROFILE == "") {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
@@ -1074,15 +1076,27 @@ void CInputManager::setPointerConfigs() {
             } else if (ACCELPROFILE == "flat") {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT);
             } else if (ACCELPROFILE.starts_with("custom")) {
-                CVarList args = {ACCELPROFILE, 0, ' '};
+                CVarList accel_values = {ACCELPROFILE, 0, ' '};
+
                 try {
-                    double              step = std::stod(args[1]);
-                    std::vector<double> points;
-                    for (size_t i = 2; i < args.size(); ++i)
-                        points.push_back(std::stod(args[i]));
+                    double              accel_step = std::stod(accel_values[1]);
+                    std::vector<double> accel_points;
+                    for (size_t i = 2; i < accel_values.size(); ++i)
+                        accel_points.push_back(std::stod(accel_values[i]));
 
                     const auto CONFIG = libinput_config_accel_create(LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM);
-                    libinput_config_accel_set_points(CONFIG, LIBINPUT_ACCEL_TYPE_MOTION, step, points.size(), points.data());
+
+                    if (SCROLLPOINTS != "") {
+                        CVarList            scroll_values = {SCROLLPOINTS, 0, ' '};
+                        double              scroll_step   = std::stod(scroll_values[0]);
+                        std::vector<double> scroll_points;
+                        for (size_t i = 1; i < scroll_values.size(); ++i)
+                            scroll_points.push_back(std::stod(scroll_values[i]));
+
+                        libinput_config_accel_set_points(CONFIG, LIBINPUT_ACCEL_TYPE_SCROLL, scroll_step, scroll_points.size(), scroll_points.data());
+                    }
+
+                    libinput_config_accel_set_points(CONFIG, LIBINPUT_ACCEL_TYPE_MOTION, accel_step, accel_points.size(), accel_points.data());
                     libinput_device_config_accel_apply(LIBINPUTDEV, CONFIG);
                     libinput_config_accel_destroy(CONFIG);
                 } catch (std::exception& e) { Debug::log(ERR, "Invalid values in custom accel profile"); }

@@ -168,7 +168,8 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
         if (PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() || PWINDOWWORKSPACE->m_bForceRendering) {
             return true;
         } else {
-            if (!(!PWINDOWWORKSPACE->m_bHasFullscreenWindow || pWindow->m_bIsFullscreen || (pWindow->m_bIsFloating && pWindow->m_bCreatedOverFullscreen)))
+            if (PWINDOWWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && !pWindow->m_bIsFloating && !pWindow->m_bCreatedOverFullscreen &&
+                pWindow->m_fAlpha.fl() == 0)
                 return false;
         }
     }
@@ -220,7 +221,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, CWorksp
 
     // loop over the tiled windows that are fading out
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID != pMonitor->activeWorkspace)
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
         if (w->m_fAlpha.fl() == 0.f)
@@ -237,7 +238,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, CWorksp
 
     // and floating ones too
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID != pMonitor->activeWorkspace)
+        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
         if (w->m_fAlpha.fl() == 0.f)

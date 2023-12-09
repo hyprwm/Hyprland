@@ -966,7 +966,7 @@ float CWindow::rounding() {
 
     float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
 
-    return rounding;
+    return m_sSpecialRenderData.rounding ? rounding : 0;
 }
 
 void CWindow::updateSpecialRenderData() {

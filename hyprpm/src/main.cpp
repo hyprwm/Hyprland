@@ -58,6 +58,11 @@ int               main(int argc, char** argv, char** envp) {
         }
     }
 
+    if (command.empty()) {
+        std::cout << HELP;
+        return 0;
+    }
+
     g_pPluginManager             = std::make_unique<CPluginManager>();
     g_pPluginManager->m_bVerbose = verbose;
 

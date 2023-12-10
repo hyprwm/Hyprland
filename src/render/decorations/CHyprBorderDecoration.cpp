@@ -51,6 +51,11 @@ void CHyprBorderDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& of
     if (m_bAssignedGeometry.width < m_seExtents.topLeft.x + 1 || m_bAssignedGeometry.height < m_seExtents.topLeft.y + 1)
         return;
 
+    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
+
+    if (windowBox.width < 1 || windowBox.height < 1)
+        return;
+
     auto       grad     = m_pWindow->m_cRealBorderColor;
     const bool ANIMATED = m_pWindow->m_fBorderFadeAnimationProgress.isBeingAnimated();
     float      a1       = a * (ANIMATED ? m_pWindow->m_fBorderFadeAnimationProgress.fl() : 1.f);
@@ -59,8 +64,6 @@ void CHyprBorderDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& of
         grad.m_fAngle += m_pWindow->m_fBorderAngleAnimationProgress.fl() * M_PI * 2;
         grad.m_fAngle = normalizeAngleRad(grad.m_fAngle);
     }
-
-    CBox       windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
 
     int        borderSize = m_pWindow->getRealBorderSize();
     const auto ROUNDING   = m_pWindow->rounding() * pMonitor->scale;

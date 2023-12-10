@@ -2,6 +2,7 @@
 #include "Compositor.hpp"
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
 #include "render/decorations/CHyprGroupBarDecoration.hpp"
+#include "render/decorations/CHyprBorderDecoration.hpp"
 
 CWindow::CWindow() {
     m_vRealPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
@@ -14,6 +15,7 @@ CWindow::CWindow() {
     m_fDimPercent.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), (void*)this, AVARDAMAGE_ENTIRE);
 
     addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(this));
+    addWindowDeco(std::make_unique<CHyprBorderDecoration>(this));
 }
 
 CWindow::~CWindow() {
@@ -964,7 +966,7 @@ float CWindow::rounding() {
 
     float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
 
-    return rounding;
+    return m_sSpecialRenderData.rounding ? rounding : 0;
 }
 
 void CWindow::updateSpecialRenderData() {

@@ -1,0 +1,75 @@
+name: "Setup base"
+
+inputs:
+  INSTALL_XORG_PKGS:
+    description: 'Install xorg dependencies'
+    required: false
+    default: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get required pacman pkgs
+      shell: bash
+      run: |
+        sed -i 's/SigLevel    = Required DatabaseOptional/SigLevel    = Optional TrustAll/' /etc/pacman.conf
+        pacman --noconfirm --noprogressbar -Syyu
+        pacman --noconfirm --noprogressbar -Sy \
+          base-devel \
+          cairo \
+          clang \
+          cmake \
+          git \
+          glm \
+          glslang \
+          go \
+          jq \
+          libc++ \
+          libdisplay-info \
+          libdrm \
+          libepoxy \
+          libfontenc \
+          libglvnd \
+          libinput \
+          libliftoff \
+          libxcvt \
+          libxfont2 \
+          libxkbcommon \
+          libxkbfile \
+          lld \
+          meson \
+          ninja \
+          pango \
+          pixman \
+          pkgconf \
+          scdoc \
+          seatd \
+          systemd \
+          tomlplusplus \
+          wayland \
+          wayland-protocols \
+          xcb-util-errors \
+          xcb-util-renderutil \
+          xcb-util-wm
+
+    - name: Get Xorg pacman pkgs
+      shell: bash
+      if: inputs.INSTALL_XORG_PKGS == 'true'
+      run: |
+        pacman --noconfirm --noprogressbar -Sy \
+          xorg-fonts-encodings \
+          xorg-server-common \
+          xorg-setxkbmap \
+          xorg-xkbcomp \
+          xorg-xwayland
+
+    - name: Checkout Hyprland
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    # Fix an issue with actions/checkout where the checkout repo is not mark as safe
+    - name: Mark directory as safe for git
+      shell: bash
+      run: |
+        git config --global --add safe.directory /__w/Hyprland/Hyprland

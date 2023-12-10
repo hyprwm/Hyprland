@@ -506,14 +506,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                                                "XWayland Window Late");
     }
 
-    // do the animation thing
-    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
-    PWINDOW->m_fAlpha.setValueAndWarp(0.f);
-    PWINDOW->m_fAlpha = 1.f;
-
-    PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
-    PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
-
     if ((requestsFullscreen && (!PWINDOW->m_bNoFullscreenRequest || overridingNoFullscreen)) || (requestsMaximize && (!PWINDOW->m_bNoMaximizeRequest || overridingNoMaximize)) ||
         requestsFakeFullscreen) {
         // fix fullscreen on requested (basically do a switcheroo)
@@ -626,6 +618,19 @@ void Events::listener_mapWindow(void* owner, void* data) {
     auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, workspaceID, g_pXWaylandManager->getAppIDClass(PWINDOW), PWINDOW->m_szTitle)});
     EMIT_HOOK_EVENT("openWindow", PWINDOW);
+
+    // apply data from default decos. Borders, shadows.
+    g_pDecorationPositioner->forceRecalcFor(PWINDOW);
+    PWINDOW->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
+
+    // do animations
+    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
+    PWINDOW->m_fAlpha.setValueAndWarp(0.f);
+    PWINDOW->m_fAlpha = 1.f;
+
+    PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
+    PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
 
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);

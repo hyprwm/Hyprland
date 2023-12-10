@@ -105,7 +105,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
 
     progress.printMessageAbove(std::string{Colors::RESET} + " → Cloning " + url);
 
-    std::string ret = execAndGet("cd /tmp/hyprpm && git clone " + url + " new");
+    std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive " + url + " new");
 
     if (!std::filesystem::exists("/tmp/hyprpm/new")) {
         std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not clone the plugin repository. shell returned:\n" << ret << "\n";
@@ -438,7 +438,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
         progress.printMessageAbove(std::string{Colors::RESET} + " → Cloning " + repo.url);
 
-        std::string ret = execAndGet("cd /tmp/hyprpm && git clone " + repo.url + " update");
+        std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive " + repo.url + " update");
 
         if (!std::filesystem::exists("/tmp/hyprpm/update")) {
             std::cout << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " could not clone repo: shell returned:\n" + ret;

@@ -149,12 +149,12 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         PWINDOW->m_sSpecialRenderData.rounding = false;
         PWINDOW->m_sSpecialRenderData.shadow   = false;
 
+        PWINDOW->updateWindowDecos();
+
         const auto RESERVED = PWINDOW->getFullWindowReservedArea();
 
         PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + RESERVED.topLeft;
         PWINDOW->m_vRealSize     = PWINDOW->m_vSize - (RESERVED.topLeft + RESERVED.bottomRight);
-
-        PWINDOW->updateWindowDecos();
 
         g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 

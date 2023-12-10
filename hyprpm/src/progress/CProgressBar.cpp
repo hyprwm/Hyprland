@@ -47,7 +47,7 @@ void CProgressBar::print() {
     else
         percentDone = (float)m_iSteps / (float)m_iMaxSteps;
 
-    const auto BARWIDTH = std::clamp(w.ws_col - m_szCurrentMessage.length() - 2, 0UL, 50UL);
+    const auto BARWIDTH = std::clamp(w.ws_col - static_cast<unsigned long>(m_szCurrentMessage.length()) - 2, 0UL, 50UL);
 
     // draw bar
     message += std::string{" "} + Colors::GREEN;

@@ -366,6 +366,7 @@ class CWindow {
     bool                     opaque();
     float                    rounding();
     bool                     canBeTorn();
+    bool                     shouldSendFullscreenState();
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();

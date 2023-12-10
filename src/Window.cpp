@@ -998,3 +998,8 @@ int CWindow::getRealBorderSize() {
 bool CWindow::canBeTorn() {
     return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint) && g_pHyprRenderer->m_bTearingEnvSatisfied;
 }
+
+bool CWindow::shouldSendFullscreenState() {
+    const auto MODE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID)->m_efFullscreenMode;
+    return m_bFakeFullscreenState || (m_bIsFullscreen && (MODE == FULLSCREEN_FULL));
+}

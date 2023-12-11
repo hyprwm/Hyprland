@@ -227,28 +227,28 @@ void CDecorationPositioner::onWindowUpdate(CWindow* pWindow) {
                 stickyOffsetYT += desiredSize;
                 stickyOffsetYB += desiredSize;
             } else if (LEFT) {
-                pos = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, 0};
+                pos = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, -stickyOffsetYT};
                 pos.x -= desiredSize;
-                size = {desiredSize, wb.size().y};
+                size = {desiredSize, wb.size().y + stickyOffsetYB + stickyOffsetYT};
 
                 if (SOLID)
                     stickyOffsetXL += desiredSize;
             } else if (RIGHT) {
-                pos  = wb.pos() + Vector2D{wb.size().x, 0} - EDGEPOINT + Vector2D{stickyOffsetXR, 0};
-                size = {desiredSize, wb.size().y};
+                pos  = wb.pos() + Vector2D{wb.size().x, 0} - EDGEPOINT + Vector2D{stickyOffsetXR, -stickyOffsetYT};
+                size = {desiredSize, wb.size().y + stickyOffsetYB + stickyOffsetYT};
 
                 if (SOLID)
                     stickyOffsetXR += desiredSize;
             } else if (TOP) {
-                pos = wb.pos() - EDGEPOINT - Vector2D{0, stickyOffsetYT};
+                pos = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, stickyOffsetYT};
                 pos.y -= desiredSize;
-                size = {wb.size().x, desiredSize};
+                size = {wb.size().x + stickyOffsetXL + stickyOffsetXR, desiredSize};
 
                 if (SOLID)
                     stickyOffsetYT += desiredSize;
             } else {
-                pos  = wb.pos() + Vector2D{0, wb.size().y} - EDGEPOINT - Vector2D{0, stickyOffsetYB};
-                size = {wb.size().x, desiredSize};
+                pos  = wb.pos() + Vector2D{0, wb.size().y} - EDGEPOINT - Vector2D{stickyOffsetXL, stickyOffsetYB};
+                size = {wb.size().x + stickyOffsetXL + stickyOffsetXR, desiredSize};
 
                 if (SOLID)
                     stickyOffsetYB += desiredSize;

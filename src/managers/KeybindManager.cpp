@@ -1918,8 +1918,7 @@ void CKeybindManager::fakeFullscreenActive(std::string args) {
     if (g_pCompositor->m_pLastWindow) {
         // will also set the flag
         g_pCompositor->m_pLastWindow->m_bFakeFullscreenState = !g_pCompositor->m_pLastWindow->m_bFakeFullscreenState;
-        g_pXWaylandManager->setWindowFullscreen(g_pCompositor->m_pLastWindow,
-                                                g_pCompositor->m_pLastWindow->m_bFakeFullscreenState || g_pCompositor->m_pLastWindow->m_bIsFullscreen);
+        g_pXWaylandManager->setWindowFullscreen(g_pCompositor->m_pLastWindow, g_pCompositor->m_pLastWindow->shouldSendFullscreenState());
     }
 }
 

@@ -2024,16 +2024,23 @@ void CHyprOpenGLImpl::clearWithTex() {
 void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorFB.release();
-    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].offloadFB.release();
-    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].mirrorSwapFB.release();
-    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].monitorMirrorFB.release();
-    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].blurFB.release();
-    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].offMainFB.release();
-    g_pHyprOpenGL->m_mMonitorRenderResources[pMonitor].stencilTex.destroyTexture();
-    g_pHyprOpenGL->m_mMonitorBGTextures[pMonitor].destroyTexture();
-    g_pHyprOpenGL->m_mMonitorRenderResources.erase(pMonitor);
-    g_pHyprOpenGL->m_mMonitorBGTextures.erase(pMonitor);
+    auto RESIT = g_pHyprOpenGL->m_mMonitorRenderResources.find(pMonitor);
+    if (RESIT != g_pHyprOpenGL->m_mMonitorRenderResources.end()) {
+        RESIT->second.mirrorFB.release();
+        RESIT->second.offloadFB.release();
+        RESIT->second.mirrorSwapFB.release();
+        RESIT->second.monitorMirrorFB.release();
+        RESIT->second.blurFB.release();
+        RESIT->second.offMainFB.release();
+        RESIT->second.stencilTex.destroyTexture();
+        g_pHyprOpenGL->m_mMonitorRenderResources.erase(RESIT);
+    }
+
+    auto TEXIT = g_pHyprOpenGL->m_mMonitorBGTextures.find(pMonitor);
+    if (TEXIT != g_pHyprOpenGL->m_mMonitorBGTextures.end()) {
+        TEXIT->second.destroyTexture();
+        g_pHyprOpenGL->m_mMonitorBGTextures.erase(TEXIT);
+    }
 
     Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName);
 }

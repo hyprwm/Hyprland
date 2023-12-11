@@ -1048,13 +1048,21 @@ void Events::listener_configureX11(void* owner, void* data) {
     PWINDOW->m_vRealPosition.setValueAndWarp(LOGICALPOS);
     PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(E->width, E->height));
 
+    auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    if (!PMONITOR) {
+        PMONITOR              = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.0);
+        PWINDOW->m_iMonitorID = PMONITOR->ID;
+    }
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
     if (*PXWLFORCESCALEZERO) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR) {
-            const Vector2D DELTA = PWINDOW->m_vRealSize.goalv() - PWINDOW->m_vRealSize.goalv() / PMONITOR->scale;
-            PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
-            PWINDOW->m_vRealPosition.setValueAndWarp(PWINDOW->m_vRealPosition.goalv() + DELTA / 2.0);
-        }
+        PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
+        static auto* const FLOATCENTERSCREEN = &g_pConfigManager->getConfigValuePtr("general:float_center_screen")->intValue;
+        PWINDOW->m_vLastFloatingCenterScreen = *FLOATCENTERSCREEN;
+        if (*FLOATCENTERSCREEN)
+            PWINDOW->m_vRealPosition.setValueAndWarp(PMONITOR->vecPosition + (PMONITOR->vecSize - PWINDOW->m_vRealSize.goalv()) / 2.0);
+        else
+            PWINDOW->m_vRealPosition.setValueAndWarp(PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft +
+                                                     (PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight - PWINDOW->m_vRealSize.goalv()) / 2.0);
     }
 
     PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
@@ -1062,7 +1070,7 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
 
-    PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
+    PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
 
     g_pCompositor->changeWindowZOrder(PWINDOW, true);
 
@@ -1113,18 +1121,28 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         if (abs(std::floor(SIZ.x) - PWINDOW->m_uSurface.xwayland->width) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_uSurface.xwayland->height) > 2)
             PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height));
 
+        auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+        if (!PMONITOR) {
+            PMONITOR              = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.goalv() + PWINDOW->m_vRealSize.goalv() / 2.0);
+            PWINDOW->m_iMonitorID = PMONITOR->ID;
+        }
+
         if (*PXWLFORCESCALEZERO) {
-            if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR) {
-                const Vector2D DELTA = PWINDOW->m_vRealSize.goalv() - PWINDOW->m_vRealSize.goalv() / PMONITOR->scale;
-                PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
-                PWINDOW->m_vRealPosition.setValueAndWarp(PWINDOW->m_vRealPosition.goalv() + DELTA / 2.0);
-            }
+            PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
+            static auto* const FLOATCENTERSCREEN = &g_pConfigManager->getConfigValuePtr("general:float_center_screen")->intValue;
+            PWINDOW->m_vLastFloatingCenterScreen = *FLOATCENTERSCREEN;
+            if (*FLOATCENTERSCREEN)
+                PWINDOW->m_vRealPosition.setValueAndWarp(PMONITOR->vecPosition + (PMONITOR->vecSize - PWINDOW->m_vRealSize.goalv()) / 2.0);
+            else
+                PWINDOW->m_vRealPosition.setValueAndWarp(PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft +
+                                                         (PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight - PWINDOW->m_vRealSize.goalv()) /
+                                                             2.0);
         }
 
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.goalv();
         PWINDOW->m_vSize     = PWINDOW->m_vRealSize.goalv();
 
-        PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
+        PWINDOW->m_iWorkspaceID = PMONITOR->activeWorkspace;
 
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
         PWINDOW->updateWindowDecos();

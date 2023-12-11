@@ -94,6 +94,8 @@ void CConfigManager::setDefaultVars() {
     configValues["general:resize_on_border"].intValue        = 0;
     configValues["general:extend_border_grab_area"].intValue = 15;
     configValues["general:hover_icon_on_border"].intValue    = 1;
+    configValues["general:float_min_crop"].vecValue          = Vector2D(0.25, 0.25);
+    configValues["general:float_center_screen"].intValue     = 0;
     configValues["general:layout"].strValue                  = "dwindle";
     configValues["general:allow_tearing"].intValue           = 0;
 

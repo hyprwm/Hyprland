@@ -455,9 +455,10 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         // if the window is pseudo, update its size
         if (!pWindow->m_bDraggingTiled)
-            pWindow->m_vPseudoSize = pWindow->m_vRealSize.goalv();
+            pWindow->m_vPseudoSize = PSAVEDSIZE;
 
-        pWindow->m_vLastFloatingSize = PSAVEDSIZE;
+        pWindow->m_vLastFloatingPosition = PSAVEDPOS;
+        pWindow->m_vLastFloatingSize     = PSAVEDSIZE;
 
         // move to narnia because we don't wanna find our own node. onWindowCreatedTiling should apply the coords back.
         pWindow->m_vPosition = Vector2D(-999999, -999999);
@@ -477,18 +478,50 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
 
-        if (DELTALESSTHAN(pWindow->m_vRealSize.vec().x, pWindow->m_vLastFloatingSize.x, 10) && DELTALESSTHAN(pWindow->m_vRealSize.vec().y, pWindow->m_vLastFloatingSize.y, 10)) {
-            pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f + Vector2D{10, 10};
-            pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize - Vector2D{20, 20};
+        auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+        if (!PMONITOR) {
+            PMONITOR              = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.goalv() + pWindow->m_vRealSize.goalv() / 2.0);
+            pWindow->m_iMonitorID = PMONITOR->ID;
         }
 
-        pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f;
+        const auto         PSAVEDSIZE   = pWindow->m_vRealSize.goalv();
+        static auto* const FLOATMINCROP = &g_pConfigManager->getConfigValuePtr("general:float_min_crop")->vecValue;
+        Vector2D           cropSize     = {0, 0};
+        if (FLOATMINCROP->x > 0 && FLOATMINCROP->x < 1.0)
+            cropSize.x = PSAVEDSIZE.x * FLOATMINCROP->x;
+        else
+            cropSize.x = FLOATMINCROP->x;
+        if (FLOATMINCROP->y > 0 && FLOATMINCROP->y < 1.0)
+            cropSize.y = PSAVEDSIZE.y * FLOATMINCROP->y;
+        else
+            cropSize.y = FLOATMINCROP->y;
+
+        if ((pWindow->m_vLastFloatingCropSize.x > 0 && pWindow->m_vLastFloatingCropSize.y > 0 && pWindow->m_vLastFloatingCropSize.x != cropSize.x &&
+             pWindow->m_vLastFloatingCropSize.y != cropSize.y) ||
+            (DELTALESSTHAN(PSAVEDSIZE.x, pWindow->m_vLastFloatingSize.x, cropSize.x) && DELTALESSTHAN(PSAVEDSIZE.y, pWindow->m_vLastFloatingSize.y, cropSize.y))) {
+            pWindow->m_vLastFloatingSize     = PSAVEDSIZE - cropSize;
+            pWindow->m_vLastFloatingPosition = {0, 0};
+            pWindow->m_vLastFloatingCropSize = cropSize;
+        }
+
+        static auto* const FLOATCENTERSCREEN = &g_pConfigManager->getConfigValuePtr("general:float_center_screen")->intValue;
+        if (pWindow->m_vLastFloatingPosition.x <= 0 || pWindow->m_vLastFloatingPosition.y <= 0) {
+            if (*FLOATCENTERSCREEN) {
+                pWindow->m_vLastFloatingPosition = PMONITOR->vecPosition + (PMONITOR->vecSize - pWindow->m_vLastFloatingSize) / 2.0;
+            } else {
+                pWindow->m_vLastFloatingPosition = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft +
+                    (PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight - pWindow->m_vLastFloatingSize) / 2.0;
+            }
+            pWindow->m_vLastFloatingCenterScreen = *FLOATCENTERSCREEN;
+        }
+
         pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
+        pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
 
         pWindow->m_vSize     = pWindow->m_vRealSize.goalv();
         pWindow->m_vPosition = pWindow->m_vRealPosition.goalv();
 
-        g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
+        g_pHyprRenderer->damageMonitor(PMONITOR);
 
         pWindow->updateSpecialRenderData();
 

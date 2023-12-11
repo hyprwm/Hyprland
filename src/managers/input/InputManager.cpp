@@ -853,7 +853,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     pKeyboard->repeatDelay = REPEATDELAY;
     pKeyboard->repeatRate  = REPEATRATE;
     pKeyboard->numlockOn   = NUMLOCKON;
-    pKeyboard->xkbFilePath = FILEPATH.c_str();
+    pKeyboard->xkbFilePath = FILEPATH;
 
     xkb_rule_names rules = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
 
@@ -1586,7 +1586,7 @@ void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
 }
 
 void CInputManager::setCursorImageUntilUnset(std::string name) {
-    g_pHyprRenderer->setCursorFromName(name.c_str());
+    g_pHyprRenderer->setCursorFromName(name);
     m_bCursorImageOverridden   = true;
     m_sCursorSurfaceInfo.inUse = false;
 }

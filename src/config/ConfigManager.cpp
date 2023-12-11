@@ -1227,8 +1227,20 @@ void CConfigManager::handleWorkspaceRules(const std::string& command, const std:
             wsRule.isPersistent = configStringToInt(rule.substr(delim + 11));
         else if ((delim = rule.find(ruleOnCreatedEmtpy)) != std::string::npos)
             wsRule.onCreatedEmptyRunCmd = cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmtpyLen));
-        else if ((delim = rule.find("layoutopt:orientation:")) != std::string::npos)
-            wsRule.layoutopts["orientation"] = rule.substr(delim + 22);
+        else if ((delim = rule.find("layoutopt:")) != std::string::npos) {
+            std::string opt = rule.substr(delim + 10);
+            if (!opt.contains(":")) {
+                // invalid
+                Debug::log(ERR, "Invalid workspace rule found: {}", rule);
+                parseError = "Invalid workspace rule found: " + rule;
+                return;
+            }
+
+            std::string val = opt.substr(opt.find(":") + 1);
+            opt             = opt.substr(0, opt.find(":"));
+
+            wsRule.layoutopts[opt] = val;
+        }
     };
 
     size_t      pos = 0;

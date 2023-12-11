@@ -479,7 +479,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             }
         }
 
-        if (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) {
+        if (decorate) {
             for (auto& wd : pWindow->m_dWindowDecorations) {
                 if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
                     continue;
@@ -511,11 +511,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
 
-        for (auto& wd : pWindow->m_dWindowDecorations) {
-            if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
-                continue;
+        if (decorate) {
+            for (auto& wd : pWindow->m_dWindowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
+                    continue;
 
-            wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+            }
         }
 
         if (TRANSFORMERSPRESENT) {
@@ -553,11 +555,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
         }
 
-        for (auto& wd : pWindow->m_dWindowDecorations) {
-            if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
-                continue;
+        if (decorate) {
+            for (auto& wd : pWindow->m_dWindowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
+                    continue;
 
-            wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+            }
         }
     }
 

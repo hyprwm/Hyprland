@@ -40,16 +40,6 @@
   nvidiaPatches ? false,
   hidpiXWayland ? false,
 }:
-let
-  # NOTE: remove after https://github.com/NixOS/nixpkgs/pull/271096 reaches nixos-unstable
-  libdrm_2_4_118 = libdrm.overrideAttrs(attrs: rec {
-    version = "2.4.118";
-    src = fetchurl {
-      url = "https://dri.freedesktop.org/${attrs.pname}/${attrs.pname}-${version}.tar.xz";
-      hash = "sha256-p3e9hfK1/JxX+IbIIFgwBXgxfK/bx30Kdp1+mpVnq4g=";
-    };
-  });
-in
 assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
 assert lib.assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
 assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
@@ -85,7 +75,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         cairo
         git
         hyprland-protocols
-        libdrm_2_4_118
+        libdrm
         libGL
         libinput
         libxkbcommon

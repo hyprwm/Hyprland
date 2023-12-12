@@ -1989,7 +1989,7 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
     updateFullscreenFadeOnWorkspace(PWORKSPACEB);
     updateFullscreenFadeOnWorkspace(PWORKSPACEA);
 
-    g_pInputManager->simulateMouseMovement();
+    g_pInputManager->sendMotionEventsToFocused();
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", PWORKSPACEA->m_szName + "," + pMonitorB->szName});
@@ -2174,7 +2174,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
         wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
 
-        g_pInputManager->simulateMouseMovement();
+        g_pInputManager->sendMotionEventsToFocused();
     }
 
     // finalize

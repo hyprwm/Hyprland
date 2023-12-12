@@ -1062,6 +1062,13 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
 
+    PWINDOW->m_vReportedSize = {E->width, E->height};
+
+    PWINDOW->updateWindowDecos();
+
+    if (!g_pCompositor->isWorkspaceVisible(PWINDOW->m_iWorkspaceID))
+        return; // further things are only for visible windows
+
     PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
 
     g_pCompositor->changeWindowZOrder(PWINDOW, true);
@@ -1072,10 +1079,6 @@ void Events::listener_configureX11(void* owner, void* data) {
         g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(PWINDOW);
-
-    PWINDOW->updateWindowDecos();
-
-    PWINDOW->m_vReportedSize = {E->width, E->height};
 }
 
 void Events::listener_unmanagedSetGeometry(void* owner, void* data) {

@@ -641,8 +641,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->transform);
 
-    if (g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal()) == g_pCompositor->m_pLastWindow)
-        g_pInputManager->simulateMouseMovement();
+    g_pInputManager->sendMotionEventsToFocused();
 
     // fix some xwayland apps that don't behave nicely
     PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
@@ -737,8 +736,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow && PWINDOWCANDIDATE)
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
 
-        if (g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal()) == PWINDOWCANDIDATE)
-            g_pInputManager->simulateMouseMovement();
+        g_pInputManager->sendMotionEventsToFocused();
 
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
         if (PWINDOW == g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow) {

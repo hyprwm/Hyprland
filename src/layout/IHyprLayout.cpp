@@ -565,13 +565,19 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     }
 
     // if it was a tiled window, we first try to find the window that will replace it.
-    const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->middle());
+    auto pWindowCandidate = g_pCompositor->vectorToWindowIdeal(pWindow->middle());
 
-    if (!PWINDOWCANDIDATE || pWindow == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus ||
-        PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+    if (!pWindowCandidate)
+        pWindowCandidate = g_pCompositor->getTopLeftWindowOnWorkspace(pWindow->m_iWorkspaceID);
+
+    if (!pWindowCandidate)
+        pWindowCandidate = g_pCompositor->getFirstWindowOnWorkspace(pWindow->m_iWorkspaceID);
+
+    if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_bIsMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_bX11ShouldntFocus ||
+        pWindowCandidate->m_iX11Type == 2 || pWindowCandidate->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
         return nullptr;
 
-    return PWINDOWCANDIDATE;
+    return pWindowCandidate;
 }
 
 bool IHyprLayout::isWindowReachable(CWindow* pWindow) {

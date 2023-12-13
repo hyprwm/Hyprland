@@ -262,9 +262,7 @@ void CHyprXWaylandManager::moveXWaylandWindow(CWindow* pWindow, const Vector2D& 
     if (!pWindow->m_bIsX11)
         return;
 
-    Vector2D size = pWindow->m_vRealSize.goalv() * pWindow->m_fX11SurfaceScaledBy;
-
-    wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, size.x, size.y);
+    wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, pWindow->m_vRealSize.vec().x, pWindow->m_vRealSize.vec().y);
 }
 
 void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {

@@ -565,15 +565,6 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
     g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
 
     g_pConfigManager->ensureVRR(this);
-
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID != POLDWORKSPACE->m_iID || !w->m_bMappedX11 || !w->m_bIsX11 || w->isHidden() || w->m_iMonitorID != ID)
-            continue;
-
-        g_pXWaylandManager->moveXWaylandWindow(w.get(), {30000, 30000});
-    }
-
-    g_pCompositor->forceReportSizesToWindowsOnWorkspace(pWorkspace->m_iID);
 }
 
 void CMonitor::changeWorkspace(const int& id, bool internal) {
@@ -585,9 +576,7 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
 
     if (!pWorkspace) {
         // remove special if exists
-        const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID);
-
-        if (EXISTINGSPECIAL) {
+        if (const auto EXISTINGSPECIAL = g_pCompositor->getWorkspaceByID(specialWorkspaceID); EXISTINGSPECIAL) {
             EXISTINGSPECIAL->startAnim(false, false);
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + szName});
         }
@@ -600,18 +589,6 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
             g_pCompositor->focusWindow(PLAST);
         else
             g_pInputManager->refocus();
-
-        // for xwayland: yeet all the windows to narnia to avoid some focus fuckery. I hate xwayland.
-        // I'll avoid setting XCB_ICCCM_WM_STATE_ICONIC (aka minimized) so that the apps don't do stupid shit.
-
-        if (EXISTINGSPECIAL) {
-            for (auto& w : g_pCompositor->m_vWindows) {
-                if (w->m_iWorkspaceID != EXISTINGSPECIAL->m_iID || !w->m_bMappedX11 || !w->m_bIsX11 || w->isHidden() || w->m_iMonitorID != ID)
-                    continue;
-
-                g_pXWaylandManager->moveXWaylandWindow(w.get(), {30000, 30000});
-            }
-        }
 
         return;
     }
@@ -654,8 +631,6 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
 
     g_pHyprRenderer->damageMonitor(this);
-
-    g_pCompositor->forceReportSizesToWindowsOnWorkspace(specialWorkspaceID);
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {

@@ -38,6 +38,7 @@ in {
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
       hyprland-debug = final.hyprland.override {debug = true;};
+      hyprland-legacy-renderer = final.hyprland.override { legacyRenderer = true; };
       hyprland-nvidia =
         builtins.trace ''
           hyprland-nvidia was removed. Please use the hyprland package.

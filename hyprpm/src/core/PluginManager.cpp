@@ -157,15 +157,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
     const auto HEADERSSTATUS = headersValid();
 
     if (HEADERSSTATUS != HEADERS_OK) {
-
-        switch (HEADERSSTATUS) {
-            case HEADERS_CORRUPTED: std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Headers corrupted. Please run hyprpm update to fix those.\n"; break;
-            case HEADERS_MISMATCHED: std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Headers version mismatch. Please run hyprpm update to fix those.\n"; break;
-            case HEADERS_NOT_HYPRLAND: std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " It doesn't seem you are running on hyprland.\n"; break;
-            case HEADERS_MISSING: std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Headers missing. Please run hyprpm update to fix those.\n"; break;
-            default: break;
-        }
-
+        std::cerr << "\n" << headerError(HEADERSSTATUS);
         return false;
     }
 
@@ -285,6 +277,10 @@ eHeadersErrors CPluginManager::headersValid() {
     if (!ifs.good())
         return HEADERS_CORRUPTED;
 
+    if ((std::filesystem::exists("/usr/include/hyprland/src/version.h") && verHeader != "/usr/include/hyprland/src/version.h") ||
+        (std::filesystem::exists("/usr/local/include/hyprland/src/version.h") && verHeader != "/usr/local/include/hyprland/src/version.h"))
+        return HEADERS_DUPLICATED;
+
     std::string verHeaderContent((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
     ifs.close();
 
@@ -394,6 +390,8 @@ bool CPluginManager::updateHeaders() {
         progress.print();
 
         std::cout << "\n";
+
+        std::cerr << "\n" << headerError(HEADERSVALID);
 
         return false;
     }
@@ -687,4 +685,21 @@ void CPluginManager::listAllPlugins() {
 
 void CPluginManager::notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message) {
     execAndGet("hyprctl notify " + std::to_string((int)icon) + " " + std::to_string(durationMs) + " " + std::to_string(color) + " " + message);
+}
+
+std::string CPluginManager::headerError(const eHeadersErrors err) {
+    switch (err) {
+        case HEADERS_CORRUPTED: return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers corrupted. Please run hyprpm update to fix those.\n";
+        case HEADERS_MISMATCHED: return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers version mismatch. Please run hyprpm update to fix those.\n";
+        case HEADERS_NOT_HYPRLAND: return std::string{Colors::RED} + "✖" + Colors::RESET + " It doesn't seem you are running on hyprland.\n";
+        case HEADERS_MISSING: return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers missing. Please run hyprpm update to fix those.\n";
+        case HEADERS_DUPLICATED: {
+            return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers duplicated!!! This is a very bad sign.\n" +
+                " This could be due to e.g. installing hyprland manually while a system package of hyprland is also installed.\n" +
+                " If the above doesn't apply, check your /usr/include and /usr/local/include directories\n and remove all the hyprland headers.\n";
+        }
+        default: break;
+    }
+
+    return std::string{Colors::RED} + "✖" + Colors::RESET + " Unknown header error. Please run hyprpm update to fix those.\n";
 }

@@ -9,6 +9,7 @@ enum eHeadersErrors {
     HEADERS_MISSING,
     HEADERS_CORRUPTED,
     HEADERS_MISMATCHED,
+    HEADERS_DUPLICATED
 };
 
 enum eNotifyIcons {
@@ -54,6 +55,9 @@ class CPluginManager {
     void                   notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message);
 
     bool                   m_bVerbose = false;
+
+  private:
+    std::string headerError(const eHeadersErrors err);
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

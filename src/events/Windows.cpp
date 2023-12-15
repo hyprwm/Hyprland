@@ -814,22 +814,29 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (PWINDOW->m_bIsX11 || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;
 
-    const auto ISRIGID = PWINDOW->m_uSurface.xdg->toplevel->current.max_height == PWINDOW->m_uSurface.xdg->toplevel->current.min_height &&
-        PWINDOW->m_uSurface.xdg->toplevel->current.max_width == PWINDOW->m_uSurface.xdg->toplevel->current.min_width;
+    const auto MINSIZE = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->current.min_width, PWINDOW->m_uSurface.xdg->toplevel->current.min_height};
+    const auto MAXSIZE = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->current.max_width, PWINDOW->m_uSurface.xdg->toplevel->current.max_height};
 
-    if (!ISRIGID)
+    if (MAXSIZE < Vector2D{1, 1})
         return;
 
-    const Vector2D REQUESTEDSIZE = {PWINDOW->m_uSurface.xdg->toplevel->current.max_width, PWINDOW->m_uSurface.xdg->toplevel->current.max_height};
+    const auto REALSIZE = PWINDOW->m_vRealSize.goalv();
+    Vector2D   newSize  = REALSIZE;
 
-    if (REQUESTEDSIZE == PWINDOW->m_vReportedSize || REQUESTEDSIZE.x < 5 || REQUESTEDSIZE.y < 5)
-        return;
+    if (MAXSIZE.x < newSize.x)
+        newSize.x = MAXSIZE.x;
+    if (MAXSIZE.y < newSize.y)
+        newSize.y = MAXSIZE.y;
+    if (MINSIZE.x > newSize.x)
+        newSize.x = MINSIZE.x;
+    if (MINSIZE.y > newSize.y)
+        newSize.y = MINSIZE.y;
 
-    const Vector2D DELTA = PWINDOW->m_vReportedSize - REQUESTEDSIZE;
+    const Vector2D DELTA = REALSIZE - newSize;
 
     PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goalv() + DELTA / 2.0;
-    PWINDOW->m_vRealSize     = REQUESTEDSIZE;
-    g_pXWaylandManager->setWindowSize(PWINDOW, REQUESTEDSIZE, true);
+    PWINDOW->m_vRealSize     = newSize;
+    g_pXWaylandManager->setWindowSize(PWINDOW, newSize, true);
     g_pHyprRenderer->damageWindow(PWINDOW);
 }
 

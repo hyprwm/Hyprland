@@ -518,13 +518,13 @@ void CCompositor::startCompositor() {
     signal(SIGPIPE, SIG_IGN);
 
     if (m_sWLRSession /* Session-less Hyprland usually means a nest, don't update the env in that case */ && fork() == 0)
-        execl(
-            "/bin/sh", "/bin/sh", "-c",
+        execl("/bin/sh", "/bin/sh", "-c",
 #ifdef USES_SYSTEMD
-            "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP && hash dbus-update-activation-environment 2>/dev/null && "
+              "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME && hash "
+              "dbus-update-activation-environment 2>/dev/null && "
 #endif
-            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE",
-            nullptr);
+              "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME",
+              nullptr);
 
     Debug::log(LOG, "Running on WAYLAND_DISPLAY: {}", m_szWLDisplaySocket);
 

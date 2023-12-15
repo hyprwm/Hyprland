@@ -397,7 +397,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprRenderer->endRender();
 
     g_pHyprRenderer->makeEGLCurrent();
-
+    g_pHyprOpenGL->m_RenderData.pMonitor = PMONITOR;
     outFB.bind();
 
 #ifndef GLES2

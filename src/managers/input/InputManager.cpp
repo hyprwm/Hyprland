@@ -933,7 +933,8 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUTSTR});
     EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUTSTR}));
 
-    Debug::log(LOG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", rules.layout, rules.variant, pKeyboard->keyboard->name);
+    Debug::log(LOG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->currentRules.layout, pKeyboard->currentRules.variant,
+               pKeyboard->keyboard->name);
 }
 
 void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {

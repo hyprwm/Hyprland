@@ -400,6 +400,10 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
 
     outFB.bind();
 
+#ifndef GLES2
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.m_iFb);
+#endif
+
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     glReadPixels(0, 0, frame->box.width, frame->box.height, PFORMAT->glFormat, PFORMAT->glType, data);

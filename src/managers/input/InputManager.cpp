@@ -625,7 +625,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
     // clicking on border triggers resize
     // TODO detect click on LS properly
-    if (*PRESIZEONBORDER && !m_bLastFocusOnLS) {
+    if (*PRESIZEONBORDER && !m_bLastFocusOnLS && e->state == WLR_BUTTON_PRESSED) {
         if (w && !w->m_bIsFullscreen) {
             const CBox real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};

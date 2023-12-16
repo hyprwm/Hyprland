@@ -748,7 +748,7 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
         std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
-            ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
+            ").\nDate: " + GIT_COMMIT_DATE + "\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";
@@ -771,9 +771,10 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "commit": "{}",
     "dirty": {},
     "commit_message": "{}",
+    "commit_date": "{}",
     "tag": "{}",
     "flags": [)#",
-            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_TAG);
+            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_COMMIT_DATE, GIT_TAG);
 
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";

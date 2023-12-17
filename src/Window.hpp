@@ -238,7 +238,6 @@ class CWindow {
 
     // XWayland stuff
     bool     m_bIsX11                = false;
-    bool     m_bMappedX11            = false;
     CWindow* m_pX11Parent            = nullptr;
     uint64_t m_iX11Type              = 0;
     bool     m_bIsModal              = false;

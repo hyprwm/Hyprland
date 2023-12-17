@@ -231,7 +231,7 @@ pid_t CWindow::getPID() {
 
         wl_client_get_credentials(wl_resource_get_client(m_uSurface.xdg->resource), &PID, nullptr, nullptr);
     } else {
-        if (!m_bIsMapped || !m_bMappedX11)
+        if (!m_bIsMapped)
             return -1;
 
         PID = m_uSurface.xwayland->pid;
@@ -322,7 +322,7 @@ void sendLeaveIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 void CWindow::updateSurfaceOutputs() {
-    if (m_iLastSurfaceMonitorID == m_iMonitorID || !m_bIsMapped || m_bHidden || !m_bMappedX11)
+    if (m_iLastSurfaceMonitorID == m_iMonitorID || !m_bIsMapped || m_bHidden)
         return;
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);

@@ -28,17 +28,20 @@ in {
     self.overlays.wlroots-hyprland
     self.overlays.udis86
     # Hyprland packages themselves
-    (final: prev: {
+    (final: prev: let
+      date = mkDate (self.lastModifiedDate or "19700101");
+    in {
       hyprland = final.callPackage ./default.nix {
         stdenv = final.gcc13Stdenv;
-        version = "${props.version}+date=${mkDate (self.lastModifiedDate or "19700101")}_${self.shortRev or "dirty"}";
+        version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
         wlroots = final.wlroots-hyprland;
         commit = self.rev or "";
         inherit (final) udis86 hyprland-protocols;
+        inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
       hyprland-debug = final.hyprland.override {debug = true;};
-      hyprland-legacy-renderer = final.hyprland.override { legacyRenderer = true; };
+      hyprland-legacy-renderer = final.hyprland.override {legacyRenderer = true;};
       hyprland-nvidia =
         builtins.trace ''
           hyprland-nvidia was removed. Please use the hyprland package.

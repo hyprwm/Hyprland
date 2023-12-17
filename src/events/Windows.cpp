@@ -791,7 +791,42 @@ void Events::listener_ackConfigure(void* owner, void* data) {
 void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden())
+    if (!PWINDOW->m_bIsMapped) {
+
+        // dupes shouldn't happen, but you never know, really.
+        if (PWINDOW->m_bInitialCommitPassed || PWINDOW->m_bIsX11)
+            return;
+
+        PWINDOW->m_bInitialCommitPassed = true;
+
+        // this is an initial commit of a surface
+        // in here, the surface will ask us what size we'd like it to be.
+        // wlroots by default doesn't send anything, so the app can use its preferred floating size
+        // if we predict it will be tiled, it's better to set it to the monitor size
+        // so it doesn't appear with the wrong size at the beginning.
+        // too big > too small, because will be clipped and won't look that bad.
+
+        auto       willFloat = g_pXWaylandManager->shouldBeFloated(PWINDOW);
+        const auto WRULES    = g_pConfigManager->getMatchingRules(PWINDOW);
+        for (auto& r : WRULES) {
+            if (r.szRule == "float") {
+                willFloat = true;
+                break;
+            } else if (r.szRule == "tile") {
+                willFloat = false;
+                break;
+            }
+        }
+
+        if (willFloat)
+            return;
+
+        g_pXWaylandManager->setWindowSize(PWINDOW, g_pCompositor->m_pLastMonitor ? g_pCompositor->m_pLastMonitor->vecSize : Vector2D{1920, 1080}, true);
+
+        return;
+    }
+
+    if (PWINDOW->isHidden())
         return;
 
     if (PWINDOW->m_bIsX11)

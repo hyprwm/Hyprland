@@ -1065,9 +1065,6 @@ bool CCompositor::windowValidMapped(CWindow* pWindow) {
     if (!windowExists(pWindow))
         return false;
 
-    if (pWindow->m_bIsX11 && !pWindow->m_bMappedX11)
-        return false;
-
     if (!pWindow->m_bIsMapped)
         return false;
 
@@ -1131,7 +1128,7 @@ SIMEPopup* CCompositor::vectorToIMEPopup(const Vector2D& pos, std::list<SIMEPopu
 
 CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
     for (auto& w : m_vWindows) {
-        if (!w->m_bIsMapped || w->m_bFadingOut || !w->m_bMappedX11)
+        if (!w->m_bIsMapped || w->m_bFadingOut)
             continue;
 
         if (w->m_pWLSurface.wlr() == pSurface)
@@ -1374,7 +1371,7 @@ void CCompositor::changeWindowZOrder(CWindow* pWindow, bool top) {
                 toMove.emplace_front(pw);
 
             for (auto& w : m_vWindows) {
-                if (w->m_bIsMapped && w->m_bMappedX11 && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pw) {
+                if (w->m_bIsMapped && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pw) {
                     x11Stack(w.get(), top, x11Stack);
                 }
             }
@@ -1729,7 +1726,7 @@ CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
     const auto PSURFACE = pMouse->currentConstraint->surface;
 
     for (auto& w : m_vWindows) {
-        if (w->isHidden() || !w->m_bMappedX11 || !w->m_bIsMapped || !w->m_pWLSurface.exists())
+        if (w->isHidden() || !w->m_bIsMapped || !w->m_pWLSurface.exists())
             continue;
 
         if (w->m_bIsX11) {

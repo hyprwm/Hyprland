@@ -119,7 +119,7 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
 }
 
 std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
-    if (!pWindow->m_bMappedX11 || !pWindow->m_bIsMapped)
+    if (!pWindow->m_bIsMapped)
         return "";
 
     try {

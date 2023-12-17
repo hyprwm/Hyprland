@@ -1030,7 +1030,8 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     if (!PWINDOW->m_uSurface.xwayland->surface || !PWINDOW->m_uSurface.xwayland->surface->mapped || !PWINDOW->m_bMappedX11) {
         wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
-        PWINDOW->m_vReportedSize = {E->width, E->height};
+        PWINDOW->m_vPendingReportedSize = {E->width, E->height};
+        PWINDOW->m_vReportedSize        = {E->width, E->height};
         return;
     }
 
@@ -1067,7 +1068,8 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
 
-    PWINDOW->m_vReportedSize = {E->width, E->height};
+    PWINDOW->m_vPendingReportedSize = {E->width, E->height};
+    PWINDOW->m_vReportedSize        = {E->width, E->height};
 
     PWINDOW->updateWindowDecos();
 
@@ -1137,6 +1139,10 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
         PWINDOW->updateWindowDecos();
         g_pHyprRenderer->damageWindow(PWINDOW);
+
+        PWINDOW->m_vReportedPosition    = PWINDOW->m_vRealPosition.goalv();
+        PWINDOW->m_vReportedSize        = PWINDOW->m_vRealSize.goalv();
+        PWINDOW->m_vPendingReportedSize = PWINDOW->m_vReportedSize;
     }
 }
 

@@ -1,6 +1,5 @@
 {
   lib,
-  fetchurl,
   stdenv,
   pkg-config,
   makeWrapper,
@@ -35,6 +34,7 @@
   wrapRuntimeDeps ? true,
   version ? "git",
   commit,
+  date,
   # deprecated flags
   enableNvidiaPatches ? false,
   nvidiaPatches ? false,
@@ -119,6 +119,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         --replace "@HASH@" '${commit}' \
         --replace "@BRANCH@" "" \
         --replace "@MESSAGE@" "" \
+        --replace "@DATE@" "${date}" \
         --replace "@TAG@" "" \
         --replace "@DIRTY@" '${
         if commit == ""

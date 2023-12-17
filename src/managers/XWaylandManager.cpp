@@ -150,14 +150,12 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-    if (!PMONITOR)
-        return;
 
     // calculate pos
     // TODO: this should be decoupled from setWindowSize IMO
     Vector2D windowPos = pWindow->m_vRealPosition.vec();
 
-    if (pWindow->m_bIsX11) {
+    if (pWindow->m_bIsX11 && PMONITOR) {
         windowPos = windowPos - PMONITOR->vecPosition; // normalize to monitor
         if (*PXWLFORCESCALEZERO)
             windowPos = windowPos * PMONITOR->scale;           // scale if applicable
@@ -172,11 +170,9 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
 
     pWindow->m_fX11SurfaceScaledBy = 1.f;
 
-    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID); PMONITOR) {
-            size                           = size * PMONITOR->scale;
-            pWindow->m_fX11SurfaceScaledBy = PMONITOR->scale;
-        }
+    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11 && PMONITOR) {
+        size                           = size * PMONITOR->scale;
+        pWindow->m_fX11SurfaceScaledBy = PMONITOR->scale;
     }
 
     if (pWindow->m_bIsX11)

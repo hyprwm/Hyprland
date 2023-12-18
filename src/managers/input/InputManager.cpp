@@ -324,13 +324,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 unsetCursorImage();
             }
 
-            if (g_pHyprRenderer->m_bHasARenderedCursor) {
-                // TODO: maybe wrap?
-                if (m_ecbClickBehavior == CLICKMODE_KILL)
-                    setCursorImageOverride("crosshair");
-                else
-                    setCursorImageOverride("left_ptr");
-            }
+            // TODO: maybe wrap?
+            if (m_ecbClickBehavior == CLICKMODE_KILL)
+                setCursorImageOverride("crosshair");
+            else
+                setCursorImageOverride("left_ptr");
 
             m_bEmptyFocusCursorSet = true;
         }
@@ -490,7 +488,7 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
     else
         g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
 
-    if (!cursorImageUnlocked() || !g_pHyprRenderer->m_bHasARenderedCursor)
+    if (!cursorImageUnlocked())
         return;
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
@@ -513,7 +511,7 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
 }
 
 void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
-    if (!g_pHyprRenderer->m_bHasARenderedCursor || !cursorImageUnlocked())
+    if (!cursorImageUnlocked())
         return;
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
@@ -555,9 +553,6 @@ void CInputManager::setCursorImageOverride(const std::string& name) {
 }
 
 bool CInputManager::cursorImageUnlocked() {
-    if (!g_pHyprRenderer->m_bHasARenderedCursor)
-        return false;
-
     if (m_ecbClickBehavior == CLICKMODE_KILL)
         return false;
 

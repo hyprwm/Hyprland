@@ -2031,7 +2031,7 @@ void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspo
     m_sLastCursorData.hotspotX = hotspotX;
     m_sLastCursorData.hotspotY = hotspotY;
 
-    if (shouldRenderCursor())
+    if (shouldRenderCursor() || !surf)
         wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, surf, hotspotX, hotspotY);
 }
 void CHyprRenderer::setCursorFromName(const std::string& name) {

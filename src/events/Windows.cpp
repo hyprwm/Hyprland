@@ -1189,12 +1189,14 @@ void Events::listener_associateX11(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
     PWINDOW->hyprListener_mapWindow.initCallback(&PWINDOW->m_uSurface.xwayland->surface->events.map, &Events::listener_mapWindow, PWINDOW, "XWayland Window");
+    PWINDOW->hyprListener_commitWindow.initCallback(&PWINDOW->m_uSurface.xwayland->surface->events.commit, &Events::listener_commitWindow, PWINDOW, "XWayland Window");
 }
 
 void Events::listener_dissociateX11(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
     PWINDOW->hyprListener_mapWindow.removeCallback();
+    PWINDOW->hyprListener_commitWindow.removeCallback();
 }
 
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
@@ -1217,7 +1219,6 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XWSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_setOverrideRedirect.initCallback(&XWSURFACE->events.set_override_redirect, &Events::listener_setOverrideRedirect, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_configureX11.initCallback(&XWSURFACE->events.request_configure, &Events::listener_configureX11, PNEWWINDOW, "XWayland Window");
-    PNEWWINDOW->hyprListener_commitWindow.initCallback(&XWSURFACE->surface->events.commit, &Events::listener_commitWindow, PNEWWINDOW, "XWayland Window");
 }
 
 void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {

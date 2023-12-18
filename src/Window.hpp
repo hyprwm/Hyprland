@@ -229,8 +229,7 @@ class CWindow {
     std::string m_szInitialClass = "";
     int         m_iWorkspaceID   = -1;
 
-    bool        m_bIsMapped            = false;
-    bool        m_bInitialCommitPassed = false;
+    bool        m_bIsMapped = false;
 
     bool        m_bRequestsFloat = false;
 

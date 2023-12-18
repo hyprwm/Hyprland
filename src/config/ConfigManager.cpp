@@ -88,14 +88,15 @@ void CConfigManager::setDefaultVars() {
     ((CGradientValueData*)configValues["general:col.inactive_border"].data.get())->reset(0xff444444);
     ((CGradientValueData*)configValues["general:col.nogroup_border"].data.get())->reset(0xff444444);
     ((CGradientValueData*)configValues["general:col.nogroup_border_active"].data.get())->reset(0xffff00ff);
-    configValues["general:cursor_inactive_timeout"].intValue = 0;
-    configValues["general:no_cursor_warps"].intValue         = 0;
-    configValues["general:no_focus_fallback"].intValue       = 0;
-    configValues["general:resize_on_border"].intValue        = 0;
-    configValues["general:extend_border_grab_area"].intValue = 15;
-    configValues["general:hover_icon_on_border"].intValue    = 1;
-    configValues["general:layout"].strValue                  = "dwindle";
-    configValues["general:allow_tearing"].intValue           = 0;
+    configValues["general:cursor_inactive_timeout"].intValue  = 0;
+    configValues["general:cursor_inactive_position"].vecValue = Vector2D(-1, -1);
+    configValues["general:no_cursor_warps"].intValue          = 0;
+    configValues["general:no_focus_fallback"].intValue        = 0;
+    configValues["general:resize_on_border"].intValue         = 0;
+    configValues["general:extend_border_grab_area"].intValue  = 15;
+    configValues["general:hover_icon_on_border"].intValue     = 1;
+    configValues["general:layout"].strValue                   = "dwindle";
+    configValues["general:allow_tearing"].intValue            = 0;
 
     configValues["misc:disable_hyprland_logo"].intValue            = 0;
     configValues["misc:disable_splash_rendering"].intValue         = 0;

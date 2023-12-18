@@ -103,6 +103,8 @@ class CHyprRenderer {
         int                         hotspotY;
         std::optional<wlr_surface*> surf = nullptr;
         std::string                 name;
+        double                      x; // used only while hiding or showing cursor
+        double                      y; // used only while hiding or showing cursor
     } m_sLastCursorData;
 
   private:

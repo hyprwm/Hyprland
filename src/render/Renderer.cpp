@@ -2048,18 +2048,26 @@ void CHyprRenderer::setCursorFromName(const std::string& name) {
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {
-    static auto* const PCURSORTIMEOUT = &g_pConfigManager->getConfigValuePtr("general:cursor_inactive_timeout")->intValue;
-    static auto* const PHIDEONTOUCH   = &g_pConfigManager->getConfigValuePtr("misc:hide_cursor_on_touch")->intValue;
+    static auto* const PCURSORTIMEOUT  = &g_pConfigManager->getConfigValuePtr("general:cursor_inactive_timeout")->intValue;
+    static auto* const PHIDEONTOUCH    = &g_pConfigManager->getConfigValuePtr("misc:hide_cursor_on_touch")->intValue;
+    static auto* const PCURSORPOSITION = &g_pConfigManager->getConfigValuePtr("general:cursor_inactive_position")->vecValue;
 
     const auto         PASSEDCURSORSECONDS = g_pInputManager->m_tmrLastCursorMovement.getSeconds();
 
     if (*PCURSORTIMEOUT > 0 || *PHIDEONTOUCH) {
-        const bool HIDE = (*PCURSORTIMEOUT > 0 && *PCURSORTIMEOUT < PASSEDCURSORSECONDS) || (g_pInputManager->m_bLastInputTouch && *PHIDEONTOUCH);
+        const bool HIDE           = (*PCURSORTIMEOUT > 0 && *PCURSORTIMEOUT < PASSEDCURSORSECONDS) || (g_pInputManager->m_bLastInputTouch && *PHIDEONTOUCH);
+        const bool HANDLEPOSITION = !(PCURSORPOSITION->x == -1 && PCURSORPOSITION->y == -1);
 
         if (HIDE && !m_bTimeoutRequestedCursorHide) {
             m_bTimeoutRequestedCursorHide = true;
 
             wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, nullptr, 0, 0); // hide without saving surface
+
+            if (HANDLEPOSITION) {
+                m_sLastCursorData.x = g_pCompositor->m_sWLRCursor->x;
+                m_sLastCursorData.y = g_pCompositor->m_sWLRCursor->y;
+                wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, NULL, PCURSORPOSITION->x, PCURSORPOSITION->y);
+            }
 
             Debug::log(LOG, "Hiding the cursor (timeout)");
 
@@ -2067,6 +2075,9 @@ void CHyprRenderer::ensureCursorRenderingMode() {
                 g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
         } else if (!HIDE && m_bTimeoutRequestedCursorHide) {
             m_bTimeoutRequestedCursorHide = false;
+
+            if (HANDLEPOSITION)
+                wlr_cursor_warp_closest(g_pCompositor->m_sWLRCursor, NULL, m_sLastCursorData.x, m_sLastCursorData.y);
 
             if (m_bCursorHasSurface) { // restore last used name or surface, fallback to left_ptr if we don't have one
                 if (m_sLastCursorData.name == "") {

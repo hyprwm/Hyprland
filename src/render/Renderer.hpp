@@ -99,6 +99,8 @@ class CHyprRenderer {
     CTimer                                           m_tRenderTimer;
 
     struct {
+        int                         hotspotX;
+        int                         hotspotY;
         std::optional<wlr_surface*> surf = nullptr;
         std::string                 name;
     } m_sLastCursorData;
@@ -115,12 +117,12 @@ class CHyprRenderer {
     void           renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const CBox& geometry);
     void           renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
-    bool           m_bHasARenderedCursor  = true;
-    bool           m_bCursorHasSurface    = false;
-    CRenderbuffer* m_pCurrentRenderbuffer = nullptr;
-    wlr_buffer*    m_pCurrentWlrBuffer    = nullptr;
-    eRenderMode    m_eRenderMode          = RENDER_MODE_NORMAL;
-    int            m_iLastBufferAge       = 0;
+    bool           m_bTimeoutRequestedCursorHide = false;
+    bool           m_bCursorHasSurface           = false;
+    CRenderbuffer* m_pCurrentRenderbuffer        = nullptr;
+    wlr_buffer*    m_pCurrentWlrBuffer           = nullptr;
+    eRenderMode    m_eRenderMode                 = RENDER_MODE_NORMAL;
+    int            m_iLastBufferAge              = 0;
 
     bool           m_bNvidia = false;
 

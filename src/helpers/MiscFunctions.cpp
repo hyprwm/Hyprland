@@ -577,10 +577,10 @@ void logSystemInfo() {
 
     uname(&unameInfo);
 
-    Debug::log(LOG, "System name: {}", unameInfo.sysname);
-    Debug::log(LOG, "Node name: {}", unameInfo.nodename);
-    Debug::log(LOG, "Release: {}", unameInfo.release);
-    Debug::log(LOG, "Version: {}", unameInfo.version);
+    Debug::log(LOG, "System name: {}", std::string{unameInfo.sysname});
+    Debug::log(LOG, "Node name: {}", std::string{unameInfo.nodename});
+    Debug::log(LOG, "Release: {}", std::string{unameInfo.release});
+    Debug::log(LOG, "Version: {}", std::string{unameInfo.version});
 
     Debug::log(NONE, "\n");
 

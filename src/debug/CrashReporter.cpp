@@ -63,8 +63,8 @@ void CrashReporter::createAndSaveCrash(int sig) {
     struct utsname unameInfo;
     uname(&unameInfo);
 
-    finalCrashReport +=
-        std::format("\tSystem name: {}\n\tNode name: {}\n\tRelease: {}\n\tVersion: {}\n\n", unameInfo.sysname, unameInfo.nodename, unameInfo.release, unameInfo.version);
+    finalCrashReport += std::format("\tSystem name: {}\n\tNode name: {}\n\tRelease: {}\n\tVersion: {}\n\n", std::string{unameInfo.sysname}, std::string{unameInfo.nodename},
+                                    std::string{unameInfo.release}, std::string{unameInfo.version});
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");

@@ -51,7 +51,7 @@ CHyprRenderer::CHyprRenderer() {
         Debug::log(WARN, "NVIDIA detected, please remember to follow nvidia instructions on the wiki");
 }
 
-void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
+static void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE = wlr_surface_get_texture(surface);
     const auto RDATA   = (SRenderData*)data;
 
@@ -1348,7 +1348,7 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
 
 // taken from Sway.
 // this is just too much of a spaghetti for me to understand
-void apply_exclusive(struct wlr_box* usable_area, uint32_t anchor, int32_t exclusive, int32_t margin_top, int32_t margin_right, int32_t margin_bottom, int32_t margin_left) {
+static void applyExclusive(wlr_box& usableArea, uint32_t anchor, int32_t exclusive, int32_t marginTop, int32_t marginRight, int32_t marginBottom, int32_t marginLeft) {
     if (exclusive <= 0) {
         return;
     }
@@ -1363,33 +1363,33 @@ void apply_exclusive(struct wlr_box* usable_area, uint32_t anchor, int32_t exclu
         {
             .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP,
             .anchor_triplet  = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT | ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP,
-            .positive_axis   = &usable_area->y,
-            .negative_axis   = &usable_area->height,
-            .margin          = margin_top,
+            .positive_axis   = &usableArea.y,
+            .negative_axis   = &usableArea.height,
+            .margin          = marginTop,
         },
         // Bottom
         {
             .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
             .anchor_triplet  = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
             .positive_axis   = NULL,
-            .negative_axis   = &usable_area->height,
-            .margin          = margin_bottom,
+            .negative_axis   = &usableArea.height,
+            .margin          = marginBottom,
         },
         // Left
         {
             .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT,
             .anchor_triplet  = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
-            .positive_axis   = &usable_area->x,
-            .negative_axis   = &usable_area->width,
-            .margin          = margin_left,
+            .positive_axis   = &usableArea.x,
+            .negative_axis   = &usableArea.width,
+            .margin          = marginLeft,
         },
         // Right
         {
             .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
             .anchor_triplet  = ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT | ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
             .positive_axis   = NULL,
-            .negative_axis   = &usable_area->width,
-            .margin          = margin_right,
+            .negative_axis   = &usableArea.width,
+            .margin          = marginRight,
         },
     };
     for (size_t i = 0; i < sizeof(edges) / sizeof(edges[0]); ++i) {
@@ -1480,7 +1480,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
         // Apply
         ls->geometry = box;
 
-        apply_exclusive(usableArea->pWlr(), PSTATE->anchor, PSTATE->exclusive_zone, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
+        applyExclusive(*usableArea->pWlr(), PSTATE->anchor, PSTATE->exclusive_zone, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
         usableArea->applyFromWlr();
 

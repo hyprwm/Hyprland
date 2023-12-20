@@ -50,7 +50,7 @@ CCompositor::CCompositor() {
 
     if (!std::filesystem::exists("/tmp/hypr")) {
         std::filesystem::create_directory("/tmp/hypr");
-        std::filesystem::permissions("/tmp/hypr", std::filesystem::perms::all, std::filesystem::perm_options::replace);
+        std::filesystem::permissions("/tmp/hypr", std::filesystem::perms::all | std::filesystem::perms::sticky_bit, std::filesystem::perm_options::replace);
     }
 
     const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;

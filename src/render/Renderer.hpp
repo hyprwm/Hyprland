@@ -56,14 +56,15 @@ class CHyprRenderer {
     bool                            shouldRenderWindow(CWindow*);
     void                            ensureCursorRenderingMode();
     bool                            shouldRenderCursor();
+    void                            setCursorHidden(bool hide);
     void                            calculateUVForSurface(CWindow*, wlr_surface*, bool main = false);
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now);
     void                            setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace);
     bool                            canSkipBackBufferClear(CMonitor* pMonitor);
     void                            recheckSolitaryForMonitor(CMonitor* pMonitor);
-    void                            setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY);
-    void                            setCursorFromName(const std::string& name);
+    void                            setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY, bool force = false);
+    void                            setCursorFromName(const std::string& name, bool force = false);
     void                            renderSoftwareCursors(CMonitor* pMonitor, const CRegion& damage, std::optional<Vector2D> overridePos = {});
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
     CRenderbuffer*                  getCurrentRBO();
@@ -117,12 +118,12 @@ class CHyprRenderer {
     void           renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const CBox& geometry);
     void           renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
-    bool           m_bTimeoutRequestedCursorHide = false;
-    bool           m_bCursorHasSurface           = false;
-    CRenderbuffer* m_pCurrentRenderbuffer        = nullptr;
-    wlr_buffer*    m_pCurrentWlrBuffer           = nullptr;
-    eRenderMode    m_eRenderMode                 = RENDER_MODE_NORMAL;
-    int            m_iLastBufferAge              = 0;
+    bool           m_bCursorHidden        = false;
+    bool           m_bCursorHasSurface    = false;
+    CRenderbuffer* m_pCurrentRenderbuffer = nullptr;
+    wlr_buffer*    m_pCurrentWlrBuffer    = nullptr;
+    eRenderMode    m_eRenderMode          = RENDER_MODE_NORMAL;
+    int            m_iLastBufferAge       = 0;
 
     bool           m_bNvidia = false;
 

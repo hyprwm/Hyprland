@@ -2020,10 +2020,10 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     return true;
 }
 
-void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY) {
+void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY, bool force) {
     m_bCursorHasSurface = surf;
 
-    if (surf == m_sLastCursorData.surf)
+    if ((surf == m_sLastCursorData.surf || m_bCursorHidden) && !force)
         return;
 
     m_sLastCursorData.name     = "";
@@ -2034,10 +2034,10 @@ void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspo
     wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, surf, hotspotX, hotspotY);
 }
 
-void CHyprRenderer::setCursorFromName(const std::string& name) {
+void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
     m_bCursorHasSurface = true;
 
-    if (name == m_sLastCursorData.name)
+    if ((name == m_sLastCursorData.name || m_bCursorHidden) && !force)
         return;
 
     m_sLastCursorData.name = name;
@@ -2055,28 +2055,49 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     if (*PCURSORTIMEOUT > 0 || *PHIDEONTOUCH) {
         const bool HIDE = (*PCURSORTIMEOUT > 0 && *PCURSORTIMEOUT < PASSEDCURSORSECONDS) || (g_pInputManager->m_bLastInputTouch && *PHIDEONTOUCH);
 
-        if (HIDE && !m_bTimeoutRequestedCursorHide) {
-            m_bTimeoutRequestedCursorHide = true;
-
+        if (HIDE && !m_bCursorHidden) {
             Debug::log(LOG, "Hiding the cursor (timeout)");
 
             for (auto& m : g_pCompositor->m_vMonitors)
                 g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
-        } else if (!HIDE && m_bTimeoutRequestedCursorHide) {
-            m_bTimeoutRequestedCursorHide = false;
 
+            setCursorHidden(true);
+
+        } else if (!HIDE && m_bCursorHidden) {
             Debug::log(LOG, "Showing the cursor (timeout)");
 
             for (auto& m : g_pCompositor->m_vMonitors)
                 g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
+
+            setCursorHidden(false);
         }
     } else {
-        m_bTimeoutRequestedCursorHide = false;
+        setCursorHidden(false);
     }
 }
 
+void CHyprRenderer::setCursorHidden(bool hide) {
+
+    if (hide == m_bCursorHidden)
+        return;
+
+    m_bCursorHidden = hide;
+
+    if (hide) {
+        wlr_cursor_unset_image(g_pCompositor->m_sWLRCursor);
+        return;
+    }
+
+    if (m_sLastCursorData.surf.has_value())
+        setCursorSurface(m_sLastCursorData.surf.value(), m_sLastCursorData.hotspotX, m_sLastCursorData.hotspotY, true);
+    else if (!m_sLastCursorData.name.empty())
+        setCursorFromName(m_sLastCursorData.name, true);
+    else
+        setCursorFromName("left_ptr", true);
+}
+
 bool CHyprRenderer::shouldRenderCursor() {
-    return !m_bTimeoutRequestedCursorHide && !m_bWindowRequestedCursorHide && m_bCursorHasSurface;
+    return !m_bCursorHidden && !m_bWindowRequestedCursorHide && m_bCursorHasSurface;
 }
 
 std::tuple<float, float, float> CHyprRenderer::getRenderTimes(CMonitor* pMonitor) {

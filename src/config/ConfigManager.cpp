@@ -1478,7 +1478,10 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equalsPlace) {
     auto dollarPlace = line.find_first_of('$', equalsPlace);
 
+    int  times = 0;
+
     while (dollarPlace != std::string::npos) {
+        times++;
 
         const auto STRAFTERDOLLAR = line.substr(dollarPlace + 1);
         bool       found          = false;
@@ -1501,6 +1504,13 @@ void CConfigManager::applyUserDefinedVars(std::string& line, const size_t equals
         }
 
         dollarPlace = line.find_first_of('$', dollarPlace + 1);
+
+        if (times > 256 /* arbitrary limit */) {
+            line       = "";
+            parseError = "Maximum variable recursion limit hit. Evaluating the line led to too many variable substitutions.";
+            Debug::log(ERR, "Variable recursion limit hit in configmanager");
+            break;
+        }
     }
 }
 

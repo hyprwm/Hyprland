@@ -1337,6 +1337,50 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
                     nd.percMaster = std::clamp(newMfact, 0.05f, 0.95f);
             }
         }
+    } else if (command == "rollnext") {
+        const auto PWINDOW = header.pWindow;
+        const auto PNODE   = getNodeFromWindow(PWINDOW);
+
+        const auto OLDMASTER   = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
+        const auto OLDMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OLDMASTER);
+
+        for (auto& nd : m_lMasterNodesData) {
+            if (nd.workspaceID == PNODE->workspaceID && !nd.isMaster) {
+                nd.isMaster            = true;
+                const auto NEWMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), nd);
+                m_lMasterNodesData.splice(OLDMASTERIT, m_lMasterNodesData, NEWMASTERIT);
+                const bool inheritFullscreen = prepareLoseFocus(PWINDOW);
+                switchToWindow(nd.pWindow);
+                prepareNewFocus(nd.pWindow, inheritFullscreen);
+                OLDMASTER->isMaster = false;
+                m_lMasterNodesData.splice(m_lMasterNodesData.end(), m_lMasterNodesData, OLDMASTERIT);
+                break;
+            }
+        }
+
+        recalculateMonitor(PWINDOW->m_iMonitorID);
+    } else if (command == "rollprev") {
+        const auto PWINDOW = header.pWindow;
+        const auto PNODE   = getNodeFromWindow(PWINDOW);
+
+        const auto OLDMASTER   = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
+        const auto OLDMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OLDMASTER);
+
+        for (auto& nd : m_lMasterNodesData | std::views::reverse) {
+            if (nd.workspaceID == PNODE->workspaceID && !nd.isMaster) {
+                nd.isMaster            = true;
+                const auto NEWMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), nd);
+                m_lMasterNodesData.splice(OLDMASTERIT, m_lMasterNodesData, NEWMASTERIT);
+                const bool inheritFullscreen = prepareLoseFocus(PWINDOW);
+                switchToWindow(nd.pWindow);
+                prepareNewFocus(nd.pWindow, inheritFullscreen);
+                OLDMASTER->isMaster = false;
+                m_lMasterNodesData.splice(m_lMasterNodesData.begin(), m_lMasterNodesData, OLDMASTERIT);
+                break;
+            }
+        }
+
+        recalculateMonitor(PWINDOW->m_iMonitorID);
     }
 
     return 0;

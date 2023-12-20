@@ -2058,24 +2058,12 @@ void CHyprRenderer::ensureCursorRenderingMode() {
         if (HIDE && !m_bTimeoutRequestedCursorHide) {
             m_bTimeoutRequestedCursorHide = true;
 
-            wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, nullptr, 0, 0); // hide without saving surface
-
             Debug::log(LOG, "Hiding the cursor (timeout)");
 
             for (auto& m : g_pCompositor->m_vMonitors)
                 g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
         } else if (!HIDE && m_bTimeoutRequestedCursorHide) {
             m_bTimeoutRequestedCursorHide = false;
-
-            if (m_bCursorHasSurface) { // restore last used name or surface, fallback to left_ptr if we don't have one
-                if (m_sLastCursorData.name == "") {
-                    wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, m_sLastCursorData.surf.value_or(nullptr), m_sLastCursorData.hotspotX, m_sLastCursorData.hotspotY);
-                } else {
-                    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, m_sLastCursorData.name.c_str());
-                }
-            } else {
-                setCursorFromName("left_ptr");
-            }
 
             Debug::log(LOG, "Showing the cursor (timeout)");
 

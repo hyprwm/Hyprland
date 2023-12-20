@@ -2031,9 +2031,9 @@ void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspo
     m_sLastCursorData.hotspotX = hotspotX;
     m_sLastCursorData.hotspotY = hotspotY;
 
-    if (shouldRenderCursor() || !surf)
-        wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, surf, hotspotX, hotspotY);
+    wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, surf, hotspotX, hotspotY);
 }
+
 void CHyprRenderer::setCursorFromName(const std::string& name) {
     m_bCursorHasSurface = true;
 
@@ -2043,8 +2043,7 @@ void CHyprRenderer::setCursorFromName(const std::string& name) {
     m_sLastCursorData.name = name;
     m_sLastCursorData.surf.reset();
 
-    if (shouldRenderCursor())
-        wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
+    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {

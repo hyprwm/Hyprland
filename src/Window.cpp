@@ -448,6 +448,8 @@ void CWindow::onUnmap() {
 
     if (PMONITOR && PMONITOR->solitaryClient == this)
         PMONITOR->solitaryClient = nullptr;
+
+    g_pCompositor->updateWorkspaceWindows(m_iWorkspaceID);
 }
 
 void CWindow::onMap() {
@@ -485,6 +487,8 @@ void CWindow::onMap() {
                                           "CWindow");
 
     m_vReportedSize = m_vPendingReportedSize;
+
+    g_pCompositor->updateWorkspaceWindows(m_iWorkspaceID);
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {

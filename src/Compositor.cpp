@@ -1814,6 +1814,15 @@ void CCompositor::updateAllWindowsAnimatedDecorationValues() {
     }
 }
 
+void CCompositor::updateWorkspaceWindows(const int64_t& id) {
+    for (auto& w : m_vWindows) {
+        if (!w->m_bIsMapped || w->m_iWorkspaceID != id)
+            continue;
+
+        w->updateDynamicRules();
+    }
+}
+
 void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     // optimization
     static auto* const ACTIVECOL              = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("general:col.active_border")->data.get();
@@ -2643,6 +2652,9 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
 
     if (FULLSCREEN)
         setWindowFullscreen(pWindow, true, FULLSCREENMODE);
+
+    g_pCompositor->updateWorkspaceWindows(pWorkspace->m_iID);
+    g_pCompositor->updateWorkspaceWindows(pWindow->m_iWorkspaceID);
 }
 
 CWindow* CCompositor::getForceFocus() {

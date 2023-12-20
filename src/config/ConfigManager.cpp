@@ -1026,17 +1026,28 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     rule.szRule  = RULE;
     rule.szValue = VALUE;
 
-    const auto TITLEPOS      = VALUE.find("title:");
-    const auto CLASSPOS      = VALUE.find("class:");
-    const auto X11POS        = VALUE.find("xwayland:");
-    const auto FLOATPOS      = VALUE.find("floating:");
-    const auto FULLSCREENPOS = VALUE.find("fullscreen:");
-    const auto PINNEDPOS     = VALUE.find("pinned:");
-    const auto WORKSPACEPOS  = VALUE.find("workspace:");
-    const auto FOCUSPOS      = VALUE.find("focus:");
+    const auto TITLEPOS       = VALUE.find("title:");
+    const auto CLASSPOS       = VALUE.find("class:");
+    const auto X11POS         = VALUE.find("xwayland:");
+    const auto FLOATPOS       = VALUE.find("floating:");
+    const auto FULLSCREENPOS  = VALUE.find("fullscreen:");
+    const auto PINNEDPOS      = VALUE.find("pinned:");
+    const auto FOCUSPOS       = VALUE.find("focus:");
+    const auto ONWORKSPACEPOS = VALUE.find("onworkspace:");
+
+    // find workspacepos that isn't onworkspacepos
+    size_t WORKSPACEPOS = std::string::npos;
+    size_t currentPos   = 0;
+    while (currentPos != std::string::npos) {
+        if (currentPos > 0 && VALUE[currentPos - 1] != 'n') {
+            WORKSPACEPOS = currentPos;
+            break;
+        }
+        currentPos = VALUE.find("workspace:", currentPos + 1);
+    }
 
     if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos &&
-        PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos && FOCUSPOS == std::string::npos) {
+        PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos && FOCUSPOS == std::string::npos && ONWORKSPACEPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -1059,6 +1070,8 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
             min = FULLSCREENPOS;
         if (PINNEDPOS > pos && PINNEDPOS < min)
             min = PINNEDPOS;
+        if (ONWORKSPACEPOS > pos && ONWORKSPACEPOS < min)
+            min = ONWORKSPACEPOS;
         if (WORKSPACEPOS > pos && WORKSPACEPOS < min)
             min = WORKSPACEPOS;
         if (FOCUSPOS > pos && FOCUSPOS < min)
@@ -1098,6 +1111,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     if (FOCUSPOS != std::string::npos)
         rule.bFocus = extract(FOCUSPOS + 6) == "1" ? 1 : 0;
 
+    if (ONWORKSPACEPOS != std::string::npos)
+        rule.iOnWorkspace = configStringToInt(extract(ONWORKSPACEPOS + 12));
+
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
             if (!other.v2) {
@@ -1125,6 +1141,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
                     return false;
 
                 if (rule.bFocus != -1 && rule.bFocus != other.bFocus)
+                    return false;
+
+                if (rule.iOnWorkspace != -1 && rule.iOnWorkspace != other.iOnWorkspace)
                     return false;
 
                 return true;
@@ -2009,6 +2028,11 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 
                 if (rule.bFocus != -1) {
                     if (rule.bFocus != (g_pCompositor->m_pLastWindow == pWindow))
+                        continue;
+                }
+
+                if (rule.iOnWorkspace != -1) {
+                    if (rule.iOnWorkspace != g_pCompositor->getWindowsOnWorkspace(pWindow->m_iWorkspaceID))
                         continue;
                 }
 

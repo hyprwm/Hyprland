@@ -172,6 +172,7 @@ class CCompositor {
     CWindow*       getConstraintWindow(SMouse*);
     CMonitor*      getMonitorInDirection(const char&);
     void           updateAllWindowsAnimatedDecorationValues();
+    void           updateWorkspaceWindows(const int64_t& id);
     void           updateWindowAnimatedDecorationValues(CWindow*);
     int            getNextAvailableMonitorID(std::string const& name);
     void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*);

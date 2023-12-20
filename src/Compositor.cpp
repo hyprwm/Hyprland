@@ -24,7 +24,7 @@ void handleUnrecoverableSignal(int sig) {
     signal(SIGABRT, SIG_DFL);
     signal(SIGSEGV, SIG_DFL);
 
-    if (g_pHookSystem->m_bCurrentEventPlugin) {
+    if (g_pHookSystem && g_pHookSystem->m_bCurrentEventPlugin) {
         longjmp(g_pHookSystem->m_jbHookFaultJumpBuf, 1);
         return;
     }

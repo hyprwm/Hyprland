@@ -130,19 +130,15 @@ void CrashReporter::createAndSaveCrash(int sig) {
     std::ofstream ofs;
     std::string   path;
     if (!CACHE_HOME || std::string(CACHE_HOME).empty()) {
-        if (!std::filesystem::exists(std::string(HOME) + "/.hyprland")) {
+        if (!std::filesystem::exists(std::string(HOME) + "/.hyprland"))
             std::filesystem::create_directory(std::string(HOME) + "/.hyprland");
-            std::filesystem::permissions(std::string(HOME) + "/.hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
-        }
 
         path = std::string(HOME) + "/.hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt";
         ofs.open(path, std::ios::trunc);
 
     } else {
-        if (!std::filesystem::exists(std::string(CACHE_HOME) + "/hyprland")) {
+        if (!std::filesystem::exists(std::string(CACHE_HOME) + "/hyprland"))
             std::filesystem::create_directory(std::string(CACHE_HOME) + "/hyprland");
-            std::filesystem::permissions(std::string(CACHE_HOME) + "/hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
-        }
 
         path = std::string(CACHE_HOME) + "/hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt";
         ofs.open(path, std::ios::trunc);

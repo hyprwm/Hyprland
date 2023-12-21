@@ -125,13 +125,12 @@ void CCompositor::initServer() {
 
     initManagers(STAGE_PRIORITY);
 
-    if (const auto ENV = getenv("HYPRLAND_TRACE"); ENV && std::string(ENV) == "1")
+    if (envEnabled("HYPRLAND_TRACE"))
         Debug::trace = true;
 
     wlr_log_init(WLR_INFO, NULL);
 
-    const auto LOGWLR = getenv("HYPRLAND_LOG_WLR");
-    if (LOGWLR && std::string(LOGWLR) == "1")
+    if (envEnabled("HYPRLAND_LOG_WLR"))
         wlr_log_init(WLR_DEBUG, Debug::wlrLog);
     else
         wlr_log_init(WLR_ERROR, Debug::wlrLog);
@@ -343,7 +342,7 @@ void CCompositor::cleanup() {
     Debug::shuttingDown = true;
 
 #ifdef USES_SYSTEMD
-    if (sd_booted() > 0)
+    if (sd_booted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
         sd_notify(0, "STOPPING=1");
 #endif
 
@@ -540,10 +539,11 @@ void CCompositor::startCompositor() {
     g_pHyprRenderer->setCursorFromName("left_ptr");
 
 #ifdef USES_SYSTEMD
-    if (sd_booted() > 0)
+    if (sd_booted() > 0) {
         // tell systemd that we are ready so it can start other bond, following, related units
-        sd_notify(0, "READY=1");
-    else
+        if (!envEnabled("HYPRLAND_NO_SD_NOTIFY"))
+            sd_notify(0, "READY=1");
+    } else
         Debug::log(LOG, "systemd integration is baked in but system itself is not booted à la systemd!");
 #endif
 
@@ -2598,9 +2598,7 @@ int CCompositor::getNewSpecialID() {
 }
 
 void CCompositor::performUserChecks() {
-    const auto atomicEnv    = getenv("WLR_DRM_NO_ATOMIC");
-    const auto atomicEnvStr = std::string(atomicEnv ? atomicEnv : "");
-    if (g_pConfigManager->getInt("general:allow_tearing") == 1 && atomicEnvStr != "1") {
+    if (g_pConfigManager->getInt("general:allow_tearing") == 1 && !envEnabled("WLR_DRM_NO_ATOMIC")) {
         g_pHyprNotificationOverlay->addNotification("You have enabled tearing, but immediate presentations are not available on your configuration. Try adding "
                                                     "env = WLR_DRM_NO_ATOMIC,1 to your config.",
                                                     CColor(0), 15000, ICON_WARNING);

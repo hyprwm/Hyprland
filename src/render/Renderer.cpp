@@ -9,9 +9,7 @@ extern "C" {
 }
 
 CHyprRenderer::CHyprRenderer() {
-    const auto ENV = getenv("WLR_DRM_NO_ATOMIC");
-
-    if (ENV && std::string(ENV) == "1")
+    if (envEnabled("WLR_DRM_NO_ATOMIC"))
         m_bTearingEnvSatisfied = true;
 
     if (g_pCompositor->m_sWLRSession) {

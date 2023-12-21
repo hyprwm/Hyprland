@@ -792,3 +792,10 @@ uint32_t glFormatToType(uint32_t gl) {
 #endif
         GL_UNSIGNED_BYTE;
 }
+
+bool envEnabled(const std::string& env) {
+    const auto ENV = getenv(env.c_str());
+    if (!ENV)
+        return false;
+    return std::string(ENV) == "1";
+}

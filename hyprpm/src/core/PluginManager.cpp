@@ -13,7 +13,26 @@
 
 #include <toml++/toml.hpp>
 
-std::string execAndGet(std::string cmd) {
+static std::string removeBeginEndSpacesTabs(std::string str) {
+    if (str.empty())
+        return str;
+
+    int countBefore = 0;
+    while (str[countBefore] == ' ' || str[countBefore] == '\t') {
+        countBefore++;
+    }
+
+    int countAfter = 0;
+    while ((int)str.length() - countAfter - 1 >= 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
+        countAfter++;
+    }
+
+    str = str.substr(countBefore, str.length() - countBefore - countAfter);
+
+    return str;
+}
+
+static std::string execAndGet(std::string cmd) {
     cmd += " 2>&1";
     std::array<char, 128>                          buffer;
     std::string                                    result;
@@ -265,7 +284,7 @@ eHeadersErrors CPluginManager::headersValid() {
         if (PATH.ends_with("protocols") || PATH.ends_with("wlroots"))
             continue;
 
-        verHeader = PATH.substr(2) + "/hyprland/src/version.h";
+        verHeader = removeBeginEndSpacesTabs(PATH.substr(2)) + "/hyprland/src/version.h";
         break;
     }
 

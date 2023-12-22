@@ -1704,7 +1704,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     // Check if the rule isn't already applied
     // TODO: clean this up lol
     if (!force && DELTALESSTHAN(pMonitor->vecPixelSize.x, pMonitorRule->resolution.x, 1) && DELTALESSTHAN(pMonitor->vecPixelSize.y, pMonitorRule->resolution.y, 1) &&
-        DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->scale == pMonitorRule->scale &&
+        DELTALESSTHAN(pMonitor->refreshRate, pMonitorRule->refreshRate, 1) && pMonitor->setScale == pMonitorRule->scale &&
         ((DELTALESSTHAN(pMonitor->vecPosition.x, pMonitorRule->offset.x, 1) && DELTALESSTHAN(pMonitor->vecPosition.y, pMonitorRule->offset.y, 1)) ||
          pMonitorRule->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
         pMonitor->transform == pMonitorRule->transform && pMonitorRule->enable10bit == pMonitor->enabled10bit &&
@@ -1725,6 +1725,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         wlr_output_set_scale(pMonitor->output, DEFAULTSCALE);
         pMonitor->scale = DEFAULTSCALE;
     }
+
+    pMonitor->setScale = pMonitor->scale;
 
     wlr_output_set_transform(pMonitor->output, pMonitorRule->transform);
     pMonitor->transform = pMonitorRule->transform;
@@ -1941,6 +1943,42 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->vrrActive = pMonitor->output->pending.adaptive_sync_enabled; // disabled here, will be tested in CConfigManager::ensureVRR()
 
     pMonitor->vecPixelSize = pMonitor->vecSize;
+
+    Vector2D logicalSize = pMonitor->vecPixelSize / pMonitor->scale;
+    if (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y)) {
+        // invalid scale, will produce fractional pixels.
+        // find the nearest valid.
+
+        float searchScale = std::round(pMonitor->scale * 360.0);
+        bool  found       = false;
+
+        for (size_t i = 0; i < 90; ++i) {
+            double   scaleUp   = (searchScale + i) / 360.0;
+            double   scaleDown = (searchScale - i) / 360.0;
+
+            Vector2D logicalUp   = pMonitor->vecPixelSize / scaleUp;
+            Vector2D logicalDown = pMonitor->vecPixelSize / scaleDown;
+
+            if (logicalUp == logicalUp.round()) {
+                found       = true;
+                searchScale = scaleUp;
+                break;
+            }
+            if (logicalDown == logicalDown.round()) {
+                found       = true;
+                searchScale = scaleDown;
+                break;
+            }
+        }
+
+        if (!found) {
+            Debug::log(ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", pMonitor->scale);
+            g_pConfigManager->addParseError("Invalid scale passed to monitor " + pMonitor->szName + ", failed to find a clean divisor");
+        } else {
+            Debug::log(WARN, "Invalid scale ({}) passed to monitor, adjusting to {}", pMonitor->scale, searchScale);
+            pMonitor->scale = searchScale;
+        }
+    }
 
     // clang-format off
     static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{

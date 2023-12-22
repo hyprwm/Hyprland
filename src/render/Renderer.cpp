@@ -1948,34 +1948,44 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         // invalid scale, will produce fractional pixels.
         // find the nearest valid.
 
-        float searchScale = std::round(pMonitor->scale * 360.0);
-        bool  found       = false;
+        float    searchScale = std::round(pMonitor->scale * 360.0);
+        bool     found       = false;
 
-        for (size_t i = 0; i < 90; ++i) {
-            double   scaleUp   = (searchScale + i) / 360.0;
-            double   scaleDown = (searchScale - i) / 360.0;
+        double   scaleZero = searchScale / 360.0;
 
-            Vector2D logicalUp   = pMonitor->vecPixelSize / scaleUp;
-            Vector2D logicalDown = pMonitor->vecPixelSize / scaleDown;
-
-            if (logicalUp == logicalUp.round()) {
-                found       = true;
-                searchScale = scaleUp;
-                break;
-            }
-            if (logicalDown == logicalDown.round()) {
-                found       = true;
-                searchScale = scaleDown;
-                break;
-            }
-        }
-
-        if (!found) {
-            Debug::log(ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", pMonitor->scale);
-            g_pConfigManager->addParseError("Invalid scale passed to monitor " + pMonitor->szName + ", failed to find a clean divisor");
+        Vector2D logicalZero = pMonitor->vecPixelSize / scaleZero;
+        if (logicalZero == logicalZero.round()) {
+            pMonitor->scale = scaleZero;
         } else {
-            Debug::log(WARN, "Invalid scale ({}) passed to monitor, adjusting to {}", pMonitor->scale, searchScale);
-            pMonitor->scale = searchScale;
+            for (size_t i = 1; i < 90; ++i) {
+                double   scaleUp   = (searchScale + i) / 360.0;
+                double   scaleDown = (searchScale - i) / 360.0;
+
+                Vector2D logicalUp   = pMonitor->vecPixelSize / scaleUp;
+                Vector2D logicalDown = pMonitor->vecPixelSize / scaleDown;
+
+                if (logicalUp == logicalUp.round()) {
+                    found       = true;
+                    searchScale = scaleUp;
+                    break;
+                }
+                if (logicalDown == logicalDown.round()) {
+                    found       = true;
+                    searchScale = scaleDown;
+                    break;
+                }
+            }
+
+            if (!found) {
+                Debug::log(ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", pMonitor->scale);
+                g_pConfigManager->addParseError("Invalid scale passed to monitor " + pMonitor->szName + ", failed to find a clean divisor");
+            } else {
+                Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", pMonitor->scale, searchScale);
+                g_pConfigManager->addParseError(
+                    std::format("Invalid scale passed to monitor {}, failed to find a clean divisor. Suggested nearest scale: {:4f}", pMonitor->szName, searchScale));
+            }
+
+            pMonitor->scale = pMonitor->getDefaultScale();
         }
     }
 

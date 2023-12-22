@@ -1718,14 +1718,13 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->customDrmMode = {};
 
     if (pMonitorRule->scale > 0.1) {
-        wlr_output_set_scale(pMonitor->output, pMonitorRule->scale);
         pMonitor->scale = pMonitorRule->scale;
     } else {
         const auto DEFAULTSCALE = pMonitor->getDefaultScale();
-        wlr_output_set_scale(pMonitor->output, DEFAULTSCALE);
-        pMonitor->scale = DEFAULTSCALE;
+        pMonitor->scale         = DEFAULTSCALE;
     }
 
+    wlr_output_set_scale(pMonitor->output, pMonitor->scale);
     pMonitor->setScale = pMonitor->scale;
 
     wlr_output_set_transform(pMonitor->output, pMonitorRule->transform);
@@ -1979,6 +1978,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             pMonitor->scale = searchScale;
         }
     }
+
+    wlr_output_set_scale(pMonitor->output, pMonitor->scale);
 
     // clang-format off
     static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{

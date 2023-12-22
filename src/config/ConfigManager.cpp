@@ -146,17 +146,18 @@ void CConfigManager::setDefaultVars() {
     ((CGradientValueData*)configValues["group:groupbar:col.locked_active"].data.get())->reset(0x66ff5500);
     ((CGradientValueData*)configValues["group:groupbar:col.locked_inactive"].data.get())->reset(0x66775500);
 
-    configValues["debug:int"].intValue                = 0;
-    configValues["debug:log_damage"].intValue         = 0;
-    configValues["debug:overlay"].intValue            = 0;
-    configValues["debug:damage_blink"].intValue       = 0;
-    configValues["debug:disable_logs"].intValue       = 1;
-    configValues["debug:disable_time"].intValue       = 1;
-    configValues["debug:enable_stdout_logs"].intValue = 0;
-    configValues["debug:damage_tracking"].intValue    = DAMAGE_TRACKING_FULL;
-    configValues["debug:manual_crash"].intValue       = 0;
-    configValues["debug:suppress_errors"].intValue    = 0;
-    configValues["debug:watchdog_timeout"].intValue   = 5;
+    configValues["debug:int"].intValue                  = 0;
+    configValues["debug:log_damage"].intValue           = 0;
+    configValues["debug:overlay"].intValue              = 0;
+    configValues["debug:damage_blink"].intValue         = 0;
+    configValues["debug:disable_logs"].intValue         = 1;
+    configValues["debug:disable_time"].intValue         = 1;
+    configValues["debug:enable_stdout_logs"].intValue   = 0;
+    configValues["debug:damage_tracking"].intValue      = DAMAGE_TRACKING_FULL;
+    configValues["debug:manual_crash"].intValue         = 0;
+    configValues["debug:suppress_errors"].intValue      = 0;
+    configValues["debug:watchdog_timeout"].intValue     = 5;
+    configValues["debug:disable_scale_checks"].intValue = 0;
 
     configValues["decoration:rounding"].intValue                 = 0;
     configValues["decoration:blur:enabled"].intValue             = 1;

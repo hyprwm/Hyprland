@@ -40,7 +40,8 @@ class CMonitor {
 
     uint64_t        ID              = -1;
     int             activeWorkspace = -1;
-    float           scale           = 1;
+    float           setScale        = 1; // scale set by cfg
+    float           scale           = 1; // real scale
 
     std::string     szName        = "";
     std::string     szDescription = "";

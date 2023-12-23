@@ -487,8 +487,6 @@ void CWindow::onMap() {
                                           "CWindow");
 
     m_vReportedSize = m_vPendingReportedSize;
-
-    g_pCompositor->updateWorkspaceWindows(m_iWorkspaceID);
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {

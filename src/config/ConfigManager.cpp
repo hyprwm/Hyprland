@@ -1038,9 +1038,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
-    size_t currentPos   = 0;
+    size_t currentPos   = VALUE.find("workspace:");
     while (currentPos != std::string::npos) {
-        if (currentPos > 0 && VALUE[currentPos - 1] != 'n') {
+        if (currentPos == 0 || VALUE[currentPos - 1] != 'n') {
             WORKSPACEPOS = currentPos;
             break;
         }

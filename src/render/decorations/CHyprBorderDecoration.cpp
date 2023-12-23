@@ -51,7 +51,7 @@ void CHyprBorderDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& of
     if (m_bAssignedGeometry.width < m_seExtents.topLeft.x + 1 || m_bAssignedGeometry.height < m_seExtents.topLeft.y + 1)
         return;
 
-    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
+    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition + offset).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
         return;

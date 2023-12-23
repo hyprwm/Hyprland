@@ -367,6 +367,7 @@ class CWindow {
     float                    rounding();
     bool                     canBeTorn();
     bool                     shouldSendFullscreenState();
+    void                     setSuspended(bool suspend);
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();
@@ -392,7 +393,8 @@ class CWindow {
 
   private:
     // For hidden windows and stuff
-    bool m_bHidden = false;
+    bool m_bHidden    = false;
+    bool m_bSuspended = false;
 };
 
 /**

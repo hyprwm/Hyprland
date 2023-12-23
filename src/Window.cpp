@@ -511,6 +511,8 @@ void CWindow::setHidden(bool hidden) {
     if (hidden && g_pCompositor->m_pLastWindow == this) {
         g_pCompositor->m_pLastWindow = nullptr;
     }
+
+    setSuspended(hidden);
 }
 
 bool CWindow::isHidden() {
@@ -1006,4 +1008,14 @@ bool CWindow::canBeTorn() {
 bool CWindow::shouldSendFullscreenState() {
     const auto MODE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID)->m_efFullscreenMode;
     return m_bFakeFullscreenState || (m_bIsFullscreen && (MODE == FULLSCREEN_FULL));
+}
+
+void CWindow::setSuspended(bool suspend) {
+    if (suspend == m_bSuspended)
+        return;
+
+    if (m_bIsX11)
+        return;
+
+    wlr_xdg_toplevel_set_suspended(m_uSurface.xdg->toplevel, suspend);
 }

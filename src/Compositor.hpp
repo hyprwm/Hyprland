@@ -208,6 +208,7 @@ class CCompositor {
     void           leaveUnsafeState();
     void           setPreferredScaleForSurface(wlr_surface* pSurface, double scale);
     void           setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform);
+    void           updateSuspendedStates();
 
     std::string    explicitConfigPath;
 

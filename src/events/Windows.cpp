@@ -643,6 +643,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // fix some xwayland apps that don't behave nicely
     PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
+
+    g_pCompositor->updateWorkspaceWindows(PWINDOW->m_iWorkspaceID);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {

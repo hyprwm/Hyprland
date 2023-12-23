@@ -61,6 +61,7 @@ class CHyprRenderer {
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now);
     void                            setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace);
+    void                            setOccludedForMainWorkspace(CRegion& region, CWorkspace* pWorkspace); // TODO: merge occlusion methods
     bool                            canSkipBackBufferClear(CMonitor* pMonitor);
     void                            recheckSolitaryForMonitor(CMonitor* pMonitor);
     void                            setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY, bool force = false);

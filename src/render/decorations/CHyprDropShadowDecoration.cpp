@@ -75,7 +75,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto ROUNDING        = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
+    const auto ROUNDINGBASE    = m_pWindow->rounding();
+    const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + m_pWindow->getRealBorderSize() : 0;
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
     const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 

@@ -685,10 +685,14 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     // pre window pass
     g_pHyprOpenGL->preWindowPass();
 
+    setOccludedForMainWorkspace(g_pHyprOpenGL->m_RenderData.damage, pWorkspace);
+
     if (pWorkspace->m_bHasFullscreenWindow)
         renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
     else
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
+
+    g_pHyprOpenGL->m_RenderData.damage = preOccludedDamage;
 
     g_pHyprOpenGL->m_RenderData.renderModif = {};
 
@@ -2194,6 +2198,35 @@ void CHyprRenderer::initiateManualCrash() {
     g_pHyprOpenGL->m_tGlobalTimer.reset();
 
     g_pConfigManager->setInt("debug:damage_tracking", 0);
+}
+
+void CHyprRenderer::setOccludedForMainWorkspace(CRegion& region, CWorkspace* pWorkspace) {
+    CRegion    rg;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+
+    if (!PMONITOR->specialWorkspaceID)
+        return;
+
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped || w->isHidden() || w->m_iWorkspaceID != PMONITOR->specialWorkspaceID)
+            continue;
+
+        if (!w->opaque())
+            continue;
+
+        const auto     ROUNDING = w->rounding() * PMONITOR->scale;
+        const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
+        const Vector2D SIZE     = w->m_vRealSize.vec() - Vector2D{ROUNDING * 2, ROUNDING * 2};
+
+        CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
+
+        box.scale(PMONITOR->scale);
+
+        rg.add(box);
+    }
+
+    region.subtract(rg);
 }
 
 void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace) {

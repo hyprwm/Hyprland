@@ -565,6 +565,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
     g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
 
     g_pConfigManager->ensureVRR(this);
+
+    g_pCompositor->updateSuspendedStates();
 }
 
 void CMonitor::changeWorkspace(const int& id, bool internal) {
@@ -589,6 +591,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
             g_pCompositor->focusWindow(PLAST);
         else
             g_pInputManager->refocus();
+
+        g_pCompositor->updateSuspendedStates();
 
         return;
     }
@@ -631,6 +635,8 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
 
     g_pHyprRenderer->damageMonitor(this);
+
+    g_pCompositor->updateSuspendedStates();
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {

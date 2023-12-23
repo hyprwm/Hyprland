@@ -193,7 +193,7 @@ void CCompositor::initServer() {
 
     m_sWLROutputPowerMgr = wlr_output_power_manager_v1_create(m_sWLDisplay);
 
-    m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 5);
+    m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 6);
 
     m_sWLRCursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(m_sWLRCursor, m_sWLROutputLayout);
@@ -2780,4 +2780,13 @@ void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scal
 
 void CCompositor::setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform) {
     wlr_surface_set_preferred_buffer_transform(pSurface, transform);
+}
+
+void CCompositor::updateSuspendedStates() {
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped)
+            continue;
+
+        w->setSuspended(w->isHidden() || !g_pHyprRenderer->shouldRenderWindow(w.get()));
+    }
 }

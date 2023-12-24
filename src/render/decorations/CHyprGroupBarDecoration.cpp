@@ -301,8 +301,6 @@ void refreshGroupBarGradients() {
     renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0]);
     renderGradientTo(m_tGradientLockedActive, ((CGradientValueData*)PGROUPCOLACTIVELOCKED->get())->m_vColors[0]);
     renderGradientTo(m_tGradientLockedInactive, ((CGradientValueData*)PGROUPCOLINACTIVELOCKED->get())->m_vColors[0]);
-
-    g_pHyprRenderer->unsetEGL();
 }
 
 bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D& pos) {

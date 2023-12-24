@@ -1571,10 +1571,18 @@ void CKeybindManager::circleNext(std::string arg) {
         return;
     }
 
-    if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
-        switchToWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow, true));
+    CVarList            args{arg, 0, 's', true};
+
+    std::optional<bool> floatStatus = {};
+    if (args.contains("tile") || args.contains("tiled"))
+        floatStatus = false;
+    else if (args.contains("float") || args.contains("floating"))
+        floatStatus = true;
+
+    if (args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l"))
+        switchToWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow, true, floatStatus));
     else
-        switchToWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow, true));
+        switchToWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow, true, floatStatus));
 }
 
 void CKeybindManager::focusWindow(std::string regexp) {

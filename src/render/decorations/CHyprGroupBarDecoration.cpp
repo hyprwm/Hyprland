@@ -288,6 +288,8 @@ void refreshGroupBarGradients() {
     static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
     static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
 
+    g_pHyprRenderer->makeEGLCurrent();
+
     if (m_tGradientActive.m_iTexID != 0) {
         m_tGradientActive.destroyTexture();
         m_tGradientInactive.destroyTexture();

@@ -1624,7 +1624,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
     return nullptr;
 }
 
-CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow, bool focusableOnly) {
+CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow, bool focusableOnly, std::optional<bool> floating) {
     bool gotToWindow = false;
     for (auto& w : m_vWindows) {
         if (w.get() != pWindow && !gotToWindow)
@@ -1635,11 +1635,17 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow, bool focusableO
             continue;
         }
 
+        if (floating.has_value() && w->m_bIsFloating != floating.value())
+            continue;
+
         if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_bNoFocus))
             return w.get();
     }
 
     for (auto& w : m_vWindows) {
+        if (floating.has_value() && w->m_bIsFloating != floating.value())
+            continue;
+
         if (w.get() != pWindow && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_bNoFocus))
             return w.get();
     }
@@ -1647,7 +1653,7 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow, bool focusableO
     return nullptr;
 }
 
-CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow, bool focusableOnly) {
+CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow, bool focusableOnly, std::optional<bool> floating) {
     bool gotToWindow = false;
     for (auto& w : m_vWindows | std::views::reverse) {
         if (w.get() != pWindow && !gotToWindow)
@@ -1658,11 +1664,17 @@ CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow, bool focusableO
             continue;
         }
 
+        if (floating.has_value() && w->m_bIsFloating != floating.value())
+            continue;
+
         if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_bNoFocus))
             return w.get();
     }
 
     for (auto& w : m_vWindows | std::views::reverse) {
+        if (floating.has_value() && w->m_bIsFloating != floating.value())
+            continue;
+
         if (w.get() != pWindow && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_bNoFocus))
             return w.get();
     }

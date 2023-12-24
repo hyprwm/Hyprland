@@ -165,8 +165,8 @@ class CCompositor {
     void           changeWindowZOrder(CWindow*, bool);
     void           cleanupFadingOut(const int& monid);
     CWindow*       getWindowInDirection(CWindow*, char);
-    CWindow*       getNextWindowOnWorkspace(CWindow*, bool focusableOnly = false);
-    CWindow*       getPrevWindowOnWorkspace(CWindow*, bool focusableOnly = false);
+    CWindow*       getNextWindowOnWorkspace(CWindow*, bool focusableOnly = false, std::optional<bool> floating = {});
+    CWindow*       getPrevWindowOnWorkspace(CWindow*, bool focusableOnly = false, std::optional<bool> floating = {});
     int            getNextAvailableNamedWorkspace();
     bool           isPointOnAnyMonitor(const Vector2D&);
     CWindow*       getConstraintWindow(SMouse*);

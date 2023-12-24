@@ -50,6 +50,15 @@ class CVarList {
         return m_vArgs.end();
     }
 
+    bool contains(const std::string& el) {
+        for (auto& a : m_vArgs) {
+            if (a == el)
+                return true;
+        }
+
+        return false;
+    }
+
   private:
     std::vector<std::string> m_vArgs;
 };

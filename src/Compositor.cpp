@@ -1032,20 +1032,17 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
         return;
     }
 
-    const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat);
+    if (const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat); KEYBOARD) {
+        uint32_t keycodes[WLR_KEYBOARD_KEYS_CAP] = {0}; // TODO: maybe send valid, non-keybind codes?
+        wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, keycodes, 0, &KEYBOARD->modifiers);
 
-    if (!KEYBOARD)
-        return;
-
-    uint32_t keycodes[WLR_KEYBOARD_KEYS_CAP] = {0}; // TODO: maybe send valid, non-keybind codes?
-    wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, keycodes, 0, &KEYBOARD->modifiers);
-
-    wlr_seat_keyboard_focus_change_event event = {
-        .seat        = m_sSeat.seat,
-        .old_surface = m_pLastFocus,
-        .new_surface = pSurface,
-    };
-    wl_signal_emit_mutable(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
+        wlr_seat_keyboard_focus_change_event event = {
+            .seat        = m_sSeat.seat,
+            .old_surface = m_pLastFocus,
+            .new_surface = pSurface,
+        };
+        wl_signal_emit_mutable(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
+    }
 
     if (pWindowOwner)
         Debug::log(LOG, "Set keyboard focus to surface {:x}, with {}", (uintptr_t)pSurface, pWindowOwner);

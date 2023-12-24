@@ -288,6 +288,8 @@ void refreshGroupBarGradients() {
     static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
     static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
 
+    g_pHyprRenderer->makeEGLCurrent();
+
     if (m_tGradientActive.m_iTexID != 0) {
         m_tGradientActive.destroyTexture();
         m_tGradientInactive.destroyTexture();
@@ -299,6 +301,8 @@ void refreshGroupBarGradients() {
     renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0]);
     renderGradientTo(m_tGradientLockedActive, ((CGradientValueData*)PGROUPCOLACTIVELOCKED->get())->m_vColors[0]);
     renderGradientTo(m_tGradientLockedInactive, ((CGradientValueData*)PGROUPCOLINACTIVELOCKED->get())->m_vColors[0]);
+
+    g_pHyprRenderer->unsetEGL();
 }
 
 bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D& pos) {

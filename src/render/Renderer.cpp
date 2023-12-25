@@ -50,8 +50,10 @@ CHyprRenderer::CHyprRenderer() {
 }
 
 static void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
-    const auto TEXTURE = wlr_surface_get_texture(surface);
-    const auto RDATA   = (SRenderData*)data;
+    static auto* const PBLURPOPUPS = &g_pConfigManager->getConfigValuePtr("decoration:blur:popups")->intValue;
+
+    const auto         TEXTURE = wlr_surface_get_texture(surface);
+    const auto         RDATA   = (SRenderData*)data;
 
     if (!TEXTURE)
         return;
@@ -134,7 +136,10 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
                 g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         }
     } else {
-        g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
+        if (RDATA->blur && RDATA->popup && *PBLURPOPUPS)
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, true);
+        else
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
@@ -544,6 +549,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             renderdata.dontRound       = true; // don't round popups
             renderdata.pMonitor        = pMonitor;
             renderdata.squishOversized = false; // don't squish popups
+            renderdata.popup           = true;
 
             if (pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
                 g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
@@ -597,6 +603,7 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
+    renderdata.popup           = true;
     wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
 
     g_pHyprOpenGL->m_pCurrentLayer = nullptr;

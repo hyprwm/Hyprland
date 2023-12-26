@@ -151,6 +151,8 @@ struct SWindowRule {
     bool        v2 = false;
     std::string szTitle;
     std::string szClass;
+    std::string szInitialTitle;
+    std::string szInitialClass;
     int         bX11         = -1; // -1 means "ANY"
     int         bFloating    = -1;
     int         bFullscreen  = -1;

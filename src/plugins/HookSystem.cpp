@@ -1,5 +1,6 @@
 #include "HookSystem.hpp"
 #include "../debug/Log.hpp"
+#include "../helpers/VarList.hpp"
 
 #define register
 #include <udis86.h>
@@ -19,12 +20,12 @@ CFunctionHook::~CFunctionHook() {
         unhook();
 }
 
-size_t CFunctionHook::getInstructionLenAt(void* start) {
+CFunctionHook::SInstructionProbe CFunctionHook::getInstructionLenAt(void* start) {
     ud_t udis;
 
     ud_init(&udis);
     ud_set_mode(&udis, 64);
-    ud_set_syntax(&udis, UD_SYN_INTEL);
+    ud_set_syntax(&udis, UD_SYN_ATT);
 
     size_t curOffset = 1;
     size_t insSize   = 0;
@@ -41,31 +42,83 @@ size_t CFunctionHook::getInstructionLenAt(void* start) {
     if (const auto CINS = ud_insn_asm(&udis); CINS)
         ins = std::string(CINS);
 
-    if (!ins.empty() && ins.find("rip") != std::string::npos) {
-        // todo: support something besides call qword ptr [rip + 0xdeadbeef]
-        // I don't have an assembler. I don't think udis provides one. Besides, variables might be tricky.
-        if (((uint8_t*)start)[0] == 0xFF && ((uint8_t*)start)[1] == 0x15)
-            m_vTrampolineRIPUses.emplace_back(std::make_pair<>((uint64_t)start - (uint64_t)m_pSource, ins));
-        else {
-            Debug::log(ERR, "[CFunctionHook] Cannot hook: unsupported %rip usage: {}", ins);
-            throw std::runtime_error("unsupported %rip usage");
-        }
-    }
-
-    return insSize;
+    return {insSize, ins};
 }
 
-size_t CFunctionHook::probeMinimumJumpSize(void* start, size_t min) {
+CFunctionHook::SInstructionProbe CFunctionHook::probeMinimumJumpSize(void* start, size_t min) {
 
-    size_t size = 0;
+    size_t              size = 0;
+
+    std::string         instrs = "";
+    std::vector<size_t> sizes;
 
     while (size <= min) {
         // find info about this instruction
-        size_t insLen = getInstructionLenAt((uint8_t*)start + size);
-        size += insLen;
+        auto probe = getInstructionLenAt((uint8_t*)start + size);
+        sizes.push_back(probe.len);
+        size += probe.len;
+        instrs += probe.assembly + "\n";
     }
 
-    return size;
+    return {size, instrs, sizes};
+}
+
+CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstructionProbe& probe) {
+    // analyze the code and fix what we know how to.
+    uint64_t currentAddress = (uint64_t)m_pSource;
+    // actually newline + 1
+    size_t      lastAsmNewline = 0;
+    std::string assemblyBuilder;
+    for (auto& len : probe.insSizes) {
+
+        std::string code = probe.assembly.substr(lastAsmNewline, probe.assembly.find("\n", lastAsmNewline) - lastAsmNewline);
+        if (code.contains("%rip")) {
+            CVarList       tokens{code, 0, 's'};
+            size_t         plusPresent = tokens[1][0] == '+' ? 1 : 0;
+            std::string    addr        = tokens[1].substr(plusPresent, tokens[1].find("(%rip)") - plusPresent);
+            const uint64_t OFFSET      = configStringToInt(addr);
+            if (OFFSET == 0)
+                return {};
+            const uint64_t DESTINATION = currentAddress + OFFSET + len;
+
+            if (code.starts_with("mov")) {
+                // mov +0xdeadbeef(%rip), %rax
+                assemblyBuilder += std::format("movabs $0x{:x}, {}\n", DESTINATION, tokens[2]);
+            } else if (code.starts_with("call")) {
+                // call +0xdeadbeef(%rip)
+                assemblyBuilder += std::format("pushq %rax\nmovabs $0x{:x}, %rax\ncallq *%rax\npopq %rax\n", DESTINATION);
+            } else if (code.starts_with("lea")) {
+                // lea 0xdeadbeef(%rip), %rax
+                assemblyBuilder += std::format("movabs $0x{:x}, {}\n", DESTINATION, tokens[2]);
+            } else {
+                return {};
+            }
+        } else {
+            assemblyBuilder += code + "\n";
+        }
+
+        lastAsmNewline = probe.assembly.find("\n", lastAsmNewline) + 1;
+        currentAddress += len;
+    }
+
+    std::ofstream ofs("/tmp/hypr/.hookcode.asm", std::ios::trunc);
+    ofs << assemblyBuilder;
+    ofs.close();
+    execAndGet("as /tmp/hypr/.hookcode.asm -o /tmp/hypr/.hookbinary.o && objcopy -O binary -j .text /tmp/hypr/.hookbinary.o /tmp/hypr/.hookbinary2.o");
+    if (!std::filesystem::exists("/tmp/hypr/.hookbinary2.o")) {
+        std::filesystem::remove("/tmp/hypr/.hookcode.asm");
+        std::filesystem::remove("/tmp/hypr/.hookbinary.asm");
+        return {};
+    }
+
+    std::ifstream ifs("/tmp/hypr/.hookbinary2.o", std::ios::binary);
+    SAssembly     returns = {std::vector<char>(std::istreambuf_iterator<char>(ifs), {})};
+    ifs.close();
+    std::filesystem::remove("/tmp/hypr/.hookcode.asm");
+    std::filesystem::remove("/tmp/hypr/.hookbinary.o");
+    std::filesystem::remove("/tmp/hypr/.hookbinary2.o");
+
+    return returns;
 }
 
 bool CFunctionHook::hook() {
@@ -85,43 +138,34 @@ bool CFunctionHook::hook() {
     static constexpr uint8_t POP_RAX[] = {0x58};
     // nop
     static constexpr uint8_t NOP = 0x90;
-    /*
-        movabs $0,%rax
-        callq *%rax
 
-        offset for addr: 3
-    */
-    static constexpr uint8_t CALL_WITH_RAX[]              = {0x48, 0xB8, 0xEF, 0xBE, 0xAD, 0xDE, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x10};
-    static constexpr size_t  CALL_WITH_RAX_ADDRESS_OFFSET = 2;
-
-    // get minimum size to overwrite
-    size_t HOOKSIZE = 0;
+    // probe instructions to be trampolin'd
+    SInstructionProbe probe;
     try {
-        HOOKSIZE = probeMinimumJumpSize(m_pSource, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));
+        probe = probeMinimumJumpSize(m_pSource, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));
     } catch (std::exception& e) { return false; }
 
+    const auto PROBEFIXEDASM = fixInstructionProbeRIPCalls(probe);
+
+    if (PROBEFIXEDASM.bytes.size() == 0) {
+        Debug::log(ERR, "[functionhook] failed, unsupported assembly:\n{}", probe.assembly);
+        return false;
+    }
+
+    const size_t HOOKSIZE = PROBEFIXEDASM.bytes.size();
+    const size_t ORIGSIZE = probe.len;
+
     // alloc trampoline
-    const auto TRAMPOLINE_SIZE = sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE + sizeof(PUSH_RAX) + m_vTrampolineRIPUses.size() * (sizeof(CALL_WITH_RAX) - 6);
+    const auto TRAMPOLINE_SIZE = sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE + sizeof(PUSH_RAX);
     m_pTrampolineAddr          = mmap(NULL, TRAMPOLINE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-    m_pOriginalBytes = malloc(HOOKSIZE);
-    memcpy(m_pOriginalBytes, m_pSource, HOOKSIZE);
+    m_pOriginalBytes = malloc(ORIGSIZE);
+    memcpy(m_pOriginalBytes, m_pSource, ORIGSIZE);
 
     // populate trampoline
-    memcpy(m_pTrampolineAddr, m_pSource, HOOKSIZE);                                                                        // first, original func bytes
+    memcpy(m_pTrampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                       // first, original but fixed func bytes
     memcpy((uint8_t*)m_pTrampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
     memcpy((uint8_t*)m_pTrampolineAddr + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
-
-    // fix trampoline %rip calls
-    for (size_t i = 0; i < m_vTrampolineRIPUses.size(); ++i) {
-        size_t callOffset      = i * (sizeof(CALL_WITH_RAX) - 6 /* callq [rip + x] */) + m_vTrampolineRIPUses[i].first;
-        size_t realCallAddress = (uint64_t)m_pSource + callOffset + 6 + *((uint32_t*)((uint8_t*)m_pSource + callOffset + 2));
-
-        memmove((uint8_t*)m_pTrampolineAddr + callOffset + sizeof(CALL_WITH_RAX), (uint8_t*)m_pTrampolineAddr + callOffset + 6, TRAMPOLINE_SIZE - callOffset - 6);
-        memcpy((uint8_t*)m_pTrampolineAddr + callOffset, CALL_WITH_RAX, sizeof(CALL_WITH_RAX));
-
-        *(uint64_t*)((uint8_t*)m_pTrampolineAddr + callOffset + CALL_WITH_RAX_ADDRESS_OFFSET) = (uint64_t)realCallAddress;
-    }
 
     // fixup trampoline addr
     *(uint64_t*)((uint8_t*)m_pTrampolineAddr + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) =
@@ -130,14 +174,14 @@ bool CFunctionHook::hook() {
     // make jump to hk
     const auto     PAGESIZE  = sysconf(_SC_PAGE_SIZE);
     const uint8_t* PROTSTART = (uint8_t*)m_pSource - ((uint64_t)m_pSource % PAGESIZE);
-    const size_t   PROTLEN   = std::ceil((float)(HOOKSIZE + ((uint64_t)m_pSource - (uint64_t)PROTSTART)) / (float)PAGESIZE) * PAGESIZE;
+    const size_t   PROTLEN   = std::ceil((float)(ORIGSIZE + ((uint64_t)m_pSource - (uint64_t)PROTSTART)) / (float)PAGESIZE) * PAGESIZE;
     mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_WRITE | PROT_EXEC);
     memcpy((uint8_t*)m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make popq %rax and NOP all remaining
     memcpy((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
     size_t currentOp = sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(POP_RAX);
-    memset((uint8_t*)m_pSource + currentOp, NOP, HOOKSIZE - currentOp);
+    memset((uint8_t*)m_pSource + currentOp, NOP, ORIGSIZE - currentOp);
 
     // fixup jump addr
     *(uint64_t*)((uint8_t*)m_pSource + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)(m_pDestination);
@@ -149,7 +193,7 @@ bool CFunctionHook::hook() {
     m_pOriginal = m_pTrampolineAddr;
 
     m_bActive    = true;
-    m_iHookLen   = HOOKSIZE;
+    m_iHookLen   = ORIGSIZE;
     m_iTrampoLen = TRAMPOLINE_SIZE;
 
     return true;

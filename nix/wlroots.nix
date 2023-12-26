@@ -2,9 +2,6 @@
   version,
   src,
   wlroots,
-  hwdata,
-  libdisplay-info,
-  libliftoff,
   enableXWayland ? true,
 }:
 wlroots.overrideAttrs (old: {
@@ -12,11 +9,5 @@ wlroots.overrideAttrs (old: {
 
   pname = "${old.pname}-hyprland";
 
-  buildInputs =
-    old.buildInputs
-    ++ [
-      hwdata
-      libliftoff
-      libdisplay-info
-    ];
+  patches = [ ]; # don't inherit old.patches
 })

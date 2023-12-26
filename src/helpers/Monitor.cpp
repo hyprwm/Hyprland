@@ -622,6 +622,22 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         if (w->m_iWorkspaceID == pWorkspace->m_iID) {
             w->m_iMonitorID = ID;
             w->updateSurfaceOutputs();
+
+            const auto MIDDLE = w->middle();
+            if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && w->m_iX11Type != 2) {
+                // if it's floating and the middle isnt on the current mon, move it to the center
+                const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
+                Vector2D   pos            = w->m_vRealPosition.goalv();
+                if (!VECINRECT(MIDDLE, PMONFROMMIDDLE->vecPosition.x, PMONFROMMIDDLE->vecPosition.y, PMONFROMMIDDLE->vecPosition.x + PMONFROMMIDDLE->vecSize.x,
+                               PMONFROMMIDDLE->vecPosition.y + PMONFROMMIDDLE->vecSize.y)) {
+                    // not on any monitor, center
+                    pos = middle() / 2.f - w->m_vRealSize.goalv() / 2.f;
+                } else
+                    pos = pos - PMONFROMMIDDLE->vecPosition + vecPosition;
+
+                w->m_vRealPosition = pos;
+                w->m_vPosition     = pos;
+            }
         }
     }
 

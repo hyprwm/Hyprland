@@ -1028,14 +1028,16 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     rule.szRule  = RULE;
     rule.szValue = VALUE;
 
-    const auto TITLEPOS       = VALUE.find("title:");
-    const auto CLASSPOS       = VALUE.find("class:");
-    const auto X11POS         = VALUE.find("xwayland:");
-    const auto FLOATPOS       = VALUE.find("floating:");
-    const auto FULLSCREENPOS  = VALUE.find("fullscreen:");
-    const auto PINNEDPOS      = VALUE.find("pinned:");
-    const auto FOCUSPOS       = VALUE.find("focus:");
-    const auto ONWORKSPACEPOS = VALUE.find("onworkspace:");
+    const auto TITLEPOS        = VALUE.find("title:");
+    const auto CLASSPOS        = VALUE.find("class:");
+    const auto INITIALTITLEPOS = VALUE.find("initialTitle:");
+    const auto INITIALCLASSPOS = VALUE.find("initialClass:");
+    const auto X11POS          = VALUE.find("xwayland:");
+    const auto FLOATPOS        = VALUE.find("floating:");
+    const auto FULLSCREENPOS   = VALUE.find("fullscreen:");
+    const auto PINNEDPOS       = VALUE.find("pinned:");
+    const auto FOCUSPOS        = VALUE.find("focus:");
+    const auto ONWORKSPACEPOS  = VALUE.find("onworkspace:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -1048,8 +1050,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos &&
-        PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos && FOCUSPOS == std::string::npos && ONWORKSPACEPOS == std::string::npos) {
+    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && INITIALTITLEPOS == std::string::npos && INITIALCLASSPOS == std::string::npos &&
+        X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos && PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos &&
+        FOCUSPOS == std::string::npos && ONWORKSPACEPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -1064,6 +1067,10 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
             min = TITLEPOS;
         if (CLASSPOS > pos && CLASSPOS < min)
             min = CLASSPOS;
+        if (INITIALTITLEPOS > pos && INITIALTITLEPOS < min)
+            min = INITIALTITLEPOS;
+        if (INITIALCLASSPOS > pos && INITIALCLASSPOS < min)
+            min = INITIALCLASSPOS;
         if (X11POS > pos && X11POS < min)
             min = X11POS;
         if (FLOATPOS > pos && FLOATPOS < min)
@@ -1095,6 +1102,12 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     if (TITLEPOS != std::string::npos)
         rule.szTitle = extract(TITLEPOS + 6);
 
+    if (INITIALCLASSPOS != std::string::npos)
+        rule.szInitialClass = extract(INITIALCLASSPOS + 13);
+
+    if (INITIALTITLEPOS != std::string::npos)
+        rule.szInitialTitle = extract(INITIALTITLEPOS + 13);
+
     if (X11POS != std::string::npos)
         rule.bX11 = extract(X11POS + 9) == "1" ? 1 : 0;
 
@@ -1125,6 +1138,12 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
                     return false;
 
                 if (!rule.szTitle.empty() && rule.szTitle != other.szTitle)
+                    return false;
+
+                if (!rule.szInitialClass.empty() && rule.szInitialClass != other.szInitialClass)
+                    return false;
+
+                if (!rule.szInitialTitle.empty() && rule.szInitialTitle != other.szInitialTitle)
                     return false;
 
                 if (rule.bX11 != -1 && rule.bX11 != other.bX11)
@@ -2005,6 +2024,20 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
                     std::regex RULECHECK(rule.szTitle);
 
                     if (!std::regex_search(title, RULECHECK))
+                        continue;
+                }
+
+                if (rule.szInitialTitle != "") {
+                    std::regex RULECHECK(rule.szInitialTitle);
+
+                    if (!std::regex_search(pWindow->m_szInitialTitle, RULECHECK))
+                        continue;
+                }
+
+                if (rule.szInitialClass != "") {
+                    std::regex RULECHECK(rule.szInitialClass);
+
+                    if (!std::regex_search(pWindow->m_szInitialClass, RULECHECK))
                         continue;
                 }
 

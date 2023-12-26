@@ -1723,6 +1723,15 @@ bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
     return false;
 }
 
+bool CCompositor::isPointOnReservedArea(const Vector2D& point, const CMonitor* pMonitor) {
+    const auto PMONITOR = pMonitor ? pMonitor : getMonitorFromVector(point);
+
+    const auto XY1 = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+    const auto XY2 = PMONITOR->vecPosition + PMONITOR->vecSize - PMONITOR->vecReservedBottomRight;
+
+    return !VECINRECT(point, XY1.x, XY1.y, XY2.x, XY2.y);
+}
+
 void checkFocusSurfaceIter(wlr_surface* pSurface, int x, int y, void* data) {
     auto pair    = (std::pair<wlr_surface*, bool>*)data;
     pair->second = pair->second || pSurface == pair->first;
@@ -2526,17 +2535,6 @@ void CCompositor::forceReportSizesToWindowsOnWorkspace(const int& wid) {
             g_pXWaylandManager->setWindowSize(w.get(), w->m_vRealSize.vec(), true);
         }
     }
-}
-
-bool CCompositor::cursorOnReservedArea() {
-    const auto PMONITOR = getMonitorFromCursor();
-
-    const auto XY1 = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-    const auto XY2 = PMONITOR->vecPosition + PMONITOR->vecSize - PMONITOR->vecReservedBottomRight;
-
-    const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
-
-    return !VECINRECT(CURSORPOS, XY1.x, XY1.y, XY2.x, XY2.y);
 }
 
 CWorkspace* CCompositor::createNewWorkspace(const int& id, const int& monid, const std::string& name) {

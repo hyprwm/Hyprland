@@ -254,10 +254,11 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
     const auto        MOUSECOORDS   = m_vOverrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
     const auto        MONFROMCURSOR = g_pCompositor->getMonitorFromVector(MOUSECOORDS);
+    const auto        TARGETCOORDS  = PMONITOR->ID == MONFROMCURSOR->ID && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR) ? pWindow->middle() : MOUSECOORDS;
 
     if (PMONITOR->ID == MONFROMCURSOR->ID &&
         (PNODE->workspaceID == PMONITOR->activeWorkspace || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->specialWorkspaceID)) && !*PUSEACTIVE) {
-        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(MOUSECOORDS));
+        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(TARGETCOORDS));
 
         // happens on reserved area
         if (!OPENINGON && g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID) > 0)
@@ -268,7 +269,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
             g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsMapped) {
             OPENINGON = getNodeFromWindow(g_pCompositor->m_pLastWindow);
         } else {
-            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(MOUSECOORDS));
+            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(TARGETCOORDS));
         }
 
         if (!OPENINGON && g_pCompositor->getWindowsOnWorkspace(PNODE->workspaceID) > 0)
@@ -399,15 +400,15 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         const auto br = NEWPARENT->box.pos() + NEWPARENT->box.size();
         const auto cc = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
 
-        if (MOUSECOORDS.inTriangle(tl, tr, cc)) {
+        if (TARGETCOORDS.inTriangle(tl, tr, cc)) {
             NEWPARENT->splitTop    = true;
             NEWPARENT->children[0] = PNODE;
             NEWPARENT->children[1] = OPENINGON;
-        } else if (MOUSECOORDS.inTriangle(tr, cc, br)) {
+        } else if (TARGETCOORDS.inTriangle(tr, cc, br)) {
             NEWPARENT->splitTop    = false;
             NEWPARENT->children[0] = OPENINGON;
             NEWPARENT->children[1] = PNODE;
-        } else if (MOUSECOORDS.inTriangle(br, bl, cc)) {
+        } else if (TARGETCOORDS.inTriangle(br, bl, cc)) {
             NEWPARENT->splitTop    = true;
             NEWPARENT->children[0] = OPENINGON;
             NEWPARENT->children[1] = PNODE;
@@ -418,9 +419,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         }
     } else if (*PFORCESPLIT == 0 || !pWindow->m_bFirstMap) {
         if ((SIDEBYSIDE &&
-             VECINRECT(MOUSECOORDS, NEWPARENT->box.x, NEWPARENT->box.y / *PWIDTHMULTIPLIER, NEWPARENT->box.x + NEWPARENT->box.w / 2.f, NEWPARENT->box.y + NEWPARENT->box.h)) ||
+             VECINRECT(TARGETCOORDS, NEWPARENT->box.x, NEWPARENT->box.y / *PWIDTHMULTIPLIER, NEWPARENT->box.x + NEWPARENT->box.w / 2.f, NEWPARENT->box.y + NEWPARENT->box.h)) ||
             (!SIDEBYSIDE &&
-             VECINRECT(MOUSECOORDS, NEWPARENT->box.x, NEWPARENT->box.y / *PWIDTHMULTIPLIER, NEWPARENT->box.x + NEWPARENT->box.w, NEWPARENT->box.y + NEWPARENT->box.h / 2.f))) {
+             VECINRECT(TARGETCOORDS, NEWPARENT->box.x, NEWPARENT->box.y / *PWIDTHMULTIPLIER, NEWPARENT->box.x + NEWPARENT->box.w, NEWPARENT->box.y + NEWPARENT->box.h / 2.f))) {
             // we are hovering over the first node, make PNODE first.
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;

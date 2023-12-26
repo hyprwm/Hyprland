@@ -169,6 +169,7 @@ class CCompositor {
     CWindow*       getPrevWindowOnWorkspace(CWindow*, bool focusableOnly = false, std::optional<bool> floating = {});
     int            getNextAvailableNamedWorkspace();
     bool           isPointOnAnyMonitor(const Vector2D&);
+    bool           isPointOnReservedArea(const Vector2D& point, const CMonitor* monitor = nullptr);
     CWindow*       getConstraintWindow(SMouse*);
     CMonitor*      getMonitorInDirection(const char&);
     void           updateAllWindowsAnimatedDecorationValues();
@@ -192,7 +193,6 @@ class CCompositor {
     void           closeWindow(CWindow*);
     Vector2D       parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void           forceReportSizesToWindowsOnWorkspace(const int&);
-    bool           cursorOnReservedArea();
     CWorkspace*    createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
     void           renameWorkspace(const int&, const std::string& name = "");
     void           setActiveMonitor(CMonitor*);

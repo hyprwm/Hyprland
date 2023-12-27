@@ -2419,7 +2419,8 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
 }
 
 void CHyprRenderer::endRender() {
-    const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
+    const auto         PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
+    static auto* const PNVIDIAANTIFLICKER = &g_pConfigManager->getConfigValuePtr("opengl:nvidia_anti_flicker")->intValue;
 
     if (m_eRenderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
@@ -2432,7 +2433,7 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_FULL_FAKE)
         return;
 
-    if (isNvidia())
+    if (isNvidia() && *PNVIDIAANTIFLICKER)
         glFinish();
     else
         glFlush();

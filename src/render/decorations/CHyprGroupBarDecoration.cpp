@@ -23,7 +23,6 @@ CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindow
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
 
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
-    const int                  BORDERSIZE     = m_pWindow->getRealBorderSize();
     static auto* const         PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
     static auto* const         PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
 
@@ -32,7 +31,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     info.edges          = DECORATION_EDGE_TOP;
     info.priority       = 3;
     info.reserved       = true;
-    info.desiredExtents = {{0, BORDERSIZE + BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2}, {0, 0}};
+    info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2}, {0, 0}};
     return info;
 }
 
@@ -83,8 +82,6 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
     static auto* const PGRADIENTS     = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
 
-    const int          BORDERSIZE = m_pWindow->getRealBorderSize();
-
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
@@ -92,7 +89,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     m_fBarWidth = (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
 
-    const auto DESIREDHEIGHT = BORDERSIZE + BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2;
+    const auto DESIREDHEIGHT = BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2;
     if (DESIREDHEIGHT != ASSIGNEDBOX.h)
         g_pDecorationPositioner->repositionDeco(this);
 

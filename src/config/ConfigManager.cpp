@@ -394,7 +394,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                 for (auto& [var, val] : configDynamicVars) {
                     if (var == COMMAND.substr(1)) {
                         Debug::log(LOG, "Registered new value for dynamic var \"{}\" -> {}", COMMAND, VALUE);
-                        val = VALUE;
+                        val   = VALUE;
                         found = true;
                     }
                 }

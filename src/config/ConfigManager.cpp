@@ -390,7 +390,6 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         if (!COMMAND.starts_with("device:") /* devices parsed later */ && !COMMAND.starts_with("plugin:") /* plugins parsed later */) {
             if (COMMAND[0] == '$') {
                 // register a dynamic var
-                
                 bool found = false;
                 for (auto& [var, val] : configDynamicVars) {
                     if (var == COMMAND.substr(1)) {
@@ -403,9 +402,8 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                 if (!found) {
                     Debug::log(LOG, "Registered dynamic var \"{}\" -> {}", COMMAND, VALUE);
                     configDynamicVars.emplace_back(std::make_pair<>(COMMAND.substr(1), VALUE));
+                    std::sort(configDynamicVars.begin(), configDynamicVars.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
                 }
-                
-                std::sort(configDynamicVars.begin(), configDynamicVars.end(), [&](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
             } else {
                 parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">: No such field.";
             }

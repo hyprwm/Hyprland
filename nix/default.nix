@@ -132,7 +132,11 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
       ${lib.optionalString wrapRuntimeDeps ''
         wrapProgram $out/bin/Hyprland \
-          --suffix PATH : ${lib.makeBinPath [binutils pciutils]}
+          --suffix PATH : ${lib.makeBinPath [
+          stdenv.cc
+          binutils
+          pciutils
+        ]}
       ''}
     '';
 

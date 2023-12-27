@@ -104,7 +104,9 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
     std::ofstream ofs("/tmp/hypr/.hookcode.asm", std::ios::trunc);
     ofs << assemblyBuilder;
     ofs.close();
-    execAndGet("cc -x assembler -c /tmp/hypr/.hookcode.asm -o /tmp/hypr/.hookbinary.o && objcopy -O binary -j .text /tmp/hypr/.hookbinary.o /tmp/hypr/.hookbinary2.o");
+    std::string ret = execAndGet(
+        "cc -x assembler -c /tmp/hypr/.hookcode.asm -o /tmp/hypr/.hookbinary.o 2>&1 && objcopy -O binary -j .text /tmp/hypr/.hookbinary.o /tmp/hypr/.hookbinary2.o 2>&1");
+    Debug::log(LOG, "[functionhook] assembler returned:\n{}", ret);
     if (!std::filesystem::exists("/tmp/hypr/.hookbinary2.o")) {
         std::filesystem::remove("/tmp/hypr/.hookcode.asm");
         std::filesystem::remove("/tmp/hypr/.hookbinary.asm");

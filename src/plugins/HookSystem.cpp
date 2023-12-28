@@ -93,6 +93,22 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
             } else {
                 return {};
             }
+        } else if (code.contains("invalid")) {
+            std::vector<uint8_t> bytes;
+            bytes.resize(len);
+            memcpy(bytes.data(), (std::byte*)currentAddress, len);
+            if (len == 4 && bytes[0] == 0xF3 && bytes[1] == 0x0F && bytes[2] == 0x1E && bytes[3] == 0xFA) {
+                // F3 0F 1E FA = endbr64, udis doesn't understand that one
+                assemblyBuilder += "endbr64\n";
+            } else {
+                // raise error, unknown op
+                std::string strBytes;
+                for (auto& b : bytes) {
+                    strBytes += std::format("{:x} ", b);
+                }
+                Debug::log(ERR, "[functionhook] unknown bytes: {}", strBytes);
+                return {};
+            }
         } else {
             assemblyBuilder += code + "\n";
         }

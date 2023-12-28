@@ -316,16 +316,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
     }
 
     if (!m_vOverrideFocalPoint && g_pInputManager->m_bWasDraggingWindow) {
-        for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
-            if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
-                continue;
-
-            if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(MOUSECOORDS)) {
-                if (!wd->onEndWindowDragOnDeco(pWindow, MOUSECOORDS))
-                    return;
-                break;
-            }
-        }
+        if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
+            return;
     }
 
     // if it's a group, add the window

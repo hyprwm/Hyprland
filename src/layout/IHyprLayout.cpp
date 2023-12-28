@@ -271,16 +271,8 @@ void IHyprLayout::onEndDragWindow() {
         CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS, DRAGGINGWINDOW);
 
         if (pWindow && pWindow->m_bIsFloating) {
-            for (auto& wd : pWindow->m_dWindowDecorations) {
-                if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
-                    continue;
-
-                if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(MOUSECOORDS)) {
-                    if (!wd->onEndWindowDragOnDeco(DRAGGINGWINDOW, MOUSECOORDS))
-                        return;
-                    break;
-                }
-            }
+            if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
+                return;
 
             if (pWindow->m_sGroupData.pNextWindow && DRAGGINGWINDOW->canBeGroupedInto(pWindow)) {
                 static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;

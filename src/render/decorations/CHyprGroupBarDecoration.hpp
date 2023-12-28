@@ -35,11 +35,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual void                       damageEntire();
 
-    virtual void                       onBeginWindowDragOnDeco(const Vector2D&);
-
-    virtual bool                       onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&);
-
-    virtual void                       onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
+    virtual bool                       onInputOnDeco(const eInputType, const Vector2D&, std::any = {});
 
     virtual eDecorationLayer           getDecorationLayer();
 
@@ -62,6 +58,11 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     void                     invalidateTextures();
 
     CBox                     assignedBoxGlobal();
+
+    bool                     onBeginWindowDragOnDeco(const Vector2D&);
+    bool                     onEndWindowDragOnDeco(const Vector2D&, CWindow*);
+    bool                     onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
+    bool                     onScrollOnDeco(const Vector2D&, wlr_pointer_axis_event*);
 
     struct STitleTexs {
         // STitleTexs*                            overriden = nullptr; // TODO: make shit shared in-group to decrease VRAM usage.

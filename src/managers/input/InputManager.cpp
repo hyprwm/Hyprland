@@ -483,11 +483,6 @@ void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e) {
-    if (!e->surface)
-        g_pHyprRenderer->m_bWindowRequestedCursorHide = true;
-    else
-        g_pHyprRenderer->m_bWindowRequestedCursorHide = false;
-
     if (!cursorImageUnlocked())
         return;
 

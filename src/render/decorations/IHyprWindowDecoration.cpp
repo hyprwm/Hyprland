@@ -27,3 +27,7 @@ eDecorationLayer IHyprWindowDecoration::getDecorationLayer() {
 uint64_t IHyprWindowDecoration::getDecorationFlags() {
     return 0;
 }
+
+std::string IHyprWindowDecoration::getDisplayName() {
+    return std::string("Generic Decoration");
+}

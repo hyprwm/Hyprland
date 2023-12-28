@@ -45,6 +45,8 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual uint64_t                   getDecorationFlags();
 
+    virtual std::string                getDisplayName();
+
   private:
     SWindowDecorationExtents m_seExtents;
 

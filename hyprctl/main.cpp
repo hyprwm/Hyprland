@@ -31,6 +31,7 @@ commands:
     binds
     clients
     cursorpos
+    decorations
     devices
     dispatch
     getoption
@@ -423,6 +424,8 @@ int main(int argc, char** argv) {
         request(fullRequest, 1);
     else if (fullRequest.contains("/keyword"))
         request(fullRequest, 2);
+    else if (fullRequest.contains("/decoration"))
+        request(fullRequest, 1);
     else if (fullRequest.contains("/hyprpaper"))
         requestHyprpaper(fullRequest);
     else if (fullRequest.contains("/layouts"))

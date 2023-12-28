@@ -29,5 +29,5 @@ uint64_t IHyprWindowDecoration::getDecorationFlags() {
 }
 
 std::string IHyprWindowDecoration::getDisplayName() {
-    return std::string("Generic Decoration");
+    return "Unknown Decoration";
 }

@@ -424,7 +424,7 @@ int main(int argc, char** argv) {
         request(fullRequest, 1);
     else if (fullRequest.contains("/keyword"))
         request(fullRequest, 2);
-    else if (fullRequest.contains("/decoration"))
+    else if (fullRequest.contains("/decorations"))
         request(fullRequest, 1);
     else if (fullRequest.contains("/hyprpaper"))
         requestHyprpaper(fullRequest);

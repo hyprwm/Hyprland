@@ -50,7 +50,8 @@ CHyprRenderer::CHyprRenderer() {
 }
 
 static void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
-    static auto* const PBLURPOPUPS = &g_pConfigManager->getConfigValuePtr("decoration:blur:popups")->intValue;
+    static auto* const PBLURPOPUPS            = &g_pConfigManager->getConfigValuePtr("decoration:blur:popups")->intValue;
+    static auto* const PBLURPOPUPSIGNOREALPHA = &g_pConfigManager->getConfigValuePtr("decoration:blur:popups_ignorealpha")->floatValue;
 
     const auto         TEXTURE = wlr_surface_get_texture(surface);
     const auto         RDATA   = (SRenderData*)data;
@@ -136,9 +137,16 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
                 g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         }
     } else {
-        if (RDATA->blur && RDATA->popup && *PBLURPOPUPS)
+        if (RDATA->blur && RDATA->popup && *PBLURPOPUPS) {
+
+            if (*PBLURPOPUPSIGNOREALPHA != 1.f) {
+                g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
+                g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURPOPUPSIGNOREALPHA;
+            }
+
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, true);
-        else
+            g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHA;
+        } else
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
     }
 

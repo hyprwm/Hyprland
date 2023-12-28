@@ -56,6 +56,8 @@ class IHyprWindowDecoration {
 
     virtual uint64_t                   getDecorationFlags();
 
+    virtual std::string                getDisplayName();
+
   private:
     CWindow* m_pWindow = nullptr;
 

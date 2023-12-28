@@ -414,6 +414,10 @@ uint64_t CHyprGroupBarDecoration::getDecorationFlags() {
     return DECORATION_ALLOWS_MOUSE_INPUT;
 }
 
+std::string CHyprGroupBarDecoration::getDisplayName() {
+    return "GroupBar";
+}
+
 CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     CBox box = m_bAssignedBox;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow));

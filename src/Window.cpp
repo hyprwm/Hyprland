@@ -1036,4 +1036,5 @@ void CWindow::setSuspended(bool suspend) {
         return;
 
     wlr_xdg_toplevel_set_suspended(m_uSurface.xdg->toplevel, suspend);
+    m_bSuspended = suspend;
 }

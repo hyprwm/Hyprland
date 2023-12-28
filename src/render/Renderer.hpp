@@ -76,7 +76,6 @@ class CHyprRenderer {
     bool      beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, wlr_buffer* buffer = nullptr, CFramebuffer* fb = nullptr);
     void      endRender();
 
-    bool      m_bWindowRequestedCursorHide = false;
     bool      m_bBlockSurfaceFeedback      = false;
     bool      m_bRenderingSnapshot         = false;
     CWindow*  m_pLastScanout               = nullptr;

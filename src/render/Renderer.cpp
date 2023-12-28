@@ -2165,7 +2165,7 @@ void CHyprRenderer::setCursorHidden(bool hide) {
 }
 
 bool CHyprRenderer::shouldRenderCursor() {
-    return !m_bCursorHidden && !m_bWindowRequestedCursorHide && m_bCursorHasSurface;
+    return !m_bCursorHidden && m_bCursorHasSurface;
 }
 
 std::tuple<float, float, float> CHyprRenderer::getRenderTimes(CMonitor* pMonitor) {

@@ -2795,6 +2795,6 @@ void CCompositor::updateSuspendedStates() {
         if (!w->m_bIsMapped)
             continue;
 
-        w->setSuspended(w->isHidden() || !g_pHyprRenderer->shouldRenderWindow(w.get()));
+        w->setSuspended(w->isHidden() || !isWorkspaceVisible(w->m_iWorkspaceID));
     }
 }

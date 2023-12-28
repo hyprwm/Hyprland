@@ -30,6 +30,10 @@ uint64_t CHyprDropShadowDecoration::getDecorationFlags() {
     return DECORATION_NON_SOLID;
 }
 
+std::string CHyprDropShadowDecoration::getDisplayName() {
+    return "Drop Shadow";
+}
+
 void CHyprDropShadowDecoration::damageEntire() {
     static auto* const PSHADOWS = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
 

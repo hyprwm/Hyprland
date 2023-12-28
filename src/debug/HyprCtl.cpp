@@ -1174,6 +1174,32 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
     }
 }
 
+std::string decorationRequest(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
+    CVarList   vars(request, 0, ' ');
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+
+    if (!PWINDOW)
+        return "none";
+
+    std::string result = "";
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+        for (auto& wd : PWINDOW->m_dWindowDecorations) {
+            result += "{\n\"decorationName\": \"" + wd->getDisplayName() + "\",\n\"priority\": " + std::to_string(wd->getPositioningInfo().priority) + "\n},";
+        }
+
+        trimTrailingComma(result);
+        result += "]";
+    } else {
+        result = +"Decoration\tPriority\n";
+        for (auto& wd : PWINDOW->m_dWindowDecorations) {
+            result += wd->getDisplayName() + "\t" + std::to_string(wd->getPositioningInfo().priority) + "\n";
+        }
+    }
+
+    return result;
+}
+
 void createOutputIter(wlr_backend* backend, void* data) {
     const auto DATA = (std::pair<std::string, bool>*)data;
 
@@ -1415,6 +1441,8 @@ std::string getReply(std::string request) {
         return dispatchSetCursor(request);
     else if (request.starts_with("getoption"))
         return dispatchGetOption(request, format);
+    else if (request.starts_with("decorations"))
+        return decorationRequest(request, format);
     else if (request.starts_with("[[BATCH]]"))
         return dispatchBatch(request);
 

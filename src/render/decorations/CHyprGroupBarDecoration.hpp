@@ -35,7 +35,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual void                       damageEntire();
 
-    virtual bool                       onInputOnDeco(const eInputType, const Vector2D&, std::any = 0);
+    virtual bool                       onInputOnDeco(const eInputType, const Vector2D&, std::any = {});
 
     virtual eDecorationLayer           getDecorationLayer();
 

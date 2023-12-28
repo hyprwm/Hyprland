@@ -47,7 +47,7 @@ class IHyprWindowDecoration {
 
     virtual void                       damageEntire() = 0; // should be ignored by non-absolute decos
 
-    virtual bool                       onInputOnDeco(const eInputType, const Vector2D&, std::any = 0);
+    virtual bool                       onInputOnDeco(const eInputType, const Vector2D&, std::any = {});
 
     virtual eDecorationLayer           getDecorationLayer();
 

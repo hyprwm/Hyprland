@@ -300,10 +300,35 @@ void refreshGroupBarGradients() {
     renderGradientTo(m_tGradientLockedInactive, ((CGradientValueData*)PGROUPCOLINACTIVELOCKED->get())->m_vColors[0]);
 }
 
-bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D& pos) {
+bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
+    const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
+    const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 
+    if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth)
+        return false;
+
+    CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    // hack
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    if (!pWindow->m_bIsFloating) {
+        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+        g_pKeybindManager->m_bGroupsLocked = true;
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    }
+
+    g_pInputManager->currentlyDraggedWindow = pWindow;
+
+    if (!g_pCompositor->isWindowActive(pWindow))
+        g_pCompositor->focusWindow(pWindow);
+
+    return true;
+}
+
+bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, CWindow* pDraggedWindow) {
     if (!pDraggedWindow->canBeGroupedInto(m_pWindow))
-        return true;
+        return false;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x - m_fBarWidth / 2;
     const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
@@ -357,12 +382,12 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, con
     if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
         pDraggedWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pDraggedWindow));
 
-    return false;
+    return true;
 }
 
-void CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
+bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
     if (e->state != WLR_BUTTON_PRESSED)
-        return;
+        return false;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
@@ -370,7 +395,7 @@ void CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
     if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth) {
         if (!g_pCompositor->isWindowActive(m_pWindow))
             g_pCompositor->focusWindow(m_pWindow);
-        return;
+        return true;
     }
 
     CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
@@ -380,30 +405,33 @@ void CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
 
     if (!g_pCompositor->isWindowActive(pWindow))
         g_pCompositor->focusWindow(pWindow);
+
+    return true;
 }
 
-void CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
-    const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
-    const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, wlr_pointer_axis_event* e) {
+    static auto* const PGROUPBARSCROLLING = &g_pConfigManager->getConfigValuePtr("group:groupbar:scrolling")->intValue;
 
-    if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth)
-        return;
-
-    CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
-
-    // hack
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
-    if (!pWindow->m_bIsFloating) {
-        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
-        g_pKeybindManager->m_bGroupsLocked = true;
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    if (!*PGROUPBARSCROLLING || !m_pWindow->m_sGroupData.pNextWindow) {
+        return false;
     }
 
-    g_pInputManager->currentlyDraggedWindow = pWindow;
+    if (e->delta > 0)
+        m_pWindow->setGroupCurrent(m_pWindow->m_sGroupData.pNextWindow);
+    else
+        m_pWindow->setGroupCurrent(m_pWindow->getGroupPrevious());
 
-    if (!g_pCompositor->isWindowActive(pWindow))
-        g_pCompositor->focusWindow(pWindow);
+    return true;
+}
+
+bool CHyprGroupBarDecoration::onInputOnDeco(const eInputType type, const Vector2D& mouseCoords, std::any data) {
+    switch (type) {
+        case INPUT_TYPE_AXIS: return onScrollOnDeco(mouseCoords, std::any_cast<wlr_pointer_axis_event*>(data));
+        case INPUT_TYPE_BUTTON: return onMouseButtonOnDeco(mouseCoords, std::any_cast<wlr_pointer_button_event*>(data));
+        case INPUT_TYPE_DRAG_START: return onBeginWindowDragOnDeco(mouseCoords);
+        case INPUT_TYPE_DRAG_END: return onEndWindowDragOnDeco(mouseCoords, std::any_cast<CWindow*>(data));
+        default: return false;
+    }
 }
 
 eDecorationLayer CHyprGroupBarDecoration::getDecorationLayer() {

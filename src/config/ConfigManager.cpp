@@ -1812,7 +1812,8 @@ void CConfigManager::loadConfigLoadVars() {
     handlePluginLoads();
 
     EMIT_HOOK_EVENT("configReloaded", nullptr);
-    g_pEventManager->postEvent(SHyprIPCEvent{"configreloaded", ""});
+    if (g_pEventManager)
+        g_pEventManager->postEvent(SHyprIPCEvent{"configreloaded", ""});
 }
 
 void CConfigManager::tick() {

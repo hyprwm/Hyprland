@@ -35,11 +35,15 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual void                       damageEntire();
 
-    virtual void                       onBeginWindowDragOnDeco(const Vector2D&);
+    virtual bool                       onBeginWindowDragOnDeco(const Vector2D&);
 
-    virtual bool                       onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&);
+    virtual bool                       onEndWindowDragOnDeco(const Vector2D&, CWindow*);
 
-    virtual void                       onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
+    virtual bool                       onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
+
+    virtual bool                       onScrollOnDeco(const Vector2D&, wlr_pointer_axis_event*);
+
+    virtual bool                       onInputOnDeco(const eInputType, const Vector2D&, std::any = 0);
 
     virtual eDecorationLayer           getDecorationLayer();
 

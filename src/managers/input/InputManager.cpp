@@ -606,17 +606,8 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
     const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
-    if (w && !w->m_bIsFullscreen && !m_bLastFocusOnLS && !w->hasPopupAt(mouseCoords)) {
-        for (auto& wd : w->m_dWindowDecorations) {
-            if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
-                continue;
-
-            if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords)) {
-                wd->onMouseButtonOnDeco(mouseCoords, e);
-                return;
-            }
-        }
-    }
+    if (w && !w->m_bIsFullscreen && !m_bLastFocusOnLS && w->checkInputOnDecos(INPUT_TYPE_BUTTON, mouseCoords, e))
+        return;
 
     // clicking on border triggers resize
     // TODO detect click on LS properly
@@ -624,6 +615,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
         if (w && !w->m_bIsFullscreen) {
             const CBox real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
+
             if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {
                 g_pKeybindManager->resizeWithBorder(e);
                 return;
@@ -686,8 +678,7 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
-    static auto* const PSCROLLFACTOR      = &g_pConfigManager->getConfigValuePtr("input:touchpad:scroll_factor")->floatValue;
-    static auto* const PGROUPBARSCROLLING = &g_pConfigManager->getConfigValuePtr("group:groupbar:scrolling")->intValue;
+    static auto* const PSCROLLFACTOR = &g_pConfigManager->getConfigValuePtr("input:touchpad:scroll_factor")->floatValue;
 
     auto               factor = (*PSCROLLFACTOR <= 0.f || e->source != WLR_AXIS_SOURCE_FINGER ? 1.f : *PSCROLLFACTOR);
 
@@ -702,18 +693,10 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
         return;
 
     const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-    const auto pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
+    const auto PWINDOW     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
 
-    if (*PGROUPBARSCROLLING && pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(MOUSECOORDS) && pWindow->m_sGroupData.pNextWindow) {
-        const CBox box = g_pDecorationPositioner->getWindowDecorationBox(pWindow->getDecorationByType(DECORATION_GROUPBAR));
-        if (box.containsPoint(MOUSECOORDS)) {
-            if (e->delta > 0)
-                pWindow->setGroupCurrent(pWindow->m_sGroupData.pNextWindow);
-            else
-                pWindow->setGroupCurrent(pWindow->getGroupPrevious());
-            return;
-        }
-    }
+    if (PWINDOW && PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
+        return;
 
     wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
 }

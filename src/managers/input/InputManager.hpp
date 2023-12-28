@@ -32,6 +32,14 @@ enum eBorderIconDirection {
     BORDERICON_DOWN_RIGHT,
 };
 
+enum eInputType {
+    INPUT_TYPE_AXIS = 0,
+    INPUT_TYPE_BUTTON,
+    INPUT_TYPE_DRAG_START,
+    INPUT_TYPE_DRAG_END,
+    INPUT_TYPE_MOTION
+};
+
 struct STouchData {
     CWindow*       touchFocusWindow  = nullptr;
     SLayerSurface* touchFocusLS      = nullptr;

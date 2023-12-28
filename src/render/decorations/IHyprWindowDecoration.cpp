@@ -8,16 +8,8 @@ IHyprWindowDecoration::IHyprWindowDecoration(CWindow* pWindow) {
 
 IHyprWindowDecoration::~IHyprWindowDecoration() {}
 
-void IHyprWindowDecoration::onBeginWindowDragOnDeco(const Vector2D&) {
-    ;
-}
-
-bool IHyprWindowDecoration::onEndWindowDragOnDeco(CWindow* pDraggedWindow, const Vector2D&) {
-    return true;
-}
-
-void IHyprWindowDecoration::onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*) {
-    ;
+bool IHyprWindowDecoration::onInputOnDeco(const eInputType, const Vector2D&, std::any) {
+    return false;
 }
 
 eDecorationLayer IHyprWindowDecoration::getDecorationLayer() {
@@ -31,3 +23,4 @@ uint64_t IHyprWindowDecoration::getDecorationFlags() {
 std::string IHyprWindowDecoration::getDisplayName() {
     return "Unknown Decoration";
 }
+

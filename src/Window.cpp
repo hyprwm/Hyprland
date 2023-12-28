@@ -222,6 +222,24 @@ void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 }
 
+bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoords, std::any data) {
+    if (type != INPUT_TYPE_DRAG_END && hasPopupAt(mouseCoords))
+        return false;
+
+    for (auto& wd : m_dWindowDecorations) {
+        if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
+            continue;
+
+        if (!g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords))
+            continue;
+
+        if (wd->onInputOnDeco(type, mouseCoords, data))
+            return true;
+    }
+
+    return false;
+}
+
 pid_t CWindow::getPID() {
     pid_t PID = -1;
     if (!m_bIsX11) {

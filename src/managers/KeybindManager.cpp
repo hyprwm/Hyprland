@@ -1840,17 +1840,8 @@ void CKeybindManager::mouse(std::string args) {
             const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
             CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
-            if (pWindow && !pWindow->m_bIsFullscreen && !pWindow->hasPopupAt(mouseCoords)) {
-                for (auto& wd : pWindow->m_dWindowDecorations) {
-                    if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
-                        continue;
-
-                    if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords)) {
-                        wd->onBeginWindowDragOnDeco(mouseCoords);
-                        break;
-                    }
-                }
-            }
+            if (pWindow && !pWindow->m_bIsFullscreen)
+                pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_START, mouseCoords);
 
             if (!g_pInputManager->currentlyDraggedWindow)
                 g_pInputManager->currentlyDraggedWindow = pWindow;

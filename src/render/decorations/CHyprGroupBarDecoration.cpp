@@ -386,15 +386,28 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, CWindow
 }
 
 bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
-    if (e->state != WLR_BUTTON_PRESSED)
-        return false;
-
     if (m_pWindow->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_FULL)
         return true;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 
+    // close window on middle click
+    if (e->button == 274) {
+        static Vector2D pressedCursorPos;
+
+        if (e->state == WLR_BUTTON_PRESSED)
+            pressedCursorPos = pos;
+        else if (e->state == WLR_BUTTON_RELEASED && pressedCursorPos == pos)
+            g_pXWaylandManager->sendCloseWindow(m_pWindow->getGroupWindowByIndex(WINDOWINDEX));
+
+        return true;
+    }
+
+    if (e->state != WLR_BUTTON_PRESSED)
+        return true;
+
+    // click on padding
     if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth) {
         if (!g_pCompositor->isWindowActive(m_pWindow))
             g_pCompositor->focusWindow(m_pWindow);

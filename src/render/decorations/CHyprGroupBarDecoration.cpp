@@ -403,8 +403,8 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
     if (pWindow != m_pWindow)
         pWindow->setGroupCurrent(pWindow);
 
-    if (!g_pCompositor->isWindowActive(pWindow))
-        g_pCompositor->focusWindow(pWindow);
+    if (pWindow->m_bIsFloating)
+        g_pCompositor->changeWindowZOrder(pWindow, 1);
 
     return true;
 }

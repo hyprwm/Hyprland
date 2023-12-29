@@ -1,8 +1,8 @@
 #pragma once
 
+#include <any>
 #include "../../defines.hpp"
 #include "../../helpers/Region.hpp"
-#include "../../managers/input/InputManager.hpp"
 #include "DecorationPositioner.hpp"
 
 enum eDecorationType {

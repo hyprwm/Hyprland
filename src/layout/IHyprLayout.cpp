@@ -36,15 +36,15 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             const auto WINDOWISVISIBLE = pWindow->getGroupCurrent() == pWindow;
 
             if (WINDOWISVISIBLE)
-                PWINDOWPREV->setGroupCurrent(PWINDOWPREV);
+                PWINDOWPREV->setGroupCurrent(pWindow->m_sGroupData.head ? pWindow->m_sGroupData.pNextWindow : PWINDOWPREV);
 
             PWINDOWPREV->m_sGroupData.pNextWindow = pWindow->m_sGroupData.pNextWindow;
 
             pWindow->m_sGroupData.pNextWindow = nullptr;
 
             if (pWindow->m_sGroupData.head) {
-                std::swap(PWINDOWPREV->m_sGroupData.head, pWindow->m_sGroupData.head);
-                std::swap(PWINDOWPREV->m_sGroupData.locked, pWindow->m_sGroupData.locked);
+                std::swap(PWINDOWPREV->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
+                std::swap(PWINDOWPREV->m_sGroupData.pNextWindow->m_sGroupData.locked, pWindow->m_sGroupData.locked);
             }
 
             if (pWindow == m_pLastTiledWindow)

@@ -601,7 +601,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
     const auto w           = g_pCompositor->vectorToWindowIdeal(mouseCoords);
 
-    if (w && !w->m_bIsFullscreen && !m_bLastFocusOnLS && w->checkInputOnDecos(INPUT_TYPE_BUTTON, mouseCoords, e))
+    if (w && !m_bLastFocusOnLS && w->checkInputOnDecos(INPUT_TYPE_BUTTON, mouseCoords, e))
         return;
 
     // clicking on border triggers resize

@@ -389,6 +389,9 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
     if (e->state != WLR_BUTTON_PRESSED)
         return false;
 
+    if (m_pWindow->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_FULL)
+        return true;
+
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 

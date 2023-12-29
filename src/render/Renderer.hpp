@@ -76,13 +76,13 @@ class CHyprRenderer {
     bool      beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, wlr_buffer* buffer = nullptr, CFramebuffer* fb = nullptr);
     void      endRender();
 
-    bool      m_bBlockSurfaceFeedback      = false;
-    bool      m_bRenderingSnapshot         = false;
-    CWindow*  m_pLastScanout               = nullptr;
-    CMonitor* m_pMostHzMonitor             = nullptr;
-    bool      m_bDirectScanoutBlocked      = false;
-    bool      m_bSoftwareCursorsLocked     = false;
-    bool      m_bTearingEnvSatisfied       = false;
+    bool      m_bBlockSurfaceFeedback  = false;
+    bool      m_bRenderingSnapshot     = false;
+    CWindow*  m_pLastScanout           = nullptr;
+    CMonitor* m_pMostHzMonitor         = nullptr;
+    bool      m_bDirectScanoutBlocked  = false;
+    bool      m_bSoftwareCursorsLocked = false;
+    bool      m_bTearingEnvSatisfied   = false;
 
     DAMAGETRACKINGMODES
     damageTrackingModeFromStr(const std::string&);

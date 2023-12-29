@@ -24,6 +24,14 @@ enum eRenderStage {
     RENDER_POST_WINDOW,  /* After rendering a window (any pass) */
 };
 
+enum eInputType {
+    INPUT_TYPE_AXIS = 0,
+    INPUT_TYPE_BUTTON,
+    INPUT_TYPE_DRAG_START,
+    INPUT_TYPE_DRAG_END,
+    INPUT_TYPE_MOTION
+};
+
 struct SCallbackInfo {
     bool cancelled = false; /* on cancellable events, will cancel the event. */
 };

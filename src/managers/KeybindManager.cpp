@@ -261,8 +261,7 @@ void CKeybindManager::switchToWindow(CWindow* PWINDOWTOCHANGETO) {
 
 bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
     if (!g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
-        m_dPressedKeycodes.clear();
-        m_dPressedKeysyms.clear();
+        m_dPressedKeys.clear();
         return true;
     }
 
@@ -302,12 +301,14 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
             m_pActiveKeybind            = nullptr;
         }
 
-        m_dPressedKeycodes.push_back(KEYCODE);
-        m_dPressedKeysyms.push_back(keysym);
+        const auto key = SPressedKeyWithMods{
+            .keysym             = keysym,
+            .keycode            = KEYCODE,
+            .modmaskAtPressTime = MODS,
+        };
+        m_dPressedKeys.push_back(key);
 
-        found = handleKeybinds(MODS, "", keysym, 0, true, e->time_msec) || found;
-
-        found = handleKeybinds(MODS, "", 0, KEYCODE, true, e->time_msec) || found;
+        found = handleKeybinds(MODS, "", key, true, e->time_msec);
 
         if (found)
             shadowKeybinds(keysym, KEYCODE);
@@ -319,12 +320,12 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
             m_pActiveKeybind            = nullptr;
         }
 
-        m_dPressedKeycodes.erase(std::remove(m_dPressedKeycodes.begin(), m_dPressedKeycodes.end(), KEYCODE), m_dPressedKeycodes.end());
-        m_dPressedKeysyms.erase(std::remove(m_dPressedKeysyms.begin(), m_dPressedKeysyms.end(), keysym), m_dPressedKeysyms.end());
+        auto it = std::find_if(m_dPressedKeys.begin(), m_dPressedKeys.end(), [&](const SPressedKeyWithMods& other) { return other.keycode == KEYCODE; });
+        // If not found, crash on purpose, because it's wrong and should be fixed.
+        found = handleKeybinds(MODS, "", *it, false, e->time_msec);
 
-        found = handleKeybinds(MODS, "", keysym, 0, false, e->time_msec) || found;
-
-        found = handleKeybinds(MODS, "", 0, KEYCODE, false, e->time_msec) || found;
+        m_dPressedKeys.erase(std::remove_if(m_dPressedKeys.begin(), m_dPressedKeys.end(), [&](const SPressedKeyWithMods& other) { return other.keycode == KEYCODE; }),
+                             m_dPressedKeys.end());
 
         shadowKeybinds();
     }
@@ -347,14 +348,14 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     bool found = false;
     if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
         if (e->delta < 0)
-            found = handleKeybinds(MODS, "mouse_down", 0, 0, true, 0);
+            found = handleKeybinds(MODS, "mouse_down", SPressedKeyWithMods{}, true, 0);
         else
-            found = handleKeybinds(MODS, "mouse_up", 0, 0, true, 0);
+            found = handleKeybinds(MODS, "mouse_up", SPressedKeyWithMods{}, true, 0);
     } else if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_HORIZONTAL) {
         if (e->delta < 0)
-            found = handleKeybinds(MODS, "mouse_left", 0, 0, true, 0);
+            found = handleKeybinds(MODS, "mouse_left", SPressedKeyWithMods{}, true, 0);
         else
-            found = handleKeybinds(MODS, "mouse_right", 0, 0, true, 0);
+            found = handleKeybinds(MODS, "mouse_right", SPressedKeyWithMods{}, true, 0);
     }
 
     if (found)
@@ -375,12 +376,12 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     bool mouseBindWasActive = ensureMouseBindState();
 
     if (e->state == WLR_BUTTON_PRESSED) {
-        found = handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, true, 0);
+        found = handleKeybinds(MODS, "mouse:" + std::to_string(e->button), SPressedKeyWithMods{}, true, 0);
 
         if (found)
             shadowKeybinds();
     } else {
-        found = handleKeybinds(MODS, "mouse:" + std::to_string(e->button), 0, 0, false, 0);
+        found = handleKeybinds(MODS, "mouse:" + std::to_string(e->button), SPressedKeyWithMods{}, false, 0);
 
         shadowKeybinds();
     }
@@ -397,15 +398,15 @@ void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
 }
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
-    handleKeybinds(0, "switch:" + switchName, 0, 0, true, 0);
+    handleKeybinds(0, "switch:" + switchName, SPressedKeyWithMods{}, true, 0);
 }
 
 void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
-    handleKeybinds(0, "switch:on:" + switchName, 0, 0, true, 0);
+    handleKeybinds(0, "switch:on:" + switchName, SPressedKeyWithMods{}, true, 0);
 }
 
 void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
-    handleKeybinds(0, "switch:off:" + switchName, 0, 0, true, 0);
+    handleKeybinds(0, "switch:off:" + switchName, SPressedKeyWithMods{}, true, 0);
 }
 
 int repeatKeyHandler(void* data) {
@@ -424,7 +425,7 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string& key, const xkb_keysym_t& keysym, const int& keycode, bool pressed, uint32_t time) {
+bool CKeybindManager::handleKeybinds(const uint32_t modmask, const std::string& key, const SPressedKeyWithMods keyNumeric, bool pressed, uint32_t time) {
     bool found = false;
 
     if (g_pCompositor->m_sSeat.exclusiveClient)
@@ -445,18 +446,15 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             if (key != k.key)
                 continue;
         } else if (k.keycode != -1) {
-            if (keycode != k.keycode)
+            if (keyNumeric.keycode != k.keycode)
                 continue;
         } else {
-            if (keysym == 0)
-                continue; // this is a keycode check run
-
             // oMg such performance hit!!11!
             // this little maneouver is gonna cost us 4µs
             const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
-            if (keysym != KBKEY && keysym != KBKEYUPPER)
+            if (keyNumeric.keysym != KBKEY && keyNumeric.keysym != KBKEYUPPER)
                 continue;
         }
 
@@ -468,12 +466,17 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             continue;
         }
 
-        if (!pressed && !k.release && !SPECIALDISPATCHER) {
-            if (k.nonConsuming)
+        if (!pressed) {
+            // Require mods to be matching when the key was first pressed.
+            if (keyNumeric.modmaskAtPressTime != modmask)
                 continue;
+            else if (!k.release && !SPECIALDISPATCHER) {
+                if (k.nonConsuming)
+                    continue;
 
-            found = true; // suppress the event
-            continue;
+                found = true; // suppress the event
+                continue;
+            }
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
@@ -488,7 +491,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t& modmask, const std::string&
             Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k.handler);
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key, keysym);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key, keyNumeric.keysym);
 
             m_iPassPressed = (int)pressed;
 
@@ -534,22 +537,20 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const int& 
         const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
         const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
-        for (auto& pk : m_dPressedKeysyms) {
-            if ((pk == KBKEY || pk == KBKEYUPPER)) {
+        for (auto& pk : m_dPressedKeys) {
+            if ((pk.keysym == KBKEY || pk.keysym == KBKEYUPPER)) {
                 shadow = true;
 
-                if (pk == doesntHave && doesntHave != 0) {
+                if (pk.keysym == doesntHave && doesntHave != 0) {
                     shadow = false;
                     break;
                 }
             }
-        }
 
-        for (auto& pk : m_dPressedKeycodes) {
-            if (pk == k.keycode) {
+            if (pk.keycode == k.keycode) {
                 shadow = true;
 
-                if (pk == doesntHaveCode && doesntHaveCode != 0 && doesntHaveCode != -1) {
+                if (pk.keycode == doesntHaveCode && doesntHaveCode != 0 && doesntHaveCode != -1) {
                     shadow = false;
                     break;
                 }

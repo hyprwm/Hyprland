@@ -751,6 +751,7 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
         while (curr != PCURRENT) {
             curr->m_bIsFloating = PCURRENT->m_bIsFloating;
             curr->updateDynamicRules();
+            curr->updateSpecialRenderData();
             curr = curr->m_sGroupData.pNextWindow;
         }
     } else {

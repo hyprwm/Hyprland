@@ -550,7 +550,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         newrepo.plugins.clear();
         execAndGet(
             "cd /tmp/hyprpm/update/ && git pull --recurse-submodules && git reset --hard --recurse-submodules"); // repo hash in the state.toml has to match head and not any pin
-        std::string repohash = execAndGet("git rev-parse HEAD");
+        std::string repohash = execAndGet("cd /tmp/hyprpm/update && git rev-parse HEAD");
         if (repohash.length() > 0)
             repohash.pop_back();
         newrepo.hash = repohash;

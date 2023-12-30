@@ -321,8 +321,17 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         }
 
         auto it = std::find_if(m_dPressedKeys.begin(), m_dPressedKeys.end(), [&](const SPressedKeyWithMods& other) { return other.keycode == KEYCODE; });
-        // If not found, crash on purpose, because it's wrong and should be fixed.
-        found = handleKeybinds(MODS, "", *it, false, e->time_msec);
+        if (it != m_dPressedKeys.end()) {
+            found = handleKeybinds(MODS, "", *it, false, e->time_msec);
+        } else {
+            Debug::log(ERR, "Expected to find key in m_dPressedKeys, but not found; falling back to a buggy behavior.");
+            const auto FALLBACK_KEY = SPressedKeyWithMods{
+                .keysym             = keysym,
+                .keycode            = KEYCODE,
+                .modmaskAtPressTime = MODS,
+            };
+            found = handleKeybinds(MODS, "", FALLBACK_KEY, false, e->time_msec);
+        }
 
         m_dPressedKeys.erase(std::remove_if(m_dPressedKeys.begin(), m_dPressedKeys.end(), [&](const SPressedKeyWithMods& other) { return other.keycode == KEYCODE; }),
                              m_dPressedKeys.end());

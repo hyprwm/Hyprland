@@ -2629,6 +2629,7 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
     pWindow->moveToWorkspace(pWorkspace->m_iID);
     pWindow->updateToplevel();
     pWindow->updateDynamicRules();
+    pWindow->uncacheWindowDecos();
 
     if (!pWindow->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);

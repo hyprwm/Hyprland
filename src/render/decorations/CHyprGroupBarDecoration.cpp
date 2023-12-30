@@ -15,8 +15,11 @@ constexpr int   BAR_TEXT_PAD           = 2;
 constexpr int   BAR_HORIZONTAL_PADDING = 2;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
-    m_pWindow = pWindow;
-    if (m_tGradientActive.m_iTexID == 0)
+    static auto* const PGRADIENTS = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const PENABLED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
+    m_pWindow                     = pWindow;
+
+    if (m_tGradientActive.m_iTexID == 0 && *PENABLED && *PGRADIENTS)
         refreshGroupBarGradients();
 }
 
@@ -25,13 +28,19 @@ CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto* const         PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
     static auto* const         PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
+    static auto* const         PENABLED       = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
 
     SDecorationPositioningInfo info;
-    info.policy         = DECORATION_POSITION_STICKY;
-    info.edges          = DECORATION_EDGE_TOP;
-    info.priority       = 3;
-    info.reserved       = true;
-    info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2}, {0, 0}};
+    info.policy   = DECORATION_POSITION_STICKY;
+    info.edges    = DECORATION_EDGE_TOP;
+    info.priority = g_pConfigManager->getConfigValuePtr("group:groupbar:priority")->intValue;
+    info.reserved = true;
+
+    if (*PENABLED && m_pWindow->m_sSpecialRenderData.decorate)
+        info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2}, {0, 0}};
+    else
+        info.desiredExtents = {{0, 0}, {0, 0}};
+
     return info;
 }
 
@@ -78,11 +87,12 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     // get how many bars we will draw
     int                barsToDraw = m_dwGroupMembers.size();
 
+    static auto* const PENABLED       = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
     static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
     static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
     static auto* const PGRADIENTS     = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
 
-    if (!m_pWindow->m_sSpecialRenderData.decorate)
+    if (!*PENABLED || !m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
     const auto ASSIGNEDBOX = assignedBoxGlobal();
@@ -280,6 +290,9 @@ void renderGradientTo(CTexture& tex, const CColor& grad) {
 }
 
 void refreshGroupBarGradients() {
+    static auto* const PGRADIENTS = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const PENABLED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
+
     static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
     static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
     static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
@@ -293,6 +306,9 @@ void refreshGroupBarGradients() {
         m_tGradientLockedActive.destroyTexture();
         m_tGradientLockedInactive.destroyTexture();
     }
+
+    if (!*PENABLED || !*PGRADIENTS)
+        return;
 
     renderGradientTo(m_tGradientActive, ((CGradientValueData*)PGROUPCOLACTIVE->get())->m_vColors[0]);
     renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0]);

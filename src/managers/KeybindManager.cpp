@@ -334,7 +334,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
             }
         }
         if (!foundInPressedKeys) {
-            Debug::log(ERR, "Expected to find key in m_dPressedKeys, but not found; falling back to a buggy behavior.");
+            Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys");
             const auto FALLBACK_KEY = SPressedKeyWithMods{
                 .keysym             = keysym,
                 .keycode            = KEYCODE,

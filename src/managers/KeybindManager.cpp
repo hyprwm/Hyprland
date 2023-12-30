@@ -7,6 +7,7 @@
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <vector>
 #if defined(__linux__)
 #include <linux/vt.h>
 #elif defined(__NetBSD__) || defined(__OpenBSD__)
@@ -333,8 +334,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
             found = handleKeybinds(MODS, "", FALLBACK_KEY, false, e->time_msec);
         }
 
-        m_dPressedKeys.erase(std::remove_if(m_dPressedKeys.begin(), m_dPressedKeys.end(), [&](const SPressedKeyWithMods& other) { return other.keycode == KEYCODE; }),
-                             m_dPressedKeys.end());
+        std::erase_if(m_dPressedKeys, [&](const SPressedKeyWithMods& other) { return other.keycode == KEYCODE; });
 
         shadowKeybinds();
     }

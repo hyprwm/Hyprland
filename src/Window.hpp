@@ -348,6 +348,7 @@ class CWindow {
     void                     addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco);
     void                     updateWindowDecos();
     void                     removeWindowDeco(IHyprWindowDecoration* deco);
+    void                     uncacheWindowDecos();
     bool                     checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
     pid_t                    getPID();
     IHyprWindowDecoration*   getDecorationByType(eDecorationType);

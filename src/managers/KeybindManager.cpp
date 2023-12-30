@@ -441,7 +441,7 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t modmask, const std::string& key, const SPressedKeyWithMods keyNumeric, bool pressed, uint32_t time) {
+bool CKeybindManager::handleKeybinds(const uint32_t modmask, const std::string& key, const SPressedKeyWithMods& keyNumeric, bool pressed, uint32_t time) {
     bool found = false;
 
     if (g_pCompositor->m_sSeat.exclusiveClient)

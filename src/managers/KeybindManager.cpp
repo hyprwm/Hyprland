@@ -301,14 +301,14 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
             m_pActiveKeybind            = nullptr;
         }
 
-        const auto key = SPressedKeyWithMods{
+        const auto KEY = SPressedKeyWithMods{
             .keysym             = keysym,
             .keycode            = KEYCODE,
             .modmaskAtPressTime = MODS,
         };
-        m_dPressedKeys.push_back(key);
+        m_dPressedKeys.push_back(KEY);
 
-        found = handleKeybinds(MODS, "", key, true, e->time_msec);
+        found = handleKeybinds(MODS, "", KEY, true, e->time_msec);
 
         if (found)
             shadowKeybinds(keysym, KEYCODE);

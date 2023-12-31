@@ -314,7 +314,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 
         if (found)
             shadowKeybinds(keysym, KEYCODE);
-    } else if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+    } else { // key release
         // clean repeat
         if (m_pActiveKeybindEventSource) {
             wl_event_source_remove(m_pActiveKeybindEventSource);

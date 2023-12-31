@@ -53,8 +53,9 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
     static auto* const PBLURPOPUPS            = &g_pConfigManager->getConfigValuePtr("decoration:blur:popups")->intValue;
     static auto* const PBLURPOPUPSIGNOREALPHA = &g_pConfigManager->getConfigValuePtr("decoration:blur:popups_ignorealpha")->floatValue;
 
-    const auto         TEXTURE = wlr_surface_get_texture(surface);
-    const auto         RDATA   = (SRenderData*)data;
+    const auto         TEXTURE                     = wlr_surface_get_texture(surface);
+    const auto         RDATA                       = (SRenderData*)data;
+    const auto         INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
 
     if (!TEXTURE)
         return;
@@ -72,9 +73,8 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
         auto* const PSURFACE = CWLSurface::surfaceFromWlr(surface);
 
         if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees m_pOwner */) {
-            const auto CORRECT                     = PSURFACE->correctSmallVec();
-            const auto SIZE                        = PSURFACE->getViewporterCorrectedSize();
-            const auto INTERACTIVERESIZEINPROGRESS = g_pInputManager->currentlyDraggedWindow == PSURFACE->m_pOwner && g_pInputManager->dragMode == MBIND_RESIZE;
+            const auto CORRECT = PSURFACE->correctSmallVec();
+            const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
 
             if (!INTERACTIVERESIZEINPROGRESS) {
                 windowBox.x += CORRECT.x;
@@ -111,6 +111,15 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
     windowBox.scale(RDATA->pMonitor->scale);
     windowBox.round();
+
+    // check for fractional scale surfaces misaligning the buffer size
+    // in those cases it's better to just force nearest neighbor
+    // as long as the window is not animated. During those it'd look weird
+    const auto NEARESTNEIGHBORSET = g_pHyprOpenGL->m_RenderData.useNearestNeighbor;
+    if (std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
+        windowBox.size() != Vector2D{surface->current.buffer_width, surface->current.buffer_height} /* misaligned */ &&
+        (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */)
+        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
     float rounding = RDATA->rounding;
 
@@ -157,9 +166,10 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
     g_pHyprOpenGL->blend(true);
 
-    // reset the UV, we might've set it above
+    // reset props
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = NEARESTNEIGHBORSET;
 }
 
 bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWorkspace* pWorkspace) {

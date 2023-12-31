@@ -1747,10 +1747,12 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     // Needed in case we are switching from a custom modeline to a standard mode
     pMonitor->customDrmMode = {};
+    bool autoScale          = false;
 
     if (pMonitorRule->scale > 0.1) {
         pMonitor->scale = pMonitorRule->scale;
     } else {
+        autoScale               = true;
         const auto DEFAULTSCALE = pMonitor->getDefaultScale();
         pMonitor->scale         = DEFAULTSCALE;
     }
@@ -2008,15 +2010,22 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             }
 
             if (!found) {
-                Debug::log(ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", pMonitor->scale);
-                g_pConfigManager->addParseError("Invalid scale passed to monitor " + pMonitor->szName + ", failed to find a clean divisor");
+                if (autoScale)
+                    pMonitor->scale = std::round(scaleZero);
+                else {
+                    Debug::log(ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", pMonitor->scale);
+                    g_pConfigManager->addParseError("Invalid scale passed to monitor " + pMonitor->szName + ", failed to find a clean divisor");
+                    pMonitor->scale = pMonitor->getDefaultScale();
+                }
             } else {
-                Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", pMonitor->scale, searchScale);
-                g_pConfigManager->addParseError(
-                    std::format("Invalid scale passed to monitor {}, failed to find a clean divisor. Suggested nearest scale: {:5f}", pMonitor->szName, searchScale));
+                if (!autoScale) {
+                    Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", pMonitor->scale, searchScale);
+                    g_pConfigManager->addParseError(
+                        std::format("Invalid scale passed to monitor {}, failed to find a clean divisor. Suggested nearest scale: {:5f}", pMonitor->szName, searchScale));
+                    pMonitor->scale = pMonitor->getDefaultScale();
+                } else
+                    pMonitor->scale = searchScale;
             }
-
-            pMonitor->scale = pMonitor->getDefaultScale();
         }
     }
 

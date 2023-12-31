@@ -588,7 +588,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
             if (pk.keycode == k.keycode) {
                 shadow = true;
 
-                if (pk.keycode == doesntHaveCode && doesntHaveCode != 0 && doesntHaveCode != -1) {
+                if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {
                     shadow = false;
                     break;
                 }
